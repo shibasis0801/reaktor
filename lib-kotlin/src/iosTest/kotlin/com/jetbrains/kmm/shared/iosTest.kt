@@ -23,4 +23,9 @@ class GreetingTest {
         println(FlatInvoker.getNameFromCpp())
         assertTrue(FlatInvoker.getNameFromCpp() == "shibasisCpp", "Able to pass a C++ string")
     }
+
+    @Test
+    fun testCppBytes() {
+        assertTrue(FlatInvoker.testSendBytesArray(byteArrayOf(1)), "Able to pass a C++ bytes")
+    }
 }

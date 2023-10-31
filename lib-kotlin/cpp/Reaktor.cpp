@@ -19,3 +19,11 @@ char* getNameCpp() {
     std::strcpy(heapStr, name.c_str());
     return heapStr;
 }
+
+int sendByteArray(const uint8_t* bytes, int size) {
+    for (size_t i = 0; i < size; ++i) {
+        printf("%x ", bytes[i]);
+    }
+    printf("\n");
+    return 1;
+}

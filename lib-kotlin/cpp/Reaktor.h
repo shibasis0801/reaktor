@@ -8,6 +8,7 @@ extern "C" {
     int reaktorTest();
     const char* getName();
     char* getNameCpp();
+    int sendByteArray(const uint8_t* bytes, int size);
 #ifdef __cplusplus
 }
 #endif
