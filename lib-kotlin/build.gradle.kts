@@ -31,7 +31,7 @@ kotlin {
                 defFile(file("cpp/reaktor.def"))
                 headers("cpp/Reaktor.h")
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
-//                extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
+                extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 extraOpts("-Xcompile-source", "cpp/Reaktor.cpp")
 //                extraOpts("-Xsource-compiler-option", "-I../../core-cpp")
             }
@@ -42,6 +42,7 @@ kotlin {
         all {
             languageSettings.apply {
                 optIn("kotlin.experimental.ExperimentalNativeApi")
+                optIn("kotlinx.cinterop.ExperimentalForeignApi")
                 optIn("kotlin.ExperimentalUnsignedTypes")
             }
         }
@@ -64,6 +65,12 @@ kotlin {
             }
         }
 
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(kotlin("test-junit"))
+                implementation("junit:junit:4.13.2")
+            }
+        }
         val androidInstrumentedTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))

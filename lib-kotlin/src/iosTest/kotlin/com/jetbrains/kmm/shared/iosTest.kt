@@ -7,9 +7,20 @@ import kotlin.test.assertTrue
 class GreetingTest {
 
     @Test
-    fun testExample() {
+    fun testInt() {
         assertTrue(Greeting().greeting().contains("iOS"), "Check iOS is mentioned")
-        assertTrue(Platform().data == 42, "Able to call C++")
+        assertTrue(Platform().data != 0, "Able to call C++")
         println(Platform().data)
+    }
+
+    @Test
+    fun testString() {
+        assertTrue(FlatInvoker.getNameFromC() == "shibasis", "Able to pass a C string")
+    }
+
+    @Test
+    fun testCppString() {
+        println(FlatInvoker.getNameFromCpp())
+        assertTrue(FlatInvoker.getNameFromCpp() == "shibasisCpp", "Able to pass a C++ string")
     }
 }

@@ -58,4 +58,3 @@ include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
 includeBuild("test-kmm")
 include(":lib-kotlin")
 
-

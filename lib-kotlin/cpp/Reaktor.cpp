@@ -1,8 +1,21 @@
 #include "Reaktor.h"
 //#include <core-cpp/base.h>
-//#include <string>
+#include <string>
 
 int reaktorTest() {
-    return 42;
+    std::string x = "Hello World Shibasis here";
+    return 100 + x.size();
 //    return getNumber();
+}
+
+const char* getName() {
+    return "shibasis";
+}
+
+
+char* getNameCpp() {
+    std::string name = "shibasisCpp";
+    char* heapStr = new char[name.length() + 1];
+    std::strcpy(heapStr, name.c_str());
+    return heapStr;
 }
