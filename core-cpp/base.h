@@ -23,8 +23,8 @@ using std::function;
 #define GUARD(ptr) if ((ptr) == nullptr) return
 #define GUARD_THROW(ptr, errorMessage) if ((ptr) == nullptr) throw ReaktorException(errorMessage)
 #define GUARD_DEFAULT(ptr, fallback) if ((ptr) == nullptr) return fallback
-#define in(container, element) (container).find(element) != (container).end()
-#define all(container) (container).begin(), (container).end()
+//#define in(container, element) (container).find(element) != (container).end()
+//#define all(container) (container).begin(), (container).end()
 
 
 inline int getNumber() { return 42; }

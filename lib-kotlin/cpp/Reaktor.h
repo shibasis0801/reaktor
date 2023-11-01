@@ -8,6 +8,7 @@ extern "C" {
     int reaktorTest();
     const char* getName();
     char* getNameCpp();
+    // Used by kotlin to send byte array to cpp
     int sendByteArray(const uint8_t* bytes, int size);
 #ifdef __cplusplus
 }
