@@ -20,7 +20,7 @@ struct JavaMessageSender: jni::JavaClass<JavaMessageSender> {
     JAVA_DESCRIPTOR("Lcom/jetbrains/kmm/shared/JavaMessageSender;");
 
     static jni::local_ref<jni::JByteBuffer>  sendMessage(
-        jni::alias_ref<JavaMessageSender> bifrost,
+        jni::alias_ref<JavaMessageSender> jms,
         jni::alias_ref<jni::JByteBuffer> buffer
     ) {
         if (!buffer->isDirect()) throw std::runtime_error("Indirect buffer shibasis");
@@ -34,20 +34,44 @@ struct JavaMessageSender: jni::JavaClass<JavaMessageSender> {
         // Perform Operation and Create Result FlexBuffer
         auto sum = first + second;
         flexbuffers::Builder builder(1024);
-        builder.Int(sum);
+        builder.Vector([&]() {
+            builder.Int(first);
+            builder.Int(second);
+            builder.Int(sum);
+        });
         builder.Finish();
+        auto x = builder.GetSize();
 
         // Write Output Buffer
         auto data = builder.GetBuffer();
-        auto outputBuffer = jni::JByteBuffer::allocateDirect(data.size());
-        std::memcpy(const_cast<uint8_t *>(outputBuffer->getDirectBytes()), data.data(), data.size());
+        // Object pool direct byte buffers, allocations are expensive
+        auto outputBuffer = jni::JByteBuffer::allocateDirect(builder.GetSize());
+        outputBuffer->order(jni::JByteOrder::nativeOrder());
+        std::memcpy(const_cast<uint8_t *>(outputBuffer->getDirectBytes()), data.data(), builder.GetSize());
         return outputBuffer;
+    }
 
+    static jni::local_ref<jni::JByteBuffer> getByteBuffer(
+            jni::alias_ref<JavaMessageSender> jms
+    ) {
+        auto outputBuffer = jni::JByteBuffer::allocateDirect(1);
+        outputBuffer->order(jni::JByteOrder::nativeOrder());
+        return outputBuffer;
+    }
+
+    static jni::local_ref<jni::JByteBuffer> echoByteBuffer(
+            jni::alias_ref<JavaMessageSender> jms,
+            jni::alias_ref<jni::JByteBuffer> buffer
+    ) {
+        buffer->getDirectBytes()[0] = 9;
+        return buffer->order(jni::JByteOrder::nativeOrder());
     }
 
     static void registerNatives() {
         javaClassStatic()->registerNatives({
-            makeNativeMethod("sendMessage", JavaMessageSender::sendMessage)
+            makeNativeMethod("sendMessage", JavaMessageSender::sendMessage),
+            makeNativeMethod("getByteBuffer", JavaMessageSender::getByteBuffer),
+            makeNativeMethod("echoByteBuffer", JavaMessageSender::echoByteBuffer)
         });
     }
 };
@@ -58,20 +82,48 @@ jint JNI_OnLoad(JavaVM *vm, void*) {
     });
 }
 
+/*
+Java <- C++ Sender
+
+Python <- C++ Sender
+
+JS <- C++ Sender
 
 
-//struct JavaChannel {
-//    jni sendMessage(message) {
-//        messageReceiever(message)
-//    }
-//};
-//
-//void sendMessage(string receiver) {
-//    if (receiver == "java") {
-//        JavaReceiver.onMessage(payload);
-//    }
-//}
-//
-//void messageReceiver(string message) {
-//
-//}
+Language -> FlatBuf -> C++ Sender
+
+C++ -> Decode Target Language -> Language Sender -> sendMessage
+
+
+
+
+
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

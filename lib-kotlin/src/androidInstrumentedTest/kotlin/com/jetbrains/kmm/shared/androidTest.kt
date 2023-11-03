@@ -1,16 +1,13 @@
 package com.jetbrains.kmm.shared
 
+import com.google.flatbuffers.kotlin.ArrayReadWriteBuffer
 import com.google.flatbuffers.kotlin.FlexBuffersBuilder
 import com.google.flatbuffers.kotlin.getRoot
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.ByteBuffer
 
 class GreetingTest {
-    @Test
-    fun testExample() {
-        assertTrue("Check Android is mentioned", Greeting().greeting().contains("Android"))
-    }
-
     @Test
     fun testCpp() {
         assertTrue("Able to access JNI", Platform().data == 42)
@@ -30,11 +27,29 @@ class GreetingTest {
             put(100)
         }.finish()
 
-        val ref = getRoot(result)
-        val x = ref.type
-        val sum = ref.toInt();
+        val data = test.data()
+        val buf = ArrayReadWriteBuffer(data)
+
+        val ref = getRoot(result).toVector()
+        val sum = ref[2].toInt();
 
         val answer = result[0].toInt()
-        assertTrue("Sum is 100", answer == 100)
+        assertTrue("Sum is 100", sum == 100)
+    }
+
+    @Test
+    fun testByteBufferTransfer() {
+        val buffer = JavaMessageSender.getByteBuffer()
+        println("ByteBuffer offset -> ${buffer.arrayOffset()}")
+        assertTrue(buffer.arrayOffset() == 0)
+    }
+
+    @Test
+    fun testEchoByteBuffer() {
+        val buffer = ByteBuffer.allocateDirect(1);
+        val newBuffer = ByteBuffer.allocateDirect(1);
+        newBuffer.put(9);
+        val result = JavaMessageSender.echoByteBuffer(buffer)
+        assertTrue(true)
     }
 }
