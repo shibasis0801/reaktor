@@ -52,4 +52,20 @@ class GreetingTest {
         val result = JavaMessageSender.echoByteBuffer(buffer)
         assertTrue(true)
     }
+
+    @Test
+    fun testExecute() {
+        val command = FlexBuffersBuilder().apply {
+            val start = startMap()
+            this["className"] = "Sum"
+            this["functionName"] = "add"
+            endMap(start)
+        }.finish()
+        val result = JavaMessageSender.execute(command)
+        val sum = getRoot(result).toVector()
+        val className = sum[0].toString()
+        val functionName = sum[1].toString()
+        assertTrue(className == "Sum")
+        assertTrue(functionName == "add")
+    }
 }

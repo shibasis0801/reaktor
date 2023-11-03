@@ -67,11 +67,35 @@ struct JavaMessageSender: jni::JavaClass<JavaMessageSender> {
         return buffer->order(jni::JByteOrder::nativeOrder());
     }
 
+    static jni::local_ref<jni::JByteBuffer> execute(
+            jni::alias_ref<JavaMessageSender> jms,
+            jni::alias_ref<jni::JByteBuffer> buffer
+    ) {
+        auto command = flexbuffers::GetRoot(buffer->getDirectBytes(), buffer->getDirectSize()).AsMap();
+        auto className = command["className"].AsString().str();
+        auto functionName = command["functionName"].AsString().str();
+
+        flexbuffers::Builder builder(1024);
+        builder.Vector([&]() {
+            builder.String(className);
+            builder.String(functionName);
+        });
+        builder.Finish();
+
+        auto data = builder.GetBuffer();
+        // Object pool direct byte buffers, allocations are expensive
+        auto outputBuffer = jni::JByteBuffer::allocateDirect(builder.GetSize());
+        outputBuffer->order(jni::JByteOrder::nativeOrder());
+        std::memcpy(const_cast<uint8_t *>(outputBuffer->getDirectBytes()), data.data(), builder.GetSize());
+        return outputBuffer;
+    }
+
     static void registerNatives() {
         javaClassStatic()->registerNatives({
             makeNativeMethod("sendMessage", JavaMessageSender::sendMessage),
             makeNativeMethod("getByteBuffer", JavaMessageSender::getByteBuffer),
-            makeNativeMethod("echoByteBuffer", JavaMessageSender::echoByteBuffer)
+            makeNativeMethod("echoByteBuffer", JavaMessageSender::echoByteBuffer),
+            makeNativeMethod("execute", JavaMessageSender::execute)
         });
     }
 };

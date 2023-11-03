@@ -45,6 +45,11 @@ object JavaMessageSender: MessageSender {
     external fun getByteBuffer(): ByteBuffer
     external fun echoByteBuffer(byteBuffer: ByteBuffer): ByteBuffer
 
+    external fun execute(byteBuffer: ByteBuffer): ByteBuffer
+    fun execute(message: ReadBuffer): ReadBuffer {
+        val result = execute(message.toByteBuffer())
+        return result.toReadBuffer()
+    }
 
     init {
         System.loadLibrary("kmmFlatInvoker")
