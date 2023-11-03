@@ -74,11 +74,18 @@ struct JavaMessageSender: jni::JavaClass<JavaMessageSender> {
         auto command = flexbuffers::GetRoot(buffer->getDirectBytes(), buffer->getDirectSize()).AsMap();
         auto className = command["className"].AsString().str();
         auto functionName = command["functionName"].AsString().str();
+        auto payload = command["payload"].AsMap()["data"].AsVector();
+
+        int sum = 0;
+        repeat(i, payload.size()) {
+            sum += payload[i].AsInt64();
+        }
 
         flexbuffers::Builder builder(1024);
         builder.Vector([&]() {
             builder.String(className);
             builder.String(functionName);
+            builder.Int(sum);
         });
         builder.Finish();
 

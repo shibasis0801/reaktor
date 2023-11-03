@@ -57,15 +57,28 @@ class GreetingTest {
     fun testExecute() {
         val command = FlexBuffersBuilder().apply {
             val start = startMap()
-            this["className"] = "Sum"
-            this["functionName"] = "add"
+            set("className", "Sum")
+            set("functionName", "add")
+
+            val vStart = startMap()
+            val vvStart = startVector()
+            put(45)
+            put(55)
+            endVector("data", vvStart)
+            endMap(vStart, "payload")
+
             endMap(start)
         }.finish()
         val result = JavaMessageSender.execute(command)
+
         val sum = getRoot(result).toVector()
+
         val className = sum[0].toString()
         val functionName = sum[1].toString()
+        val payloadResult = sum[2].toInt()
+
         assertTrue(className == "Sum")
         assertTrue(functionName == "add")
+        assertTrue(payloadResult == 100)
     }
 }
