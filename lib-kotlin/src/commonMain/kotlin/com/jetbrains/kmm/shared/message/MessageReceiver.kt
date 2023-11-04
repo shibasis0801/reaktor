@@ -1,11 +1,6 @@
-package com.jetbrains.kmm.shared
+package com.jetbrains.kmm.shared.message
 
 import com.google.flatbuffers.kotlin.ReadBuffer
-
-interface MessageSender {
-    fun sendMessage(message: ReadBuffer): ReadBuffer
-}
-
 
 interface MessageReceiver {
     fun onMessage(message: ReadBuffer): ReadBuffer

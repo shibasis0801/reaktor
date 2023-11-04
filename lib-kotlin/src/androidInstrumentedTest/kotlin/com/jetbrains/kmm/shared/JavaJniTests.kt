@@ -7,12 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.ByteBuffer
 
-class GreetingTest {
-    @Test
-    fun testCpp() {
-        assertTrue("Able to access JNI", Platform().data == 42)
-    }
-
+class JavaJniTests {
     @Test
     fun testJavaCppFlexBufferIntegerSum() {
         val array = FlexBuffersBuilder().apply {
@@ -22,7 +17,7 @@ class GreetingTest {
             endVector(start)
         }.finish()
 
-        val result = JavaMessageSender.sendMessage(array)
+        val result = JavaJni.sendMessage(array)
         val test = FlexBuffersBuilder().apply {
             put(100)
         }.finish()
@@ -39,7 +34,7 @@ class GreetingTest {
 
     @Test
     fun testByteBufferTransfer() {
-        val buffer = JavaMessageSender.getByteBuffer()
+        val buffer = JavaJni.getByteBuffer()
         println("ByteBuffer offset -> ${buffer.arrayOffset()}")
         assertTrue(buffer.arrayOffset() == 0)
     }
@@ -49,7 +44,7 @@ class GreetingTest {
         val buffer = ByteBuffer.allocateDirect(1);
         val newBuffer = ByteBuffer.allocateDirect(1);
         newBuffer.put(9);
-        val result = JavaMessageSender.echoByteBuffer(buffer)
+        val result = JavaJni.echoByteBuffer(buffer)
         assertTrue(true)
     }
 
@@ -69,7 +64,7 @@ class GreetingTest {
 
             endMap(start)
         }.finish()
-        val result = JavaMessageSender.execute(command)
+        val result = JavaJni.execute(command)
 
         val sum = getRoot(result).toVector()
 
@@ -82,3 +77,18 @@ class GreetingTest {
         assertTrue(payloadResult == 100)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

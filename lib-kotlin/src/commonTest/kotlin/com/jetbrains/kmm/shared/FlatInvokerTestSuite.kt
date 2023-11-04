@@ -7,13 +7,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 
-fun String.toFlexBuffer(): ReadBuffer {
+private fun String.toFlexBuffer(): ReadBuffer {
     val buffer = FlexBuffersBuilder()
     buffer.put(this)
     return buffer.finish()
 }
 
-fun flexBufToString(readBuffer: ReadBuffer): String {
+private fun flexBufToString(readBuffer: ReadBuffer): String {
     return getRoot(readBuffer).toString()
 }
 
