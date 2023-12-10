@@ -3,7 +3,7 @@
 
 
 jni::local_ref<jni::JByteBuffer> JavaJni::sendMessage(
-        jni::alias_ref<JavaJni> jms,
+        jni::alias_ref<JavaJni> _,
         jni::alias_ref<jni::JByteBuffer> buffer
 ) {
     if (!buffer->isDirect()) throw std::runtime_error("Indirect buffer shibasis");
@@ -35,7 +35,7 @@ jni::local_ref<jni::JByteBuffer> JavaJni::sendMessage(
 }
 
 jni::local_ref<jni::JByteBuffer> JavaJni::getByteBuffer(
-        jni::alias_ref<JavaJni> jms
+        jni::alias_ref<JavaJni> _
 ) {
     auto outputBuffer = jni::JByteBuffer::allocateDirect(1);
     outputBuffer->order(jni::JByteOrder::nativeOrder());
@@ -43,7 +43,7 @@ jni::local_ref<jni::JByteBuffer> JavaJni::getByteBuffer(
 }
 
 jni::local_ref<jni::JByteBuffer> JavaJni::echoByteBuffer(
-        jni::alias_ref<JavaJni> jms,
+        jni::alias_ref<JavaJni> _,
         jni::alias_ref<jni::JByteBuffer> buffer
 ) {
     buffer->getDirectBytes()[0] = 9;
@@ -51,7 +51,7 @@ jni::local_ref<jni::JByteBuffer> JavaJni::echoByteBuffer(
 }
 
 jni::local_ref<jni::JByteBuffer> JavaJni::execute(
-        jni::alias_ref<JavaJni> jms,
+        jni::alias_ref<JavaJni> _,
         jni::alias_ref<jni::JByteBuffer> buffer
 ) {
     auto command = flexbuffers::GetRoot(buffer->getDirectBytes(), buffer->getDirectSize()).AsMap();

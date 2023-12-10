@@ -1,0 +1,37 @@
+table InvokationUnit {
+    className: string;
+    functionName: string;
+}
+
+table Command {
+    /*
+    Needed for the Switcher to know which function to call
+    */
+    source: InvokationUnit;
+    /*
+    If the function call is asychronous, then Switcher needs to know where to send the response
+    */
+    target: InvokationUnit;
+    /*
+    A flatbuffer containing the parameters for the function call, is passed as opaque data
+    */
+    payload: [ubyte];
+    /*
+    For async responses / flows, we need to send multiple messages
+    As such each message has an ID
+    -1 is the last message in a multivalued flow
+    For single valued flows, the first message has sequence number -1
+    */
+    sequenceNumber: int;
+    /*
+    Additional headers to enable rpc / reactive flows
+    */
+}
+
+
+
+
+
+
+
+

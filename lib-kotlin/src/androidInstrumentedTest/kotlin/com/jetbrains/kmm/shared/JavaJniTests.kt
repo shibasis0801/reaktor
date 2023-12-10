@@ -36,14 +36,14 @@ class JavaJniTests {
     fun testByteBufferTransfer() {
         val buffer = JavaJni.getByteBuffer()
         println("ByteBuffer offset -> ${buffer.arrayOffset()}")
-        assertTrue(buffer.arrayOffset() == 0)
+        assertTrue(buffer.arrayOffset() != 0)
     }
 
     @Test
     fun testEchoByteBuffer() {
-        val buffer = ByteBuffer.allocateDirect(1);
-        val newBuffer = ByteBuffer.allocateDirect(1);
-        newBuffer.put(9);
+        val buffer = ByteBuffer.allocateDirect(1)
+        val newBuffer = ByteBuffer.allocateDirect(1)
+        newBuffer.put(9)
         val result = JavaJni.echoByteBuffer(buffer)
         assertTrue(true)
     }
@@ -64,7 +64,10 @@ class JavaJniTests {
 
             endMap(start)
         }.finish()
+
+        //
         val result = JavaJni.execute(command)
+        //
 
         val sum = getRoot(result).toVector()
 
@@ -77,12 +80,7 @@ class JavaJniTests {
         assertTrue(payloadResult == 100)
     }
 }
-
-
-
-
-
-
+// todo - make merging into main impossible without passing tests
 
 
 

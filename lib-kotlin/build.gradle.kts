@@ -33,6 +33,7 @@ kotlin {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 extraOpts("-Xcompile-source", "cpp/Reaktor.cpp")
+//                linkerOpts("-L../../flatbuffers/libflatbuffers.a")
 //                extraOpts("-Xsource-compiler-option", "-I../../core-cpp")
             }
         }

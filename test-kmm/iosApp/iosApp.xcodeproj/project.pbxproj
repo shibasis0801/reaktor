@@ -72,6 +72,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1AF5D4FF9BCDE3DE6AE29548 /* swiftpm */ = {
+			isa = PBXGroup;
+			children = (
+				1AF5D7CDDA1407EA571FE638 /* configuration */,
+			);
+			name = swiftpm;
+			path = iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm;
+			sourceTree = "<group>";
+		};
+		1AF5D7CDDA1407EA571FE638 /* configuration */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = configuration;
+			sourceTree = "<group>";
+		};
+		1AF5DDC64E5DF792AC21AFB4 /* xcschemes */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = xcschemes;
+			path = iosApp.xcodeproj/project.xcworkspace/xcuserdata/ovd.xcuserdatad/xcschemes;
+			sourceTree = "<group>";
+		};
 		7555FF72242A565900829871 = {
 			isa = PBXGroup;
 			children = (
@@ -80,6 +104,8 @@
 				7555FF9F242A565B00829871 /* iosAppUITests */,
 				7555FF7C242A565900829871 /* Products */,
 				7555FFB0242A642200829871 /* Frameworks */,
+				1AF5DDC64E5DF792AC21AFB4 /* xcschemes */,
+				1AF5D4FF9BCDE3DE6AE29548 /* swiftpm */,
 			);
 			sourceTree = "<group>";
 		};

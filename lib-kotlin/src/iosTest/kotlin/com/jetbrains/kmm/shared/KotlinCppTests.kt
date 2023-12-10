@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 class KotlinCppTests {
     @Test
     fun testInt() {
-        assertTrue(KotlinCpp.getIntFromC() == 42, "Able to call C++")
+        assertTrue(KotlinCpp.getIntFromC() > 100, "Able to call C++")
     }
 
     @Test
@@ -22,6 +22,6 @@ class KotlinCppTests {
 
     @Test
     fun testCppBytes() {
-        assertTrue(KotlinCpp.testSendBytesArray(byteArrayOf(1)), "Able to pass a C++ bytes")
+        assertTrue(KotlinCpp.testSendBytesArray(byteArrayOf(1, 2, 3)), "Able to pass a C++ bytes")
     }
 }
