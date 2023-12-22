@@ -75,6 +75,7 @@ kotlin {
         val androidInstrumentedTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
+                implementation("androidx.test:core-ktx:1.5.0")
                 implementation("junit:junit:4.13.2")
                 implementation("androidx.test.ext:junit:1.1.3")
                 implementation("androidx.test.ext:junit-ktx:1.1.3")
@@ -89,7 +90,7 @@ android {
     compileSdk = 33
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     defaultConfig {
-        minSdk = 21
+        minSdk = 23
         externalNativeBuild {
             cmake {
                 cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1"))

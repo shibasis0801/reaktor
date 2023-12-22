@@ -56,5 +56,6 @@ gitDependency("skiko", "https://github.com/JetBrains/skiko.git")
 
 include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
 includeBuild("test-kmm")
+includeBuild("reaktor")
 include(":lib-kotlin")
 

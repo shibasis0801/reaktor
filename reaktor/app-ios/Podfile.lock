@@ -1,0 +1,16 @@
+PODS:
+  - lib_core (1.0)
+
+DEPENDENCIES:
+  - lib_core (from `../lib-core`)
+
+EXTERNAL SOURCES:
+  lib_core:
+    :path: "../lib-core"
+
+SPEC CHECKSUMS:
+  lib_core: e9037172ca29010d7e75d05f245fc807a8fd183e
+
+PODFILE CHECKSUM: 91ebdbd21441a4fc56d68c52bf25949d3291e00a
+
+COCOAPODS: 1.12.1
