@@ -9,7 +9,7 @@ EXTERNAL SOURCES:
     :path: "../lib-core"
 
 SPEC CHECKSUMS:
-  lib_core: e9037172ca29010d7e75d05f245fc807a8fd183e
+  lib_core: c18d75a7ffb337d9cdf8286f2dc8e7325c8114ba
 
 PODFILE CHECKSUM: 91ebdbd21441a4fc56d68c52bf25949d3291e00a
 
