@@ -61,7 +61,7 @@ kotlin {
 }
 
 android {
-    namespace = "dev.shibasis.reaktor"
+    namespace = "dev.shibasis.reaktor.core"
     compileSdk = 34
     defaultConfig {
         minSdk = 24

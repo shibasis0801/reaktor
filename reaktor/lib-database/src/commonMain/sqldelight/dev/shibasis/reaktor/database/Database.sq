@@ -1,0 +1,24 @@
+CREATE TABLE CoreDatabase (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  url TEXT NOT NULL,
+  response TEXT NOT NULL,
+  headers TEXT,
+  timestamp INTEGER NOT NULL
+);
+
+insertResponse:
+INSERT INTO CoreDatabase (url, response, headers, timestamp)
+VALUES (?, ?, ?, ?);
+
+queryResponseByUrl:
+SELECT response FROM CoreDatabase
+WHERE url = ?;
+
+deleteResponseByUrl:
+DELETE FROM CoreDatabase
+WHERE url = ?;
+
+updateResponse:
+UPDATE CoreDatabase
+SET response = ?, headers = ?, timestamp = ?
+WHERE url = ?;

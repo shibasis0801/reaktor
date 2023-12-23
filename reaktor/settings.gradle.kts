@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "Reaktor"
 include(":app-android")
 include(":lib-core")
+include(":lib-database")
+include(":lib-network")
