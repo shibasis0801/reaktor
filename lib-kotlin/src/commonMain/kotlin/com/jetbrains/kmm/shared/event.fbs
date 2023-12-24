@@ -1,0 +1,71 @@
+// Example of a complex FlatBuffers schema
+
+namespace ExampleSchema;
+
+enum Role : byte { Guest, Manager, Host, Vendor }
+
+table User {
+    id:ulong;
+    name:string;
+    role:Role;
+    email:string;
+}
+
+table Event {
+    id:ulong;
+    name:string;
+    date:string; // ISO 8601 format
+    location:string;
+    description:string;
+}
+
+table Image {
+    id:ulong;
+    url:string;
+    uploadedBy:ulong; // User ID
+    tags:[string];
+}
+
+union Content { User, Event, Image }
+
+table Album {
+    id:ulong;
+    name:string;
+    images:[Image];
+}
+
+table RSVP {
+    userId:ulong;
+    eventId:ulong;
+    status:bool;
+}
+
+table Vendor {
+    id:ulong;
+    name:string;
+    service:string;
+    rating:float;
+}
+
+table Calendar {
+    events:[Event];
+}
+
+table Authorization {
+    userId:ulong;
+    permissions:[string];
+}
+
+// Root table
+table Project {
+    users:[User];
+    events:[Event];
+    images:[Image];
+    albums:[Album];
+    rsvps:[RSVP];
+    vendors:[Vendor];
+    calendar:Calendar;
+    authorizations:[Authorization];
+}
+
+root_type Project;

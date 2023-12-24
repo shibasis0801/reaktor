@@ -1,0 +1,130 @@
+package com.jetbrains.kmm.shared.data
+
+import com.google.flatbuffers.kotlin.FlatBufferBuilder
+import com.google.flatbuffers.kotlin.Offset
+import com.google.flatbuffers.kotlin.OffsetArray
+import com.google.flatbuffers.kotlin.ReadBuffer
+import com.google.flatbuffers.kotlin.ReadWriteBuffer
+import com.google.flatbuffers.kotlin.Table
+import com.google.flatbuffers.kotlin.UnionOffset
+import com.google.flatbuffers.kotlin.VERSION_2_0_8
+import com.google.flatbuffers.kotlin.VectorOffset
+import com.jetbrains.kmm.shared.Monster as DataMonster
+import monster.Vec3
+import monster.Weapon
+
+class Monster : Table() {
+    fun init(i: Int, buffer: ReadWriteBuffer) : Monster = reset(i, buffer)
+
+    val pos : monster.Vec3? get() = pos(monster.Vec3())
+    fun pos(obj: monster.Vec3) : monster.Vec3? = lookupField(4, null ) { obj.init(it + bufferPos, bb) }
+
+    val mana : Short get() = lookupField(6, 150 ) { bb.getShort(it + bufferPos) }
+
+    val hp : Short get() = lookupField(8, 100 ) { bb.getShort(it + bufferPos) }
+
+    val name : String? get() = lookupField(10, null ) { string(it + bufferPos) }
+    fun nameAsBuffer() : ReadBuffer = vectorAsBuffer(bb, 10, 1)
+
+    fun inventory(j: Int) : UByte = lookupField(14, 0u ) { bb.getUByte(vector(it) + j * 1) }
+    val inventoryLength : Int get() = lookupField(14, 0 ) { vectorLength(it) }
+    fun inventoryAsBuffer() : ReadBuffer = vectorAsBuffer(bb, 14, 1)
+
+    val color : monster.Color get() = lookupField(16, monster.Color(2) ) { monster.Color(bb.get(it + bufferPos)) }
+
+    fun weapons(j: Int) : monster.Weapon? = weapons(monster.Weapon(), j)
+    fun weapons(obj: monster.Weapon, j: Int) : monster.Weapon? = lookupField(18, null ) { obj.init(indirect(vector(it) + j * 4), bb) }
+    val weaponsLength : Int get() = lookupField(18, 0 ) { vectorLength(it) }
+
+    val equippedType : monster.Equipment get() = lookupField(20, monster.Equipment(0u) ) { monster.Equipment(bb.getUByte(it + bufferPos)) }
+
+    fun equipped(obj: Table) : Table? = lookupField(22, null ) { union(obj, it + bufferPos) }
+
+    fun path(j: Int) : monster.Vec3? = path(monster.Vec3(), j)
+    fun path(obj: monster.Vec3, j: Int) : monster.Vec3? = lookupField(24, null ) { obj.init(vector(it) + j * 12, bb) }
+    val pathLength : Int get() = lookupField(24, 0 ) { vectorLength(it) }
+
+    companion object {
+        fun validateVersion() = VERSION_2_0_8
+
+        fun asRoot(buffer: ReadWriteBuffer) : Monster = asRoot(buffer, Monster())
+        fun asRoot(buffer: ReadWriteBuffer, obj: Monster) : Monster = obj.init(buffer.getInt(buffer.limit) + buffer.limit, buffer)
+
+
+        fun startMonster(builder: FlatBufferBuilder) = builder.startTable(11)
+
+        fun addPos(builder: FlatBufferBuilder, pos: Offset<monster.Vec3>) = builder.addStruct(0, pos.value, 0)
+
+        fun addMana(builder: FlatBufferBuilder, mana: Short) = builder.add(1, mana, 150)
+
+        fun addHp(builder: FlatBufferBuilder, hp: Short) = builder.add(2, hp, 100)
+
+        fun addName(builder: FlatBufferBuilder, name: Offset<String>) = builder.add(3, name, 0)
+
+        fun addInventory(builder: FlatBufferBuilder, inventory: VectorOffset<UByte>) = builder.add(5, inventory, 0)
+
+        fun createInventoryVector(builder: FlatBufferBuilder, vector:UByteArray) : VectorOffset<UByte> {
+            builder.startVector(1, vector.size, 1)
+            for (i in vector.size - 1 downTo 0) {
+                builder.add(vector[i])
+            }
+            return builder.endVector()
+        }
+
+        fun startInventoryVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(1, numElems, 1)
+
+        fun addColor(builder: FlatBufferBuilder, color: monster.Color) = builder.add(6, color.value, 2)
+
+        fun addWeapons(builder: FlatBufferBuilder, weapons: VectorOffset<monster.Weapon>) = builder.add(7, weapons, 0)
+
+        fun createWeaponsVector(builder: FlatBufferBuilder, vector:monster.WeaponOffsetArray) : VectorOffset<monster.Weapon> {
+            builder.startVector(4, vector.size, 4)
+            for (i in vector.size - 1 downTo 0) {
+                builder.add(vector[i])
+            }
+            return builder.endVector()
+        }
+
+        fun startWeaponsVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(4, numElems, 4)
+
+        fun addEquippedType(builder: FlatBufferBuilder, equippedType: monster.Equipment) = builder.add(8, equippedType.value, 0u)
+
+        fun addEquipped(builder: FlatBufferBuilder, equipped: UnionOffset) = builder.add(9, equipped, 0)
+
+        fun addPath(builder: FlatBufferBuilder, path: VectorOffset<monster.Vec3>) = builder.add(10, path, 0)
+
+        fun startPathVector(builder: FlatBufferBuilder, numElems: Int) = builder.startVector(12, numElems, 4)
+
+        fun endMonster(builder: FlatBufferBuilder) : Offset<Monster> {
+            val o: Offset<Monster> = builder.endTable()
+            return o
+        }
+
+        fun finishMonsterBuffer(builder: FlatBufferBuilder, offset: Offset<Monster>) = builder.finish(offset)
+
+        fun finishSizePrefixedMonsterBuffer(builder: FlatBufferBuilder, offset: Offset<Monster>) = builder.finishSizePrefixed(offset)
+    }
+}
+
+typealias MonsterOffsetArray = OffsetArray<Monster>
+
+inline fun MonsterOffsetArray(size: Int, crossinline call: (Int) -> Offset<Monster>): MonsterOffsetArray =
+    MonsterOffsetArray(IntArray(size) { call(it).value })
+
+
+data class Vec3Data(
+    val x: Float,
+    val y: Float,
+    val z: Float
+) {
+    companion object {
+
+    }
+}
+
+class Demon {
+    fun t() {
+        Vec3.createVec3(FlatBufferBuilder(), 1, 2, 3)
+//        Monster.create
+    }
+}
