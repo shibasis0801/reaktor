@@ -1,15 +1,17 @@
 plugins {
     kotlin("multiplatform")
+    kotlin("plugin.serialization") version "1.9.21"
     id("com.android.library")
 }
 
 kotlin {
     targetHierarchy.default()
 
+    jvmToolchain(17)
     android() {
         compilations.all {
             kotlinOptions {
-                jvmTarget = "1.8"
+                jvmTarget = "17"
             }
         }
     }
@@ -51,6 +53,9 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(project(":flatbuffers-kotlin"))
+                api("io.ktor:ktor-client-core:2.3.0")
+                implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
             }
         }
         val commonTest by getting {
@@ -63,6 +68,13 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation("com.facebook.fbjni:fbjni:0.4.0")
+                api("io.ktor:ktor-client-okhttp:2.3.0")
+            }
+        }
+
+        val iosMain by getting {
+            dependencies {
+                api("io.ktor:ktor-client-darwin:2.3.0")
             }
         }
 
@@ -83,6 +95,10 @@ kotlin {
             }
         }
     }
+}
+
+tasks.withType<JavaCompile> {
+    options.release.set(17)
 }
 
 
@@ -121,5 +137,4 @@ android {
         pickFirst("**/libglog.so")
         pickFirst("**/libfbjni.so")
     }
-
 }

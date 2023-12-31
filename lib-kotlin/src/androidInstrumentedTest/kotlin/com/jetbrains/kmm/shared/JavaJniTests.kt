@@ -18,15 +18,9 @@ class JavaJniTests {
         }.finish()
 
         val result = JavaJni.sendMessage(array)
-        val test = FlexBuffersBuilder().apply {
-            put(100)
-        }.finish()
-
-        val data = test.data()
-        val buf = ArrayReadWriteBuffer(data)
 
         val ref = getRoot(result).toVector()
-        val sum = ref[2].toInt();
+        val sum = ref[2].toInt()
 
         val answer = result[0].toInt()
         assertTrue("Sum is 100", sum == 100)

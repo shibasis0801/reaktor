@@ -23,7 +23,8 @@ fun ByteBuffer.toReadBuffer(): ReadBuffer {
 object JavaJni {
     private external fun sendMessage(byteBuffer: ByteBuffer): ByteBuffer
     fun sendMessage(message: ReadBuffer): ReadBuffer {
-        val result = sendMessage(message.toByteBuffer())
+        val buffer: ByteBuffer = message.toByteBuffer()
+        val result = sendMessage(buffer)
         // When JNI returns the result, there is an offset of 4 bytes
         // Why ?
         // I need to enforce little endian encoding globally in the framework

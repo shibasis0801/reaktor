@@ -45,6 +45,12 @@ option(FLATBUFFERS_BUILD_TESTS "Enable the build of tests and samples." OFF)
 
 2. Disable GenerateFBTestClasses task in flatbuffers-kotlin build.gradle.kts
 
+3. added this for new gradle versions (revert please)
+ sourceSets {
+    all {
+      languageSettings.optIn("kotlin.experimental.ExperimentalNativeApi")
+    }
+
 The reason was flatc, the binary was not accessible from the path.
 If we setup that, these hacks should not be needed.
 */
@@ -55,7 +61,7 @@ gitDependency("googletest", "https://github.com/google/googletest.git")
 gitDependency("skiko", "https://github.com/JetBrains/skiko.git")
 
 include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
-includeBuild("test-kmm")
-includeBuild("reaktor")
+//includeBuild("test-kmm")
+//includeBuild("reaktor")
 include(":lib-kotlin")
 
