@@ -49,10 +49,10 @@ object PersonConverter: FlexBufferTypeConverter<Person> {
 
     override fun toBinary(builder: FlexBuffersBuilder, data: Person) {
         builder.apply {
-            putMap {
-                this["id"] = data.id
-                this["name"] = data.name
-            }
+            val start = startMap()
+            set("id", data.id)
+            set("name", data.name)
+            endMap(start)
         }
     }
 }

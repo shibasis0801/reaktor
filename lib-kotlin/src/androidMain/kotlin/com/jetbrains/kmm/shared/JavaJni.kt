@@ -13,6 +13,7 @@ fun ReadBuffer.toByteBuffer(): ByteBuffer {
     }
 }
 
+// todo optimise this to prevent a copy
 fun ByteBuffer.toReadBuffer(): ReadBuffer {
     val backingArray = array()
     return ArrayReadWriteBuffer(backingArray.sliceArray(arrayOffset() until arrayOffset() + limit())).apply {
@@ -38,6 +39,8 @@ object JavaJni {
     external fun echoByteBuffer(byteBuffer: ByteBuffer): ByteBuffer
 
     external fun execute(byteBuffer: ByteBuffer): ByteBuffer
+    external fun parseJson(data: String): ByteBuffer
+
     fun execute(message: ReadBuffer): ReadBuffer {
         val result = execute(message.toByteBuffer())
         return result.toReadBuffer()

@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization") version "1.9.21"
@@ -11,6 +13,7 @@ kotlin {
     android() {
         compilations.all {
             kotlinOptions {
+//                jvmTarget = "1.8"
                 jvmTarget = "17"
             }
         }
@@ -97,11 +100,6 @@ kotlin {
     }
 }
 
-tasks.withType<JavaCompile> {
-    options.release.set(17)
-}
-
-
 android {
     compileSdk = 33
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
@@ -123,8 +121,8 @@ android {
     }
     namespace = "com.jetbrains.android"
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
@@ -138,3 +136,15 @@ android {
         pickFirst("**/libfbjni.so")
     }
 }
+
+tasks.withType<KotlinCompile>().all {
+    kotlinOptions {
+        jvmTarget = "17"
+//        jvmTarget = "1.8"
+    }
+}
+
+tasks.withType<JavaCompile> {
+    options.release.set(17)
+}
+
