@@ -1,1 +1,5 @@
 package = dev.shibasis.reaktor.native
+staticLibraries = libReaktor.a
+libraryPaths = cpp
+language = Objective-C
+compilerOpts = -framework Foundation

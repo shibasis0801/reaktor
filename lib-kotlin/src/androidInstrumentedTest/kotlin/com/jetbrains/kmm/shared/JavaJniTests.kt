@@ -7,6 +7,7 @@ import com.google.flatbuffers.kotlin.ReadBuffer
 import com.google.flatbuffers.kotlin.getRoot
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertTrue
@@ -83,44 +84,58 @@ class JavaJniTests {
         assertTrue(payloadResult == 100)
     }
 
+
+    suspend fun parseJsonToFlexBuffer() {
+        val url = "http://192.168.0.247:8000/search.json"
+        val result = httpClient.get(url)
+        lateinit var buffer: ByteBuffer
+        lateinit var flexBuffer: ReadBuffer
+        val body = result.body<String>()
+        val timeForFlexParse = measureTime {
+            buffer = JavaJni.parseJson(body)
+        }.inWholeMicroseconds
+        // 50 - 60 ms for 550kb json
+
+        val jsonParseTime = measureTime {
+            Json.parseToJsonElement(body)
+        }.inWholeMicroseconds
+
+        val resultTime = measureTime {
+            flexBuffer = buffer.toReadBuffer()
+        }.inWholeMicroseconds
+        // < 1 ms
+
+        val root = getRoot(flexBuffer)
+        assertTrue { root.isMap }
+
+        val responseType = root.toMap()["responseType"]
+        assert(responseType.isString)
+        assertEquals(responseType.toString(), "LIST")
+
+        Log.e("SHIBASIS", "JSON to FlexBuffer in a DirectByteBuffer: $resultTime")
+        Log.e("SHIBASIS", "Copy FlexBuffer from DBB to ReadBuffer: $timeForFlexParse")
+        Log.e("SHIBASIS", "Pure JSON Parse using kotlin-serialization: $jsonParseTime")
+
+        // For 550 kb json
+        assertTrue("SHIBASIS: JSON to FlexBuffer in a DirectByteBuffer: $resultTime") { resultTime > 0 } // ~ 60ms
+        assertTrue("SHIBASIS: Copy FlexBuffer from DBB to ReadBuffer: $timeForFlexParse") { timeForFlexParse > 0 } // ~ 1ms
+        assertTrue("SHIBASIS: Pure JSON Parse using kotlin-serialization: $jsonParseTime") { jsonParseTime > 0 } // ~ 161ms
+    }
+
     @Test
     fun testParseJsonToFlexBuffer() {
         runBlocking {
-            val url = "http://192.168.0.247:8000/search.json"
-            val result = httpClient.get(url)
-            lateinit var buffer: ByteBuffer
-            lateinit var flexBuffer: ReadBuffer
-            val body = result.body<String>()
-            val timeForFlexParse = measureTime {
-                buffer = JavaJni.parseJson(body)
-            }.inWholeMicroseconds
-            // 50 - 60 ms for 550kb json
-
-            val jsonParseTime = measureTime {
-                Json.parseToJsonElement(body)
-            }.inWholeMicroseconds
-
-            val resultTime = measureTime {
-                flexBuffer = buffer.toReadBuffer()
-            }.inWholeMicroseconds
-            // < 1 ms
-
-            val root = getRoot(flexBuffer)
-            assertTrue { root.isMap }
-
-            val responseType = root.toMap()["responseType"]
-            assert(responseType.isString)
-            assertEquals(responseType.toString(), "LIST")
-
-
-            // For 550 kb json
-            Log.d("SHIBASIS: JSON to FlexBuffer in a DirectByteBuffer", resultTime.toString()) // ~ 60ms
-            Log.d("SHIBASIS: Copy FlexBuffer from DBB to ReadBuffer", timeForFlexParse.toString()) // ~ 1ms
-            Log.d("SHIBASIS: Pure JSON Parse using kotlin-serialization", jsonParseTime.toString()) // ~ 161ms
-            assertTrue { resultTime < 0 }
-            assertTrue { timeForFlexParse < 0 }
+           parseJsonToFlexBuffer()
         }
     }
+
+    @Test
+    fun testParseJsonToFlexBufferAsync() {
+        runBlocking(Dispatchers.IO) {
+            parseJsonToFlexBuffer()
+        }
+    }
+
 
 }
 // todo - make merging into main impossible without passing tests

@@ -4,10 +4,16 @@ import dev.shibasis.reaktor.native.getName
 import dev.shibasis.reaktor.native.getNameCpp
 import dev.shibasis.reaktor.native.reaktorTest
 import dev.shibasis.reaktor.native.sendByteArray
+import dev.shibasis.reaktor.native.ExampleClass
 import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.toKString
 
 object KotlinCpp {
+    fun t(): String? {
+        val x = ExampleClass()
+        return x.getHelloWorld()
+    }
+
     fun getIntFromC(): Int {
         return reaktorTest()
     }

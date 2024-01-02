@@ -26,18 +26,20 @@ kotlin {
     ).forEach {
         it.binaries.framework {
             baseName = "shared"
+            linkerOpts("-Lcpp", "-lReaktor") // -L specifies the directory, -l specifies the library name
         }
 
         // See this
         // https://www.youtube.com/watch?v=Z2PHpxVD9_s&ab_channel=Xebia
-
         it.compilations.getByName("main").cinterops {
             val reaktor by creating {
                 defFile(file("cpp/reaktor.def"))
                 headers("cpp/Reaktor.h")
+//                linkerOpts("-Lcpp", "-lReaktor") // -L specifies the directory, -l specifies the library name
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
-                extraOpts("-Xcompile-source", "cpp/Reaktor.cpp")
+//                extraOpts("-Xcompile-source", "cpp/Reaktor.cpp")
+//                linkerOpts("-Lcpp/libReaktor.a")
 //                linkerOpts("-L../../flatbuffers/libflatbuffers.a")
 //                extraOpts("-Xsource-compiler-option", "-I../../core-cpp")
             }
@@ -53,32 +55,23 @@ kotlin {
             }
         }
 
-        val commonMain by getting {
-            dependencies {
-                implementation(project(":flatbuffers-kotlin"))
-                api("io.ktor:ktor-client-core:2.3.0")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
-            }
+        commonMain.dependencies {
+            implementation(project(":flatbuffers-kotlin"))
+            api("io.ktor:ktor-client-core:2.3.0")
+            implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test-common"))
-                implementation(kotlin("test-annotations-common"))
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test-common"))
+            implementation(kotlin("test-annotations-common"))
         }
 
-        val androidMain by getting {
-            dependencies {
-                implementation("com.facebook.fbjni:fbjni:0.4.0")
-                api("io.ktor:ktor-client-okhttp:2.3.0")
-            }
+        androidMain.dependencies {
+            implementation("com.facebook.fbjni:fbjni:0.4.0")
+            api("io.ktor:ktor-client-okhttp:2.3.0")
         }
-
-        val iosMain by getting {
-            dependencies {
-                api("io.ktor:ktor-client-darwin:2.3.0")
-            }
+        iosMain.dependencies {
+            api("io.ktor:ktor-client-darwin:2.3.0")
         }
 
         val androidUnitTest by getting {

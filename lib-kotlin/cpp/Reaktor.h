@@ -13,3 +13,11 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+
+// ExampleClass.h
+#import <Foundation/Foundation.h>
+
+@interface ExampleClass : NSObject
+- (NSString *)getHelloWorld;
+@end
