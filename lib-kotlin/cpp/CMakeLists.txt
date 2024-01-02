@@ -10,7 +10,7 @@ add_subdirectory(
 )
 
 file(GLOB droid "droid/*")
-file(GLOB common "*")
+#file(GLOB common "*")
 include_directories(.)
 
 

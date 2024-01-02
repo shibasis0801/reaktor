@@ -50,6 +50,11 @@ auto measureTime = [](auto&& func, auto&&... args) {
 jni::local_ref<jni::JByteBuffer> JavaJni::parseJson(
         jni::alias_ref<JavaJni> _,
         jni::alias_ref<jni::JString> jsonString) {
+    auto start = std::chrono::high_resolution_clock::now();
+    auto finish = std::chrono::high_resolution_clock::now();
+    auto time =  std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start);
+    // android log
+     __android_log_print(ANDROID_LOG_DEBUG, "JNI", "Time: %lld\n", time.count());
 
     flatbuffers::Parser parser;
     flexbuffers::Builder builder(1024);

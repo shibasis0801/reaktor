@@ -1,15 +1,18 @@
 package com.jetbrains.kmm.shared
 
 import android.util.Log
-import com.google.flatbuffers.kotlin.ArrayReadWriteBuffer
 import com.google.flatbuffers.kotlin.FlexBuffersBuilder
 import com.google.flatbuffers.kotlin.ReadBuffer
 import com.google.flatbuffers.kotlin.getRoot
+import com.jetbrains.kmm.shared.networkCache.HugeBenchmark
+import com.jetbrains.kmm.shared.networkCache.NetworkCache
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.ByteBuffer
@@ -136,6 +139,88 @@ class JavaJniTests {
         }
     }
 
+    @Test
+    fun measureConversionTime() {
+        runBlocking {
+            val url = "http://192.168.0.247:8000/search.json"
+            val result = httpClient.get(url)
+            lateinit var json: JsonElement
+            val body = result.body<ByteArray>()
+//            val body = byteArrayOf()
+            val cache = HugeBenchmark(
+                id = 1,
+                data = body,
+                url = url,
+                ttl = 1000,
+                timestamp = 1000,
+                cacheKey = "key"
+            )
+            val jsonElementTime = measureTime {
+                json = Json.encodeToJsonElement(cache)
+            }.inWholeMilliseconds
+
+            println("Huge JSON Element Time: $jsonElementTime")
+            assertTrue(jsonElementTime > 0)
+
+            val flexBuffer = FlexBuffersBuilder()
+            lateinit var readBuffer: ReadBuffer
+            val flexBufferTime = measureTime {
+                flexBuffer.apply {
+                    putMap {
+                        set("id", 1)
+                        set("data", body)
+                        set("data1", body)
+                        set("data2", body)
+                        set("data3", body)
+                        set("data4", body)
+                        set("data5", body)
+                        set("url", url)
+                        set("ttl", 1000)
+                        set("timestamp", 1000)
+                        set("cacheKey", "key")
+                    }
+                }
+                readBuffer = flexBuffer.finish()
+            }.inWholeMilliseconds
+
+            println("Huge FlexBuffer Time: $flexBufferTime")
+            assertTrue(flexBufferTime > 0)
+
+            val networkCache = NetworkCache(
+                id = 1,
+                url = url,
+                ttl = 1000,
+                timestamp = 1000,
+                cacheKey = "key"
+            )
+            val networkCacheTime = measureTime {
+                Json.encodeToJsonElement(networkCache)
+            }.inWholeMicroseconds
+            println("Network Cache Time: $networkCacheTime")
+            assertTrue(networkCacheTime > 0)
+
+            // convert into a flexbuffer and check again
+            val networkCacheFlexBufferTime = measureTime {
+//                val flexBuffer = FlexBuffersBuilder()
+//                flexBuffer.apply {
+//                    putMap {
+//                        set("id", networkCache.id)
+//                        set("url", networkCache.url)
+//                        set("data", networkCache.data)
+//                        set("ttl", networkCache.ttl)
+//                        set("timestamp", networkCache.timestamp)
+//                        set("cacheKey", networkCache.cacheKey)
+//                    }
+//                }
+//                val readBuffer = flexBuffer.finish()
+            }.inWholeNanoseconds
+            println("Network Cache FlexBuffer Time: $networkCacheFlexBufferTime")
+            assertTrue(networkCacheFlexBufferTime > 0)
+
+            val minimumTime = measureTime{}.inWholeMilliseconds
+
+        }
+    }
 
 }
 // todo - make merging into main impossible without passing tests
