@@ -1,6 +1,6 @@
-package com.jetbrains.kmm.shared
+package dev.shibasis.reaktor.flatinvoker
 
-import com.jetbrains.kmm.shared.Platform
+import dev.shibasis.reaktor.flatinvoker.Platform
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

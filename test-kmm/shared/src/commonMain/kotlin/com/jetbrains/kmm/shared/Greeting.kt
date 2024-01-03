@@ -1,4 +1,4 @@
-package com.jetbrains.kmm.shared
+package dev.shibasis.reaktor.flatinvoker
 
 class Greeting {
     fun greeting(): String {

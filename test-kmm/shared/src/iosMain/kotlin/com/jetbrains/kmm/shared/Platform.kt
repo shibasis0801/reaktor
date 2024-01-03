@@ -1,4 +1,4 @@
-package com.jetbrains.kmm.shared
+package dev.shibasis.reaktor.flatinvoker
 
 import dev.shibasis.reaktor.native.reaktorTest
 import platform.UIKit.UIDevice

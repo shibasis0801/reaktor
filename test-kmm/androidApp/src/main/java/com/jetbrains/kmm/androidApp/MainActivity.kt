@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.EditText
-import com.jetbrains.kmm.shared.Greeting
-import com.jetbrains.kmm.shared.Calculator
+import dev.shibasis.reaktor.flatinvoker.Greeting
+import dev.shibasis.reaktor.flatinvoker.Calculator
 import android.widget.TextView
 import com.jetbrains.androidApp.R
 

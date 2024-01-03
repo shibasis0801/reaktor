@@ -1,4 +1,4 @@
-package com.jetbrains.kmm.shared
+package dev.shibasis.reaktor.flatinvoker
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

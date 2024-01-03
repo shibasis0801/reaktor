@@ -25,8 +25,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "shared"
-            linkerOpts("-Lcpp", "-lReaktor") // -L specifies the directory, -l specifies the library name
+            baseName = "flatinvoker"
         }
 
         // See this
@@ -35,13 +34,8 @@ kotlin {
             val reaktor by creating {
                 defFile(file("cpp/reaktor.def"))
                 headers("cpp/Reaktor.h")
-//                linkerOpts("-Lcpp", "-lReaktor") // -L specifies the directory, -l specifies the library name
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
-//                extraOpts("-Xcompile-source", "cpp/Reaktor.cpp")
-//                linkerOpts("-Lcpp/libReaktor.a")
-//                linkerOpts("-L../../flatbuffers/libflatbuffers.a")
-//                extraOpts("-Xsource-compiler-option", "-I../../core-cpp")
             }
         }
     }
@@ -52,6 +46,7 @@ kotlin {
                 optIn("kotlin.experimental.ExperimentalNativeApi")
                 optIn("kotlinx.cinterop.ExperimentalForeignApi")
                 optIn("kotlin.ExperimentalUnsignedTypes")
+                optIn("kotlinx.serialization.ExperimentalSerializationApi")
             }
         }
 
@@ -113,7 +108,7 @@ android {
             path = file("cpp/CMakeLists.txt")
         }
     }
-    namespace = "com.jetbrains.android"
+    namespace = "dev.shibasis.reaktor.flatinvoker"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

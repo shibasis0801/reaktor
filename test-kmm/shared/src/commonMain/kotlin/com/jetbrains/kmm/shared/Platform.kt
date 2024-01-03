@@ -1,4 +1,4 @@
-package com.jetbrains.kmm.shared
+package dev.shibasis.reaktor.flatinvoker
 
 expect class Platform() {
     val platform: String
