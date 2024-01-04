@@ -6,6 +6,29 @@ plugins {
     id("com.android.library")
 }
 
+fun cmd(command: String) {
+    ProcessBuilder(*command.split(" ").toTypedArray())
+        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+        .redirectError(ProcessBuilder.Redirect.INHERIT)
+        .start()
+        .waitFor()
+}
+
+task<Exec>("darwinCmake") {
+    group = "reaktor"
+    commandLine =  listOf("bash", "-c", """
+        cd cpp &&
+        rm -rf build &&
+        cmake -B build -G Xcode &&
+        cmake --build build --config Release
+    """.trimIndent())
+}
+
+tasks.named("build") {
+    dependsOn("darwinCmake")
+}
+
+
 kotlin {
     targetHierarchy.default()
 
@@ -32,10 +55,11 @@ kotlin {
         // https://www.youtube.com/watch?v=Z2PHpxVD9_s&ab_channel=Xebia
         it.compilations.getByName("main").cinterops {
             val reaktor by creating {
-                defFile(file("cpp/reaktor.def"))
-                headers("cpp/Reaktor.h")
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
+                defFile(file("cpp/reaktor.def"))
+                // For a given directory, recursively add all headers
+                headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
             }
         }
     }

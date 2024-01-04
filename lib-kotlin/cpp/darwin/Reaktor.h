@@ -14,7 +14,6 @@ extern "C" {
 }
 #endif
 
-
 // ExampleClass.h
 #import <Foundation/Foundation.h>
 

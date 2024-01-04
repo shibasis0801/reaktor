@@ -29,7 +29,7 @@ jni::local_ref<jni::JByteBuffer> JavaJni::sendMessage(
 
     // Write Output Buffer
     auto data = builder.GetBuffer();
-    // Object pool direct byte buffers, allocations are expensive
+    // todo Object pool direct byte buffers, allocations are expensive
     auto outputBuffer = jni::JByteBuffer::allocateDirect(builder.GetSize());
     outputBuffer->order(jni::JByteOrder::nativeOrder());
     std::memcpy(const_cast<uint8_t *>(outputBuffer->getDirectBytes()), data.data(), builder.GetSize());

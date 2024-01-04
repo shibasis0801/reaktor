@@ -1,5 +1,5 @@
 package = dev.shibasis.reaktor.native
 staticLibraries = libReaktor.a
-libraryPaths = cpp/build/Release-iphonesimulator
+libraryPaths = ../lib-kotlin/cpp/build/Release-iphonesimulator
 language = Objective-C
 compilerOpts = -framework Foundation

@@ -23,15 +23,17 @@ add_subdirectory(
         ${CMAKE_CURRENT_BINARY_DIR}/flatInvoker-build # pathForBuildDirectory
 )
 
-# Platform-specific settings
+file(GLOB droid "droid/*")
+file(GLOB common "common/*")
+file(GLOB darwin "darwin/*")
+
+
 if(ANDROID)
-    # Android specific build settings
-    file(GLOB droid "droid/*")
     add_library(
             kmmFlatInvoker
             SHARED
             ${droid}
-            ${common} # Uncomment or define 'common' if needed for Android
+            ${common}
     )
 
     find_package(fbjni REQUIRED CONFIG)
@@ -45,30 +47,12 @@ if(ANDROID)
             fbjni::fbjni
     )
 elseif(APPLE)
-    # iOS specific build settings
     add_library(
             Reaktor 
-            STATIC 
-            Reaktor.mm # Replace with your iOS source files
+            STATIC
+            ${common}
+            ${darwin}
     )
-
-    target_include_directories(Reaktor PRIVATE ../../flatbuffers/include/)
-
-    set_target_properties(Reaktor PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-    )
-
-    
-#     set(CMAKE_XCODE_ATTRIBUTE_ARCHS "arm64")
-#     set(CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH NO)
-#     set(CMAKE_XCODE_ATTRIBUTE_VALID_ARCHS "arm64")
-#     set(CMAKE_XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphonesimulator")
-#     set(CMAKE_SYSTEM_PROCESSOR arm64) # or x86_64 for Intel-based Macs
-#     set(CMAKE_OSX_ARCHITECTURES arm64) # or x86_64 for Intel-based Macs
-#     set(CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphonesimulator")
-
-    # iOS Compiler flags
+    target_link_libraries(Reaktor PRIVATE flatInvoker)
     target_compile_options(Reaktor PRIVATE -fobjc-arc)
 endif()
