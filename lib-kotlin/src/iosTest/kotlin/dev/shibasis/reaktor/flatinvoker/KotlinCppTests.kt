@@ -56,7 +56,7 @@ class KotlinCppTests {
 //
         assertTrue(root.isVector)
         assertTrue(root.toVector()[0].toInt() == 42)
-        assertTrue(root.toVector()[1].toString() == "Shibasis")
+        assertTrue(root.toVector()[1].toString() == "Shibasis Patnaik")
 
     }
 }

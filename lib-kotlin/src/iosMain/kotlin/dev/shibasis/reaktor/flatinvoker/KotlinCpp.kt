@@ -6,14 +6,20 @@ import dev.shibasis.reaktor.native.getNameCpp
 import dev.shibasis.reaktor.native.reaktorTest
 import dev.shibasis.reaktor.native.sendByteArray
 import dev.shibasis.reaktor.native.ExampleClass
-import dev.shibasis.reaktor.native.Flex_delete
-import dev.shibasis.reaktor.native.Flex_getBuffer
-import dev.shibasis.reaktor.native.Flex_getBuffer1
-import dev.shibasis.reaktor.native.Flex_getInt
-import dev.shibasis.reaktor.native.Flex_new
+import dev.shibasis.reaktor.native.Flex_Create
+import dev.shibasis.reaktor.native.Flex_EndVector
+import dev.shibasis.reaktor.native.Flex_Finish
+import dev.shibasis.reaktor.native.Flex_GetBuffer
+import dev.shibasis.reaktor.native.Flex_Int
+import dev.shibasis.reaktor.native.Flex_StartVector
+import dev.shibasis.reaktor.native.Flex_String
 import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.alloc
+import kotlinx.cinterop.invoke
+import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.pointed
+import kotlinx.cinterop.ptr
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.toKString
@@ -21,18 +27,19 @@ import kotlinx.cinterop.useContents
 
 object KotlinCpp {
     fun cppFlexBufferThroughC(): ByteArray? {
-        val flexBuffer = Flex_new()
-//        val flexArray = Flex_getBuffer(flexBuffer)
-        val data = Flex_getInt(flexBuffer)
+        val flexBuffer = Flex_Create()
+        val start = Flex_StartVector(flexBuffer, null)
+        Flex_Int(flexBuffer, null,42);
+        Flex_String(flexBuffer, null,"Shibasis Patnaik")
+        Flex_EndVector(flexBuffer, start)
 
-        val array1 = Flex_getBuffer1(flexBuffer).useContents {
+        Flex_Finish(flexBuffer)
+        val data = Flex_GetBuffer(flexBuffer)
+        val byteArray = data.useContents {
             buffer?.readBytes(size.toInt())
         }
 
-//        val byteArray = flexArray.useContents {
-//            buffer?.readBytes(size.toInt())
-//        }
-        return array1
+        return byteArray
     }
 
     fun t(): String? {
