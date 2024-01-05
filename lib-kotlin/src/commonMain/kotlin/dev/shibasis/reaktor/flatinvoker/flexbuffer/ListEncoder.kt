@@ -31,22 +31,13 @@ class ListEncoder: AbstractEncoder() {
 
     override fun encodeNull() = encodeValue("NULL")
     override fun encodeNotNullMark() = encodeValue("!!")
-
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         encodeInt(collectionSize)
         return this
     }
-
-    override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        return super.beginStructure(descriptor)
-    }
-
-    override fun endStructure(descriptor: SerialDescriptor) {
-        super.endStructure(descriptor)
-    }
 }
 
-fun <T>encodeToList(serializer: SerializationStrategy<T>, value: T): MutableList<Any> {
+fun<T> encodeToList(serializer: SerializationStrategy<T>, value: T): MutableList<Any> {
     val encoder = ListEncoder()
     encoder.encodeSerializableValue(serializer, value)
     return encoder.list

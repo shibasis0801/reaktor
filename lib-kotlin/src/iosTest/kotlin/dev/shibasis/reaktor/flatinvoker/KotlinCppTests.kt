@@ -6,6 +6,12 @@ import com.google.flatbuffers.kotlin.FlexBuffersBuilder
 import com.google.flatbuffers.kotlin.ReadWriteBuffer
 import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.reaktor.flatinvoker.KotlinCpp
+import dev.shibasis.reaktor.flatinvoker.flexbuffer.FlexEncoder
+import dev.shibasis.reaktor.flatinvoker.flexbuffer.encodeToFlexBuffer
+import dev.shibasis.reaktor.native.Flex_GetBuffer
+import kotlinx.cinterop.readBytes
+import kotlinx.cinterop.useContents
+import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -57,6 +63,31 @@ class KotlinCppTests {
         assertTrue(root.isVector)
         assertTrue(root.toVector()[0].toInt() == 42)
         assertTrue(root.toVector()[1].toString() == "Shibasis Patnaik")
+    }
+
+    @Test
+    fun testFlexEncoder() {
+        val person = Person(1, "Shibasis", 27.9)
+        val flexBuffer = encodeToFlexBuffer(person)
+        val flexResult = Flex_GetBuffer(flexBuffer)
+        val array = flexResult.useContents {
+            buffer?.readBytes(size.toInt())
+        }
+
+        assertTrue { array != null }
+
+        val root = getRoot(ArrayReadBuffer(array!!))
+
+        assertTrue(root.isMap)
+        assertTrue(root.toMap()["id"].isInt)
+        assertTrue(root.toMap()["id"]!!.toInt() == 1)
+        assertTrue(root.toMap()["name"].isString)
+        assertTrue(root.toMap()["name"].toString() == "Shibasis")
+        assertTrue(root.toMap()["age"].isFloat)
+        assertTrue(root.toMap()["age"]!!.toDouble() == 27.9)
 
     }
 }
+
+@Serializable
+data class Person(val id: Int, val name: String, val age: Double)
