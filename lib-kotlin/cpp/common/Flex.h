@@ -17,13 +17,15 @@ typedef struct {
 // use unique_ptr ?
 long Flex_Create();
 
+void Flex_ParseJson(long pointer, const char* jsonString);
+
 // Clear and delete the builder
 void Flex_Destroy(long pointer);
 
 // Finish the flexbuffer -> Ready for transfer
 void Flex_Finish(long pointer);
 
-// Finish and get the Buffer.
+// Get the Buffer. Must be called after Flex_Finish
 FlexArray Flex_GetBuffer(long pointer);
 
 // Value functions have a key, if they are inside a Map

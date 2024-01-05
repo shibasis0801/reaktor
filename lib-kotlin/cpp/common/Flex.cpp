@@ -1,6 +1,8 @@
 #include <common/Flex.h>
 #include <common/Base.h>
 #include <flatbuffers/flexbuffers.h>
+#include <flatbuffers/idl.h>
+#include <flatbuffers/buffer.h>
 
 /*
  * Optimise all these, inline what you can.
@@ -58,6 +60,14 @@ public:
 
 } FlexStore;
 
+void Flex_ParseJson(long pointer, const char *jsonString) {
+    auto builder = FlexStore.Get(pointer);
+    flatbuffers::Parser parser;
+    parser.ParseFlexBuffer(jsonString, nullptr, builder.get());
+    // todo unfortunately FlexBuffer calls Finish directly
+    Flex_Finish(pointer);
+}
+
 long Flex_Create() {
     return FlexStore.Create();
 }
@@ -71,7 +81,6 @@ void Flex_Finish(long pointer) {
 }
 
 FlexArray Flex_GetBuffer(long pointer) {
-    Flex_Finish(pointer);
     auto builder = FlexStore.GetOrThrow(pointer);
     return { builder->GetBuffer().data(), builder->GetSize() };
 }

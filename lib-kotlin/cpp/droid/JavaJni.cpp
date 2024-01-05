@@ -60,7 +60,7 @@ jni::local_ref<jni::JByteBuffer> JavaJni::parseJson(
     flexbuffers::Builder builder(1024);
 
     auto parseTime = measureTime([&]() {
-        bool success = parser.ParseFlexBuffer(jsonString->toStdString().c_str(), nullptr, &builder);
+        parser.ParseFlexBuffer(jsonString->toStdString().c_str(), nullptr, &builder);
     });
 
     auto data = builder.GetBuffer();

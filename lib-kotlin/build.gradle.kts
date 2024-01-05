@@ -17,6 +17,7 @@ fun cmd(command: String) {
 task<Exec>("darwinCmake") {
     group = "reaktor"
     commandLine =  listOf("bash", "-c", """
+        rm -rf build &&
         cd cpp &&
         rm -rf build &&
         cmake -B build -G Xcode &&

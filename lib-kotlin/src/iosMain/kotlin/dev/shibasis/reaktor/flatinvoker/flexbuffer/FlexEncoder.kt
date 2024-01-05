@@ -29,6 +29,10 @@ For size, I need to understand IndirectFields, TypedVectors, etc
 The encode/decode must be the same algorithm as the one used by the JsonParser of FlexBuffers
 100% parity needed, so that they can interop
 
+Building this, I will be able to understand FlexBuffers in depth
+And then write a series of articles
+
+
  */
 class FlexEncoder: AbstractEncoder() {
     override val serializersModule = EmptySerializersModule()

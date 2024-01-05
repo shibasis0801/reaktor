@@ -8,10 +8,15 @@ import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.reaktor.flatinvoker.KotlinCpp
 import dev.shibasis.reaktor.flatinvoker.flexbuffer.FlexEncoder
 import dev.shibasis.reaktor.flatinvoker.flexbuffer.encodeToFlexBuffer
+import dev.shibasis.reaktor.native.Flex_Create
+import dev.shibasis.reaktor.native.Flex_Finish
 import dev.shibasis.reaktor.native.Flex_GetBuffer
+import dev.shibasis.reaktor.native.Flex_ParseJson
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.useContents
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -69,6 +74,7 @@ class KotlinCppTests {
     fun testFlexEncoder() {
         val person = Person(1, "Shibasis", 27.9)
         val flexBuffer = encodeToFlexBuffer(person)
+        Flex_Finish(flexBuffer)
         val flexResult = Flex_GetBuffer(flexBuffer)
         val array = flexResult.useContents {
             buffer?.readBytes(size.toInt())
@@ -86,6 +92,26 @@ class KotlinCppTests {
         assertTrue(root.toMap()["age"].isFloat)
         assertTrue(root.toMap()["age"]!!.toDouble() == 27.9)
 
+
+        val json = Json.encodeToString(person)
+        val jsonFlexBuffer = Flex_Create()
+        Flex_ParseJson(jsonFlexBuffer, json)
+        val jsonBuffer = Flex_GetBuffer(jsonFlexBuffer)
+
+        val jsonArray = jsonBuffer.useContents {
+            buffer?.readBytes(size.toInt())
+        }
+        assertTrue { jsonArray != null }
+
+        val jsonRoot = getRoot(ArrayReadBuffer(jsonArray!!))
+
+        assertTrue(jsonRoot.isMap)
+        assertTrue(jsonRoot.toMap()["id"].isInt)
+        assertTrue(jsonRoot.toMap()["id"].toInt() == 1)
+        assertTrue(jsonRoot.toMap()["name"].isString)
+        assertTrue(jsonRoot.toMap()["name"].toString() == "Shibasis")
+        assertTrue(jsonRoot.toMap()["age"].isFloat)
+        assertTrue(jsonRoot.toMap()["age"].toDouble() == 27.9)
     }
 }
 

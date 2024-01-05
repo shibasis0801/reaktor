@@ -48,10 +48,12 @@ if(ANDROID)
     )
 elseif(APPLE)
     add_library(
-            Reaktor 
+            Reaktor
             STATIC
             ${common}
             ${darwin}
+            ../../flatbuffers/src/idl_parser.cpp
+            ../../flatbuffers/src/util.cpp
     )
     target_link_libraries(Reaktor PRIVATE flatInvoker)
     target_compile_options(Reaktor PRIVATE -fobjc-arc)
