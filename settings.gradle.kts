@@ -58,10 +58,7 @@ If we setup that, these hacks should not be needed.
 
 gitDependency("flatbuffers", "https://github.com/google/flatbuffers.git")
 gitDependency("googletest", "https://github.com/google/googletest.git")
-gitDependency("skiko", "https://github.com/JetBrains/skiko.git")
 
 include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
-//includeBuild("test-kmm")
-//includeBuild("reaktor")
-include(":lib-kotlin")
+include(":lib-flexbuffer")
 
