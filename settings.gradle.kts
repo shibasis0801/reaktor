@@ -61,4 +61,3 @@ gitDependency("googletest", "https://github.com/google/googletest.git")
 
 include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
 include(":lib-flexbuffer")
-
