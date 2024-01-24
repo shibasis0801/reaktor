@@ -88,7 +88,7 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation("com.facebook.fbjni:fbjni:0.4.0")
+            implementation("com.facebook.fbjni:fbjni:0.2.2")
             api("io.ktor:ktor-client-okhttp:2.3.0")
         }
         iosMain.dependencies {

@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.flatinvoker
 
 import com.google.flatbuffers.kotlin.ArrayReadWriteBuffer
 import com.google.flatbuffers.kotlin.ReadBuffer
+import dalvik.annotation.optimization.CriticalNative
+import dalvik.annotation.optimization.FastNative
 import java.nio.ByteBuffer
 
 fun ReadBuffer.toByteBuffer(): ByteBuffer {
@@ -39,6 +41,11 @@ object JavaJni {
     external fun echoByteBuffer(byteBuffer: ByteBuffer): ByteBuffer
 
     external fun execute(byteBuffer: ByteBuffer): ByteBuffer
+    // FastNative will have small benefits, CriticalNative will have greater benefits
+    // https://nickb.website/blog/speeding-up-your-android-apps-native-calls
+    // 1000 iterations without = 58 seconds, with = 55 seconds
+
+    @FastNative
     external fun parseJson(data: String): ByteBuffer
 
     fun execute(message: ReadBuffer): ReadBuffer {

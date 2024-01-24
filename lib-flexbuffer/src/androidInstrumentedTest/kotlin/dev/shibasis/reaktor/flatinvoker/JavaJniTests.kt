@@ -16,8 +16,12 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.ByteBuffer
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.TimeSource
 import kotlin.time.measureTime
 
 class JavaJniTests {
@@ -54,15 +58,34 @@ class JavaJniTests {
         assertTrue(true)
     }
 
+    inline fun measureRepeated(count: Int, block: () -> Unit): Duration {
+        var time = Duration.ZERO
+        repeat(count) {
+            time += measureTime(block)
+        }
+        return time / count
+    }
+
+
+
     suspend fun parseJsonToFlexBuffer() {
         val url = "http://192.168.0.247:8000/search.json"
         val result = httpClient.get(url)
         lateinit var buffer: ByteBuffer
         lateinit var flexBuffer: ReadBuffer
         val body = result.body<String>()
-        val timeForFlexParse = measureTime {
+        var timeForFlexParse = measureTime {
             buffer = JavaJni.parseJson(body)
-        }.inWholeMicroseconds
+        }
+
+        for (i in 0..100) {
+            timeForFlexParse += measureTime {
+                buffer = JavaJni.parseJson(body)
+            }
+        }
+
+        println("Shibasis: -> ${timeForFlexParse.inWholeMilliseconds}")
+
         // 50 - 60 ms for 550kb json
 
         val jsonParseTime = measureTime {
@@ -87,7 +110,7 @@ class JavaJniTests {
 
         // For 550 kb json
         assertTrue("SHIBASIS: JSON to FlexBuffer in a DirectByteBuffer: $resultTime") { resultTime > 0 } // ~ 60ms
-        assertTrue("SHIBASIS: Copy FlexBuffer from DBB to ReadBuffer: $timeForFlexParse") { timeForFlexParse > 0 } // ~ 1ms
+        assertTrue("SHIBASIS: Copy FlexBuffer from DBB to ReadBuffer: $timeForFlexParse") { timeForFlexParse.inWholeMilliseconds > 0 } // ~ 1ms
         assertTrue("SHIBASIS: Pure JSON Parse using kotlin-serialization: $jsonParseTime") { jsonParseTime > 0 } // ~ 161ms
     }
 
