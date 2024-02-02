@@ -60,4 +60,4 @@ gitDependency("flatbuffers", "https://github.com/google/flatbuffers.git")
 gitDependency("googletest", "https://github.com/google/googletest.git")
 
 include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
-include(":lib-flexbuffer")
+include(":flatinvoker-core")
