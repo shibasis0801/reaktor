@@ -3,6 +3,6 @@ project(flatInvoker)
 # Common CMake File for subprojects
 
 add_subdirectory(
-        dependencies/flatbuffers
+        cpp_modules/flatbuffers
         ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build
 )
