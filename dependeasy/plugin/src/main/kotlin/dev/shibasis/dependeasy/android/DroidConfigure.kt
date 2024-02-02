@@ -14,7 +14,6 @@ class AndroidConfiguration(
     var dependencies: KotlinDependencyHandler.() -> Unit = {}
 )
 fun KotlinMultiplatformExtension.droid(
-    parentSourceSet: KotlinSourceSet,
     configuration: AndroidConfiguration.() -> Unit = {}
 ) {
     val configure = AndroidConfiguration().apply(configuration)
@@ -28,8 +27,6 @@ fun KotlinMultiplatformExtension.droid(
 
     sourceSets {
         val droidMain by getting {
-            kotlin.srcDir("droidMain")
-            dependsOn(parentSourceSet)
             dependencies {
                 configure.dependencies(this)
             }

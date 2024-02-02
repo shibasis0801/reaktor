@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
+//    id("org.jetbrains.reflekt") version "1.7.0"
     id("com.android.library")
 }
 
@@ -154,7 +155,6 @@ android {
 tasks.withType<KotlinCompile>().all {
     kotlinOptions {
         jvmTarget = "17"
-//        jvmTarget = "1.8"
     }
 }
 

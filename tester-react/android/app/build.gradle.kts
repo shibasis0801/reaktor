@@ -20,7 +20,7 @@ project.extra.apply {
 apply(from = file("../../node_modules/react-native/react.gradle"))
 
 android {
-    defaults("com.myntra.appscore.tester")
+    defaults("dev.shibasis.flatinvoker.react.tester")
     kotlinOptions { defaults() }
 
     splits {

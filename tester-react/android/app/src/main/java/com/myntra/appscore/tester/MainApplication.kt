@@ -1,9 +1,9 @@
-package com.myntra.appscore.tester;
+package dev.shibasis.flatinvoker.react.tester;
 
 import android.app.Application;
 import com.facebook.react.*
 import com.facebook.soloader.SoLoader;
-import com.myntra.appscore.batcave.TurboKotlinPackage
+import dev.shibasis.flatinvoker.react.TurboKotlinPackage
 
 class MainApplication: Application(), ReactApplication {
    private val rnHost = object: ReactNativeHost(this) {

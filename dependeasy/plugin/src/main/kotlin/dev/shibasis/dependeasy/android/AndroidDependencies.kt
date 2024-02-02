@@ -65,6 +65,31 @@ fun KotlinDependencyHandler.extensions() = installModules(
 )
 
 
+fun KotlinDependencyHandler.camera() = installModules(
+    module("androidx.camera:camera-camera2:${Version.CameraX}"),
+    module("androidx.camera:camera-core:${Version.CameraX}"),
+    module("androidx.camera:camera-video:${Version.CameraX}"),
+    module("androidx.camera:camera-lifecycle:${Version.CameraX}"),
+    module("androidx.camera:camera-view:${Version.CameraX}"),
+    module("androidx.camera:camera-extensions:${Version.CameraX}"),
+)
+
+fun KotlinDependencyHandler.firebase(
+    project: Project,
+    firebaseVersion: String = Version.Firebase
+) {
+    val firebaseBOM = "com.google.firebase:firebase-bom:$firebaseVersion"
+    implementation(project.dependencies.enforcedPlatform(firebaseBOM))
+    installModules(
+        module("com.google.firebase:firebase-auth-ktx"),
+        module("com.google.firebase:firebase-config-ktx"),
+        module("com.google.firebase:firebase-analytics-ktx"),
+        module("com.google.firebase:firebase-crashlytics-ktx"),
+        module("com.google.firebase:firebase-messaging-ktx"),
+        module("com.google.android.gms:play-services-auth:20.1.0"),
+    )
+}
+
 fun KotlinDependencyHandler.androidCoroutines(
     coroutines_version: String = Version.Coroutines
 ) = installModules(

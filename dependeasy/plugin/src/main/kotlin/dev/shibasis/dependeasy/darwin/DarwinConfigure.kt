@@ -23,7 +23,6 @@ class DarwinConfigure(
 )
 
 fun KotlinMultiplatformExtension.darwin(
-    parentSourceSet: KotlinSourceSet,
     configuration: DarwinConfigure.() -> Unit = {}
 ) {
     val configure = DarwinConfigure().apply(configuration)
@@ -60,8 +59,6 @@ fun KotlinMultiplatformExtension.darwin(
         if (configure.devBuild) {
             val iosSimulatorArm64Main by getting
             val darwinMain by creating {
-                kotlin.srcDir("darwinMain")
-                dependsOn(parentSourceSet)
                 iosSimulatorArm64Main.dependsOn(this)
 
                 dependencies {
@@ -75,8 +72,6 @@ fun KotlinMultiplatformExtension.darwin(
             val iosSimulatorArm64Main by getting
 
             val darwinMain by creating {
-                kotlin.srcDir("darwinMain")
-                dependsOn(parentSourceSet)
                 iosX64Main.dependsOn(this)
                 iosArm64Main.dependsOn(this)
                 iosSimulatorArm64Main.dependsOn(this)

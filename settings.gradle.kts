@@ -8,6 +8,11 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
     }
+    plugins {
+        id("com.google.firebase.crashlytics").version("2.9.5")
+        id("com.google.devtools.ksp").version("1.9.21-1.0.16")
+        id("org.jetbrains.compose").version("1.5.11")
+    }
 }
 
 fun include(name: String, path: String? = null) {
@@ -27,11 +32,15 @@ fun String.execute() {
 }
 
 
+val githubDir = ".github_modules"
 // clone a git repo if it does not exist
-fun gitDependency(path: String, repoURL: String) {
+fun gitDependency(repoURL: String) {
+    val repoName = repoURL.split(".git").first().split("/").last()
+    val path = "$githubDir/$repoName"
+
     val localPath = Paths.get(file(path).absolutePath)
     if (!Files.exists(localPath)) {
-        val cloneCommand = "git clone $repoURL ${localPath.toAbsolutePath()}"
+        val cloneCommand = "git clone $repoURL $path"
         println("Executing: $cloneCommand")
         cloneCommand.execute()
     } else {
@@ -56,13 +65,17 @@ If we setup that, these hacks should not be needed.
 */
 
 
-gitDependency("cpp_modules/flatbuffers", "https://github.com/google/flatbuffers.git")
-gitDependency("cpp_modules/googletest", "https://github.com/google/googletest.git")
+gitDependency("https://github.com/google/flatbuffers.git")
+gitDependency("https://github.com/google/googletest.git")
+gitDependency("https://github.com/JetBrains-Research/reflekt.git")
 
 includeBuild("dependeasy")
 
-include("flatbuffers-kotlin", "cpp_modules/flatbuffers/kotlin/flatbuffers-kotlin")
+include("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 include(":flatinvoker-core")
 include(":flatinvoker-react")
+include(":flatinvoker-compiler")
+include(":reaktor-core")
+
 
 includeBuild("tester-react/android")

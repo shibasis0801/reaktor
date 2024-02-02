@@ -18,7 +18,7 @@ buildscript {
     }
 }
 
-group = "com.myntra.appscore"
+group = "dev.shibasis.flatinvoker.react"
 version = "1.0-SNAPSHOT"
 
 

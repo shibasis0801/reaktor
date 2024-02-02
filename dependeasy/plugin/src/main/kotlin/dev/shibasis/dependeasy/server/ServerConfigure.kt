@@ -14,7 +14,6 @@ class ServerConfiguration(
 )
 
 fun KotlinMultiplatformExtension.server(
-    parentSourceSet: KotlinSourceSet,
     configuration: ServerConfiguration.() -> Unit
 ): Pair<KotlinJvmTarget, KotlinSourceSet> {
     val configure = ServerConfiguration().apply(configuration)
@@ -30,8 +29,6 @@ fun KotlinMultiplatformExtension.server(
 
     sourceSets {
         val serverMain by getting {
-            kotlin.srcDir("serverMain")
-            dependsOn(parentSourceSet)
             dependencies {
                 configure.dependencies(this)
             }

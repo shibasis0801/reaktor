@@ -1,4 +1,4 @@
-package com.myntra.appscore.tester;
+package dev.shibasis.flatinvoker.react.tester;
 
 import android.content.Context;
 import com.facebook.react.ReactInstanceManager;
