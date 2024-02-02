@@ -17,7 +17,9 @@ import kotlinx.cinterop.useContents
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class KotlinCppTests {
@@ -112,6 +114,28 @@ class KotlinCppTests {
         assertTrue(jsonRoot.toMap()["name"].toString() == "Shibasis")
         assertTrue(jsonRoot.toMap()["age"].isFloat)
         assertTrue(jsonRoot.toMap()["age"].toDouble() == 27.9)
+    }
+
+    @Test
+    fun testArrayEncode() {
+        val array = arrayListOf(1, 2, 3)
+
+        val flexBuffer = encodeToFlexBuffer(array)
+        Flex_Finish(flexBuffer)
+        val flexResult = Flex_GetBuffer(flexBuffer)
+        val retrieved = flexResult.useContents {
+            buffer?.readBytes(size.toInt())
+        }
+
+        assertTrue { retrieved != null }
+        val root = getRoot(ArrayReadBuffer(retrieved!!))
+
+        assertTrue { root.isVector || root.isTypedVector }
+        val vec = root.toVector()
+
+        array.forEachIndexed { index, i ->
+            assertEquals(i, vec[index].toInt())
+        }
     }
 }
 

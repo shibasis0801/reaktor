@@ -1,4 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+plugins {
+    id("org.jetbrains.dokka") version "1.9.10"
+}
 
 buildscript {
     repositories {
@@ -17,6 +20,10 @@ allprojects {
         google()
         mavenCentral()
     }
+}
+
+subprojects {
+    apply(plugin = "org.jetbrains.dokka")
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {

@@ -58,6 +58,14 @@ jni::local_ref<jni::JByteBuffer> JavaJni::parseJson(
         __android_log_print(ANDROID_LOG_DEBUG, "JNI", "Time: %b\n", result);
     });
 
+
+    flexbuffers::Builder primitiveBuilder;
+    primitiveBuilder.Int(42323035325325);
+    primitiveBuilder.Finish();
+    auto size = primitiveBuilder.GetBuffer().size();
+    __android_log_print(ANDROID_LOG_DEBUG, "FlexBuffer size", "Size: %d\n", size);
+
+
 //    builder.Finish();
     auto data = builder.GetBuffer();
 
