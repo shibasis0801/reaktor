@@ -56,8 +56,13 @@ If we setup that, these hacks should not be needed.
 */
 
 
-gitDependency("flatbuffers", "https://github.com/google/flatbuffers.git")
-gitDependency("googletest", "https://github.com/google/googletest.git")
+gitDependency("dependencies/flatbuffers", "https://github.com/google/flatbuffers.git")
+gitDependency("dependencies/googletest", "https://github.com/google/googletest.git")
 
-include("flatbuffers-kotlin", "flatbuffers/kotlin/flatbuffers-kotlin")
+includeBuild("plugin-dependeasy")
+
+include("flatbuffers-kotlin", "dependencies/flatbuffers/kotlin/flatbuffers-kotlin")
 include(":flatinvoker-core")
+include(":flatinvoker-react")
+
+includeBuild("tester-react/android")

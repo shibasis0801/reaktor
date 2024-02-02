@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform")
-    kotlin("plugin.serialization") version "1.9.21"
+    kotlin("plugin.serialization")
     id("com.android.library")
 }
 
