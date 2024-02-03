@@ -15,26 +15,19 @@ class ServerConfiguration(
 
 fun KotlinMultiplatformExtension.server(
     configuration: ServerConfiguration.() -> Unit
-): Pair<KotlinJvmTarget, KotlinSourceSet> {
+) {
     val configure = ServerConfiguration().apply(configuration)
 
-    val target = jvm("server") {
+    jvm {
         configure.targetModifier(this)
         this.compilations.forEach {
             it.kotlinOptions.jvmTarget = "11"
         }
     }
 
-    lateinit var sourceSet: KotlinSourceSet
-
     sourceSets {
-        val serverMain by getting {
-            dependencies {
-                configure.dependencies(this)
-            }
+        jvmMain.dependencies {
+            configure.dependencies(this)
         }
-        sourceSet = serverMain
     }
-
-    return Pair(target, sourceSet)
 }

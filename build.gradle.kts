@@ -1,5 +1,17 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
+    // this is necessary to avoid the plugins to be loaded multiple times
+    // in each subproject's classloader
+    kotlin("multiplatform") apply false
+    kotlin("android") apply false
+    id("com.android.application") apply false
+    id("com.android.library") apply false
+//    id("com.google.firebase.crashlytics") apply false
+    id("org.jetbrains.compose") apply false
+    id("com.google.devtools.ksp") apply false
+    id("dev.shibasis.dependeasy.library") apply false
+    id("dev.shibasis.dependeasy.application") apply false
+    // applied
     id("org.jetbrains.dokka") version "1.9.10"
 }
 
@@ -7,20 +19,30 @@ buildscript {
     repositories {
         gradlePluginPortal()
         google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.21")
-        classpath("org.jetbrains.kotlin:kotlin-serialization:1.9.21")
-        classpath("com.android.tools.build:gradle:7.4.2")
-        classpath("app.cash.sqldelight:gradle-plugin:2.0.0")
+        maven(url = "$rootDir/node_modules/react-native/android")
+        mavenCentral {
+            content {
+                excludeGroup("com.facebook.react")
+            }
+        }
+        maven(url = "https://jitpack.io")
     }
 }
 
 allprojects {
     repositories {
+        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
+        mavenCentral {
+            content {
+                excludeGroup("com.facebook.react")
+            }
+        }
         google()
-        mavenCentral()
+        maven(url = "https://www.jitpack.io")
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        maven("https://oss.sonatype.org/content/repositories/snapshots")
+        mavenLocal()
+        maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     }
 }
 

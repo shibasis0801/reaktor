@@ -60,3 +60,7 @@ Person(hello, 27)
 }
 
 
+1. Project Panama -> Increase FFI speed
+2. Static Hermes Zero Cost FFI -> Increase FFI speed
+3. Swift C++ Interop -> Increase speed
+4. FlexBuffer -> Language independent transmission supported format

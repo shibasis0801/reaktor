@@ -1,9 +1,6 @@
 package dev.shibasis.dependeasy.utils
 
 import org.gradle.api.initialization.Settings
-import org.gradle.api.plugins.PluginAware
-import org.gradle.kotlin.dsl.SettingsScriptApi
-import org.gradle.kotlin.dsl.support.delegates.SettingsDelegate
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.io.File
@@ -18,14 +15,17 @@ fun String.execute() {
 
 
 // clone a git repo if it does not exist
-fun gitDependency(path: File, repoURL: String) {
-    val localPath = Paths.get(path.absolutePath)
-    if (!Files.exists(localPath)) {
-        val cloneCommand = "git clone $repoURL ${localPath.toAbsolutePath()}"
+fun gitDependency(repoURL: String, downloadRoot: File) {
+    val repoName = repoURL.split(".git").first().split("/").last()
+    val subdirectory = File(downloadRoot, repoName)
+
+    val path = Paths.get(subdirectory.absolutePath)
+    if (!Files.exists(path)) {
+        val cloneCommand = "git clone $repoURL $path"
         println("Executing: $cloneCommand")
         cloneCommand.execute()
     } else {
-        println("Repository already exists at ${localPath.toAbsolutePath()}")
+        println("Repository already exists at ${path.toAbsolutePath()}")
     }
 }
 

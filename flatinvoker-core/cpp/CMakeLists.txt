@@ -50,8 +50,9 @@ elseif(APPLE)
             STATIC
             ${common}
             ${darwin}
-            ../../flatbuffers/src/idl_parser.cpp
-            ../../flatbuffers/src/util.cpp
+#            fix this later
+            ../../.github_modules/flatbuffers/src/idl_parser.cpp
+            ../../.github_modules/flatbuffers/src/util.cpp
     )
     target_link_libraries(Reaktor PRIVATE flatbuffers)
     target_compile_options(Reaktor PRIVATE -fobjc-arc)

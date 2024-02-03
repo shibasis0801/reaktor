@@ -56,29 +56,9 @@ fun KotlinMultiplatformExtension.darwin(
     }
 
     sourceSets {
-        if (configure.devBuild) {
-            val iosSimulatorArm64Main by getting
-            val darwinMain by creating {
-                iosSimulatorArm64Main.dependsOn(this)
-
-                dependencies {
-                    configure.dependencies(this)
-                }
-            }
-        }
-        else {
-            val iosX64Main by getting
-            val iosArm64Main by getting
-            val iosSimulatorArm64Main by getting
-
-            val darwinMain by creating {
-                iosX64Main.dependsOn(this)
-                iosArm64Main.dependsOn(this)
-                iosSimulatorArm64Main.dependsOn(this)
-
-                dependencies {
-                    configure.dependencies(this)
-                }
+        iosMain {
+            dependencies {
+                configure.dependencies(this)
             }
         }
     }

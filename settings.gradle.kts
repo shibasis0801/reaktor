@@ -1,52 +1,52 @@
 import java.nio.file.*
+import dev.shibasis.dependeasy.utils.*
+import Vers
 
 rootProject.name = "flatInvoker"
+includeBuild("dependeasy")
 
 pluginManagement {
+    includeBuild("dependeasy")
+
     repositories {
-        google()
         gradlePluginPortal()
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        google()
         mavenCentral()
+        maven(url = "https://jitpack.io")
+        maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     }
+
     plugins {
-        id("com.google.firebase.crashlytics").version("2.9.5")
+        val kotlinVersion = "1.9.21"
+        val agpVersion = "7.4.2"
+        val crashlyticsVersion = "2.9.9"
+
+        id("com.google.firebase.crashlytics").version("2.9.9")
         id("com.google.devtools.ksp").version("1.9.21-1.0.16")
         id("org.jetbrains.compose").version("1.5.11")
+        id("com.google.gms.google-services").version("4.4.0")
+
+        kotlin("jvm").version(kotlinVersion)
+        kotlin("multiplatform").version(kotlinVersion)
+        kotlin("plugin.serialization").version(kotlinVersion)
+        kotlin("android").version(kotlinVersion)
+        id("com.android.base").version(agpVersion)
+        id("com.android.application").version(agpVersion)
+        id("com.android.library").version(agpVersion)
+
+
+        id("app.cash.sqldelight").version("2.0.0")
+        id("dev.shibasis.dependeasy.library")
+        id("dev.shibasis.dependeasy.application")
+//    id("atomicfu-gradle-plugin").version("0.23.1")
     }
 }
 
-fun include(name: String, path: String? = null) {
-    val newName = ":$name"
-    settings.include(newName)
-    if (path != null) {
-        project(newName).projectDir = File(path)
-    }
+plugins {
+    id("dev.shibasis.dependeasy.settings")
 }
 
-// Extension function to execute shell commands
-fun String.execute() {
-    val process = Runtime.getRuntime().exec(this)
-    process.inputStream.reader(Charsets.UTF_8).use { reader ->
-        println(reader.readText())
-    }
-}
-
-
-val githubDir = ".github_modules"
-// clone a git repo if it does not exist
-fun gitDependency(repoURL: String) {
-    val repoName = repoURL.split(".git").first().split("/").last()
-    val path = "$githubDir/$repoName"
-
-    val localPath = Paths.get(file(path).absolutePath)
-    if (!Files.exists(localPath)) {
-        val cloneCommand = "git clone $repoURL $path"
-        println("Executing: $cloneCommand")
-        cloneCommand.execute()
-    } else {
-        println("Repository already exists at ${localPath.toAbsolutePath()}")
-    }
-}
 /*
 I had to change few things in the flatbuffers repo
 1. Disable tests in cmakeLists
@@ -63,19 +63,17 @@ option(FLATBUFFERS_BUILD_TESTS "Enable the build of tests and samples." OFF)
 The reason was flatc, the binary was not accessible from the path.
 If we setup that, these hacks should not be needed.
 */
+val githubDir = file(".github_modules")
 
+gitDependency("https://github.com/google/flatbuffers.git", githubDir)
+gitDependency("https://github.com/google/googletest.git", githubDir)
+gitDependency("https://github.com/JetBrains-Research/reflekt.git", githubDir)
 
-gitDependency("https://github.com/google/flatbuffers.git")
-gitDependency("https://github.com/google/googletest.git")
-gitDependency("https://github.com/JetBrains-Research/reflekt.git")
-
-includeBuild("dependeasy")
-
-include("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
+includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 include(":flatinvoker-core")
 include(":flatinvoker-react")
 include(":flatinvoker-compiler")
 include(":reaktor-core")
 
 
-includeBuild("tester-react/android")
+//includeBuild("tester-react/android")

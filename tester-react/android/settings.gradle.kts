@@ -22,4 +22,3 @@ val applyNativeModulesSettingsGradle = extra["applyNativeModulesSettingsGradle"]
 applyNativeModulesSettingsGradle(settings)
 
 include(":app")
-include("flatinvoker-react", "../../flatinvoker-react")

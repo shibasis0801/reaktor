@@ -8,7 +8,7 @@ import dev.shibasis.dependeasy.*
 plugins {
     id("com.android.library")
     id("dev.shibasis.dependeasy.library")
-    id("com.google.firebase.crashlytics")
+//    id("com.google.firebase.crashlytics")
     id("com.google.devtools.ksp")
     id("org.jetbrains.compose")
 }
@@ -88,42 +88,15 @@ android {
     defaults("dev.reaktor.core")
 }
 
+
 dependencies {
     add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
-//    add("kspJvm", project(":generator"))
 }
 
-// split into two parts
-//task("buildReleaseBinaries") {
-//    group = "reaktor"
-//    dependsOn("assembleRelease", "podPublishReleaseXCFramework")
-//    doLast {
-//        // Define the paths to the AAR and XCFramework files
-//        val aarFilePath = "${project.buildDir}/outputs/aar/core-release.aar"
-//        val xcFrameworkFilePath = "${project.buildDir}/cocoapods/publish/release/core.xcframework/ios-arm64/core.framework/core"
-//
-//        val sizeInKb = { filePath: String ->
-//            round(Files.size(Paths.get(filePath)) / 1024.0)
-//        }
-//
-//        // Get the sizes of the files
-//        val aarSize = sizeInKb(aarFilePath)
-//        val xcfSize = sizeInKb(xcFrameworkFilePath)
-//
-//        // Print the sizes to a CSV file
-//        val csvFile = file("./buildSize.csv")
-//        val date = SimpleDateFormat("dd/MM/yy").format(Date())
-//
-//        val outputStream = ByteArrayOutputStream()
-//        exec {
-//            commandLine("git", "rev-parse", "HEAD")
-//            standardOutput = outputStream
-//        }
-//        val commitId = outputStream.toString().trim()
-//
-//        val dataLine ="$date, $commitId, $aarSize, $xcfSize\n"
-//        csvFile.appendText(dataLine)
-//        println("Built Android AAR and Apple XCFramework")
-//        println(dataLine)
-//    }
-//}
+tasks.register<Copy>("copyDokka") {
+    group = "reaktor"
+    dependsOn("dokkaHtml")
+    from("$buildDir/dokka/html")
+    into("docs/${project.name}")
+}
+

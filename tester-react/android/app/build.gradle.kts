@@ -1,5 +1,3 @@
-
-
 import com.android.build.api.variant.FilterConfiguration.FilterType.ABI
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.android.defaults

@@ -32,7 +32,12 @@ dependencies {
 gradlePlugin {
     val libraryPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.library"
-        implementationClass = "dev.shibasis.dependeasy.plugins.Library"
+        implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
+    }
+
+    val applicationPlugin by plugins.creating {
+        id = "dev.shibasis.dependeasy.application"
+        implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
     }
 
     val settingsPlugin by plugins.creating {
