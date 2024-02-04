@@ -7,7 +7,7 @@ plugins {
     id("com.android.application") apply false
     id("com.android.library") apply false
 //    id("com.google.firebase.crashlytics") apply false
-    id("org.jetbrains.compose") apply false
+//    id("org.jetbrains.compose") apply false
     id("com.google.devtools.ksp") apply false
     id("dev.shibasis.dependeasy.library") apply false
     id("dev.shibasis.dependeasy.application") apply false

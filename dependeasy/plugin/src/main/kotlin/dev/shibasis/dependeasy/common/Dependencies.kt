@@ -19,10 +19,3 @@ fun KotlinDependencyHandler.commonCoroutines(coroutinesVersion: String = Version
 fun KotlinDependencyHandler.commonNetworking() {
     api("io.ktor:ktor-client-core:${Version.Ktor}")
 }
-
-fun KotlinDependencyHandler.basic() {
-    commonKoin()
-    commonNetworking()
-    commonCoroutines()
-    commonSerialization()
-}

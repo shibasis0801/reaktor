@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Event</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../index.html">
+                            reaktor-core
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector js-like" data-active="" data-filter=":reaktor-core:dokkaHtml/webMain">web</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="reaktor-core::dev.shibasis.reaktor.core.server.externals/Event///PointingToDeclaration//1277100220">
+  <div class="breadcrumbs"><a href="../../../index.html">reaktor-core</a><span class="delimiter">/</span><a href="../index.html">dev.shibasis.reaktor.core.server.externals</a><span class="delimiter">/</span><span class="current">Event</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Event</span></span></h1>
+    <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+      <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">external </span><span class="token keyword">class </span><a href="index.html">Event</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">type<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">init<span class="token operator">: </span><a href="../-event-init/index.html">EventInit</a><span class="token operator"> = </span>definedExternally</span></span><span class="token punctuation">)</span></div><h4 class="">Inheritors</h4><div class="table"><div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-promise-rejection-event/index.html">PromiseRejectionEvent</a></div></span></div><div></div></div></div><div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-extendable-event/index.html">ExtendableEvent</a></div></span></div><div></div></div></div><div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-close-event/index.html">CloseEvent</a></div></span></div><div></div></div></div><div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-message-event/index.html">MessageEvent</a></div></span></div><div></div></div></div><div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../-error-event/index.html">ErrorEvent</a></div></span></div><div></div></div></div></div></div>    </div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="-1566621876%2FConstructors%2F1277100220" anchor-label="Event" id="-1566621876%2FConstructors%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-event.html"><span><span>Event</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1566621876%2FConstructors%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">type<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">init<span class="token operator">: </span><a href="../-event-init/index.html">EventInit</a><span class="token operator"> = </span>definedExternally</span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="-545791941%2FClasslikes%2F1277100220" anchor-label="Companion" id="-545791941%2FClasslikes%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-545791941%2FClasslikes%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="1104192813%2FProperties%2F1277100220" anchor-label="bubbles" id="1104192813%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="bubbles.html"><span><span>bubbles</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1104192813%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="bubbles.html">bubbles</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="105070354%2FProperties%2F1277100220" anchor-label="cancelable" id="105070354%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancelable.html"><span><span>cancelable</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="105070354%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="cancelable.html">cancelable</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1748429760%2FProperties%2F1277100220" anchor-label="cancelBubble" id="-1748429760%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancel-bubble.html"><span>cancel</span><wbr></wbr><span><span>Bubble</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1748429760%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="cancel-bubble.html">cancelBubble</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-84235052%2FProperties%2F1277100220" anchor-label="composed" id="-84235052%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="composed.html"><span><span>composed</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-84235052%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="composed.html">composed</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-458151350%2FProperties%2F1277100220" anchor-label="currentTarget" id="-458151350%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="current-target.html"><span>current</span><wbr></wbr><span><span>Target</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-458151350%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="current-target.html">currentTarget</a><span class="token operator">: </span><a href="../-event-target__0/index.html">EventTarget__0</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1048401456%2FProperties%2F1277100220" anchor-label="defaultPrevented" id="1048401456%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="default-prevented.html"><span>default</span><wbr></wbr><span><span>Prevented</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1048401456%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="default-prevented.html">defaultPrevented</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="761502597%2FProperties%2F1277100220" anchor-label="eventPhase" id="761502597%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="event-phase.html"><span>event</span><wbr></wbr><span><span>Phase</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="761502597%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="event-phase.html">eventPhase</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-number/index.html">Number</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1120900903%2FProperties%2F1277100220" anchor-label="isTrusted" id="1120900903%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="is-trusted.html"><span>is</span><wbr></wbr><span><span>Trusted</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1120900903%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="is-trusted.html">isTrusted</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="825815603%2FProperties%2F1277100220" anchor-label="returnValue" id="825815603%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="return-value.html"><span>return</span><wbr></wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="825815603%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="return-value.html">returnValue</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="53691886%2FProperties%2F1277100220" anchor-label="srcElement" id="53691886%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="src-element.html"><span>src</span><wbr></wbr><span><span>Element</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="53691886%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="src-element.html">srcElement</a><span class="token operator">: </span><a href="../-event-target__0/index.html">EventTarget__0</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1228519102%2FProperties%2F1277100220" anchor-label="timeStamp" id="1228519102%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="time-stamp.html"><span>time</span><wbr></wbr><span><span>Stamp</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1228519102%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="time-stamp.html">timeStamp</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-number/index.html">Number</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1178404820%2FProperties%2F1277100220" anchor-label="type" id="-1178404820%2FProperties%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="type.html"><span><span>type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1178404820%2FProperties%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">var </span><a href="type.html">type</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="314759343%2FFunctions%2F1277100220" anchor-label="composedPath" id="314759343%2FFunctions%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="composed-path.html"><span>composed</span><wbr></wbr><span><span>Path</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="314759343%2FFunctions%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">fun </span><a href="composed-path.html"><span class="token function">composedPath</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="../-event-target__0/index.html">EventTarget__0</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="107225533%2FFunctions%2F1277100220" anchor-label="preventDefault" id="107225533%2FFunctions%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="prevent-default.html"><span>prevent</span><wbr></wbr><span><span>Default</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="107225533%2FFunctions%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">fun </span><a href="prevent-default.html"><span class="token function">preventDefault</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="62414281%2FFunctions%2F1277100220" anchor-label="stopImmediatePropagation" id="62414281%2FFunctions%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="stop-immediate-propagation.html"><span>stop</span><wbr></wbr><span>Immediate</span><wbr></wbr><span><span>Propagation</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="62414281%2FFunctions%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">fun </span><a href="stop-immediate-propagation.html"><span class="token function">stopImmediatePropagation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1683741834%2FFunctions%2F1277100220" anchor-label="stopPropagation" id="1683741834%2FFunctions%2F1277100220" data-filterable-set=":reaktor-core:dokkaHtml/webMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="stop-propagation.html"><span>stop</span><wbr></wbr><span><span>Propagation</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1683741834%2FFunctions%2F1277100220"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtml/webMain" data-filterable-set=":reaktor-core:dokkaHtml/webMain" data-active="" data-toggle=":reaktor-core:dokkaHtml/webMain">web</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtml/webMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword"></span><span class="token keyword">fun </span><a href="stop-propagation.html"><span class="token function">stopPropagation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

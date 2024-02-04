@@ -3,19 +3,15 @@ package dev.shibasis.dependeasy.darwin
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.plugins.getExtension
 import org.gradle.api.NamedDomainObjectContainer
-import org.gradle.kotlin.dsl.creating
-import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 class DarwinConfigure(
-    var devBuild: Boolean = false,
+    var onlyAppleSilicon: Boolean = true,
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var podDependencies: CocoapodsExtension.() -> Unit = {},
     var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {},
@@ -27,13 +23,13 @@ fun KotlinMultiplatformExtension.darwin(
 ) {
     val configure = DarwinConfigure().apply(configuration)
 
-    val targets = mutableListOf<KotlinNativeTarget>(
-        iosSimulatorArm64()
+    val targets = mutableListOf(
+        iosSimulatorArm64(),
+        iosArm64()
     )
 
-    if (!configure.devBuild)
+    if (!configure.onlyAppleSilicon)
         targets.apply {
-            add(iosArm64())
             add(iosX64())
         }
 
@@ -58,6 +54,8 @@ fun KotlinMultiplatformExtension.darwin(
     sourceSets {
         iosMain {
             dependencies {
+                // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
+                api("org.jetbrains.kotlinx:atomicfu:0.23.1")
                 configure.dependencies(this)
             }
         }

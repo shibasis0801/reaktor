@@ -15,10 +15,7 @@ fun KotlinDependencyHandler.activityFragment(
     module("androidx.activity:activity-ktx:${Version.Activity}"),
     module("androidx.fragment:fragment:${Version.Fragment}"),
     module("androidx.fragment:fragment-ktx:${Version.Fragment}"),
-    module("androidx.appcompat:appcompat:1.4.1"),
-    module("androidx.constraintlayout:constraintlayout:2.0.4"),
-    module("com.google.android.material:material:1.5.0"),
-    module("com.benasher44:uuid:0.4.0")
+
 )
 
 fun KotlinDependencyHandler.lifecycle(
@@ -76,18 +73,28 @@ fun KotlinDependencyHandler.camera() = installModules(
 
 fun KotlinDependencyHandler.firebase(
     project: Project,
+    minimal: Boolean = true,
     firebaseVersion: String = Version.Firebase
 ) {
     val firebaseBOM = "com.google.firebase:firebase-bom:$firebaseVersion"
     implementation(project.dependencies.enforcedPlatform(firebaseBOM))
-    installModules(
-        module("com.google.firebase:firebase-auth-ktx"),
-        module("com.google.firebase:firebase-config-ktx"),
-        module("com.google.firebase:firebase-analytics-ktx"),
-        module("com.google.firebase:firebase-crashlytics-ktx"),
-        module("com.google.firebase:firebase-messaging-ktx"),
-        module("com.google.android.gms:play-services-auth:20.1.0"),
-    )
+
+    if (minimal) {
+        installModules(
+            module("com.google.firebase:firebase-analytics-ktx"),
+            module("com.google.firebase:firebase-crashlytics-ktx")
+        )
+    }
+    else {
+        installModules(
+            module("com.google.firebase:firebase-auth-ktx"),
+            module("com.google.firebase:firebase-config-ktx"),
+            module("com.google.firebase:firebase-analytics-ktx"),
+            module("com.google.firebase:firebase-crashlytics-ktx"),
+            module("com.google.firebase:firebase-messaging-ktx"),
+            module("com.google.android.gms:play-services-auth:20.1.0"),
+        )
+    }
 }
 
 fun KotlinDependencyHandler.androidCoroutines(

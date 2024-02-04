@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
 }
 
-group = "dev.reaktor"
+group = "dev.shibasis.reaktor"
 version = "1.0-SNAPSHOT"
 
 

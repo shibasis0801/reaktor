@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.core.actor
 
 import dev.shibasis.reaktor.core.network.Response
-import com.google.api.core.ApiFuture
 import io.vertx.core.impl.logging.Logger
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.ext.web.Route
@@ -48,14 +47,6 @@ fun getEnvInt(key: String, defaultValue: Int): Int {
         if (equals("")) defaultValue else toInt()
     }
 }
-
-
-suspend fun<T> ApiFuture<T>.await() = suspendCancellableCoroutine<T> { continuation ->
-    addListener({
-        continuation.resume(get())
-    }, Dispatchers.IO.asExecutor())
-}
-
 
 
 

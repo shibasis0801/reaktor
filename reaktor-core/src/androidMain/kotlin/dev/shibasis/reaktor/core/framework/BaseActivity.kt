@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.core.framework
 
-import android.app.Activity
 import androidx.activity.ComponentActivity
 
 abstract class BaseActivity: ComponentActivity() {

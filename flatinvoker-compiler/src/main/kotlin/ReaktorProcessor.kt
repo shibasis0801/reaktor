@@ -1,4 +1,4 @@
-package dev.reaktor.generator
+package dev.shibasis.reaktor.generator
 
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getDeclaredProperties
@@ -11,7 +11,7 @@ class ReaktorProcessor(
     val logger: KSPLogger
 ): SymbolProcessor {
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val list = resolver.getSymbolsWithAnnotation("dev.reaktor.core.annotations.reaktor.Expose")
+        val list = resolver.getSymbolsWithAnnotation("dev.shibasis.reaktor.core.annotations.reaktor.Expose")
             .onEach {
                 logger.warn("Found class: ${it.javaClass}")
                 (it as KSClassDeclaration).getAllProperties()

@@ -5,13 +5,8 @@ import dev.shibasis.dependeasy.*
 
 
 plugins {
-    kotlin("multiplatform")
-    id("com.android.library")
-    kotlin("native.cocoapods")
-    id("app.cash.sqldelight")
     id("maven-publish")
     id("dev.shibasis.dependeasy.library")
-    kotlin("plugin.serialization")
 }
 
 group = "dev.shibasis.flatinvoker.react"
@@ -44,8 +39,6 @@ kotlin {
 
 //    val xcFramework = XCFramework()
     darwin {
-        devBuild = false
-
         dependencies = {
             implementation("app.cash.sqldelight:native-driver:${Version.SQLDelight}")
             implementation("io.ktor:ktor-client-darwin:${Version.Ktor}")

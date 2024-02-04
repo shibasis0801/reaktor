@@ -1,11 +1,9 @@
-import com.android.build.gradle.LibraryExtension
 import dev.shibasis.dependeasy.web.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
-import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 
 plugins {
     id("com.android.library")
@@ -38,8 +36,6 @@ kotlin {
     }
 
     darwin {
-        devBuild = true
-        
         cinterops = {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")

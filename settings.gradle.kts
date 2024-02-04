@@ -2,7 +2,6 @@ import java.nio.file.*
 import dev.shibasis.dependeasy.utils.*
 
 rootProject.name = "flatInvoker"
-includeBuild("dependeasy")
 
 pluginManagement {
     includeBuild("dependeasy")
@@ -38,7 +37,6 @@ pluginManagement {
         id("app.cash.sqldelight").version("2.0.0")
         id("dev.shibasis.dependeasy.library")
         id("dev.shibasis.dependeasy.application")
-//    id("atomicfu-gradle-plugin").version("0.23.1")
     }
 }
 

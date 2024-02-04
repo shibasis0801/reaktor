@@ -1,18 +1,11 @@
 package dev.shibasis.reaktor.core.adapters
 
 import android.Manifest
-import android.app.Application
 import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.shibasis.reaktor.core.extensions.getResultFromActivity
 import dev.shibasis.reaktor.core.extensions.hasPermission
-import dev.shibasis.reaktor.core.framework.Adapter
-import dev.shibasis.reaktor.core.framework.BaseActivity
-import dev.shibasis.reaktor.core.framework.WeakRef
-import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.resume
+
 
 class AndroidPermissionAdapter(
     activity: ComponentActivity

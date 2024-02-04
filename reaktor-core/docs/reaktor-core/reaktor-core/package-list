@@ -1,7 +1,7 @@
 $dokka.format:html-v1
 $dokka.linkExtension:html
-$dokka.location:dev.reaktor.core.annotations.reaktor////PointingToDeclaration/reaktor-core/dev.reaktor.core.annotations.reaktor/index.html
-$dokka.location:dev.reaktor.core.annotations.reaktor/Expose///PointingToDeclaration/reaktor-core/dev.reaktor.core.annotations.reaktor/-expose/index.html
+$dokka.location:dev.shibasis.reaktor.core.annotations.reaktor////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.annotations.reaktor/index.html
+$dokka.location:dev.shibasis.reaktor.core.annotations.reaktor/Expose///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.annotations.reaktor/-expose/index.html
 $dokka.location:dev.shibasis.reaktor.core.actor////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/index.html
 $dokka.location:dev.shibasis.reaktor.core.actor//await/com.google.api.core.ApiFuture[TypeParam(bounds=[kotlin.Any?])]#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/await.html
 $dokka.location:dev.shibasis.reaktor.core.actor//getEnvInt/#kotlin.String#kotlin.Int/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/get-env-int.html
@@ -1647,7 +1647,7 @@ $dokka.location:dev.shibasis.reaktor.framework/Feature///PointingToDeclaration/
 $dokka.location:dev.shibasis.reaktor.framework/Feature/createId/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.framework/-feature/create-id.html
 $dokka.location:dev.shibasis.reaktor.framework/Feature/fetchDependency/#kotlin.Int/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.framework/-feature/fetch-dependency.html
 $dokka.location:dev.shibasis.reaktor.framework/Feature/storeDependency/#kotlin.Int#TypeParam(bounds=[kotlin.Any?])/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.framework/-feature/store-dependency.html
-dev.reaktor.core.annotations.reaktor
+dev.shibasis.reaktor.core.annotations.reaktor
 dev.shibasis.reaktor.core.actor
 dev.shibasis.reaktor.core.adapters
 dev.shibasis.reaktor.core.cloudflare
