@@ -1,6 +1,5 @@
 import java.nio.file.*
 import dev.shibasis.dependeasy.utils.*
-import Vers
 
 rootProject.name = "flatInvoker"
 includeBuild("dependeasy")
@@ -76,4 +75,4 @@ include(":flatinvoker-compiler")
 include(":reaktor-core")
 
 
-//includeBuild("tester-react/android")
+includeBuild("tester-react/android")

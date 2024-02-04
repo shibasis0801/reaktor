@@ -4,9 +4,7 @@ import dev.shibasis.dependeasy.android.defaults
 import groovy.lang.Closure
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("dev.shibasis.dependeasy.library")
+    id("dev.shibasis.dependeasy.application")
 }
 
 project.extra.apply {

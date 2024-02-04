@@ -1,6 +1,9 @@
 import groovy.lang.Closure
 
 pluginManagement {
+    includeBuild("../../dependeasy") {
+        name = "dependeasy-copy"
+    }
     repositories {
         google()
         gradlePluginPortal()
@@ -22,3 +25,4 @@ val applyNativeModulesSettingsGradle = extra["applyNativeModulesSettingsGradle"]
 applyNativeModulesSettingsGradle(settings)
 
 include(":app")
+include("flatinvoker-react", "../../flatinvoker-react")
