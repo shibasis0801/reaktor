@@ -41,7 +41,7 @@ kotlin {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 packageName("dev.shibasis.reaktor.native")
-//                defFile(file("cpp/reaktor.def"))
+                defFile(file("cpp/reaktor.def"))
 
                 // For a given directory, recursively add all headers
                 headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
