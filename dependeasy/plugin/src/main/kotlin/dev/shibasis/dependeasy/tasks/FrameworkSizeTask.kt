@@ -8,13 +8,21 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.round
 
-/*
-todo
-Currently it logs aar size(no abi split) and xcframework size(only iosArm64)
-Multi arch support is pending
-Report for each ABI
-Plugin should generate binaries per ABI
-Right now discovery logic is shady
+/**
+ * This task logs the size of the framework.
+ *
+ * It is currently set to log the size of the aar (without ABI split) and the xcframework (only iosArm64).
+ *
+ * TODO:
+ * - Add support for multiple architectures.
+ * - Add support for measuring the c++ binary size.
+ * - Generate a report for each ABI.
+ * - The plugin should generate binaries per ABI.
+ * - Improve the discovery logic.
+ *
+ * The task depends on the tasks "assembleRelease" and "podPublishReleaseXCFramework".
+ *
+ * After the task is executed, it calculates the sizes of the aar and the xcframework, and logs them to a CSV file and the console.
  */
 fun Task.logFrameworkSize() {
     group = "reaktor"

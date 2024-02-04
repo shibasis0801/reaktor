@@ -51,7 +51,9 @@ kotlin {
         targets = {
         }
 
-        cinterops = {}
+        cinterops = {
+
+        }
     }
 }
 

@@ -40,9 +40,17 @@ kotlin {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
-                defFile(file("cpp/reaktor.def"))
+                packageName("dev.shibasis.reaktor.native")
+//                defFile(file("cpp/reaktor.def"))
+
                 // For a given directory, recursively add all headers
                 headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
+            }
+        }
+
+        targets = {
+            binaries.all {
+                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-core/cpp/build/Release-iphonesimulator/libReaktor.a")
             }
         }
 
