@@ -28,6 +28,17 @@ tasks.named("build") {
 
 kotlin {
     jvmToolchain(11)
+    common {
+        dependencies = {
+            implementation(project(":flatbuffers-kotlin"))
+            api(project(":reaktor-core"))
+            api("io.ktor:ktor-client-core:2.3.0")
+            implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+        }
+    }
+
     droid {
         dependencies = {
             implementation("com.facebook.fbjni:fbjni:0.2.2")
@@ -56,20 +67,6 @@ kotlin {
 
         dependencies = {
             api("io.ktor:ktor-client-darwin:2.3.0")
-        }
-    }
-
-    sourceSets {
-        commonMain.dependencies {
-            implementation(project(":flatbuffers-kotlin"))
-            api("io.ktor:ktor-client-core:2.3.0")
-            implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
-            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
-        }
-        commonTest.dependencies {
-            implementation(kotlin("test-common"))
-            implementation(kotlin("test-annotations-common"))
         }
     }
 }

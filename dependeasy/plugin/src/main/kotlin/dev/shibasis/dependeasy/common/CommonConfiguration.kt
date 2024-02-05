@@ -35,6 +35,7 @@ fun KotlinMultiplatformExtension.common(
         val commonTest by getting {
             dependencies {
                 api(kotlin("test"))
+                api(kotlin("test-annotations-common"))
                 configure.testDependencies(this)
             }
         }

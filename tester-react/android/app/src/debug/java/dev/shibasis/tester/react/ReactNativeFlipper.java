@@ -1,4 +1,4 @@
-package dev.shibasis.flatinvoker.react.tester;
+package dev.shibasis.tester.react;
 
 import android.content.Context;
 import com.facebook.react.ReactInstanceManager;

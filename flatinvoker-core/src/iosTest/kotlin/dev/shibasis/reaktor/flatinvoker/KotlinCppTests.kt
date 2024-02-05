@@ -1,12 +1,8 @@
 package dev.shibasis.reaktor.flatinvoker
 
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
-import com.google.flatbuffers.kotlin.ArrayReadWriteBuffer
 import com.google.flatbuffers.kotlin.FlexBuffersBuilder
-import com.google.flatbuffers.kotlin.ReadWriteBuffer
 import com.google.flatbuffers.kotlin.getRoot
-import dev.shibasis.reaktor.flatinvoker.KotlinCpp
-import dev.shibasis.reaktor.flatinvoker.flexbuffer.FlexEncoder
 import dev.shibasis.reaktor.flatinvoker.flexbuffer.encodeToFlexBuffer
 import dev.shibasis.reaktor.native.Flex_Create
 import dev.shibasis.reaktor.native.Flex_Finish
@@ -17,7 +13,6 @@ import kotlinx.cinterop.useContents
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

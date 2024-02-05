@@ -1,4 +1,7 @@
 package dev.shibasis.dependeasy.tasks
 
-class DarwinCMake {
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
+fun KotlinNativeTarget.cmake() {
+
 }

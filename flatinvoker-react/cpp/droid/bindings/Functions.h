@@ -5,7 +5,7 @@
 namespace Reaktor {
     struct NoArgNativeFunction: public jni::HybridClass<NoArgNativeFunction> {
         using FnType = std::function<jobject()>;
-        static auto constexpr kJavaDescriptor = "Lcom/myntra/appscore/batcave/types/NoArgNativeFunction;";
+        static auto constexpr kJavaDescriptor = "Ldev/shibasis/flatinvoker/react/types/NoArgNativeFunction;";
 
         NoArgNativeFunction(FnType&& runnable) : runnable(std::move(runnable)) {}
 
@@ -27,7 +27,7 @@ namespace Reaktor {
 
     struct SingleArgNativeFunction: public jni::HybridClass<SingleArgNativeFunction> {
         using FnType = std::function<jobject(jobject)>;
-        static auto constexpr kJavaDescriptor = "Lcom/myntra/appscore/batcave/types/SingleArgNativeFunction;";
+        static auto constexpr kJavaDescriptor = "Ldev/shibasis/flatinvoker/react/types/SingleArgNativeFunction;";
 
         SingleArgNativeFunction(FnType &&consumer) : consumer(std::move(consumer)) {}
         static void registerNatives() {
@@ -47,7 +47,7 @@ namespace Reaktor {
     // You can't create this from CPP
     // This struct will be used to add the functions on the Java side using AndroidInvoker
 //    struct JavaPromise: jni::JavaClass<JavaPromise> {
-//        static auto constexpr kJavaDescriptor = "Lcom/myntra/appscore/batcave/types/JavaPromise;";
+//        static auto constexpr kJavaDescriptor = "Ldev/shibasis/flatinvoker/react/types/JavaPromise;";
 //        static jni::local_ref<JavaPromise> create(
 //                jni::local_ref<NoArgNativeFunction::JavaPart> resolve,
 //                jni::local_ref<SingleArgNativeFunction::JavaPart> reject

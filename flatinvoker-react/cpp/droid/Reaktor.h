@@ -16,7 +16,7 @@ struct JavaNativeModule: jni::JavaClass<JavaNativeModule> {
 };
 
 struct JReaktor: public jni::JavaClass<JReaktor> {
-    static auto constexpr kJavaDescriptor = "Lcom/myntra/appscore/batcave/Reaktor;";
+    static auto constexpr kJavaDescriptor = "Ldev/shibasis/flatinvoker/react/Reaktor;";
 
     static void install(
             jni::alias_ref<JReaktor> _,

@@ -1,4 +1,4 @@
-package dev.shibasis.flatinvoker.react.tester;
+package dev.shibasis.tester.react;
 
 import com.facebook.react.ReactActivity
 

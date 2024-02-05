@@ -9,9 +9,9 @@ std::unordered_map<DataType, std::string> typeToJniSignature{
     {DataType::String, "Ljava/lang/String;"},
     {DataType::Object, "Ljava/util/HashMap;"},
     {DataType::Array, "Ljava/util/ArrayList;"},
-    {DataType::PromiseType, "Lcom/myntra/appscore/batcave/types/Promise;"},
-    {DataType::FlowType, "Lcom/myntra/appscore/batcave/types/FlowHandle;"},
-    {DataType::SingleArgFn, "Lcom/myntra/appscore/batcave/types/SingleArgNativeFunction;"}
+    {DataType::PromiseType, "Ldev/shibasis/flatinvoker/react/types/Promise;"},
+    {DataType::FlowType, "Ldev/shibasis/flatinvoker/react/types/FlowHandle;"},
+    {DataType::SingleArgFn, "Ldev/shibasis/flatinvoker/react/types/SingleArgNativeFunction;"}
 };
 
 // JNI doesn't care about the names of the parameters, but we need them for the
