@@ -6,7 +6,6 @@ import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
 
 plugins {
-    id("com.android.library")
     id("dev.shibasis.dependeasy.library")
 }
 
@@ -41,7 +40,6 @@ kotlin {
 
     droid {
         dependencies = {
-            api("com.facebook.fbjni:fbjni:0.2.2")
             api("io.ktor:ktor-client-okhttp:2.3.0")
         }
     }

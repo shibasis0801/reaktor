@@ -70,6 +70,7 @@ target_link_libraries(
         ${log-lib}
 )
 
+# todo depend on original cmake
 # todo React 72 allows CMake based configuration.
 # todo After completing functionality, add support for react 72 with jsi::ArrayBuffer and ts-flatbuffer support
 #cmake_minimum_required(VERSION 3.22.1)

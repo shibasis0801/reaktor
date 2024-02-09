@@ -13,6 +13,7 @@ import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.utils.exclude
+import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.Configuration
 import org.gradle.kotlin.dsl.NamedDomainObjectContainerScope
 import org.gradle.kotlin.dsl.get
@@ -57,10 +58,10 @@ fun PackagingOptions.excludeNativeLibs() {
 }
 
 
-private fun LibraryDefaultConfig.defaults() {
+fun LibraryDefaultConfig.defaults() {
     minSdk = Version.SDK.minSdk
-    targetSdk = Version.SDK.targetSdk
     externalNativeBuild { cmake { defaults() } }
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 }
 
 fun ExternalNativeCmakeOptions.defaults() {
@@ -82,26 +83,29 @@ fun ExternalNativeBuild.defaults(cmakeLists: File) {
     }
 }
 
+fun NamedDomainObjectContainerScope<Configuration>.defaults() {
+    all {
+        exclude(module = "fbjni-java-only")
+    }
+}
+
 fun LibraryExtension.defaults(
     namespace: String,
     cmakeLists: File? = null
 ) {
     this.namespace = namespace
     compileSdk = Version.SDK.compileSdk
-    ndkVersion = Version.SDK.ndkVersion
-
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    defaultConfig { defaults() }
+    defaultConfig {defaults() }
+    if (cmakeLists != null) {
+        externalNativeBuild {
+            defaults(cmakeLists)
+        }
+    }
+
     compileOptions { defaults() }
     buildFeatures { defaults() }
-    packagingOptions { excludeNativeLibs() }
-//    composeOptions {
-//        kotlinCompilerExtensionVersion = Version.ComposeCompiler
-//        useLiveLiterals = false
-//    }
-
-    if (cmakeLists != null)
-        externalNativeBuild { defaults(cmakeLists) }
+    packagingOptions { includeNativeLibs() }
 
     buildTypes {
         debug {
@@ -117,13 +121,12 @@ fun LibraryExtension.defaults(
     }
 }
 
-fun NamedDomainObjectContainerScope<Configuration>.defaults() {
-    all {
-        exclude(module = "fbjni-java-only")
-    }
-}
 
-fun BaseAppModuleExtension.defaults(appID: String, cmakeLists: File? = null) {
+fun BaseAppModuleExtension.defaults(
+    appID: String,
+    cmakeLists: File? = null,
+    enableCompose: Boolean = false,
+) {
     compileSdk = Version.SDK.compileSdk
     ndkVersion = Version.SDK.ndkVersion
 

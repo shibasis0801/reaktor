@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 
 val kotlinWrapper: (String) -> String = { target -> "org.jetbrains.kotlin-wrappers:kotlin-$target" }
 
-fun KotlinDependencyHandler.webBasic() {
+fun KotlinDependencyHandler.kotlinWrappers() {
     api(project.dependencies.enforcedPlatform("org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:${Version.KotlinJSWrappers}"))
     api(kotlinWrapper("js"))
     api(kotlinWrapper("browser"))

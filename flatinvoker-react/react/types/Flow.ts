@@ -132,7 +132,6 @@ export class StateFlow<T> implements Flow<T> {
         this.observer = null;
     }
 }
-global.Flow = StateFlow
 
 // ToDo later -> SharedFlow, this can replay values to multiple collectors
 

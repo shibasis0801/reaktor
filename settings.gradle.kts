@@ -73,4 +73,4 @@ include(":flatinvoker-compiler")
 include(":reaktor-core")
 include(":reaktor-io")
 
-//includeBuild("tester-react/android")
+includeBuild("tester-react/android")

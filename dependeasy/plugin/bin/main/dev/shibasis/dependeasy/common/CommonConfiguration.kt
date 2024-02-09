@@ -27,16 +27,15 @@ fun KotlinMultiplatformExtension.common(
             }
         }
         val commonMain by getting {
-            kotlin.srcDir("commonMain")
             dependencies {
                 configure.dependencies(this)
             }
         }
         _commonMain = commonMain
         val commonTest by getting {
-            kotlin.srcDir("commonTest")
             dependencies {
                 api(kotlin("test"))
+                api(kotlin("test-annotations-common"))
                 configure.testDependencies(this)
             }
         }

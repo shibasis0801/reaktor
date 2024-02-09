@@ -29,7 +29,7 @@ fun KotlinJsTargetDsl.defaults() {
 // Todo Migrate this to wasmJs
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
-): Pair<KotlinJsTargetDsl, KotlinSourceSet> {
+): Pair<KotlinJsTargetDsl, KotlinSourceSet>? {
     val configure = WebConfiguration().apply(configuration)
 
     val target = js("web", IR) {

@@ -39,15 +39,3 @@ android {
     defaults("dev.shibasis.flatinvoker.react", file("cpp/CMakeLists.txt"))
 }
 
-tasks.register<Exec>("customTaskForSomething") {
-    group = "batcave"
-}
-
-
-
-
-
-
-
-
-

@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.server
 
+import dev.shibasis.dependeasy.Version
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
@@ -14,30 +15,21 @@ class ServerConfiguration(
 )
 
 fun KotlinMultiplatformExtension.server(
-    parentSourceSet: KotlinSourceSet,
     configuration: ServerConfiguration.() -> Unit
-): Pair<KotlinJvmTarget, KotlinSourceSet> {
+) {
     val configure = ServerConfiguration().apply(configuration)
 
-    val target = jvm("server") {
+    jvm {
         configure.targetModifier(this)
         this.compilations.forEach {
             it.kotlinOptions.jvmTarget = "11"
         }
+        jvmToolchain(Version.SDK.Java.asInt)
     }
-
-    lateinit var sourceSet: KotlinSourceSet
 
     sourceSets {
-        val serverMain by getting {
-            kotlin.srcDir("serverMain")
-            dependsOn(parentSourceSet)
-            dependencies {
-                configure.dependencies(this)
-            }
+        jvmMain.dependencies {
+            configure.dependencies(this)
         }
-        sourceSet = serverMain
     }
-
-    return Pair(target, sourceSet)
 }

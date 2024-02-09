@@ -1,6 +1,5 @@
 #pragma once
 #include <droid/AndroidBase.h>
-#include <modules/LayoutDatabase.h>
 #include <modules/NetworkModule.h>
 #include <droid/Invoker.h>
 #include <droid/bindings/Functions.h>
@@ -12,11 +11,6 @@ namespace Reaktor {
     ) {
         auto platformInvoker = make_shared<AndroidInvoker>(instance);
 
-
-        if (name == "LayoutDatabase") {
-            auto hostObject = make_shared<LayoutDatabase>(std::move(platformInvoker), Log);
-            return getLink().createFromHostObject(hostObject);
-        }
         if (name == "NetworkModule") {
             auto hostObject = make_shared<NetworkModule>(std::move(platformInvoker), Log);
             return getLink().createFromHostObject(hostObject);

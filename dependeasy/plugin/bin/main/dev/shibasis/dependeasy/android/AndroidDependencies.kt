@@ -15,10 +15,7 @@ fun KotlinDependencyHandler.activityFragment(
     module("androidx.activity:activity-ktx:${Version.Activity}"),
     module("androidx.fragment:fragment:${Version.Fragment}"),
     module("androidx.fragment:fragment-ktx:${Version.Fragment}"),
-    module("androidx.appcompat:appcompat:1.4.1"),
-    module("androidx.constraintlayout:constraintlayout:2.0.4"),
-    module("com.google.android.material:material:1.5.0"),
-    module("com.benasher44:uuid:0.4.0")
+
 )
 
 fun KotlinDependencyHandler.lifecycle(
@@ -48,7 +45,7 @@ fun KotlinDependencyHandler.androidCompose(
     )
 }
 
-fun KotlinDependencyHandler.networking(
+fun KotlinDependencyHandler.androidNetworking(
 ) = installModules(
     module("com.squareup.okhttp3:okhttp:${Version.OkHttp}"),
     module("io.ktor:ktor-client-okhttp:${Version.Ktor}")
@@ -64,6 +61,42 @@ fun KotlinDependencyHandler.extensions() = installModules(
     module("androidx.collection:collection-ktx:1.2.0")
 )
 
+
+fun KotlinDependencyHandler.camera() = installModules(
+    module("androidx.camera:camera-camera2:${Version.CameraX}"),
+    module("androidx.camera:camera-core:${Version.CameraX}"),
+    module("androidx.camera:camera-video:${Version.CameraX}"),
+    module("androidx.camera:camera-lifecycle:${Version.CameraX}"),
+    module("androidx.camera:camera-view:${Version.CameraX}"),
+    module("androidx.camera:camera-extensions:${Version.CameraX}"),
+)
+
+fun KotlinDependencyHandler.firebase(
+    project: Project,
+    minimal: Boolean = true,
+    firebaseVersion: String = Version.Firebase
+) {
+    val firebaseBOM = "com.google.firebase:firebase-bom:$firebaseVersion"
+    implementation(project.dependencies.enforcedPlatform(firebaseBOM))
+
+    if (minimal) {
+        installModules(
+            module("com.google.firebase:firebase-analytics-ktx"),
+            module("com.google.firebase:firebase-crashlytics-ktx"),
+            module("co.touchlab:kermit-crashlytics:${Version.Kermit}")
+        )
+    }
+    else {
+        installModules(
+            module("com.google.firebase:firebase-auth-ktx"),
+            module("com.google.firebase:firebase-config-ktx"),
+            module("com.google.firebase:firebase-analytics-ktx"),
+            module("com.google.firebase:firebase-crashlytics-ktx"),
+            module("com.google.firebase:firebase-messaging-ktx"),
+            module("com.google.android.gms:play-services-auth:20.1.0"),
+        )
+    }
+}
 
 fun KotlinDependencyHandler.androidCoroutines(
     coroutines_version: String = Version.Coroutines

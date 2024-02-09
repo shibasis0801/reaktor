@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.server
 
 import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.utils.module
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 
 fun KotlinDependencyHandler.vertx() {
@@ -17,6 +18,5 @@ fun KotlinDependencyHandler.vertx() {
 }
 
 fun KotlinDependencyHandler.serverNetworking() {
-    api("io.ktor:ktor-client-java:${Version.Ktor}")
-
+    api("io.ktor:ktor-client-okhttp:${Version.Ktor}")
 }

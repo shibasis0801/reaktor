@@ -1,19 +1,20 @@
-package dev.shibasis.dependeasy
+package dev.shibasis.dependeasy.plugins
 
-import dev.shibasis.dependeasy.tasks.logFrameworkSize
+import dev.shibasis.dependeasy.tasks.generateDocumentation
+import dev.shibasis.dependeasy.tasks.buildReleaseBinariesLogSizes
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.tasks.TaskAction
-import org.gradle.kotlin.dsl.kotlin
+import org.gradle.api.tasks.Copy
+import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
-import java.io.File
 
 open class DependeasyExtension {
     // Living on the edge
     val annotations = listOf(
         "kotlin.js.ExperimentalJsExport",
+        "kotlin.experimental.ExperimentalNativeApi",
         "kotlinx.cinterop.ExperimentalForeignApi",
         "kotlinx.cinterop.BetaInteropApi",
         "kotlin.ExperimentalStdlibApi",
@@ -34,6 +35,7 @@ internal inline fun <reified T : Any> Any.getExtension(name: String): T? =
     (this as ExtensionAware).extensions.getByName(name) as T?
 
 fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) {
+    plugins.apply("com.android.library")
     plugins.apply("kotlin-multiplatform")
     val multiplatform = extensions.getByName("kotlin") as KotlinMultiplatformExtension
     multiplatform.sourceSets.all {
@@ -47,19 +49,22 @@ fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) 
     }
 }
 
-class Dependeasy: Plugin<Project> {
+class LibraryPlugin: Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
-        plugins.apply("kotlinx-serialization")
-//        plugins.apply("com.google.firebase.crashlytics")
-        project.tasks.register("buildReleaseBinaries") { logFrameworkSize() }
-
-        if (project.plugins.hasPlugin("com.android.application")) {
-            return
-        } else {
-            val extension = DependeasyExtension.create(this)
-            applyMultiplatformPlugins(extension)
+        plugins.apply {
+            apply("kotlinx-serialization")
+            apply("com.google.firebase.crashlytics")
+            apply("com.google.devtools.ksp")
         }
 
+        project.tasks.apply {
+            register("buildReleaseBinaries") { buildReleaseBinariesLogSizes() }
+            register<Copy>("generateDocumentation") { generateDocumentation() }
+        }
+
+
+        val extension = DependeasyExtension.create(this)
+        applyMultiplatformPlugins(extension)
     }
 }
 

@@ -10,27 +10,23 @@ import {
   AppRegistry
 } from 'react-native';
 import {Colors} from "react-native/Libraries/NewAppScreen";
-// import { StateFlow } from './src/types/Flow';
+import { Flow, StateFlow, install } from 'flatinvoker';
 
-// import { NativeModules } from "react-native";
-// import { getModule } from './src/modules/getModule';
-// const { JSIManager } = NativeModules;
+install();
 
-// JSIManager.install();
-//
-// const network = global.NetworkModule
-// console.log(global)
-// console.log(network)
+const network = global.NetworkModule
+console.log(global)
+console.log(network)
 
-// const flow = new StateFlow<number>(1);
-// flow.collect(data => {})
-// flow.emit(1);
+const flow = new StateFlow<number>();
+flow.collect(data => {})
+flow.emit(1);
 
 
-// const nativeFlow: Flow<number> = network.getFlow();
-// nativeFlow.collect(data => {})
-//
-// network.get().collect(data => {})
+const nativeFlow: Flow<number> = network.getFlow();
+nativeFlow.collect(data => {})
+
+network.get().collect(data => {})
 
 function measure(fn) {
   const start = performance.now();
@@ -42,9 +38,8 @@ function measure(fn) {
   };
 }
 
-
-// const { result, time } = measure(() => network.getObject());
-// console.log("Shibasis" + JSON.stringify(result))
+const { result, time } = measure(() => network.getObject());
+console.log("Shibasis" + JSON.stringify(result))
 const backgroundStyle = {
   backgroundColor: Colors.darker
 };

@@ -33,6 +33,8 @@ fun KotlinMultiplatformExtension.droid(
     sourceSets {
         androidMain.dependencies {
             configure.dependencies(this)
+            // bad idea todo shibasis fix
+            implementation("com.facebook.fbjni:fbjni:0.2.2")
         }
 
         val androidUnitTest by getting {

@@ -28,9 +28,8 @@ fun KotlinJsTargetDsl.defaults() {
 
 // Todo Migrate this to wasmJs
 fun KotlinMultiplatformExtension.web(
-    parentSourceSet: KotlinSourceSet,
     configuration: WebConfiguration.() -> Unit = {}
-): Pair<KotlinJsTargetDsl, KotlinSourceSet> {
+): Pair<KotlinJsTargetDsl, KotlinSourceSet>? {
     val configure = WebConfiguration().apply(configuration)
 
     val target = js("web", IR) {
@@ -57,8 +56,6 @@ fun KotlinMultiplatformExtension.web(
     lateinit var sourceSet: KotlinSourceSet
     sourceSets {
         val webMain by getting {
-            kotlin.srcDir("webMain")
-            dependsOn(parentSourceSet)
             dependencies {
                 configure.dependencies(this)
             }
