@@ -41,7 +41,7 @@ kotlin {
 
     droid {
         dependencies = {
-            implementation("com.facebook.fbjni:fbjni:0.2.2")
+            api("com.facebook.fbjni:fbjni:0.2.2")
             api("io.ktor:ktor-client-okhttp:2.3.0")
         }
     }

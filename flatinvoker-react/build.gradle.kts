@@ -5,7 +5,6 @@ import dev.shibasis.dependeasy.*
 
 
 plugins {
-    id("maven-publish")
     id("dev.shibasis.dependeasy.library")
 }
 
@@ -15,46 +14,23 @@ version = "1.0-SNAPSHOT"
 kotlin {
     val (commonMain, commonTest) = common {
         dependencies = {
-            commonSerialization(Version.Serialization)
-            commonCoroutines()
-            implementation("app.cash.sqldelight:runtime:${Version.SQLDelight}")
-//            implementation("co.touchlab:kermit-crashlytics:${Version.Kermit}")
-            implementation("io.ktor:ktor-client-core:${Version.Ktor}")
-//            implementation("co.touchlab:kermit:${Version.Kermit}")
+            api(project(":reaktor-core"))
+            api(project(":reaktor-io"))
         }
     }
 
     droid {
         dependencies = {
-            implementation("app.cash.sqldelight:android-driver:${Version.SQLDelight}")
             api("com.facebook.react:react-native:0.68.5") {
                 exclude(module = "fbjni-java-only")
             }
-            implementation("com.facebook.fbjni:fbjni:0.2.2")
-            implementation("io.ktor:ktor-client-okhttp:${Version.Ktor}")
-            androidCoroutines()
         }
     }
 
 
 //    val xcFramework = XCFramework()
     darwin {
-        dependencies = {
-            implementation("app.cash.sqldelight:native-driver:${Version.SQLDelight}")
-            implementation("io.ktor:ktor-client-darwin:${Version.Ktor}")
-        }
 
-        podDependencies = {
-
-        }
-
-        targets = {
-
-        }
-
-        cinterops = {
-
-        }
     }
 }
 

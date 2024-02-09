@@ -19,3 +19,7 @@ fun KotlinDependencyHandler.commonCoroutines(coroutinesVersion: String = Version
 fun KotlinDependencyHandler.commonNetworking() {
     api("io.ktor:ktor-client-core:${Version.Ktor}")
 }
+
+fun KotlinDependencyHandler.commonLogging() {
+    api("co.touchlab:kermit:${Version.Kermit}")
+}

@@ -1,9 +1,12 @@
 package dev.shibasis.dependeasy.plugins
 
-import dev.shibasis.dependeasy.tasks.logFrameworkSize
+import dev.shibasis.dependeasy.tasks.generateDocumentation
+import dev.shibasis.dependeasy.tasks.buildReleaseBinariesLogSizes
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware
+import org.gradle.api.tasks.Copy
+import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 
@@ -48,9 +51,18 @@ fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) 
 
 class LibraryPlugin: Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
-        plugins.apply("kotlinx-serialization")
-//        plugins.apply("com.google.firebase.crashlytics")
-        project.tasks.register("buildReleaseBinaries") { logFrameworkSize() }
+        plugins.apply {
+            apply("kotlinx-serialization")
+            apply("com.google.firebase.crashlytics")
+            apply("com.google.devtools.ksp")
+        }
+
+        project.tasks.apply {
+            register("buildReleaseBinaries") { buildReleaseBinariesLogSizes() }
+            register<Copy>("generateDocumentation") { generateDocumentation() }
+        }
+
+
         val extension = DependeasyExtension.create(this)
         applyMultiplatformPlugins(extension)
     }

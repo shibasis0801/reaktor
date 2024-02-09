@@ -45,7 +45,7 @@ fun KotlinDependencyHandler.androidCompose(
     )
 }
 
-fun KotlinDependencyHandler.networking(
+fun KotlinDependencyHandler.androidNetworking(
 ) = installModules(
     module("com.squareup.okhttp3:okhttp:${Version.OkHttp}"),
     module("io.ktor:ktor-client-okhttp:${Version.Ktor}")
@@ -82,7 +82,8 @@ fun KotlinDependencyHandler.firebase(
     if (minimal) {
         installModules(
             module("com.google.firebase:firebase-analytics-ktx"),
-            module("com.google.firebase:firebase-crashlytics-ktx")
+            module("com.google.firebase:firebase-crashlytics-ktx"),
+            module("co.touchlab:kermit-crashlytics:${Version.Kermit}")
         )
     }
     else {

@@ -24,5 +24,7 @@ apply(from = file("../node_modules/@react-native-community/cli-platform-android/
 val applyNativeModulesSettingsGradle = extra["applyNativeModulesSettingsGradle"] as Closure<Any>
 applyNativeModulesSettingsGradle(settings)
 
-include(":app")
+include("reaktor-core", "../../reaktor-core")
+include("reaktor-io", "../../reaktor-io")
 include("flatinvoker-react", "../../flatinvoker-react")
+include(":app")

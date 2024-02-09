@@ -24,7 +24,7 @@ import kotlin.math.round
  *
  * After the task is executed, it calculates the sizes of the aar and the xcframework, and logs them to a CSV file and the console.
  */
-fun Task.logFrameworkSize() {
+fun Task.buildReleaseBinariesLogSizes() {
     group = "reaktor"
     dependsOn("assembleRelease", "podPublishReleaseXCFramework")
     doLast {

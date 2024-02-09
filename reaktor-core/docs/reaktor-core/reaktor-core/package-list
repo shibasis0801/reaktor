@@ -1,9 +1,6 @@
 $dokka.format:html-v1
 $dokka.linkExtension:html
-$dokka.location:dev.shibasis.reaktor.core.annotations.reaktor////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.annotations.reaktor/index.html
-$dokka.location:dev.shibasis.reaktor.core.annotations.reaktor/Expose///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.annotations.reaktor/-expose/index.html
 $dokka.location:dev.shibasis.reaktor.core.actor////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/index.html
-$dokka.location:dev.shibasis.reaktor.core.actor//await/com.google.api.core.ApiFuture[TypeParam(bounds=[kotlin.Any?])]#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/await.html
 $dokka.location:dev.shibasis.reaktor.core.actor//getEnvInt/#kotlin.String#kotlin.Int/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/get-env-int.html
 $dokka.location:dev.shibasis.reaktor.core.actor//getEnvString/#kotlin.String#kotlin.String/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/get-env-string.html
 $dokka.location:dev.shibasis.reaktor.core.actor//handle/io.vertx.ext.web.Route#kotlinx.coroutines.CoroutineScope#kotlinx.coroutines.CoroutineDispatcher#kotlin.coroutines.SuspendFunction2[io.vertx.ext.web.RoutingContext,kotlinx.coroutines.CoroutineScope,dev.shibasis.reaktor.core.network.Response]/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/handle.html
@@ -14,14 +11,10 @@ $dokka.location:dev.shibasis.reaktor.core.actor/BaseVerticle/logger/#/PointingTo
 $dokka.location:dev.shibasis.reaktor.core.actor/BaseVerticle/verticleScope/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/-base-verticle/verticle-scope.html
 $dokka.location:dev.shibasis.reaktor.core.actor/Handler///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/-handler/index.html
 $dokka.location:dev.shibasis.reaktor.core.adapters////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/index.html
-$dokka.location:dev.shibasis.reaktor.core.adapters//File/dev.shibasis.reaktor.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file.html
 $dokka.location:dev.shibasis.reaktor.core.adapters//Permission/dev.shibasis.reaktor.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-permission.html
 $dokka.location:dev.shibasis.reaktor.core.adapters//Storage/dev.shibasis.reaktor.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-storage.html
 $dokka.location:dev.shibasis.reaktor.core.adapters//cameraPermissionHandler/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/camera-permission-handler.html
 $dokka.location:dev.shibasis.reaktor.core.adapters//galleryPermissionHandler/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/gallery-permission-handler.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/AndroidFileAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-file-adapter/index.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/AndroidFileAdapter/AndroidFileAdapter/#androidx.activity.ComponentActivity/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-file-adapter/-android-file-adapter.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/AndroidFileAdapter/getCacheDirectory/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-file-adapter/get-cache-directory.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidPermissionAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-permission-adapter/index.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidPermissionAdapter/AndroidPermissionAdapter/#androidx.activity.ComponentActivity/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-permission-adapter/-android-permission-adapter.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidPermissionAdapter/request/#kotlin.Array[kotlin.String]/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-permission-adapter/request.html
@@ -30,18 +23,10 @@ $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidStorageAdapter/Android
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidStorageAdapter/getHomeDirectory/#kotlin.String/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-storage-adapter/get-home-directory.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidStorageAdapter/test/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-storage-adapter/test.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidStorageAdapter/timeStampedFileName/#kotlin.String/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-storage-adapter/time-stamped-file-name.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/DarwinFileAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-file-adapter/index.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/DarwinFileAdapter/DarwinFileAdapter/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-file-adapter/-darwin-file-adapter.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/DarwinFileAdapter/getCacheDirectory/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-file-adapter/get-cache-directory.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/DarwinPermissionAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-permission-adapter/index.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/DarwinPermissionAdapter/DarwinPermissionAdapter/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-permission-adapter/-darwin-permission-adapter.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/DarwinPermissionAdapter/addHandler/#kotlin.String#kotlin.coroutines.SuspendFunction0[dev.shibasis.reaktor.core.adapters.PermissionResult]/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-permission-adapter/add-handler.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/DarwinPermissionAdapter/request/#kotlin.Array[kotlin.String]/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-darwin-permission-adapter/request.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/FileAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file-adapter/index.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/FileAdapter/FileAdapter/#TypeParam(bounds=[kotlin.Any?])/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file-adapter/-file-adapter.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/FileAdapter/getCacheDirectory/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file-adapter/get-cache-directory.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/FileAdapter/readBinaryFile/#kotlin.String/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file-adapter/read-binary-file.html
-$dokka.location:dev.shibasis.reaktor.core.adapters/FileAdapter/writeBinaryFile/#kotlin.String#kotlin.ByteArray/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file-adapter/write-binary-file.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/Permission///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-permission/index.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/Permission/CAMERA/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-permission/-c-a-m-e-r-a.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/Permission/GALLERY/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-permission/-g-a-l-l-e-r-y.html
@@ -63,6 +48,8 @@ $dokka.location:dev.shibasis.reaktor.core.adapters/PermissionResult///PointingTo
 $dokka.location:dev.shibasis.reaktor.core.adapters/StorageAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-storage-adapter/index.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/StorageAdapter/StorageAdapter/#TypeParam(bounds=[kotlin.Any?])/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-storage-adapter/-storage-adapter.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/StorageAdapter/test/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-storage-adapter/test.html
+$dokka.location:dev.shibasis.reaktor.core.annotations.reaktor////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.annotations.reaktor/index.html
+$dokka.location:dev.shibasis.reaktor.core.annotations.reaktor/Expose///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.annotations.reaktor/-expose/index.html
 $dokka.location:dev.shibasis.reaktor.core.cloudflare////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.cloudflare/index.html
 $dokka.location:dev.shibasis.reaktor.core.cloudflare/CloudflareWorker///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.cloudflare/-cloudflare-worker/index.html
 $dokka.location:dev.shibasis.reaktor.core.cloudflare/CloudflareWorker/fetch/#org.w3c.fetch.Request#dev.shibasis.reaktor.core.server.externals.Env#dev.shibasis.reaktor.core.server.externals.ExecutionContext/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.cloudflare/-cloudflare-worker/fetch.html
@@ -91,7 +78,6 @@ $dokka.location:dev.shibasis.reaktor.core.framework//CPUQueue/dev.shibasis.reakt
 $dokka.location:dev.shibasis.reaktor.core.framework//IOQueue/dev.shibasis.reaktor.core.framework.Dispatch#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-i-o-queue.html
 $dokka.location:dev.shibasis.reaktor.core.framework//MainQueue/dev.shibasis.reaktor.core.framework.Dispatch#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-main-queue.html
 $dokka.location:dev.shibasis.reaktor.core.framework//asyncQueue/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/async-queue.html
-$dokka.location:dev.shibasis.reaktor.core.framework//toImageBitmap/kotlin.ByteArray#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/to-image-bitmap.html
 $dokka.location:dev.shibasis.reaktor.core.framework//toQueue/kotlinx.coroutines.CoroutineDispatcher#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/to-queue.html
 $dokka.location:dev.shibasis.reaktor.core.framework/Adapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-adapter/index.html
 $dokka.location:dev.shibasis.reaktor.core.framework/Adapter/Adapter/#TypeParam(bounds=[kotlin.Any?])/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-adapter/-adapter.html
@@ -140,9 +126,6 @@ $dokka.location:dev.shibasis.reaktor.core.framework/DispatchGroup/DispatchGroup/
 $dokka.location:dev.shibasis.reaktor.core.framework/DispatchGroup/async/#kotlin.coroutines.SuspendFunction0[TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-dispatch-group/async.html
 $dokka.location:dev.shibasis.reaktor.core.framework/DispatchGroup/cancelAll/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-dispatch-group/cancel-all.html
 $dokka.location:dev.shibasis.reaktor.core.framework/DispatchGroup/launch/#kotlin.coroutines.SuspendFunction0[TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-dispatch-group/launch.html
-$dokka.location:dev.shibasis.reaktor.core.framework/Interactor///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-interactor/index.html
-$dokka.location:dev.shibasis.reaktor.core.framework/Interactor/Interactor/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-interactor/-interactor.html
-$dokka.location:dev.shibasis.reaktor.core.framework/Interactor/invoke/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-interactor/invoke.html
 $dokka.location:dev.shibasis.reaktor.core.framework/Platform///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-platform/index.html
 $dokka.location:dev.shibasis.reaktor.core.framework/Platform/isAndroid/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-platform/is-android.html
 $dokka.location:dev.shibasis.reaktor.core.framework/Platform/isDarwin/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-platform/is-darwin.html
@@ -165,7 +148,6 @@ $dokka.location:dev.shibasis.reaktor.core.framework/WeakRef/get/#/PointingToDecl
 $dokka.location:dev.shibasis.reaktor.core.framework/WeakRef/ref/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.framework/-weak-ref/ref.html
 $dokka.location:dev.shibasis.reaktor.core.network////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.network/index.html
 $dokka.location:dev.shibasis.reaktor.core.network//JsonResponse/#TypeParam(bounds=[kotlin.Any?])#dev.shibasis.reaktor.core.network.StatusCode/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.network/-json-response.html
-$dokka.location:dev.shibasis.reaktor.core.network//network/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.network/network.html
 $dokka.location:dev.shibasis.reaktor.core.network/Response///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.network/-response/index.html
 $dokka.location:dev.shibasis.reaktor.core.network/Response/Response/#kotlin.String#dev.shibasis.reaktor.core.network.StatusCode/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.network/-response/-response.html
 $dokka.location:dev.shibasis.reaktor.core.network/Response/jsonData/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.network/-response/json-data.html
@@ -1647,9 +1629,9 @@ $dokka.location:dev.shibasis.reaktor.framework/Feature///PointingToDeclaration/
 $dokka.location:dev.shibasis.reaktor.framework/Feature/createId/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.framework/-feature/create-id.html
 $dokka.location:dev.shibasis.reaktor.framework/Feature/fetchDependency/#kotlin.Int/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.framework/-feature/fetch-dependency.html
 $dokka.location:dev.shibasis.reaktor.framework/Feature/storeDependency/#kotlin.Int#TypeParam(bounds=[kotlin.Any?])/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.framework/-feature/store-dependency.html
-dev.shibasis.reaktor.core.annotations.reaktor
 dev.shibasis.reaktor.core.actor
 dev.shibasis.reaktor.core.adapters
+dev.shibasis.reaktor.core.annotations.reaktor
 dev.shibasis.reaktor.core.cloudflare
 dev.shibasis.reaktor.core.extensions
 dev.shibasis.reaktor.core.framework

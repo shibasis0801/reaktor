@@ -18,6 +18,7 @@ object Version {
         object Java {
             val asEnum = JavaVersion.VERSION_11
             val asString = "11"
+            val asInt = asString.toInt() // wtf is wrong with gradle and java version types
         }
     }
 
@@ -52,7 +53,7 @@ object Version {
 
     // KMM Async
     const val Coroutines = "1.8.0-RC"
-
+    const val Kermit = "2.0.3"
     const val Serialization = "1.6.2"
 
     // DevTools

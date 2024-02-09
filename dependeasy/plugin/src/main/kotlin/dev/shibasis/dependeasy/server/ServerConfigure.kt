@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.server
 
+import dev.shibasis.dependeasy.Version
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
@@ -23,6 +24,7 @@ fun KotlinMultiplatformExtension.server(
         this.compilations.forEach {
             it.kotlinOptions.jvmTarget = "11"
         }
+        jvmToolchain(Version.SDK.Java.asInt)
     }
 
     sourceSets {

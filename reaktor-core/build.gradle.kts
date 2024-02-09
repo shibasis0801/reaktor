@@ -7,7 +7,6 @@ import dev.shibasis.dependeasy.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-//    id("com.google.devtools.ksp")
 }
 
 kotlin {
@@ -15,10 +14,6 @@ kotlin {
         dependencies = {
             commonCoroutines()
             commonSerialization()
-        }
-
-        testDependencies = {
-            api(kotlin("test"))
         }
     }
 
@@ -30,15 +25,11 @@ kotlin {
     }
 
     droid {
-        targetModifier = {
-
-        }
         dependencies = {
             activityFragment()
             androidCoroutines()
 //            lifecycle()
             extensions()
-            firebase(project)
         }
     }
 
@@ -48,9 +39,6 @@ kotlin {
         }
     }
     server {
-        targetModifier = {
-            jvmToolchain(11)
-        }
         dependencies = {
             vertx()
         }
@@ -65,11 +53,3 @@ android {
 //dependencies {
 //    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
 //}
-
-tasks.register<Copy>("copyDokka") {
-    group = "reaktor"
-    dependsOn("dokkaHtml")
-    from("$buildDir/dokka/html")
-    into("docs/${project.name}")
-}
-
