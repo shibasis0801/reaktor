@@ -1,0 +1,682 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.google.flatbuffers.kotlin</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+<a class="library-name--link" href="../../index.html">
+                            flatInvoker
+                    </a>            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">common</button>
+                <button class="platform-tag platform-selector js-like" data-active="" data-filter=":flatbuffers-kotlin:dokkaHtmlPartial/jsMain">js</button>
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":flatbuffers-kotlin:dokkaHtmlPartial/jvmMain">jvm</button>
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":flatbuffers-kotlin:dokkaHtmlPartial/nativeMain">native</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="package" id="content" pageids="flatbuffers-kotlin::com.google.flatbuffers.kotlin////PointingToDeclaration//-895026286">
+  <div class="breadcrumbs"><a href="../index.html">flatbuffers-kotlin</a><span class="delimiter">/</span><span class="current">com.google.flatbuffers.kotlin</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button><button class="section-tab" data-togglable="PROPERTY,EXTENSION_PROPERTY">Properties</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="-1505895468%2FClasslikes%2F-2109691265" anchor-label="ArrayReadBuffer" id="-1505895468%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-array-read-buffer/index.html"><span>Array</span><wbr><span>Read</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1505895468%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-array-read-buffer/index.html">ArrayReadBuffer</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">buffer<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">offset<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>limit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>buffer.size - offset</span></span><span class="token punctuation">)</span> : <a href="-read-buffer/index.html">ReadBuffer</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1373744625%2FClasslikes%2F-2109691265" anchor-label="ArrayReadWriteBuffer" id="-1373744625%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-array-read-write-buffer/index.html"><span>Array</span><wbr><span>Read</span><wbr><span>Write</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1373744625%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-array-read-write-buffer/index.html">ArrayReadWriteBuffer</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">buffer<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">, </span></span><span class="parameter ">offset<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>writeLimit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>-1<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">var </span>writePosition<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>offset</span></span><span class="token punctuation">)</span> : <a href="-array-read-buffer/index.html">ArrayReadBuffer</a>, <a href="-read-write-buffer/index.html">ReadWriteBuffer</a></div><div class="brief "><p class="paragraph">Implements <code class="lang-kotlin">[ReadWriteBuffer]</code> using <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a> as backing buffer. Using array of bytes are usually faster than <code class="lang-kotlin">ByteBuffer</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1398330266%2FClasslikes%2F-2109691265" anchor-label="BitWidth" id="-1398330266%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-bit-width/index.html"><span>Bit</span><wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1398330266%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-bit-width/index.html">BitWidth</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1987560190%2FClasslikes%2F-2109691265" anchor-label="Blob" id="-1987560190%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-blob/index.html"><span><span>Blob</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1987560190%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-blob/index.html">Blob</a> : <a href="-sized/index.html">Sized</a></div><div class="brief "><p class="paragraph">Represent an array of bytes in the buffer.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1364780962%2FClasslikes%2F-2109691265" anchor-label="ByteArrayOps" id="-1364780962%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-byte-array-ops/index.html"><span>Byte</span><wbr><span>Array</span><wbr><span><span>Ops</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1364780962%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-byte-array-ops/index.html">ByteArrayOps</a></div><div class="brief "><p class="paragraph">This implementation uses Little Endian order.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="913340229%2FClasslikes%2F-2109691265" anchor-label="ByteWidth" id="913340229%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-byte-width/index.html"><span>Byte</span><wbr><span><span>Width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="913340229%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-byte-width/index.html">ByteWidth</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1838292769%2FClasslikes%2F-2109691265" anchor-label="FlatBufferBuilder" id="1838292769%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-flat-buffer-builder/index.html"><span>Flat</span><wbr><span>Buffer</span><wbr><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1838292769%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-flat-buffer-builder/index.html">FlatBufferBuilder</a>&nbsp;<span><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-overloads/index.html"><span class="token annotation builtin">JvmOverloads</span></a>&nbsp;</span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">initialSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1024</span><span class="token punctuation">, </span></span><span class="parameter ">buffer<span class="token operator">: </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a><span class="token operator"> = </span>ArrayReadWriteBuffer(initialSize)</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Class that helps you build a FlatBuffer.  See the section "Use in Kotlin" in the main FlatBuffers documentation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="723321950%2FClasslikes%2F-2109691265" anchor-label="FlexBuffersBuilder" id="723321950%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-flex-buffers-builder/index.html"><span>Flex</span><wbr><span>Buffers</span><wbr><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="723321950%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-experimental-unsigned-types/index.html"><span class="token annotation builtin">ExperimentalUnsignedTypes</span></a></div></div><span class="token keyword">class </span><a href="-flex-buffers-builder/index.html">FlexBuffersBuilder</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>buffer<span class="token operator">: </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a><span class="token punctuation">, </span></span><span class="parameter ">shareFlag<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>SHARE_KEYS</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1677954924%2FClasslikes%2F-2109691265" anchor-label="FlexBufferType" id="1677954924%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-flex-buffer-type/index.html"><span>Flex</span><wbr><span>Buffer</span><wbr><span><span>Type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1677954924%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-flex-buffer-type/index.html">FlexBufferType</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1448198744%2FClasslikes%2F-2109691265" anchor-label="JSONParser" id="1448198744%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-j-s-o-n-parser/index.html"><span><span>JSONParser</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1448198744%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-experimental-unsigned-types/index.html"><span class="token annotation builtin">ExperimentalUnsignedTypes</span></a></div></div><span class="token keyword">class </span><a href="-j-s-o-n-parser/index.html">JSONParser</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">var </span>output<span class="token operator">: </span><a href="-flex-buffers-builder/index.html">FlexBuffersBuilder</a><span class="token operator"> = </span>FlexBuffersBuilder(1024, SHARE_KEYS_AND_STRINGS)</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">JSONParser class is used to parse a JSON as FlexBuffers. Calling <a href="-j-s-o-n-parser/parse.html">JSONParser.parse</a> fiils <a href="-j-s-o-n-parser/output.html">output</a> and returns a <a href="-reference/index.html">Reference</a> ready to be used.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1969396956%2FClasslikes%2F-2109691265" anchor-label="Key" id="-1969396956%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-key/index.html"><span><span>Key</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1969396956%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-key/index.html">Key</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>buffer<span class="token operator">: </span><a href="-read-buffer/index.html">ReadBuffer</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>start<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>end<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>buffer.findFirst(ZeroByte, start)</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Represents a key element in the buffer. Keys are used to reference objects in a <a href="-map/index.html">Map</a></p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1985430215%2FClasslikes%2F-2109691265" anchor-label="Map" id="1985430215%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-map/index.html"><span><span>Map</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1985430215%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-map/index.html">Map</a> : <a href="-sized/index.html">Sized</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-key/index.html">Key</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="-reference/index.html">Reference</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">A Map class that provide support to access Key-Value data from Flexbuffers.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="586657100%2FClasslikes%2F-2109691265" anchor-label="Offset" id="586657100%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-offset/index.html"><span><span>Offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="586657100%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-offset/index.html">T</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Represents a "pointer" to a pointer types (table, string, struct) within the buffer</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-358713379%2FClasslikes%2F-2109691265" anchor-label="OffsetArray" id="-358713379%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-offset-array/index.html"><span>Offset</span><wbr><span><span>Array</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-358713379%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-offset-array/index.html">OffsetArray</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-offset-array/index.html">T</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int-array/index.html">IntArray</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Represents an array of offsets. Used to avoid boxing offset types.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="621453001%2FClasslikes%2F-2109691265" anchor-label="ReadBuffer" id="621453001%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-read-buffer/index.html"><span>Read</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="621453001%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-read-buffer/index.html">ReadBuffer</a></div><div class="brief "><p class="paragraph">Represent a chunk of data, where FlexBuffers will be read from.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1024335930%2FClasslikes%2F-2109691265" anchor-label="ReadWriteBuffer" id="1024335930%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-read-write-buffer/index.html"><span>Read</span><wbr><span>Write</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1024335930%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a> : <a href="-read-buffer/index.html">ReadBuffer</a></div><div class="brief "><p class="paragraph">Interface to represent a read-write buffers. This interface will be used to access and write FlexBuffer messages.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1038006728%2FClasslikes%2F-2109691265" anchor-label="Reference" id="-1038006728%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-reference/index.html"><span><span>Reference</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1038006728%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-reference/index.html">Reference</a></div><div class="brief "><p class="paragraph">Represents an generic element in the buffer. It can be specialized into scalar types, using for example, <a href="-reference/to-int.html">Reference.toInt</a>, or casted into Flexbuffer object types, like <a href="-reference/to-map.html">Reference.toMap</a> or <a href="-reference/to-blob.html">Reference.toBlob</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="459537664%2FClasslikes%2F-2109691265" anchor-label="Sized" id="459537664%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sized/index.html"><span><span>Sized</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="459537664%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-sized/index.html">Sized</a></div><div class="brief "><p class="paragraph">Represents any element that has a size property to it, like: <a href="-map/index.html">Map</a>, <a href="-vector/index.html">Vector</a> and <a href="-typed-vector/index.html">TypedVector</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="44579342%2FClasslikes%2F-2109691265" anchor-label="StringOffsetArray" id="44579342%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-string-offset-array/index.html"><span>String</span><wbr><span>Offset</span><wbr><span><span>Array</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="44579342%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">typealias </span><a href="-string-offset-array/index.html">StringOffsetArray</a><span class="token operator"> = </span><a href="-offset-array/index.html">OffsetArray</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-557132726%2FClasslikes%2F-2109691265" anchor-label="Struct" id="-557132726%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-struct/index.html"><span><span>Struct</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-557132726%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-struct/index.html">Struct</a></div><div class="brief "><p class="paragraph">All structs in the generated code derive from this class, and add their own accessors.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-787899371%2FClasslikes%2F-2109691265" anchor-label="Table" id="-787899371%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-table/index.html"><span><span>Table</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-787899371%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-table/index.html">Table</a></div><div class="brief "><p class="paragraph">All tables in the generated code derive from this class, and add their own accessors.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-73144074%2FClasslikes%2F-2109691265" anchor-label="TypedVector" id="-73144074%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-typed-vector/index.html"><span>Typed</span><wbr><span><span>Vector</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-73144074%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-typed-vector/index.html">TypedVector</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">elementType<span class="token operator">: </span><a href="-flex-buffer-type/index.html">FlexBufferType</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>buffer<span class="token operator">: </span><a href="-read-buffer/index.html">ReadBuffer</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>end<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>byteWidth<span class="token operator">: </span><a href="-byte-width/index.html">ByteWidth</a></span></span><span class="token punctuation">)</span> : <a href="-vector/index.html">Vector</a></div><div class="brief "><p class="paragraph"><a href="-typed-vector/index.html">TypedVector</a> represents an array of scalar elements of the same type in the buffer.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1425683617%2FClasslikes%2F-2109691265" anchor-label="UnionOffset" id="1425683617%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-union-offset/index.html"><span>Union</span><wbr><span><span>Offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1425683617%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">typealias </span><a href="-union-offset/index.html">UnionOffset</a><span class="token operator"> = </span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1725678168%2FClasslikes%2F-2109691265" anchor-label="UnionOffsetArray" id="-1725678168%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-union-offset-array/index.html"><span>Union</span><wbr><span>Offset</span><wbr><span><span>Array</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1725678168%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">typealias </span><a href="-union-offset-array/index.html">UnionOffsetArray</a><span class="token operator"> = </span><a href="-offset-array/index.html">OffsetArray</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-813878354%2FClasslikes%2F-2109691265" anchor-label="Utf8" id="-813878354%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-utf8/index.html"><span><span>Utf8</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-813878354%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-utf8/index.html">Utf8</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1661064860%2FClasslikes%2F-2109691265" anchor-label="Vector" id="1661064860%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-vector/index.html"><span><span>Vector</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1661064860%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">class </span><a href="-vector/index.html">Vector</a> : <a href="-sized/index.html">Sized</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-collection/index.html">Collection</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-reference/index.html">Reference</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph"><a href="-vector/index.html">Vector</a> represents an array of elements in the buffer. The element can be of any type.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-9475831%2FClasslikes%2F-2109691265" anchor-label="VectorOffset" id="-9475831%2FClasslikes%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-vector-offset/index.html"><span>Vector</span><wbr><span><span>Offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-9475831%2FClasslikes%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-vector-offset/index.html">VectorOffset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-vector-offset/index.html">T</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Represents a "pointer" to a vector type with elements T</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="726151949%2FProperties%2F-2109691265" anchor-label="emptyBuffer" id="726151949%2FProperties%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="empty-buffer.html"><span>empty</span><wbr><span><span>Buffer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="726151949%2FProperties%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="empty-buffer.html">emptyBuffer</a><span class="token operator">: </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1659090359%2FProperties%2F-2109691265" anchor-label="value" id="1659090359%2FProperties%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_PROPERTY" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="value.html"><span><span>value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1659090359%2FProperties%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="value.html">T</a><span class="token operator">&gt; </span><a href="value.html">T</a><span class="token punctuation">.</span><a href="value.html">value</a><span class="token operator">: </span><a href="value.html">T</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="34204837%2FProperties%2F-2109691265" anchor-label="VERSION_2_0_8" id="34204837%2FProperties%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-v-e-r-s-i-o-n_2_0_8.html"><span><span>VERSION_2_0_8</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="34204837%2FProperties%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-v-e-r-s-i-o-n_2_0_8.html">VERSION_2_0_8</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">1</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-1184113669%2FFunctions%2F-2109691265" anchor-label="getRoot" id="-1184113669%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-root.html"><span>get</span><wbr><span><span>Root</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1184113669%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="get-root.html"><span class="token function">getRoot</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">buffer<span class="token operator">: </span><a href="-read-buffer/index.html">ReadBuffer</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-reference/index.html">Reference</a></div><div class="brief "><p class="paragraph">Reads a FlexBuffer message in ReadBuf and returns <a href="-reference/index.html">Reference</a> to the root element.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1814830202%2FFunctions%2F-2109691265" anchor-label="minus" id="1814830202%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="minus.html"><span><span>minus</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1814830202%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">operator </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="minus.html">T</a><span class="token operator">&gt; </span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="minus.html">T</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="minus.html"><span class="token function">minus</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="minus.html">T</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">operator </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="minus.html">T</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">.</span><a href="minus.html"><span class="token function">minus</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="minus.html">T</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="870336165%2FFunctions%2F-2109691265" anchor-label="OffsetArray" id="870336165%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-offset-array.html"><span>Offset</span><wbr><span><span>Array</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="870336165%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-offset-array.html">T</a><span class="token operator">&gt; </span><a href="-offset-array.html"><span class="token function">OffsetArray</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">size<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">crossinline </span>call<span class="token operator">: </span><span class="token punctuation">(</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><span class="token keyword"></span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-offset-array.html">T</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-offset-array/index.html">OffsetArray</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-offset-array.html">T</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2108450728%2FFunctions%2F-895026286" anchor-label="setShort" id="2108450728%2FFunctions%2F-895026286" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain,:flatbuffers-kotlin:dokkaHtmlPartial/jsMain,:flatbuffers-kotlin:dokkaHtmlPartial/jvmMain,:flatbuffers-kotlin:dokkaHtmlPartial/nativeMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain,:flatbuffers-kotlin:dokkaHtmlPartial/jsMain,:flatbuffers-kotlin:dokkaHtmlPartial/jvmMain,:flatbuffers-kotlin:dokkaHtmlPartial/nativeMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain,:flatbuffers-kotlin:dokkaHtmlPartial/jsMain,:flatbuffers-kotlin:dokkaHtmlPartial/jvmMain,:flatbuffers-kotlin:dokkaHtmlPartial/nativeMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-short.html"><span>set</span><wbr><span><span>Short</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2108450728%2FFunctions%2F-895026286"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-active="" data-toggle=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">common</button><button class="platform-bookmark" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/jsMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/jsMain" data-toggle=":flatbuffers-kotlin:dokkaHtmlPartial/jsMain">js</button><button class="platform-bookmark" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/jvmMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/jvmMain" data-toggle=":flatbuffers-kotlin:dokkaHtmlPartial/jvmMain">jvm</button><button class="platform-bookmark" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/nativeMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/nativeMain" data-toggle=":flatbuffers-kotlin:dokkaHtmlPartial/nativeMain">native</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">expect </span><span class="token keyword">inline </span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">.</span><a href="set-short.html"><span class="token function">setShort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">index<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a></span></span><span class="token punctuation">)</span></div></div><div class="content sourceset-dependent-content" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">actual </span><span class="token keyword">inline </span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">.</span><a href="set-short.html"><span class="token function">setShort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">index<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a></span></span><span class="token punctuation">)</span></div></div><div class="content sourceset-dependent-content" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">actual </span><span class="token keyword">inline </span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">.</span><a href="set-short.html"><span class="token function">setShort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">index<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a></span></span><span class="token punctuation">)</span></div></div><div class="content sourceset-dependent-content" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/nativeMain"><div class="symbol monospace"><span class="token keyword">actual </span><span class="token keyword">inline </span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><span class="token punctuation">.</span><a href="set-short.html"><span class="token function">setShort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">index<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a></span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1814419766%2FFunctions%2F-2109691265" anchor-label="sign" id="1814419766%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="sign.html"><span><span>sign</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1814419766%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a><span class="token punctuation">.</span><a href="sign.html"><span class="token function">sign</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a><span class="token punctuation">.</span><a href="sign.html"><span class="token function">sign</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">.</span><a href="sign.html"><span class="token function">sign</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1322619046%2FFunctions%2F-2109691265" anchor-label="StringOffsetArray" id="-1322619046%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-string-offset-array.html"><span>String</span><wbr><span>Offset</span><wbr><span><span>Array</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1322619046%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><a href="-string-offset-array.html"><span class="token function">StringOffsetArray</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">size<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">crossinline </span>call<span class="token operator">: </span><span class="token punctuation">(</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><span class="token keyword"></span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-string-offset-array/index.html">StringOffsetArray</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1991958892%2FFunctions%2F-2109691265" anchor-label="toJson" id="-1991958892%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-json.html"><span>to</span><wbr><span><span>Json</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1991958892%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="-map/index.html">Map</a><span class="token punctuation">.</span><a href="to-json.html"><span class="token function">toJson</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="-reference/index.html">Reference</a><span class="token punctuation">.</span><a href="to-json.html"><span class="token function">toJson</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="-vector/index.html">Vector</a><span class="token punctuation">.</span><a href="to-json.html"><span class="token function">toJson</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="-map/index.html">Map</a><span class="token punctuation">.</span><a href="to-json.html"><span class="token function">toJson</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">out<span class="token operator">: </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a></span></span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="-reference/index.html">Reference</a><span class="token punctuation">.</span><a href="to-json.html"><span class="token function">toJson</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">out<span class="token operator">: </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a></span></span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="-vector/index.html">Vector</a><span class="token punctuation">.</span><a href="to-json.html"><span class="token function">toJson</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">out<span class="token operator">: </span><a href="-read-write-buffer/index.html">ReadWriteBuffer</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Returns a minified version of this FlexBuffer as a JSON.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1054125428%2FFunctions%2F-2109691265" anchor-label="toOffset" id="1054125428%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-offset.html"><span>to</span><wbr><span><span>Offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1054125428%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><span class="token operator">&lt;</span><span class="token keyword"></span><a href="to-offset.html">T</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">.</span><a href="to-offset.html"><span class="token function">toOffset</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="to-offset.html">T</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-811855217%2FFunctions%2F-2109691265" anchor-label="UnionOffsetArray" id="-811855217%2FFunctions%2F-2109691265" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain" data-filterable-set=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-union-offset-array.html"><span>Union</span><wbr><span>Offset</span><wbr><span><span>Array</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-811855217%2FFunctions%2F-2109691265"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":flatbuffers-kotlin:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><a href="-union-offset-array.html"><span class="token function">UnionOffsetArray</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">size<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">crossinline </span>call<span class="token operator">: </span><span class="token punctuation">(</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><span class="token keyword"></span><a href="-offset/index.html">Offset</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-union-offset-array/index.html">UnionOffsetArray</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

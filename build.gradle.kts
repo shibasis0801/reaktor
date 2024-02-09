@@ -55,3 +55,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configure
         freeCompilerArgs += "-Xopt-in=kotlin.experimental.ExperimentalNativeApi"
     }
 }
+
+tasks.dokkaHtmlMultiModule.configure {
+    outputDirectory.set(file("docs"))
+}
