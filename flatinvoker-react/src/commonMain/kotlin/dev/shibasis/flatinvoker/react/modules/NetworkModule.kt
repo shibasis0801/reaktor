@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 object NetworkModule {
     fun get() = nativeFlow {
-        for (i in 1..2) {
+        for (i in 1..10) {
 //            trySend(i)
             val response = httpClient.get("http://192.168.0.247:8000/search.json")
             trySend(response.body<String>())

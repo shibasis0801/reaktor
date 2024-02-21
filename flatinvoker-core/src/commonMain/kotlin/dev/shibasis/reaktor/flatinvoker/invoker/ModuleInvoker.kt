@@ -6,6 +6,7 @@ import com.google.flatbuffers.kotlin.ReadBuffer
 import com.google.flatbuffers.kotlin.ReadWriteBuffer
 import com.google.flatbuffers.kotlin.Reference
 import com.google.flatbuffers.kotlin.Vector
+import dev.shibasis.reaktor.core.annotations.Expose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -25,7 +26,22 @@ import kotlinx.coroutines.flow.map
  *
  * Further optimisations will be needed, but priority is functionality first
  */
+
+
+@Expose
 object NetworkModule {
+    fun get() = 1
+    fun getFlow() = flowOf(1)
+}
+
+interface ReaktorModule {
+    val name: String
+}
+
+object NetworkImplementation: ReaktorModule {
+    override val name = "NetworkModule"
+
+    val timeout = 1000
     fun get() = 1
     fun getFlow() = flowOf(1)
 }

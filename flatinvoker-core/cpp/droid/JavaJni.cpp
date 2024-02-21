@@ -47,26 +47,26 @@ auto measureTime = [](auto&& func, auto&&... args) {
     return std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
 };
 
+//inline void parse(jni::alias_ref<jni::JString> jsonString) {
+//    flatbuffers::Parser parser;
+//    flexbuffers::Builder builder(1024);
+//
+//    auto start = std::chrono::high_resolution_clock::now();
+//    auto result = parser.ParseFlexBuffer(jsonString->toStdString().c_str(), nullptr, &builder);
+//    auto finish = std::chrono::high_resolution_clock::now();
+//    auto time = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+//    __android_log_print(ANDROID_LOG_DEBUG, "jsonparsetime", "Time: %d\n", time.count());
+//}
+
+
 jni::local_ref<jni::JByteBuffer> JavaJni::parseJson(
         jni::alias_ref<JavaJni> _,
         jni::alias_ref<jni::JString> jsonString) {
     flatbuffers::Parser parser;
     flexbuffers::Builder builder(1024);
 
-    auto parseTime = measureTime([&]() {
-        auto result = parser.ParseFlexBuffer(jsonString->toStdString().c_str(), nullptr, &builder);
-        __android_log_print(ANDROID_LOG_DEBUG, "JNI", "Time: %b\n", result);
-    });
+    auto result = parser.ParseFlexBuffer(jsonString->toStdString().c_str(), nullptr, &builder);
 
-
-    flexbuffers::Builder primitiveBuilder;
-    primitiveBuilder.Int(42323035325325);
-    primitiveBuilder.Finish();
-    auto size = primitiveBuilder.GetBuffer().size();
-    __android_log_print(ANDROID_LOG_DEBUG, "FlexBuffer size", "Size: %d\n", size);
-
-
-//    builder.Finish();
     auto data = builder.GetBuffer();
 
     // Difficult to prevent a copy and move the data. AFAIK FlatBuffers creates its own buffers internally

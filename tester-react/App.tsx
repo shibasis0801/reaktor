@@ -26,7 +26,7 @@ flow.emit(1);
 const nativeFlow: Flow<number> = network.getFlow();
 nativeFlow.collect(data => {})
 
-network.get().collect(data => {})
+
 
 function measure(fn) {
   const start = performance.now();
@@ -38,8 +38,15 @@ function measure(fn) {
   };
 }
 
+network.get().collect(data => { 
+  const { result, time } = measure(() => 
+    JSON.parse(data)
+  )
+  console.log("Time to parse search response", time);
+})
+
 const { result, time } = measure(() => network.getObject());
-console.log("Shibasis" + JSON.stringify(result))
+console.log("Shibasis" + JSON.stringify(result), time);
 const backgroundStyle = {
   backgroundColor: Colors.darker
 };

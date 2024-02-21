@@ -32,6 +32,8 @@ pluginManagement {
         id("com.android.base").version(agpVersion)
         id("com.android.application").version(agpVersion)
         id("com.android.library").version(agpVersion)
+        id("org.jetbrains.kotlinx.benchmark") version "0.4.10"
+
 
 
         id("app.cash.sqldelight").version("2.0.0")

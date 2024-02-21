@@ -19,6 +19,7 @@ open class DependeasyExtension {
         "kotlinx.cinterop.BetaInteropApi",
         "kotlin.ExperimentalStdlibApi",
         "kotlinx.coroutines.DelicateCoroutinesApi",
+        "kotlinx.serialization.ExperimentalSerializationApi",
         "androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi"
     )
 

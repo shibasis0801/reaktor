@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.core.network
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import dev.shibasis.reaktor.core.annotations.reaktor.Expose
+import dev.shibasis.reaktor.core.annotations.Expose
 
 // Move to common
 enum class StatusCode(val code: Int) {

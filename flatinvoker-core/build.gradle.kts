@@ -69,6 +69,10 @@ kotlin {
     }
 }
 
+dependencies {
+    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
+}
+
 android {
    defaults("dev.shibasis.reaktor.flatinvoker", file("cpp/CMakeLists.txt"))
 }

@@ -11,6 +11,7 @@ plugins {
     id("com.google.devtools.ksp") apply false
     id("dev.shibasis.dependeasy.library") apply false
     id("dev.shibasis.dependeasy.application") apply false
+    id("org.jetbrains.kotlinx.benchmark") apply false
     // applied
     id("org.jetbrains.dokka") version "1.9.10"
 }
