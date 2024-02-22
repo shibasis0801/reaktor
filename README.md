@@ -1,46 +1,37 @@
-reaktor -> Set of libraries for Kotlin and React Native
-flatinvoker -> Uses FlexBuffers to perform rpc
+# Reaktor & FlatInvoker
 
+A set of libraries for Kotlin and React Native, `Reaktor` and `FlatInvoker`, with cross dependencies between them.
 
-there are cross dependencies in between reaktor and flatinvoker, that is why both are colocated
+## Reaktor
 
+Located in the `reaktor/` directory, Reaktor is a set of libraries focusing on providing cross-platform abstractions and utilities.
 
-reaktor/
-    reaktor-core/
-        This is the root library. It contains basic tools like WeakReference, Atomic types.
-        It also contains the primary cross platform abstraction Adapter. 
-        An adapter is a class that exposes platform specific functionality in a cross platform way. 
-        Shared capabilities are defined in the Adapter interface, and platform specific capabilities are add-on interfaces.
-        This allows you to code to capabilities instead of platforms, allowing much more robust and flexible code.
+### reaktor-core
 
-flatinvoker/
-    flatinvoker-core/
-        This contains the kotlin-serialization support for FlexBuffers
-        It uses the C++ implementation of FlexBuffers to perform the serialization and deserialization
-    flatinvoker-react/
-        This uses JSI and FlexBuffer serialization to create native modules for Android and iOS
-        It also contains the React type converters and full support for Flows
-        It has a cross platform bridge module which you can use to perform the installation of JSI modules. 
-    flatinvoker-compiler/
-        This generates the glue code needed to call kotlin modules from typescript as if they were typescript modules. 
+The root library of Reaktor, `reaktor-core` contains basic tools such as `WeakReference`, atomic types, and the primary cross-platform abstraction `Adapter`. An adapter is a class that exposes platform-specific functionality in a cross-platform way. Shared capabilities are defined in the `Adapter` interface, and platform-specific capabilities are add-on interfaces. This design allows for coding to capabilities instead of platforms, resulting in more robust and flexible code.
 
-dependeasy/
-    This is a plugin to help with multi-platform dependencies. 
-    It has abstractions to setting up multiplatform projects fast.
-    It provides CMake support for Kotlin/Native.
-    It also provides size benchmarking tools
-    
+## FlatInvoker
 
+Located in the `flatinvoker/` directory, FlatInvoker focuses on using FlexBuffers to perform remote procedure calls (RPC) and serialization.
 
+### flatinvoker-core
 
+This library contains Kotlin serialization support for FlexBuffers. It utilizes the C++ implementation of FlexBuffers for serialization and deserialization.
 
+### flatinvoker-react
 
+`flatinvoker-react` leverages JSI and FlexBuffer serialization to create native modules for Android and iOS. It includes React type converters, full support for Flows, and a cross-platform bridge module for installing JSI modules.
 
+### flatinvoker-compiler
 
+This component generates the glue code necessary to call Kotlin modules from TypeScript as if they were TypeScript modules.
 
+## Dependeasy
 
+`Dependeasy` is a plugin designed to assist with multi-platform dependencies. It offers abstractions for setting up multiplatform projects quickly, provides CMake support for Kotlin/Native, and includes size benchmarking tools.
 
-https://docs.google.com/document/d/1dwy5Cy9FO5CpWikQ4a2AUtIu2tHRKMmm9ezaycKIp9A/edit
+## Benchmarking
 
+Use [react-native-performance](https://github.com/Shopify/react-native-performance) (by Shopify) for benchmarking.
 
-Use react-native-performance (shopify) to benchmark
+For more details, refer to the [documentation](https://docs.google.com/document/d/1dwy5Cy9FO5CpWikQ4a2AUtIu2tHRKMmm9ezaycKIp9A/edit).
