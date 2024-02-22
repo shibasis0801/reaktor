@@ -2,12 +2,12 @@
   "name": "tester-react",
   "version": "0.0.1",
   "main": "./dist/index.js",
-  "watch": {
-  },
+  "watch": {},
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "start": "rm -rf node_modules/flatinvoker/* && cp -r ../flatinvoker-react/react/* node_modules/flatinvoker && react-native start --reset-cache",
+    "copy": "cp -r ../flatinvoker-react/react/* node_modules/flatinvoker 2>/dev/null",
+    "start": "react-native start --reset-cache",
     "droidStart": "adb shell am start -n dev.shibasis.flatinvoker.react.tester/.MainActivity",
     "droidStop": "adb shell am force-stop dev.shibasis.flatinvoker.react.tester",
     "droidRestart": "yarn droidStop && yarn droidStart",
@@ -20,16 +20,17 @@
     "podInstall": "cd ios && pod install"
   },
   "dependencies": {
-    "flatinvoker": "file:../flatinvoker-react/react",
+    "flatinvoker-react": "file:../flatinvoker-react/react",
     "metro-config": "^0.72.1",
     "protobufjs": "^7.1.2",
     "react": "17.0.2",
-    "react-native": "git+https://github.com/myntra/react-native.git#rn_upgrade_68-jsi"
+    "react-native": "0.68.5"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",
     "@babel/runtime": "^7.12.5",
     "@react-native-community/cli-platform-android": "^12.3.5",
+    "@react-native-community/cli-platform-ios": "^12.3.6",
     "@react-native-community/eslint-config": "^2.0.0",
     "@types/jest": "^26.0.23",
     "@types/react-native": "^0.66.29",

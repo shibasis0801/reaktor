@@ -10,43 +10,43 @@ import {
   AppRegistry
 } from 'react-native';
 import {Colors} from "react-native/Libraries/NewAppScreen";
-import { Flow, StateFlow, install } from 'flatinvoker';
+import { Flow, StateFlow, install } from 'flatinvoker-react';
 
-install();
+// install();
 
 const network = global.NetworkModule
 console.log(global)
 console.log(network)
 
-const flow = new StateFlow<number>();
-flow.collect(data => {})
-flow.emit(1);
+// const flow = new StateFlow<number>();
+// flow.collect(data => {})
+// flow.emit(1);
 
 
-const nativeFlow: Flow<number> = network.getFlow();
-nativeFlow.collect(data => {})
+// const nativeFlow: Flow<number> = network.getFlow();
+// nativeFlow.collect(data => {})
 
 
 
-function measure(fn) {
-  const start = performance.now();
-  const result = fn();
-  const end = performance.now();
-  return {
-    result, 
-    time: end - start
-  };
-}
+// function measure(fn) {
+//   const start = performance.now();
+//   const result = fn();
+//   const end = performance.now();
+//   return {
+//     result, 
+//     time: end - start
+//   };
+// }
 
-network.get().collect(data => { 
-  const { result, time } = measure(() => 
-    JSON.parse(data)
-  )
-  console.log("Time to parse search response", time);
-})
+// network.get().collect(data => { 
+//   const { result, time } = measure(() => 
+//     JSON.parse(data)
+//   )
+//   console.log("Time to parse search response", time);
+// })
 
-const { result, time } = measure(() => network.getObject());
-console.log("Shibasis" + JSON.stringify(result), time);
+// const { result, time } = measure(() => network.getObject());
+// console.log("Shibasis" + JSON.stringify(result), time);
 const backgroundStyle = {
   backgroundColor: Colors.darker
 };
@@ -68,4 +68,4 @@ const App = () => {
 
 export default App;
 
-AppRegistry.registerComponent("BatTester", () => App);
+AppRegistry.registerComponent("ReaktorTester", () => App);

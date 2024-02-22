@@ -8,6 +8,7 @@ actual val httpClient: HttpClient
         engine {
             config {
                 followRedirects(true)
+               
             }
 //        addInterceptor(interceptor)
 //        addNetworkInterceptor(interceptor)
