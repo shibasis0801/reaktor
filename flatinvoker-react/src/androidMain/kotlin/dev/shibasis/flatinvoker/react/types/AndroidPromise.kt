@@ -1,7 +1,6 @@
 package dev.shibasis.flatinvoker.react.types
 
-import dev.shibasis.flatinvoker.react.concurrency.dispatch
-import dev.shibasis.flatinvoker.react.concurrency.dispatchAsync
+import dev.shibasis.reaktor.core.framework.Dispatch
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -18,7 +17,7 @@ actual class Promise actual constructor(val executor: suspend Promise.() -> Unit
         }
         respondersSet.incrementAndGet()
         if (respondersSet.get() == 1) {
-            dispatch { executor() }
+            Dispatch.Main.launch { executor() }
         }
     }
 
@@ -45,7 +44,7 @@ actual class Promise actual constructor(val executor: suspend Promise.() -> Unit
 class JavaPromise(val resolve: NoArgNativeFunction, val reject: SingleArgNativeFunction) {
     init {
         println("SHIBASIS: JavaPromise")
-        dispatchAsync {
+        Dispatch.IO.launch {
             delay(1000)
             resolve()
             reject(2)

@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.flatinvoker
 
-import com.google.flatbuffers.kotlin.value
 import dev.shibasis.reaktor.native.getName
 import dev.shibasis.reaktor.native.getNameCpp
 import dev.shibasis.reaktor.native.reaktorTest
@@ -14,13 +13,6 @@ import dev.shibasis.reaktor.native.Flex_Int
 import dev.shibasis.reaktor.native.Flex_StartVector
 import dev.shibasis.reaktor.native.Flex_String
 import dev.shibasis.reaktor.native.bindJSIModule
-import kotlinx.cinterop.CFunction
-import kotlinx.cinterop.CValue
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.invoke
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.pointed
-import kotlinx.cinterop.ptr
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.toKString

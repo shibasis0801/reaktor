@@ -1,13 +1,13 @@
 package dev.shibasis.flatinvoker.react.types
 
-import dev.shibasis.flatinvoker.react.concurrency.dispatch
+import dev.shibasis.reaktor.core.framework.Dispatch
 
 actual class Promise actual constructor(val executor: suspend Promise.() -> Unit) {
     var nativeResolver: Resolver = null
     var nativeRejecter: Rejecter = null
 
     fun setNativeResolver(resolver: Resolver) {
-        dispatch { executor() }
+        Dispatch.Main.launch { executor() }
         nativeResolver = resolver
 
     }

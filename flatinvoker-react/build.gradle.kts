@@ -27,8 +27,6 @@ kotlin {
         }
     }
 
-
-//    val xcFramework = XCFramework()
     darwin {
 
     }
