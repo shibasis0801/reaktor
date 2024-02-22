@@ -12,6 +12,17 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 setup_mobile()
 
+set(NODE_MODULES "../../tester-react/node_modules")
+set(REACT_NATIVE "${NODE_MODULES}/react-native")
+
+include_directories(
+        ${REACT_NATIVE}/React
+        ${REACT_NATIVE}/React/Base
+        ${REACT_NATIVE}/ReactCommon/jsi
+        ${REACT_NATIVE}/ReactCommon/jsi/jsi
+        ${REACT_NATIVE}/ReactAndroid/src/main/java/com/facebook/react/turbomodule/core/jni
+        ${REACT_NATIVE}/ReactCommon/callinvoker
+)
 
 include_directories(.)
 file(GLOB droid "droid/*")
@@ -23,6 +34,7 @@ if(ANDROID)
     add_library(
             kmmFlatInvoker
             SHARED
+            ${REACT_NATIVE}/ReactCommon/jsi/jsi/jsi.cpp
             ${droid}
             ${common}
     )
@@ -43,7 +55,8 @@ elseif(APPLE)
             STATIC
             ${common}
             ${darwin}
-#            fix this later
+            ${REACT_NATIVE}/ReactCommon/jsi/jsi/jsi.cpp
+            #            fix this later
             ${flatbuffers_dir}/src/idl_parser.cpp
             ${flatbuffers_dir}/src/util.cpp
     )

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,7 +55,7 @@ void Flex_EndMap(long pointer, size_t mapStart);
 size_t Flex_StartVector(long pointer, const char* key);
 void Flex_EndVector(long pointer, size_t vectorStart);
 
-
+void bindJSIModule();
 
 #ifdef __cplusplus
 }

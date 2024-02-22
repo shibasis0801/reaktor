@@ -27,31 +27,12 @@ class ReaktorProcessor(
                 klass.getDeclaredFunctions()
                     .forEach {
                         log(CodeGen.generateFunction(it))
-                        log("Function: ${it.simpleName.asString()}, ReturnType: ${it.returnType?.resolve()?.declaration?.qualifiedName?.asString()}")
                     }
                 klass.getDeclaredProperties()
                     .forEach {
                         log("Property: ${it.simpleName.asString()}, ReturnType: ${it.type.resolve().declaration?.qualifiedName?.asString()}")
                     }
             }
-
-
-
-//        val symbols = resolver.getSymbolsWithAnnotation("dev.shibasis.reaktor.core.annotations.Expose")
-//        log("Symbols: ${symbols.count()}")
-//        symbols.forEach { symbol ->
-//            log("Symbol: ${symbol.javaClass}")
-//            val klass = symbol as KSClassDeclaration
-//            klass.getDeclaredFunctions()
-//                .forEach {
-//                    log("Function: ${it.simpleName.asString()}, ReturnType: ${it.returnType?.resolve()?.declaration?.qualifiedName?.asString()}")
-//                }
-//            klass.getDeclaredProperties()
-//                .forEach {
-//                    log("Property: ${it.simpleName.asString()}, ReturnType: ${it.type.resolve().declaration?.qualifiedName?.asString()}")
-//                }
-//        }
-        Thread.sleep(2000)
         return listOf()
     }
 }

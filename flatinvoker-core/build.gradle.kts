@@ -11,6 +11,7 @@ plugins {
 
 task<Exec>("darwinCmake") {
     group = "reaktor"
+    // environment variable for react location
     commandLine =  listOf("bash", "-c", """
         rm -rf build &&
         cd cpp &&
@@ -51,8 +52,6 @@ kotlin {
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 packageName("dev.shibasis.reaktor.native")
                 defFile(file("cpp/reaktor.def"))
-
-                // For a given directory, recursively add all headers
                 headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
             }
         }

@@ -13,6 +13,7 @@ import dev.shibasis.reaktor.native.Flex_GetBuffer
 import dev.shibasis.reaktor.native.Flex_Int
 import dev.shibasis.reaktor.native.Flex_StartVector
 import dev.shibasis.reaktor.native.Flex_String
+import dev.shibasis.reaktor.native.bindJSIModule
 import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.alloc
@@ -48,6 +49,7 @@ object KotlinCpp {
     }
 
     fun getIntFromC(): Int {
+        bindJSIModule()
         return reaktorTest()
     }
     fun getNameFromC(): String? {
