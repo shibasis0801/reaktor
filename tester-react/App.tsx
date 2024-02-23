@@ -7,16 +7,26 @@ import {
   View,
   Pressable,
   ToastAndroid, Platform,
-  AppRegistry
+  AppRegistry,
+  NativeModules
 } from 'react-native';
 import {Colors} from "react-native/Libraries/NewAppScreen";
 import { Flow, StateFlow, install } from 'flatinvoker-react';
 
 // install();
 
-const network = global.NetworkModule
-console.log(global)
-console.log(network)
+const { MyCustomModule } = NativeModules;
+// Shibasis.hello
+
+MyCustomModule.sayHello('World', (greeting) => {
+    console.log(greeting); // Output: "Hello, World"
+});
+console.log("Shibasis", MyCustomModule.shibasis())
+console.log("Reaktor", NativeModules, MyCustomModule)
+
+// const network = global.NetworkModule
+// console.log(global)
+// console.log(network)
 
 // const flow = new StateFlow<number>();
 // flow.collect(data => {})

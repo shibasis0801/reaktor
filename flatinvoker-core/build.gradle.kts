@@ -53,6 +53,24 @@ kotlin {
                 packageName("dev.shibasis.reaktor.native")
                 defFile(file("cpp/reaktor.def"))
                 headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
+
+//                val folders = listOf(
+//                    "${REACT_NATIVE}/React",
+//                    "${REACT_NATIVE}/React/Base",
+//                    "${REACT_NATIVE}/ReactCommon/jsi",
+//                    "${REACT_NATIVE}/ReactCommon/jsi/jsi",
+//                    "${REACT_NATIVE}/ReactCommon/callinvoker"
+//                )
+                // list all files in these folders with extension .h and add them as headers
+//                headers(folders.flatMap { folder ->
+//                    fileTree(folder) {
+//                        include("**/*.h")
+//                    }.files
+//                })
+
+//                val REACT_NATIVE = "../tester-react/node_modules/react-native"
+//                compilerOpts("-I${REACT_NATIVE}")
+//                headers(listOf("RCTDefines.h", "RCTJSThread.h").map { "${REACT_NATIVE}/React/Base/${it}" })
             }
         }
 

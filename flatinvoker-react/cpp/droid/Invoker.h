@@ -46,6 +46,7 @@ namespace Reaktor {
         void invokeVoidMethod(const std::string& signature, jvalue *jniArgs);
 
         ~AndroidInvoker() {
+            // Shouldn't be needing this
             getLink().nativeCallInvoker->invokeAsync([instance_ = std::move(instance)]() mutable {
                 instance_.reset();
             });

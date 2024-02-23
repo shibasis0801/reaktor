@@ -12,13 +12,25 @@ import dev.shibasis.reaktor.native.Flex_GetBuffer
 import dev.shibasis.reaktor.native.Flex_Int
 import dev.shibasis.reaktor.native.Flex_StartVector
 import dev.shibasis.reaktor.native.Flex_String
+import dev.shibasis.reaktor.native.RCTBridge
+import dev.shibasis.reaktor.native.RCTBridgeModuleProtocol
+import dev.shibasis.reaktor.native.RCTCxxBridge
 import dev.shibasis.reaktor.native.bindJSIModule
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.toKString
+import kotlinx.cinterop.toLong
 import kotlinx.cinterop.useContents
 
 object KotlinCpp {
+
+    object JSIInstaller: RCTBridgeModuleProtocol {
+
+    }
+
+    fun test(bridge: RCTBridge) {
+        val runtime = (bridge as RCTCxxBridge).runtime.toLong()
+    }
     fun cppFlexBufferThroughC(): ByteArray? {
         val flexBuffer = Flex_Create()
         val start = Flex_StartVector(flexBuffer, null)
