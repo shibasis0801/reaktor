@@ -48,12 +48,12 @@ console.log("Reaktor", NativeModules, MyCustomModule)
 //   };
 // }
 
-// network.get().collect(data => { 
-//   const { result, time } = measure(() => 
-//     JSON.parse(data)
-//   )
-//   console.log("Time to parse search response", time);
-// })
+network.get().collect(data => {
+  const { result, time } = measure(() =>
+    JSON.parse(data)
+  )
+  console.log("Time to parse search response", time);
+})
 
 // const { result, time } = measure(() => network.getObject());
 // console.log("Shibasis" + JSON.stringify(result), time);

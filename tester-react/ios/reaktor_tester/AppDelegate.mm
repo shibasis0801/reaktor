@@ -11,7 +11,6 @@
 #import <React/RCTAppSetupUtils.h>
 
 @interface MyBridgeMethod : NSObject <RCTBridgeMethod>
-- (NSString *) hello;
 @end
 
 @implementation MyBridgeMethod
@@ -28,19 +27,8 @@
     return self;
 }
 
-- (NSString *)shibasis {
-  return @"Shibasis";
-}
-
 - (id)invokeWithBridge:(RCTBridge *)bridge module:(id)module arguments:(NSArray *)arguments {
-    // Implement the logic to invoke the method with the given arguments
-    // For example, call a method on the module with the arguments
-    for (id argument in arguments) {
-          NSString *typeString = NSStringFromClass([argument class]);
-          NSLog(@"SHIBASIS Value: %@, Type: %@", argument, typeString);
-      }
-    id result =  [self shibasis];
-    return result;
+    return @"Shibasis";
 }
 
 @end
@@ -72,7 +60,7 @@ RCT_EXPORT_METHOD(sayHello:(NSString *)name callback:(RCTResponseSenderBlock)cal
 @implementation AppDelegate
 
 - (NSArray<id<RCTBridgeModule>> *)extraModulesForBridge:(RCTBridge *)bridge {
-//  return @[ [[Shibasis alloc] init] ];
+  return @[ [MyCustomModule new] ];
   return nil;
 }
 

@@ -14,6 +14,12 @@ The root library of Reaktor, `reaktor-core` contains basic tools such as `WeakRe
 
 Located in the `flatinvoker/` directory, FlatInvoker focuses on using FlexBuffers to perform remote procedure calls (RPC) and serialization.
 
+Application Areas: 
+1. React Native: Native modules for Android and iOS
+2. Flutter: Reuse same modules for Flutter
+3. Browser replacement for GRPC-Web (Phase 2)
+4. Server replacement for GRPC (Phase 2)
+
 ### flatinvoker-core
 
 This library contains Kotlin serialization support for FlexBuffers. It utilizes the C++ implementation of FlexBuffers for serialization and deserialization.

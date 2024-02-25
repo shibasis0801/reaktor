@@ -7,6 +7,7 @@ install! 'cocoapods', :deterministic_uuids => false
 target 'reaktor_tester' do
   config = use_native_modules!
 
+  pod "flatinvoker_react"
   # Flags change depending on the env values.
   flags = get_default_flags()
 
