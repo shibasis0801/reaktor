@@ -104,3 +104,8 @@ fun KotlinDependencyHandler.androidCoroutines(
     module("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"),
     module("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutines_version")
 )
+
+
+fun KotlinDependencyHandler.fbjni() {
+    api("com.facebook.fbjni:fbjni:0.2.2")
+}

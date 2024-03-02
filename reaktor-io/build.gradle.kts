@@ -21,7 +21,7 @@ kotlin {
 
     web {
         dependencies = {
-
+            webNetworking()
         }
     }
 

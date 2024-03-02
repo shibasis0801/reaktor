@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 class DarwinConfigure(
-    var onlyAppleSilicon: Boolean = true,
+    var onlyM1Simulator: Boolean = true,
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var podDependencies: CocoapodsExtension.() -> Unit = {},
     var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {},
@@ -23,14 +23,14 @@ fun KotlinMultiplatformExtension.darwin(
 ) {
     val configure = DarwinConfigure().apply(configuration)
 
-    val targets = mutableListOf(
-        iosSimulatorArm64(),
-        iosArm64()
+    val targets = mutableListOf<KotlinNativeTarget>(
+        iosSimulatorArm64()
     )
 
-    if (!configure.onlyAppleSilicon)
+    if (!configure.onlyM1Simulator)
         targets.apply {
             add(iosX64())
+            add(iosArm64())
         }
 
     targets.forEach {
@@ -54,8 +54,6 @@ fun KotlinMultiplatformExtension.darwin(
     sourceSets {
         iosMain {
             dependencies {
-                // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
-                api("org.jetbrains.kotlinx:atomicfu:0.23.1")
                 configure.dependencies(this)
             }
         }

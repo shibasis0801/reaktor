@@ -1,17 +1,17 @@
 #include <common/Flex.h>
-#include <common/Base.h>
+#include <common/CppBase.h>
 #include <flatbuffers/flexbuffers.h>
 #include <flatbuffers/idl.h>
 #include <flatbuffers/buffer.h>
-#include <jsi/jsi.h>
-
-void bindJSIModule() {
-    auto undefined = facebook::jsi::Value();
-    auto null = facebook::jsi::Value(nullptr);
-    if (undefined.isUndefined() == null.isNull()) {
-        printf("Random code to check if jsi is linked");
-    }
-}
+//#include <jsi/jsi.h>
+//
+//void bindJSIModule() {
+//    auto undefined = facebook::jsi::Value();
+//    auto null = facebook::jsi::Value(nullptr);
+//    if (undefined.isUndefined() == null.isNull()) {
+//        printf("Random code to check if jsi is linked");
+//    }
+//}
 
 /*
  * Optimise all these, inline what you can.

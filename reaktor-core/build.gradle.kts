@@ -3,7 +3,6 @@ import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
@@ -28,6 +27,7 @@ kotlin {
         dependencies = {
             activityFragment()
             androidCoroutines()
+            fbjni()
 //            lifecycle()
             extensions()
         }
@@ -35,7 +35,8 @@ kotlin {
 
     darwin {
         dependencies = {
-            
+            // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
+            api("org.jetbrains.kotlinx:atomicfu:0.23.1")
         }
     }
     server {

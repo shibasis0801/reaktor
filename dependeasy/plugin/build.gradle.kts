@@ -29,6 +29,7 @@ dependencies {
     implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
     implementation("com.google.firebase:firebase-crashlytics-gradle:$crashlyticsVersion")
+    implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:1.9.21-1.0.16")
 
 }

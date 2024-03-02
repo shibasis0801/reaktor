@@ -24,6 +24,7 @@ pluginManagement {
         id("com.google.devtools.ksp").version("1.9.21-1.0.16")
         id("org.jetbrains.compose").version("1.5.11")
         id("com.google.gms.google-services").version("4.4.0")
+        id("com.codingfeline.buildkonfig").version("0.15.1")
 
         kotlin("jvm").version(kotlinVersion)
         kotlin("multiplatform").version(kotlinVersion)
@@ -70,6 +71,7 @@ gitDependency("https://github.com/JetBrains-Research/reflekt.git", githubDir)
 
 includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 include(":flatinvoker-core")
+include(":flatinvoker-ipc")
 include(":flatinvoker-react")
 include(":flatinvoker-compiler")
 include(":reaktor-core")

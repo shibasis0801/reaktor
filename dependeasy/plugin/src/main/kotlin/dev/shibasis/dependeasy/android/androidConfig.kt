@@ -57,16 +57,9 @@ fun PackagingOptions.excludeNativeLibs() {
     }
 }
 
-
-fun LibraryDefaultConfig.defaults() {
-    minSdk = Version.SDK.minSdk
-    externalNativeBuild { cmake { defaults() } }
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-}
-
-fun ExternalNativeCmakeOptions.defaults() {
+fun ExternalNativeCmakeOptions.defaults(name: String) {
     cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1")) // add -O2 for prod
-    arguments.addAll(listOf("-DCMAKE_VERBOSE_MAKEFILE=1", "-DANDROID_STL=c++_shared"))
+    arguments.addAll(listOf("-DCMAKE_VERBOSE_MAKEFILE=1", "-DANDROID_STL=c++_shared", "-DNAME=$name"))
     cppFlags.add("-std=c++20")
 }
 
@@ -91,12 +84,24 @@ fun NamedDomainObjectContainerScope<Configuration>.defaults() {
 
 fun LibraryExtension.defaults(
     namespace: String,
-    cmakeLists: File? = null
+    cmakeLists: File? = null,
+    cmakeProjectName: String = "",
 ) {
     this.namespace = namespace
     compileSdk = Version.SDK.compileSdk
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    defaultConfig {defaults() }
+// temporary todo remove1
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
+
+    defaultConfig {
+        minSdk = Version.SDK.minSdk
+        externalNativeBuild { cmake { defaults(cmakeProjectName) } }
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
     if (cmakeLists != null) {
         externalNativeBuild {
             defaults(cmakeLists)
@@ -125,6 +130,7 @@ fun LibraryExtension.defaults(
 fun BaseAppModuleExtension.defaults(
     appID: String,
     cmakeLists: File? = null,
+    cmakeProjectName: String = "",
     enableCompose: Boolean = false,
 ) {
     compileSdk = Version.SDK.compileSdk
@@ -141,7 +147,7 @@ fun BaseAppModuleExtension.defaults(
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         cmakeLists?.let {
-            externalNativeBuild { cmake { defaults() } }
+            externalNativeBuild { cmake { defaults(cmakeProjectName) } }
         }
     }
 

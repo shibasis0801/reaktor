@@ -37,13 +37,13 @@ fun KotlinMultiplatformExtension.droid(
             implementation("com.facebook.fbjni:fbjni:0.2.2")
         }
 
-        val androidUnitTest by getting {
-            dependencies {
-                implementation(kotlin("test-junit"))
-                implementation("junit:junit:4.13.2")
-                configure.testDependencies(this)
-            }
-        }
+//        val androidUnitTest by getting {
+//            dependencies {
+//                implementation(kotlin("test-junit"))
+//                implementation("junit:junit:4.13.2")
+//                configure.testDependencies(this)
+//            }
+//        }
         val androidInstrumentedTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))

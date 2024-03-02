@@ -99,7 +99,6 @@ extern "C" {
 #define RCT_METRO_PORT 8081
 #else
 // test if RCT_METRO_PORT is empty
-#define RCT_METRO_PORT_DO_EXPAND(VAL) VAL##1
 #define RCT_METRO_PORT_EXPAND(VAL) RCT_METRO_PORT_DO_EXPAND(VAL)
 #if !defined(RCT_METRO_PORT) || (RCT_METRO_PORT_EXPAND(RCT_METRO_PORT) == 1)
 // Only here if RCT_METRO_PORT is not defined

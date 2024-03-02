@@ -50,6 +50,9 @@ fun calculateXcfSize(name: String, xcfPathBase: String): Double {
     if (!Files.exists(Paths.get(xcfPath))) {
         xcfPath = "$xcfPathBase/ios-arm64/$name.framework/$name"
     }
+    if (!Files.exists(Paths.get(xcfPath))) {
+        xcfPath = "$xcfPathBase/ios-arm64-simulator/$name.framework/$name"
+    }
     return sizeInKb(xcfPath)
 }
 

@@ -66,6 +66,7 @@ class LibraryPlugin: Plugin<Project> {
 
         val extension = DependeasyExtension.create(this)
         applyMultiplatformPlugins(extension)
+//        plugins.apply("com.codingfeline.buildkonfig")
     }
 }
 

@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.common
 
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import dev.shibasis.dependeasy.Version
+import java.lang.Runtime.Version
 
 fun KotlinDependencyHandler.commonSerialization(serializationVersion: String = Version.Serialization, protobuf: Boolean = false) {
     api("org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion")
@@ -18,6 +19,9 @@ fun KotlinDependencyHandler.commonCoroutines(coroutinesVersion: String = Version
 
 fun KotlinDependencyHandler.commonNetworking() {
     api("io.ktor:ktor-client-core:${Version.Ktor}")
+    implementation("io.ktor:ktor-client-content-negotiation:${Version.Ktor}")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:${Version.Ktor}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Version.Serialization}")
 }
 
 fun KotlinDependencyHandler.commonLogging() {
