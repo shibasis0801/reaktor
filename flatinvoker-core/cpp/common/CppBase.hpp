@@ -1,6 +1,9 @@
 #pragma once
 // todo Use Google C++ Style Guide
 // https://google.github.io/styleguide/cppguide.html
+
+#include <common/CBase.h>
+
 #include <string>
 #include <vector>
 #include <string>

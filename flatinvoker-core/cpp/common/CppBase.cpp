@@ -1,4 +1,4 @@
-#include <common/CppBase.h>
+#include <common/CppBase.hpp>
 
 namespace Reaktor {
     ReaktorException::ReaktorException(std::string message): message(std::move(message)) {}

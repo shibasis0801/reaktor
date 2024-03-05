@@ -1,15 +1,6 @@
 package dev.shibasis.flatinvoker.core.flexbuffer
 
-import dev.shibasis.reaktor.native.Flex_Bool
-import dev.shibasis.reaktor.native.Flex_Create
-import dev.shibasis.reaktor.native.Flex_Double
-import dev.shibasis.reaktor.native.Flex_EndMap
-import dev.shibasis.reaktor.native.Flex_EndVector
-import dev.shibasis.reaktor.native.Flex_Int
-import dev.shibasis.reaktor.native.Flex_Null
-import dev.shibasis.reaktor.native.Flex_StartMap
-import dev.shibasis.reaktor.native.Flex_StartVector
-import dev.shibasis.reaktor.native.Flex_String
+import dev.shibasis.flatinvoker.core.FlexBuffer
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -36,7 +27,7 @@ And then write a series of articles
  */
 class FlexEncoder: AbstractEncoder() {
     override val serializersModule = EmptySerializersModule()
-    val flexBuffer = Flex_Create()
+    val flexBuffer = FlexBuffer.Create()
 
     // need to keep these in a stack
     var vectorStart: ULong = 0u
@@ -52,23 +43,23 @@ class FlexEncoder: AbstractEncoder() {
     override fun encodeValue(value: Any) {
         val fieldName = if (inVector) null else this.fieldName
         when (value) {
-            is String -> Flex_String(flexBuffer, fieldName, value)
-            is Int -> Flex_Int(flexBuffer, fieldName, value.toLong())
-            is Long -> Flex_Int(flexBuffer, fieldName, value)
-            is Double -> Flex_Double(flexBuffer, fieldName, value)
-            is Boolean -> Flex_Bool(flexBuffer, fieldName, value)
+            is String -> FlexBuffer.String(flexBuffer, fieldName, value)
+            is Int -> FlexBuffer.Int(flexBuffer, fieldName, value.toLong())
+            is Long -> FlexBuffer.Int(flexBuffer, fieldName, value)
+            is Double -> FlexBuffer.Double(flexBuffer, fieldName, value)
+            is Boolean -> FlexBuffer.Bool(flexBuffer, fieldName, value)
         }
     }
 
     override fun encodeNull() {
-        Flex_Null(flexBuffer, null)
+        FlexBuffer.Null(flexBuffer, null)
     }
 
     override fun beginCollection(
         descriptor: SerialDescriptor,
         collectionSize: Int
     ): CompositeEncoder {
-        vectorStart = Flex_StartVector(flexBuffer, null)
+        vectorStart = FlexBuffer.StartVector(flexBuffer, null)
         inVector = true
         return this
     }
@@ -76,7 +67,7 @@ class FlexEncoder: AbstractEncoder() {
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.MAP, StructureKind.OBJECT -> {
-                mapStart = Flex_StartMap(flexBuffer, null)
+                mapStart = FlexBuffer.StartMap(flexBuffer, null)
                 inVector = false
                 return this
             }
@@ -88,11 +79,11 @@ class FlexEncoder: AbstractEncoder() {
     override fun endStructure(descriptor: SerialDescriptor) {
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.MAP, StructureKind.OBJECT -> {
-                Flex_EndMap(flexBuffer, mapStart)
+                FlexBuffer.EndMap(flexBuffer, mapStart)
                 inVector = true
             }
             StructureKind.LIST -> {
-                Flex_EndVector(flexBuffer, vectorStart)
+                FlexBuffer.EndVector(flexBuffer, vectorStart)
                 inVector = false
             }
             else -> {}
@@ -100,7 +91,7 @@ class FlexEncoder: AbstractEncoder() {
     }
 }
 
-fun<T> encodeToFlexBuffer(serializer: SerializationStrategy<T>, value: T): Long {
+fun<T> encodeToFlexBuffer(serializer: SerializationStrategy<T>, value: T): ULong {
     val encoder = FlexEncoder()
     encoder.encodeSerializableValue(serializer, value)
     return encoder.flexBuffer

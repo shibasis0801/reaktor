@@ -56,10 +56,11 @@ kotlin {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
-                packageName("dev.shibasis.reaktor.native")
+                packageName("dev.shibasis.flatinvoker.native")
                 // todo create def file if not present
                 defFile(file("cpp/bindings.def"))
-                headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
+                includeDirs("cpp")
+                headers("cpp/common/CBase.h", "cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
             }
         }
 
