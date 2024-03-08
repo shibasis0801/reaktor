@@ -18,8 +18,9 @@ class JavaJniTests {
         val result = httpClient.get(url)
         val body = result.body<String>()
 
+        val flexBuffer = FlexBuffer.Create()
         val timeForFlexParse = measureTime {
-            JavaJni.parseJson(body)
+            FlexBuffer.ParseJson(flexBuffer, body)
         }.inWholeMilliseconds
 
         val jsonParseTime = measureTime {

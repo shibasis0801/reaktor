@@ -1,6 +1,7 @@
 package dev.shibasis.flatinvoker.core.flexbuffer
 
 import dev.shibasis.flatinvoker.core.FlexBuffer
+import dev.shibasis.flatinvoker.core.FlexPointer
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -22,9 +23,7 @@ The encode/decode must be the same algorithm as the one used by the JsonParser o
 
 Building this, I will be able to understand FlexBuffers in depth
 And then write a series of articles
-
-
- */
+*/
 class FlexEncoder: AbstractEncoder() {
     override val serializersModule = EmptySerializersModule()
     val flexBuffer = FlexBuffer.Create()
@@ -91,7 +90,7 @@ class FlexEncoder: AbstractEncoder() {
     }
 }
 
-fun<T> encodeToFlexBuffer(serializer: SerializationStrategy<T>, value: T): ULong {
+fun<T> encodeToFlexBuffer(serializer: SerializationStrategy<T>, value: T): FlexPointer {
     val encoder = FlexEncoder()
     encoder.encodeSerializableValue(serializer, value)
     return encoder.flexBuffer
