@@ -84,7 +84,12 @@ actual object FlexBuffer {
     }
 
     actual inline fun GetBuffer(pointer: Long): ByteArray {
-        return jniGetBuffer(pointer).array()
+        // todo Need to understand bytebuffers in more details
+        // it seems that the underlying array is not directly accessible without a copy.
+        // that is, zero copy direct byte buffers are one way.
+        // https://www.baeldung.com/java-bytebuffer
+
+        return jniGetBuffer(pointer).moveToByteArray()
     }
 
     actual inline fun Null(pointer: Long, key: String?) {

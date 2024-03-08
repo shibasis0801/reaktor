@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
-project(${NAME})
+project(FlatInvokerCore)
 init()
 
 
 if(ANDROID)
     add_library(
-            ${PROJECT_NAME}
+            FlatInvokerCore
             SHARED
             ${droid}
             ${common}
@@ -16,7 +16,7 @@ if(ANDROID)
     find_library(log-lib log)
 
     target_link_libraries(
-            ${PROJECT_NAME}
+            FlatInvokerCore
             PUBLIC
             flatbuffers
             android

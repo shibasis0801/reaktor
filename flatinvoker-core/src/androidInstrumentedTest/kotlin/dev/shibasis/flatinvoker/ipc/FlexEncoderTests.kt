@@ -1,7 +1,8 @@
-package dev.shibasis.flatinvoker.core
+package dev.shibasis.flatinvoker.ipc
 
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
 import com.google.flatbuffers.kotlin.getRoot
+import dev.shibasis.flatinvoker.core.FlexBuffer
 import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
 
 import kotlinx.serialization.Serializable
@@ -11,7 +12,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class KotlinCppTests {
+@Serializable
+data class Person(val id: Int, val name: String, val age: Double)
+
+class FlexEncoderTests {
 
     @Test
     fun testFlexEncoder() {
@@ -71,5 +75,3 @@ class KotlinCppTests {
     }
 }
 
-@Serializable
-data class Person(val id: Int, val name: String, val age: Double)
