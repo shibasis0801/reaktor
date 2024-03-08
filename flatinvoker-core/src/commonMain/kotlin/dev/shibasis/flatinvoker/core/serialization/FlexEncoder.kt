@@ -1,9 +1,7 @@
-package dev.shibasis.flatinvoker.core.flexbuffer
+package dev.shibasis.flatinvoker.core.serialization
 
 import dev.shibasis.flatinvoker.core.FlexBuffer
-import dev.shibasis.flatinvoker.core.FlexPointer
 import kotlinx.serialization.SerializationStrategy
-import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractEncoder
@@ -90,7 +88,7 @@ class FlexEncoder: AbstractEncoder() {
     }
 }
 
-fun<T> encodeToFlexBuffer(serializer: SerializationStrategy<T>, value: T): FlexPointer {
+fun<T> encodeToFlexBuffer(serializer: SerializationStrategy<T>, value: T): Long {
     val encoder = FlexEncoder()
     encoder.encodeSerializableValue(serializer, value)
     return encoder.flexBuffer

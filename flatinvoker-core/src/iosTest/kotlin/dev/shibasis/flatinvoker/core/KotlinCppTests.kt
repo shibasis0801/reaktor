@@ -2,7 +2,7 @@ package dev.shibasis.flatinvoker.core
 
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
 import com.google.flatbuffers.kotlin.getRoot
-import dev.shibasis.flatinvoker.core.flexbuffer.encodeToFlexBuffer
+import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString

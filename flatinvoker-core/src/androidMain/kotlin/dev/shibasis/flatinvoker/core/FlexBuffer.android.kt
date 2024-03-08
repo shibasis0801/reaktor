@@ -5,6 +5,9 @@ import dalvik.annotation.optimization.FastNative
 import io.ktor.util.moveToByteArray
 import java.nio.ByteBuffer
 
+
+
+
 /*
 If we wish to pass an array from C++ to Java without a copy
 Then we need to allocate the array on cpp in heap. (KeepAlive)
@@ -48,39 +51,84 @@ actual object FlexBuffer {
     init {
         System.loadLibrary("FlatInvokerCore")
     }
-    @FastNative external fun nativeCreate(): Long
-    actual inline fun Create() = nativeCreate()
+    @FastNative external fun jniCreate(): Long
+    @FastNative external fun jniParseJson(pointer: Long, data: String)
+    @FastNative external fun jniDestroy(pointer: Long)
+    @FastNative external fun jniFinish(pointer: Long)
+    @FastNative external fun jniGetBuffer(pointer: Long): ByteBuffer
+    @FastNative external fun jniNull(pointer: Long, key: String?)
+    @FastNative external fun jniInt(pointer: Long, key: String?, value: Long)
+    @FastNative external fun jniFloat(pointer: Long, key: String?, value: Float)
+    @FastNative external fun jniDouble(pointer: Long, key: String?, value: Double)
+    @FastNative external fun jniBool(pointer: Long, key: String?, value: Boolean)
+    @FastNative external fun jniString(pointer: Long, key: String?, value: String)
+    @FastNative external fun jniBlob(pointer: Long, key: String?, value: ByteArray)
+    @FastNative external fun jniStartMap(pointer: Long, key: String?): Long
+    @FastNative external fun jniEndMap(pointer: Long, mapStart: Long)
+    @FastNative external fun jniStartVector(pointer: Long, key: String?): Long
+    @FastNative external fun jniEndVector(pointer: Long, vectorStart: Long)
+    actual inline fun Create(): Long {
+        return jniCreate()
     }
-    @FastNative external fun jniParseJson(pointer: FlexPointer, data: String)
-    actual inline fun ParseJson(pointer: FlexPointer, data: String) = jniParseJson(pointer, data)
-    @FastNative external fun jniDestroy(pointer: FlexPointer)
-    actual inline fun Destroy(pointer: FlexPointer) = jniDestroy(pointer)
-    @FastNative external fun jniFinish(pointer: FlexPointer)
-    actual inline fun Finish(pointer: FlexPointer) = jniFinish(pointer)
-    @FastNative external fun jniGetBuffer(pointer: FlexPointer): ByteBuffer
-    actual inline fun GetBuffer(pointer: FlexPointer): ByteArray {
+
+    actual inline fun ParseJson(pointer: Long, data: String) {
+        jniParseJson(pointer, data)
+    }
+
+    actual inline fun Destroy(pointer: Long) {
+        jniDestroy(pointer)
+    }
+
+    actual inline fun Finish(pointer: Long) {
+        jniFinish(pointer)
+    }
+
+    actual inline fun GetBuffer(pointer: Long): ByteArray {
         return jniGetBuffer(pointer).array()
     }
-    @FastNative external fun jniNull(pointer: FlexPointer, key: String?)
-    actual inline fun Null(pointer: FlexPointer, key: String?) = jniNull(pointer, key)
-    @FastNative external fun jniInt(pointer: FlexPointer, key: String?, value: Long)
-    actual inline fun Int(pointer: FlexPointer, key: String?, value: Long) = jniInt(pointer, key, value)
-    @FastNative external fun jniFloat(pointer: FlexPointer, key: String?, value: Float)
-    actual inline fun Float(pointer: FlexPointer, key: String?, value: Float) = jniFloat(pointer, key, value)
-    @FastNative external fun jniDouble(pointer: FlexPointer, key: String?, value: Double)
-    actual inline fun Double(pointer: FlexPointer, key: String?, value: Double) = jniDouble(pointer, key, value)
-    @FastNative external fun jniBool(pointer: FlexPointer, key: String?, value: Boolean)
-    actual inline fun Bool(pointer: FlexPointer, key: String?, value: Boolean) = jniBool(pointer, key, value)
-    @FastNative external fun jniString(pointer: FlexPointer, key: String?, value: String)
-    actual inline fun String(pointer: FlexPointer, key: String?, value: String) = jniString(pointer, key, value)
-    @FastNative external fun jniBlob(pointer: FlexPointer, key: String?, value: ByteArray)
-    actual inline fun Blob(pointer: FlexPointer, key: String?, value: ByteArray) = jniBlob(pointer, key, value)
-    @FastNative external fun jniStartMap(pointer: FlexPointer, key: String?): Long
-    actual inline fun StartMap(pointer: FlexPointer, key: String?) = jniStartMap(pointer, key)
-    @FastNative external fun jniEndMap(pointer: FlexPointer, mapStart: ULong)
-    actual inline fun EndMap(pointer: FlexPointer, mapStart: ULong) = jniEndMap(pointer, mapStart)
-    @FastNative external fun jniStartVector(pointer: FlexPointer, key: String?): ULong
-    actual inline fun StartVector(pointer: FlexPointer, key: String?) = jniStartVector(pointer, key)
-    @FastNative external fun jniEndVector(pointer: FlexPointer, vectorStart: ULong)
-    actual inline fun EndVector(pointer: FlexPointer, vectorStart: ULong) = jniEndVector(pointer, vectorStart)
+
+    actual inline fun Null(pointer: Long, key: String?) {
+        jniNull(pointer, key)
+    }
+
+    actual inline fun Int(pointer: Long, key: String?, value: Long) {
+        jniInt(pointer, key, value)
+    }
+
+    actual inline fun Float(pointer: Long, key: String?, value: Float) {
+        jniFloat(pointer, key, value)
+    }
+
+    actual inline fun Double(pointer: Long, key: String?, value: Double) {
+        jniDouble(pointer, key, value)
+    }
+
+    actual inline fun Bool(pointer: Long, key: String?, value: Boolean) {
+        jniBool(pointer, key, value)
+    }
+
+    actual inline fun String(pointer: Long, key: String?, value: String) {
+        jniString(pointer, key, value)
+    }
+
+    actual inline fun Blob(pointer: Long, key: String?, value: ByteArray) {
+        // should send bytebuffer instead
+        jniBlob(pointer, key, value)
+    }
+
+    actual inline fun StartMap(pointer: Long, key: String?): ULong {
+        return jniStartMap(pointer, key).toULong()
+    }
+
+    actual inline fun EndMap(pointer: Long, mapStart: ULong) {
+        jniEndMap(pointer, mapStart.toLong())
+    }
+
+    actual inline fun StartVector(pointer: Long, key: String?): ULong {
+        return jniStartVector(pointer, key).toULong()
+    }
+
+    actual inline fun EndVector(pointer: Long, vectorStart: ULong) {
+        jniEndVector(pointer, vectorStart.toLong())
+    }
 }

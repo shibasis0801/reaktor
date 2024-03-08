@@ -1,4 +1,5 @@
 #include "Reaktor.h"
+#import <Foundation/Foundation.h>
 //#include <core-cpp/base.h>
 #include <string>
 #include <flatbuffers/flexbuffers.h>
