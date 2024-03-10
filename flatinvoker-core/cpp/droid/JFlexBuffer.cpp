@@ -54,6 +54,13 @@ void JFlexBuffer::Finish(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer) 
     Flex_Finish(pointer);
 }
 
+/*
+This is zero-copy if you do not wish to have access to the raw array internally.
+DirectByteBuffers allow you to expose an existing C++ array to Java.
+You can get random access to all the elements, but if you need the raw array you need to copy.
+Java Unsafe is not present in Android and Project Panama is still not supported.
+So most likely, this is the best way to transfer arrays from C++ to Java.
+ */
 jni::local_ref<jni::JByteBuffer>
 JFlexBuffer::GetBuffer(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer) {
     auto flexArray = Flex_GetBuffer(pointer);

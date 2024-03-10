@@ -22,6 +22,8 @@ buildkonfig {
     }
 }
 
+val Name = "FlatInvokerCore"
+
 task<Exec>("darwinCmake") {
     group = "reaktor"
     // environment variable for react location
@@ -29,7 +31,7 @@ task<Exec>("darwinCmake") {
         rm -rf build &&
         cd cpp &&
         rm -rf build &&
-        cmake -DNAME=FlatInvokerCore -B build -G Xcode &&
+        cmake -DNAME=${Name} -B build -G Xcode &&
         cmake --build build --config Release
     """.trimIndent())
 }
@@ -44,12 +46,14 @@ kotlin {
         dependencies = {
             implementation(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
-            // Temporary Dependencies. We should have pure framework code in here.
-            api(project(":reaktor-io"))
         }
     }
 
-    droid {}
+    droid {
+        dependencies = {
+            api(project(":reaktor-io"))
+        }
+    }
 
     darwin {
         cinterops = {
@@ -66,7 +70,7 @@ kotlin {
 
         targets = {
             binaries.all {
-                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-core/cpp/build/Release-iphonesimulator/libFlatInvokerCore.a")
+                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-core/cpp/build/Release-iphonesimulator/lib${Name}.a")
             }
         }
     }
@@ -77,5 +81,5 @@ dependencies {
 }
 
 android {
-   defaults("dev.shibasis.flatinvoker.core", file("cpp/CMakeLists.txt"), "FlatInvokerCore")
+   defaults("dev.shibasis.flatinvoker.core", file("cpp/CMakeLists.txt"), Name)
 }

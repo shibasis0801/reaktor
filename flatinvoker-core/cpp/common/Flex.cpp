@@ -18,7 +18,7 @@ class FlexBufferStore {
 
 public:
     FlexPointer Create() {
-        auto builder = std::make_shared<flexbuffers::Builder>(1024);
+        auto builder = std::make_shared<flexbuffers::Builder>();
         auto pointer = reinterpret_cast<FlexPointer>(builder.get());
         builders[pointer] = builder;
         builderInfo[pointer] = {.isFinished = false};
@@ -82,7 +82,14 @@ void Flex_Finish(FlexPointer pointer) {
 
 FlexArray Flex_GetBuffer(FlexPointer pointer) {
     auto builder = FlexStore.GetOrThrow(pointer);
-    return { builder->GetBuffer().data(), builder->GetSize() };
+    auto data = builder->GetBuffer().data();
+    auto size = builder->GetSize();
+
+    auto flexBuffer = flexbuffers::GetRoot(data, builder->GetSize());
+
+    auto str = flexBuffer.ToString();
+
+    return { data, size };
 }
 
 void Flex_Null(FlexPointer pointer, const char* key) {

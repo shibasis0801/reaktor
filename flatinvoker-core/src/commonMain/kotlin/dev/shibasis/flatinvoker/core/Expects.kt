@@ -3,7 +3,6 @@ package dev.shibasis.flatinvoker.core
 import com.google.flatbuffers.kotlin.Map
 import com.google.flatbuffers.kotlin.Vector
 
-import io.ktor.client.HttpClient
 import kotlinx.coroutines.flow.Flow
 
 
