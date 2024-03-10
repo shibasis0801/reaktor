@@ -187,9 +187,9 @@ class EncodingStack {
     }
 
     // Should return a sealed class with actions to be taken back in the encoder
-    fun onEncodeValue(value: Any): Any? {
-        val active = current ?: return null
-        if (active.type != Composite.Map) return null
+    fun onEncodeValue(value: Any): Boolean {
+        val active = current ?: return false
+        if (active.type != Composite.Map) return false
 
 
         if (active.idx % 2 == 1 && active.fieldName == null) {
@@ -197,6 +197,6 @@ class EncodingStack {
             return true
         }
 
-        return null
+        return false
     }
 }

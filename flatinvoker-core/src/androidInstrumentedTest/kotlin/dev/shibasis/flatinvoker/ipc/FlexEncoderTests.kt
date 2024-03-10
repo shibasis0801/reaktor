@@ -5,9 +5,13 @@ import com.google.flatbuffers.kotlin.Vector
 import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.flatinvoker.core.FlexBuffer
 import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlin.properties.Delegates
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.measureTime
 
 
 class FlexEncoderTests {
@@ -15,9 +19,35 @@ class FlexEncoderTests {
     @Test
     fun testFlexEncoder() {
         val complexCase = EncodingComplexCase()
-        val flexBuffer = encodeToFlexBuffer(complexCase)
+        var flexBuffer by Delegates.notNull<Long>()
+        lateinit var array: ByteArray
+
+        val flexEncodeTime1 = measureTime {
+            flexBuffer = encodeToFlexBuffer(complexCase)
+        }.inWholeMilliseconds
+
+        val flexEncodeTime2 = measureTime {
+            flexBuffer = encodeToFlexBuffer(complexCase)
+        }.inWholeMilliseconds
+
+        val flexEncodeTime3 = measureTime {
+            flexBuffer = encodeToFlexBuffer(complexCase)
+        }.inWholeMilliseconds
+
         FlexBuffer.Finish(flexBuffer)
-        val array = FlexBuffer.GetBuffer(flexBuffer)
+        array = FlexBuffer.GetBuffer(flexBuffer)
+
+        val jsonEncodeTime1 = measureTime {
+            Json.encodeToJsonElement(complexCase)
+        }.inWholeMilliseconds
+
+        val jsonEncodeTime2 = measureTime {
+            Json.encodeToJsonElement(complexCase)
+        }.inWholeMilliseconds
+
+        val jsonEncodeTime3 = measureTime {
+            Json.encodeToJsonElement(complexCase)
+        }.inWholeMilliseconds
 
         assertTrue { array != null }
 
@@ -223,6 +253,7 @@ class FlexEncoderTests {
                 }
             }
         }
+
     }
 }
 

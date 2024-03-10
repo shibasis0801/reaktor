@@ -43,7 +43,8 @@ class FlexEncoder: AbstractEncoder() {
     I had read in the source that integers are always encoded efficiently, but deeper dive needed.
      */
     override fun encodeValue(value: Any) {
-        stack.onEncodeValue(value) ?: return
+        val skipEncoding = stack.onEncodeValue(value)
+        if (skipEncoding) return
 
         when (value) {
             is String -> FlexBuffer.String(flexBuffer, stack.field, value)
