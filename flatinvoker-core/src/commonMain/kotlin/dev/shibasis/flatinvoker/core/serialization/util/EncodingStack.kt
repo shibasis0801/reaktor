@@ -1,5 +1,8 @@
 package dev.shibasis.flatinvoker.core.serialization.util
 
+import kotlin.jvm.JvmInline
+import kotlin.time.measureTime
+
 /*
 This is the relevant part of the serializer for Maps
 override fun serialize(encoder: Encoder, value: Collection) {
@@ -121,40 +124,79 @@ if (idx % 2 == 1 && field == null)
 
 
 */
+
 enum class Composite {
     Map, Vector, Class
 }
 
-data class CompositePosition(
-    val type: Composite,
-    val position: ULong,
+class CompositePosition(
+    var type: Composite = Composite.Map,
+    var position: ULong = 0u,
     var fieldName: String? = null,
     var idx: Int = 0
 )
+
+// Uses Object Pooling and is much faster than ArrayDeque.
+class CompositePositionStack(initialCapacity: Int = 16) {
+    var stack: ArrayList<CompositePosition> = ArrayList()
+    var size: Int = 0
+    var capacity: Int = 0
+    inline fun expandCapacityBy(additionalCapacity: Int) {
+        capacity += additionalCapacity
+        repeat(additionalCapacity) {
+            stack.add(CompositePosition())
+        }
+    }
+    init {
+        expandCapacityBy(initialCapacity)
+    }
+
+    inline fun push(type: Composite, position: ULong, fieldName: String? = null, idx: Int = 0) {
+        if (size >= capacity) {
+            expandCapacityBy(capacity)
+        }
+        val compositePosition = stack[size]
+        compositePosition.type = type
+        compositePosition.position = position
+        compositePosition.fieldName = fieldName
+        compositePosition.idx = idx
+        size++
+    }
+
+    inline fun pop(): CompositePosition {
+        return stack[--size]
+    }
+
+    inline fun top(): CompositePosition? {
+        return if (size > 0) stack[size - 1] else null
+    }
+
+    inline fun isEmpty(): Boolean {
+        return size == 0
+    }
+
+    inline fun clear() {
+        size = 0
+    }
+
+}
 
 
 // todo when first call arrives, need to push the appropriate stack entry
 class EncodingStack {
     // As we need to encode nested structures, we push a stack frame as we enter a new structure (list/map/class/etc)
-    private val stack = ArrayDeque<CompositePosition>()
-
-    // The index of the current structure in the stack. It is null if we are at the root object, or the encoding has finished
-    private var currentIdx: Int? = null
-
+    val stack = CompositePositionStack()
     // Reference to the current structure in the stack
-    private val current: CompositePosition?
-        get() = currentIdx?.let { idx -> stack[idx] }
+    var current: CompositePosition? = null
 
-    fun push(composite: Composite, start: ULong) {
-        val position = CompositePosition(composite, start)
-        currentIdx = stack.size
-        stack.addLast(position)
+    inline fun push(composite: Composite, start: ULong) {
+        stack.push(composite, start)
+        current = stack.top()
     }
 
-    fun pop(): CompositePosition {
-        val result = stack.removeLast()
-        val lastIdx = stack.size - 1
-        currentIdx = if (lastIdx < 0) null else lastIdx
+    inline fun pop(): CompositePosition {
+        val result = stack.pop()
+        current = stack.top()
         return result
     }
 
@@ -171,7 +213,7 @@ class EncodingStack {
     if (idx % 2 == 1 && field == null)
         field = value
      */
-    fun onEncodeElement(name: String) {
+    inline fun onEncodeElement(name: String) {
         val active = current ?: return
         if (active.type == Composite.Vector) return
 
@@ -187,7 +229,7 @@ class EncodingStack {
     }
 
     // Should return a sealed class with actions to be taken back in the encoder
-    fun onEncodeValue(value: Any): Boolean {
+    inline fun onEncodeValue(value: Any): Boolean {
         val active = current ?: return false
         if (active.type != Composite.Map) return false
 

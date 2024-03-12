@@ -1,5 +1,6 @@
 package dev.shibasis.flatinvoker.core.serialization.encoder
 
+import com.google.flatbuffers.kotlin.FlexBuffersBuilder
 import dev.shibasis.flatinvoker.core.FlexBuffer
 import dev.shibasis.flatinvoker.core.serialization.util.Composite
 import dev.shibasis.flatinvoker.core.serialization.util.EncodingStack
@@ -8,6 +9,8 @@ import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.modules.EmptySerializersModule
+import kotlin.math.pow
+import kotlin.time.measureTime
 
 /*
 Focus should not be just on compact encoding
@@ -23,18 +26,60 @@ Building this, I will be able to understand FlexBuffers in depth
 And then write a series of articles
 
 https://flatbuffers.dev/flexbuffers.html
+
+Timings are ->
+complex case 1 time -> json -> 3, flex -> 2 || 100 time average -> json -> 0.03, flex -> 0.02
+sophisticated case 1 time -> json -> 23, flex -> 39 || 100 time average -> json -> 12, flex -> 19
+
+FlexEncoder is faster than official JsonEncoder by roughly 40% except for very complex objects.
+Further optimisations could increase speed further.
+1. Understand FlexBuffer creation in depth
+2. Measure JNI overhead, replace JNI with Java FlexBuffers (official)
+3. Read Crafting Interpreters
+4. Find and optimise allocations, unnecessary functionalities, etc
+
+Flexbuffers while encoding won't be very different from Json encoding algorithmically.
+Both do additions in an array (byte array or char array)
+
+Decoding should be much faster than Json.
+For Json we need to parse the string and then convert it to the required type.
+But for FlexBuffers, we can directly read the bytes and convert it to the required type.
+So the parse steps should be reduced.
+
 */
+
+@OptIn(ExperimentalUnsignedTypes::class)
+fun test() = FlexBuffersBuilder().put(1)
 class FlexEncoder: AbstractEncoder() {
     override val serializersModule = EmptySerializersModule()
-    val flexBuffer = FlexBuffer.Create()
+    val flexBuffer: Long
     val stack = EncodingStack()
+
+    init {
+        var time = measureTime {
+            flexBuffer = FlexBuffer.Create()
+        }.inWholeMicroseconds
+        println("SHIBASIS:fb:$time")
+        time = measureTime { test() }.inWholeMicroseconds
+        println("SHIBASIS:test:$time")
+
+        /*
+        SHIBASIS:fb:2900
+        SHIBASIS:test:1600
+
+        The KMM flatbuffer library is also inefficient.
+        But we must be having some JNI overhead
+        FastNative didn't have much benefit
+        Can try critical native
+         */
+
+    }
 
     override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
         val name = descriptor.getElementName(index)
         stack.onEncodeElement(name)
         return true
     }
-
 
     /*
     ByteArrays work but are currently encoded as normal 8 bit arrays. Should be encoded as blobs.
@@ -90,26 +135,25 @@ class FlexEncoder: AbstractEncoder() {
             }
             else -> {}
         }
-
         return this
     }
 
     override fun endStructure(descriptor: SerialDescriptor) {
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
-                val (type, position) = stack.pop()
-                require(type == Composite.Class)
-                FlexBuffer.EndMap(flexBuffer, position)
+                val entry = stack.pop()
+                require(entry.type == Composite.Class)
+                FlexBuffer.EndMap(flexBuffer, entry.position)
             }
             StructureKind.MAP -> {
-                val (type, position) = stack.pop()
-                require(type == Composite.Map)
-                FlexBuffer.EndMap(flexBuffer, position)
+                val entry = stack.pop()
+                require(entry.type == Composite.Map)
+                FlexBuffer.EndMap(flexBuffer, entry.position)
             }
             StructureKind.LIST -> {
-                val (type, position) = stack.pop()
-                require(type == Composite.Vector)
-                FlexBuffer.EndVector(flexBuffer, position)
+                val entry = stack.pop()
+                require(entry.type == Composite.Vector)
+                FlexBuffer.EndVector(flexBuffer, entry.position)
             }
             else -> {}
         }

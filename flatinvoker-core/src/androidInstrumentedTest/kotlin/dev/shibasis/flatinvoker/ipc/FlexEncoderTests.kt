@@ -1,5 +1,6 @@
 package dev.shibasis.flatinvoker.ipc
 
+import android.os.Debug
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
 import com.google.flatbuffers.kotlin.Vector
 import com.google.flatbuffers.kotlin.getRoot
@@ -8,47 +9,68 @@ import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.properties.Delegates
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.measureTime
 
 
+fun repeatedAverage(count: Int, fn: () -> Number): Double {
+    var sum = 0.0
+    repeat(count) {
+        sum += fn().toDouble()
+    }
+    return sum / count.toDouble()
+}
+
 class FlexEncoderTests {
+//    Bugs in the profiler for this version
+//    @BeforeTest
+//    fun startTracing() {
+//        Debug.startMethodTracing("FlexEncoderAndroid")
+//        Debug.startNativeTracing()
+//        Debug.startAllocCounting()
+//    }
+//
+//    @AfterTest
+//    fun stopTracing() {
+//        Debug.stopMethodTracing()
+//        Debug.stopNativeTracing()
+//        Debug.stopAllocCounting()
+//    }
 
     @Test
     fun testFlexEncoder() {
+        val simpleTest = measureTime {
+            val flexBuffer = encodeToFlexBuffer(EncodingSimpleCase())
+            FlexBuffer.Finish(flexBuffer)
+            FlexBuffer.GetBuffer(flexBuffer)
+        }
+
+
         val complexCase = EncodingComplexCase()
         var flexBuffer by Delegates.notNull<Long>()
         lateinit var array: ByteArray
 
-        val flexEncodeTime1 = measureTime {
-            flexBuffer = encodeToFlexBuffer(complexCase)
-        }.inWholeMilliseconds
+        val flexEncodingTime = repeatedAverage(2) {
+            measureTime {
+                flexBuffer = encodeToFlexBuffer(EncodingComplexCase())
+                FlexBuffer.Finish(flexBuffer)
+                array = FlexBuffer.GetBuffer(flexBuffer)
+            }.inWholeMilliseconds
+        }
 
-        val flexEncodeTime2 = measureTime {
-            flexBuffer = encodeToFlexBuffer(complexCase)
-        }.inWholeMilliseconds
+        val jsonEncodingTime = repeatedAverage(2) {
+            measureTime {
+                Json.encodeToJsonElement(EncodingComplexCase())
+            }.inWholeMilliseconds
+        }
 
-        val flexEncodeTime3 = measureTime {
-            flexBuffer = encodeToFlexBuffer(complexCase)
-        }.inWholeMilliseconds
 
-        FlexBuffer.Finish(flexBuffer)
-        array = FlexBuffer.GetBuffer(flexBuffer)
-
-        val jsonEncodeTime1 = measureTime {
-            Json.encodeToJsonElement(complexCase)
-        }.inWholeMilliseconds
-
-        val jsonEncodeTime2 = measureTime {
-            Json.encodeToJsonElement(complexCase)
-        }.inWholeMilliseconds
-
-        val jsonEncodeTime3 = measureTime {
-            Json.encodeToJsonElement(complexCase)
-        }.inWholeMilliseconds
-
+        println("FlexBuffer Encode Time: $flexEncodingTime")
+        println("Json Encode Time: $jsonEncodingTime")
         assertTrue { array != null }
 
         val root = getRoot(ArrayReadBuffer(array))
@@ -253,7 +275,6 @@ class FlexEncoderTests {
                 }
             }
         }
-
     }
 }
 
