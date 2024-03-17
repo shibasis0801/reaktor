@@ -52,28 +52,8 @@ So the parse steps should be reduced.
 fun test() = FlexBuffersBuilder().put(1)
 class FlexEncoder: AbstractEncoder() {
     override val serializersModule = EmptySerializersModule()
-    val flexBuffer: Long
+    val flexBuffer: Long = FlexBuffer.Create()
     val stack = EncodingStack()
-
-    init {
-        var time = measureTime {
-            flexBuffer = FlexBuffer.Create()
-        }.inWholeMicroseconds
-        println("SHIBASIS:fb:$time")
-        time = measureTime { test() }.inWholeMicroseconds
-        println("SHIBASIS:test:$time")
-
-        /*
-        SHIBASIS:fb:2900
-        SHIBASIS:test:1600
-
-        The KMM flatbuffer library is also inefficient.
-        But we must be having some JNI overhead
-        FastNative didn't have much benefit
-        Can try critical native
-         */
-
-    }
 
     override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
         val name = descriptor.getElementName(index)

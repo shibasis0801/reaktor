@@ -5,43 +5,39 @@
 #include <flatbuffers/buffer.h>
 
 /*
- * Optimise all these, inline what you can.
+Needs optimization.
+When Flex_Create is called, start storing cumulative time spent
+On Flex_Finish, return the timings too, It should help estimate JNI overhead
  */
 struct BuilderInfo {
     bool isFinished = false;
 };
 
+// replace unordered_maps with FBVectors https://github.com/facebook/folly/blob/main/folly/docs/FBVector.md
+// Understand cache locality
 class FlexBufferStore {
     // Merge ?
-    std::unordered_map<FlexPointer, std::shared_ptr<flexbuffers::Builder>> builders;
+    std::unordered_map<FlexPointer, std::unique_ptr<flexbuffers::Builder>> builders;
     std::unordered_map<FlexPointer, BuilderInfo> builderInfo;
 
 public:
     FlexPointer Create() {
-        auto builder = std::make_shared<flexbuffers::Builder>();
+        auto builder = std::make_unique<flexbuffers::Builder>();
         auto pointer = reinterpret_cast<FlexPointer>(builder.get());
-        builders[pointer] = builder;
+        builders[pointer] = std::move(builder);
         builderInfo[pointer] = {.isFinished = false};
         return pointer;
     }
 
     // Also need to destroy when builder goes out of scope in parent language
     void Destroy(FlexPointer pointer) {
-        auto builder = Get(pointer);
-        builder->Clear();
+        Get(pointer)->Clear();
         builders.erase(pointer);
         builderInfo.erase(pointer);
     }
 
-    shared_ptr<flexbuffers::Builder> Get(FlexPointer pointer) {
-        if (!builders.contains(pointer)) return nullptr;
-        return builders[pointer];
-    }
-
-    inline shared_ptr<flexbuffers::Builder> GetOrThrow(FlexPointer pointer) {
-        auto builder = Get(pointer);
-        GUARD_THROW(builder, "No FlexBuilder found");
-        return builder;
+    inline flexbuffers::Builder* Get(FlexPointer pointer) {
+        return reinterpret_cast<flexbuffers::Builder *>(pointer);
     }
 
     bool IsFinished(FlexPointer pointer) {
@@ -50,12 +46,11 @@ public:
     }
 
     void Finish(FlexPointer pointer) {
-        auto builder = GetOrThrow(pointer);
         if (IsFinished(pointer)) return;
         // log double finish error
 
         builderInfo[pointer].isFinished = true;
-        builder->Finish();
+        Get(pointer)->Finish();
     }
 
 } FlexStore;
@@ -63,7 +58,7 @@ public:
 void Flex_ParseJson(FlexPointer pointer, const char *jsonString) {
     auto builder = FlexStore.Get(pointer);
     flatbuffers::Parser parser;
-    parser.ParseFlexBuffer(jsonString, nullptr, builder.get());
+    parser.ParseFlexBuffer(jsonString, nullptr, builder);
     // todo unfortunately FlexBuffer calls Finish directly
     Flex_Finish(pointer);
 }
@@ -81,7 +76,7 @@ void Flex_Finish(FlexPointer pointer) {
 }
 
 FlexArray Flex_GetBuffer(FlexPointer pointer) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     auto data = builder->GetBuffer().data();
     auto size = builder->GetSize();
 
@@ -93,7 +88,7 @@ FlexArray Flex_GetBuffer(FlexPointer pointer) {
 }
 
 void Flex_Null(FlexPointer pointer, const char* key) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->Null();
     } else {
@@ -102,7 +97,7 @@ void Flex_Null(FlexPointer pointer, const char* key) {
 }
 
 void Flex_Int(FlexPointer pointer, const char* key, FlexPointer value) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->Int(value);
     } else {
@@ -111,7 +106,7 @@ void Flex_Int(FlexPointer pointer, const char* key, FlexPointer value) {
 }
 
 void Flex_Float(FlexPointer pointer, const char* key, float value) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->Float(value);
     } else {
@@ -120,7 +115,7 @@ void Flex_Float(FlexPointer pointer, const char* key, float value) {
 }
 
 void Flex_Double(FlexPointer pointer, const char* key, double value) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->Double(value);
     } else {
@@ -129,7 +124,7 @@ void Flex_Double(FlexPointer pointer, const char* key, double value) {
 }
 
 void Flex_Bool(FlexPointer pointer, const char* key, bool value) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->Bool(value);
     } else {
@@ -138,7 +133,7 @@ void Flex_Bool(FlexPointer pointer, const char* key, bool value) {
 }
 
 void Flex_String(FlexPointer pointer, const char* key, const char* value) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->String(value);
     } else {
@@ -147,7 +142,7 @@ void Flex_String(FlexPointer pointer, const char* key, const char* value) {
 }
 
 void Flex_Blob(FlexPointer pointer, const char* key, const uint8_t* value, size_t length) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         builder->Blob(value, length);
     } else {
@@ -156,7 +151,7 @@ void Flex_Blob(FlexPointer pointer, const char* key, const uint8_t* value, size_
 }
 
 size_t Flex_StartMap(FlexPointer pointer, const char* key) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         return builder->StartMap();
     } else {
@@ -165,12 +160,12 @@ size_t Flex_StartMap(FlexPointer pointer, const char* key) {
 }
 
 void Flex_EndMap(FlexPointer pointer, size_t mapStart) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     builder->EndMap(mapStart);
 }
 
 size_t Flex_StartVector(FlexPointer pointer, const char* key) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     if (key == nullptr) {
         return builder->StartVector();
     } else {
@@ -179,7 +174,7 @@ size_t Flex_StartVector(FlexPointer pointer, const char* key) {
 }
 
 void Flex_EndVector(FlexPointer pointer, size_t vectorStart) {
-    auto builder = FlexStore.GetOrThrow(pointer);
+    auto builder = FlexStore.Get(pointer);
     builder->EndVector(vectorStart, false, false);
 }
 

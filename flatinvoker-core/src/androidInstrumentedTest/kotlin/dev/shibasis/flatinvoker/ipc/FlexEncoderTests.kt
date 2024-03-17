@@ -26,35 +26,43 @@ fun repeatedAverage(count: Int, fn: () -> Number): Double {
 }
 
 class FlexEncoderTests {
-//    Bugs in the profiler for this version
-//    @BeforeTest
-//    fun startTracing() {
-//        Debug.startMethodTracing("FlexEncoderAndroid")
-//        Debug.startNativeTracing()
-//        Debug.startAllocCounting()
-//    }
-//
-//    @AfterTest
-//    fun stopTracing() {
-//        Debug.stopMethodTracing()
-//        Debug.stopNativeTracing()
-//        Debug.stopAllocCounting()
-//    }
+    @BeforeTest
+    fun startTracing() {
+        Debug.startMethodTracing("FlexEncoderAndroid")
+        Debug.startNativeTracing()
+        Debug.startAllocCounting()
+    }
 
+    @AfterTest
+    fun stopTracing() {
+        Debug.stopMethodTracing()
+        Debug.stopNativeTracing()
+        Debug.stopAllocCounting()
+    }
+
+    /*
+    This test is meant for you to modify the simplecase with some class you wish to check.
+    Then you write the assertions to check if the fields match those in the class.
+    Check the testFlexEncoder function to understand how.
+     */
     @Test
-    fun testFlexEncoder() {
+    fun testFlexEncoderSimple() {
         val simpleTest = measureTime {
             val flexBuffer = encodeToFlexBuffer(EncodingSimpleCase())
             FlexBuffer.Finish(flexBuffer)
             FlexBuffer.GetBuffer(flexBuffer)
         }
+        println("FlexBuffer Encode Time: $simpleTest")
+        assert(true)
+    }
 
-
+    @Test
+    fun testFlexEncoderComplex() {
         val complexCase = EncodingComplexCase()
         var flexBuffer by Delegates.notNull<Long>()
         lateinit var array: ByteArray
 
-        val flexEncodingTime = repeatedAverage(2) {
+        val flexEncodingTime = repeatedAverage(1) {
             measureTime {
                 flexBuffer = encodeToFlexBuffer(EncodingComplexCase())
                 FlexBuffer.Finish(flexBuffer)
@@ -62,7 +70,7 @@ class FlexEncoderTests {
             }.inWholeMilliseconds
         }
 
-        val jsonEncodingTime = repeatedAverage(2) {
+        val jsonEncodingTime = repeatedAverage(1) {
             measureTime {
                 Json.encodeToJsonElement(EncodingComplexCase())
             }.inWholeMilliseconds
@@ -275,6 +283,40 @@ class FlexEncoderTests {
                 }
             }
         }
+    }
+
+
+    @Test
+    fun benchSophisticatedCase() {
+        repeat(10) {
+            val flexEncodingTime = measureTime {
+                    val flexBuffer = encodeToFlexBuffer(EncodingSophisticatedCase())
+                    FlexBuffer.Finish(flexBuffer)
+                    FlexBuffer.GetBuffer(flexBuffer)
+                }.inWholeMilliseconds
+
+            val jsonEncodingTime = measureTime {
+                Json.encodeToJsonElement(EncodingSophisticatedCase())
+            }.inWholeMilliseconds
+
+            println("FlexBuffer Encode Time: $it: $flexEncodingTime")
+            println("Json Encode Time: $it: $jsonEncodingTime")
+        }
+    }
+
+    @Test
+    fun benchPolymorphicCase() {
+
+    }
+
+    @Test
+    fun benchHugeCase() {
+
+    }
+
+    @Test
+    fun benchHugeSophisticatedCase() {
+
     }
 }
 
