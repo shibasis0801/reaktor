@@ -41,10 +41,9 @@ fun<First, Second> zip(first: Iterable<First>, second: Iterable<Second>) =
     first.zip(second)
 
 fun PackagingOptions.includeNativeLibs() {
-    pickFirst("**/libc++_shared.so") // dangerous
-    pickFirst("**/libfolly_runtime.so")
-    pickFirst("**/libglog.so")
-    pickFirst("**/libfbjni.so")
+    Version.nativeLibraries.forEach {
+        pickFirst("**/$it")
+    }
     zip(Version.architectures, Version.nativeLibraries)
         .forEach { (arch, lib) ->
             jniLibs.pickFirsts.add("**/$arch/$lib")

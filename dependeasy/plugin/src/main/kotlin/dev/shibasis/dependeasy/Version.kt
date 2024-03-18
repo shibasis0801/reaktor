@@ -76,7 +76,11 @@ object Version {
         "libfbjni.so",
         "libfolly_runtime.so",
         "libglog.so",
-        "libjsi.so"
+        "libjsi.so",
+        // todo stupid hack fix
+        "libFlatInvokerCore.so",
+        "libFlatInvokerFFI.so",
+        "libFlatInvokerReact.so"
     )
 
 }

@@ -1,11 +1,5 @@
 # This file is imported in all modules/cpp folders. flatbuffers is cloned at root, reachable by ../../ from a module cmake.
 # The reason to have this workaround is to have a common cmake in the root along with other build files.
-set(flatbuffers_dir ../../.github_modules/flatbuffers)
-add_subdirectory(
-        ../../.github_modules/flatbuffers
-        ${CMAKE_CURRENT_BINARY_DIR}/fb-build
-)
-
 
 function(setup_mobile)
     execute_process(
@@ -25,7 +19,6 @@ function(init)
     set(CMAKE_VERBOSE_MAKEFILE ON PARENT_SCOPE)
     set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
 
-    include_directories(.)
     file(GLOB_RECURSE droid "droid/*")
     file(GLOB_RECURSE common "common/*")
     file(GLOB_RECURSE darwin "darwin/*")
@@ -38,3 +31,5 @@ function(init)
 #        target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)
     endif()
 endfunction()
+
+

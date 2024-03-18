@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
-project(${NAME})
+project(FlatInvokerCore)
+
+set(flatbuffers_dir ../../.github_modules/flatbuffers)
+add_subdirectory(
+        ../../.github_modules/flatbuffers
+        ${CMAKE_CURRENT_BINARY_DIR}/fb-build
+)
+
+
 init()
 
 
@@ -24,6 +32,7 @@ if(ANDROID)
             fbjni::fbjni
     )
 elseif(APPLE)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)
     add_library(
             ${PROJECT_NAME}
             STATIC
@@ -34,5 +43,11 @@ elseif(APPLE)
             ${flatbuffers_dir}/src/util.cpp
     )
     target_link_libraries(${PROJECT_NAME} PUBLIC flatbuffers)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)
 endif()
+
+target_include_directories(
+        ${PROJECT_NAME}
+        PUBLIC
+        ${flatbuffers_dir}/include
+        .
+)

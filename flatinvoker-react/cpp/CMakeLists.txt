@@ -16,7 +16,7 @@ include_directories(
 )
 
 add_subdirectory(
-        "../../" # pathToDirectory
+        "../../flatinvoker-core" # pathToDirectory
         ${CMAKE_CURRENT_BINARY_DIR}/flatInvoker-build # pathForBuildDirectory
 )
 

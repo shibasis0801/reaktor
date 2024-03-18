@@ -71,7 +71,7 @@ gitDependency("https://github.com/JetBrains-Research/reflekt.git", githubDir)
 
 includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 include(":flatinvoker-core")
-include(":flatinvoker-ipc")
+include(":flatinvoker-ffi")
 include(":flatinvoker-react")
 include(":flatinvoker-compiler")
 include(":reaktor-core")

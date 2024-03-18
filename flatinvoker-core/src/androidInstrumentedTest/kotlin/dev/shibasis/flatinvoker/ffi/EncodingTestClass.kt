@@ -1,6 +1,5 @@
-package dev.shibasis.flatinvoker.ipc
+package dev.shibasis.flatinvoker.ffi
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 @Serializable

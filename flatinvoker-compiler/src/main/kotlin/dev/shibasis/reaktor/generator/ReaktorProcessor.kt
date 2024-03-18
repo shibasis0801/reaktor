@@ -5,7 +5,8 @@ import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
-import dev.shibasis.reaktor.generator.codegen.CodeGen
+import dev.shibasis.reaktor.generator.codegen.languages.KotlinCodeGenerator
+import dev.shibasis.reaktor.generator.codegen.toFunction
 
 
 class ReaktorProcessor(
@@ -26,7 +27,7 @@ class ReaktorProcessor(
                 log("Class: ${klass.qualifiedName?.asString()}")
                 klass.getDeclaredFunctions()
                     .forEach {
-                        log(CodeGen.generateFunction(it))
+                        log(KotlinCodeGenerator.generateCompound(it.toFunction()))
                     }
                 klass.getDeclaredProperties()
                     .forEach {

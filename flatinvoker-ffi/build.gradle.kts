@@ -8,6 +8,7 @@ import dev.shibasis.dependeasy.*
 plugins {
     id("dev.shibasis.dependeasy.library")
 }
+val Name = "FlatInvokerFFI"
 
 task<Exec>("darwinCmake") {
     group = "reaktor"
@@ -32,12 +33,13 @@ kotlin {
         dependencies = {
             implementation(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
-            // Temporary Dependencies. We should have pure framework code in here.
-            api(project(":reaktor-io"))
+            api(project(":flatinvoker-core"))
         }
     }
 
-    droid {}
+    droid {
+
+    }
 
     darwin {
         cinterops = {
@@ -45,23 +47,22 @@ kotlin {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 packageName("dev.shibasis.reaktor.native")
+                includeDirs("cpp")
                 defFile(file("cpp/bindings.def"))
-                headers("cpp/darwin/Reaktor.h", "cpp/common/Flex.h")
+                headers("cpp/darwin/DarwinInvoker.h", "cpp/common/PlatformInvoker.h")
             }
         }
 
         targets = {
             binaries.all {
-                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-core/cpp/build/Release-iphonesimulator/libReaktor.a")
+                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-ffi/cpp/build/Release-iphonesimulator/lib${Name}.a")
             }
         }
     }
 }
 
-dependencies {
-    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
-}
+dependencies { add("kspCommonMainMetadata", project(":flatinvoker-compiler")) }
 
 android {
-   defaults("dev.shibasis.reaktor.flatinvoker", file("cpp/CMakeLists.txt"))
+   defaults("dev.shibasis.flatinvoker.ffi", file("cpp/CMakeLists.txt"))
 }

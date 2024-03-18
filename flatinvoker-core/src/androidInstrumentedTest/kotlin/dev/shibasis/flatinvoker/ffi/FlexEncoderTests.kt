@@ -1,8 +1,7 @@
-package dev.shibasis.flatinvoker.ipc
+package dev.shibasis.flatinvoker.ffi
 
 import android.os.Debug
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
-import com.google.flatbuffers.kotlin.Vector
 import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.flatinvoker.core.FlexBuffer
 import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
