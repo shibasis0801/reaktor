@@ -33,3 +33,10 @@ function(init)
 endfunction()
 
 
+# take parameters from the caller
+function(fi_dependency name)
+    add_subdirectory(
+            ../../${name}/cpp
+            ${CMAKE_CURRENT_BINARY_DIR}/${name}
+    )
+endfunction()

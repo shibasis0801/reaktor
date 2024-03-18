@@ -3,10 +3,7 @@ include("../../root.cmake")
 project(FlatInvokerFFI)
 init()
 
-add_subdirectory(
-        ../../flatinvoker-core/cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/flatinvoker-core
-)
+fi_dependency(flatinvoker-core)
 
 if(ANDROID)
     add_library(
