@@ -27,16 +27,16 @@ And then write a series of articles
 
 https://flatbuffers.dev/flexbuffers.html
 
-Timings are ->
-complex case 1 time -> json -> 3, flex -> 2 || 100 time average -> json -> 0.03, flex -> 0.02
-sophisticated case 1 time -> json -> 23, flex -> 39 || 100 time average -> json -> 12, flex -> 19
+30% faster for simple cases
+300% slower for complex cases
+:/
 
-FlexEncoder is faster than official JsonEncoder by roughly 40% except for very complex objects.
 Further optimisations could increase speed further.
 1. Understand FlexBuffer creation in depth
 2. Measure JNI overhead, replace JNI with Java FlexBuffers (official)
 3. Read Crafting Interpreters
 4. Find and optimise allocations, unnecessary functionalities, etc
+5. Use typed arrays
 
 Flexbuffers while encoding won't be very different from Json encoding algorithmically.
 Both do additions in an array (byte array or char array)
@@ -45,6 +45,8 @@ Decoding should be much faster than Json.
 For Json we need to parse the string and then convert it to the required type.
 But for FlexBuffers, we can directly read the bytes and convert it to the required type.
 So the parse steps should be reduced.
+
+
 
 */
 

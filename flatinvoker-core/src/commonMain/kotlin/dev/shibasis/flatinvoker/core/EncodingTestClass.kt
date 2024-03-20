@@ -1,4 +1,4 @@
-package dev.shibasis.flatinvoker.ffi
+package dev.shibasis.flatinvoker.core
 
 import kotlinx.serialization.Serializable
 
@@ -30,10 +30,12 @@ val contextualCase = mapOf(
         "innerMapKey2" to "innerMapValue2"
     ),
     "stringKey2" to NestedData(
-        42, "nestedString", listOf(InnerNestedData(
+        42, "nestedString", listOf(
+            InnerNestedData(
             innerValue = 104.0,
             innerList = listOf("Inner", "List")
-        ))
+        )
+        )
     ),
     4 to "simpleValue4"
 )
@@ -66,26 +68,33 @@ data class EncodingComplexCase(
     val nestedData: NestedData = NestedData(
         nestedInt = 99,
         nestedString = "Nested",
-        innerNestedData = listOf(InnerNestedData(
+        innerNestedData = listOf(
+            InnerNestedData(
             innerValue = 100.0,
             innerList = listOf("Inner", "List")
-        ))
+        )
+        )
     ),
     val mapOfStringToNestedData: Map<String, NestedData> = mapOf("nested" to NestedData(
         nestedInt = 101,
         nestedString = "Nested",
-        innerNestedData = listOf(InnerNestedData(
+        innerNestedData = listOf(
+            InnerNestedData(
             innerValue = 102.0,
             innerList = listOf("Inner", "List")
-        ))
+        )
+        )
     ), "nested2" to NestedData(
         nestedInt = 103,
         nestedString = "Nested",
-        innerNestedData = listOf(InnerNestedData(
+        innerNestedData = listOf(
+            InnerNestedData(
             innerValue = 104.0,
             innerList = listOf("Inner", "List")
-        ))
-    ))
+        )
+        )
+    )
+    )
 )
 
 
@@ -95,14 +104,30 @@ data class EncodingSophisticatedCase(
     val arrayOfComplex: Array<EncodingComplexCase> = arrayOf(EncodingComplexCase(), EncodingComplexCase()),
     val listComplex: List<EncodingComplexCase> = listOf(EncodingComplexCase(), EncodingComplexCase()),
     val mapComplex: Map<String, EncodingComplexCase> = mapOf("key1" to EncodingComplexCase(), "key2" to EncodingComplexCase()),
-    val mapOfListComplex: Map<String, List<EncodingComplexCase>> = mapOf("key1" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key2" to listOf(EncodingComplexCase(), EncodingComplexCase())),
+    val mapOfListComplex: Map<String, List<EncodingComplexCase>> = mapOf("key1" to listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    ), "key2" to listOf(EncodingComplexCase(), EncodingComplexCase())),
     val mapOfMapComplex: Map<String, Map<String, EncodingComplexCase>> = mapOf("key1" to mapOf("key1" to EncodingComplexCase(), "key2" to EncodingComplexCase()), "key2" to mapOf("key1" to EncodingComplexCase(), "key2" to EncodingComplexCase())),
     val mapOfMapOfListComplex: Map<String, Map<String, List<EncodingComplexCase>>>
-        = mapOf("key1" to mapOf("key1" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key2" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key3" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key4" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key5" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key6" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key7" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key8" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key9" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key10" to listOf(EncodingComplexCase(), EncodingComplexCase()))),
+        = mapOf("key1" to mapOf("key1" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key2" to listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    ), "key3" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key4" to listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    ), "key5" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key6" to listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    ), "key7" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key8" to listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    ), "key9" to listOf(EncodingComplexCase(), EncodingComplexCase()), "key10" to listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    ))),
     val setComplex: Set<EncodingComplexCase> = setOf(EncodingComplexCase(), EncodingComplexCase()),
-    val setOfListComplex: Set<List<EncodingComplexCase>> = setOf(listOf(EncodingComplexCase(), EncodingComplexCase()), listOf(EncodingComplexCase(), EncodingComplexCase())),
+    val setOfListComplex: Set<List<EncodingComplexCase>> = setOf(listOf(EncodingComplexCase(), EncodingComplexCase()), listOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    )),
     val setOfMapComplex: Set<Map<String, EncodingComplexCase>> = setOf(mapOf("key1" to EncodingComplexCase(), "key2" to EncodingComplexCase()), mapOf("key3" to EncodingComplexCase(), "key4" to EncodingComplexCase())),
-    val setOfSetComplex: Set<Set<EncodingComplexCase>> = setOf(setOf(EncodingComplexCase(), EncodingComplexCase()), setOf(EncodingComplexCase(), EncodingComplexCase())),
+    val setOfSetComplex: Set<Set<EncodingComplexCase>> = setOf(setOf(EncodingComplexCase(), EncodingComplexCase()), setOf(
+        EncodingComplexCase(), EncodingComplexCase()
+    )),
 )
 
 /*

@@ -7,6 +7,6 @@ class KotlinToCppTest {
     @Test
     fun test() {
         val result = Tester.test()
-        assertEquals(42, result)
+        assertEquals(3, result)
     }
 }

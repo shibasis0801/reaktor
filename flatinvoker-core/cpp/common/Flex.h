@@ -2,8 +2,6 @@
 
 #include <common/CBase.h>
 
-typedef int64_t FlexPointer;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,7 +12,7 @@ typedef struct {
 } FlexArray;
 
 FlexPointer Flex_Create();
-void Flex_ParseJson(FlexPointer pointer, const char* jsonString);
+long Flex_ParseJson(FlexPointer pointer, const char* jsonString);
 void Flex_Destroy(FlexPointer pointer);
 void Flex_Finish(FlexPointer pointer);
 FlexArray Flex_GetBuffer(FlexPointer pointer);

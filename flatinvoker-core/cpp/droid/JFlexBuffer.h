@@ -15,7 +15,7 @@ struct JFlexBuffer : public jni::JavaClass<JFlexBuffer> {
 
     static FlexPointer Create(jni::alias_ref<JFlexBuffer> self);
 
-    static void ParseJson(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer, jni::alias_ref<jni::JString> jsonString);
+    static jlong ParseJson(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer, jni::alias_ref<jni::JString> jsonString);
 
     static void Destroy(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer);
 

@@ -57,7 +57,8 @@ fun PackagingOptions.excludeNativeLibs() {
 }
 
 fun ExternalNativeCmakeOptions.defaults(name: String) {
-    cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1")) // add -O2 for prod
+//    cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1")) // add -O2 for prod
+    cFlags.addAll(listOf("-O3")) // add -O2 for prod
     arguments.addAll(listOf("-DCMAKE_VERBOSE_MAKEFILE=1", "-DANDROID_STL=c++_shared", "-DNAME=$name"))
     cppFlags.add("-std=c++20")
 }

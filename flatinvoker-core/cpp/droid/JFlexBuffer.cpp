@@ -1,17 +1,6 @@
 #include <droid/JFlexBuffer.h>
 
 
-// Timer lambda
-auto measureTime = [](auto&& func, auto&&... args) {
-    auto start = std::chrono::high_resolution_clock::now();
-
-    // Forwarding arguments to the function
-    std::forward<decltype(func)>(func)(std::forward<decltype(args)>(args)...);
-
-    auto finish = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
-};
-
 /* ByteBuffer Transport
      // Difficult to prevent a copy and move the data. AFAIK FlatBuffers creates its own buffers internally
     // Direct ByteBuffers are great for passing from C++ to Java (no copy, mem in sharedHeap)
@@ -24,7 +13,6 @@ auto measureTime = [](auto&& func, auto&&... args) {
  */
 jni::local_ref<jni::JByteBuffer>
 JFlexBuffer::parseJson(jni::alias_ref<JFlexBuffer> _, jni::alias_ref<jni::JString> jsonString) {
-
     flatbuffers::Parser parser;
     flexbuffers::Builder builder(1024);
 
@@ -41,9 +29,9 @@ FlexPointer JFlexBuffer::Create(jni::alias_ref<JFlexBuffer> self) {
     return Flex_Create();
 }
 
-void JFlexBuffer::ParseJson(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer,
+jlong JFlexBuffer::ParseJson(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer,
                             jni::alias_ref<jni::JString> jsonString) {
-    Flex_ParseJson(pointer, jsonString->toStdString().c_str());
+    return Flex_ParseJson(pointer, jsonString->toStdString().c_str());
 }
 
 void JFlexBuffer::Destroy(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer) {

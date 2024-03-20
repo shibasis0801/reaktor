@@ -52,7 +52,7 @@ actual object FlexBuffer {
         System.loadLibrary("FlatInvokerCore")
     }
     @FastNative external fun jniCreate(): Long
-    @FastNative external fun jniParseJson(pointer: Long, data: String)
+    @FastNative external fun jniParseJson(pointer: Long, data: String): Long
     @FastNative external fun jniDestroy(pointer: Long)
     @FastNative external fun jniFinish(pointer: Long)
     @FastNative external fun jniGetBuffer(pointer: Long): ByteBuffer
@@ -71,8 +71,8 @@ actual object FlexBuffer {
         return jniCreate()
     }
 
-    actual inline fun ParseJson(pointer: Long, data: String) {
-        jniParseJson(pointer, data)
+    actual inline fun ParseJson(pointer: Long, data: String): Long {
+        return jniParseJson(pointer, data)
     }
 
     actual inline fun Destroy(pointer: Long) {

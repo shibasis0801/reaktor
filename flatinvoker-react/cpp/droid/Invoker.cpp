@@ -83,8 +83,6 @@ namespace Reaktor {
             const FunctionDescriptor &descriptor
     ) {
         try {
-
-
             auto [jvmSignature, _, argCount, returnType] = descriptor;
             auto env = jni::Environment::current();
             jni::JniLocalScope scope(env, 20);

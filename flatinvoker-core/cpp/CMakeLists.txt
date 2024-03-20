@@ -8,9 +8,7 @@ add_subdirectory(
         ${CMAKE_CURRENT_BINARY_DIR}/fb-build
 )
 
-
 init()
-
 
 if(ANDROID)
     add_library(
@@ -51,3 +49,5 @@ target_include_directories(
         ${flatbuffers_dir}/include
         .
 )
+# add optimization to O3
+#target_compile_options(${PROJECT_NAME} PUBLIC -O3)
