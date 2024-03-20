@@ -5,7 +5,7 @@ expect object FlexBuffer {
     inline fun Create(): Long
     inline fun ParseJson(pointer: Long, data: String): Long
     inline fun Destroy(pointer: Long)
-    inline fun Finish(pointer: Long)
+    inline fun Finish(pointer: Long): Long
     inline fun GetBuffer(pointer: Long): ByteArray
     inline fun Null(pointer: Long, key: String?)
     inline fun Int(pointer: Long, key: String?, value: Long)

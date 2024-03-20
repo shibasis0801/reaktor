@@ -27,7 +27,7 @@ actual object FlexBuffer {
 
     actual inline fun Destroy(pointer: Long) = Flex_Destroy(pointer)
 
-    actual inline fun Finish(pointer: Long) = Flex_Finish(pointer)
+    actual inline fun Finish(pointer: Long): Long = Flex_Finish(pointer).run { 0 }
 
     // todo Null Check
     actual inline fun GetBuffer(pointer: Long): ByteArray {

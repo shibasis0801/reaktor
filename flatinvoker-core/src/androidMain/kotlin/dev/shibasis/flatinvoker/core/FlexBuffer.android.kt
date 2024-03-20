@@ -54,7 +54,7 @@ actual object FlexBuffer {
     @FastNative external fun jniCreate(): Long
     @FastNative external fun jniParseJson(pointer: Long, data: String): Long
     @FastNative external fun jniDestroy(pointer: Long)
-    @FastNative external fun jniFinish(pointer: Long)
+    @FastNative external fun jniFinish(pointer: Long): Long
     @FastNative external fun jniGetBuffer(pointer: Long): ByteBuffer
     @FastNative external fun jniNull(pointer: Long, key: String?)
     @FastNative external fun jniInt(pointer: Long, key: String?, value: Long)
@@ -79,8 +79,8 @@ actual object FlexBuffer {
         jniDestroy(pointer)
     }
 
-    actual inline fun Finish(pointer: Long) {
-        jniFinish(pointer)
+    actual inline fun Finish(pointer: Long): Long {
+        return jniFinish(pointer)
     }
 
     actual inline fun GetBuffer(pointer: Long): ByteArray {

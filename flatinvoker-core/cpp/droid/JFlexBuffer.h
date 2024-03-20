@@ -19,7 +19,7 @@ struct JFlexBuffer : public jni::JavaClass<JFlexBuffer> {
 
     static void Destroy(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer);
 
-    static void Finish(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer);
+    static jlong Finish(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer);
 
     static jni::local_ref<jni::JByteBuffer> GetBuffer(jni::alias_ref<JFlexBuffer> self, FlexPointer pointer);
 
