@@ -53,7 +53,7 @@ class FlexEncoderTests {
         var avgJson = 0L
         var avgProto = 0L
         var avgCpp = 0L
-        repeat(20) {
+        repeat(100) {
             val complexCase = EncodingComplexCase()
             var cppTime = 0L
             val flexEncodingTime = measureTime {

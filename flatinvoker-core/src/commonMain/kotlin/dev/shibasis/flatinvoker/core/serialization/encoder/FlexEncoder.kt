@@ -2,7 +2,9 @@ package dev.shibasis.flatinvoker.core.serialization.encoder
 
 import com.google.flatbuffers.kotlin.FlexBuffersBuilder
 import dev.shibasis.flatinvoker.core.FlexBuffer
-import dev.shibasis.flatinvoker.core.serialization.util.Composite
+import dev.shibasis.flatinvoker.core.serialization.util.COMPOSITE_CLASS
+import dev.shibasis.flatinvoker.core.serialization.util.COMPOSITE_MAP
+import dev.shibasis.flatinvoker.core.serialization.util.COMPOSITE_VECTOR
 import dev.shibasis.flatinvoker.core.serialization.util.EncodingStack
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
@@ -58,6 +60,7 @@ So the parse steps should be reduced.
 
 https://proandroiddev.com/kotlin-cleaning-java-bytecode-before-release-9567d4c63911
 
+FlexEncoders must also be pooled.
 Try to make this re-entrant and thread safe
 Would save time in high frequency transfers
 
@@ -90,15 +93,15 @@ class FlexEncoder: AbstractEncoder() {
         if (skipEncoding) return
 
         when (value) {
-            is String -> FlexBuffer.String(flexBuffer, stack.field, value)
-            is Char -> FlexBuffer.Int(flexBuffer, stack.field, value.code.toLong())
-            is Int -> FlexBuffer.Int(flexBuffer, stack.field, value.toLong())
-            is Byte -> FlexBuffer.Int(flexBuffer, stack.field, value.toLong())
-            is Short -> FlexBuffer.Int(flexBuffer, stack.field, value.toLong())
-            is Long -> FlexBuffer.Int(flexBuffer, stack.field, value)
-            is Float -> FlexBuffer.Float(flexBuffer, stack.field, value)
-            is Double -> FlexBuffer.Double(flexBuffer, stack.field, value)
-            is Boolean -> FlexBuffer.Bool(flexBuffer, stack.field, value)
+            is String -> FlexBuffer.String(flexBuffer, stack.current?.fieldName, value)
+            is Char -> FlexBuffer.Int(flexBuffer, stack.current?.fieldName, value.code.toLong())
+            is Int -> FlexBuffer.Int(flexBuffer, stack.current?.fieldName, value.toLong())
+            is Byte -> FlexBuffer.Int(flexBuffer, stack.current?.fieldName, value.toLong())
+            is Short -> FlexBuffer.Int(flexBuffer, stack.current?.fieldName, value.toLong())
+            is Long -> FlexBuffer.Int(flexBuffer, stack.current?.fieldName, value)
+            is Float -> FlexBuffer.Float(flexBuffer, stack.current?.fieldName, value)
+            is Double -> FlexBuffer.Double(flexBuffer, stack.current?.fieldName, value)
+            is Boolean -> FlexBuffer.Bool(flexBuffer, stack.current?.fieldName, value)
         }
     }
 
@@ -111,15 +114,15 @@ class FlexEncoder: AbstractEncoder() {
         descriptor: SerialDescriptor,
         collectionSize: Int
     ): CompositeEncoder {
-        val name = stack.field
+        val name = stack.current?.fieldName
         when (descriptor.kind) {
             StructureKind.LIST -> {
                 val start = FlexBuffer.StartVector(flexBuffer, name)
-                stack.push(Composite.Vector, start)
+                stack.push(COMPOSITE_VECTOR, start)
             }
             StructureKind.MAP -> {
                 val start = FlexBuffer.StartMap(flexBuffer, name)
-                stack.push(Composite.Map, start)
+                stack.push(COMPOSITE_MAP, start)
             }
             else -> {}
         }
@@ -131,8 +134,8 @@ class FlexEncoder: AbstractEncoder() {
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
                 // Check if it is possible to avoid a root map.
-                val start = FlexBuffer.StartMap(flexBuffer, stack.field)
-                stack.push(Composite.Class, start)
+                val start = FlexBuffer.StartMap(flexBuffer, stack.current?.fieldName)
+                stack.push(COMPOSITE_CLASS, start)
             }
             else -> {}
         }

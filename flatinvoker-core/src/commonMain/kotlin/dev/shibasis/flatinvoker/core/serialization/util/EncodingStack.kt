@@ -120,24 +120,21 @@ encodeValue:
 if (idx % 2 == 1 && field == null)
     field = value
 
-
-
-
 */
 
-enum class Composite {
-    Map, Vector, Class
-}
+const val COMPOSITE_MAP = 1
+const val COMPOSITE_VECTOR = 2
+const val COMPOSITE_CLASS = 3
 
 class CompositePosition(
-    var type: Composite = Composite.Map,
+    var type: Int = COMPOSITE_MAP,
     var position: Long = 0L,
     var fieldName: String? = null,
     var idx: Int = 0
 )
 
 // Uses Object Pooling and is much faster than ArrayDeque.
-class CompositePositionStack(initialCapacity: Int = 16) {
+class CompositePositionStack(initialCapacity: Int = 32) {
     // todo profiler marked slow, array index bound check takes half the time of a get operation
     var stack: ArrayList<CompositePosition> = ArrayList()
     var size: Int = 0
@@ -152,7 +149,7 @@ class CompositePositionStack(initialCapacity: Int = 16) {
         expandCapacityBy(initialCapacity)
     }
 
-    inline fun push(type: Composite, position: Long, fieldName: String? = null, idx: Int = 0) {
+    inline fun push(type: Int, position: Long, fieldName: String? = null, idx: Int = 0) {
         if (size >= capacity) {
             expandCapacityBy(capacity)
         }
@@ -190,7 +187,7 @@ class EncodingStack {
     // Reference to the current structure in the stack
     var current: CompositePosition? = null
 
-    inline fun push(composite: Composite, start: Long) {
+    inline fun push(composite: Int, start: Long) {
         stack.push(composite, start)
         current = stack.top()
     }
@@ -200,10 +197,6 @@ class EncodingStack {
         current = stack.top()
         return result
     }
-
-    // todo profiler marked slow
-    val field: String?
-        get() = current?.fieldName
 
     /*
     encodeElement:
@@ -217,9 +210,9 @@ class EncodingStack {
      */
     inline fun onEncodeElement(name: String) {
         val active = current ?: return
-        if (active.type == Composite.Vector) return
+        if (active.type == COMPOSITE_VECTOR) return
 
-        if (active.type == Composite.Class) {
+        if (active.type == COMPOSITE_CLASS) {
             active.fieldName = name
             return
         }
@@ -230,10 +223,10 @@ class EncodingStack {
         active.idx += 1
     }
 
-    // Should return a sealed class with actions to be taken back in the encoder
+    // Should return actions to be taken back in the encoder
     inline fun onEncodeValue(value: Any): Boolean {
         val active = current ?: return false
-        if (active.type != Composite.Map) return false
+        if (active.type != COMPOSITE_MAP) return false
 
 
         if (active.idx % 2 == 1 && active.fieldName == null) {
