@@ -1,11 +1,14 @@
+@file:Suppress("KotlinJniMissingFunction")
+
 package dev.shibasis.flatinvoker.core
 
 import com.facebook.jni.DestructorThread
+import com.google.flatbuffers.FlexBuffersBuilder
 import dalvik.annotation.optimization.FastNative
 import io.ktor.util.moveToByteArray
 import java.nio.ByteBuffer
-
-
+import java.util.Stack
+import kotlin.time.measureTime
 
 
 /*
@@ -35,7 +38,9 @@ attempt zero-copy pass to JSI
 
 class CppArray(ref: Any): DestructorThread.Destructor(ref) {
     override fun destruct() {
-        TODO("Not yet implemented")
+        measureTime {
+
+        }
     }
 
 }
@@ -46,42 +51,30 @@ On JVM, we can use the C++ as well as the Java implementation.
 Which is faster needs to be benchmarked. (without jni overhead c++ is faster, but combined unsure)
 
 For consistency, kotlin on ios, android and in cpp, we use the C++ implementation
+
+Individual functions seem to be 1-3 times slower than pure kotlin. (ok ok)
+todo Try to see if CriticalNative works.
 */
 actual object FlexBuffer {
     init {
         System.loadLibrary("FlatInvokerCore")
     }
-    @FastNative external fun jniCreate(): Long
-    @FastNative external fun jniParseJson(pointer: Long, data: String): Long
-    @FastNative external fun jniDestroy(pointer: Long)
-    @FastNative external fun jniFinish(pointer: Long): Long
+    @FastNative actual external fun Create(): Long
+    @FastNative actual external fun ParseJson(pointer: Long, data: String): Long
+    @FastNative actual external fun Destroy(pointer: Long)
+    @FastNative actual external fun Finish(pointer: Long): Long
     @FastNative external fun jniGetBuffer(pointer: Long): ByteBuffer
-    @FastNative external fun jniNull(pointer: Long, key: String?)
-    @FastNative external fun jniInt(pointer: Long, key: String?, value: Long)
-    @FastNative external fun jniFloat(pointer: Long, key: String?, value: Float)
-    @FastNative external fun jniDouble(pointer: Long, key: String?, value: Double)
-    @FastNative external fun jniBool(pointer: Long, key: String?, value: Boolean)
-    @FastNative external fun jniString(pointer: Long, key: String?, value: String)
-    @FastNative external fun jniBlob(pointer: Long, key: String?, value: ByteArray)
-    @FastNative external fun jniStartMap(pointer: Long, key: String?): Long
-    @FastNative external fun jniEndMap(pointer: Long, mapStart: Long)
-    @FastNative external fun jniStartVector(pointer: Long, key: String?): Long
-    @FastNative external fun jniEndVector(pointer: Long, vectorStart: Long)
-    actual inline fun Create(): Long {
-        return jniCreate()
-    }
-
-    actual inline fun ParseJson(pointer: Long, data: String): Long {
-        return jniParseJson(pointer, data)
-    }
-
-    actual inline fun Destroy(pointer: Long) {
-        jniDestroy(pointer)
-    }
-
-    actual inline fun Finish(pointer: Long): Long {
-        return jniFinish(pointer)
-    }
+    @FastNative actual external fun Null(pointer: Long, key: String?)
+    @FastNative actual external fun Int(pointer: Long, key: String?, value: Long)
+    @FastNative actual external fun Float(pointer: Long, key: String?, value: Float)
+    @FastNative actual external fun Double(pointer: Long, key: String?, value: Double)
+    @FastNative actual external fun Bool(pointer: Long, key: String?, value: Boolean)
+    @FastNative actual external fun String(pointer: Long, key: String?, value: String)
+    @FastNative actual external fun Blob(pointer: Long, key: String?, value: ByteArray)
+    @FastNative actual external fun StartMap(pointer: Long, key: String?): Long
+    @FastNative actual external fun EndMap(pointer: Long, mapStart: Long)
+    @FastNative actual external fun StartVector(pointer: Long, key: String?): Long
+    @FastNative actual external fun EndVector(pointer: Long, vectorStart: Long)
 
     actual inline fun GetBuffer(pointer: Long): ByteArray {
         // todo Need to understand bytebuffers in more details
@@ -92,48 +85,82 @@ actual object FlexBuffer {
         return jniGetBuffer(pointer).moveToByteArray()
     }
 
-    actual inline fun Null(pointer: Long, key: String?) {
-        jniNull(pointer, key)
-    }
+///////////////////////////////-- Pure Java Implementation --///////////////////////////////////
+// Twice as slow as C++ (with JNI overhead)
 
-    actual inline fun Int(pointer: Long, key: String?, value: Long) {
-        jniInt(pointer, key, value)
-    }
-
-    actual inline fun Float(pointer: Long, key: String?, value: Float) {
-        jniFloat(pointer, key, value)
-    }
-
-    actual inline fun Double(pointer: Long, key: String?, value: Double) {
-        jniDouble(pointer, key, value)
-    }
-
-    actual inline fun Bool(pointer: Long, key: String?, value: Boolean) {
-        jniBool(pointer, key, value)
-    }
-
-    actual inline fun String(pointer: Long, key: String?, value: String) {
-        jniString(pointer, key, value)
-    }
-
-    actual inline fun Blob(pointer: Long, key: String?, value: ByteArray) {
-        // should send bytebuffer instead
-        jniBlob(pointer, key, value)
-    }
-
-    actual inline fun StartMap(pointer: Long, key: String?): ULong {
-        return jniStartMap(pointer, key).toULong()
-    }
-
-    actual inline fun EndMap(pointer: Long, mapStart: ULong) {
-        jniEndMap(pointer, mapStart.toLong())
-    }
-
-    actual inline fun StartVector(pointer: Long, key: String?): ULong {
-        return jniStartVector(pointer, key).toULong()
-    }
-
-    actual inline fun EndVector(pointer: Long, vectorStart: ULong) {
-        jniEndVector(pointer, vectorStart.toLong())
-    }
+//    var builder = FlexBuffersBuilder(1024)
+//
+//    actual inline fun Create(): Long {
+//        builder = FlexBuffersBuilder(1024)
+//        return 0
+//    }
+//
+//    actual inline fun ParseJson(pointer: Long, data: String): Long {
+//        // Not directly supported by FlexBuffersBuilder
+////        throw UnsupportedOperationException()
+//        return 0
+//
+//    }
+//
+//    actual inline fun Destroy(pointer: Long) {
+//        // Not directly supported by FlexBuffersBuilder
+////        throw UnsupportedOperationException()
+//    }
+//
+//    actual inline fun Finish(pointer: Long): Long {
+//        builder.finish()
+//        return 0
+//    }
+//
+//    actual inline fun GetBuffer(pointer: Long): ByteArray {
+//        return builder.buffer.data()
+//    }
+//
+//    actual inline fun Null(pointer: Long, key: String?) {
+////        throw NullPointerException()
+//    }
+//
+//    actual inline fun Int(pointer: Long, key: String?, value: Long) {
+//        builder.putInt(key, value)
+//    }
+//
+//    actual inline fun Float(pointer: Long, key: String?, value: Float) {
+//        builder.putFloat(key, value)
+//    }
+//
+//    actual inline fun Double(pointer: Long, key: String?, value: Double) {
+//        builder.putFloat(key, value)
+//    }
+//
+//    actual inline fun Bool(pointer: Long, key: String?, value: Boolean) {
+//        builder.putBoolean(key, value)
+//    }
+//
+//    actual inline fun String(pointer: Long, key: String?, value: String) {
+//        builder.putString(key, value)
+//    }
+//
+//    actual inline fun Blob(pointer: Long, key: String?, value: ByteArray) {
+//        builder.putBlob(key, value)
+//    }
+//
+//    val mapStack = Stack<String>()
+//    actual inline fun StartMap(pointer: Long, key: String?): Long {
+//        mapStack.push(key)
+//        return builder.startMap().toLong()
+//    }
+//
+//    actual inline fun EndMap(pointer: Long, mapStart: Long) {
+//        builder.endMap(mapStack.pop(), mapStart.toInt())
+//    }
+//
+//    val vectorStack = Stack<String>()
+//    actual inline fun StartVector(pointer: Long, key: String?): Long {
+//        vectorStack.push(key)
+//        return builder.startVector().toLong()
+//    }
+//
+//    actual inline fun EndVector(pointer: Long, vectorStart: Long) {
+//        builder.endVector(vectorStack.pop(), vectorStart.toInt(), false, false)
+//    }
 }

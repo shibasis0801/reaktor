@@ -16,6 +16,7 @@ kotlin {
         dependencies = {
             api(project(":reaktor-core"))
             api(project(":reaktor-io"))
+            api(project(":flatinvoker-core"))
         }
     }
 

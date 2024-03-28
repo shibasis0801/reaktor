@@ -23,7 +23,7 @@ import kotlinx.cinterop.toCValues
 
 actual object FlexBuffer {
     actual inline fun Create() = Flex_Create()
-    actual inline fun ParseJson(pointer: Long, data: String) = Flex_ParseJson(pointer, data)
+    actual inline fun ParseJson(pointer: Long, data: String) = Flex_ParseJson(pointer, data).run { 0L }
 
     actual inline fun Destroy(pointer: Long) = Flex_Destroy(pointer)
 
@@ -52,11 +52,11 @@ actual object FlexBuffer {
 
     actual inline fun Blob(pointer: Long, key: String?, value: ByteArray) = Flex_Blob(pointer, key, value.toUByteArray().toCValues(), value.size.toULong())
 
-    actual inline fun StartMap(pointer: Long, key: String?) = Flex_StartMap(pointer, key)
+    actual inline fun StartMap(pointer: Long, key: String?) = Flex_StartMap(pointer, key).toLong()
 
-    actual inline fun EndMap(pointer: Long, mapStart: ULong) = Flex_EndMap(pointer, mapStart)
+    actual inline fun EndMap(pointer: Long, mapStart: Long) = Flex_EndMap(pointer, mapStart.toULong())
 
-    actual inline fun StartVector(pointer: Long, key: String?) = Flex_StartVector(pointer, key)
+    actual inline fun StartVector(pointer: Long, key: String?) = Flex_StartVector(pointer, key).toLong()
 
-    actual inline fun EndVector(pointer: Long, vectorStart: ULong) = Flex_EndVector(pointer, vectorStart)
+    actual inline fun EndVector(pointer: Long, vectorStart: Long) = Flex_EndVector(pointer, vectorStart.toULong())
 }

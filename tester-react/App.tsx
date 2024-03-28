@@ -11,49 +11,25 @@ import {
   NativeModules
 } from 'react-native';
 import {Colors} from "react-native/Libraries/NewAppScreen";
-import { Flow, StateFlow, install } from 'flatinvoker-react';
+// import { Flow, StateFlow, install } from 'flatinvoker-react';
 
 // install();
 
-const { MyCustomModule } = NativeModules;
+// const { MyCustomModule } = NativeModules;
 // Shibasis.hello
 
-MyCustomModule.sayHello('World', (greeting) => {
-    console.log(greeting); // Output: "Hello, World"
-});
-console.log("Shibasis", MyCustomModule.shibasis())
-console.log("Reaktor", NativeModules, MyCustomModule)
+// MyCustomModule.sayHello('World', (greeting) => {
+//     console.log(greeting); // Output: "Hello, World"
+// });
+// console.log("Shibasis", MyCustomModule.shibasis())
+// console.log("Reaktor", NativeModules, MyCustomModule)
 
-// const network = global.NetworkModule
-// console.log(global)
-// console.log(network)
-
-// const flow = new StateFlow<number>();
-// flow.collect(data => {})
-// flow.emit(1);
-
-
-// const nativeFlow: Flow<number> = network.getFlow();
-// nativeFlow.collect(data => {})
-
-
-
-// function measure(fn) {
-//   const start = performance.now();
-//   const result = fn();
-//   const end = performance.now();
-//   return {
-//     result, 
-//     time: end - start
-//   };
-// }
-
-network.get().collect(data => {
-  const { result, time } = measure(() =>
-    JSON.parse(data)
-  )
-  console.log("Time to parse search response", time);
-})
+// network.get().collect(data => {
+//   const { result, time } = measure(() =>
+//     JSON.parse(data)
+//   )
+//   console.log("Time to parse search response", time);
+// })
 
 // const { result, time } = measure(() => network.getObject());
 // console.log("Shibasis" + JSON.stringify(result), time);

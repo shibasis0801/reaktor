@@ -155,21 +155,21 @@ void JFlexBuffer::EndVector(jni::alias_ref<JFlexBuffer> self, FlexPointer pointe
 
 void JFlexBuffer::registerNatives() {
     javaClassStatic()->registerNatives({
-        makeNativeMethod("jniCreate", JFlexBuffer::Create),
-        makeNativeMethod("jniParseJson", JFlexBuffer::ParseJson),
-        makeNativeMethod("jniDestroy", JFlexBuffer::Destroy),
-        makeNativeMethod("jniFinish", JFlexBuffer::Finish),
+        makeNativeMethod("Create", JFlexBuffer::Create),
+        makeNativeMethod("ParseJson", JFlexBuffer::ParseJson),
+        makeNativeMethod("Destroy", JFlexBuffer::Destroy),
+        makeNativeMethod("Finish", JFlexBuffer::Finish),
         makeNativeMethod("jniGetBuffer", JFlexBuffer::GetBuffer),
-        makeNativeMethod("jniNull", JFlexBuffer::Null),
-        makeNativeMethod("jniInt", JFlexBuffer::Int),
-        makeNativeMethod("jniFloat", JFlexBuffer::Float),
-        makeNativeMethod("jniDouble", JFlexBuffer::Double),
-        makeNativeMethod("jniBool", JFlexBuffer::Bool),
-        makeNativeMethod("jniString", JFlexBuffer::String),
-        makeNativeMethod("jniBlob", JFlexBuffer::Blob),
-        makeNativeMethod("jniStartMap", JFlexBuffer::StartMap),
-        makeNativeMethod("jniEndMap", JFlexBuffer::EndMap),
-        makeNativeMethod("jniStartVector", JFlexBuffer::StartVector),
-        makeNativeMethod("jniEndVector", JFlexBuffer::EndVector)
+        makeNativeMethod("Null", JFlexBuffer::Null),
+        makeNativeMethod("Int", JFlexBuffer::Int),
+        makeNativeMethod("Float", JFlexBuffer::Float),
+        makeNativeMethod("Double", JFlexBuffer::Double),
+        makeNativeMethod("Bool", JFlexBuffer::Bool),
+        makeNativeMethod("String", JFlexBuffer::String),
+        makeNativeMethod("Blob", JFlexBuffer::Blob),
+        makeNativeMethod("StartMap", JFlexBuffer::StartMap),
+        makeNativeMethod("EndMap", JFlexBuffer::EndMap),
+        makeNativeMethod("StartVector", JFlexBuffer::StartVector),
+        makeNativeMethod("EndVector", JFlexBuffer::EndVector)
     });
 }

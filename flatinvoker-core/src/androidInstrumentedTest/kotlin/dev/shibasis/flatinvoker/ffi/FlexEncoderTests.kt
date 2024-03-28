@@ -30,19 +30,6 @@ inline fun repeatedAverage(count: Int, crossinline fn: () -> Number): Double {
 }
 
 class FlexEncoderTests {
-    @BeforeTest
-    fun startTracing() {
-        Debug.startMethodTracing("FlexEncoderAndroid")
-        Debug.startNativeTracing()
-        Debug.startAllocCounting()
-    }
-
-    @AfterTest
-    fun stopTracing() {
-        Debug.stopMethodTracing()
-        Debug.stopNativeTracing()
-        Debug.stopAllocCounting()
-    }
 
     /*
     This test is meant for you to modify the simplecase with some class you wish to check.
@@ -66,7 +53,7 @@ class FlexEncoderTests {
         var avgJson = 0L
         var avgProto = 0L
         var avgCpp = 0L
-        repeat(10) {
+        repeat(20) {
             val complexCase = EncodingComplexCase()
             var cppTime = 0L
             val flexEncodingTime = measureTime {

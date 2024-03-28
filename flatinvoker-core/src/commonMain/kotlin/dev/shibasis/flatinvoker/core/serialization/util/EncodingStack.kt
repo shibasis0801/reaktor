@@ -131,13 +131,14 @@ enum class Composite {
 
 class CompositePosition(
     var type: Composite = Composite.Map,
-    var position: ULong = 0u,
+    var position: Long = 0L,
     var fieldName: String? = null,
     var idx: Int = 0
 )
 
 // Uses Object Pooling and is much faster than ArrayDeque.
 class CompositePositionStack(initialCapacity: Int = 16) {
+    // todo profiler marked slow, array index bound check takes half the time of a get operation
     var stack: ArrayList<CompositePosition> = ArrayList()
     var size: Int = 0
     var capacity: Int = 0
@@ -151,7 +152,7 @@ class CompositePositionStack(initialCapacity: Int = 16) {
         expandCapacityBy(initialCapacity)
     }
 
-    inline fun push(type: Composite, position: ULong, fieldName: String? = null, idx: Int = 0) {
+    inline fun push(type: Composite, position: Long, fieldName: String? = null, idx: Int = 0) {
         if (size >= capacity) {
             expandCapacityBy(capacity)
         }
@@ -189,7 +190,7 @@ class EncodingStack {
     // Reference to the current structure in the stack
     var current: CompositePosition? = null
 
-    inline fun push(composite: Composite, start: ULong) {
+    inline fun push(composite: Composite, start: Long) {
         stack.push(composite, start)
         current = stack.top()
     }
@@ -200,6 +201,7 @@ class EncodingStack {
         return result
     }
 
+    // todo profiler marked slow
     val field: String?
         get() = current?.fieldName
 

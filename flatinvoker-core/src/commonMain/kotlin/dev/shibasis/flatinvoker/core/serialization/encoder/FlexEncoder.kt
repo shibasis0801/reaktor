@@ -29,6 +29,16 @@ https://flatbuffers.dev/flexbuffers.html
 
 30% faster for simple cases
 300% slower for complex cases
+
+For large data,
+Protobuf is 20% faster than JSON
+FlexBuffers-CPP is slower 3 times even with JNI overhead
+FlexBuffers-Java is slower 6 times
+
+todo critical need to profile the cpp version to make it comparable to json in encoding speed.
+if i can parallelize it would be better (unlikely as this is a sequential operation, if I can predict size/offset then I can parallelize)
+but to profile, e2e app needed.
+
 :/
 
 Further optimisations could increase speed further.
@@ -46,7 +56,10 @@ For Json we need to parse the string and then convert it to the required type.
 But for FlexBuffers, we can directly read the bytes and convert it to the required type.
 So the parse steps should be reduced.
 
+https://proandroiddev.com/kotlin-cleaning-java-bytecode-before-release-9567d4c63911
 
+Try to make this re-entrant and thread safe
+Would save time in high frequency transfers
 
 */
 
@@ -57,7 +70,9 @@ class FlexEncoder: AbstractEncoder() {
     val flexBuffer: Long = FlexBuffer.Create()
     val stack = EncodingStack()
 
+    // todo profiler marked slow
     override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
+        // todo profiler marked slow
         val name = descriptor.getElementName(index)
         stack.onEncodeElement(name)
         return true
@@ -69,6 +84,7 @@ class FlexEncoder: AbstractEncoder() {
     Maybe we can optimise that after deep diving into Flatbuffer protocol.
     I had read in the source that integers are always encoded efficiently, but deeper dive needed.
      */
+    // todo profiler marked slow
     override fun encodeValue(value: Any) {
         val skipEncoding = stack.onEncodeValue(value)
         if (skipEncoding) return
@@ -90,6 +106,7 @@ class FlexEncoder: AbstractEncoder() {
         FlexBuffer.Null(flexBuffer, null)
     }
 
+    // todo profiler marked slow
     override fun beginCollection(
         descriptor: SerialDescriptor,
         collectionSize: Int
@@ -109,9 +126,11 @@ class FlexEncoder: AbstractEncoder() {
         return this
     }
 
+    // todo profiler marked slow
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
+                // Check if it is possible to avoid a root map.
                 val start = FlexBuffer.StartMap(flexBuffer, stack.field)
                 stack.push(Composite.Class, start)
             }
@@ -120,21 +139,19 @@ class FlexEncoder: AbstractEncoder() {
         return this
     }
 
+    // todo profiler marked slow
     override fun endStructure(descriptor: SerialDescriptor) {
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
                 val entry = stack.pop()
-                require(entry.type == Composite.Class)
                 FlexBuffer.EndMap(flexBuffer, entry.position)
             }
             StructureKind.MAP -> {
                 val entry = stack.pop()
-                require(entry.type == Composite.Map)
                 FlexBuffer.EndMap(flexBuffer, entry.position)
             }
             StructureKind.LIST -> {
                 val entry = stack.pop()
-                require(entry.type == Composite.Vector)
                 FlexBuffer.EndVector(flexBuffer, entry.position)
             }
             else -> {}

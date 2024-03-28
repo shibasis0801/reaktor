@@ -12,15 +12,15 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("com.codingfeline.buildkonfig")
+//    id("com.codingfeline.buildkonfig")
 }
-
-buildkonfig {
-    packageName = "dev.shibasis.flatinvoker.core"
-    defaultConfigs {
-        buildConfigField(STRING, "name", "value")
-    }
-}
+//
+//buildkonfig {
+//    packageName = "dev.shibasis.flatinvoker.core"
+//    defaultConfigs {
+//        buildConfigField(STRING, "name", "value")
+//    }
+//}
 
 val Name = "FlatInvokerCore"
 
@@ -44,7 +44,7 @@ tasks.named("build") {
 kotlin {
     common {
         dependencies = {
-            implementation(project(":flatbuffers-kotlin"))
+            api(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
         }
     }
@@ -52,6 +52,7 @@ kotlin {
     droid {
         dependencies = {
             api(project(":reaktor-io"))
+            implementation("com.google.flatbuffers:flatbuffers-java:2.0.3")
         }
     }
 
@@ -74,6 +75,16 @@ kotlin {
             }
         }
     }
+    sourceSets {
+        compilerOptions {
+            freeCompilerArgs.addAll(
+                "-Xno-call-assertions",
+                "-Xno-receiver-assertions",
+                "-Xno-param-assertions"
+            )
+        }
+    }
+
 }
 
 dependencies {
