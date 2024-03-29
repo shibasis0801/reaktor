@@ -226,7 +226,7 @@ class EncodingStack {
     }
 
     // Should return actions to be taken back in the encoder
-    inline fun onEncodeValue(value: Any): Boolean {
+    inline fun onEncodeValue(value: Any?): Boolean {
         val active = current ?: return false
         if (active.type != COMPOSITE_MAP) return false
 
