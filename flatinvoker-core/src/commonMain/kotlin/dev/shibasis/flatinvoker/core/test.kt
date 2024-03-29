@@ -16,9 +16,13 @@ package dev.shibasis.flatinvoker.core
 //enum class Composite {
 //    Map, Vector, Class
 //}
+//
+//object T {
+//    const val COMPOSITE_MAP = 1
+//    const val COMPOSITE_VECTOR = 2
+//    const val COMPOSITE_CLASS = 3
+//}
 
-object T {
-    const val COMPOSITE_MAP = 1
-    const val COMPOSITE_VECTOR = 2
-    const val COMPOSITE_CLASS = 3
+fun r(t: Any) {
+    val shibasis = t is String
 }

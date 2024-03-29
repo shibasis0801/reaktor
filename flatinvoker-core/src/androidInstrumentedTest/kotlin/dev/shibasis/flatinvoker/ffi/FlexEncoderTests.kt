@@ -1,6 +1,5 @@
 package dev.shibasis.flatinvoker.ffi
 
-import android.os.Debug
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
 import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.flatinvoker.core.EncodingComplexCase
@@ -12,9 +11,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.protobuf.ProtoBuf
 import kotlinx.serialization.serializer
-import kotlin.properties.Delegates
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -53,7 +49,8 @@ class FlexEncoderTests {
         var avgJson = 0L
         var avgProto = 0L
         var avgCpp = 0L
-        repeat(100) {
+        val times = 2
+        repeat(times) {
             val complexCase = EncodingComplexCase()
             var cppTime = 0L
             val flexEncodingTime = measureTime {
@@ -76,19 +73,20 @@ class FlexEncoderTests {
             avgProto += protoEncodingTime
             avgCpp += cppTime
 
-            println("FlexBuffer Total Time: $flexEncodingTime")
-            println("FlexBuffer Cpp Time: $cppTime")
+            println("FlexBuffer Time: $flexEncodingTime")
             println("ProtoBuf Time: $protoEncodingTime")
             println("Json Time: $jsonEncodingTime")
-        }
+//            println("FlexBuffer Cpp: $cppTime")
 
-        println("FlexBuffer Average Time: ${avgFlex / 10}") // 5700
-        println("Json Average Time: ${avgJson / 10}") // 2500
-        println("ProtoBuf Average Time: ${avgProto / 10}") // 2000
-        println("Cpp Average Time: ${avgCpp / 10}") // 150
-        // all except cpp include encoder time too.
-        // even then jni overhead seems massive.
-        // profiling is a pain, but the small flex encoding time seems promising for flex storage.
+        }
+        avgFlex /= times
+        avgJson /= times
+        avgProto /= times
+
+        println("FlexBuffer Average: $avgFlex")
+        println("ProtoBuf Average: $avgProto")
+        println("Json Average: $avgJson")
+//        println("Cpp Average Time: $avgCpp")
 
         assertTrue(true)
         return

@@ -6,10 +6,12 @@ import dev.shibasis.flatinvoker.core.serialization.util.COMPOSITE_CLASS
 import dev.shibasis.flatinvoker.core.serialization.util.COMPOSITE_MAP
 import dev.shibasis.flatinvoker.core.serialization.util.COMPOSITE_VECTOR
 import dev.shibasis.flatinvoker.core.serialization.util.EncodingStack
+import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlin.math.pow
 import kotlin.time.measureTime
@@ -64,6 +66,9 @@ FlexEncoders must also be pooled.
 Try to make this re-entrant and thread safe
 Would save time in high frequency transfers
 
+Move to Encoder, CompositeEncoder
+AbstractEncoder only seems apt for simple understanding
+
 */
 
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -115,6 +120,7 @@ class FlexEncoder: AbstractEncoder() {
         collectionSize: Int
     ): CompositeEncoder {
         val name = stack.current?.fieldName
+        val name1 = descriptor.getElementName(0)
         when (descriptor.kind) {
             StructureKind.LIST -> {
                 val start = FlexBuffer.StartVector(flexBuffer, name)
@@ -131,6 +137,7 @@ class FlexEncoder: AbstractEncoder() {
 
     // todo profiler marked slow
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
+
         when(descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
                 // Check if it is possible to avoid a root map.
@@ -161,4 +168,25 @@ class FlexEncoder: AbstractEncoder() {
         }
     }
 }
+
+/*
+Timings:
+
+EncodingComplexCase
+> March 30, 2024 (2-3 times slower to encode than JSON)
+    > 1 iteration
+        FlexBuffer Average: 14197
+        ProtoBuf Average: 2725
+        Json Average: 7536
+
+    > 100 iterations
+        FlexBuffer Average: 3616
+        ProtoBuf Average: 1009
+        Json Average: 1636
+
+    > 1000 iterations
+        FlexBuffer Average: 2827
+        ProtoBuf Average: 1068
+        Json Average: 1364
+ */
 

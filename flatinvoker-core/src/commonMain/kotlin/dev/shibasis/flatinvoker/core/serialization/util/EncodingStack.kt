@@ -126,6 +126,8 @@ const val COMPOSITE_MAP = 1
 const val COMPOSITE_VECTOR = 2
 const val COMPOSITE_CLASS = 3
 
+// Once fieldName is removed successfully, use 2 IntArray 1 LongArray and replace this.
+
 class CompositePosition(
     var type: Int = COMPOSITE_MAP,
     var position: Long = 0L,

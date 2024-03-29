@@ -4,6 +4,7 @@ package dev.shibasis.flatinvoker.core
 
 import com.facebook.jni.DestructorThread
 import com.google.flatbuffers.FlexBuffersBuilder
+import dalvik.annotation.optimization.CriticalNative
 import dalvik.annotation.optimization.FastNative
 import io.ktor.util.moveToByteArray
 import java.nio.ByteBuffer
@@ -59,22 +60,22 @@ actual object FlexBuffer {
     init {
         System.loadLibrary("FlatInvokerCore")
     }
-    @FastNative actual external fun Create(): Long
-    @FastNative actual external fun ParseJson(pointer: Long, data: String): Long
-    @FastNative actual external fun Destroy(pointer: Long)
-    @FastNative actual external fun Finish(pointer: Long): Long
-    @FastNative external fun jniGetBuffer(pointer: Long): ByteBuffer
-    @FastNative actual external fun Null(pointer: Long, key: String?)
-    @FastNative actual external fun Int(pointer: Long, key: String?, value: Long)
-    @FastNative actual external fun Float(pointer: Long, key: String?, value: Float)
-    @FastNative actual external fun Double(pointer: Long, key: String?, value: Double)
-    @FastNative actual external fun Bool(pointer: Long, key: String?, value: Boolean)
-    @FastNative actual external fun String(pointer: Long, key: String?, value: String)
-    @FastNative actual external fun Blob(pointer: Long, key: String?, value: ByteArray)
-    @FastNative actual external fun StartMap(pointer: Long, key: String?): Long
-    @FastNative actual external fun EndMap(pointer: Long, mapStart: Long)
-    @FastNative actual external fun StartVector(pointer: Long, key: String?): Long
-    @FastNative actual external fun EndVector(pointer: Long, vectorStart: Long)
+    @JvmStatic @FastNative actual external fun Create(): Long
+    @JvmStatic @FastNative actual external fun ParseJson(pointer: Long, data: String): Long
+    @JvmStatic @FastNative actual external fun Destroy(pointer: Long)
+    @JvmStatic @FastNative actual external fun Finish(pointer: Long): Long
+    @JvmStatic @FastNative external fun jniGetBuffer(pointer: Long): ByteBuffer
+    @JvmStatic @FastNative actual external fun Null(pointer: Long, key: String?)
+    @JvmStatic @FastNative actual external fun Int(pointer: Long, key: String?, value: Long)
+    @JvmStatic @FastNative actual external fun Float(pointer: Long, key: String?, value: Float)
+    @JvmStatic @FastNative actual external fun Double(pointer: Long, key: String?, value: Double)
+    @JvmStatic @FastNative actual external fun Bool(pointer: Long, key: String?, value: Boolean)
+    @JvmStatic @FastNative actual external fun String(pointer: Long, key: String?, value: String)
+    @JvmStatic @FastNative actual external fun Blob(pointer: Long, key: String?, value: ByteArray)
+    @JvmStatic @FastNative actual external fun StartMap(pointer: Long, key: String?): Long
+    @JvmStatic @FastNative actual external fun EndMap(pointer: Long, mapStart: Long)
+    @JvmStatic @FastNative actual external fun StartVector(pointer: Long, key: String?): Long
+    @JvmStatic @FastNative actual external fun EndVector(pointer: Long, vectorStart: Long)
 
     actual inline fun GetBuffer(pointer: Long): ByteArray {
         // todo Need to understand bytebuffers in more details
