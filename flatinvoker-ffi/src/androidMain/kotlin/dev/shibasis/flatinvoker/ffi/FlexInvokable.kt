@@ -2,9 +2,11 @@
 
 package dev.shibasis.flatinvoker.ffi
 
-import com.google.flatbuffers.kotlin.ArrayReadBuffer
-import com.google.flatbuffers.kotlin.getRoot
+import com.google.flatbuffers.kotlin.Vector
 import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
+import dev.shibasis.flatinvoker.ffi.payload.FlexPayload
+import dev.shibasis.flatinvoker.ffi.payload.argument
+import dev.shibasis.flatinvoker.ffi.payload.functionName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -15,49 +17,25 @@ object Tester: Invokable {
         System.loadLibrary("FlatInvokerFFI")
     }
     external fun test(): Int
-    fun getSync(payload: HashMap<String, String>) = payload.entries.joinToString {
-        "${it.key}=${it.value}"
-    }
-    fun getFlow(payload: HashMap<String, String>) = flow {
-        payload.entries.forEach {
-            emit("${it.key}=${it.value}")
-            delay(1000)
-        }
-    }
 
-    override fun invokeSync(flexBuffer: ByteArray): Long {
-        val root = getRoot(ArrayReadBuffer(flexBuffer)).toVector()
-        val a = root[0].toInt()
-        val b = root[1].toInt()
+    override fun invokeSync(payload: FlexPayload): Long {
+        val fnName = payload.functionName
 
-        return (a + b).toLong()
+        val a = payload.argument<Int>(0)
+        val b = payload.argument<Int>(1)
 
-//        val fnName = root[0].toString()
-//         need decoder here
-//        val map = hashMapOf<String, String>()
-//        root[1].toMap().entries.forEach {
-//            map[it.key.toString()] = it.value.toString()
-//        }
-
-//        return when(fnName) {
-//            "getSync" -> encodeToFlexBuffer(getSync(map))
-//            else -> throw IllegalArgumentException("Function not found")
-//        }
-    }
-
-    override fun invokeAsync(flexBuffer: ByteArray): Flow<Long> {
-        val root = getRoot(ArrayReadBuffer(flexBuffer)).toVector()
-
-        val fnName = root[0].toString()
-        // need decoder here
-        val map = hashMapOf<String, String>()
-        root[1].toMap().entries.forEach {
-            map[it.key.toString()] = it.value.toString()
-        }
-
-        return when(fnName) {
-            "getFlow" -> getFlow(map).map { encodeToFlexBuffer(it) }
+        val result = when(fnName) {
+            "add" -> a + b
+            "sub" -> a - b
+            "mul" -> a * b
+            "div" -> a / b
             else -> throw IllegalArgumentException("Function not found")
         }
+
+        return encodeToFlexBuffer(result)
+    }
+
+    override fun invokeAsync(payload: FlexPayload): Flow<Long> {
+        return flow { emit(-1) }
     }
 }
