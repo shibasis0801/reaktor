@@ -17,7 +17,6 @@ class ListDecoder(val list: MutableList<Any>, var elementsCount: Int = 0): Abstr
     }
 
     override fun decodeValue() = list.removeAt(0)
-
     override fun beginStructure(descriptor: SerialDescriptor): CompositeDecoder = ListDecoder(list, descriptor.elementsCount)
     override fun decodeCollectionSize(descriptor: SerialDescriptor): Int {
         return decodeInt().also { elementsCount = it }

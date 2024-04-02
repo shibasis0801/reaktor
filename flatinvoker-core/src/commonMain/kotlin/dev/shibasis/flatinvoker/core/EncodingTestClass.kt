@@ -17,9 +17,14 @@ data class NestedData(
 
 @Serializable
 data class EncodingSimpleCase(
-    val mapOfStringToInt: Map<String, Int> = mapOf("one" to 1, "two" to 2),
-    val mapOfIntToBoolean: Map<Int, Boolean> = mapOf(1 to true, 2 to false),
-    val mutableMapOfStringToList: MutableMap<String, List<Double>> = mutableMapOf("key1" to listOf(1.0, 2.0), "key2" to listOf(3.0, 4.0)),
+    val mapOfStringToInt: Map<String, Int> = mapOf("one" to 1, "two" to 2, "three" to 3),
+    val arrayOfInt: ArrayList<Int> = arrayListOf(1, 2, 3, 4, 5),
+    val mutableMapOfStringToList: MutableMap<String, List<Double>> = mutableMapOf(
+        "key1" to listOf(1.0, 2.0),
+        "key2" to listOf(3.0, 4.0),
+        "key3" to listOf(5.0, 6.0),
+        "key4" to listOf(7.0, 8.0),
+    ),
 )
 
 val contextualCase = mapOf(

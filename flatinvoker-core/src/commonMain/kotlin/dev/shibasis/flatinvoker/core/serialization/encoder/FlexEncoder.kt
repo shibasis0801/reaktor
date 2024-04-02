@@ -66,8 +66,9 @@ FlexEncoders must also be pooled.
 Try to make this re-entrant and thread safe
 Would save time in high frequency transfers
 
-Move to Encoder, CompositeEncoder
-AbstractEncoder only seems apt for simple understanding
+1. Move to Encoder, CompositeEncoder (AbstractEncoder only seems apt for simple understanding)
+2. Break into Delegates so that it is manageable.
+
 
 */
 

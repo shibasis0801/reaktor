@@ -1,8 +1,6 @@
 package dev.shibasis.flatinvoker.ffi.switch
 
-import com.google.flatbuffers.kotlin.ArrayReadBuffer
 import com.google.flatbuffers.kotlin.Vector
-import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.flatinvoker.ffi.Invokable
 import dev.shibasis.flatinvoker.ffi.payload.moduleName
 import dev.shibasis.flatinvoker.ffi.payload.toFlexPayload
@@ -10,9 +8,11 @@ import kotlinx.coroutines.flow.Flow
 
 object Switch {
     val moduleMap: MapModuleHolder = MapModuleHolder()
+
     fun installModule(moduleName: String, invokable: Invokable) {
         moduleMap[moduleName] = invokable
     }
+
     fun installModules(vararg modules: Pair<String, Invokable>) {
         modules.forEach { (moduleName, invokable) ->
             moduleMap[moduleName] = invokable
@@ -29,6 +29,7 @@ object Switch {
         val (vector, invokable) = fetchModule(flexBuffer)
         return invokable.invokeSync(vector)
     }
+
     fun invokeAsync(flexBuffer: ByteArray): Flow<Long> {
         val (vector, invokable) = fetchModule(flexBuffer)
         return invokable.invokeAsync(vector)
