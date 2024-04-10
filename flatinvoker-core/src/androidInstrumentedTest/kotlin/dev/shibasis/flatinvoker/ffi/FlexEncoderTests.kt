@@ -6,7 +6,9 @@ import dev.shibasis.flatinvoker.core.EncodingComplexCase
 import dev.shibasis.flatinvoker.core.EncodingSimpleCase
 import dev.shibasis.flatinvoker.core.EncodingSophisticatedCase
 import dev.shibasis.flatinvoker.core.FlexBuffer
+import dev.shibasis.flatinvoker.core.ListSerializer.encodeToList
 import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.protobuf.ProtoBuf
@@ -15,15 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.measureTime
-
-
-inline fun repeatedAverage(count: Int, crossinline fn: () -> Number): Double {
-    var sum = 0.0
-    repeat(count) {
-        sum += fn().toDouble()
-    }
-    return sum / count.toDouble()
-}
 
 class FlexEncoderTests {
 
@@ -49,7 +42,7 @@ class FlexEncoderTests {
         var avgJson = 0L
         var avgProto = 0L
         var avgCpp = 0L
-        val times = 2
+        val times = 20
         repeat(times) {
             val complexCase = EncodingComplexCase()
             var cppTime = 0L
@@ -59,14 +52,27 @@ class FlexEncoderTests {
                 FlexBuffer.GetBuffer(flexBuffer)
             }.inWholeMicroseconds
 
+            var json = ""
             val jsonEncodingTime = measureTime {
-                Json.encodeToJsonElement(complexCase)
+                json = Json.encodeToString(complexCase)
             }.inWholeMicroseconds
 
+            val jsonDecodingTime = measureTime {
+                Json.decodeFromString(EncodingComplexCase.serializer(), json)
+            }.inWholeMicroseconds
+
+            var proto = ByteArray(0)
             val protoEncodingTime = measureTime {
-                ProtoBuf.encodeToByteArray(serializer(), complexCase)
+                proto = ProtoBuf.encodeToByteArray(serializer(), complexCase)
             }.inWholeMicroseconds
 
+            val protoDecodingTime = measureTime {
+                ProtoBuf.decodeFromByteArray(EncodingComplexCase.serializer(), proto)
+            }.inWholeMicroseconds
+
+            val listEncodingTime = measureTime {
+                encodeToList(complexCase)
+            }.inWholeMicroseconds
 
             avgFlex += flexEncodingTime
             avgJson += jsonEncodingTime
@@ -74,8 +80,12 @@ class FlexEncoderTests {
             avgCpp += cppTime
 
             println("FlexBuffer Time: $flexEncodingTime")
+            println("List Time: $listEncodingTime")
             println("ProtoBuf Time: $protoEncodingTime")
+            println("ProtoBuf Decoding Time: $protoDecodingTime")
             println("Json Time: $jsonEncodingTime")
+            println("Json Decoding Time: $jsonDecodingTime")
+            println("-------------------------------------------------")
 //            println("FlexBuffer Cpp: $cppTime")
 
         }

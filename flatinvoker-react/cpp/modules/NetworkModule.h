@@ -7,39 +7,6 @@
 
 namespace Reaktor {
     struct NetworkModule : public ReaktorHostObject {
-
-        // Didn't work because builder was stack allocated and gets removed post call resulting in garbage
-        const std::vector<uint8_t>& createFlexBuffer() {
-            flexbuffers::Builder builder(1024);
-
-            builder.Map([&] {
-                builder.Int("intField", 42);
-                builder.UInt("uintField", 123u);
-                builder.Float("floatField", 3.14f);
-                builder.Bool("boolField", true);
-                builder.String("stringField", "Hello FlexBuffers");
-
-                builder.Vector("vectorField", [&]() {
-                    builder.Int(1);
-                    builder.Int(2);
-                    builder.Int(3);
-                });
-
-                builder.Map("mapField", [&]() {
-                    builder.String("key1", "value1");
-                    builder.Int("key2", 200);
-                });
-            });
-
-            builder.Finish();
-
-            return builder.GetBuffer();
-        }
-
-        /*
-         * Vectors and Maps are very similar
-         * A map is probably a type of vector
-         */
         jsi::Value fromFlexValue(const flexbuffers::Reference &ref) {
             if (ref.IsInt() || ref.IsFloat() || ref.IsUInt()) {
                 Log.Verbose("FlexInvoker: Double");

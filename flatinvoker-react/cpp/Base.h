@@ -21,10 +21,26 @@ using std::make_shared;
 using std::shared_ptr;
 using std::function;
 
-#define repeat(i, n) for (size_t i = 0; (i) < (n); ++(i))
+// todo Write the ranges library with zip operator
+// write a generic memo container which can memoize any function
+#define repeat(i, n) for (int i = 0, _n = (n); i < _n; ++i)
+#define countdown(i, n) for (int i = (n); i >= 0; --i)
 #define GUARD(ptr) if ((ptr) == nullptr) return
 #define GUARD_THROW(ptr, errorMessage) if ((ptr) == nullptr) throw ReaktorException(errorMessage)
 #define GUARD_DEFAULT(ptr, fallback) if ((ptr) == nullptr) return fallback
+
+inline int startTiming() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+}
+
+inline int endTiming(int start) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+    ).count() - start;
+}
+
 
 #ifndef __ANDROID__
 #define __DARWIN__

@@ -17,6 +17,10 @@ import kotlin.math.pow
 import kotlin.time.measureTime
 
 /*
+I need to implement FlexBuffer completely in Kotlin by copying the C++ version.
+Official implementation copies the Java version, which is not fast and not fully featured.
+This will help with maximum performance.
+
 Focus should not be just on compact encoding
 But should optimise for speed at minimum size.
 Speed/Flexibility is more important than encoding size.
@@ -32,11 +36,11 @@ And then write a series of articles
 https://flatbuffers.dev/flexbuffers.html
 
 30% faster for simple cases
-300% slower for complex cases
+200% slower for complex cases
 
 For large data,
 Protobuf is 20% faster than JSON
-FlexBuffers-CPP is slower 3 times even with JNI overhead
+FlexBuffers-CPP is slower 2 times even with JNI overhead
 FlexBuffers-Java is slower 6 times
 
 todo critical need to profile the cpp version to make it comparable to json in encoding speed.

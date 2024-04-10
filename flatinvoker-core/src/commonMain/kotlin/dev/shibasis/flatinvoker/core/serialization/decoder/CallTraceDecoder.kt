@@ -11,94 +11,93 @@ import kotlinx.serialization.modules.SerializersModule
 
 
 /**
- This decoder is no-op, but it will print the order of the calls to a Decoder.
- Very important to understand call stack for decoding any class
+This decoder is no-op, but it will print the order of the calls to a Decoder.
+Very important to understand call stack for decoding any class
 
-
- Element mapOfStringToInt
- Element arrayOfInt
- Element mutableMapOfStringToList
-  CallTraceDecoder: decodeSerializableValue
-  CallTraceDecoder: beginStructure dev.shibasis.flatinvoker.core.EncodingSimpleCase  CLASS
- Element mapOfStringToInt
- Element arrayOfInt
- Element mutableMapOfStringToList
- 	 CallTraceDecoder: decodeSequentially
- 	 CallTraceDecoder: decodeSerializableElement mapOfStringToInt
- 	 CallTraceDecoder: beginStructure kotlin.collections.LinkedHashMap mapOfStringToInt MAP
- Element 0
- Element 1
- 		 CallTraceDecoder: decodeSequentially
- 		 CallTraceDecoder: decodeCollectionSize mapOfStringToInt
- 		 CallTraceDecoder: decodeSerializableElement 0
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 1
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: decodeSerializableElement 2
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 3
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: decodeSerializableElement 4
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 5
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: endStructure kotlin.collections.LinkedHashMap 0
- 	 CallTraceDecoder: decodeSerializableElement arrayOfInt
- 	 CallTraceDecoder: beginStructure kotlin.collections.ArrayList arrayOfInt LIST
- Element 0
- 		 CallTraceDecoder: decodeSequentially
- 		 CallTraceDecoder: decodeCollectionSize arrayOfInt
- 		 CallTraceDecoder: decodeSerializableElement 0
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: decodeSerializableElement 1
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: decodeSerializableElement 2
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: decodeSerializableElement 3
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: decodeSerializableElement 4
- 		 CallTraceDecoder: decodeInt
- 		 CallTraceDecoder: endStructure kotlin.collections.ArrayList 0
- 	 CallTraceDecoder: decodeSerializableElement mutableMapOfStringToList
- 	 CallTraceDecoder: beginStructure kotlin.collections.LinkedHashMap mutableMapOfStringToList MAP
- Element 0
- Element 1
- 		 CallTraceDecoder: decodeSequentially
- 		 CallTraceDecoder: decodeCollectionSize mutableMapOfStringToList
- 		 CallTraceDecoder: decodeSerializableElement 0
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 1
- 		 CallTraceDecoder: beginStructure kotlin.collections.ArrayList 1 LIST
- Element 0
- 			 CallTraceDecoder: decodeSequentially
- 			 CallTraceDecoder: decodeCollectionSize 1
- 			 CallTraceDecoder: endStructure kotlin.collections.ArrayList 0
- 		 CallTraceDecoder: decodeSerializableElement 2
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 3
- 		 CallTraceDecoder: beginStructure kotlin.collections.ArrayList 3 LIST
- Element 0
- 			 CallTraceDecoder: decodeSequentially
- 			 CallTraceDecoder: decodeCollectionSize 3
- 			 CallTraceDecoder: endStructure kotlin.collections.ArrayList 0
- 		 CallTraceDecoder: decodeSerializableElement 4
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 5
- 		 CallTraceDecoder: beginStructure kotlin.collections.ArrayList 5 LIST
- Element 0
- 			 CallTraceDecoder: decodeSequentially
- 			 CallTraceDecoder: decodeCollectionSize 5
- 			 CallTraceDecoder: endStructure kotlin.collections.ArrayList 0
- 		 CallTraceDecoder: decodeSerializableElement 6
- 		 CallTraceDecoder: decodeString
- 		 CallTraceDecoder: decodeSerializableElement 7
- 		 CallTraceDecoder: beginStructure kotlin.collections.ArrayList 7 LIST
- Element 0
- 			 CallTraceDecoder: decodeSequentially
- 			 CallTraceDecoder: decodeCollectionSize 7
- 			 CallTraceDecoder: endStructure kotlin.collections.ArrayList 0
- 		 CallTraceDecoder: endStructure kotlin.collections.LinkedHashMap 0
- 	 CallTraceDecoder: endStructure dev.shibasis.flatinvoker.core.EncodingSimpleCase mapOfStringToInt
+Element mapOfStringToInt
+Element arrayOfInt
+Element mutableMapOfStringToList
+CallTraceDecoder: decodeSerializableValue
+CallTraceDecoder: beginStructure dev.shibasis.flatinvoker.core.EncodingSimpleCase  CLASS
+	Element mapOfStringToInt
+	Element arrayOfInt
+	Element mutableMapOfStringToList
+	CallTraceDecoder: decodeSequentially
+	CallTraceDecoder: decodeSerializableElement mapOfStringToInt
+	CallTraceDecoder: beginStructure kotlin.collections.LinkedHashMap mapOfStringToInt MAP
+		Element 0
+		Element 1
+		CallTraceDecoder: decodeSequentially
+		CallTraceDecoder: decodeCollectionSize mapOfStringToInt
+		CallTraceDecoder: decodeSerializableElement 0
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 1
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: decodeSerializableElement 2
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 3
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: decodeSerializableElement 4
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 5
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: endStructure kotlin.collections.LinkedHashMap
+	CallTraceDecoder: decodeSerializableElement arrayOfInt
+	CallTraceDecoder: beginStructure kotlin.collections.ArrayList arrayOfInt LIST
+		Element 0
+		CallTraceDecoder: decodeSequentially
+		CallTraceDecoder: decodeCollectionSize arrayOfInt
+		CallTraceDecoder: decodeSerializableElement 0
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: decodeSerializableElement 1
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: decodeSerializableElement 2
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: decodeSerializableElement 3
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: decodeSerializableElement 4
+		CallTraceDecoder: decodeInt
+		CallTraceDecoder: endStructure kotlin.collections.ArrayList
+	CallTraceDecoder: decodeSerializableElement mutableMapOfStringToList
+	CallTraceDecoder: beginStructure kotlin.collections.LinkedHashMap mutableMapOfStringToList MAP
+		Element 0
+		Element 1
+		CallTraceDecoder: decodeSequentially
+		CallTraceDecoder: decodeCollectionSize mutableMapOfStringToList
+		CallTraceDecoder: decodeSerializableElement 0
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 1
+		CallTraceDecoder: beginStructure kotlin.collections.ArrayList 1 LIST
+			Element 0
+			CallTraceDecoder: decodeSequentially
+			CallTraceDecoder: decodeCollectionSize 1
+			CallTraceDecoder: endStructure kotlin.collections.ArrayList
+		CallTraceDecoder: decodeSerializableElement 2
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 3
+		CallTraceDecoder: beginStructure kotlin.collections.ArrayList 3 LIST
+			Element 0
+			CallTraceDecoder: decodeSequentially
+			CallTraceDecoder: decodeCollectionSize 3
+			CallTraceDecoder: endStructure kotlin.collections.ArrayList
+		CallTraceDecoder: decodeSerializableElement 4
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 5
+		CallTraceDecoder: beginStructure kotlin.collections.ArrayList 5 LIST
+			Element 0
+			CallTraceDecoder: decodeSequentially
+			CallTraceDecoder: decodeCollectionSize 5
+			CallTraceDecoder: endStructure kotlin.collections.ArrayList
+		CallTraceDecoder: decodeSerializableElement 6
+		CallTraceDecoder: decodeString
+		CallTraceDecoder: decodeSerializableElement 7
+		CallTraceDecoder: beginStructure kotlin.collections.ArrayList 7 LIST
+			Element 0
+			CallTraceDecoder: decodeSequentially
+			CallTraceDecoder: decodeCollectionSize 7
+			CallTraceDecoder: endStructure kotlin.collections.ArrayList
+		CallTraceDecoder: endStructure kotlin.collections.LinkedHashMap
+	CallTraceDecoder: endStructure dev.shibasis.flatinvoker.core.EncodingSimpleCase
  */
 class CallTraceDecoder(
     private val descriptor: SerialDescriptor,
@@ -178,7 +177,7 @@ class CallTraceDecoder(
             "mapOfStringToInt" -> 3
             "mutableMapOfStringToList" -> 4
             "arrayOfInt" -> 5
-            else -> 0
+            else -> 2
         }
     }
 
