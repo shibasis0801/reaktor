@@ -23,6 +23,9 @@ kotlin {
         }
     }
 
+    project.android {
+        defaults("dev.shibasis.reaktor.core")
+    }
     droid {
         dependencies = {
             activityFragment()
@@ -44,13 +47,8 @@ kotlin {
             vertx()
         }
     }
+
 }
-
-android {
-    defaults("dev.shibasis.reaktor.core")
-}
-
-
 //dependencies {
 //    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
 //}

@@ -76,5 +76,6 @@ include(":flatinvoker-react")
 include(":flatinvoker-compiler")
 include(":reaktor-core")
 include(":reaktor-io")
+include(":reaktor-navigation")
 
 //includeBuild("tester-react/android")

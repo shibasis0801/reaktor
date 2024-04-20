@@ -47,9 +47,10 @@ kotlin {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 packageName("dev.shibasis.reaktor.native")
+                includeDirs("../flatinvoker-core/cpp")
                 includeDirs("cpp")
                 defFile(file("cpp/bindings.def"))
-                headers("cpp/darwin/DarwinInvoker.h", "cpp/common/PlatformInvoker.h")
+                headers("cpp/darwin/DarwinInvokable.h", "cpp/common/Invokable.h", "../flatinvoker-core/cpp/common/CBase.h", "../flatinvoker-core/cpp/common/Flex.h")
             }
         }
 
