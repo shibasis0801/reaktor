@@ -24,7 +24,7 @@ object Version {
 
     // Android
 //    const val Compose = "1.2.0"
-    const val Activity = "1.3.1"
+    const val Activity = "1.6.1"
     const val Fragment = "1.3.6"
     const val Lifecycle = "2.4.0"
     const val Navigation = "2.3.2"

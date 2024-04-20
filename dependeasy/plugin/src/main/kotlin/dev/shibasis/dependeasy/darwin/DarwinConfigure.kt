@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 class DarwinConfigure(
-    var onlyM1Simulator: Boolean = true,
+    var onlyM1Simulator: Boolean = false,
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var podDependencies: CocoapodsExtension.() -> Unit = {},
     var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {},
