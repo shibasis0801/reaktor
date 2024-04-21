@@ -18,6 +18,8 @@ fun KotlinDependencyHandler.commonCoroutines(coroutinesVersion: String = Version
 
 fun KotlinDependencyHandler.commonNetworking() {
     api("io.ktor:ktor-client-core:${Version.Ktor}")
+    api("io.ktor:ktor-client-content-negotiation:${Version.Ktor}")
+    api("io.ktor:ktor-serialization-kotlinx-json:${Version.Ktor}")
 }
 
 fun KotlinDependencyHandler.commonLogging() {
