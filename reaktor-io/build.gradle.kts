@@ -14,16 +14,18 @@ kotlin {
         dependencies = {
             api(project(":reaktor-core"))
             api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
+            api("androidx.datastore:datastore-preferences-core:1.1.0")
             commonNetworking()
             commonLogging()
         }
     }
 
-    web {
-        dependencies = {
-            webNetworking()
-        }
-    }
+//    later
+//    web {
+//        dependencies = {
+//            webNetworking()
+//        }
+//    }
 
     droid {
         dependencies = {

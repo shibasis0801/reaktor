@@ -16,13 +16,18 @@ pluginManagement {
     }
 
     plugins {
-        val kotlinVersion = "1.9.21"
-        val agpVersion = "7.4.2"
         val crashlyticsVersion = "2.9.9"
+        val agpVersion = gradle.startParameter.projectProperties["agp.version"] ?: ""
+        val composeVersion = gradle.startParameter.projectProperties["compose.version"] ?: ""
+        val kotlinVersion = gradle.startParameter.projectProperties["kotlin.version"] ?: ""
+        val ktorVersion = gradle.startParameter.projectProperties["ktor.version"] ?: ""
+        val kspVersion = gradle.startParameter.projectProperties["ksp.version"] ?: ""
+        val sqldelightVersion = gradle.startParameter.projectProperties["sqldelight.version"] ?: ""
 
-        id("com.google.firebase.crashlytics").version("2.9.9")
-        id("com.google.devtools.ksp").version("1.9.21-1.0.16")
+        id("com.google.firebase.crashlytics").version(crashlyticsVersion)
+        id("com.google.devtools.ksp").version(kspVersion)
         id("org.jetbrains.compose").version("1.5.11")
+        id("org.jetbrains.kotlin.plugin.compose").version(kotlinVersion)
         id("com.google.gms.google-services").version("4.4.0")
         id("com.codingfeline.buildkonfig").version("0.15.1")
 
@@ -76,6 +81,7 @@ include(":flatinvoker-react")
 include(":flatinvoker-compiler")
 include(":reaktor-core")
 include(":reaktor-io")
+include(":reaktor-ui")
 include(":reaktor-navigation")
 
 //includeBuild("tester-react/android")

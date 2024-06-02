@@ -15,6 +15,8 @@ kotlin {
     val (commonMain, commonTest) = common {
         dependencies = {
             api(project(":reaktor-core"))
+            api(compose.runtime)
+            api(compose.foundation)
         }
     }
     droid {

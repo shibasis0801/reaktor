@@ -1,0 +1,29 @@
+package dev.shibasis.reaktor.io.adapters
+
+import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.framework.Feature
+
+abstract class KeyValueStore<Controller>(
+    controller: Controller,
+    val name: String
+): Adapter<Controller>(controller) {
+    abstract suspend fun get(key: String): String?
+    abstract suspend fun set(key: String, value: String)
+    abstract suspend fun remove(key: String)
+    abstract suspend fun clear()
+
+    interface BlockingStore {
+
+    }
+    interface EncryptedStore {
+
+    }
+    interface TypedStore {
+
+    }
+}
+
+private val keyValueId = Feature.createId()
+var Feature.KeyValueStore: KeyValueStore<*>?
+    get() = fetchDependency(keyValueId)
+    set(adapter) = storeDependency(keyValueId, adapter)

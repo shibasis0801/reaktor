@@ -5,8 +5,8 @@ import org.gradle.api.JavaVersion
 object Version {
     object SDK {
         const val minSdk = 24
-        const val compileSdk = 33
-        const val targetSdk = 32
+        const val compileSdk = 34
+        const val targetSdk = 34
         const val ndkVersion = "25.0.8775105"
         const val CMake = "3.22.1"
 

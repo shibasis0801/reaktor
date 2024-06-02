@@ -20,6 +20,7 @@
 #include <flatbuffers/buffer.h>
 
 // basic
+using std::pair;
 using std::string;
 using std::vector;
 using std::unordered_map;
@@ -54,8 +55,57 @@ namespace FlatInvoker {
 }
 
 
-#define repeat(i, n) for (size_t i = 0; (i) < (n); ++(i))
 #define GUARD(ptr) if ((ptr) == nullptr) return
 #define GUARD_THROW(ptr, errorMessage) if ((ptr) == nullptr) throw Reaktor::ReaktorException(errorMessage)
 #define GUARD_DEFAULT(ptr, fallback) if ((ptr) == nullptr) return fallback
 //#define all(container) (container).begin(), (container).end()
+
+
+
+
+template<class T>
+struct matrix {
+    vector<vector<T>> data;
+
+    matrix(int rows, int cols): data(vector<vector<T>>(rows, vector<T>(cols))) {}
+    matrix(int rows, int cols, T defaultValue): data(vector<vector<T>>(rows, vector<T>(cols, defaultValue))) {}
+    matrix(int rows, int cols, function<T(int, int)> &&generator): matrix(rows, cols) {
+        repeat(i, rows) {
+            repeat(j, cols) {
+                data[i][j] = generator(i, j);
+            }
+        }
+    }
+
+    const T operator()(int i, int j) const {
+        return data[i][j];
+    }
+
+    const T operator()(const pair<int, int> &index) const {
+        return data[index.first][index.second];
+    }
+
+    int rows() const {
+        return data.size();
+    }
+
+    int cols() const {
+        return data[0].size();
+    }
+
+    bool inBounds(int i, int j) const {
+        return i >= 0 && i < rows() && j >= 0 && j < cols();
+    }
+
+    vector<T>& operator[](int i) {
+        return data[i];
+    }
+
+    const vector<T>& operator[](int i) const {
+        return data[i];
+    }
+
+    T& operator[](pair<int, int> index) {
+        return data[index.first][index.second];
+    }
+};

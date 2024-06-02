@@ -2,11 +2,16 @@ package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.framework.Feature
+import kotlinx.io.RawSource
+import kotlinx.io.Sink
+import kotlinx.io.Source
 import kotlinx.io.buffered
 import kotlinx.io.files.FileSystem
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
+import kotlinx.io.readString
+import kotlinx.io.writeString
 
 /*
 https://chat.openai.com/c/10795b61-e0ea-4e17-afdf-10f4079ac440
@@ -67,16 +72,21 @@ File System Access: Unlike Android, where apps can request permission to access 
 iCloud Backup: Certain iOS directories (like Documents) are backed up to iCloud by default, unlike Android's more manual approach to backup and restore.
  */
 
+fun bufferedSink(path: String, actions: Sink.() -> Unit) {
+    val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
+    actions(bufferedSink)
+    bufferedSink.close()
+}
+
+fun bufferedSource(path: String, actions: (source: Source) -> Unit) {
+    val bufferedSource = SystemFileSystem.source(Path(path)).buffered()
+    actions(bufferedSource)
+    bufferedSource.close()
+}
 
 abstract class FileAdapter<Controller>(controller: Controller): Adapter<Controller>(controller) {
-    abstract fun getCacheDirectory(): String
-
-    fun writeBinaryFile(path: String, data: ByteArray) {
-        val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
-        bufferedSink.write(data)
-        bufferedSink.close()
-    }
-
+    abstract val cacheDirectory: String
+    abstract val documentDirectory: String
     fun readBinaryFile(path: String): ByteArray? {
         val actualPath = Path(path)
         if (!SystemFileSystem.exists(actualPath)) return null
@@ -85,6 +95,31 @@ abstract class FileAdapter<Controller>(controller: Controller): Adapter<Controll
         val data = bufferedSource.readByteArray()
         bufferedSource.close()
         return data
+    }
+    fun readTextFile(path: String): String? {
+        val actualPath = Path(path)
+        if (!SystemFileSystem.exists(actualPath)) return null
+
+        val bufferedSource = SystemFileSystem.source(actualPath).buffered()
+        val data = bufferedSource.readString()
+        bufferedSource.close()
+        return data
+    }
+    fun writeTextFile(path: String, data: String) {
+        val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
+        bufferedSink.writeString(data)
+        bufferedSink.close()
+    }
+    fun writeBinaryFile(path: String, data: ByteArray) {
+        val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
+        bufferedSink.write(data)
+        bufferedSink.close()
+    }
+
+    fun bufferedWriteBinaryFile(source: Source, outputPath: String) {
+        val bufferedSink = SystemFileSystem.sink(Path(outputPath)).buffered()
+//        bufferedSink.write(source, source.)
+        bufferedSink.close()
     }
 }
 

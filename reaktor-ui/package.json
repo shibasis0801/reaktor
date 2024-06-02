@@ -1,0 +1,15 @@
+{
+  "name": "reaktor-ui",
+  "version": "1.0.0",
+  "description": "Requirements: (these must be exposed) 1. Controller -> Adapter -> Module/Repository -> Screen/ViewModel -> Interactor/Widget -> Views -> Tests 2. Lifecycle Observers 3. Device Power info -> api version, fast, slow, etc",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

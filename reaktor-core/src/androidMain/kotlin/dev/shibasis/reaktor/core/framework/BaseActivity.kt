@@ -1,6 +1,15 @@
 package dev.shibasis.reaktor.core.framework
 
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 abstract class BaseActivity: ComponentActivity() {
     val adapters = mutableListOf<Adapter<ComponentActivity>>()
@@ -8,6 +17,27 @@ abstract class BaseActivity: ComponentActivity() {
     fun connect(adapterList: List<Adapter<ComponentActivity>>) {
         adapters.addAll(adapterList)
         adapterList.forEach(lifecycle::addObserver)
+    }
+
+    inline fun launch(
+        context: CoroutineContext = EmptyCoroutineContext,
+        start: CoroutineStart = CoroutineStart.DEFAULT,
+        crossinline block: suspend CoroutineScope.() -> Unit
+    ): Job {
+        return lifecycleScope.launch(context, start) {
+            block()
+        }
+    }
+
+
+    inline fun<T> async(
+        context: CoroutineContext = EmptyCoroutineContext,
+        start: CoroutineStart = CoroutineStart.DEFAULT,
+        crossinline block: suspend CoroutineScope.() -> T
+    ): Deferred<T> {
+        return lifecycleScope.async(context, start) {
+            block()
+        }
     }
 
     /**

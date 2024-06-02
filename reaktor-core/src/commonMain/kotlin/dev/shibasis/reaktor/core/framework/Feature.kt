@@ -24,3 +24,16 @@ object Feature: DependencyModule {
         }
     }
 }
+
+/*
+
+object Feature {
+    val dependencies = mutableMapOf<KClass<*>, Any>()
+    inline fun <reified T> Store(dependency: T) {
+        dependencies[T::class] = dependency as Any
+    }
+    inline fun <reified T> Fetch(): T? {
+        return dependencies[T::class] as T?
+    }
+}
+ */

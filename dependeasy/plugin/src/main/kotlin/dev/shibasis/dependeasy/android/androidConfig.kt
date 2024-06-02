@@ -3,17 +3,16 @@ package dev.shibasis.dependeasy.android
 
 import com.android.build.api.dsl.ApplicationBuildFeatures
 import com.android.build.api.dsl.BuildFeatures
+import com.android.build.api.dsl.CmakeFlags
 import com.android.build.api.dsl.CompileOptions
 import com.android.build.api.dsl.ExternalNativeBuild
-import com.android.build.api.dsl.ExternalNativeCmakeOptions
 import com.android.build.api.dsl.LibraryBuildFeatures
-import com.android.build.api.dsl.LibraryDefaultConfig
-import com.android.build.api.dsl.PackagingOptions
+import com.android.build.api.dsl.Packaging
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+import com.android.build.gradle.internal.dsl.ExternalNativeCmakeOptions
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.utils.exclude
-import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.Configuration
 import org.gradle.kotlin.dsl.NamedDomainObjectContainerScope
 import org.gradle.kotlin.dsl.get
@@ -40,7 +39,7 @@ fun KotlinJvmOptions.defaults() {
 fun<First, Second> zip(first: Iterable<First>, second: Iterable<Second>) =
     first.zip(second)
 
-fun PackagingOptions.includeNativeLibs() {
+fun Packaging.includeNativeLibs() {
     Version.nativeLibraries.forEach {
         pickFirst("**/$it")
     }
@@ -50,13 +49,13 @@ fun PackagingOptions.includeNativeLibs() {
         }
 }
 
-fun PackagingOptions.excludeNativeLibs() {
+fun Packaging.excludeNativeLibs() {
     Version.nativeLibraries.forEach {
         jniLibs.excludes.add("**/$it")
     }
 }
 
-fun ExternalNativeCmakeOptions.defaults(name: String) {
+fun CmakeFlags.defaults(name: String) {
 //    cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1")) // add -O2 for prod
     cFlags.addAll(listOf("-O3")) // add -O2 for prod
     arguments.addAll(listOf("-DCMAKE_VERBOSE_MAKEFILE=1", "-DANDROID_STL=c++_shared", "-DNAME=$name"))
@@ -110,7 +109,7 @@ fun LibraryExtension.defaults(
 
     compileOptions { defaults() }
     buildFeatures { defaults() }
-    packagingOptions { includeNativeLibs() }
+    packaging { includeNativeLibs() }
 
     buildTypes {
         debug {
@@ -156,7 +155,7 @@ fun BaseAppModuleExtension.defaults(
     }
 
     compileOptions { defaults() }
-    packagingOptions { includeNativeLibs() }
+    packaging { includeNativeLibs() }
     buildFeatures { defaults() }
 //    composeOptions {
 //        kotlinCompilerExtensionVersion = Version.ComposeCompiler

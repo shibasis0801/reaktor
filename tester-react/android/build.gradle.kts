@@ -13,7 +13,7 @@ buildscript {
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.21")
         classpath("org.jetbrains.kotlin:kotlin-serialization:1.9.21")
-        classpath("com.android.tools.build:gradle:7.4.2")
+        classpath("com.android.tools.build:gradle:8.4.0")
         classpath("app.cash.sqldelight:gradle-plugin:2.0.0-alpha04")
     }
 }
