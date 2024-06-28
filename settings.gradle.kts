@@ -17,17 +17,17 @@ pluginManagement {
 
     plugins {
         val crashlyticsVersion = "2.9.9"
-        val agpVersion = gradle.startParameter.projectProperties["agp.version"] ?: ""
-        val composeVersion = gradle.startParameter.projectProperties["compose.version"] ?: ""
-        val kotlinVersion = gradle.startParameter.projectProperties["kotlin.version"] ?: ""
-        val ktorVersion = gradle.startParameter.projectProperties["ktor.version"] ?: ""
-        val kspVersion = gradle.startParameter.projectProperties["ksp.version"] ?: ""
-        val sqldelightVersion = gradle.startParameter.projectProperties["sqldelight.version"] ?: ""
+        val agpVersion = extra["agp.version"] as String
+        val composeVersion = extra["compose.version"] as String
+        val kotlinVersion = extra["kotlin.version"] as String
+        val kspVersion = extra["ksp.version"] as String
+        val sqldelightVersion = extra["sqldelight.version"] as String
+
+        id("org.jetbrains.compose").version(composeVersion)
+        id("org.jetbrains.kotlin.plugin.compose").version(kotlinVersion)
 
         id("com.google.firebase.crashlytics").version(crashlyticsVersion)
         id("com.google.devtools.ksp").version(kspVersion)
-        id("org.jetbrains.compose").version("1.5.11")
-        id("org.jetbrains.kotlin.plugin.compose").version(kotlinVersion)
         id("com.google.gms.google-services").version("4.4.0")
         id("com.codingfeline.buildkonfig").version("0.15.1")
 
@@ -40,9 +40,7 @@ pluginManagement {
         id("com.android.library").version(agpVersion)
         id("org.jetbrains.kotlinx.benchmark") version "0.4.10"
 
-
-
-        id("app.cash.sqldelight").version("2.0.0")
+        id("app.cash.sqldelight").version(sqldelightVersion)
         id("dev.shibasis.dependeasy.library")
         id("dev.shibasis.dependeasy.application")
     }

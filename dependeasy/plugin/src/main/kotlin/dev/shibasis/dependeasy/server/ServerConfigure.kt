@@ -24,7 +24,6 @@ fun KotlinMultiplatformExtension.server(
         this.compilations.forEach {
             it.kotlinOptions.jvmTarget = "11"
         }
-        jvmToolchain(Version.SDK.Java.asInt)
     }
 
     sourceSets {

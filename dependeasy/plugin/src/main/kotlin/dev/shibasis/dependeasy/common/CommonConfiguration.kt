@@ -17,12 +17,9 @@ class CommonConfiguration(
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
 fun KotlinMultiplatformExtension.common(
     configuration: CommonConfiguration.() -> Unit = {}
-): Pair<KotlinSourceSet, KotlinSourceSet> {
+) {
     jvmToolchain(Version.SDK.Java.asInt)
     val configure = CommonConfiguration().apply(configuration)
-
-    lateinit var _commonMain: KotlinSourceSet
-    lateinit var _commonTest: KotlinSourceSet
 
     sourceSets {
         compilerOptions {
@@ -33,21 +30,13 @@ fun KotlinMultiplatformExtension.common(
                 optIn("kotlin.js.ExperimentalJsExport")
             }
         }
-        val commonMain by getting {
-            dependencies {
-                configure.dependencies(this)
-            }
+        commonMain.dependencies {
+            configure.dependencies(this)
         }
-        _commonMain = commonMain
-        val commonTest by getting {
-            dependencies {
-                api(kotlin("test"))
-                api(kotlin("test-annotations-common"))
-                configure.testDependencies(this)
-            }
+        commonTest.dependencies {
+            api(kotlin("test"))
+            api(kotlin("test-annotations-common"))
+            configure.testDependencies(this)
         }
-        _commonTest = commonTest
     }
-
-    return Pair(_commonMain, _commonTest)
 }

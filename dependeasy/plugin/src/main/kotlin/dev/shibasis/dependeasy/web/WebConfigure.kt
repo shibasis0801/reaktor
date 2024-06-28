@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.web
 
 
+import org.gradle.api.Action
 import org.gradle.api.attributes.Attribute
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
@@ -9,10 +10,13 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import java.io.File
 
 class WebConfiguration(
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
-    var targetModifier: KotlinJsTargetDsl.() -> Unit = {}
+    var targetModifier: KotlinJsTargetDsl.() -> Unit = {},
+    var webpackConfig: KotlinWebpackConfig.() -> Unit = {}
 )
 
 fun KotlinJsTargetDsl.defaults() {
@@ -26,20 +30,19 @@ fun KotlinJsTargetDsl.defaults() {
     generateTypeScriptDefinitions()
 }
 
-// Todo Migrate this to wasmJs
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
-): Pair<KotlinJsTargetDsl, KotlinSourceSet>? {
+) {
     val configure = WebConfiguration().apply(configuration)
 
-    val target = js("web", IR) {
+    js(IR) {
         moduleName = "index"
         defaults()
         useEsModules()
-        configure.targetModifier(this)
         nodejs {
             binaries.library()
         }
+        generateTypeScriptDefinitions()
         browser {
             binaries.library()
             commonWebpackConfig {
@@ -48,20 +51,15 @@ fun KotlinMultiplatformExtension.web(
                 cssSupport {
                     enabled.set(true)
                 }
+                configure.webpackConfig(this)
             }
         }
-
+        configure.targetModifier(this)
     }
 
-    lateinit var sourceSet: KotlinSourceSet
     sourceSets {
-        val webMain by getting {
-            dependencies {
-                configure.dependencies(this)
-            }
+        jsMain.dependencies {
+            configure.dependencies(this)
         }
-        sourceSet = webMain
     }
-
-    return Pair(target, sourceSet)
 }

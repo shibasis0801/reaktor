@@ -14,10 +14,21 @@ fun KotlinDependencyHandler.kotlinWrappers() {
 }
 
 fun KotlinDependencyHandler.react() {
+    api(kotlinWrapper("js"))
+    api(kotlinWrapper("browser"))
+    api(kotlinWrapper("web"))
+    api(kotlinWrapper("typescript"))
     api(kotlinWrapper("emotion"))
     api(kotlinWrapper("react"))
     api(kotlinWrapper("react-dom"))
     api(kotlinWrapper("react-router-dom"))
+    api(kotlinWrapper("mui-material"))
+    api(kotlinWrapper("mui-base"))
+    api(kotlinWrapper("mui-icons-material"))
+    api(kotlinWrapper("mui-lab"))
+    api(kotlinWrapper("mui-system"))
+    api(kotlinWrapper("muix-date-pickers"))
+    api(kotlinWrapper("muix-tree-view"))
 }
 
 fun KotlinDependencyHandler.webCoroutines() {

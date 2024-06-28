@@ -8,7 +8,7 @@ Pod::Spec.new do |spec|
     spec.summary                  = 'Some description for the Shared Module'
     spec.vendored_frameworks      = 'build/cocoapods/framework/reaktor_navigation.framework'
     spec.libraries                = 'c++'
-    spec.ios.deployment_target = '12'
+    spec.ios.deployment_target    = '12'
                 
                 
     if !Dir.exist?('build/cocoapods/framework/reaktor_navigation.framework') || Dir.empty?('build/cocoapods/framework/reaktor_navigation.framework')
@@ -21,6 +21,10 @@ Pod::Spec.new do |spec|
 
         Alternatively, proper pod installation is performed during Gradle sync in the IDE (if Podfile location is set)"
     end
+                
+    spec.xcconfig = {
+        'ENABLE_USER_SCRIPT_SANDBOXING' => 'NO',
+    }
                 
     spec.pod_target_xcconfig = {
         'KOTLIN_PROJECT_PATH' => ':reaktor-navigation',
@@ -46,5 +50,5 @@ Pod::Spec.new do |spec|
             SCRIPT
         }
     ]
-    spec.resources = ['build/compose/ios/reaktor_navigation/compose-resources']
+    spec.resources = ['build/compose/cocoapods/compose-resources']
 end

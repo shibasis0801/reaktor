@@ -7,7 +7,8 @@ plugins {
     id("com.android.application") apply false
     id("com.android.library") apply false
     id("com.google.firebase.crashlytics") apply false
-//    id("org.jetbrains.compose") apply false
+    id("org.jetbrains.compose") apply false
+    id("org.jetbrains.kotlin.plugin.compose").apply(false)
     id("com.google.devtools.ksp") apply false
     id("dev.shibasis.dependeasy.library") apply false
     id("dev.shibasis.dependeasy.application") apply false
@@ -60,4 +61,9 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configure
 
 tasks.dokkaHtmlMultiModule.configure {
     outputDirectory.set(file("docs"))
+}
+
+rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
+    rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false
+    // "true" for default behavior
 }

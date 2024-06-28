@@ -6,13 +6,14 @@ import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
 
 plugins {
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.library")
     id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
 }
 
 kotlin {
-    val (commonMain, commonTest) = common {
+    common {
         dependencies = {
             api(project(":reaktor-core"))
             api(compose.runtime)

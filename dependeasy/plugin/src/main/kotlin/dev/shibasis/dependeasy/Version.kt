@@ -12,7 +12,7 @@ object Version {
 
         const val targetDarwin = "12"
 
-        const val Kotlin = "1.9.21"
+        const val Kotlin = "2.0.0"
         const val Vertx = "4.4.2"
 
         object Java {
@@ -31,7 +31,7 @@ object Version {
     const val ComposeCompiler = "1.5.6"
 
     // Web
-    const val KotlinJSWrappers = "1.0.0-pre.554"
+    const val KotlinJSWrappers = "1.0.0-pre.758"
 
     // Data
     const val SQLDelight = "2.0.0"

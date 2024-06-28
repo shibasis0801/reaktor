@@ -12,15 +12,7 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-//    id("com.codingfeline.buildkonfig")
 }
-//
-//buildkonfig {
-//    packageName = "dev.shibasis.flatinvoker.core"
-//    defaultConfigs {
-//        buildConfigField(STRING, "name", "value")
-//    }
-//}
 
 val Name = "FlatInvokerCore"
 
@@ -39,7 +31,6 @@ task<Exec>("darwinCmake") {
 tasks.named("build") {
     dependsOn("darwinCmake")
 }
-
 
 kotlin {
     common {

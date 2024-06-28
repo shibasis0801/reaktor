@@ -10,7 +10,7 @@ plugins {
 }
 
 kotlin {
-    val (commonMain, commonTest) = common {
+    common {
         dependencies = {
             api(project(":reaktor-core"))
             api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
@@ -20,12 +20,11 @@ kotlin {
         }
     }
 
-//    later
-//    web {
-//        dependencies = {
-//            webNetworking()
-//        }
-//    }
+    web {
+        dependencies = {
+            webNetworking()
+        }
+    }
 
     droid {
         dependencies = {

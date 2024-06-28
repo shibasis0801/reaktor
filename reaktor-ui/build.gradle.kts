@@ -6,22 +6,32 @@ import dev.shibasis.dependeasy.darwin.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 kotlin {
-    val (commonMain, commonTest) = common {
+    common {
         dependencies = {
             commonCoroutines()
             commonSerialization()
+            api(compose.runtime)
+            api(compose.foundation)
+            api(compose.material3)
+            api(compose.materialIconsExtended)
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            api(compose.components.resources)
         }
     }
 
     web {
+        webpackConfig = {
+            configDirectory = file("${projectDir}/webpack.config.d")
+        }
         dependencies = {
             kotlinWrappers()
             react()
             webCoroutines()
-            implementation(npm("@material/web", "1.5.0", true))
         }
     }
 

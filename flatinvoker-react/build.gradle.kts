@@ -12,7 +12,7 @@ group = "dev.shibasis.flatinvoker.react"
 version = "1.0-SNAPSHOT"
 
 kotlin {
-    val (commonMain, commonTest) = common {
+    common {
         dependencies = {
             api(project(":reaktor-core"))
             api(project(":reaktor-io"))
