@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
-import dev.shibasis.reaktor.framework.Feature
+import dev.shibasis.reaktor.core.framework.Feature
 
 abstract class KeyValueStore<Controller>(
     controller: Controller,

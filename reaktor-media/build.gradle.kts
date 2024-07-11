@@ -3,36 +3,39 @@ import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.*
+import org.jetbrains.kotlin.gradle.plugin.KotlinHierarchyTemplate
 
 plugins {
-    id("com.android.library")
     id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
-}
-
-dependeasy {
-
+    id("app.cash.sqldelight")
 }
 
 kotlin {
-    val (commonMain, commonTest) = common {
+    common {
         dependencies = {
-            api(project(":reaktor-core"))
-            api(project(":lib-navigation"))
-        }
-    }
-
-    darwin {
-        podDependencies = {
 
         }
     }
+
     web {
         dependencies = {
 
         }
     }
+
     droid {
+        dependencies = {
+
+        }
+    }
+
+    darwin {
+        dependencies = {
+
+        }
+    }
+    server {
         dependencies = {
 
         }
@@ -40,5 +43,5 @@ kotlin {
 }
 
 android {
-    defaults("app.mehmaan.media")
+    defaults("dev.shibasis.reaktor.io")
 }

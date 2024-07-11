@@ -1,6 +1,7 @@
-package dev.shibasis.reaktor.framework
+package dev.shibasis.reaktor.core.framework
 
-import dev.shibasis.reaktor.core.framework.AtomicInt
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 interface DependencyModule {
     fun createId(): Int
@@ -8,9 +9,14 @@ interface DependencyModule {
     fun <T> fetchDependency(id: Int): T?
 }
 
+
+/*
+Service locator to store dependencies.
+Will see if DI is actually needed and if it can work without making code complex.
+ */
 object Feature: DependencyModule {
-    // should be atomicInt
     private var moduleIdx = AtomicInt(0)
+    // not thread safe, replace this.
     private val moduleMap = hashMapOf<Int, Any>()
     override fun createId() = moduleIdx.getAndIncrement()
     override fun <T> storeDependency(id: Int, dependency: T) {
@@ -25,15 +31,10 @@ object Feature: DependencyModule {
     }
 }
 
-/*
-
-object Feature {
-    val dependencies = mutableMapOf<KClass<*>, Any>()
-    inline fun <reified T> Store(dependency: T) {
-        dependencies[T::class] = dependency as Any
-    }
-    inline fun <reified T> Fetch(): T? {
-        return dependencies[T::class] as T?
-    }
+// Create a slot for a Feature, you will need to set it somewhere.
+class FeatureSlot<T>: ReadWriteProperty<Any, T?> {
+    private val id = Feature.createId()
+    override fun getValue(thisRef: Any, property: KProperty<*>) = Feature.fetchDependency<T>(id)
+    override fun setValue(thisRef: Any, property: KProperty<*>, value: T?) =
+        Feature.storeDependency(id, value)
 }
- */

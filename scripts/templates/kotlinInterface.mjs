@@ -8,7 +8,7 @@ export const kotlinInterfaceTemplate = (moduleName, sourceSet, fileName) => {
 package app.mehmaan.${moduleName.toLowerCase()}.${fileNameLower}
 
 import dev.shibasis.reaktor.core.framework.Adapter
-import dev.shibasis.reaktor.framework.Feature
+import dev.shibasis.reaktor.core.framework.Feature
 
 abstract class ${fileNameCap}<Controller>(controller: Controller): Adapter<Controller>(controller) {
 

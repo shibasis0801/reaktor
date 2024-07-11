@@ -1,15 +1,11 @@
 {
-  "name": "mehmaan-image",
+  "name": "@mehmaan/core",
   "version": "1.0.0",
-  "private": true,
+  "description": "Foundational Module on which every other module depends",
+  "main": "reactMain/index.tsx",
   "scripts": {
-    "build": "../../gradlew :lib-media:webNodeProductionLibraryDistribution",
-    "deploy": "yarn build && wrangler deploy",
-    "start": "yarn build && wrangler dev"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20230419.0",
-    "typescript": "^5.0.4",
-    "wrangler": "^3.0.0"
-  }
+  "author": "",
+  "license": "ISC"
 }

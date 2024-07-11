@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
-import dev.shibasis.reaktor.framework.Feature
+import dev.shibasis.reaktor.core.framework.Feature
 import kotlinx.io.RawSource
 import kotlinx.io.Sink
 import kotlinx.io.Source
@@ -84,7 +84,7 @@ fun bufferedSource(path: String, actions: (source: Source) -> Unit) {
     bufferedSource.close()
 }
 
-abstract class FileAdapter<Controller>(controller: Controller): Adapter<Controller>(controller) {
+abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     abstract val cacheDirectory: String
     abstract val documentDirectory: String
     fun readBinaryFile(path: String): ByteArray? {

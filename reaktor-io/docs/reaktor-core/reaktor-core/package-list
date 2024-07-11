@@ -14,9 +14,9 @@ $dokka.location:dev.shibasis.reaktor.core.actor/BaseVerticle/logger/#/PointingTo
 $dokka.location:dev.shibasis.reaktor.core.actor/BaseVerticle/verticleScope/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/-base-verticle/verticle-scope.html
 $dokka.location:dev.shibasis.reaktor.core.actor/Handler///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.actor/-handler/index.html
 $dokka.location:dev.shibasis.reaktor.core.adapters////PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/index.html
-$dokka.location:dev.shibasis.reaktor.core.adapters//File/dev.shibasis.reaktor.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file.html
-$dokka.location:dev.shibasis.reaktor.core.adapters//Permission/dev.shibasis.reaktor.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-permission.html
-$dokka.location:dev.shibasis.reaktor.core.adapters//Storage/dev.shibasis.reaktor.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-storage.html
+$dokka.location:dev.shibasis.reaktor.core.adapters//File/dev.shibasis.reaktor.core.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-file.html
+$dokka.location:dev.shibasis.reaktor.core.adapters//Permission/dev.shibasis.reaktor.core.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-permission.html
+$dokka.location:dev.shibasis.reaktor.core.adapters//Storage/dev.shibasis.reaktor.core.framework.Feature#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-storage.html
 $dokka.location:dev.shibasis.reaktor.core.adapters//cameraPermissionHandler/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/camera-permission-handler.html
 $dokka.location:dev.shibasis.reaktor.core.adapters//galleryPermissionHandler/#/PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/gallery-permission-handler.html
 $dokka.location:dev.shibasis.reaktor.core.adapters/AndroidFileAdapter///PointingToDeclaration/reaktor-core/dev.shibasis.reaktor.core.adapters/-android-file-adapter/index.html

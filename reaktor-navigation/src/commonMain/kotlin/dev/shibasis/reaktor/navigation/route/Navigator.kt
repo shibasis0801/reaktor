@@ -5,7 +5,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import dev.shibasis.reaktor.navigation.screen.Props
-import dev.shibasis.reaktor.framework.Feature
+import dev.shibasis.reaktor.core.framework.Feature
 
 typealias ScreenPair = Pair<Props, Destination<Props>>
 
