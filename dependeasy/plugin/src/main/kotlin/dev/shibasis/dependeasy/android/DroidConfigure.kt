@@ -21,7 +21,13 @@ fun KotlinMultiplatformExtension.droid(
     androidTarget {
         publishLibraryVariants("release", "debug")
         compilations.all {
-            kotlinOptions.jvmTarget = Version.SDK.Java.asString
+            kotlinOptions {
+                jvmTarget = Version.SDK.Java.asString
+                // Java 11 StringConcat Bug
+                freeCompilerArgs = listOf(
+                    "-Xstring-concat=inline"
+                )
+            }
         }
         configure.targetModifier(this)
     }

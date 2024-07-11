@@ -1,5 +1,6 @@
 val kotlinVersion = "2.0.0"
 val crashlyticsVersion = "2.9.9"
+val serializationVersion = "1.7.1"
 
 plugins {
     id("java-gradle-plugin")
@@ -22,10 +23,11 @@ dependencies {
     // Align Version of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("com.android.tools.build:gradle:8.4.2")
+    implementation("com.android.tools.build:gradle:8.3.2")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
     implementation("com.google.firebase:firebase-crashlytics-gradle:$crashlyticsVersion")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.0-1.0.22")

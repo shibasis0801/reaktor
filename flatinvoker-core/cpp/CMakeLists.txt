@@ -30,7 +30,6 @@ if(ANDROID)
             fbjni::fbjni
     )
 elseif(APPLE)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)
     add_library(
             ${PROJECT_NAME}
             STATIC
@@ -40,6 +39,7 @@ elseif(APPLE)
             ${flatbuffers_dir}/src/idl_parser.cpp
             ${flatbuffers_dir}/src/util.cpp
     )
+    target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)
     target_link_libraries(${PROJECT_NAME} PUBLIC flatbuffers)
 endif()
 

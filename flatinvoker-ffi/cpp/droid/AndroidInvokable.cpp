@@ -37,6 +37,6 @@ jint JNI_OnLoad(JavaVM *vm, void*) {
     });
 }
 
-long AndroidInvokable::invokeSync(const flexbuffers::Vector &payload) {
-    return 0;
-}
+//long AndroidInvokable::invokeSync(const flexbuffers::Vector &payload) {
+//    return 0;
+//}

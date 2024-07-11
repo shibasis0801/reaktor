@@ -20,10 +20,9 @@ task<Exec>("darwinCmake") {
     group = "reaktor"
     // environment variable for react location
     commandLine =  listOf("bash", "-c", """
-        rm -rf build &&
         cd cpp &&
         rm -rf build &&
-        cmake -DNAME=${Name} -B build -G Xcode &&
+        cmake -B build -G Xcode &&
         cmake --build build --config Release
     """.trimIndent())
 }
@@ -62,7 +61,7 @@ kotlin {
 
         targets = {
             binaries.all {
-                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-core/cpp/build/Release-iphonesimulator/lib${Name}.a")
+                freeCompilerArgs += listOf("-linker-option", file("cpp/build/Release-iphonesimulator/lib${Name}.a").absolutePath)
             }
         }
     }

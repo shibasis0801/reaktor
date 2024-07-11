@@ -33,6 +33,7 @@ kotlin {
             react()
             webCoroutines()
         }
+        packageJson = file("package.json")
     }
 
     project.android {

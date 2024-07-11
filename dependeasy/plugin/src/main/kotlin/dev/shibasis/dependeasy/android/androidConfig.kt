@@ -56,8 +56,7 @@ fun Packaging.excludeNativeLibs() {
 }
 
 fun CmakeFlags.defaults(name: String) {
-//    cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1")) // add -O2 for prod
-    cFlags.addAll(listOf("-O3")) // add -O2 for prod
+    cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1", "-O2"))
     arguments.addAll(listOf("-DCMAKE_VERBOSE_MAKEFILE=1", "-DANDROID_STL=c++_shared", "-DNAME=$name"))
     cppFlags.add("-std=c++20")
 }
@@ -129,8 +128,7 @@ fun LibraryExtension.defaults(
 fun BaseAppModuleExtension.defaults(
     appID: String,
     cmakeLists: File? = null,
-    cmakeProjectName: String = "",
-    enableCompose: Boolean = false,
+    cmakeProjectName: String = ""
 ) {
     compileSdk = Version.SDK.compileSdk
     ndkVersion = Version.SDK.ndkVersion

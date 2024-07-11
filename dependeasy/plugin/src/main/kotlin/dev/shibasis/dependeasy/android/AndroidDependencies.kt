@@ -3,7 +3,6 @@ package dev.shibasis.dependeasy.android
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.DependencyHandlerScope
 import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.common.androidKoin
 import dev.shibasis.dependeasy.utils.*
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 

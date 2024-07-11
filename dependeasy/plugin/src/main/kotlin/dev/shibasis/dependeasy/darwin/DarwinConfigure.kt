@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 class DarwinConfigure(
-    var onlyM1Simulator: Boolean = false,
+    var armOnly: Boolean = true,
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var podDependencies: CocoapodsExtension.() -> Unit = {},
     var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {},
@@ -23,14 +23,14 @@ fun KotlinMultiplatformExtension.darwin(
 ) {
     val configure = DarwinConfigure().apply(configuration)
 
-    val targets = mutableListOf<KotlinNativeTarget>(
-        iosSimulatorArm64()
+    val targets = mutableListOf(
+        iosSimulatorArm64(),
+        iosArm64()
     )
 
-    if (!configure.onlyM1Simulator)
+    if (!configure.armOnly)
         targets.apply {
             add(iosX64())
-            add(iosArm64())
         }
 
     targets.forEach {

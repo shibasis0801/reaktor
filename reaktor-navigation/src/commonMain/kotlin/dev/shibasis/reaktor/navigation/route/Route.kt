@@ -16,5 +16,5 @@ sealed class Route(val name: String, var path: String? = null)
 fun getErrorRoute(
     errorScreenProps: ErrorScreenProps = ErrorScreenProps()
 ): Destination<Props> {
-  return Destination<ErrorScreenProps>("error", errorScreenProps) { props -> ErrorScreen(props) } as Destination<Props>
+  return Destination("error", errorScreenProps) { props -> ErrorScreen(props) } as Destination<Props>
 }

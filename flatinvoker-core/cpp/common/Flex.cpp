@@ -1,6 +1,5 @@
 #include <common/Flex.h>
 #include <common/CppBase.h>
-#include <android/log.h>
 
 // This file should not be consumed by downstream. This is for Kotlin.
 using namespace FlatInvoker;

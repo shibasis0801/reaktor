@@ -54,15 +54,12 @@ object Version {
     // KMM Async
     const val Coroutines = "1.8.0-RC"
     const val Kermit = "2.0.3"
-    const val Serialization = "1.6.2"
+    const val Serialization = "1.7.1"
 
     // DevTools
     const val Flipper = "0.162.0"
     const val LeakCanary = "2.8.1"
     const val SoLoader = "0.10.1"
-
-    const val Koin = "3.4.0"
-    const val KoinAnnotations = "1.2.0"
 
     val architectures = listOf(
 //        "armeabi-v7a",

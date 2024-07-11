@@ -63,7 +63,6 @@ class LibraryPlugin: Plugin<Project> {
             register<Copy>("generateDocumentation") { generateDocumentation() }
         }
 
-
         val extension = DependeasyExtension.create(this)
         applyMultiplatformPlugins(extension)
 //        plugins.apply("com.codingfeline.buildkonfig")
