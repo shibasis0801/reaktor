@@ -14,7 +14,7 @@ plugins {
 kotlin {
     common {
         dependencies = {
-
+            api(project(":reaktor-core"))
         }
     }
 
@@ -37,11 +37,16 @@ kotlin {
     }
     server {
         dependencies = {
-
+            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-dao:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-json:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-kotlin-datetime:${Version.Exposed}")
+            api("com.impossibl.pgjdbc-ng:pgjdbc-ng:0.8.9")
         }
     }
 }
 
 android {
-    defaults("dev.shibasis.reaktor.io")
+    defaults("dev.shibasis.reaktor.auth")
 }

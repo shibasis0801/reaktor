@@ -13,8 +13,7 @@ plugins {
 kotlin {
     common {
         dependencies = {
-            commonCoroutines()
-            commonSerialization()
+            api(project(":reaktor-core"))
             api(compose.runtime)
             api(compose.foundation)
             api(compose.material3)
@@ -37,7 +36,7 @@ kotlin {
     }
 
     project.android {
-        defaults("dev.shibasis.reaktor.core")
+        defaults("dev.shibasis.reaktor.ui")
     }
     droid {
         dependencies = {
@@ -62,6 +61,3 @@ kotlin {
     }
 
 }
-//dependencies {
-//    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
-//}

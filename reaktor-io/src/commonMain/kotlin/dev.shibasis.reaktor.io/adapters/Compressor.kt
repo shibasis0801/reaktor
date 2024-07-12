@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.core.framework.FeatureSlot
+import dev.shibasis.reaktor.core.framework.CreateSlot
 
 data class CompressionResponse(
     val base64EncodedString: String,
@@ -26,4 +26,4 @@ abstract class CompressionAdapter<Controller>(controller: Controller): Adapter<C
     abstract fun decompress(request: DecompressionRequest): DecompressionResponse?
 }
 
-var Feature.Compression by FeatureSlot<CompressionAdapter<*>>()
+var Feature.Compression by CreateSlot<CompressionAdapter<*>>()

@@ -32,7 +32,7 @@ object Feature: DependencyModule {
 }
 
 // Create a slot for a Feature, you will need to set it somewhere.
-class FeatureSlot<T>: ReadWriteProperty<Any, T?> {
+class CreateSlot<T>: ReadWriteProperty<Any, T?> {
     private val id = Feature.createId()
     override fun getValue(thisRef: Any, property: KProperty<*>) = Feature.fetchDependency<T>(id)
     override fun setValue(thisRef: Any, property: KProperty<*>, value: T?) =

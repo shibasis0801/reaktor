@@ -81,6 +81,7 @@ include(":reaktor-core")
 include(":reaktor-io")
 include(":reaktor-ui")
 include(":reaktor-auth")
+include(":reaktor-media")
 include(":reaktor-navigation")
 
 //includeBuild("tester-react/android")

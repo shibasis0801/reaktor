@@ -1,4 +1,4 @@
-val kotlinVersion = "2.0.0"
+val kotlinVersion = "2.0.20-Beta2"
 val crashlyticsVersion = "2.9.9"
 val serializationVersion = "1.7.1"
 
@@ -8,7 +8,7 @@ plugins {
 //    https://plugins.gradle.org/docs/publish-plugin Do this
 //    id("com.gradle.plugin-publish") version "1.2.1"
     `kotlin-dsl`
-    kotlin("jvm")  version "2.0.0"
+    kotlin("jvm")  version "2.0.20-Beta2"
 }
 
 repositories {

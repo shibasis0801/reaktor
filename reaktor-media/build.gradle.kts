@@ -3,18 +3,17 @@ import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.*
-import org.jetbrains.kotlin.gradle.plugin.KotlinHierarchyTemplate
-
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("app.cash.sqldelight")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 kotlin {
     common {
         dependencies = {
-
+            api(project(":reaktor-navigation"))
+            api(project(":reaktor-io"))
         }
     }
 
@@ -26,7 +25,8 @@ kotlin {
 
     droid {
         dependencies = {
-
+            camera()
+            workManager()
         }
     }
 
@@ -43,5 +43,5 @@ kotlin {
 }
 
 android {
-    defaults("dev.shibasis.reaktor.io")
+    defaults("dev.shibasis.reaktor.media")
 }

@@ -15,9 +15,7 @@ plugins {
 kotlin {
     common {
         dependencies = {
-            api(project(":reaktor-core"))
-            api(compose.runtime)
-            api(compose.foundation)
+            api(project(":reaktor-ui"))
         }
     }
     droid {

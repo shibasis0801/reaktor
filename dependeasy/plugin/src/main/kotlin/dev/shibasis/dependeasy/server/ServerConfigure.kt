@@ -22,7 +22,7 @@ fun KotlinMultiplatformExtension.server(
     jvm {
         configure.targetModifier(this)
         this.compilations.forEach {
-            it.kotlinOptions.jvmTarget = "11"
+            it.kotlinOptions.jvmTarget = Version.SDK.Java.asString
         }
     }
 

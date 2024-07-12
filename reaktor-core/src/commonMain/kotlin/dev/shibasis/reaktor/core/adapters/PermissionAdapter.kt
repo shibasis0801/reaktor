@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.core.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.core.framework.CreateSlot
 
 
 sealed class PermissionResult {
@@ -28,8 +29,4 @@ abstract class PermissionAdapter<Controller>(controller: Controller): Adapter<Co
     suspend fun requestOptional(vararg permissions: String): Map<String, PermissionResult> = hashMapOf()
 }
 
-
-private val permissionId = Feature.createId()
-var Feature.Permission: PermissionAdapter<*>?
-    get() = fetchDependency(permissionId)
-    set(permissionAdapter) = storeDependency(permissionId, permissionAdapter)
+var Feature.Permission by CreateSlot<PermissionAdapter<*>>()

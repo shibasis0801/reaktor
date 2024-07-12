@@ -35,6 +35,7 @@ object Version {
 
     // Data
     const val SQLDelight = "2.0.0"
+    const val Exposed = "0.50.0"
     const val OkHttp = "4.10.0"
     const val WorkManager = "2.9.0"
     const val Ktor = "2.3.0"
@@ -46,7 +47,7 @@ object Version {
     const val Firebase = "32.0.0"
 
     // Android Camera
-    const val CameraX = "1.2.3"
+    const val CameraX = "1.3.4"
 
 
     // Database

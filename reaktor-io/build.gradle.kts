@@ -8,7 +8,6 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinHierarchyTemplate
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("app.cash.sqldelight")
 }
 
 kotlin {

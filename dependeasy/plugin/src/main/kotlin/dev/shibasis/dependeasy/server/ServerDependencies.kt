@@ -8,6 +8,7 @@ fun KotlinDependencyHandler.vertx() {
     api(platform("io.vertx:vertx-stack-depchain:${Version.SDK.Vertx}"))
     api("io.vertx:vertx-core")
     api("io.vertx:vertx-web")
+    api("io.vertx:vertx-auth")
     api("io.vertx:vertx-shell")
     api("io.vertx:vertx-lang-kotlin")
     api("io.vertx:vertx-lang-kotlin-coroutines")
