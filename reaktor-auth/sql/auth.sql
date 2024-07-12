@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS Entity(
     app_id BIGSERIAL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (name, app_id),
     FOREIGN KEY (app_id) REFERENCES App(id) ON DELETE SET NULL
 );
 
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS "User"(
     uuid uuid,
     app_id BIGSERIAL,
     data json,
+    UNIQUE (uuid, app_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (app_id) REFERENCES App(id) ON DELETE SET NULL
@@ -63,6 +65,7 @@ CREATE TABLE IF NOT EXISTS Role(
     id BIGSERIAL PRIMARY KEY,
     name varchar(50),
     app_id BIGSERIAL,
+    UNIQUE (name, app_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (app_id) REFERENCES App(id) ON DELETE SET NULL
@@ -72,6 +75,7 @@ CREATE TABLE IF NOT EXISTS Permission(
     id BIGSERIAL PRIMARY KEY,
     name varchar(100),
     app_id BIGSERIAL,
+    UNIQUE (name, app_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (app_id) REFERENCES App(id) ON DELETE SET NULL
@@ -114,3 +118,13 @@ CREATE TRIGGER set_updated_at_roles BEFORE UPDATE ON Role FOR EACH ROW EXECUTE F
 CREATE TRIGGER set_updated_at_permissions BEFORE UPDATE ON Permission FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER set_updated_at_role_permissions BEFORE UPDATE ON RolePermissions FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER set_updated_at_user_roles BEFORE UPDATE ON UserRole FOR EACH ROW EXECUTE FUNCTION on_update();
+
+CREATE INDEX idx_entity_app_id ON Entity(app_id);
+CREATE INDEX idx_user_app_id ON "User"(app_id);
+CREATE INDEX idx_role_app_id ON Role(app_id);
+CREATE INDEX idx_permission_app_id ON Permission(app_id);
+CREATE INDEX idx_role_permissions_role_id ON RolePermissions(role_id);
+CREATE INDEX idx_role_permissions_permission_id ON RolePermissions(permission_id);
+CREATE INDEX idx_user_role_user_id ON UserRole(user_id);
+CREATE INDEX idx_user_role_role_id ON UserRole(role_id);
+CREATE INDEX idx_user_role_entity_id ON UserRole(entity_id);
