@@ -41,7 +41,7 @@ kotlin {
             api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-json:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-kotlin-datetime:${Version.Exposed}")
-            api("com.impossibl.pgjdbc-ng:pgjdbc-ng:0.8.9")
+            implementation("org.postgresql:postgresql:42.7.3")
         }
     }
 }
