@@ -4,11 +4,10 @@ import dev.shibasis.reaktor.core.network.Response
 import io.vertx.core.impl.logging.Logger
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.ext.web.Route
+import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.coroutines.CoroutineVerticle
-import io.vertx.kotlin.coroutines.dispatcher
 import kotlinx.coroutines.*
-import kotlin.coroutines.resume
 
 typealias Handler = suspend (routingContext: RoutingContext, coroutineScope: CoroutineScope) -> Response
 
@@ -33,6 +32,8 @@ open class BaseVerticle: CoroutineVerticle() {
         dispatcher: CoroutineDispatcher = Dispatchers.IO,
         crossinline handler: Handler,
     ) = handle(verticleScope, dispatcher, handler)
+
+    open fun createRouter(): Router? = null
 }
 
 

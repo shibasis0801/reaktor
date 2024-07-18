@@ -4,11 +4,9 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
-import org.jetbrains.kotlin.gradle.plugin.KotlinHierarchyTemplate
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("app.cash.sqldelight")
 }
 
 kotlin {
@@ -37,6 +35,7 @@ kotlin {
     }
     server {
         dependencies = {
+            // sqldelight does not support jvm postgres in a multiplatform module yet.
             api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-dao:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
