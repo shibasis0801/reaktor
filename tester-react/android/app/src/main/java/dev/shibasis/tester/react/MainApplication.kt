@@ -4,7 +4,6 @@ import android.app.Application;
 import com.facebook.react.*
 import com.facebook.soloader.SoLoader;
 import dev.shibasis.flatinvoker.react.TurboKotlinPackage
-import dev.shibasis.flatinvoker.react.tester.BuildConfig
 
 class MainApplication: Application(), ReactApplication {
    private val rnHost = object: ReactNativeHost(this) {

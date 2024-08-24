@@ -14,6 +14,7 @@ kotlin {
             commonCoroutines()
             commonSerialization()
             api("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+            api("org.jetbrains.kotlinx:atomicfu:0.25.0")
         }
     }
 
@@ -38,10 +39,7 @@ kotlin {
     }
 
     darwin {
-        dependencies = {
-            // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
-            api("org.jetbrains.kotlinx:atomicfu:0.25.0")
-        }
+        dependencies = {}
     }
     server {
         dependencies = {

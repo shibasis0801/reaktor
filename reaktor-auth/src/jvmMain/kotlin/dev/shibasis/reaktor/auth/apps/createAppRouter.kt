@@ -17,75 +17,33 @@ import org.jetbrains.exposed.sql.update
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.deleteWhere
 
-
 internal fun Vertx.createAppRouter(database: Database) = Router.router(this).apply {
-    get("/").handle { _, _ ->
-        transaction(database) {
-            JsonResponse(
-                Apps.selectAll().map {
-                    it[Apps.name]
-                }
-            )
-        }
-    }
-
-    get("/:id").handle { ctx, _ ->
-        val id = ctx.pathParam("id").toLong()
-        transaction(database) {
-            val app = Apps.selectAll().where { Apps.id eq id }.singleOrNull()
-            if (app == null) {
-                ErrorResponse(1, "App not found", StatusCode.NOT_FOUND)
-            } else {
-                JsonResponse(app[Apps.name])
-            }
-        }
-    }
-
-    post("/").handle { ctx, _ ->
-        val body = ctx.body().asJsonObject()
-        val name = body.getString("name")
-        val data = body.getJsonObject("data").toString()
-
-        transaction(database) {
-            Apps.insert {
-                it[Apps.name] = name
-                it[Apps.data] = Json.decodeFromString<JsonElement>(data)
-            }
-        }
-
-        JsonResponse("App created")
-    }
-
-    put("/:id").handle { ctx, _ ->
-        val id = ctx.pathParam("id").toLong()
-        val body = ctx.body().asJsonObject()
-        val name = body.getString("name")
-        val data = body.getJsonObject("data").toString()
-
-        transaction(database) {
-            val app = Apps.selectAll().where { Apps.id eq id }.singleOrNull()
-            if (app == null) {
-                ErrorResponse(1, "App not found", StatusCode.NOT_FOUND)
-            } else {
-                Apps.update({ Apps.id eq id }) {
-                    it[Apps.name] = name
-                    it[Apps.data] = Json.decodeFromString<JsonElement>(data)
-                }
-                JsonResponse("App updated")
-            }
-        }
-    }
-
-    delete("/:id").handle { ctx, _ ->
-        val id = ctx.pathParam("id").toLong()
-        transaction(database) {
-            val app = Apps.selectAll().where { Apps.id eq id }.singleOrNull()
-            if (app == null) {
-                ErrorResponse(1, "App not found", StatusCode.NOT_FOUND)
-            } else {
-                Apps.deleteWhere { Apps.id eq id }
-                JsonResponse("App deleted")
-            }
-        }
-    }
+    val appService = AppService(database)
+// need to convert a result into a response
+//    get("/").handle { _, _ -> appService.getApps() }
+//
+//    get("/:id").handle { ctx, _ ->
+//        val id = ctx.pathParam("id").toLong()
+//        appService.getApp(id)
+//    }
+//
+//    post("/").handle { ctx, _ ->
+//        val body = ctx.body().asJsonObject()
+//        val name = body.getString("name")
+//        val data = body.getJsonObject("data").toString()
+//        appService.createApp(name, data)
+//    }
+//
+//    put("/:id").handle { ctx, _ ->
+//        val id = ctx.pathParam("id").toLong()
+//        val body = ctx.body().asJsonObject()
+//        val name = body.getString("name")
+//        val data = body.getJsonObject("data").toString()
+//        appService.updateApp(id, name, data)
+//    }
+//
+//    delete("/:id").handle { ctx, _ ->
+//        val id = ctx.pathParam("id").toLong()
+//        appService.deleteApp(id)
+//    }
 }

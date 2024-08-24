@@ -18,3 +18,10 @@ interface Invokable {
     fun invokeAsync(payload: FlexPayload): Flow<Long>
 }
 
+fun interface SyncInvokable {
+    fun invokeSync(payload: FlexPayload): Long
+}
+
+fun interface AsyncInvokable {
+    fun invokeAsync(payload: FlexPayload): Flow<Long>
+}

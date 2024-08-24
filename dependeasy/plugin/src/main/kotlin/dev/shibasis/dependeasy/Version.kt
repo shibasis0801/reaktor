@@ -4,7 +4,7 @@ import org.gradle.api.JavaVersion
 
 object Version {
     object SDK {
-        const val minSdk = 24
+        const val minSdk = 26
         const val compileSdk = 34
         const val targetSdk = 34
         const val ndkVersion = "25.0.8775105"
@@ -16,15 +16,15 @@ object Version {
         const val Vertx = "4.4.2"
 
         object Java {
-            val asEnum = JavaVersion.VERSION_11
-            val asString = "11"
+            val asEnum = JavaVersion.VERSION_17
+            val asString = "17"
             val asInt = asString.toInt() // wtf is wrong with gradle and java version types
         }
     }
 
     // Android
 //    const val Compose = "1.2.0"
-    const val Activity = "1.6.1"
+    const val Activity = "1.9.1"
     const val Fragment = "1.3.6"
     const val Lifecycle = "2.4.0"
     const val Navigation = "2.3.2"

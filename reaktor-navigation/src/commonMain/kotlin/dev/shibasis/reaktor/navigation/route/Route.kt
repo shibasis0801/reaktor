@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.navigation.route
 import dev.shibasis.reaktor.navigation.screen.ErrorScreen
 import dev.shibasis.reaktor.navigation.screen.ErrorScreenProps
 import dev.shibasis.reaktor.navigation.screen.Props
+import kotlin.js.JsExport
 
 /*
 Every route has a name
@@ -13,6 +14,7 @@ sealed class Route(val name: String, var path: String? = null)
 
 // todo figure how to avoid this
 @Suppress("UNCHECKED_CAST")
+@JsExport
 fun getErrorRoute(
     errorScreenProps: ErrorScreenProps = ErrorScreenProps()
 ): Destination<Props> {

@@ -87,6 +87,7 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
 
 //    flipper()
+    implementation("com.facebook.fbjni:fbjni:0.2.2")
 
     val hermesPath= "../../node_modules/hermes-engine/android/"
     debugImplementation(files(hermesPath + "hermes-debug.aar"))

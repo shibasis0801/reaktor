@@ -5,10 +5,26 @@ import com.google.flatbuffers.kotlin.Vector
 import com.google.flatbuffers.kotlin.getRoot
 import dev.shibasis.flatinvoker.core.serialization.decodeFromFlexBuffer
 
-
-// Wrapper classes will load the GC, extension functions/properties are better.
-// As long as this informal interface is maintained, we get best of both (performance / code quality)
 typealias FlexPayload = Vector
+
+/*
+Wrapper classes will load the GC, extension functions/properties are better.
+
+FFI protocol
+ Field 0 -> moduleName
+ Field 1 -> functionName
+ Field 2 -> sequenceNumber
+ ...more fields for network (will use grpc, so whatever stuff it needs)
+
+ Field 3 + index -> actual arguments after 3 protocol fields
+
+
+Protocol is simple so that it is easy to implement in any language.
+Protocol will be used with ByteBuffers for in-process, grpc for network.
+
+ */
+
+
 fun ByteArray.toFlexPayload(): FlexPayload {
     val buffer = ArrayReadBuffer(this)
     return getRoot(buffer).toVector()
@@ -20,8 +36,15 @@ inline val FlexPayload.moduleName: String
 inline val FlexPayload.functionName: String
     get() = this[1].toString()
 
+inline val FlexPayload.sequenceNumber: Long
+    get() = this[2].toLong()
+
+inline val FlexPayload.isFlow: Boolean
+    get() = sequenceNumber != -1L
+
 inline fun<reified T> FlexPayload.argument(idx: Int): T {
-    val actualIdx = idx + 2
+    // Count
+    val actualIdx = idx + 3
     val flexPointer = this[actualIdx].toInt().toLong()
     return decodeFromFlexBuffer<T>(flexPointer)
 }

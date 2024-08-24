@@ -1,5 +1,6 @@
 import java.nio.file.*
 import dev.shibasis.dependeasy.utils.*
+import groovy.lang.Closure
 
 rootProject.name = "flatInvoker"
 
@@ -10,7 +11,12 @@ pluginManagement {
         gradlePluginPortal()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         google()
-        mavenCentral()
+        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
+        mavenCentral {
+            content {
+                excludeGroup("com.facebook.react")
+            }
+        }
         maven(url = "https://jitpack.io")
         maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     }
@@ -83,5 +89,6 @@ include(":reaktor-ui")
 include(":reaktor-auth")
 include(":reaktor-media")
 include(":reaktor-navigation")
+include(":tester-android")
+//includeBuild("tester-react")
 
-//includeBuild("tester-react/android")

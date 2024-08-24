@@ -6,6 +6,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import dev.shibasis.reaktor.navigation.screen.Props
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlin.js.JsExport
+import kotlin.js.JsName
 
 typealias ScreenPair = Pair<Props, Destination<Props>>
 
@@ -19,6 +21,7 @@ UseCases
 4. Exposes a flow to show the current route
 5. Multi-Module support, how to trigger chat from feed without having feed depend on chat ? (DI)
 */
+@JsExport
 class Navigator(
     private val root: Junction
 ) {
@@ -58,6 +61,7 @@ class Navigator(
         currentState.value = pair
     }
 
+    @JsName("pushRoute")
     fun <T: Props> push(route: String, props: T) {
         val destination = getDestination(route, root)
         push(destination, props)

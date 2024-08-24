@@ -5,19 +5,17 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.dao.id.LongIdTable
-import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentDateTime
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
+import org.jetbrains.exposed.sql.transactions.transaction
 
 inline fun <reified T : Any> Table.jsonb(name: String): Column<T> = jsonb(name, { Json.encodeToString(serializer<T>(), it) }, { Json.decodeFromString(serializer<T>(), it) })
 
 interface Data<T> {
-    fun ResultRow.toDto(): T
+    fun toDto(result: ResultRow): T
 }
-
 
 object Apps: LongIdTable("app"), Data<App> {
     val name = varchar("name", 100)
@@ -26,12 +24,12 @@ object Apps: LongIdTable("app"), Data<App> {
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 
 
-    override fun ResultRow.toDto() = App(
-        id = this[id].value,
-        name = this[name],
-        data = this[data],
-        createdAt = this[createdAt],
-        updatedAt = this[updatedAt]
+    override fun toDto(result: ResultRow) = App(
+        id = result[id].value,
+        name = result[name],
+        data = result[data],
+        createdAt = result[createdAt],
+        updatedAt = result[updatedAt]
     )
 }
 
@@ -45,13 +43,13 @@ object Entities: LongIdTable("entity"), Data<Entity> {
         uniqueIndex(name, appId)
     }
 
-    override fun ResultRow.toDto() = Entity(
-        id = this[id].value,
-        name = this[name],
-        data = this[data],
-        appId = this[appId].value,
-        createdAt = this[createdAt],
-        updatedAt = this[updatedAt]
+    override fun toDto(result: ResultRow) = Entity(
+        id = result[id].value,
+        name = result[name],
+        data = result[data],
+        appId = result[appId].value,
+        createdAt = result[createdAt],
+        updatedAt = result[updatedAt]
     )
 }
 
@@ -66,14 +64,14 @@ object Users: LongIdTable("user"), Data<User> {
         uniqueIndex(socialId, appId)
     }
 
-    override fun ResultRow.toDto() = User(
-        id = this[id].value,
-        name = this[name],
-        socialId = this[socialId],
-        appId = this[appId].value,
-        data = this[data],
-        createdAt = this[createdAt],
-        updatedAt = this[updatedAt]
+    override fun toDto(result: ResultRow) = User(
+        id = result[id].value,
+        name = result[name],
+        socialId = result[socialId],
+        appId = result[appId].value,
+        data = result[data],
+        createdAt = result[createdAt],
+        updatedAt = result[updatedAt]
     )
 }
 
@@ -86,12 +84,12 @@ object Roles: LongIdTable("role"), Data<Role> {
         uniqueIndex(name, appId)
     }
 
-    override fun ResultRow.toDto() = Role(
-        id = this[id].value,
-        name = this[name],
-        appId = this[appId].value,
-        createdAt = this[createdAt],
-        updatedAt = this[updatedAt]
+    override fun toDto(result: ResultRow) = Role(
+        id = result[id].value,
+        name = result[name],
+        appId = result[appId].value,
+        createdAt = result[createdAt],
+        updatedAt = result[updatedAt]
     )
 }
 
@@ -104,12 +102,12 @@ object Permissions: LongIdTable("permission"), Data<Permission> {
         uniqueIndex(name, appId)
     }
 
-    override fun ResultRow.toDto() = Permission(
-        id = this[id].value,
-        name = this[name],
-        appId = this[appId].value,
-        createdAt = this[createdAt],
-        updatedAt = this[updatedAt]
+    override fun toDto(result: ResultRow) = Permission(
+        id = result[id].value,
+        name = result[name],
+        appId = result[appId].value,
+        createdAt = result[createdAt],
+        updatedAt = result[updatedAt]
     )
 }
 
@@ -131,5 +129,31 @@ object UserRoles: LongIdTable("user_role") {
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
     init {
         uniqueIndex(userId, roleId, entityId)
+    }
+}
+
+object RoleBasedAuth {
+    fun initialize(
+                   url: String,
+                   user: String,
+                   password: String
+    ): Result<Database> {
+        return try {
+            Result.success(Database.connect(url, user = user, password = password).also {
+                transaction {
+                    SchemaUtils.create(
+                        Apps,
+                        Entities,
+                        Users,
+                        Roles,
+                        Permissions,
+                        UserRoles,
+                        RolePermissions
+                    )
+                }
+            })
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

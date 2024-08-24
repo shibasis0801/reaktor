@@ -14,6 +14,7 @@ fun KotlinDependencyHandler.activityFragment(
     module("androidx.activity:activity-ktx:${Version.Activity}"),
     module("androidx.fragment:fragment:${Version.Fragment}"),
     module("androidx.fragment:fragment-ktx:${Version.Fragment}"),
+    module("androidx.activity:activity-compose:${Version.Activity}")
 
 )
 
@@ -28,21 +29,6 @@ fun KotlinDependencyHandler.lifecycle(
     module("androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"),
     module("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version")
 )
-
-fun KotlinDependencyHandler.androidCompose(
-    project: Project
-) {
-    implementation(project.dependencies.enforcedPlatform("androidx.compose:compose-bom:2023.10.01"))
-    installModules(
-        module("androidx.activity:activity-compose:1.7.0"),
-        module("androidx.compose.ui:ui"),
-        module("androidx.compose.ui:ui-graphics"),
-        module("androidx.compose.ui:ui-tooling-preview"),
-        module("androidx.compose.material3:material3"),
-        module("androidx.compose.ui:ui-text-google-fonts:1.4.3"),
-
-    )
-}
 
 fun KotlinDependencyHandler.androidNetworking(
 ) = installModules(
@@ -72,10 +58,9 @@ fun KotlinDependencyHandler.camera() = installModules(
 
 fun KotlinDependencyHandler.firebase(
     project: Project,
-    minimal: Boolean = true,
-    firebaseVersion: String = Version.Firebase
+    minimal: Boolean = true
 ) {
-    val firebaseBOM = "com.google.firebase:firebase-bom:$firebaseVersion"
+    val firebaseBOM = "com.google.firebase:firebase-bom:${Version.Firebase}"
     implementation(project.dependencies.enforcedPlatform(firebaseBOM))
 
     if (minimal) {
@@ -97,13 +82,12 @@ fun KotlinDependencyHandler.firebase(
     }
 }
 
-fun KotlinDependencyHandler.androidCoroutines(
-    coroutines_version: String = Version.Coroutines
-) = installModules(
-    module("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"),
-    module("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutines_version")
-)
+fun KotlinDependencyHandler.androidCoroutines() = installModules(
+    module("org.jetbrains.kotlinx:kotlinx-coroutines-android:${Version.Coroutines}"),
+    module("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:${Version.Coroutines}"),
+    module("org.jetbrains.kotlinx:kotlinx-coroutines-guava:${Version.Coroutines}"),
 
+)
 
 fun KotlinDependencyHandler.fbjni() {
     api("com.facebook.fbjni:fbjni:0.2.2")

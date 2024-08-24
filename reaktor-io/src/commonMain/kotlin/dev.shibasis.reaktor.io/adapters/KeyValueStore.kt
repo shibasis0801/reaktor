@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 
 abstract class KeyValueStore<Controller>(
@@ -23,7 +24,4 @@ abstract class KeyValueStore<Controller>(
     }
 }
 
-private val keyValueId = Feature.createId()
-var Feature.KeyValueStore: KeyValueStore<*>?
-    get() = fetchDependency(keyValueId)
-    set(adapter) = storeDependency(keyValueId, adapter)
+var Feature.KeyValueStore by CreateSlot<KeyValueStore<*>>()

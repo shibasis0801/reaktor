@@ -1,3 +1,4 @@
+import groovy.lang.Closure
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
@@ -22,7 +23,7 @@ buildscript {
     repositories {
         gradlePluginPortal()
         google()
-        maven(url = "$rootDir/node_modules/react-native/android")
+        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
         mavenCentral {
             content {
                 excludeGroup("com.facebook.react")
@@ -40,6 +41,7 @@ allprojects {
                 excludeGroup("com.facebook.react")
             }
         }
+        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
         google()
         maven(url = "https://www.jitpack.io")
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")

@@ -11,8 +11,6 @@ plugins {
 }
 
 kotlin {
-    applyHierarchyTemplate(KotlinHierarchyTemplate.default)
-
     common {
         dependencies = {
             api(project(":reaktor-core"))

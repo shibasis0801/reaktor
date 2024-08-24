@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import kotlinx.io.RawSource
 import kotlinx.io.Sink
@@ -123,10 +124,7 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
     }
 }
 
-private val fileId = Feature.createId()
-var Feature.File: FileAdapter<*>?
-    get() = fetchDependency(fileId)
-    set(fileAdapter) = storeDependency(fileId, fileAdapter)
+var Feature.File by CreateSlot<FileAdapter<*>>()
 
 
 

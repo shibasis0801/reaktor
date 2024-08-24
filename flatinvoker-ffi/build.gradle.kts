@@ -38,6 +38,9 @@ kotlin {
     }
 
     droid {
+        integrationTestDependencies = {
+//            api()
+        }
 
     }
 

@@ -7,6 +7,7 @@ import org.gradle.internal.file.impl.DefaultFileMetadata.file
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.ExternalKotlinTargetApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
@@ -22,28 +23,26 @@ class WebConfiguration(
     var targetModifier: KotlinJsTargetDsl.() -> Unit = {},
     var webpackConfig: KotlinWebpackConfig.() -> Unit = {},
     var packageJson: File? = null,
+    var moduleName: String? = null
 )
 
 fun KotlinJsTargetDsl.defaults() {
-    compilations.all {
-        compileTaskProvider.configure {
-            compilerOptions.freeCompilerArgs.add("-Xerror-tolerance-policy=SYNTAX")
-        }
-    }
     useEsModules()
-    binaries.library()
+//    binaries.library()
     generateTypeScriptDefinitions()
 }
 
-@OptIn(ExperimentalMainFunctionArgumentsDsl::class, ExternalKotlinTargetApi::class)
+@OptIn(ExternalKotlinTargetApi::class, ExperimentalMainFunctionArgumentsDsl::class, ExperimentalWasmDsl::class)
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
 ) {
     val configure = WebConfiguration().apply(configuration)
     configure.packageJson?.apply(project::buildTasksFromScripts)
 
+    val name = configure.moduleName ?: project.name
+
     js(IR) {
-        moduleName = "index"
+        moduleName = name
         defaults()
         useEsModules()
         nodejs {
@@ -54,7 +53,7 @@ fun KotlinMultiplatformExtension.web(
         browser {
             binaries.library()
             commonWebpackConfig {
-                output?.library = "index"
+                output?.library = name
                 outputFileName = "index.js"
                 cssSupport {
                     enabled.set(true)

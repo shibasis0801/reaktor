@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextAlign
+import kotlin.js.JsExport
 
+@JsExport
 data class ErrorScreenProps(
     val errorMessage: String = "Oops! Something went wrong.",
     val onRetry: () -> Unit = {}

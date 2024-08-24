@@ -23,7 +23,7 @@ dependencies {
     // Align Version of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("com.android.tools.build:gradle:8.3.2")
+    implementation("com.android.tools.build:gradle:8.4.2")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")

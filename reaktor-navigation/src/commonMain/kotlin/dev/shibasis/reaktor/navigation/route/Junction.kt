@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.navigation.route
 
 import dev.shibasis.reaktor.navigation.screen.Props
+import kotlin.js.JsExport
+import kotlin.js.JsName
 
 /*
 All route additions must be through junctions.
@@ -9,6 +11,7 @@ Every junction has an Error Destination
 todo solve if junction attached to multiple parents
 todo critical -> when junctions / destinations are added, the full tree must be updated
 */
+@JsExport
 class Junction(
     name: String,
     parentPath: String? = null,
@@ -50,6 +53,8 @@ class Junction(
         routes[junction.name] = junction
         return junction
     }
+
+    @JsName("junctionBuilder")
     fun junction(name: String, errorDestination: Destination<Props>? = null, junctionBuilder: Junction.() -> Unit): Junction {
         return junction(Junction(name, path, errorDestination, junctionBuilder))
     }

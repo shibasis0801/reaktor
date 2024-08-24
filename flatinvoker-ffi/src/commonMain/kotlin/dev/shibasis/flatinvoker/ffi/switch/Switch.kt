@@ -6,8 +6,10 @@ import dev.shibasis.flatinvoker.ffi.payload.moduleName
 import dev.shibasis.flatinvoker.ffi.payload.toFlexPayload
 import kotlinx.coroutines.flow.Flow
 
+class ModuleMap: MutableMap<String, Invokable> by hashMapOf()
+
 object Switch {
-    val moduleMap: MapModuleHolder = MapModuleHolder()
+    val moduleMap = ModuleMap()
 
     fun installModule(moduleName: String, invokable: Invokable) {
         moduleMap[moduleName] = invokable
@@ -36,3 +38,7 @@ object Switch {
     }
 }
 
+/*
+
+
+*/

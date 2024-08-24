@@ -12,7 +12,8 @@ plugins {
 kotlin {
     common {
         dependencies = {
-            api(project(":reaktor-core"))
+            api(project(":reaktor-io"))
+            api("io.github.jan-tennert.supabase:gotrue-kt:2.5.4")
         }
     }
 
