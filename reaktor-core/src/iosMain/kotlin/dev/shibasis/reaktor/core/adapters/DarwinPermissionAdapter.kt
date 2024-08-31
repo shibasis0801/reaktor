@@ -8,6 +8,8 @@ import platform.AVFoundation.authorizationStatusForMediaType
 import platform.AVFoundation.requestAccessForMediaType
 import platform.Photos.PHAuthorizationStatusAuthorized
 import platform.Photos.PHPhotoLibrary
+import platform.Speech.SFSpeechRecognizer
+import platform.Speech.SFSpeechRecognizerAuthorizationStatus
 import kotlin.coroutines.resume
 
 
@@ -19,11 +21,13 @@ class DarwinPermissionAdapter(): PermissionAdapter<Unit>(Unit) {
     init {
         addHandler(Permission.CAMERA, ::cameraPermissionHandler)
         addHandler(Permission.GALLERY, ::galleryPermissionHandler)
+        addHandler(Permission.SPEECH_RECOGNITION, ::speechRecognitionHandler)
     }
 
     fun addHandler(permission: String, handler: PermissionRequestHandler) {
         requestHandler[permission] = handler
     }
+
     override suspend fun request(vararg permissions: String): Boolean {
         var granted = true
         for (permission in permissions) {
@@ -33,26 +37,27 @@ class DarwinPermissionAdapter(): PermissionAdapter<Unit>(Unit) {
         return granted
     }
 }
+
+
+private fun Boolean.toPermissionResult() = if (this) PermissionResult.Granted else PermissionResult.Denied.Once
+
+
 // todo suspendcancellablecoroutine needs a timeout feature
 suspend fun cameraPermissionHandler() = suspendCancellableCoroutine { continuation ->
     AVCaptureDevice.requestAccessForMediaType(AVMediaTypeVideo) {
-        if (it) {
-            continuation.resume(PermissionResult.Granted)
-        }
-        else {
-            continuation.resume(PermissionResult.Denied.Once)
-        }
+        continuation.resume(it.toPermissionResult())
     }
 }
 
 
 suspend fun galleryPermissionHandler() = suspendCancellableCoroutine { continuation ->
     PHPhotoLibrary.requestAuthorization {
-        if (it == PHAuthorizationStatusAuthorized) {
-            continuation.resume(PermissionResult.Granted)
-        }
-        else {
-            continuation.resume(PermissionResult.Denied.Once)
-        }
+        continuation.resume((it == PHAuthorizationStatusAuthorized).toPermissionResult())
+    }
+}
+
+suspend fun speechRecognitionHandler() = suspendCancellableCoroutine { continuation ->
+    SFSpeechRecognizer.requestAuthorization {
+        continuation.resume((it == SFSpeechRecognizerAuthorizationStatus.SFSpeechRecognizerAuthorizationStatusAuthorized).toPermissionResult())
     }
 }

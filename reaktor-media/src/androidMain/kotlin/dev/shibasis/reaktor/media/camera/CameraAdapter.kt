@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.media
+package dev.shibasis.reaktor.media.camera
 
 import androidx.activity.ComponentActivity
 import androidx.camera.core.CameraSelector
@@ -29,7 +29,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.work.await
 import dev.shibasis.reaktor.core.adapters.Permission
 import dev.shibasis.reaktor.core.adapters.PermissionAdapter
-import dev.shibasis.reaktor.media.CameraAdapter
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 

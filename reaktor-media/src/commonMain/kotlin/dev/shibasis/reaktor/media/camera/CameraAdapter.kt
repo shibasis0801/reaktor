@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.media
+package dev.shibasis.reaktor.media.camera
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.core.framework.Adapter

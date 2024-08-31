@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.media
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.media.Camera
+import dev.shibasis.reaktor.media.camera.Camera
 import dev.shibasis.reaktor.navigation.screen.Props
 
 @Composable

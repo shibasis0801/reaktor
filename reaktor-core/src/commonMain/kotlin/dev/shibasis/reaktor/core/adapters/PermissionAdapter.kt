@@ -19,6 +19,7 @@ object Permission {
     val LOCATION = "LOCATION"
     val STORAGE = "STORAGE"
     val GALLERY = "GALLERY"
+    val SPEECH_RECOGNITION = "SPEECH_RECOGINTION"
 }
 
 abstract class PermissionAdapter<Controller>(controller: Controller): Adapter<Controller>(controller) {

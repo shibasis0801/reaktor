@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.media
+package dev.shibasis.reaktor.media.camera
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,7 +16,6 @@ import platform.AVFoundation.AVCaptureDeviceInput
 import platform.AVFoundation.AVCaptureDeviceInput.Companion.deviceInputWithDevice
 import platform.AVFoundation.AVCaptureDevicePositionFront
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInTrueDepthCamera
-import platform.AVFoundation.AVCapturePhotoCaptureDelegateProtocol
 import platform.AVFoundation.AVCapturePhotoOutput
 import platform.AVFoundation.AVCaptureSessionPresetPhoto
 import platform.AVFoundation.AVCaptureVideoOrientationLandscapeLeft

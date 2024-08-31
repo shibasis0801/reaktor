@@ -7,7 +7,7 @@ import dev.shibasis.reaktor.core.adapters.PermissionAdapter
 import dev.shibasis.reaktor.core.adapters.StorageAdapter
 import dev.shibasis.reaktor.core.framework.Async
 import dev.shibasis.reaktor.core.framework.Component
-import dev.shibasis.reaktor.media.CameraAdapter
+import dev.shibasis.reaktor.media.camera.CameraAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
