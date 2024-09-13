@@ -35,7 +35,11 @@ elseif(IS_IOS)
     )
 else()
     message(STATUS "CLI Target")
-    add_executable(${PROJECT_NAME} test/main.cpp)
+    add_executable(
+            ${PROJECT_NAME}
+            ${common}
+            main/main.cpp
+    )
     target_link_libraries(${PROJECT_NAME} FlatInvokerCore hermes jsi)
 endif()
 

@@ -90,7 +90,7 @@ export class StateFlow<T> implements Flow<T> {
      * This is useful for example when you want to emit a value from a callback
      * before collecting the flow
      * And this supports emission from C++ as well as JS
-     * 
+     *
      * This is a FIFO queue without backpressure
      */
     queue = new Queue<T>()

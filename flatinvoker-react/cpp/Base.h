@@ -12,7 +12,6 @@
 #include <chrono>
 #include <variant>
 #include <jsi/jsi.h>
-#include <ReactCommon/CallInvoker.h>
 
 using std::string;
 using std::vector;

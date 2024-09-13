@@ -1,0 +1,20 @@
+{
+  "name": "ffi",
+  "version": "1.0.0",
+  "description": "JS FFI based on Hermes for Kotlin Multiplatform as well as React Native. Native apps can add some typescript, RN apps can add some KMM",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx metro --config metro.config.js build index.ts --out Flow.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/metro": "^0.76.3",
+    "metro": "^0.80.12",
+    "metro-react-native-babel-preset": "^0.77.0"
+  },
+  "dependencies": {
+    "metro-react-native-babel-transformer": "^0.77.0"
+  }
+}
