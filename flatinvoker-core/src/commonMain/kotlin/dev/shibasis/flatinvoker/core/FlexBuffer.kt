@@ -1,5 +1,7 @@
 package dev.shibasis.flatinvoker.core
 
+import com.google.flatbuffers.kotlin.Reference
+
 
 expect object FlexBuffer {
     fun Create(): Long

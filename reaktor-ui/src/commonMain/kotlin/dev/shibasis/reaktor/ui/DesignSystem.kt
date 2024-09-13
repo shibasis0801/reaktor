@@ -3,14 +3,13 @@ package dev.shibasis.reaktor.ui
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Shapes
@@ -20,17 +19,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.js.JsExport
 
+
+/*
+
+Figure out
+1. Set Defaults
+2. Better DX
+3. Implement neo-morphism
+
+ */
 interface DesignSystem {
-    val typography: Typography
+    val text: Typography
         @Composable get() = MaterialTheme.typography
 
-    val colorScheme: ColorScheme
+    val color: ColorScheme
         @Composable get() = MaterialTheme.colorScheme
 
     val shapes: Shapes
@@ -41,67 +48,61 @@ interface DesignSystem {
 
     @Composable
     fun ButtonPrimary(
-        text: String,
-        onClick: () -> Unit,
         modifier: Modifier,
-        enabled: Boolean,
-        icon: @Composable (() -> Unit)?
+        onClick: () -> Unit,
+        content: @Composable RowScope.() -> Unit
     ) {
         Button(
             onClick = onClick,
             modifier = modifier,
-            enabled = enabled,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ),
-            content = {
-                if (icon != null) {
-                    icon()
-                }
-                Text(text)
-            }
+            content = content
         )
     }
 
-
     @Composable
     fun ButtonSecondary(
-        text: String,
-        onClick: () -> Unit,
         modifier: Modifier,
-        enabled: Boolean,
-        icon: @Composable (() -> Unit)?
+        onClick: () -> Unit,
+        content: @Composable RowScope.() -> Unit
     ) {
         Button(
             onClick = onClick,
             modifier = modifier,
-            enabled = enabled,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             ),
-            content = {
-                if (icon != null) {
-                    icon()
-                }
-                Text(text)
-            }
+            content = content
         )
     }
 
     @Composable
-    fun TextView(text: String, style: TextStyle, modifier: Modifier) {
+    fun ButtonIcon(
+        modifier: Modifier,
+        imageVector: ImageVector,
+        onClick: () -> Unit,
+    ) {
+        Box(modifier) {
+            Icon(imageVector, imageVector.name)
+        }
+    }
+
+    @Composable
+    fun TextView(modifier: Modifier, text: String, style: TextStyle) {
         Text(text, style = style, modifier = modifier)
     }
 
     @Composable
     fun InputText(
+        modifier: Modifier,
         value: String,
         onValueChange: (String) -> Unit,
         label: @Composable (() -> Unit),
         placeholder: String,
-        modifier: Modifier,
     ) {
         OutlinedTextField(
             value = value,
@@ -141,3 +142,7 @@ data class Spacing(
     val large: Dp = 24.dp,
     val extraLarge: Dp = 32.dp
 )
+
+
+val Color.Companion.Teal: Color
+    get() = Color(0, 128, 128)

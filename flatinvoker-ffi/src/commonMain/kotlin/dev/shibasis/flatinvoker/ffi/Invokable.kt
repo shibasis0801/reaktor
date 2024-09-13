@@ -14,8 +14,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 interface Invokable {
-    fun invokeSync(payload: FlexPayload): Long
-    fun invokeAsync(payload: FlexPayload): Flow<Long>
+    fun invokeSync(payload: ByteArray): Long
+    fun invokeAsync(payload: ByteArray): Flow<Long>
 }
 
 fun interface SyncInvokable {

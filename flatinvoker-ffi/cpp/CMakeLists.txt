@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
 project(FlatInvokerFFI)
-init()
 
+init()
+configure_hermes()
 fi_dependency(flatinvoker-core)
 
 if(ANDROID)
+    setup_mobile()
     add_library(
             ${PROJECT_NAME}
             SHARED
@@ -18,7 +20,8 @@ if(ANDROID)
             PUBLIC
             FlatInvokerCore
     )
-elseif(APPLE)
+elseif(IS_IOS)
+    setup_mobile()
     add_library(
             ${PROJECT_NAME}
             STATIC
@@ -30,6 +33,10 @@ elseif(APPLE)
             PUBLIC
             FlatInvokerCore
     )
+else()
+    message(STATUS "CLI Target")
+    add_executable(${PROJECT_NAME} test/main.cpp)
+    target_link_libraries(${PROJECT_NAME} FlatInvokerCore hermes jsi)
 endif()
 
 target_include_directories(

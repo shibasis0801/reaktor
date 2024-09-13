@@ -21,7 +21,7 @@ fun gitDependency(repoURL: String, downloadRoot: File) {
 
     val path = Paths.get(subdirectory.absolutePath)
     if (!Files.exists(path)) {
-        val cloneCommand = "git clone $repoURL $path"
+        val cloneCommand = "git clone --depth 1 --single-branch  $repoURL $path"
         println("Executing: $cloneCommand")
         cloneCommand.execute()
     } else {

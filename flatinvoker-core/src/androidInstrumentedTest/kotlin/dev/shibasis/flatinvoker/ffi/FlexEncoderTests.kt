@@ -98,8 +98,6 @@ class FlexEncoderTests {
         println("Json Average: $avgJson")
 //        println("Cpp Average Time: $avgCpp")
 
-        assertTrue(true)
-        return
         // correctness tests
         val complexCase = EncodingComplexCase()
         val flexBuffer: Long = encodeToFlexBuffer(complexCase)

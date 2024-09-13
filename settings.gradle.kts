@@ -77,6 +77,8 @@ val githubDir = file(".github_modules")
 gitDependency("https://github.com/google/flatbuffers.git", githubDir)
 gitDependency("https://github.com/google/googletest.git", githubDir)
 gitDependency("https://github.com/JetBrains-Research/reflekt.git", githubDir)
+gitDependency("https://github.com/tmikov/hermes-jsi-demos.git", githubDir)
+gitDependency("https://github.com/facebook/hermes.git", githubDir)
 
 includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 include(":flatinvoker-core")

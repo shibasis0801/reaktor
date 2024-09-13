@@ -7,6 +7,6 @@ import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.ui.DesignSystem
 
 object ReaktorDesignSystem: DesignSystem {
-    override val typography: Typography
+    override val text: Typography
         @Composable get() = MaterialTheme.typography
 }

@@ -9,6 +9,9 @@ struct JTester : public jni::JavaClass<JTester> {
         auto method = instance->getClass()->getMethod<jlong(jbyteArray)>("invokeSync");
         flexbuffers::Builder builder;
         builder.Vector([&] {
+            builder.String("FlexInvokable");
+            builder.String("add");
+            builder.Int(0);
             builder.Int(1);
             builder.Int(2);
         });

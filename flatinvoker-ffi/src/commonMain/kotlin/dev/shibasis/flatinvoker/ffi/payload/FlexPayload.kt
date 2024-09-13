@@ -27,7 +27,8 @@ Protocol will be used with ByteBuffers for in-process, grpc for network.
 
 fun ByteArray.toFlexPayload(): FlexPayload {
     val buffer = ArrayReadBuffer(this)
-    return getRoot(buffer).toVector()
+    val root = getRoot(buffer)
+    return root.toVector()
 }
 
 inline val FlexPayload.moduleName: String
@@ -43,7 +44,6 @@ inline val FlexPayload.isFlow: Boolean
     get() = sequenceNumber != -1L
 
 inline fun<reified T> FlexPayload.argument(idx: Int): T {
-    // Count
     val actualIdx = idx + 3
     val flexPointer = this[actualIdx].toInt().toLong()
     return decodeFromFlexBuffer<T>(flexPointer)
