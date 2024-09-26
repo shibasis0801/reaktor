@@ -38,10 +38,12 @@ kotlin {
     }
 
     droid {
+        dependencies {
+//            implementation(project(":hermes"))
+        }
         integrationTestDependencies = {
 //            api()
         }
-
     }
 
     darwin {
@@ -62,6 +64,10 @@ kotlin {
                 freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-ffi/cpp/build/Release-iphonesimulator/lib${Name}.a")
             }
         }
+    }
+
+    server {
+
     }
 }
 

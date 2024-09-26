@@ -54,3 +54,12 @@ data class Permission(
     val updatedAt: LocalDateTime
 )
 
+@Serializable
+data class Session(
+    val id: Long,
+    val userId: Long,
+    val appId: Long,
+    val refreshToken: String,
+    val expiresAt: LocalDateTime,
+    val createdAt: LocalDateTime
+)

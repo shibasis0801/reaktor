@@ -16,6 +16,8 @@ object Tester: Invokable {
     }
     external fun test(): Int
 
+    external fun testHermes(): Int
+
     override fun invokeSync(payload: ByteArray): Long {
         val invokation = payload.toFlexPayload()
         val fnName = invokation.functionName

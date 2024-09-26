@@ -18,10 +18,10 @@ class AppService(
         success(Apps.selectAll().where { Apps.id eq id }.singleOrNull())
     }
 
-    fun createApp(name: String, data: String) = sql {
+    fun createApp(name: String, data: JsonElement) = sql {
         success(Apps.insert {
             it[Apps.name] = name
-            it[Apps.data] = Json.decodeFromString<JsonElement>(data)
+            it[Apps.data] = data
         })
     }
 

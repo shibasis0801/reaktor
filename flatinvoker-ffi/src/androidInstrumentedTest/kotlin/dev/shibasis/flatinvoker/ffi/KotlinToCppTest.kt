@@ -9,4 +9,11 @@ class KotlinToCppTest {
         val result = Tester.test()
         assertEquals(3, result)
     }
+
+    @Test
+    fun testHermes() {
+        Tester.testHermes();
+        assertEquals(1, 1);
+        // shouldn't crash
+    }
 }

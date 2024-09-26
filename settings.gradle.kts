@@ -72,6 +72,9 @@ option(FLATBUFFERS_BUILD_TESTS "Enable the build of tests and samples." OFF)
 The reason was flatc, the binary was not accessible from the path.
 If we setup that, these hacks should not be needed.
 */
+
+
+
 val githubDir = file(".github_modules")
 
 gitDependency("https://github.com/google/flatbuffers.git", githubDir)
@@ -81,6 +84,7 @@ gitDependency("https://github.com/tmikov/hermes-jsi-demos.git", githubDir)
 gitDependency("https://github.com/facebook/hermes.git", githubDir)
 
 includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
+//includeBuild(".github_modules/hermes/android")
 include(":flatinvoker-core")
 include(":flatinvoker-ffi")
 include(":flatinvoker-react")

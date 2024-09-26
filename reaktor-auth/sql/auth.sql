@@ -104,6 +104,15 @@ CREATE TABLE IF NOT EXISTS user_role(
     FOREIGN KEY (entity_id) REFERENCES entity(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS session(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES "user"(id),
+    app_id BIGINT REFERENCES app(id),
+    refresh_token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE OR REPLACE FUNCTION on_update()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -159,10 +168,8 @@ INSERT INTO role values
     (7, 'Delivery', 3, NOW(), NOW())
 ;
 
-
-
-
-
+-- GPT O1
+-- https://chatgpt.com/c/66e56079-33cc-8012-95e0-05f44d0a2b3e
 
 
 

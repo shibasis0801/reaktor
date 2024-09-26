@@ -1,4 +1,5 @@
 #include <droid/AndroidInvokable.h>
+#include <common/Engine.h>
 
 jni::global_ref<jni::JObject> instance;
 
@@ -27,9 +28,15 @@ struct JTester : public jni::JavaClass<JTester> {
         return sum();
     }
 
+    static int testHermes(jni::alias_ref<JTester> self) {
+        Engine::start();
+        return 0;
+    }
+
     static void registerNatives() {
         javaClassStatic()->registerNatives({
-            makeNativeMethod("test", JTester::test)
+            makeNativeMethod("test", JTester::test),
+            makeNativeMethod("testHermes", JTester::testHermes)
         });
     }
 };
@@ -39,7 +46,3 @@ jint JNI_OnLoad(JavaVM *vm, void*) {
         JTester::registerNatives();
     });
 }
-
-//long AndroidInvokable::invokeSync(const flexbuffers::Vector &payload) {
-//    return 0;
-//}

@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.auth
 
+import dev.shibasis.reaktor.auth.UserRoles.defaultExpression
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toKotlinInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
@@ -10,6 +14,7 @@ import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentDateTime
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.Date
 
 inline fun <reified T : Any> Table.jsonb(name: String): Column<T> = jsonb(name, { Json.encodeToString(serializer<T>(), it) }, { Json.decodeFromString(serializer<T>(), it) })
 
@@ -132,6 +137,23 @@ object UserRoles: LongIdTable("user_role") {
     }
 }
 
+object Sessions: LongIdTable("session"), Data<Session> {
+    val refreshToken = text("refresh_token")
+    val userId = reference("user_id", Users)
+    val appId = reference("app_id", Apps)
+    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
+    val expiresAt = datetime("expires_at")
+
+    override fun toDto(result: ResultRow) = Session(
+        id = result[id].value,
+        userId = result[userId].value,
+        appId = result[appId].value,
+        refreshToken = result[refreshToken],
+        createdAt = result[createdAt],
+        expiresAt = result[expiresAt]
+    )
+}
+
 object RoleBasedAuth {
     fun initialize(
                    url: String,
@@ -148,7 +170,8 @@ object RoleBasedAuth {
                         Roles,
                         Permissions,
                         UserRoles,
-                        RolePermissions
+                        RolePermissions,
+                        Sessions
                     )
                 }
             })
@@ -157,3 +180,5 @@ object RoleBasedAuth {
         }
     }
 }
+
+fun Date.toKotlinDateTime() = toInstant().toKotlinInstant().toLocalDateTime(TimeZone.currentSystemDefault())

@@ -22,7 +22,7 @@ FFI protocol
 Protocol is simple so that it is easy to implement in any language.
 Protocol will be used with ByteBuffers for in-process, grpc for network.
 
- */
+*/
 
 
 fun ByteArray.toFlexPayload(): FlexPayload {

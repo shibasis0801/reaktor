@@ -23,10 +23,12 @@ function(init)
     file(GLOB_RECURSE droid "droid/*")
     file(GLOB_RECURSE common "common/*")
     file(GLOB_RECURSE darwin "darwin/*")
+    file(GLOB_RECURSE main "main/*")
 
     set(droid ${droid} PARENT_SCOPE)
     set(common ${common} PARENT_SCOPE)
     set(darwin ${darwin} PARENT_SCOPE)
+    set(main ${main} PARENT_SCOPE)
 
     if (APPLE)
 #        target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)

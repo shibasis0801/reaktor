@@ -7,18 +7,11 @@ configure_hermes()
 fi_dependency(flatinvoker-core)
 
 if(ANDROID)
-    setup_mobile()
     add_library(
             ${PROJECT_NAME}
             SHARED
             ${droid}
             ${common}
-    )
-
-    target_link_libraries(
-            ${PROJECT_NAME}
-            PUBLIC
-            FlatInvokerCore
     )
 elseif(IS_IOS)
     setup_mobile()
@@ -28,23 +21,14 @@ elseif(IS_IOS)
             ${common}
             ${darwin}
     )
-    target_link_libraries(
-            ${PROJECT_NAME}
-            PUBLIC
-            FlatInvokerCore
-    )
 else()
     message(STATUS "CLI Target")
     add_executable(
             ${PROJECT_NAME}
             ${common}
-            main/main.cpp
+            ${main}
     )
-    target_link_libraries(${PROJECT_NAME} FlatInvokerCore hermes jsi)
 endif()
 
-target_include_directories(
-        ${PROJECT_NAME}
-        PUBLIC
-        .
-)
+target_link_libraries(${PROJECT_NAME} FlatInvokerCore hermes jsi)
+target_include_directories(${PROJECT_NAME} PUBLIC .)

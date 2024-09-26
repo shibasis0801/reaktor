@@ -1,4 +1,6 @@
 #include <common/Engine.h>
+#include <flatbuffers/flexbuffers.h>
+#include <common/FlexPrinter.h>
 #include <iostream>
 
 void flowLogic() {
@@ -27,12 +29,12 @@ void flowLogic() {
 }
 
 
-
 int main() {
     int status = 0;
     try {
         Engine::start();
         flowLogic();
+        flexbuffers::testPrintFlex();
     } catch (facebook::jsi::JSError &e) {
         // Handle JS exceptions here.
         std::cerr << "JS Exception: " << e.getStack() << std::endl;
