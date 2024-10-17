@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.auth.roles
+package dev.shibasis.reaktor.auth.vertx
 
 
 import io.vertx.core.Vertx

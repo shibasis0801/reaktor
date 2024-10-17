@@ -16,8 +16,12 @@ open class ExposedAdapter(
     database: Database
 ): Adapter<Database>(database) {
     protected fun <T> sql(statement: ResultHelper.() -> Result<T>): Result<T> = invoke {
-        transaction(this) {
-            ResultHelper.statement()
+        try {
+            transaction(this) {
+                ResultHelper.statement()
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     } ?: Result.failure(Error("Database Initialization Error"))
 }

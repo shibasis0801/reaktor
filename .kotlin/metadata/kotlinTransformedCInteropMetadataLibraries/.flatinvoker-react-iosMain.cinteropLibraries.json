@@ -5,6 +5,16 @@
     "sourceSetName": "iosMain"
   },
   {
+    "moduleId": "dev.gitlive:firebase-auth:2.1.0",
+    "file": "/Users/ovd/projects/flatInvoker/.kotlin/metadata/kotlinTransformedCInteropMetadataLibraries/dev.gitlive-firebase-auth-2.1.0-iosMain-cinterop/dev.gitlive_firebase-auth-cinterop-FirebaseAuth-GIv_gQ.klib",
+    "sourceSetName": "iosMain"
+  },
+  {
+    "moduleId": "dev.gitlive:firebase-app:2.1.0",
+    "file": "/Users/ovd/projects/flatInvoker/.kotlin/metadata/kotlinTransformedCInteropMetadataLibraries/dev.gitlive-firebase-app-2.1.0-iosMain-cinterop/dev.gitlive_firebase-app-cinterop-FirebaseCore-YwAkWA.klib",
+    "sourceSetName": "iosMain"
+  },
+  {
     "moduleId": "io.ktor:ktor-utils:2.3.0",
     "file": "/Users/ovd/projects/flatInvoker/.kotlin/metadata/kotlinTransformedCInteropMetadataLibraries/io.ktor-ktor-utils-2.3.0-iosMain-cinterop/io.ktor_ktor-utils-cinterop-threadUtils-baiRVA.klib",
     "sourceSetName": "iosMain"

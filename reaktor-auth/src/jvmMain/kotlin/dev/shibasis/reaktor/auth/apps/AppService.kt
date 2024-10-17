@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.apps
 
+import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.auth.Apps
 import dev.shibasis.reaktor.auth.ExposedAdapter
 import kotlinx.serialization.json.Json
@@ -15,14 +16,24 @@ class AppService(
     }
 
     fun getApp(id: Long) = sql {
-        success(Apps.selectAll().where { Apps.id eq id }.singleOrNull())
+        val app = Apps.selectAll().where { Apps.id eq id }.map { Apps.toDto(it) }
+        if (app.isEmpty()) {
+            failure("App not found")
+        } else {
+            success(app.single())
+        }
     }
 
     fun createApp(name: String, data: JsonElement) = sql {
-        success(Apps.insert {
-            it[Apps.name] = name
-            it[Apps.data] = data
-        })
+        try {
+            val id = Apps.insertAndGetId {
+                it[Apps.name] = name
+                it[Apps.data] = data
+            }
+            success(id.value)
+        } catch (e: Exception) {
+            failure(e.message ?: "Error creating app")
+        }
     }
 
     fun updateApp(id: Long, name: String, data: String) = sql {
@@ -30,19 +41,20 @@ class AppService(
         if (app == null) {
             failure("App not found")
         } else {
-            success(Apps.update({ Apps.id eq id }) {
+            Apps.update({ Apps.id eq id }) {
                 it[Apps.name] = name
                 it[Apps.data] = Json.decodeFromString<JsonElement>(data)
-            })
+            }
+            success(id)
         }
     }
 
     fun deleteApp(id: Long) = sql {
-        val app = Apps.selectAll().where { Apps.id eq id }.singleOrNull()
-        if (app == null) {
+        val deletedRows = Apps.deleteWhere { Apps.id eq id }
+        if (deletedRows == 0) {
             failure("App not found")
         } else {
-            success(Apps.deleteWhere { Apps.id eq id })
+            success(id)
         }
     }
 }

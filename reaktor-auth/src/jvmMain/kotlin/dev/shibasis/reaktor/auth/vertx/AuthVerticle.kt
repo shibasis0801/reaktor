@@ -1,13 +1,9 @@
-package dev.shibasis.reaktor.auth
+package dev.shibasis.reaktor.auth.vertx
 
-import dev.shibasis.reaktor.auth.apps.createAppRouter
-import dev.shibasis.reaktor.auth.entities.createEntityRouter
-import dev.shibasis.reaktor.auth.permissions.createPermissionRouter
-import dev.shibasis.reaktor.auth.roles.createRoleRouter
-import dev.shibasis.reaktor.auth.users.createUserRouter
 import dev.shibasis.reaktor.core.actor.BaseVerticle
 import io.vertx.ext.web.Router
 import org.jetbrains.exposed.sql.Database
+
 
 class AuthVerticle(
     private val database: Database

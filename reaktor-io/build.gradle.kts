@@ -18,6 +18,7 @@ kotlin {
 //            api("androidx.datastore:datastore-preferences-core:1.1.0")
             commonNetworking()
             commonLogging()
+            api("dev.gitlive:firebase-auth:2.1.0")
         }
     }
 
@@ -31,7 +32,6 @@ kotlin {
 
     droid {
         dependencies = {
-            firebase(project)
             androidNetworking()
             api("androidx.datastore:datastore-preferences-core:1.1.0")
         }

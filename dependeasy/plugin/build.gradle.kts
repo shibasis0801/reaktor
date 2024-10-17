@@ -1,4 +1,4 @@
-val kotlinVersion = "2.0.20-Beta2"
+val kotlinVersion = "2.0.20"
 val crashlyticsVersion = "2.9.9"
 val serializationVersion = "1.7.1"
 
@@ -8,7 +8,7 @@ plugins {
 //    https://plugins.gradle.org/docs/publish-plugin Do this
 //    id("com.gradle.plugin-publish") version "1.2.1"
     `kotlin-dsl`
-    kotlin("jvm")  version "2.0.20-Beta2"
+    kotlin("jvm")  version "2.0.20"
 }
 
 repositories {
@@ -30,7 +30,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
     implementation("com.google.firebase:firebase-crashlytics-gradle:$crashlyticsVersion")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
-    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.0-1.0.22")
+    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.20-1.0.25")
 
 }
 

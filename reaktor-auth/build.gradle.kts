@@ -7,11 +7,15 @@ import dev.shibasis.dependeasy.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 kotlin {
     common {
         dependencies = {
+            api(project(":reaktor-ui"))
+            api(project(":reaktor-navigation"))
             api(project(":reaktor-io"))
             api("io.github.jan-tennert.supabase:gotrue-kt:2.5.4")
         }

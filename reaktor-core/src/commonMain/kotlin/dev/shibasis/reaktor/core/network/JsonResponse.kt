@@ -77,6 +77,12 @@ enum class StatusCode(val code: Int) {
     NETWORK_AUTHENTICATION_REQUIRED(511)
 }
 
+@Serializable
+data class ErrorMessage(
+    val code: Int,
+    val message: String
+)
+
 @Expose
 @Serializable
 data class Response(
@@ -89,14 +95,15 @@ inline fun<reified T> JsonResponse(
     statusCode: StatusCode = StatusCode.OK,
 ) = Response(Json.encodeToString<T>(data), statusCode)
 
-@Serializable
-data class ErrorMessage(
-    val code: Int,
-    val message: String
-)
-
 inline fun ErrorResponse(
     code: Int, // domain error code, different from statusCode
     message: String,
     statusCode: StatusCode = StatusCode.BAD_REQUEST
-) = Response(Json.encodeToString(ErrorMessage(code, message)), statusCode)
+) = JsonResponse(ErrorMessage(code, message), statusCode)
+
+inline fun<reified T> Result<T>.toResponse() = run {
+    if (isSuccess)
+        JsonResponse(getOrThrow())
+    else
+        ErrorResponse(1, exceptionOrNull()?.message ?: "Unknown error")
+}

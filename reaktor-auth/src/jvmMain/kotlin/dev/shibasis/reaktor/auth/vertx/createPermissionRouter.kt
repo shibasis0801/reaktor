@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.auth.permissions
+package dev.shibasis.reaktor.auth.vertx
 
 
 import io.vertx.core.Vertx

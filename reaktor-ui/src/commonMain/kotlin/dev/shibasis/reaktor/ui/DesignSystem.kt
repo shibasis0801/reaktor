@@ -43,8 +43,8 @@ interface DesignSystem {
     val shapes: Shapes
         @Composable get() = MaterialTheme.shapes
 
-    val spacing: Spacing
-        get() = Spacing()
+    val sizes: Sizes
+        get() = Sizes()
 
     @Composable
     fun ButtonPrimary(
@@ -131,11 +131,11 @@ val LocalDesignSystem = staticCompositionLocalOf<DesignSystem> {
     error("No DesignSystem provided")
 }
 
-val ui: DesignSystem
+val Theme: DesignSystem
         @Composable
         get() = LocalDesignSystem.current
 
-data class Spacing(
+data class Sizes(
     val extraSmall: Dp = 4.dp,
     val small: Dp = 8.dp,
     val medium: Dp = 16.dp,
@@ -143,6 +143,11 @@ data class Spacing(
     val extraLarge: Dp = 32.dp
 )
 
+fun Modifier.extraSmallPadding(ui: DesignSystem) = padding(ui.sizes.extraSmall)
+fun Modifier.smallPadding(ui: DesignSystem) = padding(ui.sizes.small)
+fun Modifier.mediumPadding(ui: DesignSystem) = padding(ui.sizes.medium)
+fun Modifier.largePadding(ui: DesignSystem) = padding(ui.sizes.large)
+fun Modifier.extraLargePadding(ui: DesignSystem) = padding(ui.sizes.extraLarge)
 
 val Color.Companion.Teal: Color
     get() = Color(0, 128, 128)

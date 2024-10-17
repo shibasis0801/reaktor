@@ -21,7 +21,7 @@ class RefreshTokenStorage(
     ) = sql {
 
         // should be cron
-        Sessions.deleteWhere { expiresAt less System.currentTimeMillis() }
+//        Sessions.deleteWhere { expiresAt less System.currentTimeMillis() }
 
         val session = Sessions
             .selectAll()
@@ -80,8 +80,10 @@ class RefreshTokenStorage(
         val count = Sessions.selectAll().where {
             (Sessions.refreshToken eq refreshTokenId) and
                     (Sessions.userId eq userId.toLong()) and
-                    (Sessions.appId eq appId.toLong()) and
-                    (Sessions.expiresAt greater System.currentTimeMillis())
+                    (Sessions.appId eq appId.toLong())
+//            and
+//            (Sessions.expiresAt greater System.currentTimeMillis())
+
         }.count()
 
         if (count == 1L) success(decodedJWT) else failure("Invalid Token")

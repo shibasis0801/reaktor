@@ -2,11 +2,9 @@
 package dev.shibasis.reaktor.navigation.route
 
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import dev.shibasis.reaktor.navigation.screen.Props
 import dev.shibasis.reaktor.core.framework.Feature
-import kotlin.js.JsExport
 import kotlin.js.JsName
 
 typealias ScreenPair = Pair<Props, Destination<Props>>
@@ -21,18 +19,15 @@ UseCases
 4. Exposes a flow to show the current route
 5. Multi-Module support, how to trigger chat from feed without having feed depend on chat ? (DI)
 */
-@JsExport
 class Navigator(
     private val root: Junction
 ) {
-    private val stack = ArrayDeque<ScreenPair>()
-    private val currentState: MutableState<ScreenPair>
-    val current: State<ScreenPair>
-        get() { return currentState }
+    val stack = ArrayDeque<ScreenPair>()
+    val current: MutableState<ScreenPair>
 
     init {
         val route = root.Index ?: getErrorRoute()
-        currentState = mutableStateOf(ScreenPair(route.defaultParameters, route))
+        current = mutableStateOf(ScreenPair(route.defaultParameters, route))
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -58,13 +53,18 @@ class Navigator(
     fun <T: Props> push(destination: Destination<T>, props: T) {
         val pair = ScreenPair(props, destination as Destination<Props>)
         stack.add(pair)
-        currentState.value = pair
+        current.value = pair
     }
 
     @JsName("pushRoute")
     fun <T: Props> push(route: String, props: T) {
         val destination = getDestination(route, root)
         push(destination, props)
+    }
+
+    fun pop() {
+        stack.removeLast()
+        current.value = stack.last()
     }
 }
 
