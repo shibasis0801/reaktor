@@ -9,7 +9,7 @@ Pod::Spec.new do |spec|
     spec.vendored_frameworks      = 'build/cocoapods/framework/reaktor_auth.framework'
     spec.libraries                = 'c++'
     spec.ios.deployment_target    = '12'
-                
+    spec.dependency 'GoogleSignIn', '8.0.0'
                 
     if !Dir.exist?('build/cocoapods/framework/reaktor_auth.framework') || Dir.empty?('build/cocoapods/framework/reaktor_auth.framework')
         raise "

@@ -34,8 +34,8 @@ kotlin {
     }
 
     darwin {
-        dependencies = {
-
+        podDependencies = {
+            pod("GoogleSignIn", "8.0.0")
         }
     }
     server {
