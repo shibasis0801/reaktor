@@ -1,4 +1,4 @@
-val kotlinVersion = "2.0.20"
+val kotlinVersion = "2.0.21"
 val crashlyticsVersion = "2.9.9"
 val serializationVersion = "1.7.1"
 
@@ -8,7 +8,7 @@ plugins {
 //    https://plugins.gradle.org/docs/publish-plugin Do this
 //    id("com.gradle.plugin-publish") version "1.2.1"
     `kotlin-dsl`
-    kotlin("jvm")  version "2.0.20"
+    kotlin("jvm")  version "2.0.21"
 }
 
 repositories {
@@ -17,6 +17,21 @@ repositories {
     maven(url = "https://plugins.gradle.org/m2/")
     maven(url = "https://jitpack.io")
 
+}
+
+publishing {
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
+                credentials {
+                    username = System.getenv("USERNAME")
+                    password = System.getenv("TOKEN")
+                }
+            }
+        }
+    }
 }
 
 dependencies {
@@ -30,7 +45,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
     implementation("com.google.firebase:firebase-crashlytics-gradle:$crashlyticsVersion")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
-    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.20-1.0.25")
+    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.21-1.0.26")
 
 }
 

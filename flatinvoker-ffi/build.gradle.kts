@@ -65,10 +65,6 @@ kotlin {
             }
         }
     }
-
-    server {
-
-    }
 }
 
 dependencies { add("kspCommonMainMetadata", project(":flatinvoker-compiler")) }

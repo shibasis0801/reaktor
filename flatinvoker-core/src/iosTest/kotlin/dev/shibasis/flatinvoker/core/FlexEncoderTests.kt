@@ -273,7 +273,7 @@ class FlexEncoderTests {
         repeat(10) {
             val flexEncodingTime = measureTime {
                     val flexBuffer = encodeToFlexBuffer(sophisticatedCase)
-                    FlexBuffer.Finish(flexBuffer)
+                FlexBuffer.Finish(flexBuffer)
 //                    FlexBuffer.GetBuffer(flexBuffer)
                 }.inWholeMicroseconds
 

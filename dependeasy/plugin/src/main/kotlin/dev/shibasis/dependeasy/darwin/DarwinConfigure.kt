@@ -28,10 +28,11 @@ fun KotlinMultiplatformExtension.darwin(
         iosArm64()
     )
 
-    if (!configure.armOnly)
-        targets.apply {
-            add(iosX64())
-        }
+    // x64 cmake support later.
+//    if (!configure.armOnly)
+//        targets.apply {
+//            add(iosX64())
+//        }
 
     targets.forEach {
         configure.targets(it)

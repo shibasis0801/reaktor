@@ -56,10 +56,12 @@ subprojects {
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {
-    kotlinOptions {
-        freeCompilerArgs += "-Xopt-in=kotlin.experimental.ExperimentalNativeApi"
+    compilerOptions {
+        freeCompilerArgs.add("-Xopt-in=kotlin.experimental.ExperimentalNativeApi")
     }
 }
+
+
 
 tasks.dokkaHtmlMultiModule.configure {
     outputDirectory.set(file("docs"))

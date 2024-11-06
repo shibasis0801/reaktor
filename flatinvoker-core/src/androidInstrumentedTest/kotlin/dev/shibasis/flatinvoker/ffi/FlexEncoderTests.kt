@@ -6,7 +6,6 @@ import dev.shibasis.flatinvoker.core.EncodingComplexCase
 import dev.shibasis.flatinvoker.core.EncodingSimpleCase
 import dev.shibasis.flatinvoker.core.EncodingSophisticatedCase
 import dev.shibasis.flatinvoker.core.FlexBuffer
-import dev.shibasis.flatinvoker.core.ListSerializer.encodeToList
 import dev.shibasis.flatinvoker.core.serialization.encodeToFlexBuffer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -70,17 +69,12 @@ class FlexEncoderTests {
                 ProtoBuf.decodeFromByteArray(EncodingComplexCase.serializer(), proto)
             }.inWholeMicroseconds
 
-            val listEncodingTime = measureTime {
-                encodeToList(complexCase)
-            }.inWholeMicroseconds
-
             avgFlex += flexEncodingTime
             avgJson += jsonEncodingTime
             avgProto += protoEncodingTime
             avgCpp += cppTime
 
             println("FlexBuffer Time: $flexEncodingTime")
-            println("List Time: $listEncodingTime")
             println("ProtoBuf Time: $protoEncodingTime")
             println("ProtoBuf Decoding Time: $protoDecodingTime")
             println("Json Time: $jsonEncodingTime")

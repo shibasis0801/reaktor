@@ -6,8 +6,6 @@ import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.*
-import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 
 
 plugins {
@@ -16,19 +14,29 @@ plugins {
 
 val Name = "FlatInvokerCore"
 
-task<Exec>("darwinCmake") {
-    group = "reaktor"
-    // environment variable for react location
-    commandLine =  listOf("bash", "-c", """
-        cd cpp &&
-        rm -rf build &&
-        cmake -B build -G Xcode &&
-        cmake --build build --config Release
-    """.trimIndent())
+
+fun darwinCmake(sdk: String): Exec {
+    val prefix = sdk
+    return tasks.create<Exec>("${prefix}CMake") {
+        group = "reaktor"
+        workingDir = file("cpp")
+        commandLine = listOf("bash", "-c", """
+            mkdir -p build &&
+            cd build &&   
+            rm -rf $prefix &&
+            cmake -B $prefix -G Xcode \
+                -DCMAKE_BUILD_TYPE=Release \
+                -Dsdk=${sdk} .. &&
+            cmake --build $prefix --config Release
+        """.trimIndent()
+        )
+    }
 }
+val iosCmake = darwinCmake("iphoneos")
+val iosSimulatorCmake = darwinCmake("iphonesimulator")
 
 tasks.named("build") {
-    dependsOn("darwinCmake")
+    dependsOn(iosCmake, iosSimulatorCmake)
 }
 
 kotlin {
@@ -60,8 +68,10 @@ kotlin {
         }
 
         targets = {
+            println("DarwinTarget: $name")
+            val code = if (name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"
             binaries.all {
-                freeCompilerArgs += listOf("-linker-option", file("cpp/build/Release-iphonesimulator/lib${Name}.a").absolutePath)
+                freeCompilerArgs += listOf("-linker-option", file("cpp/build/$code/Release-$code/lib${Name}.a").absolutePath)
             }
         }
     }

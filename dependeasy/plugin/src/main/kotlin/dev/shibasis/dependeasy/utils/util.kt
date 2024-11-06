@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.utils
 
+import org.gradle.api.GradleException
 import org.gradle.api.initialization.Settings
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -14,20 +15,31 @@ fun String.execute() {
 }
 
 
-// clone a git repo if it does not exist
-fun gitDependency(repoURL: String, downloadRoot: File) {
+fun File.gitDependency(repoURL: String) {
+    val downloadRoot = this
     val repoName = repoURL.split(".git").first().split("/").last()
     val subdirectory = File(downloadRoot, repoName)
 
     val path = Paths.get(subdirectory.absolutePath)
     if (!Files.exists(path)) {
-        val cloneCommand = "git clone --depth 1 --single-branch  $repoURL $path"
-        println("Executing: $cloneCommand")
-        cloneCommand.execute()
+        val cloneCommand = listOf("git", "clone", "--depth", "1", "--single-branch", repoURL, path.toString())
+        println("Executing: ${cloneCommand.joinToString(" ")}")
+
+        // Execute the clone command and wait for it to complete
+        val process = ProcessBuilder(cloneCommand)
+            .directory(downloadRoot)
+            .inheritIO() // This ensures output is displayed in the console
+            .start()
+
+        val exitCode = process.waitFor()
+        if (exitCode != 0) {
+            throw GradleException("Git clone failed with exit code $exitCode")
+        }
     } else {
         println("Repository already exists at ${path.toAbsolutePath()}")
     }
 }
+
 
 fun Settings.includeWithPath(name: String, path: String? = null) {
     val newName = ":$name"

@@ -1,6 +1,5 @@
 import java.nio.file.*
 import dev.shibasis.dependeasy.utils.*
-import groovy.lang.Closure
 
 rootProject.name = "flatInvoker"
 
@@ -56,34 +55,63 @@ plugins {
     id("dev.shibasis.dependeasy.settings")
 }
 
-/*
-I had to change few things in the flatbuffers repo
-1. Disable tests in cmakeLists
-option(FLATBUFFERS_BUILD_TESTS "Enable the build of tests and samples." OFF)
 
-2. Disable GenerateFBTestClasses task in flatbuffers-kotlin build.gradle.kts
-
-3. added this for new gradle versions (revert please)
- sourceSets {
-    all {
-      languageSettings.optIn("kotlin.experimental.ExperimentalNativeApi")
+gradle.beforeProject {
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+            compilerOptions {
+                freeCompilerArgs.add("-opt-in=kotlin.experimental.ExperimentalNativeApi")
+            }
+        }
     }
-
-The reason was flatc, the binary was not accessible from the path.
-If we setup that, these hacks should not be needed.
-*/
-
 
 
 val githubDir = file(".github_modules")
 
-gitDependency("https://github.com/google/flatbuffers.git", githubDir)
-gitDependency("https://github.com/google/googletest.git", githubDir)
-gitDependency("https://github.com/JetBrains-Research/reflekt.git", githubDir)
-gitDependency("https://github.com/tmikov/hermes-jsi-demos.git", githubDir)
-gitDependency("https://github.com/facebook/hermes.git", githubDir)
+githubDir.apply {
+    gitDependency("https://github.com/google/googletest.git")
+    gitDependency("https://github.com/JetBrains-Research/reflekt.git")
+    gitDependency("https://github.com/tmikov/hermes-jsi-demos.git")
+    gitDependency("https://github.com/facebook/hermes.git")
+    gitDependency("https://github.com/leetal/ios-cmake.git")
+}
 
-includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
+
+
+fun linkFlatBuffers(
+    githubDirectory: File,
+    buildDirectory: File = File(githubDirectory, "flatbuffers"),
+    url: String = "https://github.com/shibasis0801/flatbuffers.git"
+) {
+    githubDirectory.gitDependency(url)
+    val flatc = File(buildDirectory, "flatc")
+    if (!flatc.exists()) {
+        println("Generating CMake build for flatbuffers")
+        exec {
+            workingDir = buildDirectory
+            commandLine("cmake", "-G", "Unix Makefiles")
+        }
+
+        println("Building flatc with make...")
+        exec {
+            workingDir = buildDirectory
+            commandLine("make", "-j")
+        }
+    } else {
+        println("flatc already built.")
+    }
+
+    if (!flatc.exists()) {
+        throw GradleException("Failed to build flatc binary. Check the build logs for details.")
+    } else {
+        println("flatc binary built successfully at ${flatc.absolutePath}")
+    }
+
+    includeBuild(".github_modules/flatbuffers/kotlin/convention-plugins")
+    includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
+}
+linkFlatBuffers(githubDir)
+
+
 //includeBuild(".github_modules/hermes/android")
 include(":flatinvoker-core")
 include(":flatinvoker-ffi")

@@ -1,16 +1,27 @@
 # This file is imported in all modules/cpp folders. flatbuffers is cloned at root, reachable by ../../ from a module cmake.
 # The reason to have this workaround is to have a common cmake in the root along with other build files.
+set(FLATBUFFERS_BUILD_FLATC OFF)
+set(FLATBUFFERS_BUILD_TESTS OFF)
 
 function(setup_mobile)
+    if(NOT DEFINED sdk)
+        set(sdk iphonesimulator)
+    endif()
     execute_process(
-            COMMAND xcrun --sdk iphonesimulator --show-sdk-path
+            COMMAND xcrun --sdk ${sdk} --show-sdk-path
             OUTPUT_VARIABLE IOS_SDK_PATH
             OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-    set(CMAKE_OSX_SYSROOT "${IOS_SDK_PATH}" CACHE INTERNAL "iOS Simulator SDK path")
+    set(CMAKE_SYSTEM_NAME iOS CACHE INTERNAL "")
+    set(CMAKE_OSX_SYSROOT "${IOS_SDK_PATH}" CACHE INTERNAL "iOS SDK path")
     message(STATUS "iOS SDK path: ${CMAKE_OSX_SYSROOT}")
+
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "")
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE INTERNAL "")
 endfunction()
+
+
 
 function(init)
     set(CMAKE_BUILD_TYPE Release)
