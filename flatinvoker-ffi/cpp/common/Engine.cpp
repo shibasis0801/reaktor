@@ -1,5 +1,7 @@
 #include <common/Engine.h>
+#ifdef __ANDROID__
 #include <android/log.h>
+#endif
 
 void flowLogic() {
     auto &runtime = *Engine::runtime;
@@ -15,7 +17,9 @@ void flowLogic() {
                const facebook::jsi::Value* arguments, size_t count) -> facebook::jsi::Value {
 
                 const auto &value = arguments[0];
+#ifdef __ANDROID__
                 __android_log_print(ANDROID_LOG_VERBOSE, "Shibasis Hermes", "%f", value.asNumber());
+#endif
 
 //                std::cout << value.asNumber() << std::endl;
 

@@ -110,7 +110,7 @@ linkFlatBuffers(githubDir)
 //includeBuild(".github_modules/hermes/android")
 include(":flatinvoker-core")
 include(":flatinvoker-ffi")
-include(":flatinvoker-react")
+//include(":flatinvoker-react") // will fix later
 include(":flatinvoker-compiler")
 include(":reaktor-core")
 include(":reaktor-io")
@@ -121,3 +121,6 @@ include(":reaktor-navigation")
 include(":tester-android")
 //includeBuild("tester-react")
 
+
+// publishing
+// https://chatgpt.com/c/6733a130-2240-8012-a19d-e26d822c665a
