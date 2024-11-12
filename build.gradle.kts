@@ -23,25 +23,14 @@ buildscript {
     repositories {
         gradlePluginPortal()
         google()
-        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
-        mavenCentral {
-            content {
-                excludeGroup("com.facebook.react")
-            }
-        }
+        mavenCentral()
         maven(url = "https://jitpack.io")
     }
 }
 
 allprojects {
     repositories {
-        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
-        mavenCentral {
-            content {
-                excludeGroup("com.facebook.react")
-            }
-        }
-        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
+        mavenCentral()
         google()
         maven(url = "https://www.jitpack.io")
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")

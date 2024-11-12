@@ -26,7 +26,8 @@ fun darwinCmake(sdk: String): Exec {
             rm -rf $prefix &&
             cmake -B $prefix -G Xcode \
                 -DCMAKE_BUILD_TYPE=Release \
-                -Dsdk=${sdk} .. &&
+                -Dsdk=${sdk} .. \
+                -DiOS=true &&
             cmake --build $prefix --config Release
         """.trimIndent()
         )

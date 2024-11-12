@@ -14,6 +14,5 @@ class KotlinToCppTest {
     fun testHermes() {
         Tester.testHermes();
         assertEquals(1, 1);
-        // shouldn't crash
     }
 }

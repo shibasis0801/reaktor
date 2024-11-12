@@ -30,7 +30,7 @@ if(ANDROID)
             fbjni::fbjni
     )
 elseif(APPLE)
-    setup_mobile(${SDK_NAME} ${ARCH})
+    setup_ios()
     add_library(
             ${PROJECT_NAME}
             STATIC

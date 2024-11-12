@@ -76,6 +76,7 @@ object Version {
         "libglog.so",
         "libjsi.so",
         // todo stupid hack fix
+        "libhermes.so",
         "libFlatInvokerCore.so",
         "libFlatInvokerFFI.so",
         "libFlatInvokerReact.so"

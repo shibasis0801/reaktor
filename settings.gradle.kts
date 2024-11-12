@@ -10,12 +10,7 @@ pluginManagement {
         gradlePluginPortal()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         google()
-        maven(url = "$rootDir/tester-react/node_modules/react-native/android")
-        mavenCentral {
-            content {
-                excludeGroup("com.facebook.react")
-            }
-        }
+        mavenCentral()
         maven(url = "https://jitpack.io")
         maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     }

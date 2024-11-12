@@ -2,8 +2,9 @@
 # The reason to have this workaround is to have a common cmake in the root along with other build files.
 set(FLATBUFFERS_BUILD_FLATC OFF)
 set(FLATBUFFERS_BUILD_TESTS OFF)
+option(iOS "Building for iOS" OFF)
 
-function(setup_mobile)
+function(setup_ios)
     if(NOT DEFINED sdk)
         set(sdk iphonesimulator)
     endif()
@@ -19,6 +20,13 @@ function(setup_mobile)
 
     set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE INTERNAL "")
+
+    set(IOS FALSE PARENT_SCOPE)
+    if(APPLE)
+       if(CMAKE_OSX_SYSROOT MATCHES "iphoneos" OR CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
+                set(IOS TRUE PARENT_SCOPE)
+        endif()
+    endif()
 endfunction()
 
 
@@ -55,17 +63,10 @@ function(fi_dependency name)
     )
 endfunction()
 
-function(isIOS result)
-    set(${result} FALSE PARENT_SCOPE)
-    if(CMAKE_OSX_SYSROOT MATCHES "iphoneos" OR CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
-        set(${result} TRUE PARENT_SCOPE)
-    endif()
-endfunction()
-
 function(build_hermes)
     message(STATUS "Attempting to build Hermes...")
     execute_process(
-            COMMAND cmake -G Ninja -DHERMES_BUILD_APPLE_FRAMEWORK=OFF -DCMAKE_BUILD_TYPE=Debug ${HERMES_SRC_DIR}
+            COMMAND cmake -G Ninja -DHERMES_BUILD_APPLE_FRAMEWORK=ON -DCMAKE_BUILD_TYPE=Debug ${HERMES_SRC_DIR}
             WORKING_DIRECTORY ${HERMES_BUILD_DIR}
             RESULT_VARIABLE build_result
     )
@@ -96,7 +97,7 @@ function(configure_hermes)
     get_filename_component(HERMES_BUILD "${HERMES_BUILD_DIR}" ABSOLUTE)
 
     if (NOT EXISTS "${HERMES_SRC}/API/jsi/jsi/jsi.h")
-        message(FATAL_ERROR "HERMES_SRC_DIR does not contain API/jsi/jsi/jsi.h")
+        message(FATAL_ERROR "${HERMES_SRC} does not contain API/jsi/jsi/jsi.h")
     endif ()
 
     if (NOT EXISTS "${HERMES_BUILD}/bin/hermes${CMAKE_EXECUTABLE_SUFFIX}")

@@ -10,20 +10,29 @@ plugins {
 }
 val Name = "FlatInvokerFFI"
 
-task<Exec>("darwinCmake") {
-    group = "reaktor"
-    // environment variable for react location
-    commandLine =  listOf("bash", "-c", """
-        rm -rf build &&
-        cd cpp &&
-        rm -rf build &&
-        cmake -B build -G Xcode &&
-        cmake --build build --config Release
-    """.trimIndent())
+fun darwinCmake(sdk: String): Exec {
+    val prefix = sdk
+    return tasks.create<Exec>("${prefix}CMake") {
+        group = "reaktor"
+        workingDir = file("cpp")
+        commandLine = listOf("bash", "-c", """
+            mkdir -p build &&
+            cd build &&   
+            rm -rf $prefix &&
+            cmake -B $prefix -G Xcode \
+                -DCMAKE_BUILD_TYPE=Release \
+                -Dsdk=${sdk} .. \
+                -DiOS=true &&
+            cmake --build $prefix --config Release
+        """.trimIndent()
+        )
+    }
 }
+val iosCmake = darwinCmake("iphoneos")
+val iosSimulatorCmake = darwinCmake("iphonesimulator")
 
 tasks.named("build") {
-    dependsOn("darwinCmake")
+    dependsOn(iosCmake, iosSimulatorCmake)
 }
 
 
@@ -39,7 +48,13 @@ kotlin {
 
     droid {
         dependencies {
-//            implementation(project(":hermes"))
+//            val hermesPath= "../.github_modules/build_android/outputs/"
+//            debugImplementation(files(hermesPath + "hermes-debug.aar"))
+//            releaseImplementation(files(hermesPath + "hermes-release.aar"))
+            implementation("com.facebook.react:hermes-android:0.76.1")
+            // They have coupled this with react native, and download latest main as a tarball
+            // https://github.com/facebook/react-native/blob/a9a1c86a927fc6e3854a9b4ad44d38bd3c8db588/packages/react-native/ReactAndroid/hermes-engine/build.gradle.kts#L336
+
         }
         integrationTestDependencies = {
 //            api()
@@ -60,8 +75,10 @@ kotlin {
         }
 
         targets = {
+            println("DarwinTarget: $name")
+            val code = if (name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"
             binaries.all {
-                freeCompilerArgs += listOf("-linker-option", "/Users/ovd/IdeaProjects/flatInvoker/flatinvoker-ffi/cpp/build/Release-iphonesimulator/lib${Name}.a")
+                freeCompilerArgs += listOf("-linker-option", file("cpp/build/$code/Release-$code/lib${Name}.a").absolutePath)
             }
         }
     }
