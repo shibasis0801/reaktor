@@ -23,28 +23,24 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.core.framework.CreateSlot
+import dev.shibasis.reaktor.core.framework.Feature
 
 
 /*
-
 Figure out
 1. Set Defaults
 2. Better DX
 3. Implement neo-morphism
-
- */
+*/
 interface DesignSystem {
-    val text: Typography
-        @Composable get() = MaterialTheme.typography
+    @Composable fun getTypography() = MaterialTheme.typography
 
-    val color: ColorScheme
-        @Composable get() = MaterialTheme.colorScheme
+    @Composable fun getColorScheme(): ColorScheme = MaterialTheme.colorScheme
 
-    val shapes: Shapes
-        @Composable get() = MaterialTheme.shapes
+    @Composable fun getShapes(): Shapes = MaterialTheme.shapes
 
-    val sizes: Sizes
-        get() = Sizes()
+    fun getSizes() = Sizes()
 
     @Composable
     fun ButtonPrimary(
@@ -127,13 +123,70 @@ interface DesignSystem {
     }
 }
 
-val LocalDesignSystem = staticCompositionLocalOf<DesignSystem> {
-    error("No DesignSystem provided")
+
+class Theme(private val designSystem: DesignSystem) {
+    val colors: ColorScheme @Composable get() = designSystem.getColorScheme()
+    val text: Typography @Composable get() = designSystem.getTypography()
+    val shapes: Shapes @Composable get() = designSystem.getShapes()
+    val sizes = designSystem.getSizes()
+
+    @Composable
+    fun ButtonPrimary(
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit = {},
+        content: @Composable RowScope.() -> Unit = {}
+    ) {
+        designSystem.ButtonPrimary(modifier, onClick, content)
+    }
+
+    @Composable
+    fun ButtonSecondary(
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit = {},
+        content: @Composable RowScope.() -> Unit = {}
+    ) {
+        designSystem.ButtonSecondary(modifier, onClick, content)
+    }
+
+    @Composable
+    fun ButtonIcon(
+        modifier: Modifier = Modifier,
+        imageVector: ImageVector,
+        onClick: () -> Unit = {}
+    ) {
+        designSystem.ButtonIcon(modifier, imageVector, onClick)
+    }
+
+    @Composable
+    fun TextView(
+        modifier: Modifier = Modifier,
+        text: String = "",
+        style: TextStyle = this.text.bodyMedium
+    ) {
+        designSystem.TextView(modifier, text, style)
+    }
+
+    @Composable
+    fun CardView(
+        modifier: Modifier = Modifier,
+        content: @Composable BoxScope.() -> Unit = {}
+    ) {
+        designSystem.CardView(modifier, content)
+    }
+
+    @Composable
+    fun InputText(
+        modifier: Modifier = Modifier,
+        value: String = "",
+        onValueChange: (String) -> Unit = {},
+        label: @Composable (() -> Unit) = {},
+        placeholder: String = "",
+    ) {
+        designSystem.InputText(modifier, value, onValueChange, label, placeholder)
+    }
 }
 
-val Theme: DesignSystem
-        @Composable
-        get() = LocalDesignSystem.current
+val Feature.Theme by CreateSlot<Theme>()
 
 data class Sizes(
     val extraSmall: Dp = 4.dp,
@@ -143,11 +196,11 @@ data class Sizes(
     val extraLarge: Dp = 32.dp
 )
 
-fun Modifier.extraSmallPadding(ui: DesignSystem) = padding(ui.sizes.extraSmall)
-fun Modifier.smallPadding(ui: DesignSystem) = padding(ui.sizes.small)
-fun Modifier.mediumPadding(ui: DesignSystem) = padding(ui.sizes.medium)
-fun Modifier.largePadding(ui: DesignSystem) = padding(ui.sizes.large)
-fun Modifier.extraLargePadding(ui: DesignSystem) = padding(ui.sizes.extraLarge)
+fun Modifier.extraSmallPadding(ui: Theme) = padding(ui.sizes.extraSmall)
+fun Modifier.smallPadding(ui: Theme) = padding(ui.sizes.small)
+fun Modifier.mediumPadding(ui: Theme) = padding(ui.sizes.medium)
+fun Modifier.largePadding(ui: Theme) = padding(ui.sizes.large)
+fun Modifier.extraLargePadding(ui: Theme) = padding(ui.sizes.extraLarge)
 
 val Color.Companion.Teal: Color
     get() = Color(0, 128, 128)

@@ -12,6 +12,7 @@ import cocoapods.GoogleSignIn.GIDGoogleUser
 import cocoapods.GoogleSignIn.GIDSignIn
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.ui.DesignSystem
+import dev.shibasis.reaktor.ui.Theme
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.UIKit.UIViewController
 import kotlin.coroutines.resume
@@ -29,7 +30,7 @@ private suspend fun signIn(viewController: UIViewController) = suspendCancellabl
 }
 
 @Composable
-fun DesignSystem.GoogleSignIn() {
+fun Theme.GoogleSignIn() {
     val viewController = LocalUIViewController.current
     var user by remember { mutableStateOf<GIDGoogleUser?>(null) }
 

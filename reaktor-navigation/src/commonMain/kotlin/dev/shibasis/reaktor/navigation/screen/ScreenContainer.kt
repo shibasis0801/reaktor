@@ -9,9 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.route.Junction
 import dev.shibasis.reaktor.navigation.route.Navigator
-import dev.shibasis.reaktor.ui.LocalDesignSystem
+import dev.shibasis.reaktor.ui.DesignSystem
+import dev.shibasis.reaktor.ui.Theme
 import dev.shibasis.reaktor.ui.material.ReaktorDesignSystem
 
 
@@ -21,7 +23,8 @@ val LocalNavigator = staticCompositionLocalOf<Navigator> {
 
 @Composable
 fun ScreenContainer(
-    junction: Junction
+    junction: Junction,
+    theme: Theme = Feature.Theme ?: throw Error("A theme is needed for the app."),
 ) {
     Box(Modifier.fillMaxSize()) {
         val navigator = remember { Navigator(junction) }
@@ -33,17 +36,15 @@ fun ScreenContainer(
 //            navigator.pop()
 //        }
 
-        CompositionLocalProvider(LocalDesignSystem provides ReaktorDesignSystem) {
-            CompositionLocalProvider(LocalNavigator provides navigator) {
-                MaterialTheme(
-                    colorScheme = ReaktorDesignSystem.color,
-                    typography = ReaktorDesignSystem.text,
-                    shapes = ReaktorDesignSystem.shapes
-                ) {
-
-                    destination.content(props)
-                }
+        CompositionLocalProvider(LocalNavigator provides navigator) {
+            MaterialTheme(
+                colorScheme = theme.colors,
+                typography = theme.text,
+                shapes = theme.shapes
+            ) {
+                destination.content(props)
             }
         }
+
     }
 }

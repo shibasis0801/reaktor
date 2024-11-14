@@ -232,9 +232,6 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 object ReaktorDesignSystem: DesignSystem {
-    override val text: Typography
-        @Composable get() = MaterialTheme.typography
-
-    override val color: ColorScheme
-        @Composable get() = LightColorScheme
+    @Composable override fun getTypography() = MaterialTheme.typography
+    @Composable override fun getColorScheme() = LightColorScheme
 }
