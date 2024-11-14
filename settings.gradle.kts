@@ -63,11 +63,8 @@ gradle.beforeProject {
 val githubDir = file(".github_modules")
 githubDir.mkdir()
 githubDir.apply {
-    gitDependency("https://github.com/google/googletest.git")
-    gitDependency("https://github.com/JetBrains-Research/reflekt.git")
     gitDependency("https://github.com/tmikov/hermes-jsi-demos.git")
     gitDependency("https://github.com/facebook/hermes.git")
-    gitDependency("https://github.com/leetal/ios-cmake.git")
 }
 
 
