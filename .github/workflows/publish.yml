@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Git
-        run: sudo apt-get update && sudo apt-get install -y git
-
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -21,6 +18,9 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '11'
+
+      - name: Install Git
+        run: sudo apt-get update && sudo apt-get install -y git
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
