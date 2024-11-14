@@ -27,6 +27,6 @@ jobs:
 
       - name: Build and publish
         env:
-          USERNAME: ${{ secrets.GITHUB_ACTOR }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: shibasis0801
+          TOKEN: ${{ secrets.TOKEN }}
         run: ./gradlew :dependeasy:publish
