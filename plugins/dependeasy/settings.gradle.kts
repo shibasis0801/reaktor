@@ -1,2 +1,2 @@
 rootProject.name = "dependeasy"
-include("plugin")
+includeBuild("../publisheasy")

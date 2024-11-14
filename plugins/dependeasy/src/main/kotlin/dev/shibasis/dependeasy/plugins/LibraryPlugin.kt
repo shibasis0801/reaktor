@@ -54,11 +54,10 @@ class LibraryPlugin: Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
         plugins.apply {
             apply("kotlinx-serialization")
-            apply("com.google.firebase.crashlytics")
             apply("com.google.devtools.ksp")
         }
 
-        project.tasks.apply {
+        tasks.apply {
             register("buildReleaseBinaries") { buildReleaseBinariesLogSizes() }
             register<Copy>("generateDocumentation") { generateDocumentation() }
         }

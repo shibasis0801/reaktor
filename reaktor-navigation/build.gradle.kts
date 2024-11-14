@@ -10,6 +10,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.library")
     id("dev.shibasis.dependeasy.library")
+    id("dev.shibasis.publisheasy")
 }
 
 kotlin {

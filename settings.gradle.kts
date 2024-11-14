@@ -4,7 +4,7 @@ import dev.shibasis.dependeasy.utils.*
 rootProject.name = "flatInvoker"
 
 pluginManagement {
-    includeBuild("dependeasy")
+    includeBuild("plugins/dependeasy")
 
     repositories {
         gradlePluginPortal()
@@ -41,7 +41,7 @@ pluginManagement {
         id("org.jetbrains.kotlinx.benchmark") version "0.4.10"
 
         id("app.cash.sqldelight").version(sqldelightVersion)
-        id("dev.shibasis.dependeasy.library")
+        id("dev.shibasis.publisheasy")
         id("dev.shibasis.dependeasy.application")
     }
 }

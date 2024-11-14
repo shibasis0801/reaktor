@@ -1,5 +1,4 @@
 import groovy.lang.Closure
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
@@ -12,6 +11,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose").apply(false)
     id("com.google.devtools.ksp") apply false
     id("dev.shibasis.dependeasy.library") apply false
+    id("dev.shibasis.publisheasy") apply false
     id("dev.shibasis.dependeasy.application") apply false
     id("org.jetbrains.kotlinx.benchmark") apply false
     id("com.codingfeline.buildkonfig") apply false
@@ -35,7 +35,7 @@ allprojects {
         maven(url = "https://www.jitpack.io")
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         maven("https://oss.sonatype.org/content/repositories/snapshots")
-        mavenLocal()
+//        mavenLocal()
         maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     }
 }

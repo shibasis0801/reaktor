@@ -5,6 +5,7 @@ import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 plugins {
     id("dev.shibasis.dependeasy.library")
+    id("dev.shibasis.publisheasy")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
 }

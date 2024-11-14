@@ -1,15 +1,17 @@
-val kotlinVersion = "2.0.21"
-val crashlyticsVersion = "2.9.9"
-val serializationVersion = "1.7.1"
+import dev.shibasis.publisheasy.Version
+import dev.shibasis.publisheasy.plugins.readVersion
 
 plugins {
     id("java-gradle-plugin")
     id("maven-publish")
+    id("dev.shibasis.publisheasy")
 //    https://plugins.gradle.org/docs/publish-plugin Do this
 //    id("com.gradle.plugin-publish") version "1.2.1"
     `kotlin-dsl`
-    kotlin("jvm")  version "2.0.21"
+    kotlin("jvm") version "2.0.21"
 }
+
+group = "dev.shibasis"
 
 repositories {
     google()
@@ -19,31 +21,15 @@ repositories {
 
 }
 
-publishing {
-    publishing {
-        repositories {
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
-                credentials {
-                    username = System.getenv("USERNAME")
-                    password = System.getenv("TOKEN")
-                }
-            }
-        }
-    }
-}
-
 dependencies {
     // Align Version of all Kotlin components
-    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:${Version.SDK.Kotlin}")
     implementation("com.android.tools.build:gradle:8.4.2")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-    implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
-    implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
-    implementation("com.google.firebase:firebase-crashlytics-gradle:$crashlyticsVersion")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${Version.SDK.Kotlin}")
+    implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:${Version.SDK.Kotlin}")
+    implementation("org.jetbrains.kotlin:kotlin-serialization:${Version.SDK.Kotlin}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Version.Serialization}")
+    implementation("com.google.firebase:firebase-crashlytics-gradle:${Version.Crashlytics}")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.21-1.0.26")
 
@@ -67,7 +53,7 @@ gradlePlugin {
 }
 
 kotlin {
-    jvmToolchain(11)
+//    jvmToolchain(11)
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-receivers")
     }
