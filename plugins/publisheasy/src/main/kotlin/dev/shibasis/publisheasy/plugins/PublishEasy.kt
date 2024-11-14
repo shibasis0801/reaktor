@@ -65,8 +65,8 @@ class PublishEasy: Plugin<Project> {
                 name = "GitHubPackages"
                 url = project.uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
                 credentials {
-                    username = System.getenv("GITHUB_ACTOR") ?: "GITHUB_ACTOR"
-                    password = System.getenv("GITHUB_TOKEN") ?: "GITHUB_TOKEN"
+                    username = System.getenv("USERNAME")
+                    password = System.getenv("TOKEN")
                 }
             }
 
