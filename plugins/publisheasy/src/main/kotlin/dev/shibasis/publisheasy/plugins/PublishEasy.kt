@@ -6,6 +6,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.get
+import org.gradle.plugin.devel.PluginDeclaration
 import java.io.File
 import java.time.LocalDate
 
@@ -45,47 +46,46 @@ fun Task.updateVersion() {
     }
 }
 
+fun Project.configureGithubMaven(id: String = name) {
+    project.extensions.getByType(PublishingExtension::class.java).apply {
+        repositories.maven {
+            name = "GitHubPackages"
+            url = project.uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
+            credentials {
+                username = System.getenv("USERNAME")
+                password = System.getenv("TOKEN")
+            }
+        }
+
+        publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
+            groupId = project.group.toString()
+            artifactId = id
+            version = project.version.toString()
+
+            when {
+                project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform") -> {
+                    from(project.components["kotlin"])
+                }
+                project.plugins.hasPlugin("java") -> {
+                    from(project.components["java"])
+                }
+                else -> {
+                    throw GradleException("Unsupported project type for publishing")
+                }
+            }
+        }
+    }
+}
+
 class PublishEasy: Plugin<Project> {
     override fun apply(project: Project) = project.run {
         readVersion()
+        plugins.apply("maven-publish")
+
         val updateTask = tasks.register("updateVersion") { updateVersion() }
         tasks.configureEach {
             if (listOf("publish", "publishToMavenLocal").contains(name)) {
                 dependsOn(updateTask)
-            }
-        }
-        configureGithubMaven(project)
-    }
-
-    private fun configureGithubMaven(project: Project) {
-        project.plugins.apply("maven-publish")
-
-        project.extensions.getByType(PublishingExtension::class.java).apply {
-            repositories.maven {
-                name = "GitHubPackages"
-                url = project.uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
-                credentials {
-                    username = System.getenv("USERNAME")
-                    password = System.getenv("TOKEN")
-                }
-            }
-
-            publications.create("GithubMaven", MavenPublication::class.java).apply {
-                groupId = "dev.shibasis"
-                artifactId = project.name
-                version = project.version.toString()
-
-                when {
-                    project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform") -> {
-                        from(project.components["kotlin"])
-                    }
-                    project.plugins.hasPlugin("java") -> {
-                        from(project.components["java"])
-                    }
-                    else -> {
-                        throw GradleException("Unsupported project type for publishing")
-                    }
-                }
             }
         }
     }

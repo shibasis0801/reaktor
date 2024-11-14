@@ -29,6 +29,7 @@ buildscript {
 }
 
 allprojects {
+    group = "dev.shibasis"
     repositories {
         mavenCentral()
         google()

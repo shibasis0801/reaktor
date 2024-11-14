@@ -101,6 +101,7 @@ function(configure_hermes)
     endif ()
 
     if (NOT EXISTS "${HERMES_BUILD}/bin/hermes${CMAKE_EXECUTABLE_SUFFIX}")
+#        skip on github actions
         build_hermes()
         if (NOT EXISTS "${HERMES_BUILD}/bin/hermes${CMAKE_EXECUTABLE_SUFFIX}")
             message(FATAL_ERROR "Hermes executable still not found after build attempt. Please investigate further.")

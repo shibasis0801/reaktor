@@ -11,4 +11,4 @@ ir_signature_versions=1,2
 metadata_version=1.4.1
 native_targets=ios_arm64 ios_simulator_arm64
 package=dev.shibasis.reaktor.native
-unique_name=flatInvoker\:flatinvoker-ffi-cinterop-reaktor
+unique_name=dev.shibasis\:flatinvoker-ffi-cinterop-reaktor
