@@ -54,7 +54,7 @@ object Version {
     const val Coroutines = "1.9.0"
     const val Kermit = "2.0.3"
     const val Serialization = "1.7.3"
-    const val Crashlytics = "3.0.2"
+    const val Crashlytics = "2.9.9"
 
     // DevTools
     const val Flipper = "0.162.0"
