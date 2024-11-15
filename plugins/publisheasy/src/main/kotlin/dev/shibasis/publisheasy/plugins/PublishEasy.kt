@@ -9,41 +9,18 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.plugin.devel.PluginDeclaration
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalTime
 
-fun Project.readVersion(): String {
-    val versionFile = File(projectDir, "version")
-    val now = LocalDate.now()
-    val year = now.year
-    val dayOfYear = now.dayOfYear
+fun Project.defaults() {
+    val date = LocalDate.now()
+    val year = date.year
+    val dayOfYear = date.dayOfYear
 
-    if (!versionFile.exists())
-        versionFile.writeText("$year.$dayOfYear.0")
+    val time = LocalTime.now()
+    val minute = time.hour * 60 + time.minute
 
-    version = versionFile.readText().trim()
-    return version.toString()
-}
-
-
-fun Task.updateVersion() {
-    group = "reaktor"
-    description = "Year.DayOfYear.PublicationThatDay"
-
-    doLast {
-        val now = LocalDate.now()
-        val currentVersion = project.readVersion()
-        val (currentYear, currentDay, currentBuild) = currentVersion.split(".").map { it.toInt() }
-        val newBuildNumber = if (currentYear == now.year && currentDay == now.dayOfYear) {
-            currentBuild + 1
-        } else {
-            0
-        }
-
-        val newVersion = "${now.year}.${now.dayOfYear}.$newBuildNumber"
-        File(project.projectDir, "version").writeText(newVersion)
-        project.version = newVersion
-
-        println("Set version for ${project.name} to $newVersion")
-    }
+    group = "dev.shibasis"
+    version = "$year.$dayOfYear.$minute"
 }
 
 fun Project.githubPublication(id: String = name) {
@@ -72,8 +49,7 @@ fun Project.githubPublication(id: String = name) {
 
 class PublishEasy: Plugin<Project> {
     override fun apply(project: Project) = project.run {
-        readVersion()
-        group = "dev.shibasis"
+        project.defaults()
         plugins.apply("maven-publish")
         project.extensions.getByType(PublishingExtension::class.java).apply {
             repositories.maven {
@@ -85,11 +61,7 @@ class PublishEasy: Plugin<Project> {
                 }
             }
         }
-        val updateTask = tasks.register("updateVersion") { updateVersion() }
-        tasks.configureEach {
-            if (listOf("publish", "publishToMavenLocal").contains(name)) {
-                dependsOn(updateTask)
-            }
-        }
+
+        githubPublication()
     }
 }

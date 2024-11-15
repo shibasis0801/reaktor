@@ -98,13 +98,11 @@ fun linkFlatBuffers(
         println("flatc binary built successfully at ${flatc.absolutePath}")
     }
 
-    includeBuild(".github_modules/flatbuffers/kotlin/convention-plugins")
     includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 }
 linkFlatBuffers(githubDir)
 
-
-//includeBuild(".github_modules/hermes/android")
+includeBuild(".github_modules/flatbuffers/kotlin/convention-plugins")
 include(":flatinvoker-core")
 include(":flatinvoker-ffi")
 //include(":flatinvoker-react") // will fix later
