@@ -91,5 +91,6 @@ class PublishEasy: Plugin<Project> {
                     password = System.getenv("TOKEN")
                 }
             }
+        }
     }
 }
