@@ -35,16 +35,19 @@ gradlePlugin {
         id = "dev.shibasis.dependeasy.library"
         implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
     }
+    githubPublication("dependeasy-library")
 
     val applicationPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.application"
         implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
     }
+    githubPublication("dependeasy-application")
 
     val settingsPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.settings"
         implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
     }
+    githubPublication("dependeasy-settings")
 }
 
 kotlin {

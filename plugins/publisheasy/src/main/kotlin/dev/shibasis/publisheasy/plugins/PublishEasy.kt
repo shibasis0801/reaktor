@@ -46,11 +46,11 @@ fun Task.updateVersion() {
     }
 }
 
-fun Project.githubPublication() {
+fun Project.githubPublication(id: String = name) {
     project.extensions.getByType(PublishingExtension::class.java).apply {
-        publications.create("Github", MavenPublication::class.java).apply {
+        publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
             groupId = project.group.toString()
-            artifactId = project.name
+            artifactId = id
             version = project.version.toString()
 
             println("Shibasis: $groupId:$artifactId:$version")
@@ -73,7 +73,6 @@ fun Project.githubPublication() {
 class PublishEasy: Plugin<Project> {
     override fun apply(project: Project) = project.run {
         readVersion()
-        group = "dev.shibasis"
         plugins.apply("maven-publish")
         project.extensions.getByType(PublishingExtension::class.java).apply {
             repositories.maven {
@@ -85,7 +84,11 @@ class PublishEasy: Plugin<Project> {
                 }
             }
         }
-
-        githubPublication()
+        val updateTask = tasks.register("updateVersion") { updateVersion() }
+        tasks.configureEach {
+            if (listOf("publish", "publishToMavenLocal").contains(name)) {
+                dependsOn(updateTask)
+            }
+        }
     }
 }

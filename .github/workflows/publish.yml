@@ -30,3 +30,26 @@ jobs:
           USERNAME: shibasis0801
           TOKEN: ${{ secrets.TOKEN }}
         run: ./gradlew :dependeasy:publish
+
+      - name: Read version from file
+        id: read_version
+        run: |
+          VERSION=$(cat plugins/dependeasy/version)
+          echo "version=$VERSION" >> $GITHUB_ENV
+
+      - name: Commit version file changes
+        if: success()  # Only run if the publish step succeeds
+        run: |
+          git config --global user.name "shibasis0801"
+          git config --global user.email "shibasis0801@gmail.com"
+          git add .
+          git commit -m "release: ${{ env.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+
+      - name: Push changes
+        if: success()
+        run: |
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
