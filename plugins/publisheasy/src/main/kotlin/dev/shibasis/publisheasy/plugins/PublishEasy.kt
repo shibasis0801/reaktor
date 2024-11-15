@@ -9,25 +9,48 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.plugin.devel.PluginDeclaration
 import java.io.File
 import java.time.LocalDate
-import java.time.LocalTime
 
-fun Project.defaults() {
-    val date = LocalDate.now()
-    val year = date.year
-    val dayOfYear = date.dayOfYear
+fun Project.readVersion(): String {
+    val versionFile = File(projectDir, "version")
+    val now = LocalDate.now()
+    val year = now.year
+    val dayOfYear = now.dayOfYear
 
-    val time = LocalTime.now()
-    val minute = time.hour * 60 + time.minute
+    if (!versionFile.exists())
+        versionFile.writeText("$year.$dayOfYear.0")
 
-    group = "dev.shibasis"
-    version = "$year.$dayOfYear.$minute"
+    version = versionFile.readText().trim()
+    return version.toString()
 }
 
-fun Project.githubPublication(id: String = name) {
+
+fun Task.updateVersion() {
+    group = "reaktor"
+    description = "Year.DayOfYear.PublicationThatDay"
+
+    doLast {
+        val now = LocalDate.now()
+        val currentVersion = project.readVersion()
+        val (currentYear, currentDay, currentBuild) = currentVersion.split(".").map { it.toInt() }
+        val newBuildNumber = if (currentYear == now.year && currentDay == now.dayOfYear) {
+            currentBuild + 1
+        } else {
+            0
+        }
+
+        val newVersion = "${now.year}.${now.dayOfYear}.$newBuildNumber"
+        File(project.projectDir, "version").writeText(newVersion)
+        project.version = newVersion
+
+        println("Set version for ${project.name} to $newVersion")
+    }
+}
+
+fun Project.githubPublication() {
     project.extensions.getByType(PublishingExtension::class.java).apply {
-        publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
+        publications.create("Github", MavenPublication::class.java).apply {
             groupId = project.group.toString()
-            artifactId = id
+            artifactId = project.name
             version = project.version.toString()
 
             println("Shibasis: $groupId:$artifactId:$version")
@@ -49,7 +72,8 @@ fun Project.githubPublication(id: String = name) {
 
 class PublishEasy: Plugin<Project> {
     override fun apply(project: Project) = project.run {
-        project.defaults()
+        readVersion()
+        group = "dev.shibasis"
         plugins.apply("maven-publish")
         project.extensions.getByType(PublishingExtension::class.java).apply {
             repositories.maven {
