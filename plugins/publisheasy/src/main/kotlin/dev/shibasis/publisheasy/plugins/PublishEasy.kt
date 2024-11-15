@@ -74,14 +74,6 @@ class PublishEasy: Plugin<Project> {
     override fun apply(project: Project) = project.run {
         readVersion()
         plugins.apply("maven-publish")
-
-        val updateTask = tasks.register("updateVersion") { updateVersion() }
-        tasks.configureEach {
-            if (listOf("publish", "publishToMavenLocal").contains(name)) {
-                dependsOn(updateTask)
-            }
-        }
-
         project.extensions.getByType(PublishingExtension::class.java).apply {
             repositories.maven {
                 name = "GitHubPackages"
@@ -90,6 +82,12 @@ class PublishEasy: Plugin<Project> {
                     username = System.getenv("USERNAME")
                     password = System.getenv("TOKEN")
                 }
+            }
+        }
+        val updateTask = tasks.register("updateVersion") { updateVersion() }
+        tasks.configureEach {
+            if (listOf("publish", "publishToMavenLocal").contains(name)) {
+                dependsOn(updateTask)
             }
         }
     }
