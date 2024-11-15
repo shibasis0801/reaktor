@@ -46,17 +46,8 @@ fun Task.updateVersion() {
     }
 }
 
-fun Project.configureGithubMaven(id: String = name) {
+fun Project.githubPublication(id: String = name) {
     project.extensions.getByType(PublishingExtension::class.java).apply {
-        repositories.maven {
-            name = "GitHubPackages"
-            url = project.uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
-            credentials {
-                username = System.getenv("USERNAME")
-                password = System.getenv("TOKEN")
-            }
-        }
-
         publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
             groupId = project.group.toString()
             artifactId = id
@@ -90,5 +81,15 @@ class PublishEasy: Plugin<Project> {
                 dependsOn(updateTask)
             }
         }
+
+        project.extensions.getByType(PublishingExtension::class.java).apply {
+            repositories.maven {
+                name = "GitHubPackages"
+                url = project.uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
+                credentials {
+                    username = System.getenv("USERNAME")
+                    password = System.getenv("TOKEN")
+                }
+            }
     }
 }

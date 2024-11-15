@@ -1,5 +1,5 @@
 import dev.shibasis.publisheasy.Version
-import dev.shibasis.publisheasy.plugins.configureGithubMaven
+import dev.shibasis.publisheasy.plugins.*
 
 plugins {
     id("java-gradle-plugin")
@@ -35,20 +35,19 @@ gradlePlugin {
         id = "dev.shibasis.dependeasy.library"
         implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
     }
-    configureGithubMaven("dependeasy-library")
+    githubPublication("dependeasy-library")
 
     val applicationPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.application"
         implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
     }
-    configureGithubMaven("dependeasy-application")
+    githubPublication("dependeasy-application")
 
     val settingsPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.settings"
         implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
     }
-    configureGithubMaven("dependeasy-settings")
-
+    githubPublication("dependeasy-settings")
 }
 
 kotlin {
