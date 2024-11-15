@@ -49,9 +49,6 @@ kotlin {
 
     droid {
         dependencies {
-//            val hermesPath= "../.github_modules/build_android/outputs/"
-//            debugImplementation(files(hermesPath + "hermes-debug.aar"))
-//            releaseImplementation(files(hermesPath + "hermes-release.aar"))
             implementation("com.facebook.react:hermes-android:0.76.1")
             // They have coupled this with react native, and download latest main as a tarball
             // https://github.com/facebook/react-native/blob/a9a1c86a927fc6e3854a9b4ad44d38bd3c8db588/packages/react-native/ReactAndroid/hermes-engine/build.gradle.kts#L336

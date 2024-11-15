@@ -64,7 +64,6 @@ val githubDir = file(".github_modules")
 githubDir.mkdir()
 githubDir.apply {
     gitDependency("https://github.com/tmikov/hermes-jsi-demos.git")
-    gitDependency("https://github.com/facebook/hermes.git")
 }
 
 
@@ -75,19 +74,35 @@ fun linkFlatBuffers(
     url: String = "https://github.com/shibasis0801/flatbuffers.git"
 ) {
     githubDirectory.gitDependency(url)
-    val flatc = File(buildDirectory, "flatc")
+    val isWindows = System.getProperty("os.name").contains("Windows")
+    val flatc = if(isWindows) File(buildDirectory, "Debug/flatc.exe") else File(buildDirectory, "flatc")
     if (!flatc.exists()) {
         println("Generating CMake build for flatbuffers")
-        exec {
-            workingDir = buildDirectory
-            commandLine("cmake", "-G", "Unix Makefiles")
+        if (isWindows) {
+            println("Generating CMake build for flatbuffers on Windows")
+            exec {
+                workingDir = buildDirectory
+                commandLine("cmake", "-G", "Visual Studio 17 2022")
+            }
+            println("Building flatc with make...")
+            exec {
+                workingDir = buildDirectory
+                commandLine("cmake", "--build", '.')
+            }
+        } else {
+            println("Generating CMake build for flatbuffers on Unix")
+            exec {
+                workingDir = buildDirectory
+                commandLine("cmake", "-G", "Unix Makefiles")
+            }
+            println("Building flatc with make...")
+            exec {
+                workingDir = buildDirectory
+                commandLine("make", "-j")
+            }
         }
 
-        println("Building flatc with make...")
-        exec {
-            workingDir = buildDirectory
-            commandLine("make", "-j")
-        }
+
     } else {
         println("flatc already built.")
     }
@@ -102,6 +117,74 @@ fun linkFlatBuffers(
 }
 linkFlatBuffers(githubDir)
 
+fun linkHermes(
+    githubDirectory: File,
+    buildDirectory: File = File(githubDirectory, "hermes/debug"),
+    url: String = "https://github.com/facebook/hermes.git"
+) {
+    githubDirectory.gitDependency(url)
+    val isWindows = System.getProperty("os.name").contains("Windows")
+    val hermesSrcDir = File(githubDirectory, "hermes")
+    val hermesBuildDir = buildDirectory
+    buildDirectory.mkdir()
+
+    val hermesExecutable = if(isWindows) File(buildDirectory, "bin/Debug/hermes.exe") else File(buildDirectory, "bin/hermes")
+
+    // Check for the existence of jsi.h
+    val jsiHeader = File(hermesSrcDir, "API/jsi/jsi/jsi.h")
+    if (!jsiHeader.exists()) {
+        throw GradleException("${jsiHeader.absolutePath} does not exist.")
+    }
+
+    // Check if Hermes executable exists
+    if (!hermesExecutable.exists()) {
+        if (isWindows) {
+            println("Generating CMake build for Hermes on Windows")
+            exec {
+                workingDir = hermesBuildDir
+                commandLine(
+                    "cmake",
+                    "-G", "Visual Studio 17 2022",
+                    "-A", "x64",
+                    "-DCMAKE_BUILD_TYPE=Debug",
+                    hermesSrcDir.absolutePath
+                )
+            }
+            println("Building Hermes with CMake...")
+            exec {
+                workingDir = hermesBuildDir
+                commandLine("cmake", "--build", ".")
+            }
+        } else {
+            println("Generating CMake build for Hermes on Unix")
+            exec {
+                workingDir = hermesBuildDir
+                commandLine(
+                    "cmake",
+                    "-G", "Ninja",
+                    "-DHERMES_BUILD_APPLE_FRAMEWORK=ON",
+                    "-DCMAKE_BUILD_TYPE=Debug",
+                    hermesSrcDir.absolutePath
+                )
+            }
+            println("Building Hermes with Ninja...")
+            exec {
+                workingDir = hermesBuildDir
+                commandLine("ninja")
+            }
+        }
+
+        if (!hermesExecutable.exists()) {
+            throw GradleException("Hermes executable still not found after build attempt. Please investigate further.")
+        }
+    } else {
+        println("Hermes executable already built.")
+    }
+
+    println("Hermes executable built successfully at ${hermesExecutable.absolutePath}")
+}
+linkHermes(githubDir)
+
 includeBuild(".github_modules/flatbuffers/kotlin/convention-plugins")
 include(":flatinvoker-core")
 include(":flatinvoker-ffi")
@@ -113,9 +196,3 @@ include(":reaktor-ui")
 include(":reaktor-auth")
 include(":reaktor-media")
 include(":reaktor-navigation")
-include(":tester-android")
-//includeBuild("tester-react")
-
-
-// publishing
-// https://chatgpt.com/c/6733a130-2240-8012-a19d-e26d822c665a

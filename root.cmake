@@ -63,50 +63,12 @@ function(fi_dependency name)
     )
 endfunction()
 
-function(build_hermes)
-    message(STATUS "Attempting to build Hermes...")
-    execute_process(
-            COMMAND cmake -G Ninja -DHERMES_BUILD_APPLE_FRAMEWORK=ON -DCMAKE_BUILD_TYPE=Debug ${HERMES_SRC_DIR}
-            WORKING_DIRECTORY ${HERMES_BUILD_DIR}
-            RESULT_VARIABLE build_result
-    )
-    if (build_result EQUAL 0)
-        execute_process(
-                COMMAND ninja
-                WORKING_DIRECTORY ${HERMES_BUILD_DIR}
-                RESULT_VARIABLE build_result
-        )
-        if(build_result EQUAL 0)
-            message(STATUS "Hermes build successful!")
-        else()
-            message(FATAL_ERROR "Hermes build failed. Please check the build output for details.")
-        endif()
-    else()
-        message(FATAL_ERROR "CMake configuration for Hermes failed. Please check the configuration output for details.")
-    endif()
-endfunction()
-
-
 function(configure_hermes)
     set(HERMES_SRC_DIR "../../.github_modules/hermes")
     set(HERMES_BUILD_DIR "../../.github_modules/hermes/debug")
 
-    message(STATUS "Current Working Directory: ${CMAKE_CURRENT_LIST_DIR}")
-
     get_filename_component(HERMES_SRC "${HERMES_SRC_DIR}" ABSOLUTE)
     get_filename_component(HERMES_BUILD "${HERMES_BUILD_DIR}" ABSOLUTE)
-
-    if (NOT EXISTS "${HERMES_SRC}/API/jsi/jsi/jsi.h")
-        message(FATAL_ERROR "${HERMES_SRC} does not contain API/jsi/jsi/jsi.h")
-    endif ()
-
-    if (NOT EXISTS "${HERMES_BUILD}/bin/hermes${CMAKE_EXECUTABLE_SUFFIX}")
-#        skip on github actions
-        build_hermes()
-        if (NOT EXISTS "${HERMES_BUILD}/bin/hermes${CMAKE_EXECUTABLE_SUFFIX}")
-            message(FATAL_ERROR "Hermes executable still not found after build attempt. Please investigate further.")
-        endif ()
-    endif ()
 
     include_directories("${HERMES_SRC_DIR}/API")
     include_directories("${HERMES_SRC_DIR}/API/jsi")

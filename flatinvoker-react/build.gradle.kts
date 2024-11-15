@@ -6,7 +6,7 @@ import dev.shibasis.dependeasy.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-id("dev.shibasis.publisheasy")id("dev.shibasis.publisheasy")
+    id("dev.shibasis.publisheasy")
 }
 
 group = "dev.shibasis.flatinvoker.react"
