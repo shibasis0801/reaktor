@@ -49,7 +49,7 @@ fun Task.updateVersion() {
 fun Project.githubPublication(id: String = name) {
     project.extensions.getByType(PublishingExtension::class.java).apply {
         publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
-            groupId = project.group.toString()
+            groupId = "dev.shibasis"
             artifactId = id
             version = project.version.toString()
 
