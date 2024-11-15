@@ -62,6 +62,8 @@ fun Project.configureGithubMaven(id: String = name) {
             artifactId = id
             version = project.version.toString()
 
+            println("Shibasis: $groupId:$artifactId:$version")
+
             when {
                 project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform") -> {
                     from(project.components["kotlin"])

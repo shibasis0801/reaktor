@@ -1,13 +1,9 @@
 import dev.shibasis.publisheasy.Version
 import dev.shibasis.publisheasy.plugins.configureGithubMaven
-import dev.shibasis.publisheasy.plugins.readVersion
 
 plugins {
     id("java-gradle-plugin")
-    id("maven-publish")
     id("dev.shibasis.publisheasy")
-//    https://plugins.gradle.org/docs/publish-plugin Do this
-//    id("com.gradle.plugin-publish") version "1.2.1"
     `kotlin-dsl`
     kotlin("jvm") version "2.0.21"
 }
