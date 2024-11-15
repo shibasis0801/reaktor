@@ -45,11 +45,11 @@ jobs:
           git add .
           git commit -m "release: ${{ env.version }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Push changes
         if: success()
         run: |
           git push origin main
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
