@@ -73,6 +73,7 @@ fun Project.githubPublication(id: String = name) {
 class PublishEasy: Plugin<Project> {
     override fun apply(project: Project) = project.run {
         readVersion()
+        group = "dev.shibasis"
         plugins.apply("maven-publish")
         project.extensions.getByType(PublishingExtension::class.java).apply {
             repositories.maven {
