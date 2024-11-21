@@ -8,8 +8,10 @@ import android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleCoroutineScope
@@ -54,7 +56,7 @@ sealed class ActivityResultError: Error() {
 suspend fun<Input, Output> ComponentActivity.getResultFromActivity(
     contract: ActivityResultContract<Input, Output>,
     input: Input
-) = suspendCancellableCoroutine<Output> { continuation ->
+) = suspendCancellableCoroutine { continuation ->
     if (!lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
         continuation.resumeWithException(ActivityResultError.IllegalState)
         return@suspendCancellableCoroutine
@@ -72,6 +74,9 @@ suspend fun<Input, Output> ComponentActivity.getResultFromActivity(
     }
     launcher.launch(input)
 }
+suspend fun ComponentActivity.getResultFromActivity(
+    intent: Intent
+): ActivityResult = getResultFromActivity(ActivityResultContracts.StartActivityForResult(), intent)
 
 inline fun <reified T : Activity> ComponentActivity.finishAndStart() {
     startActivity(Intent(this, T::class.java))

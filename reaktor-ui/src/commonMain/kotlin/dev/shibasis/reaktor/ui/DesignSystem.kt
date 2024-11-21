@@ -16,7 +16,6 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -184,9 +183,15 @@ class Theme(private val designSystem: DesignSystem) {
     ) {
         designSystem.InputText(modifier, value, onValueChange, label, placeholder)
     }
+
+    fun Modifier.paddingExtraSmall() = padding(sizes.extraSmall)
+    fun Modifier.paddingSmall() = padding(sizes.small)
+    fun Modifier.paddingMedium() = padding(sizes.medium)
+    fun Modifier.paddingLarge() = padding(sizes.large)
+    fun Modifier.paddingExtraLarge() = padding(sizes.extraLarge)
 }
 
-val Feature.Theme by CreateSlot<Theme>()
+var Feature.Theme by CreateSlot<Theme>()
 
 data class Sizes(
     val extraSmall: Dp = 4.dp,
@@ -196,11 +201,6 @@ data class Sizes(
     val extraLarge: Dp = 32.dp
 )
 
-fun Modifier.extraSmallPadding(ui: Theme) = padding(ui.sizes.extraSmall)
-fun Modifier.smallPadding(ui: Theme) = padding(ui.sizes.small)
-fun Modifier.mediumPadding(ui: Theme) = padding(ui.sizes.medium)
-fun Modifier.largePadding(ui: Theme) = padding(ui.sizes.large)
-fun Modifier.extraLargePadding(ui: Theme) = padding(ui.sizes.extraLarge)
 
 val Color.Companion.Teal: Color
     get() = Color(0, 128, 128)
