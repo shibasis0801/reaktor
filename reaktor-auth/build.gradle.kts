@@ -1,9 +1,14 @@
-import dev.shibasis.dependeasy.web.*
+import com.codingfeline.buildkonfig.compiler.FieldSpec
+import com.codingfeline.buildkonfig.gradle.BuildKonfigTask
+import dev.shibasis.dependeasy.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.*
+import dev.shibasis.dependeasy.server.*
+import dev.shibasis.dependeasy.web.*
+import java.net.InetSocketAddress
+import java.net.Socket
+
 
 plugins {
     id("dev.shibasis.dependeasy.library")
@@ -30,7 +35,10 @@ kotlin {
 
     droid {
         dependencies = {
-            implementation("com.google.android.gms:play-services-auth:20.0.0")
+            implementation("androidx.credentials:credentials:1.3.0")
+            // Android 13 and below.
+            implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+            implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
         }
     }
 

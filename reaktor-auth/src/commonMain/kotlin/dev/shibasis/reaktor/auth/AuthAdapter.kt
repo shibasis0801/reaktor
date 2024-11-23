@@ -17,42 +17,9 @@ abstract class AuthAdapter<Controller>(
 
 var Feature.Auth by CreateSlot<AuthAdapter<*>>()
 
-
-class CameraAdapter<Controller>(
-    controller: Controller
-): Adapter<Controller>(controller) {
-
-}
-
-
-class Minar() {
-    fun qutub() {}
-}
-
-
-var Feature.Minar by CreateSlot<Minar>()
-
-
-fun test() {
-    Feature.Minar = Minar()
-}
-
-fun test2() {
-    Feature.Minar?.qutub() ?: Logger.e { "Init Minar" }
-    Feature.
-}
-
-
-
-
-
-
 data class GoogleUser(
-    val accessToken: String,
     val idToken: String,
     val name: String,
     val emailId: String,
-    val refreshToken: String,
-    val userID: String,
     val imageUrl: String
 )

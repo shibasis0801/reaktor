@@ -42,12 +42,9 @@ class DarwinAuthAdapter(controller: UIViewController): AuthAdapter<UIViewControl
 
 fun GIDGoogleUser.toGoogleUser(): GoogleUser {
     return GoogleUser(
-        accessToken = accessToken.tokenString,
         idToken = idToken?.tokenString ?: "INVALID",
         name = profile?.name ?: "INVALID",
         emailId = profile?.email ?: "INVALID",
-        refreshToken = refreshToken.tokenString,
-        userID = userID ?: "INVALID",
         imageUrl = profile?.imageURLWithDimension(320u)?.absoluteString ?: "INVALID"
     )
 }

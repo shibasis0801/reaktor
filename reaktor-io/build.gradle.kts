@@ -1,14 +1,19 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec
+import com.codingfeline.buildkonfig.gradle.BuildKonfigTask
 import dev.shibasis.dependeasy.web.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
-import org.jetbrains.kotlin.gradle.plugin.KotlinHierarchyTemplate
+import java.net.InetSocketAddress
+import java.net.Socket
 
 plugins {
     id("dev.shibasis.dependeasy.library")
     id("dev.shibasis.publisheasy")
+    id("com.codingfeline.buildkonfig")
+
 }
 
 kotlin {
@@ -58,3 +63,20 @@ android {
 //dependencies {
 //    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
 //}
+
+
+buildkonfig {
+    packageName = "dev.shibasis.reaktor.core"
+    objectName = "BuildKonfig"
+
+    defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "SERVER", getMachineIpAddress())
+    }
+}
+
+fun getMachineIpAddress(): String = Socket().run {
+    connect(InetSocketAddress("google.com", 80))
+    localAddress.hostAddress
+}
+
+tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())

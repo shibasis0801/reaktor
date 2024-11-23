@@ -1,77 +1,70 @@
-// androidMain
+package dev.shibasis.reaktor.auth
 
-import android.app.Activity
 import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResult
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
 import co.touchlab.kermit.Logger
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import dev.shibasis.reaktor.auth.AuthAdapter
-import dev.shibasis.reaktor.auth.GoogleUser
-import dev.shibasis.reaktor.core.extensions.getResultFromActivity
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 
 class AndroidAuthAdapter(
     activity: ComponentActivity,
     clientId: String
 ): AuthAdapter<ComponentActivity>(activity) {
-    private val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestEmail()
-        .requestIdToken(clientId)
-        .build()
+    // nonce for security later
+    private val googleIdOption = GetGoogleIdOption.Builder().setServerClientId(clientId).setAutoSelectEnabled(true).build()
+    private val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
 
-    private val client = GoogleSignIn.getClient(activity, googleSignInOptions)
+    private val credentialManager = CredentialManager.create(controller!!)
+
+    private var current: GoogleUser? = null
+
+    private suspend fun googleLogin(): GoogleUser? = invokeSuspend {
+        if (current != null) return@invokeSuspend current
+
+        val result = credentialManager.getCredential(this, request)
+        if (result.credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+            current = GoogleIdTokenCredential.createFrom(result.credential.data).toGoogleUser()
+            current
+        } else null
+    }
+
 
     init {
         scope.launch {
-            try {
-                client.silentSignIn().await()
-                    .apply { Logger.i { "$email has logged in" } }
-            } catch (e: Throwable) {
-                Logger.e { e.message ?: "Unknown error while signing in." }
-            }
+            googleLogin()?.apply {
+                Logger.i { "email has logged in" }
+            } ?: Logger.e { "Unknown error while signing in." }
         }
     }
 
     override suspend fun signIn(): Result<GoogleUser> = invokeSuspend {
-        try {
-            val result: ActivityResult = getResultFromActivity(client.signInIntent)
-
-            if (result.resultCode == Activity.RESULT_OK) {
-                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                val account = task.getResult(ApiException::class.java)
-
-                Result.success(account.toGoogleUser())
-            } else {
-                Result.failure(Exception("Google Sign-In canceled"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        googleLogin()?.apply {
+            Logger.i { "email has logged in" }
+        } ?: Logger.e { "Unknown error while signing in." }
+        nullControllerResult()
     } ?: nullControllerResult()
 
     override suspend fun signOut(): Result<Unit> = invokeSuspend {
         try {
-            client.signOut()
+            credentialManager.clearCredentialState(ClearCredentialStateRequest())
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     } ?: nullControllerResult()
 
-    override suspend fun getCurrentUser(): GoogleUser? = invoke { GoogleSignIn.getLastSignedInAccount(this)?.toGoogleUser() }
+    override suspend fun getCurrentUser(): GoogleUser? = invokeSuspend { googleLogin() }
 }
 
-fun GoogleSignInAccount.toGoogleUser(): GoogleUser {
+fun GoogleIdTokenCredential.toGoogleUser(): GoogleUser {
     return GoogleUser(
-        accessToken = idToken ?: "INVALID",
         idToken = idToken ?: "INVALID",
         name = displayName ?: "INVALID",
-        emailId = email ?: "INVALID",
-        refreshToken = "", // GoogleSignInAccount doesn't provide refresh token
-        userID = id ?: "INVALID",
-        imageUrl = photoUrl?.toString() ?: "INVALID"
+        emailId = id ?: "INVALID",
+        imageUrl = profilePictureUri?.path ?: "INVALID"
     )
 }
