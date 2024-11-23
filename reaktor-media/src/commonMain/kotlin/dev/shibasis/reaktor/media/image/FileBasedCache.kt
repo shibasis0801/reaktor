@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.media.image
 
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.io.adapters.File
 
@@ -8,13 +9,21 @@ private val inMemoryCache = hashMapOf<String, ByteArray>()
 
 object FileBasedCache: Cache<ByteArray> {
     override fun store(key: String, contents: ByteArray) {
-        val file = Feature.File ?: return
+        val file = Feature.File
+        if (file == null) {
+            Logger.e { "Please initialize Feature.File, without which this is no-op" }
+            return
+        }
         val cacheFile = "${file.cacheDirectory}/$key"
         file.writeBinaryFile(cacheFile, contents)
     }
 
     override fun retrieve(key: String): ByteArray? {
-        val file = Feature.File ?: return null
+        val file = Feature.File
+        if (file == null) {
+            Logger.e { "Please initialize Feature.File, without which this is no-op" }
+            return null
+        }
         val cacheFile = "${file.cacheDirectory}/$key"
         return Feature.File?.readBinaryFile(cacheFile)
     }

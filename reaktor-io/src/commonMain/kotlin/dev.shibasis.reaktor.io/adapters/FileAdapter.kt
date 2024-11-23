@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.ControllerEvent
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import kotlinx.io.RawSource

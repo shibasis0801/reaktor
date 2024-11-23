@@ -43,6 +43,8 @@ allprojects {
 
 subprojects {
     apply(plugin = "org.jetbrains.dokka")
+    if (project.name.startsWith("reaktor") || project.name.startsWith("flatinvoker"))
+        apply(plugin = "maven-publish")
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {

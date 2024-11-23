@@ -1,5 +1,6 @@
-import dev.shibasis.publisheasy.Version
 import dev.shibasis.publisheasy.plugins.*
+
+val kotlinVersion = "2.0.21"
 
 plugins {
     id("java-gradle-plugin")
@@ -18,13 +19,13 @@ repositories {
 
 dependencies {
     // Align Version of all Kotlin components
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:${Version.SDK.Kotlin}")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     implementation("com.android.tools.build:gradle:8.4.2")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${Version.SDK.Kotlin}")
-    implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:${Version.SDK.Kotlin}")
-    implementation("org.jetbrains.kotlin:kotlin-serialization:${Version.SDK.Kotlin}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Version.Serialization}")
-    implementation("com.google.firebase:firebase-crashlytics-gradle:${Version.Crashlytics}")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+    implementation("com.google.firebase:firebase-crashlytics-gradle:2.9.9")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.21-1.0.26")
 
