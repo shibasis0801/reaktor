@@ -5,5 +5,5 @@ import dev.shibasis.reaktor.core.network.JsonResponse
 import io.vertx.ext.web.Router
 
 fun Router.healthCheck() {
-    get(HealthCheck.PATH).handle { _, _ -> JsonResponse(HealthCheck.Response()) }
+    get(HealthCheck.PATH).handle { _ -> JsonResponse(HealthCheck.Response(true)) }
 }

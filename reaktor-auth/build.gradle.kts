@@ -56,7 +56,8 @@ kotlin {
             api("org.jetbrains.exposed:exposed-json:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-kotlin-datetime:${Version.Exposed}")
             api("com.auth0:java-jwt:4.4.0")
-            implementation("org.postgresql:postgresql:42.7.3")
+            api("com.google.api-client:google-api-client:2.7.0")
+            api("org.postgresql:postgresql:42.7.3")
         }
     }
 }

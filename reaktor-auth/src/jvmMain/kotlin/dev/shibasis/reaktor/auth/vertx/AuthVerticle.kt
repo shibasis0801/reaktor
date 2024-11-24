@@ -1,12 +1,22 @@
 package dev.shibasis.reaktor.auth.vertx
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import com.google.api.client.http.HttpTransport
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.auth.http.HttpTransportFactory
+import dev.shibasis.reaktor.auth.route.Auth
 import dev.shibasis.reaktor.core.actor.BaseVerticle
+import dev.shibasis.reaktor.core.actor.requestBody
+import dev.shibasis.reaktor.core.network.ErrorResponse
+import dev.shibasis.reaktor.core.network.JsonResponse
 import io.vertx.ext.web.Router
 import org.jetbrains.exposed.sql.Database
 
 
 class AuthVerticle(
-    private val database: Database
+    private val database: Database,
+    clientId: String
 ): BaseVerticle() {
     override fun createRouter(): Router? {
         return Router.router(vertx).apply {

@@ -1,7 +1,8 @@
+import com.android.build.gradle.internal.crash.afterEvaluate
 import groovy.lang.Closure
+import java.time.LocalDate
+
 plugins {
-    // this is necessary to avoid the plugins to be loaded multiple times
-    // in each subproject's classloader
     kotlin("multiplatform") apply false
     kotlin("android") apply false
     id("com.android.application") apply false
@@ -21,6 +22,7 @@ plugins {
 
 buildscript {
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         google()
         mavenCentral()
@@ -30,21 +32,36 @@ buildscript {
 
 allprojects {
     group = "dev.shibasis"
+    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
+
     repositories {
+        mavenLocal()
         mavenCentral()
         google()
         maven(url = "https://www.jitpack.io")
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         maven("https://oss.sonatype.org/content/repositories/snapshots")
-//        mavenLocal()
         maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     }
 }
 
 subprojects {
     apply(plugin = "org.jetbrains.dokka")
-    if (project.name.startsWith("reaktor") || project.name.startsWith("flatinvoker"))
-        apply(plugin = "maven-publish")
+    extensions.configure<PublishingExtension> {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
+                credentials {
+                    username = System.getenv("USERNAME") ?: ""
+                    password = System.getenv("TOKEN") ?: ""
+                }
+            }
+        }
+        if (project.name != "dependeasy") {
+            githubPublication(name)
+        }
+    }
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {
@@ -53,13 +70,36 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configure
     }
 }
 
-
-
 tasks.dokkaHtmlMultiModule.configure {
     outputDirectory.set(file("docs"))
 }
 
 rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
     rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false
-    // "true" for default behavior
+}
+
+
+fun Project.githubPublication(id: String = name) {
+    project.extensions.getByType(PublishingExtension::class.java).apply {
+        publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
+            groupId = "dev.shibasis"
+            artifactId = id
+            version = project.version.toString()
+            if (project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform"))
+                from(project.components["kotlin"])
+            else
+                from(project.components["java"])
+
+
+            when {
+                project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform") ->
+                    from(project.components["kotlin"])
+                project.plugins.hasPlugin("java") ->
+                    from(project.components["java"])
+                else -> {
+                    throw GradleException("Unsupported project type for publishing")
+                }
+            }
+        }
+    }
 }

@@ -185,7 +185,6 @@ fun linkHermes(
 }
 linkHermes(githubDir)
 
-includeBuild(".github_modules/flatbuffers/kotlin/convention-plugins")
 include(":flatinvoker-core")
 include(":flatinvoker-ffi")
 //include(":flatinvoker-react") // will fix later

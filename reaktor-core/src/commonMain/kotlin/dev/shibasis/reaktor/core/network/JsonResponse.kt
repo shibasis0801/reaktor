@@ -1,9 +1,9 @@
 package dev.shibasis.reaktor.core.network
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import dev.shibasis.reaktor.core.annotations.Expose
+import dev.shibasis.reaktor.core.framework.toJson
+
 enum class StatusCode(val code: Int) {
     // 1xx Informational
     CONTINUE(100),
@@ -93,7 +93,7 @@ data class Response(
 inline fun<reified T> JsonResponse(
     data: T,
     statusCode: StatusCode = StatusCode.OK,
-) = Response(Json.encodeToString<T>(data), statusCode)
+) = Response(toJson<T>(data), statusCode)
 
 inline fun ErrorResponse(
     code: Int, // domain error code, different from statusCode
@@ -102,8 +102,10 @@ inline fun ErrorResponse(
 ) = JsonResponse(ErrorMessage(code, message), statusCode)
 
 inline fun<reified T> Result<T>.toResponse() = run {
-    if (isSuccess)
-        JsonResponse(getOrThrow())
+    val data = getOrNull()
+    if (data != null)
+        JsonResponse(data)
     else
         ErrorResponse(1, exceptionOrNull()?.message ?: "Unknown error")
 }
+

@@ -28,12 +28,13 @@ fun Theme.AuthScreen(
     var user by remember { mutableStateOf<GoogleUser?>(null) }
 
     LaunchedEffect(Unit) {
-        var current = authAdapter.getCurrentUser()
+        var current = authAdapter.getGoogleUser()
         if (current == null)
-            current = authAdapter.signIn().getOrNull()
+            current = authAdapter.googleLogin().getOrNull()
 
         user = current
 
+        authAdapter.login()
         println("User: $user")
     }
 

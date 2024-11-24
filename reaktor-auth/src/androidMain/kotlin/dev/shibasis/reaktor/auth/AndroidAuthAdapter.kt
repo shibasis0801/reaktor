@@ -22,7 +22,7 @@ class AndroidAuthAdapter(
 
     private var current: GoogleUser? = null
 
-    private suspend fun googleLogin(): GoogleUser? = invokeSuspend {
+    private suspend fun tryLogin(): GoogleUser? = invokeSuspend {
         if (current != null) return@invokeSuspend current
 
         val result = credentialManager.getCredential(this, request)
@@ -35,14 +35,14 @@ class AndroidAuthAdapter(
 
     init {
         scope.launch {
-            googleLogin()?.apply {
+           tryLogin()?.apply {
                 Logger.i { "email has logged in" }
             } ?: Logger.e { "Unknown error while signing in." }
         }
     }
 
-    override suspend fun signIn(): Result<GoogleUser> = invokeSuspend {
-        googleLogin()?.apply {
+    override suspend fun googleLogin(): Result<GoogleUser> = invokeSuspend {
+        tryLogin()?.apply {
             Logger.i { "email has logged in" }
         } ?: Logger.e { "Unknown error while signing in." }
         nullControllerResult()
@@ -57,7 +57,7 @@ class AndroidAuthAdapter(
         }
     } ?: nullControllerResult()
 
-    override suspend fun getCurrentUser(): GoogleUser? = invokeSuspend { googleLogin() }
+    override suspend fun getGoogleUser(): GoogleUser? = invokeSuspend { tryLogin() }
 }
 
 fun GoogleIdTokenCredential.toGoogleUser(): GoogleUser {

@@ -20,7 +20,7 @@ class DarwinAuthAdapter(controller: UIViewController): AuthAdapter<UIViewControl
         }
     }
 
-    override suspend fun signIn() = suspendCancellableCoroutine {
+    override suspend fun googleLogin() = suspendCancellableCoroutine {
         invoke {
             GIDSignIn.sharedInstance.signInWithPresentingViewController(this) { result, error ->
                 if (error != null && result != null) {
@@ -31,7 +31,7 @@ class DarwinAuthAdapter(controller: UIViewController): AuthAdapter<UIViewControl
         }
     }
 
-    override suspend fun getCurrentUser() = GIDSignIn.sharedInstance.currentUser?.toGoogleUser()
+    override suspend fun getGoogleUser() = GIDSignIn.sharedInstance.currentUser?.toGoogleUser()
 
     override suspend fun signOut() = invokeSuspend {
         GIDSignIn.sharedInstance.signOut()
