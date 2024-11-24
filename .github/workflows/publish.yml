@@ -18,6 +18,15 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
 
+      - name: Homebrew
+        run: |
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+            eval "$(/opt/homebrew/bin/brew shellenv)" 
+
+      - name: Install Ninja
+        run: brew install ninja
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
