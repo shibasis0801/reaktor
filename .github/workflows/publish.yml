@@ -6,7 +6,32 @@ on:
       - main
 
 jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build everything
+        run: ./gradlew build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: ./ # Upload the entire project directory (adjust if needed)
+
   publish:
+    needs: build
     runs-on: macos-latest
     strategy:
       matrix:
@@ -22,9 +47,12 @@ jobs:
           - reaktor-auth
           - reaktor-media
           - reaktor-navigation
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
 
       - name: Set up JDK
         uses: actions/setup-java@v2
@@ -34,9 +62,6 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      - name: Build everything.
-        run: ./gradlew build
 
       - name: Publish ${{ matrix.package }}
         env:
