@@ -7,7 +7,7 @@ import dev.shibasis.dependeasy.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("dev.shibasis.publisheasy")
+    
 }
 val Name = "FlatInvokerFFI"
 

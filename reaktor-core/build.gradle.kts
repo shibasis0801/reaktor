@@ -6,7 +6,7 @@ import dev.shibasis.dependeasy.darwin.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("dev.shibasis.publisheasy")
+    
 }
 
 kotlin {

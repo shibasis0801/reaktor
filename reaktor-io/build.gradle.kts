@@ -11,7 +11,7 @@ import java.net.Socket
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    id("dev.shibasis.publisheasy")
+    
     id("com.codingfeline.buildkonfig")
 
 }

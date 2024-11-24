@@ -1,7 +1,3 @@
-import com.android.build.gradle.internal.crash.afterEvaluate
-import groovy.lang.Closure
-import java.time.LocalDate
-
 plugins {
     kotlin("multiplatform") apply false
     kotlin("android") apply false
@@ -12,11 +8,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose").apply(false)
     id("com.google.devtools.ksp") apply false
     id("dev.shibasis.dependeasy.library") apply false
-    id("dev.shibasis.publisheasy") apply false
     id("dev.shibasis.dependeasy.application") apply false
     id("org.jetbrains.kotlinx.benchmark") apply false
     id("com.codingfeline.buildkonfig") apply false
-    // applied
     id("org.jetbrains.dokka") version "1.9.20"
 }
 
@@ -31,9 +25,6 @@ buildscript {
 }
 
 allprojects {
-    group = "dev.shibasis"
-    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
-
     repositories {
         mavenLocal()
         mavenCentral()
@@ -47,21 +38,8 @@ allprojects {
 
 subprojects {
     apply(plugin = "org.jetbrains.dokka")
-    extensions.configure<PublishingExtension> {
-        repositories {
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
-                credentials {
-                    username = System.getenv("USERNAME") ?: ""
-                    password = System.getenv("TOKEN") ?: ""
-                }
-            }
-        }
-        if (project.name != "dependeasy") {
-            githubPublication(name)
-        }
-    }
+    apply(plugin = "maven-publish")
+    apply(from = "$rootDir/publishing.gradle.kts")
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {
@@ -76,30 +54,4 @@ tasks.dokkaHtmlMultiModule.configure {
 
 rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
     rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false
-}
-
-
-fun Project.githubPublication(id: String = name) {
-    project.extensions.getByType(PublishingExtension::class.java).apply {
-        publications.create(id.replace("-", ""), MavenPublication::class.java).apply {
-            groupId = "dev.shibasis"
-            artifactId = id
-            version = project.version.toString()
-            if (project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform"))
-                from(project.components["kotlin"])
-            else
-                from(project.components["java"])
-
-
-            when {
-                project.plugins.hasPlugin("org.jetbrains.kotlin.multiplatform") ->
-                    from(project.components["kotlin"])
-                project.plugins.hasPlugin("java") ->
-                    from(project.components["java"])
-                else -> {
-                    throw GradleException("Unsupported project type for publishing")
-                }
-            }
-        }
-    }
 }

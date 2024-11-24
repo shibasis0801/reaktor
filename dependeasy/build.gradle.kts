@@ -1,10 +1,8 @@
-import dev.shibasis.publisheasy.plugins.*
-
 val kotlinVersion = "2.0.21"
 
 plugins {
     id("java-gradle-plugin")
-    id("dev.shibasis.publisheasy")
+    id("maven-publish")
     `kotlin-dsl`
     kotlin("jvm") version "2.0.21"
 }
@@ -14,7 +12,6 @@ repositories {
     mavenCentral()
     maven(url = "https://plugins.gradle.org/m2/")
     maven(url = "https://jitpack.io")
-
 }
 
 dependencies {
@@ -36,19 +33,16 @@ gradlePlugin {
         id = "dev.shibasis.dependeasy.library"
         implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
     }
-    githubPublication("dependeasy-library")
 
     val applicationPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.application"
         implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
     }
-    githubPublication("dependeasy-application")
 
     val settingsPlugin by plugins.creating {
         id = "dev.shibasis.dependeasy.settings"
         implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
     }
-    githubPublication("dependeasy-settings")
 }
 
 kotlin {
@@ -61,3 +55,6 @@ kotlin {
 tasks.withType(Jar::class.java).configureEach {
     archiveFileName.set("dependeasy.jar")
 }
+
+apply(from = "$rootDir/../publishing.gradle.kts")
+

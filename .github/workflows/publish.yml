@@ -6,9 +6,22 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  publish:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        package:
+          - dependeasy
+          - flatinvoker-core
+          - flatinvoker-ffi
+          # - flatinvoker-react  # will fix later
+          - flatinvoker-compiler
+          - reaktor-core
+          - reaktor-io
+          - reaktor-ui
+          - reaktor-auth
+          - reaktor-media
+          - reaktor-navigation
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -19,37 +32,14 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
 
-      - name: Install Git
-        run: sudo apt-get update && sudo apt-get install -y git
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build and publish
+      - name: Build everything.
+        run: ./gradlew build
+
+      - name: Publish ${{ matrix.package }}
         env:
           USERNAME: shibasis0801
           TOKEN: ${{ secrets.TOKEN }}
-        run: ./gradlew :dependeasy:publish
-
-      - name: Read version from file
-        id: read_version
-        run: |
-          VERSION=$(cat plugins/dependeasy/version)
-          echo "version=$VERSION" >> $GITHUB_ENV
-
-      - name: Commit version file changes
-        if: success()  # Only run if the publish step succeeds
-        run: |
-          git config --global user.name "shibasis0801"
-          git config --global user.email "shibasis0801@gmail.com"
-          git add .
-          git commit -m "release: ${{ env.version }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-      - name: Push changes
-        if: success()
-        run: |
-          git push origin main
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: ./gradlew :${{ matrix.package }}:publish
