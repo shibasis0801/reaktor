@@ -2,7 +2,6 @@
 # The reason to have this workaround is to have a common cmake in the root along with other build files.
 set(FLATBUFFERS_BUILD_FLATC OFF)
 set(FLATBUFFERS_BUILD_TESTS OFF)
-option(iOS "Building for iOS" OFF)
 
 function(setup_ios)
     if(NOT DEFINED sdk)
@@ -20,13 +19,6 @@ function(setup_ios)
 
     set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "")
     set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE INTERNAL "")
-
-    set(IOS FALSE PARENT_SCOPE)
-    if(APPLE)
-       if(CMAKE_OSX_SYSROOT MATCHES "iphoneos" OR CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
-                set(IOS TRUE PARENT_SCOPE)
-        endif()
-    endif()
 endfunction()
 
 
@@ -50,7 +42,7 @@ function(init)
     set(main ${main} PARENT_SCOPE)
 
     if (APPLE)
-#        target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc)
+#        target_compile_options(${PROJECT_NAME} PUBLIC -fobjc-arc) // need for objc source
     endif()
 endfunction()
 

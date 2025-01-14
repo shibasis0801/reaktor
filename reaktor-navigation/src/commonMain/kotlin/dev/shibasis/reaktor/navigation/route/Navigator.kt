@@ -7,7 +7,38 @@ import dev.shibasis.reaktor.navigation.screen.Props
 import dev.shibasis.reaktor.core.framework.Feature
 import kotlin.js.JsName
 
-typealias ScreenPair = Pair<Props, Destination<Props>>
+
+data class ScreenPair(val props: Props, val destination: Destination<Props>)
+
+
+internal class ScreenStack(rootDestination: Destination<Props>) {
+    private val stack = ArrayDeque<ScreenPair>()
+    val current = mutableStateOf(ScreenPair(rootDestination.defaultParameters, rootDestination))
+    val handlesBack = mutableStateOf(false)
+
+    init {
+        stack.add(current.value)
+    }
+
+    fun push(screenPair: ScreenPair) {
+        stack.add(screenPair)
+        current.value = screenPair
+        handlesBack.value = true
+    }
+
+    fun replace(screenPair: ScreenPair) {
+        stack.removeLast()
+        stack.add(screenPair)
+        current.value = screenPair
+    }
+
+    fun pop() {
+        stack.removeLast()
+        current.value = stack.last()
+        if (stack.size == 1) handlesBack.value = false
+    }
+
+}
 
 // Todo Write integration tests and design docs
 
@@ -22,13 +53,10 @@ UseCases
 class Navigator(
     private val root: Junction
 ) {
-    val stack = ArrayDeque<ScreenPair>()
-    val current: MutableState<ScreenPair>
+    private val screenStack = ScreenStack(root.Index ?: getErrorRoute())
 
-    init {
-        val route = root.Index ?: getErrorRoute()
-        current = mutableStateOf(ScreenPair(route.defaultParameters, route))
-    }
+    val handlesBack = screenStack.handlesBack
+    val current = screenStack.current
 
     @Suppress("UNCHECKED_CAST")
     private fun getDestination(path: String, root: Junction): Destination<Props> {
@@ -51,9 +79,7 @@ class Navigator(
     }
 
     fun <T: Props> push(destination: Destination<T>, props: T) {
-        val pair = ScreenPair(props, destination as Destination<Props>)
-        stack.add(pair)
-        current.value = pair
+        screenStack.push(ScreenPair(props, destination as Destination<Props>))
     }
 
     @JsName("pushRoute")
@@ -62,9 +88,18 @@ class Navigator(
         push(destination, props)
     }
 
+    fun <T: Props> replace(destination: Destination<T>, props: T) {
+        screenStack.replace(ScreenPair(props, destination as Destination<Props>))
+    }
+
+    @JsName("replaceRoute")
+    fun <T: Props> replace(route: String, props: T) {
+        val destination = getDestination(route, root)
+        replace(destination, props)
+    }
+
     fun pop() {
-        stack.removeLast()
-        current.value = stack.last()
+        screenStack.pop()
     }
 }
 

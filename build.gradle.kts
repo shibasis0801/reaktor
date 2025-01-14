@@ -55,3 +55,16 @@ tasks.dokkaHtmlMultiModule.configure {
 rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
     rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false
 }
+
+
+tasks.register("publishToGithubPackages") {
+    group = "reaktor"
+    dependsOn(gradle.includedBuild("dependeasy").task(":publish"))
+    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publish") })
+}
+
+tasks.register("publishToMavenLocal") {
+    group = "reaktor"
+    dependsOn(gradle.includedBuild("dependeasy").task(":publishToMavenLocal"))
+    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishToMavenLocal") })
+}

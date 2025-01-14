@@ -6,7 +6,6 @@ import dev.shibasis.dependeasy.darwin.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    
 }
 
 kotlin {
@@ -44,7 +43,7 @@ kotlin {
     }
     server {
         dependencies = {
-            vertx()
+            springWebFlux()
         }
     }
 

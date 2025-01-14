@@ -15,6 +15,7 @@ kotlin {
     common {
         dependencies = {
             api(project(":reaktor-core"))
+            api(project(":reaktor-io"))
             api(compose.runtime)
             api(compose.foundation)
             api(compose.material3)

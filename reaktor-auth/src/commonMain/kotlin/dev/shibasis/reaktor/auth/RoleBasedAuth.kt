@@ -1,8 +1,11 @@
 package dev.shibasis.reaktor.auth
 
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 
 @Serializable
@@ -55,11 +58,10 @@ data class Permission(
 )
 
 @Serializable
-data class Session(
-    val id: Long,
+data class Session @OptIn(ExperimentalUuidApi::class) constructor(
+    @Contextual val id: Uuid,
     val userId: Long,
     val appId: Long,
-    val refreshToken: String,
     val expiresAt: LocalDateTime,
     val createdAt: LocalDateTime
 )

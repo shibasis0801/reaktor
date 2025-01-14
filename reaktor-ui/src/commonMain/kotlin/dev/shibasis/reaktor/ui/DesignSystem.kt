@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -24,7 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
-
 
 /*
 Figure out
@@ -84,6 +84,19 @@ interface DesignSystem {
         Box(modifier) {
             Icon(imageVector, imageVector.name)
         }
+    }
+
+    @Composable
+    fun ButtonFloatingAction(
+        modifier: Modifier,
+        onClick: () -> Unit,
+        content: @Composable RowScope.() -> Unit
+    ) {
+        ExtendedFloatingActionButton(
+            modifier = modifier,
+            onClick = onClick,
+            content = content
+        )
     }
 
     @Composable
@@ -154,6 +167,16 @@ class Theme(private val designSystem: DesignSystem) {
         onClick: () -> Unit = {}
     ) {
         designSystem.ButtonIcon(modifier, imageVector, onClick)
+    }
+
+
+    @Composable
+    fun ButtonFloatingAction(
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit = {},
+        content: @Composable RowScope.() -> Unit = {}
+    ) {
+        designSystem.ButtonFloatingAction(modifier, onClick, content)
     }
 
     @Composable

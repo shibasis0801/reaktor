@@ -21,3 +21,7 @@ fun KotlinDependencyHandler.vertx() {
 fun KotlinDependencyHandler.serverNetworking() {
     api("io.ktor:ktor-client-okhttp:${Version.Ktor}")
 }
+
+fun KotlinDependencyHandler.springWebFlux() {
+    api("org.springframework.boot:spring-boot-starter-webflux:${Version.SDK.Spring}")
+}

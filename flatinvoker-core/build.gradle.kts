@@ -1,10 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
-import com.android.build.api.dsl.LintOptions
-import dev.shibasis.dependeasy.web.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 
 
@@ -17,19 +14,18 @@ val Name = "FlatInvokerCore"
 
 
 fun darwinCmake(sdk: String): Exec {
-    val prefix = sdk
-    return tasks.create<Exec>("${prefix}CMake") {
+    return tasks.create<Exec>("${sdk}CMake") {
         group = "reaktor"
         workingDir = file("cpp")
         commandLine = listOf("bash", "-c", """
             mkdir -p build &&
             cd build &&   
-            rm -rf $prefix &&
-            cmake -B $prefix -G Xcode \
+            rm -rf $sdk &&
+            cmake -B $sdk -G Xcode \
                 -DCMAKE_BUILD_TYPE=Release \
                 -Dsdk=${sdk} .. \
                 -DiOS=true &&
-            cmake --build $prefix --config Release
+            cmake --build $sdk --config Release
         """.trimIndent()
         )
     }

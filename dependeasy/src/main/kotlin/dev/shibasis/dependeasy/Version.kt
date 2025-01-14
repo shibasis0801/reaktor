@@ -12,8 +12,9 @@ object Version {
 
         const val targetDarwin = "12"
 
-        const val Kotlin = "2.0.0"
+        const val Kotlin = "2.0.21"
         const val Vertx = "4.4.2"
+        const val Spring = "3.4.1"
 
         object Java {
             val asEnum = JavaVersion.VERSION_17
@@ -23,8 +24,8 @@ object Version {
     }
 
     // Android
-    const val Activity = "1.9.1"
-    const val Fragment = "1.3.6"
+    const val Activity = "1.9.3"
+    const val Fragment = "1.8.5"
     const val Lifecycle = "2.4.0"
     const val Navigation = "2.3.2"
 
@@ -34,9 +35,9 @@ object Version {
     // Data
     const val SQLDelight = "2.0.0"
     const val Exposed = "0.50.0"
-    const val OkHttp = "4.10.0"
+    const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
-    const val Ktor = "2.3.0"
+    const val Ktor = "3.0.3"
 
     // Image
     const val Coil = "3.0.0-SNAPSHOT"
@@ -51,9 +52,9 @@ object Version {
     // Database
 
     // KMM Async
-    const val Coroutines = "1.8.0-RC"
-    const val Kermit = "2.0.3"
-    const val Serialization = "1.7.1"
+    const val Coroutines = "1.9.0"
+    const val Kermit = "2.0.5"
+    const val Serialization = "1.7.3"
 
     // DevTools
     const val Flipper = "0.162.0"

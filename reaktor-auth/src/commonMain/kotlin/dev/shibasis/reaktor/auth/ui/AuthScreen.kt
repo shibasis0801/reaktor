@@ -16,14 +16,11 @@ import dev.shibasis.reaktor.auth.GoogleUser
 import dev.shibasis.reaktor.navigation.screen.Props
 import dev.shibasis.reaktor.ui.Theme
 
-data class AuthScreenProps(
-    val name: String = "",
-): Props()
-
 @Composable
-fun Theme.AuthScreen(
-    props: AuthScreenProps,
-    authAdapter: AuthAdapter<*>
+fun Theme.AuthButton(
+    authAdapter: AuthAdapter<*>,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     var user by remember { mutableStateOf<GoogleUser?>(null) }
 
@@ -39,9 +36,10 @@ fun Theme.AuthScreen(
     }
 
     user?.apply {
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            TextView(text = name, style = text.bodyLarge)
+        Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            ButtonPrimary(onClick = onClick) {
+                TextView(text = name, style = text.bodyLarge)
+            }
         }
-
     }
 }
