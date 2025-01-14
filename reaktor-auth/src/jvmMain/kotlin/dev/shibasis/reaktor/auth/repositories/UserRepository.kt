@@ -16,12 +16,12 @@ class UserRepository(
     database: Database
 ) : ExposedAdapter(database) {
     fun getUser(id: Long) = sql {
-        Users.selectAll().where { Users.id eq id }.singleOrNull()?.apply(Users::toDto)
+        Users.selectAll().where { Users.id eq id }.singleOrNull()?.run(Users::toDto)
     }
 
     fun getUser(appId: Long, socialId: String) = sql {
         Users.selectAll().where { (Users.socialId eq socialId) and (Users.appId eq appId) }
-            .singleOrNull()?.apply(Users::toDto)
+            .singleOrNull()?.run(Users::toDto)
     }
 
     fun getUsers(appId: Long) = sql {

@@ -17,16 +17,11 @@ abstract class AuthAdapter<Controller>(
     abstract suspend fun signOut(): Result<Unit>
     abstract suspend fun getGoogleUser(): GoogleUser?
 
-
-    private suspend fun verify(user: GoogleUser) {
-
-    }
-
-    suspend fun login() {
+    suspend fun login(appId: Int = 1) {
         var user = getGoogleUser() ?: googleLogin().getOrNull()
         if (user != null) {
-//            val response = httpClient.postJson<Auth.Request, Auth.Response>("http://${getServerIP().getOrNull()}:8000/auth/login", Auth.Request(user))
-//            Logger.i { response.toString() }
+            val response = httpClient.postJson<SignInRequest, SignInResponse>("https://server.shibasis.dev/auth/sign-in", SignInRequest(user.idToken, appId.toLong()))
+            Logger.i { response.toString() }
         }
         else {
             Logger.e { "Unable to google login." }

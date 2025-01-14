@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /*
 Figure out
@@ -215,6 +217,11 @@ class Theme(private val designSystem: DesignSystem) {
 }
 
 var Feature.Theme by CreateSlot<Theme>()
+
+@Composable
+inline fun <R> themed(block: Theme.() -> R): R {
+    return block(Feature.Theme ?: throw Error("A theme is needed for the app."))
+}
 
 data class Sizes(
     val extraSmall: Dp = 4.dp,

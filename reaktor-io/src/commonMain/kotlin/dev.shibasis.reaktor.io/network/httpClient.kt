@@ -32,7 +32,7 @@ expect val httpClient: HttpClient
 
 fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     install(ContentNegotiation) {
-        json()
+        json(Json { classDiscriminator = "type" })
     }
     install(Logging) {
         logger = Logger.DEFAULT

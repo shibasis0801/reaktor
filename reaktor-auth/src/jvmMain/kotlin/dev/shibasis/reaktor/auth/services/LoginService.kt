@@ -2,27 +2,43 @@ package dev.shibasis.reaktor.auth.services
 
 import dev.shibasis.reaktor.auth.api.SignInRequest
 import dev.shibasis.reaktor.auth.api.SignInResponse
+import dev.shibasis.reaktor.auth.apps.jsonResponse
 import dev.shibasis.reaktor.auth.jwt.TokenVerifierService
 import dev.shibasis.reaktor.auth.repositories.AppRepository
 import dev.shibasis.reaktor.auth.repositories.UserRepository
+import org.jetbrains.exposed.sql.Database
+import org.springframework.http.HttpStatus
 
 // todo probably need koin after all
 class LoginService(
-    private val userRepository: UserRepository,
-    private val appRepository: AppRepository,
-    private val verifierService: TokenVerifierService
+    database: Database,
+    clientId: String
 ) {
+    private val verifierService = TokenVerifierService(clientId)
+    private val userRepository = UserRepository(database)
+    private val appRepository = AppRepository(database)
+
     fun login(request: SignInRequest): SignInResponse {
-        val payload = verifierService.verify(request.googleIdToken)
-            ?: return SignInResponse.Failure.InvalidGoogleIdToken
+        val (idToken, appId) = request
 
-        val app = appRepository.getApp(request.appId)
-        app.getOrNull() ?: return SignInResponse.Failure.InvalidAppId
+        val appResult = appRepository.getApp(appId)
+        if (appResult.isFailure)
+            return SignInResponse.Failure.InvalidAppId
+        else
+            println(appResult.getOrNull()!!)
 
-        val userResult = userRepository.getUser(request.appId, request.googleIdToken)
+        val payload = verifierService.verify(idToken)
+        if (payload == null)
+            return SignInResponse.Failure.InvalidGoogleIdToken
+        else
+            println(payload)
 
-        val user = userResult.getOrNull() ?: return SignInResponse.Failure.RequiresSignUp
+        val user = userRepository.getUser(appId, payload.subject).getOrNull()
+        if (user == null)
+            return SignInResponse.Failure.RequiresSignUp
+        else
+            println(user)
 
-        return SignInResponse.Success("success")
+        return SignInResponse.Success(idToken)
     }
 }

@@ -24,16 +24,7 @@ fun Theme.AuthButton(
 ) {
     var user by remember { mutableStateOf<GoogleUser?>(null) }
 
-    LaunchedEffect(Unit) {
-        var current = authAdapter.getGoogleUser()
-        if (current == null)
-            current = authAdapter.googleLogin().getOrNull()
-
-        user = current
-
-        authAdapter.login()
-        println("User: $user")
-    }
+    LaunchedEffect(Unit) { user = authAdapter.getGoogleUser() }
 
     user?.apply {
         Column(modifier, verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {

@@ -25,6 +25,6 @@ sealed class SignInResponse {
         data object RequiresSignUp: Failure()
 
         @Serializable
-        data class ServerError(val code: Int, val message: String): Failure()
+        class ServerError(val code: Int, val message: String): Failure()
     }
 }
