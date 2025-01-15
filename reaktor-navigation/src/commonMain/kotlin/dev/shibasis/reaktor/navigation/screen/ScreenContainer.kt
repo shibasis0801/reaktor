@@ -1,10 +1,14 @@
 package dev.shibasis.reaktor.navigation.screen
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.navigation.route.Navigator
 import dev.shibasis.reaktor.ui.Theme
 
@@ -24,7 +28,10 @@ internal fun Theme.ScreenContainerContent(
             typography = text,
             shapes = shapes
         ) {
-            route.destination.content(route.props)
+            Scaffold(Modifier.fillMaxSize()) {
+                route.destination.content(route.props)
+            }
+
         }
     }
 }

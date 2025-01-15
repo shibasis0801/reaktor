@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.services
 
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.auth.api.SignInRequest
 import dev.shibasis.reaktor.auth.api.SignInResponse
 import dev.shibasis.reaktor.auth.apps.jsonResponse
@@ -9,7 +10,6 @@ import dev.shibasis.reaktor.auth.repositories.UserRepository
 import org.jetbrains.exposed.sql.Database
 import org.springframework.http.HttpStatus
 
-// todo probably need koin after all
 class LoginService(
     database: Database,
     clientId: String
@@ -19,26 +19,28 @@ class LoginService(
     private val appRepository = AppRepository(database)
 
     fun login(request: SignInRequest): SignInResponse {
-        val (idToken, appId) = request
+        val (googleIdToken, appId) = request
 
         val appResult = appRepository.getApp(appId)
         if (appResult.isFailure)
             return SignInResponse.Failure.InvalidAppId
-        else
-            println(appResult.getOrNull()!!)
 
-        val payload = verifierService.verify(idToken)
+        Logger.i { appResult.getOrNull()!!.toString() }
+
+        val payload = verifierService.verify(googleIdToken)
         if (payload == null)
             return SignInResponse.Failure.InvalidGoogleIdToken
-        else
-            println(payload)
 
-        val user = userRepository.getUser(appId, payload.subject).getOrNull()
+        Logger.i { payload.toPrettyString() }
+
+        val socialId = payload.subject
+
+        val user = userRepository.getUser(appId, socialId).getOrNull()
         if (user == null)
-            return SignInResponse.Failure.RequiresSignUp
-        else
-            println(user)
+            return SignInResponse.Failure.RequiresSignUp(socialId)
 
-        return SignInResponse.Success(idToken)
+        Logger.i { user.toString() }
+
+        return SignInResponse.Success(socialId)
     }
 }

@@ -52,10 +52,6 @@ interface DesignSystem {
         Button(
             onClick = onClick,
             modifier = modifier,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ),
             content = content
         )
     }
@@ -69,10 +65,6 @@ interface DesignSystem {
         Button(
             onClick = onClick,
             modifier = modifier,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            ),
             content = content
         )
     }
@@ -133,7 +125,7 @@ interface DesignSystem {
         modifier: Modifier,
         content: @Composable BoxScope.() -> Unit
     ) {
-        Box(modifier = modifier.border(0.25.dp, Color.LightGray, shape = RoundedCornerShape(8.dp)).padding(8.dp))
+        Box(modifier = modifier.border(0.25.dp, Color.LightGray, shape = RoundedCornerShape(8.dp)).padding(8.dp), content = content)
     }
 }
 
