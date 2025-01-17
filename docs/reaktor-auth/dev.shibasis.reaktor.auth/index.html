@@ -1,0 +1,519 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.shibasis.reaktor.auth</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+<a class="library-name--link" href="../../index.html">
+                            flatInvoker
+                    </a>            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":reaktor-auth:dokkaHtmlPartial/androidMain">android</button>
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":reaktor-auth:dokkaHtmlPartial/commonMain">common</button>
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":reaktor-auth:dokkaHtmlPartial/iosMain">ios</button>
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="package" id="content" pageids="reaktor-auth::dev.shibasis.reaktor.auth////PointingToDeclaration//1248074172">
+  <div class="breadcrumbs"><a href="../index.html">reaktor-auth</a><span class="delimiter">/</span><span class="current">dev.shibasis.reaktor.auth</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button><button class="section-tab" data-togglable="PROPERTY,EXTENSION_PROPERTY">Properties</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="683102001%2FClasslikes%2F-1275762910" anchor-label="AndroidAuthAdapter" id="683102001%2FClasslikes%2F-1275762910" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/androidMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/androidMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/androidMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-android-auth-adapter/index.html"><span>Android</span><wbr><span>Auth</span><wbr><span><span>Adapter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="683102001%2FClasslikes%2F-1275762910"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/androidMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/androidMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/androidMain">android</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/androidMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-android-auth-adapter/index.html">AndroidAuthAdapter</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">activity<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/activity/ComponentActivity.html">ComponentActivity</a><span class="token punctuation">, </span></span><span class="parameter ">clientId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="-auth-adapter/index.html">AuthAdapter</a><span class="token operator">&lt;</span><a href="https://developer.android.com/reference/kotlin/androidx/activity/ComponentActivity.html">ComponentActivity</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1541488232%2FClasslikes%2F-1235770440" anchor-label="App" id="-1541488232%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-app/index.html"><span><span>App</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1541488232%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-app/index.html">App</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>data<span class="token operator">: </span><span data-unresolved-link="kotlinx.serialization.json/JsonElement///PointingToDeclaration/">JsonElement</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>createdAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>updatedAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-622612841%2FClasslikes%2F980625470" anchor-label="Apps" id="-622612841%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-apps/index.html"><span><span>Apps</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-622612841%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-apps/index.html">Apps</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span>, <a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-app/index.html">App</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="712311282%2FClasslikes%2F-1235770440" anchor-label="AuthAdapter" id="712311282%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-auth-adapter/index.html"><span>Auth</span><wbr><span><span>Adapter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="712311282%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">class </span><a href="-auth-adapter/index.html">AuthAdapter</a><span class="token operator">&lt;</span><a href="-auth-adapter/index.html">Controller</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">controller<span class="token operator">: </span><a href="-auth-adapter/index.html">Controller</a></span></span><span class="token punctuation">)</span> : <a href="../../reaktor-core/dev.shibasis.reaktor.core.framework/-adapter/index.html">Adapter</a><span class="token operator">&lt;</span><a href="-auth-adapter/index.html">Controller</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-495328071%2FClasslikes%2F-125457376" anchor-label="DarwinAuthAdapter" id="-495328071%2FClasslikes%2F-125457376" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-darwin-auth-adapter/index.html"><span>Darwin</span><wbr><span>Auth</span><wbr><span><span>Adapter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-495328071%2FClasslikes%2F-125457376"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-darwin-auth-adapter/index.html">DarwinAuthAdapter</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">controller<span class="token operator">: </span><span data-unresolved-link="platform.UIKit/UIViewController///PointingToDeclaration/">UIViewController</span></span></span><span class="token punctuation">)</span> : <a href="../../reaktor-auth/dev.shibasis.reaktor.auth/-auth-adapter/index.html">AuthAdapter</a><span class="token operator">&lt;</span><span data-unresolved-link="platform.UIKit/UIViewController///PointingToDeclaration/">UIViewController</span><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-24094625%2FClasslikes%2F980625470" anchor-label="Data" id="-24094625%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-data/index.html"><span><span>Data</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-24094625%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-data/index.html">T</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1216123864%2FClasslikes%2F980625470" anchor-label="Entities" id="-1216123864%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-entities/index.html"><span><span>Entities</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1216123864%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-entities/index.html">Entities</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span>, <a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-entity/index.html">Entity</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-373153722%2FClasslikes%2F-1235770440" anchor-label="Entity" id="-373153722%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-entity/index.html"><span><span>Entity</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-373153722%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-entity/index.html">Entity</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>data<span class="token operator">: </span><span data-unresolved-link="kotlinx.serialization.json/JsonElement///PointingToDeclaration/">JsonElement</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>createdAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>updatedAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1805339045%2FClasslikes%2F-1235770440" anchor-label="GoogleUser" id="1805339045%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-google-user/index.html"><span>Google</span><wbr><span><span>User</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1805339045%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-google-user/index.html">GoogleUser</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>idToken<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>emailId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>imageUrl<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1068239910%2FClasslikes%2F-1235770440" anchor-label="Permission" id="-1068239910%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-permission/index.html"><span><span>Permission</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1068239910%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-permission/index.html">Permission</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>createdAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>updatedAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1163183253%2FClasslikes%2F980625470" anchor-label="Permissions" id="1163183253%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-permissions/index.html"><span><span>Permissions</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1163183253%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-permissions/index.html">Permissions</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span>, <a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-permission/index.html">Permission</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1455815405%2FClasslikes%2F-1235770440" anchor-label="Role" id="-1455815405%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-role/index.html"><span><span>Role</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1455815405%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-role/index.html">Role</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>createdAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>updatedAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2129694228%2FClasslikes%2F980625470" anchor-label="RoleBasedAuth" id="2129694228%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-role-based-auth/index.html"><span>Role</span><wbr><span>Based</span><wbr><span><span>Auth</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2129694228%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-role-based-auth/index.html">RoleBasedAuth</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="8733227%2FClasslikes%2F980625470" anchor-label="RolePermissions" id="8733227%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-role-permissions/index.html"><span>Role</span><wbr><span><span>Permissions</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="8733227%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-role-permissions/index.html">RolePermissions</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2033244796%2FClasslikes%2F980625470" anchor-label="Roles" id="2033244796%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-roles/index.html"><span><span>Roles</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2033244796%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-roles/index.html">Roles</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span>, <a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-role/index.html">Role</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-47299901%2FClasslikes%2F-1235770440" anchor-label="Session" id="-47299901%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-session/index.html"><span><span>Session</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-47299901%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-session/index.html">Session</a>&nbsp;<span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.uuid/-uuid/index.html">Uuid</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>userId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>expiresAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>createdAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1547414836%2FClasslikes%2F980625470" anchor-label="Sessions" id="-1547414836%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sessions/index.html"><span><span>Sessions</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1547414836%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-sessions/index.html">Sessions</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/UUIDTable///PointingToDeclaration/">UUIDTable</span>, <a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-session/index.html">Session</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1866437470%2FClasslikes%2F-1235770440" anchor-label="User" id="1866437470%2FClasslikes%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-user/index.html"><span><span>User</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1866437470%2FClasslikes%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-user/index.html">User</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>id<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>socialId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>appId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>data<span class="token operator">: </span><span data-unresolved-link="kotlinx.serialization.json/JsonElement///PointingToDeclaration/">JsonElement</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>createdAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>updatedAt<span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1864668889%2FClasslikes%2F980625470" anchor-label="UserRoles" id="-1864668889%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-user-roles/index.html"><span>User</span><wbr><span><span>Roles</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1864668889%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-user-roles/index.html">UserRoles</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1943868817%2FClasslikes%2F980625470" anchor-label="Users" id="1943868817%2FClasslikes%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-users/index.html"><span><span>Users</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1943868817%2FClasslikes%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-users/index.html">Users</a> : <span data-unresolved-link="org.jetbrains.exposed.dao.id/LongIdTable///PointingToDeclaration/">LongIdTable</span>, <a href="-data/index.html">Data</a><span class="token operator">&lt;</span><a href="-user/index.html">User</a><span class="token operator">&gt; </span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-2088099996%2FProperties%2F-1235770440" anchor-label="Auth" id="-2088099996%2FProperties%2F-1235770440" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/commonMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-auth.html"><span><span>Auth</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2088099996%2FProperties%2F-1235770440"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="../../reaktor-core/dev.shibasis.reaktor.core.framework/-feature/index.html">Feature</a><span class="token punctuation">.</span><a href="-auth.html">Auth</a><span class="token operator">: </span><a href="-auth-adapter/index.html">AuthAdapter</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-240040801%2FFunctions%2F980625470" anchor-label="authRouter" id="-240040801%2FFunctions%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="auth-router.html"><span>auth</span><wbr><span><span>Router</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-240040801%2FFunctions%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="auth-router.html"><span class="token function">authRouter</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">database<span class="token operator">: </span><span data-unresolved-link="org.jetbrains.exposed.sql/Database///PointingToDeclaration/">Database</span><span class="token punctuation">, </span></span><span class="parameter ">clientId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="org.springframework.web.reactive.function.server/RouterFunction///PointingToDeclaration/">RouterFunction</span><span class="token operator">&lt;</span><span data-unresolved-link="org.springframework.web.reactive.function.server/ServerResponse///PointingToDeclaration/">ServerResponse</span><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="442895412%2FFunctions%2F980625470" anchor-label="jsonb" id="442895412%2FFunctions%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="jsonb.html"><span><span>jsonb</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="442895412%2FFunctions%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="jsonb.html">T</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><span data-unresolved-link="org.jetbrains.exposed.sql/Table///PointingToDeclaration/">Table</span><span class="token punctuation">.</span><a href="jsonb.html"><span class="token function">jsonb</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="org.jetbrains.exposed.sql/Column///PointingToDeclaration/">Column</span><span class="token operator">&lt;</span><a href="jsonb.html">T</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1215675114%2FFunctions%2F980625470" anchor-label="now" id="-1215675114%2FFunctions%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="now.html"><span><span>now</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1215675114%2FFunctions%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime.Companion///PointingToDeclaration/">LocalDateTime.Companion</span><span class="token punctuation">.</span><a href="now.html"><span class="token function">now</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1334908258%2FFunctions%2F-2067897654" anchor-label="toGoogleUser" id="1334908258%2FFunctions%2F-2067897654" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/iosMain,:reaktor-auth:dokkaHtmlPartial/androidMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/iosMain,:reaktor-auth:dokkaHtmlPartial/androidMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/iosMain,:reaktor-auth:dokkaHtmlPartial/androidMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-google-user.html"><span>to</span><wbr><span>Google</span><wbr><span><span>User</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1334908258%2FFunctions%2F-2067897654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/androidMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/androidMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/androidMain">android</button><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/iosMain" data-toggle=":reaktor-auth:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-togglable=":reaktor-auth:dokkaHtmlPartial/androidMain"><div class="symbol monospace"><span class="token keyword">fun </span><span data-unresolved-link="com.google.android.libraries.identity.googleid/GoogleIdTokenCredential///PointingToDeclaration/">GoogleIdTokenCredential</span><span class="token punctuation">.</span><a href="to-google-user.html"><span class="token function">toGoogleUser</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-google-user/index.html">GoogleUser</a></div></div><div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">fun </span><span data-unresolved-link="cocoapods.GoogleSignIn/GIDGoogleUser///PointingToDeclaration/">GIDGoogleUser</span><span class="token punctuation">.</span><a href="to-google-user.html"><span class="token function">toGoogleUser</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../reaktor-auth/dev.shibasis.reaktor.auth/-google-user/index.html">GoogleUser</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="942189357%2FFunctions%2F980625470" anchor-label="toKotlinDateTime" id="942189357%2FFunctions%2F980625470" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-kotlin-date-time.html"><span>to</span><wbr><span>Kotlin</span><wbr><span>Date</span><wbr><span><span>Time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="942189357%2FFunctions%2F980625470"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-filterable-set=":reaktor-auth:dokkaHtmlPartial/jvmMain" data-active="" data-toggle=":reaktor-auth:dokkaHtmlPartial/jvmMain">jvm</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-auth:dokkaHtmlPartial/jvmMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/java/util/Date.html">Date</a><span class="token punctuation">.</span><a href="to-kotlin-date-time.html"><span class="token function">toKotlinDateTime</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="kotlinx.datetime/LocalDateTime///PointingToDeclaration/">LocalDateTime</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2025 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

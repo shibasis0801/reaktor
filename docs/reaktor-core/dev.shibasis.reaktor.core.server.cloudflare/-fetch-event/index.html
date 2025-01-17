@@ -1,0 +1,452 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>FetchEvent</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+<a class="library-name--link" href="../../../index.html">
+                            flatInvoker
+                    </a>            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector js-like" data-active="" data-filter=":reaktor-core:dokkaHtmlPartial/jsMain">js</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="reaktor-core::dev.shibasis.reaktor.core.server.cloudflare/FetchEvent///PointingToDeclaration//-711666109">
+  <div class="breadcrumbs"><a href="../../index.html">reaktor-core</a><span class="delimiter">/</span><a href="../index.html">dev.shibasis.reaktor.core.server.cloudflare</a><span class="delimiter">/</span><span class="current">FetchEvent</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Fetch</span><wbr><span><span>Event</span></span></h1>
+    <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+      <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">external </span><span class="token keyword">class </span><a href="index.html">FetchEvent</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">type<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">init<span class="token operator">: </span><a href="../-event-init/index.html">EventInit</a><span class="token operator"> = </span>definedExternally</span></span><span class="token punctuation">)</span> : <a href="../-extendable-event/index.html">ExtendableEvent</a></div></div>    </div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="76736494%2FConstructors%2F-711666109" anchor-label="FetchEvent" id="76736494%2FConstructors%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-fetch-event.html"><span>Fetch</span><wbr><span><span>Event</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="76736494%2FConstructors%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">type<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">init<span class="token operator">: </span><a href="../-event-init/index.html">EventInit</a><span class="token operator"> = </span>definedExternally</span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="1417601670%2FProperties%2F-711666109" anchor-label="bubbles" id="1417601670%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/bubbles.html"><span><span>bubbles</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1417601670%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/bubbles.html">bubbles</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-390572263%2FProperties%2F-711666109" anchor-label="cancelable" id="-390572263%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/cancelable.html"><span><span>cancelable</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-390572263%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/cancelable.html">cancelable</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1319614841%2FProperties%2F-711666109" anchor-label="cancelBubble" id="-1319614841%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/cancel-bubble.html"><span>cancel</span><wbr><span><span>Bubble</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1319614841%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/cancel-bubble.html">cancelBubble</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1041504923%2FProperties%2F-711666109" anchor-label="composed" id="1041504923%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/composed.html"><span><span>composed</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1041504923%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/composed.html">composed</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-49790749%2FProperties%2F-711666109" anchor-label="currentTarget" id="-49790749%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/current-target.html"><span>current</span><wbr><span><span>Target</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-49790749%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/current-target.html">currentTarget</a><span class="token operator">: </span><a href="../-event-target__0/index.html">EventTarget__0</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1123283721%2FProperties%2F-711666109" anchor-label="defaultPrevented" id="-1123283721%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/default-prevented.html"><span>default</span><wbr><span><span>Prevented</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1123283721%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/default-prevented.html">defaultPrevented</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="265859980%2FProperties%2F-711666109" anchor-label="eventPhase" id="265859980%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/event-phase.html"><span>event</span><wbr><span><span>Phase</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="265859980%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/event-phase.html">eventPhase</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-number/index.html">Number</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1659101760%2FProperties%2F-711666109" anchor-label="isTrusted" id="1659101760%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/is-trusted.html"><span>is</span><wbr><span><span>Trusted</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1659101760%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/is-trusted.html">isTrusted</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-307577950%2FProperties%2F-711666109" anchor-label="request" id="-307577950%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="request.html"><span><span>request</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-307577950%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="request.html">request</a><span class="token operator">: </span><a href="../-request__0/index.html">Request__0</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1654203636%2FProperties%2F-711666109" anchor-label="returnValue" id="-1654203636%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/return-value.html"><span>return</span><wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1654203636%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/return-value.html">returnValue</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-441950731%2FProperties%2F-711666109" anchor-label="srcElement" id="-441950731%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/src-element.html"><span>src</span><wbr><span><span>Element</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-441950731%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/src-element.html">srcElement</a><span class="token operator">: </span><a href="../-event-target__0/index.html">EventTarget__0</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1766719959%2FProperties%2F-711666109" anchor-label="timeStamp" id="1766719959%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/time-stamp.html"><span>time</span><wbr><span><span>Stamp</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1766719959%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/time-stamp.html">timeStamp</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-number/index.html">Number</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-3120781%2FProperties%2F-711666109" anchor-label="type" id="-3120781%2FProperties%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/type.html"><span><span>type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-3120781%2FProperties%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">var </span><a href="../-event/type.html">type</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="743574262%2FFunctions%2F-711666109" anchor-label="composedPath" id="743574262%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/composed-path.html"><span>composed</span><wbr><span><span>Path</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="743574262%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../-event/composed-path.html"><span class="token function">composedPath</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="../-event-target__0/index.html">EventTarget__0</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="459397645%2FFunctions%2F-711666109" anchor-label="passThroughOnException" id="459397645%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pass-through-on-exception.html"><span>pass</span><wbr><span>Through</span><wbr><span>On</span><wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="459397645%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="pass-through-on-exception.html"><span class="token function">passThroughOnException</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-118497724%2FFunctions%2F-711666109" anchor-label="preventDefault" id="-118497724%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/prevent-default.html"><span>prevent</span><wbr><span><span>Default</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-118497724%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../-event/prevent-default.html"><span class="token function">preventDefault</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="11163377%2FFunctions%2F-711666109" anchor-label="respondWith" id="11163377%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="respond-with.html"><span>respond</span><wbr><span><span>With</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="11163377%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="respond-with.html"><span class="token function">respondWith</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">promise<span class="token operator">: </span><a href="../-response/index.html">Response</a></span></span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="respond-with.html"><span class="token function">respondWith</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">promise<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.js/-promise/index.html">Promise</a><span class="token operator">&lt;</span><a href="../-response/index.html">Response</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-60596848%2FFunctions%2F-711666109" anchor-label="stopImmediatePropagation" id="-60596848%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/stop-immediate-propagation.html"><span>stop</span><wbr><span>Immediate</span><wbr><span><span>Propagation</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-60596848%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../-event/stop-immediate-propagation.html"><span class="token function">stopImmediatePropagation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1018711837%2FFunctions%2F-711666109" anchor-label="stopPropagation" id="-1018711837%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-event/stop-propagation.html"><span>stop</span><wbr><span><span>Propagation</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1018711837%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../-event/stop-propagation.html"><span class="token function">stopPropagation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1970987044%2FFunctions%2F-711666109" anchor-label="waitUntil" id="1970987044%2FFunctions%2F-711666109" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-extendable-event/wait-until.html"><span>wait</span><wbr><span><span>Until</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1970987044%2FFunctions%2F-711666109"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/jsMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/jsMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/jsMain">js</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/jsMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../-extendable-event/wait-until.html"><span class="token function">waitUntil</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">promise<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.js/-promise/index.html">Promise</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2025 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

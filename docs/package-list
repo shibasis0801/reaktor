@@ -1,0 +1,67 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore///PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/index.html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore/JetpackKeyValueStore/#TypeParam(bounds=[kotlin.Any?])#kotlin.String#dev.shibasis.reaktor.io.adapters.FileAdapter[*]/PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/-jetpack-key-value-store.html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore/clear/#/PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/clear.html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore/dataStore/#/PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/data-store.html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore/get/#kotlin.String/PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/get.html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore/remove/#kotlin.String/PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/remove.html
+$dokka.location:dev.shibasis.reaktor.io.adapters/JetpackKeyValueStore/set/#kotlin.String#kotlin.String/PointingToDeclaration/reaktor-db/dev.shibasis.reaktor.io.adapters/[ios]-jetpack-key-value-store/set.html
+module:flatbuffers-kotlin
+com.google.flatbuffers.kotlin
+module:flatinvoker-compiler
+dev.shibasis.reaktor.generator
+dev.shibasis.reaktor.generator.codegen
+dev.shibasis.reaktor.generator.codegen.languages
+module:flatinvoker-core
+dalvik.annotation.optimization
+dev.shibasis.flatinvoker.core
+dev.shibasis.flatinvoker.core.serialization
+dev.shibasis.flatinvoker.core.serialization.decoder
+dev.shibasis.flatinvoker.core.serialization.decoder.typed
+dev.shibasis.flatinvoker.core.serialization.encoder
+dev.shibasis.flatinvoker.core.serialization.util
+module:flatinvoker-ffi
+dev.shibasis.flatinvoker.ffi
+dev.shibasis.flatinvoker.ffi.payload
+dev.shibasis.flatinvoker.ffi.switch
+dev.shibasis.flatinvoker.ffi.target
+dev.shibasis.flatinvoker.ffi.transport
+module:reaktor-auth
+dev.shibasis.reaktor.auth
+dev.shibasis.reaktor.auth.api
+dev.shibasis.reaktor.auth.apps
+dev.shibasis.reaktor.auth.jwt
+dev.shibasis.reaktor.auth.repositories
+dev.shibasis.reaktor.auth.services
+dev.shibasis.reaktor.auth.supabase
+dev.shibasis.reaktor.auth.ui
+dev.shibasis.reaktor.auth.utils
+module:reaktor-core
+dev.shibasis.reaktor.core.actor
+dev.shibasis.reaktor.core.adapters
+dev.shibasis.reaktor.core.annotations
+dev.shibasis.reaktor.core.cloudflare
+dev.shibasis.reaktor.core.extensions
+dev.shibasis.reaktor.core.framework
+dev.shibasis.reaktor.core.network
+dev.shibasis.reaktor.core.server.cloudflare
+module:reaktor-db
+dev.shibasis.reaktor.io.adapters
+module:reaktor-io
+dev.shibasis.reaktor.io.adapters
+dev.shibasis.reaktor.io.network
+module:reaktor-media
+app.mehmaan.media.camera
+dev.shibasis.reaktor.media
+dev.shibasis.reaktor.media.camera
+dev.shibasis.reaktor.media.image
+dev.shibasis.reaktor.media.speech
+module:reaktor-navigation
+dev.shibasis.reaktor.navigation.route
+dev.shibasis.reaktor.navigation.screen
+module:reaktor-ui
+dev.shibasis.reaktor.ui
+dev.shibasis.reaktor.ui.compose
+dev.shibasis.reaktor.ui.material
+dev.shibasis.reaktor.ui.theme

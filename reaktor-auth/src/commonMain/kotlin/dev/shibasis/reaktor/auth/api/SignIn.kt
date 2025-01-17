@@ -2,10 +2,12 @@ package dev.shibasis.reaktor.auth.api
 
 import kotlinx.serialization.Serializable
 
+
 @Serializable
 data class SignInRequest(
-    val googleIdToken: String,
-    val appId: Long
+    val idToken: String,
+    val appId: Long,
+    val providerId: String = "Google"
 )
 
 @Serializable

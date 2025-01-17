@@ -5,6 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import dev.shibasis.reaktor.ui.BlackText
 import dev.shibasis.reaktor.ui.material.ReaktorColor
 
 /**
@@ -12,7 +13,7 @@ import dev.shibasis.reaktor.ui.material.ReaktorColor
  * fraction = 0.0f -> unchanged color
  * fraction = 1.0f -> fully white
  */
-private fun lighten(color: Color, fraction: Float): Color {
+fun lighten(color: Color, fraction: Float): Color {
     val r = color.red + (1f - color.red) * fraction
     val g = color.green + (1f - color.green) * fraction
     val b = color.blue + (1f - color.blue) * fraction
@@ -22,8 +23,8 @@ private fun lighten(color: Color, fraction: Float): Color {
 /**
  * Simple heuristic to pick white or black text based on the color’s luminance.
  */
-private fun autoContentColor(background: Color): Color {
-    return if (background.luminance() < 0.5f) Color.White else ReaktorColor.Black
+fun autoContentColor(background: Color): Color {
+    return if (background.luminance() < 0.5f) Color.White else Color.BlackText
 }
 
 fun minimalLightColorScheme(
@@ -59,7 +60,7 @@ fun minimalLightColorScheme(
     val onSurfaceVariant   = autoContentColor(surfaceVariant)
     val outline            = onSurface.copy(alpha = 0.50f)
     val outlineVariant     = onSurface.copy(alpha = 0.20f)
-    val scrim              = ReaktorColor.Black
+    val scrim              = Color.BlackText
 
     // Inverse: flip background/surface vs. “on” color
     val inverseSurface     = onBackground
@@ -139,7 +140,7 @@ fun minimalDarkColorScheme(
     val onSurfaceVariant   = autoContentColor(surfaceVariant)
     val outline            = onSurface.copy(alpha = 0.60f)
     val outlineVariant     = onSurfaceVariant.copy(alpha = 0.30f)
-    val scrim              = ReaktorColor.Black
+    val scrim              = Color.BlackText
 
     // Inverse approach
     val inverseSurface     = onBackground

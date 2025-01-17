@@ -1,0 +1,299 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>DarwinPermissionAdapter</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+<a class="library-name--link" href="../../../index.html">
+                            flatInvoker
+                    </a>            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="reaktor-core::dev.shibasis.reaktor.core.adapters/DarwinPermissionAdapter///PointingToDeclaration//2107093065">
+  <div class="breadcrumbs"><a href="../../index.html">reaktor-core</a><span class="delimiter">/</span><a href="../index.html">dev.shibasis.reaktor.core.adapters</a><span class="delimiter">/</span><span class="current">DarwinPermissionAdapter</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Darwin</span><wbr><span>Permission</span><wbr><span><span>Adapter</span></span></h1>
+    <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+      <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">DarwinPermissionAdapter</a> : <a href="../../../reaktor-core/dev.shibasis.reaktor.core.adapters/-permission-adapter/index.html">PermissionAdapter</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">&gt; </span></div></div>    </div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="-559679307%2FConstructors%2F2107093065" anchor-label="DarwinPermissionAdapter" id="-559679307%2FConstructors%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-darwin-permission-adapter.html"><span>Darwin</span><wbr><span>Permission</span><wbr><span><span>Adapter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-559679307%2FConstructors%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-866348800%2FProperties%2F2107093065" anchor-label="controller" id="-866348800%2FProperties%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-866348800%2FProperties%2F2107093065"><span><span>controller</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-866348800%2FProperties%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#-866348800%2FProperties%2F2107093065">controller</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">?</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1722267926%2FProperties%2F2107093065" anchor-label="NULL_CONTROLLER" id="-1722267926%2FProperties%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1722267926%2FProperties%2F2107093065"><span><span>NULL_CONTROLLER</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1722267926%2FProperties%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#-1722267926%2FProperties%2F2107093065">NULL_CONTROLLER</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-error/index.html">Error</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1197513227%2FProperties%2F2107093065" anchor-label="ref" id="1197513227%2FProperties%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1197513227%2FProperties%2F2107093065"><span><span>ref</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1197513227%2FProperties%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#1197513227%2FProperties%2F2107093065">ref</a><span class="token operator">: </span><a href="../../dev.shibasis.reaktor.core.framework/-weak-ref/index.html">WeakRef</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-57179350%2FProperties%2F2107093065" anchor-label="scope" id="-57179350%2FProperties%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-57179350%2FProperties%2F2107093065"><span><span>scope</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-57179350%2FProperties%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="index.html#-57179350%2FProperties%2F2107093065">scope</a><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-1475876332%2FFunctions%2F2107093065" anchor-label="addHandler" id="-1475876332%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="add-handler.html"><span>add</span><wbr><span><span>Handler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1475876332%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="add-handler.html"><span class="token function">addHandler</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">permission<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">handler<span class="token operator">: </span><a href="../-permission-request-handler/index.html">PermissionRequestHandler</a></span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1648467930%2FFunctions%2F2107093065" anchor-label="handle" id="-1648467930%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-1866064144%2FFunctions%2F2107093065"><span><span>handle</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1648467930%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="index.html#-1866064144%2FFunctions%2F2107093065"><span class="token function">handle</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">event<span class="token operator">: </span><a href="../../../reaktor-core/dev.shibasis.reaktor.core.framework/-controller-event/index.html">ControllerEvent</a></span></span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="index.html#-983915326%2FFunctions%2F2107093065"><span class="token function">handle</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">controller<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">, </span></span><span class="parameter ">event<span class="token operator">: </span><a href="../../../reaktor-core/dev.shibasis.reaktor.core.framework/-controller-event/index.html">ControllerEvent</a></span></span><span class="token punctuation">)</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-766726772%2FFunctions%2F2107093065" anchor-label="invoke" id="-766726772%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-766726772%2FFunctions%2F2107093065"><span><span>invoke</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-766726772%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">operator </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="index.html#-766726772%2FFunctions%2F2107093065">Result</a><span class="token operator">&gt; </span><a href="index.html#-766726772%2FFunctions%2F2107093065"><span class="token function">invoke</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">function<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html#-766726772%2FFunctions%2F2107093065">Result</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html#-766726772%2FFunctions%2F2107093065">Result</a><span class="token operator">?</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1091107403%2FFunctions%2F2107093065" anchor-label="invokeSuspend" id="1091107403%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#1091107403%2FFunctions%2F2107093065"><span>invoke</span><wbr><span><span>Suspend</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1091107403%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="index.html#1091107403%2FFunctions%2F2107093065">Result</a><span class="token operator">&gt; </span><a href="index.html#1091107403%2FFunctions%2F2107093065"><span class="token function">invokeSuspend</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">function<span class="token operator">: </span><span class="token keyword">suspend </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="index.html#1091107403%2FFunctions%2F2107093065">Result</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html#1091107403%2FFunctions%2F2107093065">Result</a><span class="token operator">?</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-643152932%2FFunctions%2F2107093065" anchor-label="nullControllerResult" id="-643152932%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#-643152932%2FFunctions%2F2107093065"><span>null</span><wbr><span>Controller</span><wbr><span><span>Result</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-643152932%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="index.html#-643152932%2FFunctions%2F2107093065">T</a><span class="token operator">&gt; </span><a href="index.html#-643152932%2FFunctions%2F2107093065"><span class="token function">nullControllerResult</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a><span class="token operator">&lt;</span><a href="index.html#-643152932%2FFunctions%2F2107093065">T</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1547769557%2FFunctions%2F2107093065" anchor-label="request" id="1547769557%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="request.html"><span><span>request</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1547769557%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">suspend override </span><span class="token keyword">fun </span><a href="request.html"><span class="token function">request</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">vararg </span>permissions<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2037071356%2FFunctions%2F2107093065" anchor-label="requestOptional" id="2037071356%2FFunctions%2F2107093065" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain"></a>
+          <div class="table-row" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="index.html#2037071356%2FFunctions%2F2107093065"><span>request</span><wbr><span><span>Optional</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2037071356%2FFunctions%2F2107093065"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":reaktor-core:dokkaHtmlPartial/iosMain" data-filterable-set=":reaktor-core:dokkaHtmlPartial/iosMain" data-active="" data-toggle=":reaktor-core:dokkaHtmlPartial/iosMain">ios</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":reaktor-core:dokkaHtmlPartial/iosMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><a href="index.html#2037071356%2FFunctions%2F2107093065"><span class="token function">requestOptional</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">vararg </span>permissions<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="../../../reaktor-core/dev.shibasis.reaktor.core.adapters/-permission-result/index.html">PermissionResult</a><span class="token operator">&gt;</span></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2025 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

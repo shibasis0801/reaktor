@@ -10,6 +10,11 @@ import dev.shibasis.reaktor.io.network.postJson
 import dev.shibasis.reaktor.auth.api.*
 import kotlinx.serialization.Serializable
 
+
+/*
+Support AppleLoginAdapter
+Support EmailMagicLink
+*/
 abstract class AuthAdapter<Controller>(
     controller: Controller
 ): Adapter<Controller>(controller) {

@@ -19,7 +19,7 @@ class LoginService(
     private val appRepository = AppRepository(database)
 
     fun login(request: SignInRequest): SignInResponse {
-        val (googleIdToken, appId) = request
+        val (idToken, appId) = request
 
         val appResult = appRepository.getApp(appId)
         if (appResult.isFailure)
@@ -27,7 +27,7 @@ class LoginService(
 
         Logger.i { appResult.getOrNull()!!.toString() }
 
-        val payload = verifierService.verify(googleIdToken)
+        val payload = verifierService.verify(idToken)
         if (payload == null)
             return SignInResponse.Failure.InvalidGoogleIdToken
 

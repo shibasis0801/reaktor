@@ -49,7 +49,6 @@ kotlin {
     }
     server {
         dependencies = {
-            // sqldelight does not support jvm postgres in a multiplatform module yet.
             api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-dao:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")

@@ -1,16 +1,10 @@
-Requirements: (these must be exposed)
+Requirements: (compare with Voyager)
 1. Navigation Graph
 2. Back Stack
 3. Deep Linking
 4. Cross-Platform Views
 5. Cross-Platform Screens
-
-Responsibilities: (these should be internal)
-1. 
-
-Assumptions: (this must be internal)
-
-
+6. Back Handler
 
 gpt ->
 1. Core Navigation System:
