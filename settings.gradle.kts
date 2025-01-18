@@ -20,7 +20,7 @@ pluginManagement {
         val composeVersion = extra["compose.version"] as String
         val kotlinVersion = extra["kotlin.version"] as String
         val kspVersion = extra["ksp.version"] as String
-        val sqldelightVersion = extra["sqldelight.version"] as String
+        val sqldelightVersion = extra["sqldelightVersion"] as String
 
         id("org.jetbrains.compose").version(composeVersion)
         id("org.jetbrains.kotlin.plugin.compose").version(kotlinVersion)

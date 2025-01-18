@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.io.adapters
+package dev.shibasis.reaktor.db.adapters
 
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot

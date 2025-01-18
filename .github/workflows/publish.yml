@@ -1,79 +1,79 @@
-name: Publish Packages
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  build:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up JDK
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'adopt'
-          java-version: '17'
-
-      - name: Homebrew
-        run: |
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-            eval "$(/opt/homebrew/bin/brew shellenv)" 
-
-      - name: Install Ninja
-        run: brew install ninja
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build everything
-        run: ./gradlew build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-artifacts
-          path: ./ # Upload the entire project directory (adjust if needed)
-
-  publish:
-    needs: build
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        package:
-          - dependeasy
-          - flatinvoker-core
-          - flatinvoker-ffi
-          # - flatinvoker-react  # will fix later
-          - flatinvoker-compiler
-          - reaktor-core
-          - reaktor-io
-          - reaktor-ui
-          - reaktor-auth
-          - reaktor-media
-          - reaktor-navigation
-
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-artifacts
-
-      - name: Set up JDK
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'adopt'
-          java-version: '17'
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Publish ${{ matrix.package }}
-        env:
-          USERNAME: shibasis0801
-          TOKEN: ${{ secrets.TOKEN }}
-        run: ./gradlew :${{ matrix.package }}:publish
+#name: Publish Packages
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#
+#jobs:
+#  build:
+#    runs-on: macos-latest
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v2
+#
+#      - name: Set up JDK
+#        uses: actions/setup-java@v2
+#        with:
+#          distribution: 'adopt'
+#          java-version: '17'
+#
+#      - name: Homebrew
+#        run: |
+#            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+#            eval "$(/opt/homebrew/bin/brew shellenv)"
+#
+#      - name: Install Ninja
+#        run: brew install ninja
+#
+#      - name: Grant execute permission for gradlew
+#        run: chmod +x gradlew
+#
+#      - name: Build everything
+#        run: ./gradlew build
+#
+#      - name: Upload build artifacts
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: build-artifacts
+#          path: ./ # Upload the entire project directory (adjust if needed)
+#
+#  publish:
+#    needs: build
+#    runs-on: macos-latest
+#    strategy:
+#      matrix:
+#        package:
+#          - dependeasy
+#          - flatinvoker-core
+#          - flatinvoker-ffi
+#          # - flatinvoker-react  # will fix later
+#          - flatinvoker-compiler
+#          - reaktor-core
+#          - reaktor-io
+#          - reaktor-ui
+#          - reaktor-auth
+#          - reaktor-media
+#          - reaktor-navigation
+#
+#    steps:
+#      - name: Download build artifacts
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: build-artifacts
+#
+#      - name: Set up JDK
+#        uses: actions/setup-java@v2
+#        with:
+#          distribution: 'adopt'
+#          java-version: '17'
+#
+#      - name: Grant execute permission for gradlew
+#        run: chmod +x gradlew
+#
+#      - name: Publish ${{ matrix.package }}
+#        env:
+#          USERNAME: shibasis0801
+#          TOKEN: ${{ secrets.TOKEN }}
+#        run: ./gradlew :${{ matrix.package }}:publish

@@ -1,22 +1,20 @@
-import com.codingfeline.buildkonfig.compiler.FieldSpec
-import com.codingfeline.buildkonfig.gradle.BuildKonfigTask
 import dev.shibasis.dependeasy.web.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.*
-import java.net.InetSocketAddress
-import java.net.Socket
 
 plugins {
     id("dev.shibasis.dependeasy.library")
 }
 
+val sqldelightVersion: String by project
+
 kotlin {
     common {
         dependencies = {
             api(project(":reaktor-io"))
+            api("app.cash.sqldelight:runtime:$sqldelightVersion")
         }
     }
 
@@ -24,24 +22,28 @@ kotlin {
     // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
     web {
         dependencies = {
-
+            api("app.cash.sqldelight:web-worker-driver:$sqldelightVersion")
+            implementation(devNpm("copy-webpack-plugin", "9.1.0"))
         }
     }
 
     droid {
         dependencies = {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
+            implementation("androidx.sqlite:sqlite-framework:2.4.0")
+            api("app.cash.sqldelight:android-driver:$sqldelightVersion")
         }
     }
 
     darwin {
         dependencies = {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
+            api("app.cash.sqldelight:native-driver:$sqldelightVersion")
         }
     }
     server {
         dependencies = {
-
+            implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
         }
     }
 }

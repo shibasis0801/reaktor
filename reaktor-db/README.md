@@ -9,4 +9,7 @@ Responsibilities:
 8. Size Based Cache (db, table)
 9. Key Value Store
 10. Support listening to changes on repository.
+11. Create Jetbrains Exposed like DSL on top of SQLDriver. 
+12. Add OPFS support for web. 
+13. Don't support servers (except cloudflare D1)
 
