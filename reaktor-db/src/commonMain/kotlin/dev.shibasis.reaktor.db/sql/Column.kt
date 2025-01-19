@@ -8,6 +8,6 @@ class Column<T>(
     val primaryKey: Boolean,
     val notNull: Boolean,
     val defaultValue: T?
-) : SqlConstruct {
+): SqlConstruct {
     override fun toSql(): String = "${table.actualName()}.$name"
 }

@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.db.sql
 
+/*
+Follow this https://www.sqlite.org/lang_select.html
+And model completely.
+ */
 class Select: Statement() {
     private val tables = mutableListOf<Table>()
     private val columns = mutableListOf<SqlConstruct>()

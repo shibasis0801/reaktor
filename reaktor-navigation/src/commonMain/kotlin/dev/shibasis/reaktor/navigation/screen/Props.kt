@@ -13,6 +13,5 @@ If it does not make sense in an ambient, but it is needed globally then put it h
 Take care to not put too much here.
  */
 
-@JsExport
-open class Props()
+open class Props(val params: MutableMap<String, String> = hashMapOf())
 
