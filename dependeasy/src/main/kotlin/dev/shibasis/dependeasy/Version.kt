@@ -38,18 +38,13 @@ object Version {
     const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
     const val Ktor = "3.0.3"
-
-    // Image
-    const val Coil = "3.0.0-SNAPSHOT"
+    const val Koin = "4.0.0"
 
     // Cloud
     const val Firebase = "32.0.0"
 
     // Android Camera
     const val CameraX = "1.3.4"
-
-
-    // Database
 
     // KMM Async
     const val Coroutines = "1.9.0"
@@ -80,5 +75,4 @@ object Version {
         "libFlatInvokerFFI.so",
         "libFlatInvokerReact.so"
     )
-
 }

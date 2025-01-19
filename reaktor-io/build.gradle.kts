@@ -6,14 +6,13 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
+import dev.shibasis.dependeasy.dependencies.useNetworking
 import java.net.InetSocketAddress
 import java.net.Socket
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    
     id("com.codingfeline.buildkonfig")
-
 }
 
 kotlin {
@@ -22,7 +21,6 @@ kotlin {
             api(project(":reaktor-core"))
             api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
 //            api("androidx.datastore:datastore-preferences-core:1.1.0")
-            commonNetworking()
             commonLogging()
         }
     }
@@ -30,29 +28,22 @@ kotlin {
     // https://web.dev/articles/origin-private-file-system
     // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
     web {
-        dependencies = {
-            webNetworking()
-        }
+        dependencies = {}
     }
 
     droid {
         dependencies = {
-            androidNetworking()
             api("androidx.datastore:datastore-preferences-core:1.1.0")
         }
     }
 
     darwin {
         dependencies = {
-            darwinNetworking()
             api("androidx.datastore:datastore-preferences-core:1.1.0")
         }
     }
-    server {
-        dependencies = {
-            serverNetworking()
-        }
-    }
+    server {}
+    useNetworking()
 }
 
 android {

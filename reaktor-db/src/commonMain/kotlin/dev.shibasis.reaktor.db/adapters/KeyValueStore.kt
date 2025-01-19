@@ -1,8 +1,13 @@
 package dev.shibasis.reaktor.db.adapters
 
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
+import dev.shibasis.reaktor.core.framework.DependencyModule
+import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 abstract class KeyValueStore<Controller>(
     controller: Controller,
@@ -21,6 +26,30 @@ abstract class KeyValueStore<Controller>(
     }
     interface TypedStore {
 
+    }
+
+    fun property(key: String) = KeyValueProperty(this, key)
+}
+
+class KeyValueProperty(
+    store: KeyValueStore<*>,
+    val key: String
+): Adapter<KeyValueStore<*>>(store) {
+    private var cachedValue: String? = null
+    private var isCached: Boolean = false
+
+    suspend fun get(): String? = invokeSuspend {
+        if (!isCached) {
+            cachedValue = get(key)
+            isCached = true
+        }
+        cachedValue
+    }
+
+    suspend fun set(value: String?) = invokeSuspend {
+        if (value != null) set(key, value) else remove(key)
+        cachedValue = value
+        isCached = true
     }
 }
 

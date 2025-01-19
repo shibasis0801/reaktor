@@ -14,7 +14,10 @@ import kotlinx.serialization.Serializable
 /*
 Support AppleLoginAdapter
 Support EmailMagicLink
+RLS -> https://www.youtube.com/watch?v=vZT1Qx2xUCo&ab_channel=MicrosoftDeveloper
+JWT -> Decode
 */
+
 abstract class AuthAdapter<Controller>(
     controller: Controller
 ): Adapter<Controller>(controller) {
@@ -40,6 +43,7 @@ abstract class AuthAdapter<Controller>(
 
 var Feature.Auth by CreateSlot<AuthAdapter<*>>()
 
+
 @Serializable
 data class GoogleUser(
     val idToken: String,
@@ -47,3 +51,14 @@ data class GoogleUser(
     val emailId: String,
     val imageUrl: String
 )
+
+
+/*
+Authorization -> OAuth
+Authentication -> OpenIDConnect
+
+client login -> gives you open id token -> send via post to server -> server verifies id token -> gives you OAuth response
+-> after validity we create our own JWT from db -> send it -> users sends this JWT every time -> supabase has support to verify our JWTs.
+
+
+ */

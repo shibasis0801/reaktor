@@ -11,7 +11,6 @@ Every junction has an Error Destination
 todo solve if junction attached to multiple parents
 todo critical -> when junctions / destinations are added, the full tree must be updated
 */
-@JsExport
 class Junction(
     name: String,
     parentPath: String? = null,
@@ -54,7 +53,6 @@ class Junction(
         return junction
     }
 
-    @JsName("junctionBuilder")
     fun junction(name: String, errorDestination: Destination<Props>? = null, junctionBuilder: Junction.() -> Unit): Junction {
         return junction(Junction(name, path, errorDestination, junctionBuilder))
     }

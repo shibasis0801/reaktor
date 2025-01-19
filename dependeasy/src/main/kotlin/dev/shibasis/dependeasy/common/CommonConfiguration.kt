@@ -33,6 +33,9 @@ fun KotlinMultiplatformExtension.common(
         commonMain.dependencies {
             configure.dependencies(this)
         }
+        commonMain.dependencies {
+            println("twice")
+        }
         commonTest.dependencies {
             api(kotlin("test"))
             api(kotlin("test-annotations-common"))

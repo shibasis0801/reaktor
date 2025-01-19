@@ -4,16 +4,16 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import okio.Path.Companion.toPath
 
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import dev.shibasis.reaktor.db.adapters.KeyValueStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-class JetpackKeyValueStore<Controller>(
-    controller: Controller,
+class JetpackKeyValueStore(
     name: String,
     fileAdapter: FileAdapter<*>
-): KeyValueStore<Controller>(controller, name) {
+): KeyValueStore<Unit>(Unit, name) {
     val dataStore = PreferenceDataStoreFactory.createWithPath(
         corruptionHandler = null,
         migrations = emptyList(),

@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
+import dev.shibasis.dependeasy.dependencies.useKoin
 
 plugins {
     id("org.jetbrains.compose")
@@ -19,18 +20,12 @@ kotlin {
             api(project(":reaktor-ui"))
         }
     }
-    droid {
+    droid {}
+    darwin {}
+    web {}
+    server {}
 
-    }
-    darwin {
-
-    }
-    web {
-
-    }
-    server {
-
-    }
+    useKoin()
 }
 
 android {

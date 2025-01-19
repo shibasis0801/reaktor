@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.core.framework
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 
 // If you need to extend another class, then store a reference to it inside your adapter.
@@ -24,3 +25,35 @@ open class Adapter<Controller>(
     val NULL_CONTROLLER = Error("Controller can't be null")
     fun <T> nullControllerResult(): Result<T> = Result.failure(NULL_CONTROLLER)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

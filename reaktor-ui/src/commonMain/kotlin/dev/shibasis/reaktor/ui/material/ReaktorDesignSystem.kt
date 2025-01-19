@@ -15,7 +15,7 @@ internal object ReaktorColor {
 
 object ReaktorDesignSystem: DesignSystem {
     @Composable override fun getTypography() = MaterialTheme.typography
-    @Composable override fun getColorScheme() = lightScheme
+    @Composable override fun getColorScheme() = darkScheme
 }
 /*
 Change to a class, pass dark/light as params.

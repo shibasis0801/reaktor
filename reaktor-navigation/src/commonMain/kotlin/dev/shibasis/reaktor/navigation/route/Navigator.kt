@@ -64,7 +64,7 @@ class Navigator(
             if (startsWith("/")) substring(1)
         }.split("/").filter { it.isNotEmpty() }
 
-        val errorRoute = getErrorRoute()
+        val errorRoute = root.errorDestination ?: getErrorRoute()
         var currentJunction = root
         for (segment in segments) {
             val route = currentJunction.routes[segment]
@@ -85,6 +85,7 @@ class Navigator(
     @JsName("pushRoute")
     fun <T: Props> push(route: String, props: T) {
         val destination = getDestination(route, root)
+        // regex match
         push(destination, props)
     }
 
