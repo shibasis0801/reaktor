@@ -4,8 +4,10 @@ import dev.shibasis.dependeasy.Version
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 
 class AndroidConfiguration(
@@ -19,6 +21,8 @@ fun KotlinMultiplatformExtension.droid(
 ) {
     val configure = AndroidConfiguration().apply(configuration)
     androidTarget {
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
         publishLibraryVariants("release", "debug")
         compilations.all {
             kotlinOptions {

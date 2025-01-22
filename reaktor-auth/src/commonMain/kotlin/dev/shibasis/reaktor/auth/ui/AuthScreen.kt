@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.auth.AuthAdapter
 import dev.shibasis.reaktor.auth.GoogleUser
-import dev.shibasis.reaktor.navigation.screen.Props
 import dev.shibasis.reaktor.ui.Theme
 
 @Composable

@@ -23,6 +23,10 @@ kotlin {
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             api(compose.components.resources)
         }
+        testDependencies = {
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            api(compose.uiTest)
+        }
     }
 
     web {
