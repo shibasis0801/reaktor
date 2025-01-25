@@ -1,3 +1,36 @@
+Screen ->
+   Renders a Composable at a unique path
+
+Switch ->
+   Groups together Screens. Nestable
+
+Container ->
+   Contains one switch, one or more stacks and a container UI
+   Navigates within the container
+
+Navigator ->
+   Navigates between containers.
+   All push/pop commands come to the Navigator, and navigator decides which Container
+
+-----------------------------------------------------------------------------------------------
+
+StackContainer: Container
+   single stack, direct UI
+
+MultiStackContainer: Container
+   abstract class, multiple stacks and utility functions
+
+BottomNavigationContainer: MultiStackContainer
+   Scaffold, BottomNavBar, AppBar
+
+TabbedContainer: MultiStackContainer
+   Tabs
+
+How would nesting/rendering work ?
+
+
+
+
 Requirements: (compare with Voyager)
 1. Navigation Graph
 2. Back Stack

@@ -21,6 +21,7 @@ JWT -> Decode
 abstract class AuthAdapter<Controller>(
     controller: Controller
 ): Adapter<Controller>(controller) {
+
     abstract suspend fun googleLogin(): Result<GoogleUser>
     abstract suspend fun signOut(): Result<Unit>
     abstract suspend fun getGoogleUser(): GoogleUser?

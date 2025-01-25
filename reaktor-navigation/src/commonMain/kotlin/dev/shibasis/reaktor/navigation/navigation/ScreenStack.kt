@@ -1,18 +1,15 @@
 package dev.shibasis.reaktor.navigation.navigation
 
 import androidx.compose.runtime.mutableStateOf
-import dev.shibasis.reaktor.navigation.route.Props
+import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
-import dev.shibasis.reaktor.navigation.route.ScreenPair
+import dev.shibasis.reaktor.navigation.common.ScreenPair
 
-internal class ScreenStack(rootScreen: Screen<Props>) {
-    private val stack = ArrayDeque<ScreenPair>()
+class ScreenStack(rootScreen: Screen<Props>) {
     val current = mutableStateOf(rootScreen.screenPair())
     val handlesBack = mutableStateOf(false)
 
-    init {
-        stack.add(current.value)
-    }
+    private val stack = ArrayDeque(listOf(current.value))
 
     fun push(screenPair: ScreenPair) {
         stack.add(screenPair)

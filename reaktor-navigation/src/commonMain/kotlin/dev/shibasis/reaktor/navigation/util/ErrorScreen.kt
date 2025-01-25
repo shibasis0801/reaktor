@@ -11,16 +11,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextAlign
-import dev.shibasis.reaktor.navigation.route.Props
+import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
 
 class ErrorScreenProps(
-    val errorMessage: String = "Oops! Something went wrong.",
+    val errorMessage: String? = null,
     val onRetry: () -> Unit = {}
 ): Props()
 
 
-class ErrorScreen: Screen<ErrorScreenProps>(ErrorScreenProps()) {
+class ErrorScreen(
+    private val defaultMessage: String = "Oops! Something went wrong."
+): Screen<ErrorScreenProps>(ErrorScreenProps()) {
     @Composable
     override fun Render(props: ErrorScreenProps) {
         Box(
@@ -33,7 +35,7 @@ class ErrorScreen: Screen<ErrorScreenProps>(ErrorScreenProps()) {
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = props.errorMessage,
+                    text = props.errorMessage ?: defaultMessage,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,

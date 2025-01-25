@@ -15,14 +15,6 @@ import org.jetbrains.exposed.sql.selectAll
 class UserRoleRepository(
     database: Database
 ) : ExposedAdapter(database) {
-
-    fun getUserRoles(userId: Long) = sql {
-        UserRoles.selectAll().where { UserRoles.userId eq userId }.map {
-            val roleId = it[UserRoles.roleId].value
-            Roles.toDto(Roles.select { Roles.id eq roleId }.single())
-        }
-    }
-
     fun getRolesByUserId(userId: Long) = sql {
         UserRoles.join(
             Roles,

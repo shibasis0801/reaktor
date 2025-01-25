@@ -24,7 +24,6 @@ kotlin {
     darwin {}
     web {}
     server {}
-
     useKoin()
 }
 

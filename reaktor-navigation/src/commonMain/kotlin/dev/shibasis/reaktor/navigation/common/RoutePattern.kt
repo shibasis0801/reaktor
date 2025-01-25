@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.navigation.navigation
+package dev.shibasis.reaktor.navigation.common
 
 data class RoutePattern(
     val original: String,

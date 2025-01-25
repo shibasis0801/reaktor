@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 fun<T> succeed(value: T) = Result.success(value)
 fun<T> fail(message: String) = Result.failure<T>(Throwable(message))
+fun<T> fail(throwable: Throwable) = Result.failure<T>(throwable)
 
 open class ExposedAdapter(
     database: Database
@@ -14,13 +15,18 @@ open class ExposedAdapter(
         try {
             transaction(this) {
                 val data = statement()
-                if (data != null)
-                    succeed(data)
+                if (data != null) {
+                    if (data is Throwable) {
+                        fail(data)
+                    } else {
+                        succeed(data)
+                    }
+                }
                 else
-                    Result.failure(NullPointerException("Not Found"))
+                    fail(NullPointerException("Not Found"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            fail(e)
         }
-    } ?: Result.failure(Error("Database Initialization Error"))
+    } ?: fail("Database Initialization Error")
 }

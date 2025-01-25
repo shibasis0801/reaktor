@@ -30,7 +30,6 @@ internal fun Theme.ScreenContainerContent(
             Scaffold(Modifier.fillMaxSize()) {
                 route.screen.Render(route.props)
             }
-
         }
     }
 }
