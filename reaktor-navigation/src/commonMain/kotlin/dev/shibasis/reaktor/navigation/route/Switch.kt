@@ -39,15 +39,17 @@ open class Switch(
         switch.build()
     }
 
-    fun container(route: String, container: Container) {
-        container.pattern = buildRoutePattern(route)
-        container.path = joinPath(path, route)
-        container.switch.path = container.path
-        container.switch.home.path = container.switch.path
-        container.switch.container = container
-
-        routes[route] = container.switch
-        container.switch.build()
+    // Need to push ContainerFactory, so that we can recreate when needed, with the same switch.
+    fun container(route: String, factory: ContainerFactory<Container>) {
+        factory.build().apply {
+            pattern = buildRoutePattern(route)
+            path = joinPath(path, route)
+            switch.path = path
+            switch.home.path = path
+            switch.container = this
+            routes[route] = switch
+            switch.build()
+        }
     }
 
     // todo wtf! Why is this different from calling builder() directly ?

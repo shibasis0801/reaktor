@@ -10,8 +10,7 @@ import dev.shibasis.reaktor.navigation.common.ScreenPair
      */
 
 abstract class Container(
-    val switch: Switch,
-    val builder: Container.() -> Unit = {}
+    val switch: Switch
 ): Route() {
     @Composable
     abstract fun Render()
@@ -64,20 +63,14 @@ abstract class Container(
 
         return screen.screenPair()
     }
-
-
-    // todo wtf! Why is this different from calling builder() directly ?
-    // Calling builder directly is causing all sorts of issues.
-    // Some rare bug ?
-    private var built = false
-    fun build() {
-        if (!built) {
-            builder()
-            built = true
-        }
-    }
 }
 
+class ContainerFactory<out T: Container>(
+    val switch: Switch,
+    val factory: (Switch) -> T
+) {
+    fun build() = factory(switch)
+}
 
 /*
 
