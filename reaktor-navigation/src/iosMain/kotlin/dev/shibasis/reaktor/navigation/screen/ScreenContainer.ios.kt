@@ -19,21 +19,23 @@ private val edgeThreshold = 64.dp
 
 // Enhance later https://exyte.com/blog/jetpack-compose-multiplatform
 @Composable
-actual fun Theme.ScreenContainer(
-    navigator: Navigator
+actual fun BackHandlerContainer(
+    modifier: Modifier,
+    enabled: Boolean,
+    onBack: () -> Unit,
+    content: @Composable () -> Unit
 ) {
-    val navigatorHandlesBack by navigator.handlesBack
     var shouldGoBack by remember { mutableStateOf(false) }
 
     LaunchedEffect(shouldGoBack) {
-        if (navigatorHandlesBack && shouldGoBack)
-            navigator.pop()
+        if (enabled && shouldGoBack)
+            onBack()
     }
 
     Box(
         modifier = Modifier.fillMaxSize()
-            .pointerInput(navigatorHandlesBack) {
-                if (navigatorHandlesBack)
+            .pointerInput(enabled) {
+                if (enabled)
                     detectHorizontalDragGestures(
                         onDragStart = { shouldGoBack = it.x < edgeThreshold.toPx() },
                         onHorizontalDrag = { _, dragAmount -> shouldGoBack = (shouldGoBack && dragAmount > 0) },
@@ -42,6 +44,6 @@ actual fun Theme.ScreenContainer(
                     )
             }
     ) {
-        ScreenContainerContent(navigator)
+        content()
     }
 }

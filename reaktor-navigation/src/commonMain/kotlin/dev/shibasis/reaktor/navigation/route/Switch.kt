@@ -1,17 +1,15 @@
 package dev.shibasis.reaktor.navigation.route
 
 import dev.shibasis.reaktor.navigation.common.Props
-import dev.shibasis.reaktor.navigation.common.buildRoutePattern
+import dev.shibasis.reaktor.navigation.common.RoutePattern
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
-import dev.shibasis.reaktor.navigation.util.joinPath
-
 
 /**
  * 1. Support lazy init later, currently we eagerly initialise the screens.
  * 2. Move to prefix match if needed later
  */
 open class Switch(
-    val home: Screen<Props> = ErrorScreen("Home Screen not selected"),
+    home: Screen<Props> = ErrorScreen("Home Screen not selected"),
     val error: Screen<Props> = ErrorScreen(),
     private val builder: Switch.() -> Unit = {}
 ): Route() {
@@ -22,30 +20,23 @@ open class Switch(
     }
 
     fun screen(route: String, screen: Screen<Props>) {
-        screen.pattern = buildRoutePattern(route)
-        screen.path = joinPath(path, route)
+        screen.pattern = RoutePattern.from(route)
         screen.container = container
 
         routes[route] = screen
     }
 
     fun switch(route: String, switch: Switch) {
-        switch.pattern = buildRoutePattern(route)
-        switch.path = joinPath(path, route)
+        switch.pattern = RoutePattern.from(route)
         switch.container = container
-
-        switch.home.path = switch.path
         routes[route] = switch
         switch.build()
     }
 
-    // Need to push ContainerFactory, so that we can recreate when needed, with the same switch.
+    // todo Need to push ContainerFactory, so that we can recreate when needed, with the same switch.
     fun container(route: String, factory: ContainerFactory<Container>) {
         factory.build().apply {
-            pattern = buildRoutePattern(route)
-            path = joinPath(path, route)
-            switch.path = path
-            switch.home.path = path
+            pattern = RoutePattern.from(route)
             switch.container = this
             routes[route] = switch
             switch.build()

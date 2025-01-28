@@ -5,5 +5,5 @@ import org.koin.core.module.Module
 
 interface Pod {
     fun injectables(): Module
-    fun stack(): Container
+    fun container(): Container
 }

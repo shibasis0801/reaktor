@@ -10,14 +10,16 @@ import dev.shibasis.reaktor.navigation.navigation.Navigator
 import dev.shibasis.reaktor.ui.Theme
 
 @Composable
-actual fun Theme.ScreenContainer(navigator: Navigator) {
+actual fun BackHandlerContainer(
+    modifier: Modifier,
+    enabled: Boolean,
+    onBack: () -> Unit,
+    content: @Composable () -> Unit
+) {
     Box(Modifier.fillMaxSize()) {
-        val navigatorHandlesBack by navigator.handlesBack
-
-        BackHandler(enabled = navigatorHandlesBack) {
-            navigator.pop()
+        BackHandler(enabled) {
+            onBack()
         }
-
-        ScreenContainerContent(navigator)
+        content()
     }
 }

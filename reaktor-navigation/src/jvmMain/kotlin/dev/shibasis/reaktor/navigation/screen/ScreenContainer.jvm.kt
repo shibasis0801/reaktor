@@ -8,12 +8,16 @@ import dev.shibasis.reaktor.navigation.navigation.Navigator
 import dev.shibasis.reaktor.ui.Theme
 
 @Composable
-actual fun Theme.ScreenContainer(navigator: Navigator) {
+actual fun BackHandlerContainer(
+    modifier: Modifier,
+    enabled: Boolean,
+    onBack: () -> Unit,
+    content: @Composable () -> Unit
+) {
     Box(Modifier.fillMaxSize()) {
 //        BackHandler(enabled = navigator.stack.size > 1) {
 //            navigator.pop()
 //        }
-
-        ScreenContainerContent(navigator)
+        content()
     }
 }

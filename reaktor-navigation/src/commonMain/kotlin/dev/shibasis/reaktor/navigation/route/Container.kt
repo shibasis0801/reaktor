@@ -14,44 +14,43 @@ abstract class Container(
 ): Route() {
     @Composable
     abstract fun Render()
+    abstract fun consumesBackEvent(): Boolean
     abstract fun push(screenPair: ScreenPair)
     abstract fun replace(screenPair: ScreenPair)
-    // Return true if your Screens are finished and this container can be popped
-    abstract fun pop(): Boolean
+    abstract fun pop()
 
     fun findScreen(segments: List<String>, props: Props): ScreenPair {
         var switch = switch
         var screen = switch.error
 
+
         for ((index, segment) in segments.withIndex()) {
-            when(val route = switch.routes[segment]) {
+            when(val current = switch.routes[segment]) {
+                is Screen<Props> -> return current.with(props)
+                is Container -> return current.findScreen(segments.subList(index, segments.size), props)
                 is Switch -> {
-                    switch = route
-                    screen = route.error
+                    switch = current
+                    screen = current.error
                 }
-                is Screen<Props> -> return route.with(props)
-                is Container -> return route.findScreen(segments.subList(index, segments.size), props)
                 null -> {
                     var matched = false
-                    val dynamicRoutes = switch.routes.values.filter { it.pattern != null }
 
-                    for (dynamicRoute in dynamicRoutes) {
-                        val pattern = dynamicRoute.pattern!!
-                        val match = pattern.regex.matchEntire(segment)
+                    for (route in switch.routes.values) {
+                        val match = route.pattern.regex.matchEntire(segment)
                         if (match != null) {
                             matched = true
-                            val values = match.groupValues.drop(1) // 0th match is the full one.
-                            // relies on implicit order, fix later.
-                            pattern.paramNames.forEachIndexed { idx, name ->
-                                props.params[name] = values[idx]
+
+                            route.pattern.params(match).forEach { (key, value) ->
+                                props.params[key] = value
                             }
-                            when(dynamicRoute) {
+
+                            when(route) {
+                                is Screen<Props> -> return route.with(props)
+                                is Container -> return route.findScreen(segments.subList(index, segments.size), props)
                                 is Switch -> {
-                                    switch = dynamicRoute
-                                    screen = dynamicRoute.error
+                                    switch = route
+                                    screen = route.error
                                 }
-                                is Screen<Props> -> return dynamicRoute.with(props)
-                                is Container -> return dynamicRoute.findScreen(segments.subList(index, segments.size), props)
                             }
                             break
                         }
@@ -72,6 +71,9 @@ class ContainerFactory<out T: Container>(
     fun build() = factory(switch)
 }
 
+
+
+
 /*
 
 StackContainer: Container
@@ -87,7 +89,5 @@ TabbedContainer: MultiStackContainer
     Tabs
 
 How would nesting/rendering work ?
-
-
 
 */

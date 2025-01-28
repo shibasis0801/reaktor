@@ -3,42 +3,51 @@ package dev.shibasis.reaktor.navigation.navigation
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.route.Container
-import dev.shibasis.reaktor.navigation.route.Switch
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.common.ScreenPair
+
+import dev.shibasis.reaktor.navigation.structs.ObservableStack
 
 
 class Navigator(
     private val root: Container
 ) {
-    init { root.build() }
+    init { root.switch.build() }
 
-    var containerStack = ContainerStack(root)
-    val handlesBack = containerStack.handlesBack
-    val current = containerStack.current
+    var containerStack = ObservableStack(root)
+    val currentContainer by containerStack.top
+    val handlesBack = containerStack.top.map {
+        containerStack.size > 1 && it.consumesBackEvent()
+    }
 
+    fun onBack() {
+        pop()
+    }
 
     fun pop() {
-        var popContainer = current.value.pop()
-        if (popContainer) containerStack.pop()
+        if (currentContainer.consumesBackEvent()) {
+            currentContainer.pop()
+        } else {
+            containerStack.pop()
+        }
     }
 
     /** Preferred for direct navigation */
     fun push(screenPair: ScreenPair) {
         val container = screenPair.container
-        if (container != current.value) {
+        if (container != currentContainer) {
             containerStack.push(container)
-            container.push(screenPair)
         }
+        container.push(screenPair)
     }
     /** Preferred for direct navigation */
     fun replace(screenPair: ScreenPair) {
         val container = screenPair.container
-        if (container != current.value) {
+        if (container != currentContainer) {
             containerStack.replace(container)
-            container.replace(screenPair)
         }
+        container.replace(screenPair)
     }
 
     fun push(screen: Screen<Props>) {
