@@ -6,19 +6,18 @@ import dev.shibasis.reaktor.navigation.route.Container
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.common.ScreenPair
-
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
 
 
 class Navigator(
     private val root: Container
 ) {
-    init { root.switch.build() }
+    init { root.build() }
 
     var containerStack = ObservableStack(root)
     val currentContainer by containerStack.top
-    val handlesBack = containerStack.top.map {
-        containerStack.size > 1 && it.consumesBackEvent()
+    val consumesBackEvent = containerStack.top.map {
+        containerStack.size > 1 || it!!.consumesBackEvent()
     }
 
     fun onBack() {
@@ -26,24 +25,36 @@ class Navigator(
     }
 
     fun pop() {
-        if (currentContainer.consumesBackEvent()) {
-            currentContainer.pop()
+        val container = currentContainer ?: return
+
+        if (container.consumesBackEvent()) {
+            container.pop()
         } else {
+            container.pop()
             containerStack.pop()
         }
     }
 
     /** Preferred for direct navigation */
     fun push(screenPair: ScreenPair) {
-        val container = screenPair.container
+        val container = screenPair.screen.container
         if (container != currentContainer) {
-            containerStack.push(container)
+            val index = containerStack.entries.indexOf(container)
+            if (index == -1) {
+                containerStack.push(container)
+            }
+            else {
+                while (containerStack.top.value != container) {
+                    containerStack.pop()
+                }
+            }
+
         }
         container.push(screenPair)
     }
     /** Preferred for direct navigation */
     fun replace(screenPair: ScreenPair) {
-        val container = screenPair.container
+        val container = screenPair.screen.container
         if (container != currentContainer) {
             containerStack.replace(container)
         }

@@ -20,5 +20,5 @@ abstract class Screen<out T: Props>(val defaultProps: T): Route() {
             }
         })
 
-    internal fun screenPair() = with(defaultProps)
+    fun screenPair() = with(defaultProps)
 }

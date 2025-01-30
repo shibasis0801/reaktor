@@ -29,7 +29,7 @@ expect fun BackHandlerContainer(
 @Composable
 fun Theme.ScreenContainer(navigator: Navigator) {
     val stack = navigator.containerStack
-    val handlesBack = navigator.handlesBack.collectAsState()
+    val handlesBack = navigator.consumesBackEvent.collectAsState()
 
     BackHandlerContainer(Modifier.fillMaxSize(), handlesBack.value, navigator::onBack) {
         val container by stack.top.collectAsState()
@@ -40,7 +40,7 @@ fun Theme.ScreenContainer(navigator: Navigator) {
                 shapes = shapes
             ) {
                 Scaffold(Modifier.fillMaxSize()) {
-                    container.Render()
+                    container?.Render()
                 }
             }
         }

@@ -12,6 +12,12 @@ import dev.shibasis.reaktor.navigation.common.ScreenPair
 abstract class Container(
     val switch: Switch
 ): Route() {
+    fun build() {
+        switch.container = this
+        switch.build()
+        push(switch.home.screenPair())
+    }
+
     @Composable
     abstract fun Render()
     abstract fun consumesBackEvent(): Boolean
@@ -63,15 +69,6 @@ abstract class Container(
         return screen.screenPair()
     }
 }
-
-class ContainerFactory<out T: Container>(
-    val switch: Switch,
-    val factory: (Switch) -> T
-) {
-    fun build() = factory(switch)
-}
-
-
 
 
 /*

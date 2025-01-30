@@ -29,6 +29,7 @@ var serverIp: String? = null
 
 // mDNS https://chatgpt.com/c/6742e696-ef2c-8012-afde-dce8512de951
 suspend fun getServerIP(): Result<String> {
+    return Result.failure(Error("not impl"))
     if (serverIp != null) return Result.success(serverIp!!)
 
     val parentJob = Job()

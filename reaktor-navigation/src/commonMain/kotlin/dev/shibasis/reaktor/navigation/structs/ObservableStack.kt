@@ -1,10 +1,13 @@
 package dev.shibasis.reaktor.navigation.structs
 
-class ObservableStack<T>(
-    initialTop: T
-) {
+class ObservableStack<T>(initialTop: T? = null) {
     val top = Observable(initialTop)
-    private val stack = ArrayDeque(listOf(initialTop))
+    private val stack = ArrayDeque<T>()
+
+    init {
+        if (initialTop != null)
+            stack.add(initialTop)
+    }
 
     val size: Int
         get() = stack.size
@@ -23,9 +26,9 @@ class ObservableStack<T>(
     }
 
     fun pop(): Boolean {
-        if (stack.size > 1) {
+        if (stack.isNotEmpty()) {
             stack.removeLast()
-            top.value = stack.last()
+            top.value = stack.lastOrNull()
             return true
         }
         else return false

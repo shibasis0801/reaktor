@@ -9,20 +9,16 @@ import dev.shibasis.reaktor.navigation.util.ErrorScreen
  * 2. Move to prefix match if needed later
  */
 open class Switch(
-    home: Screen<Props> = ErrorScreen("Home Screen not selected"),
+    val home: Screen<Props> = ErrorScreen("Home Screen not selected"),
     val error: Screen<Props> = ErrorScreen(),
     private val builder: Switch.() -> Unit = {}
 ): Route() {
     lateinit var container: Container
     val routes = hashMapOf<String, Route>()
-    init {
-        screen("", home)
-    }
 
     fun screen(route: String, screen: Screen<Props>) {
         screen.pattern = RoutePattern.from(route)
         screen.container = container
-
         routes[route] = screen
     }
 
@@ -33,14 +29,11 @@ open class Switch(
         switch.build()
     }
 
-    // todo Need to push ContainerFactory, so that we can recreate when needed, with the same switch.
-    fun container(route: String, factory: ContainerFactory<Container>) {
-        factory.build().apply {
-            pattern = RoutePattern.from(route)
-            switch.container = this
-            routes[route] = switch
-            switch.build()
-        }
+    fun container(route: String, container: Container) {
+        pattern = RoutePattern.from(route)
+        container.switch.container = container
+        routes[route] = container
+        container.switch.build()
     }
 
     // todo wtf! Why is this different from calling builder() directly ?
@@ -49,6 +42,7 @@ open class Switch(
     private var built = false
     fun build() {
         if (!built) {
+            screen("", home)
             builder()
             built = true
         }
