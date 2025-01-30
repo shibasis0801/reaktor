@@ -19,6 +19,16 @@ open class MultiStackItemMetadata(
     val key: String
 )
 
+/*
+Needs improvements in many areas.
+1. Nested containers aren't present in the Navigator (bad horrible idea)
+2. In order to push a Screen inside some container hierarchy, the hierarchy needs to be pushed.
+3. In absence of that, pushing to a nested container screen would only mount the enclosing container, and not the hierarchy.
+4. Code and SRP is a little fucked in some places, fix that too.
+5. Navigator-Container coupling needs to improve without adding direct references to Container subclasses (ew)
+6. Event Bubbling like DOM needs to be done for Container.
+7. A BiMap may be needed along with some simplification of state inside a MultiStackContainer. (not too simple which would prevent subclass freedom)
+*/
 abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
     val start: String,
     error: Screen<Props> = ErrorScreen(),
@@ -41,20 +51,19 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         keyToRouteMap[data.key] = route
     }
 
-    fun screen(route: String, data: Metadata, screen: Screen<Props>): Screen<Props> {
-        linkMetadataKeys(route, data)
-        return switch.screen(route, screen)
+    fun item(data: Metadata, route: Route) {
+        linkMetadataKeys(route.pattern.original, data)
     }
 
-    fun switch(route: String, data: Metadata, home: Screen<Props>, error: Screen<Props> = ErrorScreen(), builder: Switch.() -> Unit = {}): Switch {
-        linkMetadataKeys(route, data)
-        return switch.switch(route, Switch(home, error, builder))
-    }
+    // Wrappers needed as we setup things after we get metadata.
+    fun screen(route: String, screen: Screen<Props>)
+        = switch.screen(route, screen)
 
-    fun container(route: String, data: Metadata, container: Container): Container {
-        linkMetadataKeys(route, data)
-        return switch.container(route, container)
-    }
+    fun switch(route: String, home: Screen<Props>, error: Screen<Props> = ErrorScreen(), builder: Switch.() -> Unit = {})
+        = switch.switch(route, Switch(home, error, builder))
+
+    fun container(route: String, container: Container)
+        = switch.container(route, container)
 
     fun findStartScreen(key: String = start): Screen<Props> {
         val path = keyToRouteMap[key]
@@ -78,11 +87,10 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         if (!built) {
             switch.container = this
             builder()
+            switch.build()
             metadata.forEach {
                 stacks[it.key] = ObservableStack(findStartScreen(it.key).screenPair())
             }
-
-            switch.build()
             built = true
         }
     }
