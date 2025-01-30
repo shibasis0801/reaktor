@@ -35,9 +35,8 @@ class Navigator(
         }
     }
 
-    /** Preferred for direct navigation */
-    fun push(screenPair: ScreenPair) {
-        val container = screenPair.screen.container
+    private fun updateContainer(screenPair: ScreenPair) {
+        val container = screenPair.screen.container ?: return
         if (container != currentContainer) {
             val index = containerStack.entries.indexOf(container)
             if (index == -1) {
@@ -48,17 +47,18 @@ class Navigator(
                     containerStack.pop()
                 }
             }
-
         }
-        container.push(screenPair)
+    }
+
+    /** Preferred for direct navigation */
+    fun push(screenPair: ScreenPair) {
+        updateContainer(screenPair)
+        currentContainer?.push(screenPair)
     }
     /** Preferred for direct navigation */
     fun replace(screenPair: ScreenPair) {
-        val container = screenPair.screen.container
-        if (container != currentContainer) {
-            containerStack.replace(container)
-        }
-        container.replace(screenPair)
+        updateContainer(screenPair)
+        currentContainer?.replace(screenPair)
     }
 
     fun push(screen: Screen<Props>) {

@@ -13,26 +13,32 @@ open class Switch(
     val error: Screen<Props> = ErrorScreen(),
     private val builder: Switch.() -> Unit = {}
 ): Route() {
-    lateinit var container: Container
-    val routes = hashMapOf<String, Route>()
+    // maintain insertion order
+    val routes = linkedMapOf<String, Route>()
+
+    private fun link(at: String, route: Route) {
+        route.pattern = RoutePattern.from(at)
+        route.parent = this
+        if (route !is Container) route.container = container
+        routes[at] = route
+    }
 
     fun screen(route: String, screen: Screen<Props>) {
-        screen.pattern = RoutePattern.from(route)
-        screen.container = container
-        routes[route] = screen
+        link(route, screen)
     }
 
     fun switch(route: String, switch: Switch) {
-        switch.pattern = RoutePattern.from(route)
-        switch.container = container
-        routes[route] = switch
+        link(route, switch)
         switch.build()
     }
 
+    fun switch(route: String, home: Screen<Props>, error: Screen<Props> = ErrorScreen(), builder: Switch.() -> Unit = {}) {
+        switch(route, Switch(home, error, builder))
+    }
+
     fun container(route: String, container: Container) {
-        pattern = RoutePattern.from(route)
+        link(route, container)
         container.switch.container = container
-        routes[route] = container
         container.switch.build()
     }
 

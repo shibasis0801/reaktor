@@ -1,16 +1,30 @@
 package dev.shibasis.reaktor.navigation.containers
 
 import androidx.compose.runtime.Composable
+import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
+import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.route.Switch
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
+import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 open class SingleStackContainer(
     switch: Switch
 ): Container(switch) {
+    constructor(
+        home: Screen<Props> = ErrorScreen("Home Screen not selected"),
+        error: Screen<Props> = ErrorScreen(),
+        builder: Switch.() -> Unit = {}
+    ): this(Switch(home, error, builder))
+
     private val screenStack = ObservableStack<ScreenPair>()
     private val currentScreen by screenStack.top
+
+    override fun build() {
+        super.build()
+        push(switch.home.screenPair())
+    }
 
     @Composable
     override fun Render() {

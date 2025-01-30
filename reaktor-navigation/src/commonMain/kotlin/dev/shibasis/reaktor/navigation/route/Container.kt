@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.navigation.route
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
+import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 /*
     todo
@@ -12,10 +13,15 @@ import dev.shibasis.reaktor.navigation.common.ScreenPair
 abstract class Container(
     val switch: Switch
 ): Route() {
-    fun build() {
+    constructor(
+        home: Screen<Props> = ErrorScreen("Home Screen not selected"),
+        error: Screen<Props> = ErrorScreen(),
+        builder: Switch.() -> Unit = {}
+    ): this(Switch(home, error, builder))
+
+    open fun build() {
         switch.container = this
         switch.build()
-        push(switch.home.screenPair())
     }
 
     @Composable
@@ -25,6 +31,7 @@ abstract class Container(
     abstract fun replace(screenPair: ScreenPair)
     abstract fun pop()
 
+    // todo bottleneck. exhaustive tree search every time you redirect. (but only for deep links)
     fun findScreen(segments: List<String>, props: Props): ScreenPair {
         var switch = switch
         var screen = switch.error

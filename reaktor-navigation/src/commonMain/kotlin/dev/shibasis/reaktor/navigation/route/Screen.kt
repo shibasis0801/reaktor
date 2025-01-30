@@ -9,7 +9,6 @@ import dev.shibasis.reaktor.navigation.common.ScreenPair
  * For Screen Parameters, use props and path params.
  */
 abstract class Screen<out T: Props>(val defaultProps: T): Route() {
-    lateinit var container: Container
     @Composable
     abstract fun Render(props: @UnsafeVariance T)
 
