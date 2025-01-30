@@ -12,7 +12,7 @@ import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 abstract class Container(
     val switch: Switch
-): Route() {
+): Route(), Route.Render<Props> {
     constructor(
         home: Screen<Props> = ErrorScreen("Home Screen not selected"),
         error: Screen<Props> = ErrorScreen(),
@@ -24,8 +24,6 @@ abstract class Container(
         switch.build()
     }
 
-    @Composable
-    abstract fun Render()
     abstract fun consumesBackEvent(): Boolean
     abstract fun push(screenPair: ScreenPair)
     abstract fun replace(screenPair: ScreenPair)
@@ -80,18 +78,6 @@ abstract class Container(
 
 /*
 
-StackContainer: Container
-    single stack, direct UI
-
-MultiStackContainer: Container
-    abstract class, multiple stacks and utility functions
-
-BottomNavigationContainer: MultiStackContainer
-    Scaffold, BottomNavBar, AppBar
-
-TabbedContainer: MultiStackContainer
-    Tabs
-
-How would nesting/rendering work ?
+rememberSaveable
 
 */

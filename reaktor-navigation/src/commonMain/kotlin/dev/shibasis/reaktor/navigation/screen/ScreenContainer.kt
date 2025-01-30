@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.navigation.Navigator
 import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.ui.Theme
@@ -40,7 +41,7 @@ fun Theme.ScreenContainer(navigator: Navigator) {
                 shapes = shapes
             ) {
                 Scaffold(Modifier.fillMaxSize()) {
-                    container?.Render()
+                    container?.Render(Props())
                 }
             }
         }

@@ -19,27 +19,28 @@ open class Switch(
     private fun link(at: String, route: Route) {
         route.pattern = RoutePattern.from(at)
         route.parent = this
-        if (route !is Container) route.container = container
+        route.container = container
         routes[at] = route
     }
 
-    fun screen(route: String, screen: Screen<Props>) {
+    fun screen(route: String, screen: Screen<Props>): Screen<Props> {
         link(route, screen)
+        return screen
     }
 
-    fun switch(route: String, switch: Switch) {
+    fun switch(route: String, switch: Switch): Switch {
         link(route, switch)
         switch.build()
+        return switch
     }
 
-    fun switch(route: String, home: Screen<Props>, error: Screen<Props> = ErrorScreen(), builder: Switch.() -> Unit = {}) {
-        switch(route, Switch(home, error, builder))
-    }
+    fun switch(route: String, home: Screen<Props>, error: Screen<Props> = ErrorScreen(), builder: Switch.() -> Unit = {})
+        = switch(route, Switch(home, error, builder))
 
-    fun container(route: String, container: Container) {
+    fun container(route: String, container: Container): Container {
         link(route, container)
-        container.switch.container = container
-        container.switch.build()
+        container.build()
+        return container
     }
 
     // todo wtf! Why is this different from calling builder() directly ?

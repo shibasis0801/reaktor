@@ -8,10 +8,7 @@ import dev.shibasis.reaktor.navigation.common.ScreenPair
  * Constructor parameters meant for configuring static fields such as Enter/Exit animations
  * For Screen Parameters, use props and path params.
  */
-abstract class Screen<out T: Props>(val defaultProps: T): Route() {
-    @Composable
-    abstract fun Render(props: @UnsafeVariance T)
-
+abstract class Screen<out T: Props>(val defaultProps: T): Route(), Route.Render<T> {
     fun with(props: @UnsafeVariance T, vararg params: Pair<String, Any>) =
         ScreenPair(this, props.also {
             params.forEach { pair ->

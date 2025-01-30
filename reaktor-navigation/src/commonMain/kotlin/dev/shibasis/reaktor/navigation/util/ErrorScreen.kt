@@ -21,7 +21,8 @@ class ErrorScreenProps(
 
 
 class ErrorScreen(
-    private val defaultMessage: String = "Oops! Something went wrong."
+    private val defaultMessage: String = "Oops! Something went wrong.",
+    private val defaultRetry: () -> Unit = {}
 ): Screen<ErrorScreenProps>(ErrorScreenProps()) {
     @Composable
     override fun Render(props: ErrorScreenProps) {
@@ -35,7 +36,7 @@ class ErrorScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = props.errorMessage ?: defaultMessage,
+                    text = defaultMessage,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -43,7 +44,7 @@ class ErrorScreen(
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                Button(onClick = props.onRetry) {
+                Button(onClick = defaultRetry) {
                     Text(text = "Retry")
                 }
             }

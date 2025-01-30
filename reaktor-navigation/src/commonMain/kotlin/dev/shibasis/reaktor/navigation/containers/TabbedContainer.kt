@@ -7,9 +7,11 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
+import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 class TabBarItem(
@@ -22,18 +24,17 @@ class TabbedContainer(
     builder: MultiStackContainer<TabBarItem>.() -> Unit = {}
 ) : MultiStackContainer<TabBarItem>(start, error, builder) {
     @Composable
-    override fun Render() {
-        val keys = getStackKeys().toList()
+    override fun Render(props: Props) {
+        val currentKey by currentKey.collectAsState()
 
-        val currentKey = currentStackKey.value
-        val selectedIndex = keys.indexOf(currentKey).coerceAtLeast(0)
+        val keys = metadata.keys
+        val currentIndex = keys.indexOf(currentKey)
 
-        // A basic TabRow
         Column {
-            TabRow(selectedTabIndex = selectedIndex) {
+            TabRow(currentIndex) {
                 keys.forEachIndexed { index, key ->
                     Tab(
-                        selected = (index == selectedIndex),
+                        selected = (index == currentIndex),
                         onClick = {
                             switchStack(key)
                         },
@@ -43,9 +44,7 @@ class TabbedContainer(
             }
 
             Box(Modifier.fillMaxSize()) {
-                currentScreen?.apply {
-                    screen.Render(props)
-                }
+                Content()
             }
         }
     }

@@ -41,8 +41,8 @@ class Observable<T>(data: T) {
 }
 
 @Composable
-fun<T> Observable<T>.collectAsState(): State<T> {
-    val state = remember { mutableStateOf(value) }
+fun<T> Observable<T>.collectAsState(key1: Any? = null): State<T> {
+    val state = remember(key1) { mutableStateOf(value) }
     val listener = { it: T -> state.value = it }
     DisposableEffect(this) {
         addListener(listener)

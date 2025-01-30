@@ -1,12 +1,15 @@
 package dev.shibasis.reaktor.navigation.containers
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.route.Switch
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
+import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 open class SingleStackContainer(
@@ -19,7 +22,6 @@ open class SingleStackContainer(
     ): this(Switch(home, error, builder))
 
     private val screenStack = ObservableStack<ScreenPair>()
-    private val currentScreen by screenStack.top
 
     override fun build() {
         super.build()
@@ -27,9 +29,10 @@ open class SingleStackContainer(
     }
 
     @Composable
-    override fun Render() {
-        currentScreen?.apply {
-            screen.Render(props)
+    override fun Render(props: Props) {
+        val current by screenStack.top.collectAsState()
+        current?.let {
+            it.screen.Render(it.props)
         }
     }
 

@@ -17,7 +17,7 @@ class Navigator(
     var containerStack = ObservableStack(root)
     val currentContainer by containerStack.top
     val consumesBackEvent = containerStack.top.map {
-        containerStack.size > 1 || it!!.consumesBackEvent()
+        containerStack.size > 1 || (it?.consumesBackEvent() ?: false)
     }
 
     fun onBack() {
@@ -36,7 +36,7 @@ class Navigator(
     }
 
     private fun updateContainer(screenPair: ScreenPair) {
-        val container = screenPair.screen.container ?: return
+        val container = screenPair.screen.container ?: throw NullPointerException("No Container set")
         if (container != currentContainer) {
             val index = containerStack.entries.indexOf(container)
             if (index == -1) {
