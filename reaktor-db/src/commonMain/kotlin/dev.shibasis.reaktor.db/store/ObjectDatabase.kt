@@ -1,14 +1,12 @@
 package dev.shibasis.reaktor.db.store
 
+import dev.shibasis.reaktor.db.store.concrete.LRUCachePolicy
 import kotlinx.datetime.Clock
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.internal.cast
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
-import kotlin.reflect.typeOf
 
 data class StoredObject<T: Any>(
     val key: String,
@@ -28,13 +26,21 @@ class DefaultTimestampProvider : TimestampProvider {
     override fun getTimestamp(): Long = Clock.System.now().toEpochMilliseconds()
 }
 
-sealed interface SerializationStrategy<Output> {
+sealed interface ObjectSerializer<Output> {
     val serializersModule: SerializersModule
     fun<Input> serialize(serializer: KSerializer<Input>, value: Input): Output
     fun<Input> deserialize(serializer: KSerializer<Input>, data: Output): Input
+
+    fun<Result> choose(json: Result, flex: Result): Result {
+        return when(this) {
+            is JsonSerializer -> json
+            is FlexSerializer -> flex
+        }
+    }
+
 }
 
-class JsonSerializer(private val json: Json = Json): SerializationStrategy<String> {
+class JsonSerializer(private val json: Json = Json): ObjectSerializer<String> {
     override val serializersModule: SerializersModule
         get() = json.serializersModule
 
@@ -47,9 +53,10 @@ class JsonSerializer(private val json: Json = Json): SerializationStrategy<Strin
     }
 }
 
-class FlexSerialization: SerializationStrategy<ByteArray> {
+class FlexSerializer: ObjectSerializer<ByteArray> {
     override val serializersModule: SerializersModule
-        get() = Json.serializersModule
+        get() = TODO("Not yet implemented")
+
 
     override fun <Input> serialize(serializer: KSerializer<Input>, value: Input): ByteArray {
         TODO("Not yet implemented")
@@ -60,36 +67,27 @@ class FlexSerialization: SerializationStrategy<ByteArray> {
     }
 }
 
-// decouple serialization strategy later in order to support flexbuffers.
+
 abstract class ObjectDatabase(
-    protected val cachePolicy: CacheEvictionPolicy,
-    protected val timestampProvider: TimestampProvider = DefaultTimestampProvider(),
-    private val json: Json = Json
+    val objectSerializer: ObjectSerializer<*> = JsonSerializer(),
+    protected val cachePolicy: CachePolicy = LRUCachePolicy(100),
+    protected val timestampProvider: TimestampProvider = DefaultTimestampProvider()
 ) {
-    protected fun <T> serialize(value: T, serializer: KSerializer<T>): String {
-        json.encodeToString(mapOf(1 to 2))
-        return json.encodeToString(serializer, value)
-    }
-
-    protected fun <T> deserialize(value: String, serializer: KSerializer<T>): T {
-        return json.decodeFromString(serializer, value)
-    }
-
     abstract suspend fun <T : Any> put(key: String, value: T, serializer: KSerializer<T>, storeName: String)
     abstract suspend fun <T : Any> get(key: String, storeName: String, type: KClass<T>, serializer: KSerializer<T>): StoredObject<T>?
     abstract suspend fun <T : Any> getAll(storeName: String, type: KClass<T>, serializer: KSerializer<T>): List<StoredObject<T>>
     abstract suspend fun delete(key: String, storeName: String)
-    abstract suspend fun clearStore(storeName: String)
+    abstract suspend fun clear(storeName: String)
+    abstract suspend fun clear()
 }
 
 
-class ObjectStore<Format>(
+class ObjectStore(
     val objectDatabase: ObjectDatabase,
-    val serialization: SerializationStrategy<Format>,
     val storeName: String
 ) {
     inline fun <reified T> serializer(): KSerializer<T> {
-        return serialization.serializersModule.serializer()
+        return objectDatabase.objectSerializer.serializersModule.serializer()
     }
 
     suspend inline fun <reified T: Any> put(key: String, value: T) =
@@ -104,5 +102,5 @@ class ObjectStore<Format>(
 
 
     suspend fun delete(key: String) = objectDatabase.delete(key, storeName)
-    suspend fun clearStore() = objectDatabase.clearStore(storeName)
+    suspend fun clearStore() = objectDatabase.clear(storeName)
 }

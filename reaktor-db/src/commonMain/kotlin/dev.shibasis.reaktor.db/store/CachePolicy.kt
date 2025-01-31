@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.db.store
 import kotlinx.datetime.Clock
 
 
-interface CacheEvictionPolicy {
+interface CachePolicy {
     suspend fun onItemAccess(key: String, storeName: String)
     suspend fun onItemInsertion(key: String, storeName: String)
     suspend fun onItemUpdate(key: String, storeName: String)

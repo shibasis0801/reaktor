@@ -1,10 +1,10 @@
 package dev.shibasis.reaktor.db.store.concrete
 
-import dev.shibasis.reaktor.db.store.CacheEvictionPolicy
+import dev.shibasis.reaktor.db.store.CachePolicy
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class LRUCacheEvictionPolicy(private val capacity: Int) : CacheEvictionPolicy {
+class LRUCachePolicy(private val capacity: Int) : CachePolicy {
     private val storeUsage = mutableMapOf<String, LinkedHashMap<String, Unit>>()
     private val mutex = Mutex()
 
