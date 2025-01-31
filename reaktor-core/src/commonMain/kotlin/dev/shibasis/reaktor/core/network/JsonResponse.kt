@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.core.network
 import kotlinx.serialization.Serializable
 import dev.shibasis.reaktor.core.annotations.Expose
 import dev.shibasis.reaktor.core.framework.toJson
-
+// todo to be removed
 enum class StatusCode(val code: Int) {
     // 1xx Informational
     CONTINUE(100),

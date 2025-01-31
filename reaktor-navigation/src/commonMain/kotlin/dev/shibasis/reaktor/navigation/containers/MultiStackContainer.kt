@@ -21,6 +21,8 @@ open class MultiStackItemMetadata(
 
 /*
 Needs improvements in many areas.
+-1. Unit tests.
+0. Bugs around back navigation.
 1. Nested containers aren't present in the Navigator (bad horrible idea)
 2. In order to push a Screen inside some container hierarchy, the hierarchy needs to be pushed.
 3. In absence of that, pushing to a nested container screen would only mount the enclosing container, and not the hierarchy.
@@ -112,13 +114,13 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
     }
 
     fun findStack(screen: Screen<Props>): String? {
-        var parent = screen.parent
-        while (parent != null) {
-            val key = routeToKeyMap[parent.pattern.original]
+        var route: Route? = screen
+        while (route != null) {
+            val key = routeToKeyMap[route.pattern.original]
             if (key != null)
                 return key
 
-            parent = parent.parent
+            route = route.parent
         }
         return null
     }
