@@ -3,12 +3,12 @@ package dev.shibasis.reaktor.db.store.concrete
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlCursor
 import app.cash.sqldelight.db.SqlDriver
+import dev.shibasis.reaktor.db.core.BinarySerializer
+import dev.shibasis.reaktor.db.core.ObjectSerializer
+import dev.shibasis.reaktor.db.core.TextSerializer
 import dev.shibasis.reaktor.db.store.CachePolicy
 import dev.shibasis.reaktor.db.store.DefaultTimestampProvider
-import dev.shibasis.reaktor.db.store.FlexSerializer
-import dev.shibasis.reaktor.db.store.JsonSerializer
 import dev.shibasis.reaktor.db.store.ObjectDatabase
-import dev.shibasis.reaktor.db.store.ObjectSerializer
 import dev.shibasis.reaktor.db.store.StoredObject
 import dev.shibasis.reaktor.db.store.TimestampProvider
 import kotlinx.serialization.KSerializer
@@ -16,15 +16,16 @@ import kotlin.reflect.KClass
 
 class SqliteObjectDatabase(
     private val driver: SqlDriver,
-    private val tableName: String,
-    objectSerializer: ObjectSerializer<*> = JsonSerializer(),
-    cachePolicy: CachePolicy,
-    timestampProvider: TimestampProvider = DefaultTimestampProvider(),
+    name: String,
+    objectSerializer: ObjectSerializer<*> = TextSerializer(),
+    cachePolicy: CachePolicy = LRUCachePolicy(100),
+    timestampProvider: TimestampProvider = DefaultTimestampProvider()
 ): ObjectDatabase(objectSerializer, cachePolicy, timestampProvider) {
+    private val tableName = "object_db_$name"
+
     companion object {
         const val KEY_COLUMN = "key"
         const val VALUE_COLUMN = "value"
-        const val TYPE_COLUMN = "type"
         const val STORE_NAME_COLUMN = "store_name"
         const val CREATED_AT_COLUMN = "created_at"
         const val UPDATED_AT_COLUMN = "updated_at"
@@ -39,7 +40,6 @@ class SqliteObjectDatabase(
             CREATE TABLE IF NOT EXISTS $tableName (
                 $KEY_COLUMN TEXT NOT NULL,
                 $VALUE_COLUMN $valueColumnType NOT NULL,
-                $TYPE_COLUMN TEXT NOT NULL,
                 $STORE_NAME_COLUMN TEXT NOT NULL,
                 $CREATED_AT_COLUMN INTEGER NOT NULL,
                 $UPDATED_AT_COLUMN INTEGER NOT NULL,
@@ -62,27 +62,24 @@ class SqliteObjectDatabase(
 
         val key = cursor.getString(0)!!
         val value = when(objectSerializer) {
-            is FlexSerializer -> objectSerializer.deserialize(serializer, cursor.getBytes(1)!!)
-            is JsonSerializer -> objectSerializer.deserialize(serializer, cursor.getString(1)!!)
+            is BinarySerializer -> objectSerializer.deserialize(serializer, cursor.getBytes(1)!!)
+            is TextSerializer -> objectSerializer.deserialize(serializer, cursor.getString(1)!!)
         }
+        val storeName = cursor.getString(2)!!
+        val createdAt = cursor.getLong(3)!!
+        val updatedAt = cursor.getLong(4)!!
 
-
-        val type = cursor.getString(2)!!
-        val storeName = cursor.getString(3)!!
-        val createdAt = cursor.getLong(4)!!
-        val updatedAt = cursor.getLong(5)!!
-
-        return StoredObject(key, value, type, storeName, createdAt, updatedAt)
+        return StoredObject(key, value, storeName, createdAt, updatedAt)
     }
 
-    override suspend fun <T : Any> put(key: String, value: T, serializer: KSerializer<T>, storeName: String) {
+    override suspend fun <T : Any> put(storeName: String, key: String, value: T, serializer: KSerializer<T>) {
         val serializedValue = objectSerializer.serialize(serializer, value)
 
         val now = timestampProvider.getTimestamp()
 
         driver.execute(
             null,
-            "INSERT OR REPLACE INTO $tableName ($KEY_COLUMN, $VALUE_COLUMN, $TYPE_COLUMN, $STORE_NAME_COLUMN, $CREATED_AT_COLUMN, $UPDATED_AT_COLUMN) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO $tableName ($KEY_COLUMN, $VALUE_COLUMN, $STORE_NAME_COLUMN, $CREATED_AT_COLUMN, $UPDATED_AT_COLUMN) VALUES (?, ?, ?, ?, ?)",
             6
         ) {
             bindString(0, key)
@@ -90,10 +87,9 @@ class SqliteObjectDatabase(
                 is String -> bindString(1, serializedValue)
                 is ByteArray -> bindBytes(1, serializedValue)
             }
-            bindString(2, value::class.simpleName)
-            bindString(3, storeName)
+            bindString(2, storeName)
+            bindLong(3, now)
             bindLong(4, now)
-            bindLong(5, now)
         }
 
         val rowChanges = driver.executeQuery(null, "SELECT changes()", { cursor ->
@@ -114,14 +110,14 @@ class SqliteObjectDatabase(
     }
 
     override suspend fun <T : Any> get(
-        key: String,
         storeName: String,
+        key: String,
         type: KClass<T>,
         serializer: KSerializer<T>
     ): StoredObject<T>? {
         val result = driver.executeQuery(
             null,
-            "SELECT * FROM $tableName WHERE $KEY_COLUMN = ? AND $STORE_NAME_COLUMN = ? AND $TYPE_COLUMN = ?",
+            "SELECT * FROM $tableName WHERE $KEY_COLUMN = ? AND $STORE_NAME_COLUMN = ?",
             { cursor ->
                 QueryResult.Value(
                     mapToStoredObject(
@@ -130,11 +126,10 @@ class SqliteObjectDatabase(
                     )
                 )
             },
-            3
+            2
         ) {
             bindString(0, key)
             bindString(1, storeName)
-            bindString(2, type.simpleName)
         }
         cachePolicy.onItemAccess(key, storeName)
         return result.value
@@ -147,7 +142,7 @@ class SqliteObjectDatabase(
     ): List<StoredObject<T>> {
         val result = driver.executeQuery(
             null,
-            "SELECT * FROM $tableName WHERE $STORE_NAME_COLUMN = ? AND $TYPE_COLUMN = ?",
+            "SELECT * FROM $tableName WHERE $STORE_NAME_COLUMN = ?",
             { cursor ->
                 val items = mutableListOf<StoredObject<T>>()
                 var storedObject = mapToStoredObject(
@@ -163,16 +158,15 @@ class SqliteObjectDatabase(
                 }
                 QueryResult.Value(items)
             },
-            2
+            1
         ) {
             bindString(0, storeName)
-            bindString(1, type.simpleName)
         }
         result.value.forEach { cachePolicy.onItemAccess(it.key, it.storeName) }
         return result.value
     }
 
-    override suspend fun delete(key: String, storeName: String) {
+    override suspend fun delete(storeName: String, key: String) {
         driver.execute(
             null,
             "DELETE FROM $tableName WHERE $KEY_COLUMN = ? AND $STORE_NAME_COLUMN = ?",
