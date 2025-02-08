@@ -44,3 +44,17 @@ open class BinarySerializer: ObjectSerializer<ByteArray> {
         TODO("Not yet implemented")
     }
 }
+
+
+class FlexSerializer: BinarySerializer() {
+    override val serializersModule: SerializersModule
+        get() = super.serializersModule
+
+    override fun <Input> serialize(serializer: KSerializer<Input>, value: Input): ByteArray {
+        return super.serialize(serializer, value)
+    }
+
+    override fun <Input> deserialize(serializer: KSerializer<Input>, data: ByteArray): Input {
+        return super.deserialize(serializer, data)
+    }
+}
