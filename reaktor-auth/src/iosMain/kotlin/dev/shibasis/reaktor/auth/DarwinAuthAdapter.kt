@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.auth
 import co.touchlab.kermit.Logger
 import cocoapods.GoogleSignIn.GIDGoogleUser
 import cocoapods.GoogleSignIn.GIDSignIn
-import io.github.jan.supabase.gotrue.Auth
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.UIKit.UIViewController
 import kotlin.coroutines.resume
@@ -33,7 +32,7 @@ class DarwinAuthAdapter(controller: UIViewController): AuthAdapter<UIViewControl
 
     override suspend fun getGoogleUser() = GIDSignIn.sharedInstance.currentUser?.toGoogleUser()
 
-    override suspend fun signOut() = invokeSuspend {
+    override suspend fun signOut() = suspended {
         GIDSignIn.sharedInstance.signOut()
         Result.success(Unit)
     } ?: nullControllerResult()

@@ -54,8 +54,11 @@ var Feature.Camera by CreateSlot<CameraAdapter<*>>()
 
 
 
-
-
+fun useCamera(cameraAdapter: CameraAdapter<*>) {
+    if(cameraAdapter is CameraAdapter.AnalyserCapability) {
+        cameraAdapter.addAnalyser()
+    }
+}
 
 
 

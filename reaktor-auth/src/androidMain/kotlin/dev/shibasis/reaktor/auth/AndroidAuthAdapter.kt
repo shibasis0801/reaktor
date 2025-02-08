@@ -8,7 +8,6 @@ import androidx.credentials.exceptions.NoCredentialException
 import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import kotlinx.coroutines.launch
 
 
 class AndroidAuthAdapter(
@@ -29,8 +28,8 @@ class AndroidAuthAdapter(
 
     private var current: GoogleUser? = null
 
-    private suspend fun tryLogin(): GoogleUser? = invokeSuspend {
-        if (current != null) return@invokeSuspend current
+    private suspend fun tryLogin(): GoogleUser? = suspended {
+        if (current != null) return@suspended current
 
         try {
             val result = credentialManager.getCredential(this, request)
@@ -47,11 +46,11 @@ class AndroidAuthAdapter(
         }
     }
 
-    override suspend fun googleLogin(): Result<GoogleUser> = invokeSuspend {
+    override suspend fun googleLogin(): Result<GoogleUser> = suspended {
         tryLogin()?.run { Result.success(this) }
     } ?: nullControllerResult()
 
-    override suspend fun signOut(): Result<Unit> = invokeSuspend {
+    override suspend fun signOut(): Result<Unit> = suspended {
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
             Result.success(Unit)
@@ -60,7 +59,7 @@ class AndroidAuthAdapter(
         }
     } ?: nullControllerResult()
 
-    override suspend fun getGoogleUser(): GoogleUser? = invokeSuspend { tryLogin() }
+    override suspend fun getGoogleUser(): GoogleUser? = suspended { tryLogin() }
 }
 
 fun GoogleIdTokenCredential.toGoogleUser(): GoogleUser {

@@ -3,10 +3,10 @@ import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.dependencies.useKoin
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
 }
@@ -62,8 +62,7 @@ kotlin {
     }
     server {
         dependencies = {
-            vertx()
+
         }
     }
-
 }

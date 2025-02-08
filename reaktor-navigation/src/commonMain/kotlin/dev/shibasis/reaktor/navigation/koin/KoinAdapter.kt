@@ -18,8 +18,8 @@ class KoinAdapter(
         invoke { loadKoinModules(modules) }
     }
 
-    fun load(pod: Pod) = invoke { loadKoinModules(pod.injectables()) }
-    fun unload(pod: Pod) = invoke { unloadKoinModules(pod.injectables()) }
+    fun load(pod: Pod) = invoke { loadKoinModules(pod.modules()) }
+    fun unload(pod: Pod) = invoke { unloadKoinModules(pod.modules()) }
 }
 
 val Feature.Koin by CreateSlot<KoinAdapter>()

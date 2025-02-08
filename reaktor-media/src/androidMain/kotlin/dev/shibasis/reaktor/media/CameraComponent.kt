@@ -44,7 +44,7 @@ class CameraComponent(
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                 .build()
 
-            cameraAdapter.invokeSuspend {
+            cameraAdapter.suspended {
 //                val camera = cameraAdapter.getCamera()
 //                val preview = Preview.Builder().build()
 //                preview.setSurfaceProvider(previewView.surfaceProvider)

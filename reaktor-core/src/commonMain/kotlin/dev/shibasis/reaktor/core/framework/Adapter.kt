@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.core.framework
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 
 // If you need to extend another class, then store a reference to it inside your adapter.
@@ -14,7 +13,11 @@ open class Adapter<Controller>(
 
     operator fun<Result> invoke(function: Controller.() -> Result?): Result? = ref.get()?.function()
 
-    suspend fun<Result> invokeSuspend(function: suspend Controller.() -> Result?): Result? = ref.get()?.function()
+    fun<Data> invokeResult(function: Controller.() -> Result<Data>): Result<Data> = ref.get()?.function() ?: Result.failure(NULL_CONTROLLER)
+
+    suspend fun<Result> suspended(function: suspend Controller.() -> Result?): Result? = ref.get()?.function()
+
+    suspend fun<Data> suspendedResult(function: suspend Controller.() -> Result<Data>): Result<Data> = ref.get()?.function() ?: Result.failure(NULL_CONTROLLER)
 
     fun handle(controller: Controller, event: ControllerEvent) {}
 

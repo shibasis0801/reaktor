@@ -5,8 +5,9 @@ import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 
 /**
- * Constructor parameters meant for configuring static fields such as Enter/Exit animations
- * For Screen Parameters, use props and path params.
+ * Constructor parameters meant for configuring static fields such as repositories, apis, and animations, etc.
+ * For dynamic fields, use props and path params.
+ * todo figure out how to remove default props
  */
 abstract class Screen<out T: Props>(val defaultProps: T): Route(), Route.Render<T> {
     fun with(props: @UnsafeVariance T, vararg params: Pair<String, Any>) =

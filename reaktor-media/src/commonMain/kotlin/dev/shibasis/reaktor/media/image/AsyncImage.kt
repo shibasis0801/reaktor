@@ -18,6 +18,11 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 
+// Needs move to cross platform WorkManager, instead of eager download
+// Instant Tasks (to remove duplicate concurrent fires like this one below)
+// Priority Tasks (work manager instant tasks)
+// Scheduled Tasks (conditional)
+// Capability based design, for guarantees around the implementation.
 @Composable
 fun AsyncImage(
     url: String,

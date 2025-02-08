@@ -1,8 +1,11 @@
 package dev.shibasis.reaktor.db.store
 
+import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.CreateSlot
+import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.core.utils.fail
+import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.db.core.ObjectSerializer
-import dev.shibasis.reaktor.db.core.TextSerializer
-import dev.shibasis.reaktor.db.store.concrete.LRUCachePolicy
 import kotlinx.datetime.Clock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
@@ -46,6 +49,7 @@ abstract class ObjectDatabase(
     abstract suspend fun clear()
 }
 
+var Feature.Database by CreateSlot<ObjectDatabase>()
 
 class ObjectStore(
     val objectDatabase: ObjectDatabase,
@@ -68,4 +72,76 @@ class ObjectStore(
 
     suspend fun delete(key: String) = objectDatabase.delete(key, storeName)
     suspend fun clear() = objectDatabase.clear(storeName)
+
+
+    data class CacheResult<T>(
+        val result: Result<T>,
+        val isCached: Boolean
+    )
+
+    var enableWriteThrough = true
+    /** val (data, isCached) = writeThrough(cacheKey, fetcher, validator)  */
+    suspend inline fun<reified T: Any> writeThrough(
+        cacheKey: String,
+        crossinline fetcher: suspend () -> Result<T>,
+    ): CacheResult<T> {
+        if (!enableWriteThrough) return CacheResult(fetcher(), false)
+
+        val cachedData = get<T>(cacheKey)
+        if (cachedData != null) return CacheResult(succeed(cachedData.value), true)
+
+        val result = fetcher()
+        val data = result.getOrNull() ?: return CacheResult(fail(result.exceptionOrNull()!!), false)
+        put(cacheKey, data)
+        return CacheResult(succeed(data), false)
+    }
 }
+
+/*
+
+Enhancement:
+    Add a high performance reliable SyncAdapter
+
+Experiment:
+    Instead of the usual (api, repository, interactions), does a DataHolder abstraction make sense ?
+
+*/
+
+
+abstract class Repository(
+    storeName: String,
+    database: ObjectDatabase = Feature.Database ?: throw IllegalStateException("You need to initialize the database"),
+): Adapter<ObjectDatabase>(database) {
+    protected val store = ObjectStore(database, storeName)
+    protected suspend inline fun<reified T: Any> writeThrough(
+        cacheKey: String,
+        crossinline fetcher: suspend () -> Result<T>,
+    ) = store.writeThrough(cacheKey, fetcher)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

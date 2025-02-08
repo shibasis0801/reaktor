@@ -6,6 +6,7 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.*
+import dev.shibasis.dependeasy.dependencies.useKoin
 import dev.shibasis.dependeasy.dependencies.useNetworking
 import java.net.InetSocketAddress
 import java.net.Socket

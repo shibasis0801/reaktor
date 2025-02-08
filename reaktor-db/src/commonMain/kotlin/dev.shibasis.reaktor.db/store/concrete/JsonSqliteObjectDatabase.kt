@@ -14,6 +14,7 @@ import dev.shibasis.reaktor.db.store.TimestampProvider
 import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 
+// hide with factory pattern
 class SqliteObjectDatabase(
     private val driver: SqlDriver,
     name: String,
