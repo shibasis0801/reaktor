@@ -8,7 +8,7 @@ import dev.shibasis.reaktor.navigation.util.ErrorScreen
  * 1. Support lazy init later, currently we eagerly initialise the screens.
  * 2. Move to prefix match if needed later
  */
-open class Switch(
+class Switch(
     val home: Screen<Props> = ErrorScreen("Home Screen not selected"),
     val error: Screen<Props> = ErrorScreen(),
     private val builder: Switch.() -> Unit = {}
