@@ -30,7 +30,7 @@ class BottomBarContainer(
     start: String,
     error: Screen<Props> = ErrorScreen(),
     builder: MultiStackContainer<BottomBarItem>.() -> Unit = {}
-) : MultiStackContainer<BottomBarItem>(start, error, builder) {
+): MultiStackContainer<BottomBarItem>(start, error, builder) {
     @Composable
     override fun Render(props: Props) {
         val currentKey by currentKey.collectAsState()

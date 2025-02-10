@@ -3,49 +3,43 @@ package dev.shibasis.reaktor.db.adapters
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.MutableStateFlow
 
 abstract class KeyValueStore<Controller>(
     controller: Controller,
     val name: String
 ): Adapter<Controller>(controller) {
-    abstract suspend fun get(key: String): String?
-    abstract suspend fun set(key: String, value: String)
-    abstract suspend fun remove(key: String)
-    abstract suspend fun clear()
+    protected abstract suspend fun get(key: String): String?
+    protected abstract suspend fun set(key: String, value: String)
+    protected abstract suspend fun remove(key: String)
+    protected abstract suspend fun clear()
 
-    interface BlockingStore {
-
-    }
-    interface EncryptedStore {
-
-    }
-    interface TypedStore {
-
-    }
-
-    fun property(key: String) = KeyValueProperty(this, key)
+    fun property(key: String) = PropertyFlow(key, ::get, ::set, ::remove)
 }
 
-class KeyValueProperty(
-    store: KeyValueStore<*>,
-    val key: String
-): Adapter<KeyValueStore<*>>(store) {
-    private var cachedValue: String? = null
-    private var isCached: Boolean = false
-
-    suspend fun get(): String? = suspended {
-        if (!isCached) {
-            cachedValue = get(key)
-            isCached = true
-        }
-        cachedValue
+class PropertyFlow(
+    private val key: String,
+    private val get: suspend (String) -> String?,
+    private val set: suspend (String, String) -> Unit,
+    private val clear: suspend (String) -> Unit,
+    private val flow: MutableStateFlow<String?> = MutableStateFlow(null),
+): MutableStateFlow<String?> by flow {
+    override suspend fun emit(value: String?) {
+        if (value == null) clear(key) else set(key, value)
+        flow.emit(value)
     }
 
-    suspend fun set(value: String?) = suspended {
-        if (value != null) set(key, value) else remove(key)
-        cachedValue = value
-        isCached = true
+    override suspend fun collect(collector: FlowCollector<String?>): Nothing {
+        compareAndSet(null, get(key))
+        flow.collect(collector)
+    }
+
+    suspend fun clear() {
+        clear(key)
     }
 }
+
+
 
 var Feature.KeyValueStore by CreateSlot<KeyValueStore<*>>()
