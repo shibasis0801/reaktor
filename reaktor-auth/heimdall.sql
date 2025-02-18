@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS "user"(
     id BIGSERIAL PRIMARY KEY,
     name varchar(100),
     social_id text,
+    provider text,
     app_id BIGSERIAL,
     data jsonb,
     UNIQUE (social_id, app_id),
@@ -147,11 +148,10 @@ INSERT INTO app values
     (0, 'root', '{}', NOW(), NOW()),
     (1, 'BestBuds', '{}', NOW(), NOW()),
     (2, 'Mehmaan', '{}', NOW(), NOW()),
-    (3, 'FastOrder', '{}', NOW(), NOW()),
-    (4, 'Bhasha', '{}', NOW(), NOW());
+    (3, 'Manna', '{}', NOW(), NOW());
 
 INSERT INTO "user" values
-    (0, 'root', 'social_id_here', 0, '{}', NOW(), NOW())
+    (0, 'root', 'social_id_here', 'root', 0, '{}', NOW(), NOW())
 ;
 
 INSERT INTO role values

@@ -1,18 +1,13 @@
-import com.codingfeline.buildkonfig.compiler.FieldSpec
-import com.codingfeline.buildkonfig.gradle.BuildKonfigTask
 import dev.shibasis.dependeasy.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.web.*
-import java.net.InetSocketAddress
-import java.net.Socket
 
 
 plugins {
     id("dev.shibasis.dependeasy.library")
-    
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
 }
