@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.apps
 
+import dev.shibasis.reaktor.auth.AuthServer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.http.HttpStatus
@@ -17,14 +18,8 @@ suspend inline fun<reified T> jsonResponse(data: T, status: HttpStatus = HttpSta
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValueAndAwait(json.encodeToString<T>(data))
 
-fun appRouter() = coRouter {
+fun AuthServer.appRouter() = coRouter {
     GET("/hello") {
         jsonResponse(mapOf("message" to "Hello, World!"))
-    }
-    GET("/goodbye") {
-        jsonResponse(mapOf("message" to "Goodbye!"))
-    }
-    GET("/json") {
-        jsonResponse(mapOf("message" to "Hello from JSON"))
     }
 }

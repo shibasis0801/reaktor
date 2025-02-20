@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.auth.jwt
 
 import com.auth0.jwt.interfaces.DecodedJWT
-import dev.shibasis.reaktor.auth.utils.fail
-import dev.shibasis.reaktor.auth.utils.succeed
+import dev.shibasis.reaktor.auth.framework.fail
+import dev.shibasis.reaktor.auth.framework.succeed
 
 class JwtAdapter(
     accessTokenSecret: String = "AT_SECRET",

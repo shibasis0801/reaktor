@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.api
 
+import dev.shibasis.reaktor.auth.User
 import kotlinx.serialization.Serializable
 
 
@@ -13,7 +14,7 @@ data class SignInRequest(
 @Serializable
 sealed class SignInResponse {
     @Serializable
-    data class Success(val socialId: String): SignInResponse()
+    data class Success(val socialId: String, val user: User): SignInResponse()
 
     @Serializable
     sealed class Failure: SignInResponse() {
@@ -24,7 +25,7 @@ sealed class SignInResponse {
         data object InvalidAppId: Failure()
 
         @Serializable
-        data class RequiresSignUp(val socialId: String): Failure()
+        data class RequiresSignUp(val socialId: String, val user: User): Failure()
 
         @Serializable
         class ServerError(val message: String): Failure()

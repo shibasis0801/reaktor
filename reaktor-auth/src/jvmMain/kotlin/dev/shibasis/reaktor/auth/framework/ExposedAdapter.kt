@@ -1,6 +1,12 @@
-package dev.shibasis.reaktor.auth.utils
+package dev.shibasis.reaktor.auth.framework
 
 import dev.shibasis.reaktor.core.framework.Adapter
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -30,3 +36,12 @@ open class ExposedAdapter(
         }
     } ?: fail("Database Initialization Error")
 }
+
+
+inline fun LocalDateTime.Companion.now() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+
+interface DTOConverter<T> {
+    fun toDto(): T
+    fun fromDto(dto: T)
+}
+fun<T: Comparable<T>> IdTable<T>.entityId(id: T) = EntityID(id, this)
