@@ -5,7 +5,9 @@ import dev.shibasis.reaktor.auth.db.Users
 import dev.shibasis.reaktor.auth.framework.CrudRepository
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.and
+import org.springframework.stereotype.Component
 
+@Component
 class UserRepository(
     database: Database
 ): CrudRepository<Long, UserEntity, UserEntity.Companion>(database, UserEntity) {

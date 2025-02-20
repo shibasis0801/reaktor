@@ -12,6 +12,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.datetime.toLocalDateTime
+import org.springframework.stereotype.Component
 import java.time.ZoneId
 import java.util.Date
 import java.util.UUID
@@ -21,6 +22,7 @@ fun LocalDateTime.toJavaDate(): Date = toJavaLocalDateTime().atZone(ZoneId.syste
 inline fun <T, R : Any> Result<T>.chain(transform: (T) -> Result<R>): Result<R> =
     map { transform(it).getOrThrow() }
 
+@Component
 class RefreshTokenService(
     private val sessionRepository: SessionRepository,
     private val maxSessions: Int = 5

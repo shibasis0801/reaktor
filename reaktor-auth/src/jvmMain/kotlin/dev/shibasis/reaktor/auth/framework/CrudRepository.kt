@@ -7,7 +7,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-
+import org.springframework.stereotype.Component
 
 abstract class CrudRepository<ID: Comparable<ID>, out TableEntity: Entity<ID>, TableEntityClass: EntityClass<ID, TableEntity>>(
     database: Database,

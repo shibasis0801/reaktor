@@ -10,18 +10,19 @@ import dev.shibasis.reaktor.auth.db.users.UserRepository
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
+import org.springframework.stereotype.Component
 
 /*
 todo:
     if a user exists for another app, copy their data here.
  */
+@Component
 class LoginService(
-    database: Database,
-    clientId: String
+    private val verifierService: TokenVerifierService,
+    private val userRepository: UserRepository,
+    private val appRepository: AppRepository
 ) {
-    private val verifierService = TokenVerifierService(clientId)
-    private val userRepository = UserRepository(database)
-    private val appRepository = AppRepository(database)
+
 
     fun login(request: SignInRequest): SignInResponse {
         val (idToken, appId) = request

@@ -3,7 +3,9 @@ package dev.shibasis.reaktor.auth.jwt
 import com.auth0.jwt.interfaces.DecodedJWT
 import dev.shibasis.reaktor.auth.framework.fail
 import dev.shibasis.reaktor.auth.framework.succeed
+import org.springframework.stereotype.Component
 
+@Component
 class JwtAdapter(
     accessTokenSecret: String = "AT_SECRET",
     accessTokenExpiryInSeconds: Long = 3600, // 1 hour

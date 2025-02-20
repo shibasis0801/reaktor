@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.auth.framework
 
-import dev.shibasis.reaktor.auth.apps.jsonResponse
+import dev.shibasis.reaktor.auth.api.jsonResponse
 import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.EntityClass
 import org.springframework.web.reactive.function.server.awaitBody

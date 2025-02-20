@@ -32,7 +32,7 @@ abstract class Auditable<IdType: Comparable<IdType>>(
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 
     fun entityId(id: IdType) = EntityID(id, this)
-    fun foreignKey(name: String) = reference(name, this, onDelete = ReferenceOption.CASCADE)
+    fun<T: Comparable<T>> foreignKey(table: IdTable<T>, name: String) = reference(name, table, onDelete = ReferenceOption.CASCADE)
 }
 
 abstract class LongAuditable(
