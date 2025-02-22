@@ -24,7 +24,7 @@ fun KotlinMultiplatformExtension.darwin(
     val configure = DarwinConfigure().apply(configuration)
 
     val targets = mutableListOf(
-        iosSimulatorArm64(),
+//        iosSimulatorArm64(),
         iosArm64()
     )
 

@@ -41,9 +41,6 @@ kotlin {
         packageJson = file("package.json")
     }
 
-    project.android {
-        defaults("dev.shibasis.reaktor.ui")
-    }
     droid {
         dependencies = {
             activityFragment()
@@ -65,4 +62,8 @@ kotlin {
 
         }
     }
+}
+
+android {
+    defaults("dev.shibasis.reaktor.ui")
 }

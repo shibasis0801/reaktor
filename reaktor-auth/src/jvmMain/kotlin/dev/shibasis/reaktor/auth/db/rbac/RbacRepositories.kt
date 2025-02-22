@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.db.rbac
 
+import dev.shibasis.reaktor.auth.*
 import dev.shibasis.reaktor.auth.db.*
 import dev.shibasis.reaktor.auth.framework.CrudRepository
 import org.jetbrains.exposed.dao.id.EntityID
@@ -9,34 +10,34 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 
 @Component
-class RoleRepository(database: Database) : CrudRepository<Long, RoleEntity, RoleEntity.Companion>(database, RoleEntity) {
+class RoleRepository(database: Database) : CrudRepository<Long, Role, RoleEntity, RoleEntity.Companion>(database, RoleEntity) {
     fun findByName(name: String, appId: Long): Result<RoleEntity> = sql {
-        entity.find { (Roles.name eq name) and (Roles.appId eq EntityID(appId, Apps)) }
+        companion.find { (Roles.name eq name) and (Roles.appId eq EntityID(appId, Apps)) }
             .firstOrNull() ?: throw NullPointerException("Role not found")
     }
 }
 
 @Component
-class PermissionRepository(database: Database) : CrudRepository<Long, PermissionEntity, PermissionEntity.Companion>(database, PermissionEntity) {
+class PermissionRepository(database: Database) : CrudRepository<Long, Permission, PermissionEntity, PermissionEntity.Companion>(database, PermissionEntity) {
     fun findByName(name: String, appId: Long): Result<PermissionEntity> = sql {
-        entity.find { (Permissions.name eq name) and (Permissions.appId eq EntityID(appId, Apps)) }
+        companion.find { (Permissions.name eq name) and (Permissions.appId eq EntityID(appId, Apps)) }
             .firstOrNull() ?: throw NullPointerException("Permission not found")
     }
 }
 
 @Component
-class RolePermissionRepository(database: Database) : CrudRepository<Long, RolePermissionEntity, RolePermissionEntity.Companion>(database, RolePermissionEntity) {
+class RolePermissionRepository(database: Database) : CrudRepository<Long, RolePermission, RolePermissionEntity, RolePermissionEntity.Companion>(database, RolePermissionEntity) {
     fun findByRoleId(roleId: Long): Result<List<RolePermissionEntity>> = sql {
-        entity.find { RolePermissions.roleId eq EntityID(roleId, Roles) }
+        companion.find { RolePermissions.roleId eq EntityID(roleId, Roles) }
             .toList()
     }
 }
 
 @Component
-class UserRoleRepository(database: Database) : CrudRepository<Long, UserRoleEntity, UserRoleEntity.Companion>(database, UserRoleEntity) {
+class UserRoleRepository(database: Database) : CrudRepository<Long, UserRole, UserRoleEntity, UserRoleEntity.Companion>(database, UserRoleEntity) {
     // Returns roles for a given user within a specific context
     fun findByUserIdAndContext(userId: Long, contextId: Long): Result<List<UserRoleEntity>> = sql {
-        entity.find {
+        companion.find {
             (UserRoles.userId eq EntityID(userId, Users)) and
                     (UserRoles.contextId eq EntityID(contextId, Contexts))
         }
@@ -45,10 +46,10 @@ class UserRoleRepository(database: Database) : CrudRepository<Long, UserRoleEnti
 }
 
 @Component
-class SessionRepository(database: Database) : CrudRepository<UUID, SessionEntity, SessionEntity.Companion>(database, SessionEntity) {
+class SessionRepository(database: Database) : CrudRepository<UUID, Session, SessionEntity, SessionEntity.Companion>(database, SessionEntity) {
     // Returns sessions for a given user within a specific context
     fun findByUserIdAndContext(userId: Long, contextId: Long): Result<List<SessionEntity>> = sql {
-        entity.find {
+        companion.find {
             (Sessions.userId eq EntityID(userId, Users)) and
                     (Sessions.contextId eq EntityID(contextId, Contexts))
         }

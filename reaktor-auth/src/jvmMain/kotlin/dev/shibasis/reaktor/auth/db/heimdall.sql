@@ -29,6 +29,8 @@ The role definitions cannot change inside of an app, but a user's roles can chan
 
 roles and permissions are scoped to an app and are unique within it.
 roles and users are scoped to an context and are unique within it.
+
+Need to add a mechanism for users to join their accounts across apps.
 */
 
 DROP SCHEMA IF EXISTS heimdall CASCADE;

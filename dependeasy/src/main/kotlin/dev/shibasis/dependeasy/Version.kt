@@ -5,14 +5,14 @@ import org.gradle.api.JavaVersion
 object Version {
     object SDK {
         const val minSdk = 26
-        const val compileSdk = 34
-        const val targetSdk = 34
+        const val compileSdk = 35
+        const val targetSdk = 35
         const val ndkVersion = "25.0.8775105"
         const val CMake = "3.22.1"
 
         const val targetDarwin = "12"
 
-        const val Kotlin = "2.0.21"
+        const val Kotlin = "2.1.10"
         const val Vertx = "4.4.2"
         const val Spring = "3.4.1"
 
@@ -37,7 +37,7 @@ object Version {
     const val Exposed = "0.50.0"
     const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
-    const val Ktor = "3.0.3"
+    const val Ktor = "3.1.0"
     const val Koin = "4.0.0"
 
     // Cloud
@@ -47,9 +47,9 @@ object Version {
     const val CameraX = "1.3.4"
 
     // KMM Async
-    const val Coroutines = "1.9.0"
+    const val Coroutines = "1.10.1"
     const val Kermit = "2.0.5"
-    const val Serialization = "1.7.3"
+    const val Serialization = "1.8.0"
 
     // DevTools
     const val Flipper = "0.162.0"

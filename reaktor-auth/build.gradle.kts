@@ -18,7 +18,6 @@ kotlin {
             api(project(":reaktor-ui"))
             api(project(":reaktor-navigation"))
             api(project(":reaktor-io"))
-            api("io.github.jan-tennert.supabase:gotrue-kt:2.5.4")
         }
     }
 

@@ -4,7 +4,6 @@ import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.auth.UserStatus
 import dev.shibasis.reaktor.auth.framework.LongAuditable
 import dev.shibasis.reaktor.auth.framework.UUIDAuditable
-import org.jetbrains.exposed.sql.kotlin.datetime.CurrentDateTime
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 

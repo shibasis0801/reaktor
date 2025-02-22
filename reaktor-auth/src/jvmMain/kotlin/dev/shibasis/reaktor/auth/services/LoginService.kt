@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.auth.services
 
 import co.touchlab.kermit.Logger
+import dev.shibasis.reaktor.auth.UserStatus
 import dev.shibasis.reaktor.auth.db.Apps
 import dev.shibasis.reaktor.auth.api.SignInRequest
 import dev.shibasis.reaktor.auth.api.SignInResponse
@@ -22,8 +23,6 @@ class LoginService(
     private val userRepository: UserRepository,
     private val appRepository: AppRepository
 ) {
-
-
     fun login(request: SignInRequest): SignInResponse {
         val (idToken, appId) = request
 
@@ -34,8 +33,7 @@ class LoginService(
         Logger.i { appResult.getOrNull()!!.toString() }
 
         val payload = verifierService.verify(idToken)
-        if (payload == null)
-            return SignInResponse.Failure.InvalidGoogleIdToken
+            ?: return SignInResponse.Failure.InvalidGoogleIdToken
 
         Logger.i { payload.toPrettyString() }
         payload.forEach { key, value ->
@@ -44,24 +42,20 @@ class LoginService(
 
         val socialId = payload.subject
 
-        val user = userRepository.getUser(appId, socialId).getOrNull()
-        if (user == null) {
-            val user = userRepository.create {
+        var user = userRepository.getUser(appId, socialId)
+        if (user.isFailure) {
+            user = userRepository.create {
                 it.name = payload["name"].toString()
                 it.socialId = payload.subject
                 it.appId = EntityID(appId, Apps)
                 it.data = JsonObject(mapOf())
+                it.status = UserStatus.ONBOARDING
             }
-
-            if (user.isSuccess)
-                return SignInResponse.Failure.RequiresSignUp(socialId, user.getOrThrow().toDto())
-            else
-                return SignInResponse.Failure.ServerError("Could not store user. ")
         }
 
-
-        Logger.i { user.toString() }
-
-        return SignInResponse.Success(socialId, user.toDto())
+        return user.fold(
+            { SignInResponse.Success(it.toDto()) },
+            { SignInResponse.Failure.ServerError("Could not store user. ") }
+        )
     }
 }

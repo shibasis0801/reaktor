@@ -26,12 +26,6 @@ class WebConfiguration(
     var moduleName: String? = null
 )
 
-fun KotlinJsTargetDsl.defaults() {
-    useEsModules()
-//    binaries.library()
-    generateTypeScriptDefinitions()
-}
-
 @OptIn(ExternalKotlinTargetApi::class, ExperimentalMainFunctionArgumentsDsl::class, ExperimentalWasmDsl::class)
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
@@ -43,7 +37,6 @@ fun KotlinMultiplatformExtension.web(
 
     js(IR) {
         moduleName = name
-        defaults()
         useEsModules()
         nodejs {
             binaries.library()

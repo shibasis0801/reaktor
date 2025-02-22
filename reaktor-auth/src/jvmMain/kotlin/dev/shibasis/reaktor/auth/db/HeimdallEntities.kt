@@ -2,15 +2,13 @@ package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.*
 import dev.shibasis.reaktor.auth.framework.*
-import org.jetbrains.exposed.dao.LongEntityClass
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import java.util.UUID
 import kotlin.uuid.toKotlinUuid
 
 
-class UserEntity(id: EntityID<Long>): LongAuditableEntity<User>(id, Users) {
-    companion object: LongEntityClass<UserEntity>(Users)
+class UserEntity(id: EntityID<Long>): AuditableEntity<Long, User>(id, Users) {
+    companion object: AuditableEntityCompanion<Long, User, UserEntity>(Users)
     var name by Users.name
     var socialId by Users.socialId
     var appId by Users.appId
@@ -36,8 +34,8 @@ class UserEntity(id: EntityID<Long>): LongAuditableEntity<User>(id, Users) {
     }
 }
 
-class AppEntity(id: EntityID<Long>): LongAuditableEntity<App>(id, Apps) {
-    companion object: LongEntityClass<AppEntity>(Apps)
+class AppEntity(id: EntityID<Long>): AuditableEntity<Long, App>(id, Apps) {
+    companion object: AuditableEntityCompanion<Long, App, AppEntity>(Apps)
 
     var name by Apps.name
 
@@ -52,8 +50,8 @@ class AppEntity(id: EntityID<Long>): LongAuditableEntity<App>(id, Apps) {
     }
 }
 
-class ContextEntity(id: EntityID<Long>): LongAuditableEntity<Context>(id, Contexts) {
-    companion object: LongEntityClass<ContextEntity>(Contexts)
+class ContextEntity(id: EntityID<Long>): AuditableEntity<Long, Context>(id, Contexts) {
+    companion object: AuditableEntityCompanion<Long, Context, ContextEntity>(Contexts)
 
     var name by Contexts.name
     var appId by Contexts.appId
@@ -71,8 +69,8 @@ class ContextEntity(id: EntityID<Long>): LongAuditableEntity<Context>(id, Contex
     }
 }
 
-class RoleEntity(id: EntityID<Long>) : LongAuditableEntity<Role>(id, Roles) {
-    companion object: LongEntityClass<RoleEntity>(Roles)
+class RoleEntity(id: EntityID<Long>): AuditableEntity<Long, Role>(id, Roles) {
+    companion object: AuditableEntityCompanion<Long, Role, RoleEntity>(Roles)
     var name by Roles.name
     var appId by Roles.appId
 
@@ -89,8 +87,8 @@ class RoleEntity(id: EntityID<Long>) : LongAuditableEntity<Role>(id, Roles) {
     }
 }
 
-class PermissionEntity(id: EntityID<Long>) : LongAuditableEntity<Permission>(id, Permissions) {
-    companion object: LongEntityClass<PermissionEntity>(Permissions)
+class PermissionEntity(id: EntityID<Long>) : AuditableEntity<Long, Permission>(id, Permissions) {
+    companion object: AuditableEntityCompanion<Long, Permission, PermissionEntity>(Permissions)
     var name by Permissions.name
     var appId by Permissions.appId
 
@@ -107,8 +105,8 @@ class PermissionEntity(id: EntityID<Long>) : LongAuditableEntity<Permission>(id,
     }
 }
 
-class RolePermissionEntity(id: EntityID<Long>) : LongAuditableEntity<RolePermission>(id, RolePermissions) {
-    companion object: LongEntityClass<RolePermissionEntity>(RolePermissions)
+class RolePermissionEntity(id: EntityID<Long>) : AuditableEntity<Long, RolePermission>(id, RolePermissions) {
+    companion object: AuditableEntityCompanion<Long, RolePermission, RolePermissionEntity>(RolePermissions)
     var roleId by RolePermissions.roleId
     var permissionId by RolePermissions.permissionId
 
@@ -125,8 +123,8 @@ class RolePermissionEntity(id: EntityID<Long>) : LongAuditableEntity<RolePermiss
     }
 }
 
-class UserRoleEntity(id: EntityID<Long>) : LongAuditableEntity<UserRole>(id, UserRoles) {
-    companion object: LongEntityClass<UserRoleEntity>(UserRoles)
+class UserRoleEntity(id: EntityID<Long>) : AuditableEntity<Long, UserRole>(id, UserRoles) {
+    companion object: AuditableEntityCompanion<Long, UserRole, UserRoleEntity>(UserRoles)
     var userId by UserRoles.userId
     var roleId by UserRoles.roleId
     var contextId by UserRoles.contextId
@@ -138,7 +136,6 @@ class UserRoleEntity(id: EntityID<Long>) : LongAuditableEntity<UserRole>(id, Use
         contextId = contextId.value,
         rowData = getRowData()
     )
-
     override fun fromDto(dto: UserRole) {
         userId = EntityID(dto.userId, Users)
         roleId = EntityID(dto.roleId, Roles)
@@ -146,8 +143,8 @@ class UserRoleEntity(id: EntityID<Long>) : LongAuditableEntity<UserRole>(id, Use
     }
 }
 
-class SessionEntity(id: EntityID<UUID>): UUIDAuditableEntity<Session>(id, Sessions) {
-    companion object: UUIDEntityClass<SessionEntity>(Sessions)
+class SessionEntity(id: EntityID<UUID>): AuditableEntity<UUID, Session>(id, Sessions) {
+    companion object: AuditableEntityCompanion<UUID, Session, SessionEntity>(Sessions)
     var userId by Sessions.userId
     var appId by Sessions.appId
     var contextId by Sessions.contextId

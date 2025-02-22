@@ -1,9 +1,7 @@
 package dev.shibasis.reaktor.core.network
 
 import kotlinx.serialization.Serializable
-import dev.shibasis.reaktor.core.annotations.Expose
-import dev.shibasis.reaktor.core.framework.toJson
-// todo to be removed
+
 enum class StatusCode(val code: Int) {
     // 1xx Informational
     CONTINUE(100),
@@ -79,33 +77,6 @@ enum class StatusCode(val code: Int) {
 
 @Serializable
 data class ErrorMessage(
-    val code: Int,
-    val message: String
+    val code: Int, // generic code, which you can use to serialize your custom enums
+    val data: String // generic message, can be an object if you want it to
 )
-
-@Expose
-@Serializable
-data class Response(
-    val jsonData: String,
-    val statusCode: StatusCode = StatusCode.OK
-)
-
-inline fun<reified T> JsonResponse(
-    data: T,
-    statusCode: StatusCode = StatusCode.OK,
-) = Response(toJson<T>(data), statusCode)
-
-inline fun ErrorResponse(
-    code: Int, // domain error code, different from statusCode
-    message: String,
-    statusCode: StatusCode = StatusCode.BAD_REQUEST
-) = JsonResponse(ErrorMessage(code, message), statusCode)
-
-inline fun<reified T> Result<T>.toResponse() = run {
-    val data = getOrNull()
-    if (data != null)
-        JsonResponse(data)
-    else
-        ErrorResponse(1, exceptionOrNull()?.message ?: "Unknown error")
-}
-

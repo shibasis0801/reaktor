@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.db.context
 
+import dev.shibasis.reaktor.auth.Context
 import dev.shibasis.reaktor.auth.db.Apps
 import dev.shibasis.reaktor.auth.db.ContextEntity
 import dev.shibasis.reaktor.auth.db.Contexts
@@ -9,9 +10,9 @@ import org.jetbrains.exposed.sql.Database
 import org.springframework.stereotype.Component
 
 @Component
-class ContextRepository(database: Database) : CrudRepository<Long, ContextEntity, ContextEntity.Companion>(database, ContextEntity) {
+class ContextRepository(database: Database) : CrudRepository<Long, Context, ContextEntity, ContextEntity.Companion>(database, ContextEntity) {
     fun findByAppId(appId: Long): Result<List<ContextEntity>> = sql {
-        entity.find { Contexts.appId eq EntityID(appId, Apps) }
+        companion.find { Contexts.appId eq EntityID(appId, Apps) }
             .toList()
     }
 }

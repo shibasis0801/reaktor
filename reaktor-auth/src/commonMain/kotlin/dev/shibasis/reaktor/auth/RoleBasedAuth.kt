@@ -6,7 +6,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlin.js.JsExport
 
+
+@JsExport
 @Serializable
 data class RowData(
     val data: JsonElement,
@@ -14,7 +17,7 @@ data class RowData(
     val updatedAt: LocalDateTime
 )
 
-
+@JsExport
 @Serializable
 data class App(
     val id: Long,
@@ -22,6 +25,7 @@ data class App(
     val rowData: RowData
 )
 
+@JsExport
 @Serializable
 data class Entity(
     val id: Long,
@@ -30,7 +34,7 @@ data class Entity(
     val rowData: RowData
 )
 
-
+@JsExport
 enum class UserStatus {
     ONBOARDING,
     ACTIVE,
@@ -38,11 +42,13 @@ enum class UserStatus {
     BANNED
 }
 
+@JsExport
 enum class UserProvider {
     GOOGLE
 }
 
 
+@JsExport
 @Serializable
 data class User(
     val id: Long,
@@ -55,6 +61,7 @@ data class User(
 )
 
 
+@JsExport
 @Serializable
 data class Role(
     val id: Long,
@@ -63,6 +70,7 @@ data class Role(
     val rowData: RowData,
 )
 
+@JsExport
 @Serializable
 data class Permission(
     val id: Long,
@@ -71,6 +79,7 @@ data class Permission(
     val rowData: RowData,
 )
 
+@JsExport
 @Serializable
 data class Session @OptIn(ExperimentalUuidApi::class) constructor(
     @Contextual val id: Uuid,
@@ -81,7 +90,7 @@ data class Session @OptIn(ExperimentalUuidApi::class) constructor(
     val rowData: RowData,
 )
 
-
+@JsExport
 @Serializable
 data class Context(
     val id: Long,
@@ -90,6 +99,7 @@ data class Context(
     val rowData: RowData
 )
 
+@JsExport
 @Serializable
 data class RolePermission(
     val id: Long,
@@ -98,6 +108,7 @@ data class RolePermission(
     val rowData: RowData
 )
 
+@JsExport
 @Serializable
 data class UserRole(
     val id: Long,

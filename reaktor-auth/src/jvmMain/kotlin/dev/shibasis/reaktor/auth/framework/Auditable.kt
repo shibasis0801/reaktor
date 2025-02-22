@@ -1,16 +1,16 @@
 package dev.shibasis.reaktor.auth.framework
 
-import dev.shibasis.reaktor.auth.db.Contexts.long
-import dev.shibasis.reaktor.auth.db.Contexts.uuid
-import dev.shibasis.reaktor.auth.db.Permissions.autoGenerate
-import dev.shibasis.reaktor.auth.db.Permissions.autoIncrement
 import dev.shibasis.reaktor.auth.RowData
-import kotlinx.datetime.LocalDateTime
+import dev.shibasis.reaktor.auth.db.Apps.autoIncrement
+import dev.shibasis.reaktor.auth.db.Apps.entityId
+import dev.shibasis.reaktor.auth.db.Apps.long
+import dev.shibasis.reaktor.auth.db.Apps.uuid
+import dev.shibasis.reaktor.auth.db.Sessions.autoGenerate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
-import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.UUIDEntity
+import org.jetbrains.exposed.dao.Entity
+import org.jetbrains.exposed.dao.EntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column
@@ -23,6 +23,9 @@ import java.util.UUID
 
 inline fun <reified T : Any> Table.jsonb(name: String): Column<T> = jsonb(name, { Json.encodeToString(
     serializer<T>(), it) }, { Json.decodeFromString(serializer<T>(), it) })
+
+fun longPrimaryKey(name: String = "id"): () -> Column<EntityID<Long>> = { long(name).autoIncrement().entityId() }
+fun uuidPrimaryKey(name: String = "id"): () -> Column<EntityID<UUID>> = { uuid(name).autoGenerate().entityId() }
 
 abstract class Auditable<IdType: Comparable<IdType>>(
     name: String
@@ -46,33 +49,54 @@ abstract class UUIDAuditable(
     name: String,
     keyColumn: String = "id"
 ): Auditable<UUID>(name) {
-    final override val id = uuid(keyColumn).autoIncrement().entityId()
+    final override val id = uuid(keyColumn).autoGenerate().entityId()
     final override val primaryKey = PrimaryKey(id)
 }
 
-interface AuditableEntity<Row>: DTOConverter<Row> {
-    val data: JsonElement
-    val createdAt: LocalDateTime
-    val updatedAt: LocalDateTime
+abstract class AuditableEntity<IdType: Comparable<IdType>, Row>(
+    id: EntityID<IdType>,
+    auditable: Auditable<IdType>
+): Entity<IdType>(id) {
+    var data by auditable.data
+    val createdAt by auditable.createdAt
+    val updatedAt by auditable.updatedAt
 
+    abstract fun toDto(): Row
+    abstract fun fromDto(dto: Row)
     fun getRowData() = RowData(data, createdAt, updatedAt)
 }
+//
+//abstract class LongAuditableEntity<Row>(
+//    id: EntityID<Long>,
+//    auditable: LongAuditable
+//): AuditableEntity<Long, Row>(id, auditable)
+//
+//abstract class UUIDAuditableEntity<Row>(
+//    id: EntityID<UUID>,
+//    auditable: UUIDAuditable
+//): AuditableEntity<UUID, Row>(id, auditable)
+//
 
-abstract class LongAuditableEntity<Row>(
-    id: EntityID<Long>,
-    auditable: Auditable<Long>
-): LongEntity(id), AuditableEntity<Row> {
-    override val updatedAt by auditable.updatedAt
-    override val createdAt by auditable.createdAt
-    override var data by auditable.data
-}
+//
+open class AuditableEntityCompanion<
+        IdType: Comparable<IdType>,
+        Row,
+        out Entity: AuditableEntity<IdType, Row>
+>(
+    val auditable: Auditable<IdType>,
+    entityType: Class<Entity>? = null,
+    entityCtor: ((EntityID<IdType>) -> Entity)? = null
+): EntityClass<IdType, Entity>(auditable, entityType, entityCtor)
 
-abstract class UUIDAuditableEntity<Row>(
-    id: EntityID<UUID>,
-    auditable: Auditable<UUID>
-): UUIDEntity(id), AuditableEntity<Row> {
-    override val updatedAt by auditable.updatedAt
-    override val createdAt by auditable.createdAt
-    override var data by auditable.data
-}
-
+//
+//abstract class LongAuditableEntityCompanion<Row, out Entity: LongAuditableEntity<Row>>(
+//    table: Auditable<Long>,
+//    entityType: Class<Entity>? = null,
+//    entityCtor: ((EntityID<Long>) -> Entity)? = null
+//): AuditableEntityCompanion<Long, Row, Entity>(table, entityType, entityCtor)
+//
+//abstract class UUIDAuditableEntityCompanion<Row, out Entity: UUIDAuditableEntity<Row>>(
+//    table: Auditable<UUID>,
+//    entityType: Class<Entity>? = null,
+//    entityCtor: ((EntityID<UUID>) -> Entity)? = null
+//): AuditableEntityCompanion<UUID, Row, Entity>(table, entityType, entityCtor)

@@ -40,8 +40,4 @@ open class ExposedAdapter(
 
 inline fun LocalDateTime.Companion.now() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
-interface DTOConverter<T> {
-    fun toDto(): T
-    fun fromDto(dto: T)
-}
 fun<T: Comparable<T>> IdTable<T>.entityId(id: T) = EntityID(id, this)

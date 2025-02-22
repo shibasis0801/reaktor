@@ -14,7 +14,7 @@ data class SignInRequest(
 @Serializable
 sealed class SignInResponse {
     @Serializable
-    data class Success(val socialId: String, val user: User): SignInResponse()
+    data class Success(val user: User): SignInResponse()
 
     @Serializable
     sealed class Failure: SignInResponse() {
@@ -23,9 +23,6 @@ sealed class SignInResponse {
 
         @Serializable
         data object InvalidAppId: Failure()
-
-        @Serializable
-        data class RequiresSignUp(val socialId: String, val user: User): Failure()
 
         @Serializable
         class ServerError(val message: String): Failure()

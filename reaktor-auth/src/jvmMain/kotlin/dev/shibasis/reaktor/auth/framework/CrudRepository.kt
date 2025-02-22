@@ -1,44 +1,48 @@
 package dev.shibasis.reaktor.auth.framework
 
-import org.jetbrains.exposed.dao.Entity
-import org.jetbrains.exposed.dao.EntityClass
 import org.jetbrains.exposed.dao.exceptions.EntityNotFoundException
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.server.awaitBody
+import org.springframework.web.reactive.function.server.coRouter
 
-abstract class CrudRepository<ID: Comparable<ID>, out TableEntity: Entity<ID>, TableEntityClass: EntityClass<ID, TableEntity>>(
+abstract class CrudRepository<
+        IdType: Comparable<IdType>,
+        RowType: Any,
+        out TableEntity: AuditableEntity<IdType, RowType>,
+        TableEntityCompanion: AuditableEntityCompanion<IdType, RowType, TableEntity>
+>(
     database: Database,
-    protected val entity: TableEntityClass
+    val companion: TableEntityCompanion
 ): ExposedAdapter(database) {
-    protected fun notFound(id: ID) = EntityNotFoundException(EntityID(id, entity.table), entity)
+    protected fun notFound(id: IdType) = EntityNotFoundException(EntityID(id, companion.table), companion)
 
-    fun find(id: ID) = sql {
-        entity.findById(id)
+    fun find(id: IdType) = sql {
+        companion.findById(id)
     }
 
     fun find(op: SqlExpressionBuilder.() -> Op<Boolean>) = sql {
-        entity.find(op)
+        companion.find(op)
     }
 
     fun create(block: (TableEntity) -> Unit) = sql {
-        entity.new { block(this) }
+        companion.new { block(this) }
     }
+    fun create(data: RowType) = create { it.fromDto(data) }
 
-    fun update(id: ID, block: (TableEntity) -> Unit) = sql {
-        val instance = entity.findById(id)
+    fun update(id: IdType, block: (TableEntity) -> Unit) = sql {
+        val instance = companion.findById(id)
         instance?.apply { block(this) } ?: throw notFound(id)
-
     }
 
-    fun delete(id: ID) = sql {
-        val instance = entity.findById(id)
+    fun delete(id: IdType) = sql {
+        val instance = companion.findById(id)
         instance?.delete() ?: throw notFound(id)
     }
 
     fun all() = sql {
-        entity.all().toList()
+        companion.all().toList()
     }
 }
