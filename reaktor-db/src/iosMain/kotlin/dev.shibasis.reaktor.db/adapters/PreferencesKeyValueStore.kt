@@ -9,11 +9,11 @@ import dev.shibasis.reaktor.db.adapters.KeyValueStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-class JetpackKeyValueStore<Controller>(
-    controller: Controller,
+// todo de-dupe
+class JetpackKeyValueStore(
     name: String,
     fileAdapter: FileAdapter<*>
-): KeyValueStore<Controller>(controller, name) {
+): KeyValueStore<Unit>(Unit, name) {
     val dataStore = PreferenceDataStoreFactory.createWithPath(
         corruptionHandler = null,
         migrations = emptyList(),

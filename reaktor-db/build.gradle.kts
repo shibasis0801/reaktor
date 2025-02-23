@@ -40,6 +40,11 @@ kotlin {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
             api("app.cash.sqldelight:native-driver:$sqldelightVersion")
         }
+        podDependencies = {
+            framework {
+                linkerOpts("-lsqlite3")
+            }
+        }
     }
     server {
         dependencies = {

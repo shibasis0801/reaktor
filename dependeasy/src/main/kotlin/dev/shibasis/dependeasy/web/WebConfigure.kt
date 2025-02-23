@@ -7,8 +7,10 @@ import org.gradle.internal.file.impl.DefaultFileMetadata.file
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.ExternalKotlinTargetApi
+import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
@@ -26,7 +28,7 @@ class WebConfiguration(
     var moduleName: String? = null
 )
 
-@OptIn(ExternalKotlinTargetApi::class, ExperimentalMainFunctionArgumentsDsl::class, ExperimentalWasmDsl::class)
+@OptIn(ExperimentalMainFunctionArgumentsDsl::class)
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
 ) {
@@ -37,6 +39,9 @@ fun KotlinMultiplatformExtension.web(
 
     js(IR) {
         moduleName = name
+        compilerOptions {
+            target.set("es2015")
+        }
         useEsModules()
         nodejs {
             binaries.library()
