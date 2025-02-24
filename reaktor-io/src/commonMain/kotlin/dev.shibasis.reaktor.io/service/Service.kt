@@ -6,15 +6,38 @@ import dev.shibasis.reaktor.io.network.RoutePattern
 import io.ktor.http.HttpMethod
 import kotlinx.serialization.*
 /* You design your own sealed hierarchy for Request/Response */
+// todo both should have body<T>
 interface BaseRequest {
     val headers: MutableMap<String, String>
     val queryParams: MutableMap<String, String> // todo needs encode/decode
     val pathParams: MutableMap<String, String>
+
+    companion object {
+        inline fun new(
+            headers: MutableMap<String, String> = mutableMapOf(),
+            queryParams: MutableMap<String, String> = mutableMapOf(),
+            pathParams: MutableMap<String, String> = mutableMapOf()
+        ) = object: BaseRequest {
+            override val headers = headers
+            override val queryParams = queryParams
+            override val pathParams = pathParams
+        }
+    }
 }
 
 interface BaseResponse {
     val headers: MutableMap<String, String>
     var statusCode: StatusCode
+
+    companion object {
+        inline fun new(
+            headers: MutableMap<String, String> = mutableMapOf(),
+            statusCode: StatusCode = StatusCode.OK
+        ) = object: BaseResponse {
+            override val headers = headers
+            override var statusCode = statusCode
+        }
+    }
 }
 
 abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
@@ -38,6 +61,7 @@ abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
     }
 }
 
+// todo add base url
 abstract class Service: Adapter<Unit>(Unit) {
     val handlers = arrayListOf<RequestHandler<*, *>>()
 
