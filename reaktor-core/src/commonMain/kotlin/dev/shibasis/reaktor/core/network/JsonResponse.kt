@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.core.network
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 enum class StatusCode(val code: Int) {
     // 1xx Informational
     CONTINUE(100),

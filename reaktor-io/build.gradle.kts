@@ -72,3 +72,6 @@ fun getMachineIpAddress(): String = Socket().run {
 }
 
 tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
+dependencies {
+    implementation("androidx.wear.compose:compose-material-core:1.4.1")
+}

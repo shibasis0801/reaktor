@@ -1,4 +1,6 @@
-package dev.shibasis.reaktor.navigation.common
+package dev.shibasis.reaktor.io.network
+
+import co.touchlab.kermit.Logger
 
 /* Use https://regexr.com/ to understand, and GPT */
 object RegexCommon {
@@ -15,6 +17,18 @@ data class RoutePattern(
     fun params(matchResult: MatchResult): Map<String, String> {
         val values = matchResult.groupValues.drop(1)
         return paramNames.zip(values).toMap()
+    }
+
+    fun fill(params: Map<String, String>): String {
+        return paramNames.fold(original) { acc, paramName ->
+            val value = params[paramName]
+            if (value == null) {
+                Logger.e("RoutePattern.fill: Missing parameter $paramName")
+                return acc
+            }
+
+            acc.replace("{$paramName}", value)
+        }
     }
 
     companion object {

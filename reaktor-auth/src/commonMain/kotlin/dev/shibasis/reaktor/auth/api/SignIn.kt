@@ -1,6 +1,11 @@
 package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.User
+import dev.shibasis.reaktor.core.network.StatusCode
+import dev.shibasis.reaktor.io.service.BaseRequest
+import dev.shibasis.reaktor.io.service.BaseResponse
+import dev.shibasis.reaktor.io.service.RequestHandler
+import dev.shibasis.reaktor.io.service.Service
 import kotlinx.serialization.Serializable
 
 
@@ -8,23 +13,36 @@ import kotlinx.serialization.Serializable
 data class SignInRequest(
     val idToken: String,
     val appId: Long,
-    val providerId: String = "Google"
-)
+    val providerId: String = "Google",
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf()
+): BaseRequest
 
 @Serializable
-sealed class SignInResponse {
+sealed class SignInResponse(
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf()
+): BaseResponse {
     @Serializable
-    data class Success(val user: User): SignInResponse()
+    data class Success(val user: User): SignInResponse(StatusCode.OK)
 
     @Serializable
-    sealed class Failure: SignInResponse() {
+    sealed class Failure(private val hack: StatusCode): SignInResponse(hack) {
         @Serializable
-        data object InvalidGoogleIdToken: Failure()
+        data object InvalidGoogleIdToken: Failure(StatusCode.BAD_REQUEST)
 
         @Serializable
-        data object InvalidAppId: Failure()
+        data object InvalidAppId: Failure(StatusCode.BAD_REQUEST)
 
         @Serializable
-        class ServerError(val message: String): Failure()
+        class ServerError(val message: String): Failure(StatusCode.INTERNAL_SERVER_ERROR)
     }
 }
+
+
+abstract class AuthService: Service() {
+    abstract val signIn: RequestHandler<SignInRequest, SignInResponse>
+}
+
+

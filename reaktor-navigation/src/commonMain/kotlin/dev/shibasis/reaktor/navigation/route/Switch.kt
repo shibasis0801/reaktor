@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.navigation.route
 
 import dev.shibasis.reaktor.navigation.common.Props
-import dev.shibasis.reaktor.navigation.common.RoutePattern
+import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 /**

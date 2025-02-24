@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.core.framework
 
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.promise
+
 
 actual val __PLATFORM = PlatformType.WEB
 
@@ -18,4 +21,22 @@ actual class AtomicInt actual constructor(value: Int){
         data += 1
         return result
     }
+}
+
+@JsExport
+sealed class JsResult<T>(val status: String)
+@JsExport
+data class JsSuccessResult<T>(val value: T): JsResult<T>("success")
+@JsExport
+data class JsFailureResult<T>(val error: Throwable): JsResult<T>("failure")
+
+
+fun<T> Result<T>.toJsResult(): JsResult<T> = fold(
+    onSuccess = { JsSuccessResult(it) },
+    onFailure = { JsFailureResult(it) }
+)
+
+
+fun<T> promiseSuspend(block: suspend () -> Result<T>) = GlobalScope.promise {
+    block().toJsResult()
 }
