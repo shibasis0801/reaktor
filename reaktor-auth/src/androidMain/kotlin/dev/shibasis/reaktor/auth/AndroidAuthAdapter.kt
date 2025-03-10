@@ -7,6 +7,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.NoCredentialException
 import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 
@@ -16,13 +17,14 @@ class AndroidAuthAdapter(
 ): AuthAdapter<ComponentActivity>(activity) {
     // nonce for security later
     private val googleIdOption = GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
         .setServerClientId(clientId)
-        .setAutoSelectEnabled(true)
         .build()
 
     private val request = GetCredentialRequest.Builder()
         .addCredentialOption(googleIdOption)
         .build()
+
 
     private val credentialManager = CredentialManager.create(controller!!)
 

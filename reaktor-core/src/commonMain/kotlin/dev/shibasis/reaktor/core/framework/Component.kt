@@ -8,6 +8,7 @@ You should always inherit Component instead of ComponentContract
 Without componentContract you would have to mandatorily implement handle function
 */
 expect sealed interface ControllerEventObserver {
+    // todo, kmm now has lifecycle common. extend that
     fun handle(event: ControllerEvent)
 }
 

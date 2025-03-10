@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.navigation.screen
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -40,7 +42,7 @@ fun Theme.ScreenContainer(navigator: Navigator) {
                 typography = text,
                 shapes = shapes
             ) {
-                Scaffold(Modifier.fillMaxSize()) {
+                Scaffold(Modifier.safeDrawingPadding()) {
                     container?.Render(Props())
                 }
             }

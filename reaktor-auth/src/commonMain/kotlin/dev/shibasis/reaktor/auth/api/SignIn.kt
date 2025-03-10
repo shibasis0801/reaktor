@@ -2,11 +2,14 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.User
 import dev.shibasis.reaktor.core.network.StatusCode
+import dev.shibasis.reaktor.io.network.httpClient
+import dev.shibasis.reaktor.io.network.postJson
 import dev.shibasis.reaktor.io.service.BaseRequest
 import dev.shibasis.reaktor.io.service.BaseResponse
 import dev.shibasis.reaktor.io.service.RequestHandler
 import dev.shibasis.reaktor.io.service.Service
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 
 @Serializable
@@ -25,7 +28,7 @@ sealed class SignInResponse(
     override val headers: MutableMap<String, String> = mutableMapOf()
 ): BaseResponse {
     @Serializable
-    data class Success(val user: User): SignInResponse(StatusCode.OK)
+    data class Success(val user: User, val profile: JsonElement): SignInResponse(StatusCode.OK)
 
     @Serializable
     sealed class Failure(private val hack: StatusCode): SignInResponse(hack) {
@@ -45,4 +48,8 @@ abstract class AuthService: Service() {
     abstract val signIn: RequestHandler<SignInRequest, SignInResponse>
 }
 
-
+class AuthServiceClient: AuthService() {
+    override val signIn = PostHandler("https://server.shibasis.dev/auth/sign-in") {
+        httpClient.postJson<SignInRequest, SignInResponse>(route, it).getOrNull() ?: SignInResponse.Failure.ServerError("Unknown Error")
+    }
+}

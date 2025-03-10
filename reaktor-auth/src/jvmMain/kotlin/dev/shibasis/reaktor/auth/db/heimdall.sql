@@ -51,20 +51,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER set_updated_at_auditable
-BEFORE UPDATE ON auditable
-FOR EACH ROW EXECUTE FUNCTION on_update();
-
 CREATE TABLE app (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL
 ) INHERITS (auditable);
 
 CREATE TABLE "user" (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     social_id TEXT NOT NULL,
-    app_id BIGINT NOT NULL,
+    app_id INT NOT NULL,
     provider VARCHAR(20) DEFAULT 'GOOGLE' NOT NULL,
     status VARCHAR(50) DEFAULT 'ONBOARDING' NOT NULL,
     unique (social_id, app_id),
@@ -72,43 +68,43 @@ CREATE TABLE "user" (
 ) INHERITS (auditable);
 
 CREATE TABLE context (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    app_id BIGINT NOT NULL,
+    app_id INT NOT NULL,
     unique (name, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE role (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    app_id BIGINT NOT NULL,
+    app_id INT NOT NULL,
     unique (name, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE permission (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    app_id BIGINT NOT NULL,
+    app_id INT NOT NULL,
     unique (name, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE role_permissions (
-    id BIGSERIAL PRIMARY KEY,
-    role_id BIGINT NOT NULL,
-    permission_id BIGINT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    role_id INT NOT NULL,
+    permission_id INT NOT NULL,
     unique (role_id, permission_id),
     FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permission(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE user_role (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-    context_id BIGINT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    role_id INT NOT NULL,
+    context_id INT NOT NULL,
     unique (user_id, role_id, context_id),
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
@@ -117,9 +113,9 @@ CREATE TABLE user_role (
 
 CREATE TABLE session (
     id UUID PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    app_id BIGINT NOT NULL,
-    context_id BIGINT NOT NULL,
+    user_id INT NOT NULL,
+    app_id INT NOT NULL,
+    context_id INT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (context_id) REFERENCES context(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
@@ -136,14 +132,11 @@ CREATE INDEX idx_user_role_user_id ON user_role(user_id);
 CREATE INDEX idx_user_role_role_id ON user_role(role_id);
 CREATE INDEX idx_user_role_context_id ON user_role(context_id);
 
-INSERT INTO app (id, name, data, created_at, updated_at) VALUES
-    (0, 'root', '{}'::jsonb, NOW(), NOW()),
-    (1, 'BestBuds', '{}'::jsonb, NOW(), NOW()),
-    (2, 'Mehmaan', '{}'::jsonb, NOW(), NOW()),
-    (3, 'Manna', '{}'::jsonb, NOW(), NOW());
-
-INSERT INTO "user" (id, name, social_id, app_id, provider, status, data, created_at, updated_at) VALUES
-    (0, 'root', 'social_id_here', 0, 'GOOGLE', 'ONBOARDING', '{}'::jsonb, NOW(), NOW());
-
-INSERT INTO role (id, name, app_id, data, created_at, updated_at) VALUES
-    (0, 'root', 0, '{}'::jsonb, NOW(), NOW());
+CREATE OR REPLACE TRIGGER app_updated BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER user_updated BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER context_updated BEFORE UPDATE ON context FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER role_updated BEFORE UPDATE ON role FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER permission_updated BEFORE UPDATE ON permission FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER role_permissions_updated BEFORE UPDATE ON role_permissions FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER user_role_updated BEFORE UPDATE ON user_role FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE OR REPLACE TRIGGER session_updated BEFORE UPDATE ON session FOR EACH ROW EXECUTE FUNCTION on_update();

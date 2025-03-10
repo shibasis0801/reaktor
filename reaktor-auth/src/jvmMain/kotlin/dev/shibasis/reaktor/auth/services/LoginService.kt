@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.auth.api.SignInResponse
 import dev.shibasis.reaktor.auth.jwt.TokenVerifierService
 import dev.shibasis.reaktor.auth.db.apps.AppRepository
 import dev.shibasis.reaktor.auth.db.users.UserRepository
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
@@ -21,9 +22,10 @@ todo:
 class LoginService(
     private val verifierService: TokenVerifierService,
     private val userRepository: UserRepository,
-    private val appRepository: AppRepository
+    private val appRepository: AppRepository,
+    private val profileService: ProfileService
 ) {
-    fun login(request: SignInRequest): SignInResponse {
+    suspend fun login(request: SignInRequest): SignInResponse {
         val (idToken, appId) = request
 
         val appResult = appRepository.find(appId)
@@ -51,10 +53,13 @@ class LoginService(
                 it.data = JsonObject(mapOf())
                 it.status = UserStatus.ONBOARDING
             }
+            profileService.createProfile(user.getOrThrow().id.value.toInt(), JsonObject(mapOf()))
         }
 
+        var profile = profileService.fetchProfile(user.getOrThrow().id.value.toInt())
+
         return user.fold(
-            { SignInResponse.Success(it.toDto()) },
+            { SignInResponse.Success(it.toDto(), profile) },
             { SignInResponse.Failure.ServerError("Could not store user. ") }
         )
     }

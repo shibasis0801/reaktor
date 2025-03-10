@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.navigation.containers
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -29,22 +30,23 @@ class TabbedContainer(
 
         val keys = metadata.keys
         val currentIndex = keys.indexOf(currentKey)
-
-        Column {
-            TabRow(currentIndex) {
-                keys.forEachIndexed { index, key ->
-                    Tab(
-                        selected = (index == currentIndex),
-                        onClick = {
-                            switchStack(key)
-                        },
-                        text = { Text(key) }
-                    )
+        Scaffold {
+            Column {
+                TabRow(currentIndex) {
+                    keys.forEachIndexed { index, key ->
+                        Tab(
+                            selected = (index == currentIndex),
+                            onClick = {
+                                switchStack(key)
+                            },
+                            text = { Text(key) }
+                        )
+                    }
                 }
-            }
 
-            Box(Modifier.fillMaxSize()) {
-                Content()
+                Box(Modifier.fillMaxSize()) {
+                    Content()
+                }
             }
         }
     }

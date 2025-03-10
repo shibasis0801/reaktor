@@ -1,7 +1,9 @@
 package dev.shibasis.reaktor.core.network
 
 import kotlinx.serialization.Serializable
+import kotlin.js.JsExport
 
+@JsExport
 @Serializable
 enum class StatusCode(val code: Int) {
     // 1xx Informational

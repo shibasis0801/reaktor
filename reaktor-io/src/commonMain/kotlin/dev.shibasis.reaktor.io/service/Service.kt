@@ -5,8 +5,12 @@ import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import io.ktor.http.HttpMethod
 import kotlinx.serialization.*
+import kotlin.js.JsExport
+
 /* You design your own sealed hierarchy for Request/Response */
 // todo both should have body<T>
+
+@JsExport
 interface BaseRequest {
     val headers: MutableMap<String, String>
     val queryParams: MutableMap<String, String> // todo needs encode/decode
@@ -25,6 +29,7 @@ interface BaseRequest {
     }
 }
 
+@JsExport
 interface BaseResponse {
     val headers: MutableMap<String, String>
     var statusCode: StatusCode
@@ -62,7 +67,7 @@ abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
 }
 
 // todo add base url
-abstract class Service: Adapter<Unit>(Unit) {
+abstract class Service(val baseUrl: String = ""): Adapter<Unit>(Unit) {
     val handlers = arrayListOf<RequestHandler<*, *>>()
 
     inline fun <Request: BaseRequest, Response: BaseResponse> GetHandler(
@@ -79,73 +84,6 @@ abstract class Service: Adapter<Unit>(Unit) {
         return RequestHandler(HttpMethod.Post, route, block).also { handlers.add(it) }
     }
 }
-
-@Serializable
-class DownloadImageRequest(
-    val fileName: String,
-    override val headers: MutableMap<String, String> = hashMapOf(),
-    override val queryParams: MutableMap<String, String> = hashMapOf(),
-    override val pathParams: MutableMap<String, String> = hashMapOf()
-): BaseRequest
-
-@Serializable
-class DownloadImageResponse(
-    val data: ByteArray,
-    override val headers: MutableMap<String, String> = hashMapOf(),
-    override var statusCode: StatusCode = StatusCode.OK
-): BaseResponse
-
-@Serializable
-class UploadImageRequest(
-    val data: ByteArray,
-    override val headers: MutableMap<String, String> = hashMapOf(),
-    override val queryParams: MutableMap<String, String> = hashMapOf(),
-    override val pathParams: MutableMap<String, String> = hashMapOf()
-): BaseRequest
-
-@Serializable
-class UploadImageResponse(
-    override val headers: MutableMap<String, String> = hashMapOf(),
-    override var statusCode: StatusCode = StatusCode.OK
-): BaseResponse
-
-abstract class ImageService: Service() {
-    abstract val downloadImage: RequestHandler<DownloadImageRequest, DownloadImageResponse>
-    abstract val uploadImage: RequestHandler<UploadImageRequest, UploadImageResponse>
-}
-
-class ImageServiceClient: ImageService() {
-    override val downloadImage: RequestHandler<DownloadImageRequest, DownloadImageResponse> = GetHandler("/{fileName}") { request ->
-        val route = url(request, "fileName" to request.fileName)
-        DownloadImageResponse(byteArrayOf())
-    }
-
-    override val uploadImage: RequestHandler<UploadImageRequest, UploadImageResponse> = PostHandler("/") {
-        UploadImageResponse()
-    }
-}
-
-class ImageServiceServer: ImageService() {
-    override val downloadImage: RequestHandler<DownloadImageRequest, DownloadImageResponse> = GetHandler("/image") {
-        DownloadImageResponse(byteArrayOf())
-    }
-
-    override val uploadImage: RequestHandler<UploadImageRequest, UploadImageResponse> = PostHandler("/image") {
-        UploadImageResponse()
-    }
-}
-
-
-suspend fun t(imageService: ImageService) {
-    val x = imageService.downloadImage(DownloadImageRequest("shibasis.jpg"))
-}
-
-
-
-
-
-
-
 
 
 

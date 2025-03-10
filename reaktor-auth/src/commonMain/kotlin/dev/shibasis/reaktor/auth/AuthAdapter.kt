@@ -19,7 +19,8 @@ JWT -> Decode
 */
 
 abstract class AuthAdapter<Controller>(
-    controller: Controller
+    controller: Controller,
+    private val authClient: AuthService = AuthServiceClient()
 ): Adapter<Controller>(controller) {
 
     abstract suspend fun googleLogin(): Result<GoogleUser>
@@ -27,16 +28,10 @@ abstract class AuthAdapter<Controller>(
     abstract suspend fun getGoogleUser(): GoogleUser?
 
     suspend fun login(appId: Int = 1): SignInResponse {
-        val user = getGoogleUser() ?: googleLogin().getOrNull()
-        var response: SignInResponse = SignInResponse.Failure.ServerError("Unknown Error")
+        val user = getGoogleUser() ?: googleLogin().getOrNull() ?: return SignInResponse.Failure.InvalidGoogleIdToken
 
-        if (user != null) {
-            val result = httpClient.postJson<SignInRequest, SignInResponse>("https://server.shibasis.dev/auth/sign-in", SignInRequest(user.idToken, appId.toLong()))
-            result.getOrNull()?.let {
-                response = it
-            }
-            Logger.i { response.toString() }
-        }
+        val response = authClient.signIn(SignInRequest(user.idToken, appId.toLong()))
+        Logger.i { response.toString() }
 
         return response
     }

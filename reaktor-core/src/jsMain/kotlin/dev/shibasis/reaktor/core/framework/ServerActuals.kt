@@ -37,6 +37,6 @@ fun<T> Result<T>.toJsResult(): JsResult<T> = fold(
 )
 
 
-fun<T> promiseSuspend(block: suspend () -> Result<T>) = GlobalScope.promise {
+fun<T> suspendPromise(block: suspend () -> Result<T>) = GlobalScope.promise {
     block().toJsResult()
 }
