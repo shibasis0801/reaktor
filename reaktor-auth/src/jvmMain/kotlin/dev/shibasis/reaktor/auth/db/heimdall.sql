@@ -36,6 +36,10 @@ Need to add a mechanism for users to join their accounts across apps.
 DROP SCHEMA IF EXISTS heimdall CASCADE;
 CREATE SCHEMA IF NOT EXISTS heimdall;
 SET search_path TO heimdall;
+GRANT ALL ON SCHEMA heimdall TO public;
+GRANT USAGE ON SCHEMA heimdall TO anon;
+GRANT SELECT ON ALL TABLES IN SCHEMA heimdall TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA heimdall GRANT SELECT ON TABLES TO anon;
 
 CREATE TABLE auditable (
     data jsonb DEFAULT '{}'::jsonb,

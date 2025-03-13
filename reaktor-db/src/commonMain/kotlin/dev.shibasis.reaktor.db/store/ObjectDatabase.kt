@@ -19,6 +19,10 @@ data class StoredObject<T: Any>(
     val updatedAt: Long
 )
 
+interface Synchronizer {
+
+}
+
 interface TimestampProvider {
     fun getTimestamp(): Long
 }
@@ -27,7 +31,6 @@ interface TimestampProvider {
 class DefaultTimestampProvider : TimestampProvider {
     override fun getTimestamp(): Long = Clock.System.now().toEpochMilliseconds()
 }
-
 
 /*
 1. Gemini -> https://gemini.google.com/app/11ff9fb0c1b8dbf0
@@ -98,7 +101,7 @@ class ObjectStore(
 }
 
 /*
-
+todo:
 Enhancement:
     Add a high performance reliable SyncAdapter
 
@@ -106,8 +109,6 @@ Experiment:
     Instead of the usual (api, repository, interactions), does a DataHolder abstraction make sense ?
 
 */
-
-
 abstract class Repository(
     storeName: String,
     database: ObjectDatabase = Feature.Database ?: throw IllegalStateException("You need to initialize the database"),

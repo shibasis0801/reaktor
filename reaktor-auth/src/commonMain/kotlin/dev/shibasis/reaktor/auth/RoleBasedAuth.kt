@@ -39,7 +39,17 @@ enum class UserStatus {
     ONBOARDING,
     ACTIVE,
     INACTIVE,
-    BANNED
+    BANNED;
+
+    object Serializer: kotlinx.serialization.KSerializer<UserStatus> {
+        override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor("status", kotlinx.serialization.descriptors.PrimitiveKind.STRING)
+        override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: UserStatus) {
+            encoder.encodeString(value.name)
+        }
+        override fun deserialize(decoder: kotlinx.serialization.encoding.Decoder): UserStatus {
+            return UserStatus.valueOf(decoder.decodeString())
+        }
+    }
 }
 
 @JsExport

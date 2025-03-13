@@ -4,7 +4,6 @@ import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import io.ktor.http.HttpMethod
-import kotlinx.serialization.*
 import kotlin.js.JsExport
 
 /* You design your own sealed hierarchy for Request/Response */
