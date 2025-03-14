@@ -114,10 +114,15 @@ abstract class Repository(
     database: ObjectDatabase = Feature.Database ?: throw IllegalStateException("You need to initialize the database"),
 ): Adapter<ObjectDatabase>(database) {
     protected val store = ObjectStore(database, storeName)
-    protected suspend inline fun<reified T: Any> writeThrough(
+    protected suspend inline fun<reified T: Any> write(
         cacheKey: String,
-        crossinline fetcher: suspend () -> Result<T>,
+        crossinline fetcher: suspend () -> Result<T>
     ) = store.writeThrough(cacheKey, fetcher)
+
+    protected suspend inline fun<reified T: Any> writeAndGet(
+        cacheKey: String,
+        crossinline fetcher: suspend () -> Result<T>
+    ) = write(cacheKey, fetcher).result
 }
 
 
