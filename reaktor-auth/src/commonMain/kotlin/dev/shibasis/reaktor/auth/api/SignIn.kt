@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.User
 import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.io.network.httpClient
+import dev.shibasis.reaktor.io.network.http
 import dev.shibasis.reaktor.io.network.postJson
 import dev.shibasis.reaktor.io.service.BaseRequest
 import dev.shibasis.reaktor.io.service.BaseResponse
@@ -50,6 +50,6 @@ abstract class AuthService: Service() {
 
 class AuthServiceClient: AuthService() {
     override val signIn = PostHandler("https://server.shibasis.dev/auth/sign-in") {
-        httpClient.postJson<SignInRequest, SignInResponse>(route, it).getOrNull() ?: SignInResponse.Failure.ServerError("Unknown Error")
+        http.postJson<SignInRequest, SignInResponse>(route, it).getOrNull() ?: SignInResponse.Failure.ServerError("Unknown Error")
     }
 }

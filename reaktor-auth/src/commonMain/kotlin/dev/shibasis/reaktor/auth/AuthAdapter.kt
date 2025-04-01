@@ -4,9 +4,6 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.io.network.getServerIP
-import dev.shibasis.reaktor.io.network.httpClient
-import dev.shibasis.reaktor.io.network.postJson
 import dev.shibasis.reaktor.auth.api.*
 import kotlinx.serialization.Serializable
 

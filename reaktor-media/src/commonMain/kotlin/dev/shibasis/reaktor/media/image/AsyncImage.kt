@@ -13,7 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import dev.shibasis.reaktor.core.framework.Dispatch
-import dev.shibasis.reaktor.io.network.httpClient
+import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -41,7 +41,7 @@ fun AsyncImage(
                 cachedBitmap
             else {
                 val cached = MultiLevelCache.retrieveWithFetch(fileName) {
-                    val response = httpClient.get(url)
+                    val response = http.get(url)
                     if (response.status == HttpStatusCode.OK)
                         response.body<ByteArray>()
                     else null

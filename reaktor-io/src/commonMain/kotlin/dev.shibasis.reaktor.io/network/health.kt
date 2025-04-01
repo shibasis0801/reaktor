@@ -8,8 +8,6 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -44,7 +42,7 @@ suspend fun getServerIP(): Result<String> {
     ).forEach { ip ->
         scope.launch {
             try {
-                val response = httpClient.get("http://$ip:8000${HealthCheck.PATH}")
+                val response = http.get("http://$ip:8000${HealthCheck.PATH}")
                 if (response.status == HttpStatusCode.OK) {
                     channel.send(ip)
                 }

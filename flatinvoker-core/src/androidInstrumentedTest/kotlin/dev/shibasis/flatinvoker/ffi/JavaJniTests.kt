@@ -1,7 +1,7 @@
 package dev.shibasis.flatinvoker.core
 
 import android.util.Log
-import dev.shibasis.reaktor.io.network.httpClient
+import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +15,7 @@ class JavaJniTests {
     suspend fun parseJsonToFlexBuffer() {
         // hack to not use moko-resources/compose-resources/building own
         val url = "http://10.0.2.2:8000/searchMyntra.json"
-        val result = httpClient.get(url)
+        val result = http.get(url)
         val body = result.body<String>()
 
         repeat(100) {

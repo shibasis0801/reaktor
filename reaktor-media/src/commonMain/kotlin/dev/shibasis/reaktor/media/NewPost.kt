@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.media
 
-import dev.shibasis.reaktor.io.network.httpClient
+import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.plugins.onUpload
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
@@ -12,7 +12,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.append
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 
@@ -29,7 +28,7 @@ suspend fun uploadPost(
     contentType: ContentType
 ) {
 
-    httpClient.post("http://10.0.2.2:8787/rafale.jpg") {
+    http.post("http://10.0.2.2:8787/rafale.jpg") {
         contentType(ContentType.MultiPart.FormData)
         setBody(MultiPartFormDataContent(formData {
             append("data", Json.encodeToString(post), Headers.build {
