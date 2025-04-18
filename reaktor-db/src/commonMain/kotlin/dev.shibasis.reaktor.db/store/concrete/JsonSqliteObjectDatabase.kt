@@ -170,7 +170,7 @@ class SqliteObjectDatabase(
     override suspend fun delete(storeName: String, key: String) {
         driver.execute(
             null,
-            "DELETE FROM $tableName WHERE $KEY_COLUMN = ? AND $STORE_NAME_COLUMN = ?",
+            "DELETE FROM $tableName WHERE \"$KEY_COLUMN\" = ? AND $STORE_NAME_COLUMN = ?",
             2
         ) {
             bindString(0, key)

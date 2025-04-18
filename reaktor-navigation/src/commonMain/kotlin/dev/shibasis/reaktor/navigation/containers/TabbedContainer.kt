@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.navigation.common.Props
+import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
@@ -25,7 +26,7 @@ class TabbedContainer(
     builder: MultiStackContainer<TabBarItem>.() -> Unit = {}
 ) : MultiStackContainer<TabBarItem>(start, error, builder) {
     @Composable
-    override fun Render(props: Props) {
+    override fun Render(props: ContainerProps) {
         val currentKey by currentKey.collectAsState()
 
         val keys = metadata.keys

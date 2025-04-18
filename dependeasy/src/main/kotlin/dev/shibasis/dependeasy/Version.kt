@@ -39,6 +39,7 @@ object Version {
     const val WorkManager = "2.9.0"
     const val Ktor = "3.1.0"
     const val Koin = "4.0.0"
+    const val KoinAnnotations = "2.0.0"
 
     // Cloud
     const val Firebase = "32.0.0"

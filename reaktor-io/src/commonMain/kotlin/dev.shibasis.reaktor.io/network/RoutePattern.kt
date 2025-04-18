@@ -3,6 +3,23 @@ package dev.shibasis.reaktor.io.network
 import co.touchlab.kermit.Logger
 
 /* Use https://regexr.com/ to understand, and GPT */
+/*
+
+"/{id}/something/{members}"
+    becomes
+RoutePattern(
+    original=/{id}/something/{members},
+    regex=^/([^/]+)/something/([^/]+)$,
+    paramNames=[id, members]
+)
+
+/something
+    becomes
+null
+
+*/
+
+
 object RegexCommon {
     val surroundedByBraces =  """\{([^}]+)\}""".toRegex()
     const val beforeSlash = "([^/]+)"
@@ -32,21 +49,6 @@ data class RoutePattern(
     }
 
     companion object {
-        /*
-
-        "/{id}/something/{members}"
-            becomes
-        RoutePattern(
-            original=/{id}/something/{members},
-            regex=^/([^/]+)/something/([^/]+)$,
-            paramNames=[id, members]
-        )
-
-        /something
-            becomes
-        null
-
-        */
         fun from(route: String): RoutePattern {
             val paramRegex = RegexCommon.surroundedByBraces
             val paramNames = mutableListOf<String>()

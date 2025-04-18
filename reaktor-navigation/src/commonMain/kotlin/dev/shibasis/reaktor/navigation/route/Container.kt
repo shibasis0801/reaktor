@@ -8,11 +8,20 @@ import dev.shibasis.reaktor.navigation.util.ErrorScreen
 /*
     todo
     if segment is on a route to a switch, then the home destination of that switch should be shown
-     */
+
+    Go through the navigation framework properly.
+    How would you support tabbed browsing ?
+    How would you support two containers on one screen ?
+    Is it possible to just use one navigator for all use cases ?
+*/
+open class ContainerProps(
+    val nestedContent: @Composable (Props) -> Unit = {},
+    val singleLayer: Boolean = false
+): Props()
 
 abstract class Container(
     val switch: Switch
-): Route(), Route.Render<Props> {
+): Route(), Route.Render<ContainerProps> {
     constructor(
         home: Screen<Props> = ErrorScreen("Home Screen not selected"),
         error: Screen<Props> = ErrorScreen(),

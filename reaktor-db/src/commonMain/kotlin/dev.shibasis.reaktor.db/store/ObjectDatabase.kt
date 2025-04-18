@@ -88,15 +88,20 @@ class ObjectStore(
         cacheKey: String,
         crossinline fetcher: suspend () -> Result<T>,
     ): CacheResult<T> {
-        if (!enableWriteThrough) return CacheResult(fetcher(), false)
+        try {
+            if (!enableWriteThrough) return CacheResult(fetcher(), false)
 
-        val cachedData = get<T>(cacheKey)
-        if (cachedData != null) return CacheResult(succeed(cachedData.value), true)
+            val cachedData = get<T>(cacheKey)
+            if (cachedData != null) return CacheResult(succeed(cachedData.value), true)
 
-        val result = fetcher()
-        val data = result.getOrNull() ?: return CacheResult(fail(result.exceptionOrNull()!!), false)
-        put(cacheKey, data)
-        return CacheResult(succeed(data), false)
+            val result = fetcher()
+            val data =
+                result.getOrNull() ?: return CacheResult(fail(result.exceptionOrNull()!!), false)
+            put(cacheKey, data)
+            return CacheResult(succeed(data), false)
+        } catch (e: Throwable) {
+            return CacheResult(fail(e), false)
+        }
     }
 }
 

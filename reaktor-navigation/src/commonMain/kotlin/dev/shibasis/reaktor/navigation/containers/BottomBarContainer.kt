@@ -17,6 +17,7 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.navigation.Navigator
+import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
@@ -32,7 +33,7 @@ class BottomBarContainer(
     builder: MultiStackContainer<BottomBarItem>.() -> Unit = {}
 ): MultiStackContainer<BottomBarItem>(start, error, builder) {
     @Composable
-    override fun Render(props: Props) {
+    override fun Render(props: ContainerProps) {
         val currentKey by currentKey.collectAsState()
         Scaffold(
             bottomBar = {

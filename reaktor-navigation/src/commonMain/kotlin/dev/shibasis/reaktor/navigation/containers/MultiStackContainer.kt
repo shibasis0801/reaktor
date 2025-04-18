@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.navigation.Navigator
 import dev.shibasis.reaktor.navigation.route.Container
+import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.route.Route
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.route.Switch
@@ -97,8 +98,6 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         }
     }
 
-
-
     sealed class Errors(message: String): Error(message) {
         class InvalidStackKey(key: String): Errors("Invalid Stack Key: $key")
         data object InvalidScreen: Errors("Screen is not a descendant of any top-level route in this container.")
@@ -162,7 +161,7 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         val (screen, props) = current!!
 
         if (screen.container != this) {
-            screen.container?.Render(Props())
+            screen.container?.Render(ContainerProps())
 //            Feature.Navigator?.push(screen)
         } else {
             screen.Render(props)

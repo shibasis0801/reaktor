@@ -4,7 +4,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -221,6 +225,11 @@ class Theme(private val designSystem: DesignSystem) {
         placeholder: String = "",
     ) {
         designSystem.InputText(modifier, value, onValueChange, label, placeholder)
+    }
+
+    @Composable
+    fun Space(height: Dp = 0.dp, width: Dp = 0.dp) {
+        Spacer(Modifier.width(width).height(height))
     }
 
     fun Modifier.paddingExtraSmall() = padding(sizes.extraSmall)

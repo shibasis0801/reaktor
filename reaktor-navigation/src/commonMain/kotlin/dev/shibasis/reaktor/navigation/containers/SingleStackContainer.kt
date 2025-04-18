@@ -6,6 +6,7 @@ import androidx.compose.runtime.key
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
+import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.route.Switch
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
@@ -29,9 +30,12 @@ open class SingleStackContainer(
     }
 
     @Composable
-    override fun Render(props: Props) {
+    override fun Render(props: ContainerProps) {
+        // Container should expose this
         val current by screenStack.top.collectAsState()
+
         current?.let {
+            // ScreenContainer should send this, this will allow sending other containers as views.
             it.screen.Render(it.props)
         }
     }

@@ -13,6 +13,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.navigation.Navigator
+import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.ui.Theme
 
@@ -43,7 +44,8 @@ fun Theme.ScreenContainer(navigator: Navigator) {
                 shapes = shapes
             ) {
                 Scaffold(Modifier.safeDrawingPadding()) {
-                    container?.Render(Props())
+                    // chain containers somehow 
+                    container?.Render(ContainerProps())
                 }
             }
         }

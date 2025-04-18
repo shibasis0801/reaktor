@@ -44,8 +44,7 @@ class Switch(
     }
 
     // todo wtf! Why is this different from calling builder() directly ?
-    // Calling builder directly is causing all sorts of issues.
-    // Some rare bug ?
+    // todo this is from init order discrepancies, need to ensure initialization happens one way without backlinks.
     private var built = false
     fun build() {
         if (!built) {

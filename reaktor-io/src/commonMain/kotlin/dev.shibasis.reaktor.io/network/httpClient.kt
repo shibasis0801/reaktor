@@ -29,7 +29,10 @@ expect val http: HttpClient
 // todo Take a Authenticator interface as dependency, use io.ktor:ktor-client-auth
 fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     install(ContentNegotiation) {
-        json(Json { classDiscriminator = "type" })
+        json(Json {
+            classDiscriminator = "type"
+            ignoreUnknownKeys = true
+        })
     }
     install(Logging) {
         logger = Logger.DEFAULT
