@@ -21,15 +21,18 @@ open class ContainerProps(
 
 abstract class Container(
     val switch: Switch
-): Route(), Route.Render<ContainerProps> {
+): Route(), Route.Render<ContainerProps>, Route.Buildable {
     constructor(
         home: Screen<Props> = ErrorScreen("Home Screen not selected"),
         error: Screen<Props> = ErrorScreen(),
         builder: Switch.() -> Unit = {}
     ): this(Switch(home, error, builder))
 
-    open fun build() {
+    init {
         switch.container = this
+    }
+
+    override fun build() {
         switch.build()
     }
 
@@ -42,7 +45,6 @@ abstract class Container(
     fun findScreen(segments: List<String>, props: Props): ScreenPair {
         var switch = switch
         var screen = switch.error
-
 
         for ((index, segment) in segments.withIndex()) {
             when(val current = switch.routes[segment]) {

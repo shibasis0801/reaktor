@@ -24,6 +24,7 @@ val AllSourceList = ClientSourceList + Source.Server
 fun KotlinMultiplatformExtension.useKoin(
     sources: List<Source> = CommonSourceList,
     version: String = Version.Koin,
+    annotationVersion: String = Version.KoinAnnotations,
     transitive: Boolean = true // implement later
 ) {
     sourceSets {
@@ -32,6 +33,7 @@ fun KotlinMultiplatformExtension.useKoin(
                 Source.Common -> commonMain.dependencies {
                     api("io.insert-koin:koin-core:$version")
                     api("io.insert-koin:koin-compose:$version")
+                    api("io.insert-koin:koin-annotations:$annotationVersion")
                 }
                 else -> {}
             }

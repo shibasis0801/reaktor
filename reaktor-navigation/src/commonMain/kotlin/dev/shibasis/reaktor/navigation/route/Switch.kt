@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.navigation.route
 
+import androidx.compose.material3.Switch
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
@@ -12,7 +13,7 @@ class Switch(
     val home: Screen<Props> = ErrorScreen("Home Screen not selected"),
     val error: Screen<Props> = ErrorScreen(),
     private val builder: Switch.() -> Unit = {}
-): Route() {
+): Route(), Route.Buildable {
     // maintain insertion order
     val routes = linkedMapOf<String, Route>()
 
@@ -30,7 +31,6 @@ class Switch(
 
     fun switch(route: String, switch: Switch): Switch {
         link(route, switch)
-        switch.build()
         return switch
     }
 
@@ -39,18 +39,18 @@ class Switch(
 
     fun container(route: String, container: Container): Container {
         link(route, container)
-        container.build()
         return container
     }
 
-    // todo wtf! Why is this different from calling builder() directly ?
-    // todo this is from init order discrepancies, need to ensure initialization happens one way without backlinks.
-    private var built = false
-    fun build() {
-        if (!built) {
-            screen("", home)
-            builder()
-            built = true
+    override fun build() {
+        if (routes.contains("")) return
+
+        screen("", home)
+        builder()
+        routes.values.forEach {
+            if (it is Buildable) {
+                it.build()
+            }
         }
     }
 }

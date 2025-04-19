@@ -84,17 +84,11 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         }
     }
 
-    // ugly hack. remove later.
-    private var built = false
     override fun build() {
-        if (!built) {
-            switch.container = this
-            builder()
-            switch.build()
-            metadata.forEach {
-                stacks[it.key] = ObservableStack(findStartScreen(it.key).screenPair())
-            }
-            built = true
+        builder()
+        super.build()
+        metadata.forEach {
+            stacks[it.key] = ObservableStack(findStartScreen(it.key).screenPair())
         }
     }
 

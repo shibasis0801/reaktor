@@ -12,6 +12,10 @@ sealed class Route(var pattern: RoutePattern = RoutePattern()) {
         @Composable
         fun Render(props: @UnsafeVariance T)
     }
+
+    interface Buildable {
+        fun build()
+    }
 }
 
 
