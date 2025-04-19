@@ -6,12 +6,14 @@ import dev.shibasis.reaktor.navigation.route.Container
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.common.ScreenPair
+import dev.shibasis.reaktor.navigation.route.NavContainer
+import dev.shibasis.reaktor.navigation.route.Route
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
 
 
 class Navigator(
     private val root: Container
-) {
+): NavContainer {
     init { root.build() }
 
     var containerStack = ObservableStack(root)
@@ -24,7 +26,7 @@ class Navigator(
         pop()
     }
 
-    fun pop() {
+    override fun pop() {
         val container = currentContainer ?: return
 
         if (container.consumesBackEvent()) {
@@ -51,12 +53,12 @@ class Navigator(
     }
 
     /** Preferred for direct navigation */
-    fun push(screenPair: ScreenPair) {
+    override fun push(screenPair: ScreenPair) {
         updateContainer(screenPair)
         currentContainer?.push(screenPair)
     }
     /** Preferred for direct navigation */
-    fun replace(screenPair: ScreenPair) {
+    override fun replace(screenPair: ScreenPair) {
         updateContainer(screenPair)
         currentContainer?.replace(screenPair)
     }

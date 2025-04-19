@@ -99,14 +99,15 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
 
     override fun consumesBackEvent() = currentStack.size > 1
 
-    fun switchStack(key: String) {
-        if (key == currentKey.value) return
+    fun switchStack(key: String): ObservableStack<ScreenPair> {
+        if (key == currentKey.value) return currentStack
         if (stacks[key] == null) throw Errors.InvalidStackKey(key)
 
         currentKey.value = key
+        return currentStack
     }
 
-    fun findStack(screen: Screen<Props>): String? {
+    fun findStack(screen: Screen<Props>): String {
         var route: Route? = screen
         while (route != null) {
             val key = routeToKeyMap[route.pattern.original]
@@ -115,36 +116,19 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
 
             route = route.parent
         }
-        return null
-    }
-
-    fun push(stack: String, screenPair: ScreenPair) {
-        switchStack(stack)
-        currentStack.push(screenPair)
-    }
-
-    fun replace(stack: String, screenPair: ScreenPair) {
-        switchStack(stack)
-        currentStack.replace(screenPair)
-    }
-
-    fun pop(stack: String) {
-        switchStack(stack)
-        currentStack.pop()
+        throw Errors.InvalidScreen
     }
 
     override fun push(screenPair: ScreenPair) {
-        val stack = findStack(screenPair.screen) ?: throw Errors.InvalidScreen
-        push(stack, screenPair)
+        val stack = findStack(screenPair.screen)
+        switchStack(stack).push(screenPair)
     }
-
     override fun replace(screenPair: ScreenPair) {
-        val stack = findStack(screenPair.screen) ?: throw Errors.InvalidScreen
-        replace(stack, screenPair)
+        val stack = findStack(screenPair.screen)
+        switchStack(stack).replace(screenPair)
     }
-
     override fun pop() {
-        pop(currentKey.value)
+        currentStack.pop()
     }
 
     @Composable
@@ -155,8 +139,9 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         val (screen, props) = current!!
 
         if (screen.container != this) {
+            // fix later
             screen.container?.Render(ContainerProps())
-//            Feature.Navigator?.push(screen)
+//            Feature.Navigator?.push(current!!)
         } else {
             screen.Render(props)
         }

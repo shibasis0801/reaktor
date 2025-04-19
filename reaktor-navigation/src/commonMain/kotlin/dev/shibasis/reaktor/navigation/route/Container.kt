@@ -21,7 +21,7 @@ open class ContainerProps(
 
 abstract class Container(
     val switch: Switch
-): Route(), Route.Render<ContainerProps>, Route.Buildable {
+): Route(), Route.Render<ContainerProps>, Route.Buildable, NavContainer {
     constructor(
         home: Screen<Props> = ErrorScreen("Home Screen not selected"),
         error: Screen<Props> = ErrorScreen(),
@@ -37,9 +37,6 @@ abstract class Container(
     }
 
     abstract fun consumesBackEvent(): Boolean
-    abstract fun push(screenPair: ScreenPair)
-    abstract fun replace(screenPair: ScreenPair)
-    abstract fun pop()
 
     // todo bottleneck. exhaustive tree search every time you redirect. (but only for deep links)
     fun findScreen(segments: List<String>, props: Props): ScreenPair {

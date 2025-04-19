@@ -242,8 +242,8 @@ class Theme(private val designSystem: DesignSystem) {
 var Feature.Theme by CreateSlot<Theme>()
 
 @Composable
-inline fun <R> themed(block: Theme.() -> R): R {
-    return block(Feature.Theme ?: throw Error("A theme is needed for the app."))
+inline fun themed(block: Theme.() -> Unit) {
+    block(Feature.Theme ?: throw Error("A theme is needed for the app."))
 }
 
 data class Sizes(
