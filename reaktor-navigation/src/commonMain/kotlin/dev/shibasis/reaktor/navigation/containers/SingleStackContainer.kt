@@ -24,18 +24,10 @@ open class SingleStackContainer(
 
     private val screenStack = ObservableStack<ScreenPair>()
 
-    override fun build() {
-        super.build()
-        push(switch.home.screenPair())
-    }
-
     @Composable
     override fun Render(props: ContainerProps) {
-        // Container should expose this
         val current by screenStack.top.collectAsState()
-
         current?.let {
-            // ScreenContainer should send this, this will allow sending other containers as views.
             it.screen.Render(it.props)
         }
     }

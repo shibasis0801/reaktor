@@ -38,7 +38,6 @@ class BottomBarContainer(
         Scaffold(
             bottomBar = {
                 NavigationBar {
-                    // We create an item for each key
                     metadata.keys.forEach { key ->
                         NavigationBarItem(
                             selected = currentKey == key,

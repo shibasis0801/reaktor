@@ -58,7 +58,6 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         linkMetadataKeys(route.pattern.original, data)
     }
 
-    // Wrappers needed as we setup things after we get metadata.
     fun screen(route: String, screen: Screen<Props>)
         = switch.screen(route, screen)
 
@@ -75,7 +74,9 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
             is Switch -> route.home
             is Screen<Props> -> route
             is Container -> {
+                // todo fix this abomination
                 if (route is MultiStackContainer<*>) {
+                    route.switchStack(route.start)
                     route.findStartScreen()
                 } else {
                     route.switch.home
@@ -88,7 +89,7 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         builder()
         super.build()
         metadata.forEach {
-            stacks[it.key] = ObservableStack(findStartScreen(it.key).screenPair())
+            stacks[it.key] = ObservableStack()
         }
     }
 
@@ -100,10 +101,16 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
     override fun consumesBackEvent() = currentStack.size > 1
 
     fun switchStack(key: String): ObservableStack<ScreenPair> {
-        if (key == currentKey.value) return currentStack
         if (stacks[key] == null) throw Errors.InvalidStackKey(key)
 
-        currentKey.value = key
+        if (key != currentKey.value) {
+            currentKey.value = key
+        }
+
+        if (currentStack.size == 0) {
+            currentStack.push(findStartScreen(key).screenPair())
+        }
+
         return currentStack
     }
 
@@ -139,7 +146,7 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         val (screen, props) = current!!
 
         if (screen.container != this) {
-            // fix later
+            // todo fix later
             screen.container?.Render(ContainerProps())
 //            Feature.Navigator?.push(current!!)
         } else {

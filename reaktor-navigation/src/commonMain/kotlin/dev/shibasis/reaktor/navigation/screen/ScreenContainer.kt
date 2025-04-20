@@ -35,7 +35,7 @@ fun Theme.ScreenContainer(navigator: Navigator) {
     val stack = navigator.containerStack
     val handlesBack = navigator.consumesBackEvent.collectAsState()
 
-    BackHandlerContainer(Modifier.fillMaxSize(), handlesBack.value, navigator::onBack) {
+    BackHandlerContainer(Modifier.fillMaxSize(), handlesBack.value, navigator::pop) {
         val container by stack.top.collectAsState()
         CompositionLocalProvider(LocalNavigator provides navigator) {
             MaterialTheme(

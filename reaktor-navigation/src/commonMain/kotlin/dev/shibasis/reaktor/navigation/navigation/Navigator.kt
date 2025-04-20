@@ -10,20 +10,19 @@ import dev.shibasis.reaktor.navigation.route.NavContainer
 import dev.shibasis.reaktor.navigation.route.Route
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
 
-
 class Navigator(
     private val root: Container
 ): NavContainer {
-    init { root.build() }
-
-    var containerStack = ObservableStack(root)
+    var containerStack = ObservableStack(root.apply { build() })
     val currentContainer by containerStack.top
     val consumesBackEvent = containerStack.top.map {
         containerStack.size > 1 || (it?.consumesBackEvent() ?: false)
     }
 
-    fun onBack() {
-        pop()
+    init {
+        currentContainer?.apply {
+            push(switch.home)
+        }
     }
 
     override fun pop() {
@@ -63,23 +62,39 @@ class Navigator(
         currentContainer?.replace(screenPair)
     }
 
-    fun push(screen: Screen<Props>) {
-        push(screen.screenPair())
-    }
-
-    fun replace(screen: Screen<Props>) {
-        replace(screen.screenPair())
-    }
-
-    /** Used for deep links */
-    fun <T: Props> push(route: String, props: T) {
-        push(root.findScreen(route.split("/"), props))
-    }
-
-    /** Used for deep links */
-    fun <T: Props> replace(route: String, props: T) {
-        replace(root.findScreen(route.split("/"), props))
+    fun<T: Props> findScreen(route: String, props: T): ScreenPair {
+        return root.findScreen(route.split("/"), props)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fun Navigator.push(screen: Screen<Props>) {
+    push(screen.screenPair())
+}
+fun Navigator.replace(screen: Screen<Props>) {
+    replace(screen.screenPair())
+}
+
+/** Used for deep links */
+fun <T: Props> Navigator.push(route: String, props: T) {
+    push(findScreen(route, props))
+}
+fun <T: Props> Navigator.replace(route: String, props: T) {
+    replace(findScreen(route, props))
+}
+
 
 var Feature.Navigator by CreateSlot<Navigator>()

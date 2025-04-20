@@ -35,6 +35,7 @@ fun AsyncImage(
     LaunchedEffect(url) {
         Dispatch.IO.launch {
             val fileName = url.split("/").last()
+            if (fileName == "") return@launch
 
             val cachedBitmap = BitmapCache.retrieve(fileName)
             imageBitmap = if (cachedBitmap != null)
