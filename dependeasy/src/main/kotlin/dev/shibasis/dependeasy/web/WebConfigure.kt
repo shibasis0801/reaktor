@@ -29,7 +29,6 @@ class WebConfiguration(
     var packageJson: File? = null,
     var moduleName: String? = null,
     var packageJsonCustomizer: (PackageJson.() -> Unit)? = null
-
 )
 
 @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
@@ -37,12 +36,10 @@ fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
 ) {
     val configure = WebConfiguration().apply(configuration)
-    configure.packageJson?.apply(project::buildTasksFromScripts)
-
-    val name = configure.moduleName ?: project.name
+//    configure.packageJson?.apply(project::buildTasksFromScripts)
 
     js(IR) {
-        moduleName = "index"
+//        moduleName = "index"
         compilerOptions {
             target.set("es2015")
         }
@@ -55,8 +52,6 @@ fun KotlinMultiplatformExtension.web(
         browser {
             binaries.library()
             commonWebpackConfig {
-                output?.library = "index"
-                outputFileName = "index.js"
                 cssSupport {
                     enabled.set(true)
                 }
@@ -64,22 +59,10 @@ fun KotlinMultiplatformExtension.web(
             }
         }
         compilations["main"].packageJson {
-            // Set the default JS entry point.
-            main = "index.js"
-            // Point to the default TypeScript definitions file.
-            types = "index.d.ts"
-            // Define the module entry for environments preferring ES modules.
-            customField("module", "index.js")
-            // Define exports so consumers using Node’s exports resolution can correctly import code and types.
-            customField("exports", mapOf(
-                "." to mapOf(
-                    "import" to "index.js",
-                    "types" to "index.d.ts"
-                )
-            ))
-            customField("files", listOf("index.js", "index.d.ts", "*.mjs", "*.map"))
+            configure.moduleName?.apply { name = this }
             configure.packageJsonCustomizer?.invoke(this)
         }
+
         configure.targetModifier(this)
     }
 
