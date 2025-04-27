@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.auth
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlin.uuid.ExperimentalUuidApi
@@ -20,7 +21,7 @@ data class RowData(
 @JsExport
 @Serializable
 data class App(
-    val id: Long,
+    val id: String,
     val name: String,
     val rowData: RowData
 )
@@ -28,9 +29,9 @@ data class App(
 @JsExport
 @Serializable
 data class Entity(
-    val id: Long,
+    val id: String,
     val name: String,
-    val appId: Long,
+    val appId: String,
     val rowData: RowData
 )
 
@@ -39,17 +40,7 @@ enum class UserStatus {
     ONBOARDING,
     ACTIVE,
     INACTIVE,
-    BANNED;
-
-    object Serializer: kotlinx.serialization.KSerializer<UserStatus> {
-        override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor("status", kotlinx.serialization.descriptors.PrimitiveKind.STRING)
-        override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: UserStatus) {
-            encoder.encodeString(value.name)
-        }
-        override fun deserialize(decoder: kotlinx.serialization.encoding.Decoder): UserStatus {
-            return UserStatus.valueOf(decoder.decodeString())
-        }
-    }
+    BANNED
 }
 
 @JsExport
@@ -61,10 +52,10 @@ enum class UserProvider {
 @JsExport
 @Serializable
 data class User(
-    val id: Long,
+    val id: String,
     val name: String,
     val socialId: String,
-    val appId: Long,
+    val appId: String,
     val provider: UserProvider,
     val status: UserStatus,
     val rowData: RowData,
@@ -74,28 +65,28 @@ data class User(
 @JsExport
 @Serializable
 data class Role(
-    val id: Long,
+    val id: String,
     val name: String,
-    val appId: Long,
+    val appId: String,
     val rowData: RowData,
 )
 
 @JsExport
 @Serializable
 data class Permission(
-    val id: Long,
+    val id: String,
     val name: String,
-    val appId: Long,
+    val appId: String,
     val rowData: RowData,
 )
 
 @JsExport
 @Serializable
-data class Session @OptIn(ExperimentalUuidApi::class) constructor(
-    @Contextual val id: Uuid,
-    val userId: Long,
-    val appId: Long,
-    val contextId: Long,
+data class Session(
+    val id: String,
+    val userId: String,
+    val appId: String,
+    val contextId: String,
     val expiresAt: LocalDateTime,
     val rowData: RowData,
 )
@@ -103,27 +94,27 @@ data class Session @OptIn(ExperimentalUuidApi::class) constructor(
 @JsExport
 @Serializable
 data class Context(
-    val id: Long,
+    val id: String,
     val name: String,
-    val appId: Long,
+    val appId: String,
     val rowData: RowData
 )
 
 @JsExport
 @Serializable
 data class RolePermission(
-    val id: Long,
-    val roleId: Long,
-    val permissionId: Long,
+    val id: String,
+    val roleId: String,
+    val permissionId: String,
     val rowData: RowData
 )
 
 @JsExport
 @Serializable
 data class UserRole(
-    val id: Long,
-    val userId: Long,
-    val roleId: Long,
-    val contextId: Long,
+    val id: String,
+    val userId: String,
+    val roleId: String,
+    val contextId: String,
     val rowData: RowData
 )

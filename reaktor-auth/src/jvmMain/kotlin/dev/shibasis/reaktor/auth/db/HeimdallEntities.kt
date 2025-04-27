@@ -6,9 +6,11 @@ import org.jetbrains.exposed.dao.id.EntityID
 import java.util.UUID
 import kotlin.uuid.toKotlinUuid
 
+fun EntityID<UUID>.string() = value.toString()
+fun String.toUUID() = UUID.fromString(this)
 
-class UserEntity(id: EntityID<Long>): AuditableEntity<Long, User>(id, Users) {
-    companion object: AuditableEntityCompanion<Long, User, UserEntity>(Users)
+class UserEntity(id: EntityID<UUID>): AuditableEntity<UUID, User>(id, Users) {
+    companion object: AuditableEntityCompanion<UUID, User, UserEntity>(Users)
     var name by Users.name
     var socialId by Users.socialId
     var appId by Users.appId
@@ -16,10 +18,10 @@ class UserEntity(id: EntityID<Long>): AuditableEntity<Long, User>(id, Users) {
     var status by Users.status
 
     override fun toDto() = User(
-        id = id.value,
+        id = id.string(),
         name = name,
         socialId = socialId,
-        appId = appId.value,
+        appId = appId.value.toString(),
         provider = provider,
         status = status,
         rowData = getRowData()
@@ -28,19 +30,19 @@ class UserEntity(id: EntityID<Long>): AuditableEntity<Long, User>(id, Users) {
     override fun fromDto(dto: User) {
         name = dto.name
         socialId = dto.socialId
-        appId = EntityID(dto.appId, Apps)
+        appId = EntityID(UUID.fromString(dto.appId), Apps)
         provider = dto.provider
         status = dto.status
     }
 }
 
-class AppEntity(id: EntityID<Long>): AuditableEntity<Long, App>(id, Apps) {
-    companion object: AuditableEntityCompanion<Long, App, AppEntity>(Apps)
+class AppEntity(id: EntityID<UUID>): AuditableEntity<UUID, App>(id, Apps) {
+    companion object: AuditableEntityCompanion<UUID, App, AppEntity>(Apps)
 
     var name by Apps.name
 
     override fun toDto() = App(
-        id = id.value,
+        id = id.string(),
         name = name,
         rowData = getRowData()
     )
@@ -50,96 +52,96 @@ class AppEntity(id: EntityID<Long>): AuditableEntity<Long, App>(id, Apps) {
     }
 }
 
-class ContextEntity(id: EntityID<Long>): AuditableEntity<Long, Context>(id, Contexts) {
-    companion object: AuditableEntityCompanion<Long, Context, ContextEntity>(Contexts)
+class ContextEntity(id: EntityID<UUID>): AuditableEntity<UUID, Context>(id, Contexts) {
+    companion object: AuditableEntityCompanion<UUID, Context, ContextEntity>(Contexts)
 
     var name by Contexts.name
     var appId by Contexts.appId
 
     override fun toDto() = Context(
-        id = id.value,
+        id = id.string(),
         name = name,
-        appId = appId.value,
+        appId = appId.string(),
         rowData = getRowData()
     )
 
     override fun fromDto(dto: Context) {
         name = dto.name
-        appId = EntityID(dto.appId, Apps)
+        appId = EntityID(UUID.fromString(dto.appId), Apps)
     }
 }
 
-class RoleEntity(id: EntityID<Long>): AuditableEntity<Long, Role>(id, Roles) {
-    companion object: AuditableEntityCompanion<Long, Role, RoleEntity>(Roles)
+class RoleEntity(id: EntityID<UUID>): AuditableEntity<UUID, Role>(id, Roles) {
+    companion object: AuditableEntityCompanion<UUID, Role, RoleEntity>(Roles)
     var name by Roles.name
     var appId by Roles.appId
 
     override fun toDto() = Role(
-        id = id.value,
+        id = id.string(),
         name = name,
-        appId = appId.value,
+        appId = appId.string(),
         rowData = getRowData()
     )
 
     override fun fromDto(dto: Role) {
         name = dto.name
-        appId = EntityID(dto.appId, Apps)
+        appId = EntityID(UUID.fromString(dto.appId), Apps)
     }
 }
 
-class PermissionEntity(id: EntityID<Long>) : AuditableEntity<Long, Permission>(id, Permissions) {
-    companion object: AuditableEntityCompanion<Long, Permission, PermissionEntity>(Permissions)
+class PermissionEntity(id: EntityID<UUID>) : AuditableEntity<UUID, Permission>(id, Permissions) {
+    companion object: AuditableEntityCompanion<UUID, Permission, PermissionEntity>(Permissions)
     var name by Permissions.name
     var appId by Permissions.appId
 
     override fun toDto() = Permission(
-        id = id.value,
+        id = id.string(),
         name = name,
-        appId = appId.value,
+        appId = appId.string(),
         rowData = getRowData()
     )
 
     override fun fromDto(dto: Permission) {
         name = dto.name
-        appId = EntityID(dto.appId, Apps)
+        appId = EntityID(UUID.fromString(dto.appId), Apps)
     }
 }
 
-class RolePermissionEntity(id: EntityID<Long>) : AuditableEntity<Long, RolePermission>(id, RolePermissions) {
-    companion object: AuditableEntityCompanion<Long, RolePermission, RolePermissionEntity>(RolePermissions)
+class RolePermissionEntity(id: EntityID<UUID>) : AuditableEntity<UUID, RolePermission>(id, RolePermissions) {
+    companion object: AuditableEntityCompanion<UUID, RolePermission, RolePermissionEntity>(RolePermissions)
     var roleId by RolePermissions.roleId
     var permissionId by RolePermissions.permissionId
 
     override fun toDto() = RolePermission(
-        id = id.value,
-        roleId = roleId.value,
-        permissionId = permissionId.value,
+        id = id.string(),
+        roleId = roleId.string(),
+        permissionId = permissionId.string(),
         rowData = getRowData()
     )
 
     override fun fromDto(dto: RolePermission) {
-        roleId = EntityID(dto.roleId, Roles)
-        permissionId = EntityID(dto.permissionId, Permissions)
+        roleId = EntityID(UUID.fromString(dto.roleId), Roles)
+        permissionId = EntityID(UUID.fromString(dto.permissionId), Permissions)
     }
 }
 
-class UserRoleEntity(id: EntityID<Long>) : AuditableEntity<Long, UserRole>(id, UserRoles) {
-    companion object: AuditableEntityCompanion<Long, UserRole, UserRoleEntity>(UserRoles)
+class UserRoleEntity(id: EntityID<UUID>) : AuditableEntity<UUID, UserRole>(id, UserRoles) {
+    companion object: AuditableEntityCompanion<UUID, UserRole, UserRoleEntity>(UserRoles)
     var userId by UserRoles.userId
     var roleId by UserRoles.roleId
     var contextId by UserRoles.contextId
 
     override fun toDto() = UserRole(
-        id = id.value,
-        userId = userId.value,
-        roleId = roleId.value,
-        contextId = contextId.value,
+        id = id.string(),
+        userId = userId.string(),
+        roleId = roleId.string(),
+        contextId = contextId.string(),
         rowData = getRowData()
     )
     override fun fromDto(dto: UserRole) {
-        userId = EntityID(dto.userId, Users)
-        roleId = EntityID(dto.roleId, Roles)
-        contextId = EntityID(dto.contextId, Contexts)
+        userId = EntityID(UUID.fromString(dto.userId), Users)
+        roleId = EntityID(UUID.fromString(dto.roleId), Roles)
+        contextId = EntityID(UUID.fromString(dto.contextId), Contexts)
     }
 }
 
@@ -152,18 +154,18 @@ class SessionEntity(id: EntityID<UUID>): AuditableEntity<UUID, Session>(id, Sess
 
     @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
     override fun toDto() = Session(
-        id = id.value.toKotlinUuid(),
-        userId = userId.value,
-        appId = appId.value,
-        contextId = contextId.value,
+        id = id.string(),
+        userId = userId.string(),
+        appId = appId.string(),
+        contextId = contextId.string(),
         expiresAt = expiresAt,
         rowData = getRowData()
     )
 
     override fun fromDto(dto: Session) {
-        userId = EntityID(dto.userId, Users)
-        appId = EntityID(dto.appId, Apps)
-        contextId = EntityID(dto.contextId, Contexts)
+        userId = EntityID(UUID.fromString(dto.userId), Users)
+        appId = EntityID(UUID.fromString(dto.appId), Apps)
+        contextId = EntityID(UUID.fromString(dto.contextId), Contexts)
         expiresAt = dto.expiresAt
     }
 }

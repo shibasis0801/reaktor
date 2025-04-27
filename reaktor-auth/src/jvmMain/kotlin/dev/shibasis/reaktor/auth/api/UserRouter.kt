@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.db.AppEntity
 import dev.shibasis.reaktor.auth.db.UserEntity
+import dev.shibasis.reaktor.auth.db.toUUID
 import dev.shibasis.reaktor.auth.db.users.UserRepository
 import dev.shibasis.reaktor.auth.framework.Router
 import dev.shibasis.reaktor.auth.framework.errorResponse
@@ -28,8 +29,8 @@ class UserRouter(
         }
 
         GET("/{id}") {
-            val id = it.pathVariable("id").toLongOrNull() ?: return@GET errorResponse(2, "Invalid ID")
-            userRepository.find(id).fold(
+            val id = it.pathVariable("id") ?: return@GET errorResponse(2, "Invalid ID")
+            userRepository.find(id.toUUID()).fold(
                 { jsonResponse(it.toDto()) },
                 { errorResponse(1, it.message ?: "Unknown") }
             )

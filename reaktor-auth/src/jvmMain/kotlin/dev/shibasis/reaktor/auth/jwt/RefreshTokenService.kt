@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.auth.Session
 import dev.shibasis.reaktor.auth.db.Contexts
 import dev.shibasis.reaktor.auth.db.Users
 import dev.shibasis.reaktor.auth.db.rbac.SessionRepository
+import dev.shibasis.reaktor.auth.db.string
 import dev.shibasis.reaktor.auth.framework.fail
 import dev.shibasis.reaktor.auth.framework.now
 import dev.shibasis.reaktor.auth.framework.succeed
@@ -29,8 +30,8 @@ class RefreshTokenService(
 ) {
     fun newSession(
         tokenUtil: TokenUtil,
-        userId: Long,
-        contextId: Long
+        userId: UUID,
+        contextId: UUID
     ): Result<String> {
         return sessionRepository.findByUserIdAndContext(userId, contextId)
             .chain { sessions ->
@@ -47,8 +48,8 @@ class RefreshTokenService(
             }.map { session ->
                 val jwt = tokenUtil.generateJwt(session.expiresAt.toJavaDate()) {
                     withClaim("id", session.toString())
-                    withClaim("contextId", session.contextId.value)
-                    withClaim("userId", session.userId.value)
+                    withClaim("contextId", session.contextId.string())
+                    withClaim("userId", session.userId.string())
                 }
 
                 return succeed(jwt)
@@ -58,12 +59,12 @@ class RefreshTokenService(
     fun fetchSession(
         refreshTokenUtil: TokenUtil,
         refreshToken: String,
-        appId: Long
+        appId: UUID
     ): Result<Session> {
         val decodedJWT = refreshTokenUtil.validateToken(refreshToken) ?: return fail("Invalid Token")
-        val id = UUID.fromString(decodedJWT.getClaim("id").asString())
+        val id = UUID.fromString(decodedJWT.getClaim("id").toString())
 
-        if (appId != decodedJWT.getClaim("appId").asLong()) return fail("Invalid App ID")
+        if (appId.toString() != decodedJWT.getClaim("appId").toString()) return fail("Invalid App ID")
 
         val session = sessionRepository.find(id).getOrNull() ?: return fail("No session found")
 

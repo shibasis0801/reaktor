@@ -26,6 +26,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.awaitBody
 import org.springframework.web.reactive.function.server.bodyValueAndAwait
 import org.springframework.web.reactive.function.server.coRouter
+import java.util.UUID
 
 @Component
 class AppServer(
@@ -43,14 +44,12 @@ class AppServer(
     override val getApp = GetHandler<BaseRequest, AppResponse>("/{id}") {
         val id = it.pathParams["id"] ?: return@GetHandler AppResponse.Failure(ErrorMessage(1, "Invalid id"))
 
-        val numericId = id.toLongOrNull()
-        val result = if (numericId != null) {
-            appRepository.find(numericId)
-        } else {
-            appRepository.findByName(id)
-        }
-
-        result.fold(
+        runCatching {
+            UUID.fromString(id)
+        }.fold(
+            { appRepository.find(it) },
+            { appRepository.findByName(id) }
+        ).fold(
             { AppResponse.Success(listOf(it.toDto())) },
             { AppResponse.Failure(ErrorMessage(1, it.message ?: "Unknown")) }
         )

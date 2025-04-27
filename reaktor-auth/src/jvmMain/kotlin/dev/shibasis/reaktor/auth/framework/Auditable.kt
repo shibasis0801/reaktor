@@ -65,19 +65,7 @@ abstract class AuditableEntity<IdType: Comparable<IdType>, Row>(
     abstract fun fromDto(dto: Row)
     fun getRowData() = RowData(data, createdAt, updatedAt)
 }
-//
-//abstract class LongAuditableEntity<Row>(
-//    id: EntityID<Long>,
-//    auditable: LongAuditable
-//): AuditableEntity<Long, Row>(id, auditable)
-//
-//abstract class UUIDAuditableEntity<Row>(
-//    id: EntityID<UUID>,
-//    auditable: UUIDAuditable
-//): AuditableEntity<UUID, Row>(id, auditable)
-//
 
-//
 open class AuditableEntityCompanion<
         IdType: Comparable<IdType>,
         Row,

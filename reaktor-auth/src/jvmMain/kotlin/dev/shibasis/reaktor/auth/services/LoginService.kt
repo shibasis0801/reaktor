@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 /*
 todo:
@@ -25,8 +26,10 @@ class LoginService(
     private val appRepository: AppRepository,
     private val profileService: ProfileService
 ) {
+    // wrap in transactional, etc
     suspend fun login(request: SignInRequest): SignInResponse {
-        val (idToken, appId) = request
+        val (idToken) = request
+        val appId = UUID.fromString(request.appId)
 
         val appResult = appRepository.find(appId)
         if (appResult.isFailure)
@@ -53,10 +56,10 @@ class LoginService(
                 it.data = JsonObject(mapOf())
                 it.status = UserStatus.ONBOARDING
             }
-            profileService.createProfile(user.getOrThrow().id.value.toInt(), JsonObject(mapOf()))
+            profileService.createProfile(user.getOrThrow().id.value, JsonObject(mapOf()))
         }
 
-        var profile = profileService.fetchProfile(user.getOrThrow().id.value.toInt())
+        var profile = profileService.fetchProfile(user.getOrThrow().id.value)
 
         return user.fold(
             { SignInResponse.Success(it.toDto(), profile) },

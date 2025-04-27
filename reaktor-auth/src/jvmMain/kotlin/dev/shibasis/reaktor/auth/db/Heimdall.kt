@@ -7,11 +7,11 @@ import dev.shibasis.reaktor.auth.framework.UUIDAuditable
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 
-object Apps: LongAuditable("app") {
+object Apps: UUIDAuditable("app") {
     val name = varchar("name", 100)
 }
 
-object Users: LongAuditable("user") {
+object Users: UUIDAuditable("user") {
     val name = varchar("name", 100)
     val socialId = text("social_id")
     val appId = foreignKey(Apps,"app_id")
@@ -19,27 +19,27 @@ object Users: LongAuditable("user") {
     val status = enumerationByName<UserStatus>("status", 50).default(UserStatus.ONBOARDING)
 }
 
-object Contexts: LongAuditable("context") {
+object Contexts: UUIDAuditable("context") {
     val name = varchar("name", 100)
     val appId = foreignKey(Apps,"app_id")
 }
 
-object Roles: LongAuditable("role")  {
+object Roles: UUIDAuditable("role")  {
     val name = varchar("name", 50)
     val appId = foreignKey(Apps,"app_id")
 }
 
-object Permissions: LongAuditable("permission") {
+object Permissions: UUIDAuditable("permission") {
     val name = varchar("name", 100)
     val appId = foreignKey(Apps,"app_id")
 }
 
-object RolePermissions: LongAuditable("role_permissions") {
+object RolePermissions: UUIDAuditable("role_permissions") {
     val roleId = foreignKey(Roles,"role_id")
     val permissionId = foreignKey(Permissions, "permission_id")
 }
 
-object UserRoles: LongAuditable("user_role") {
+object UserRoles: UUIDAuditable("user_role") {
     val userId = foreignKey(Users, "user_id")
     val roleId = foreignKey(Roles,"role_id")
     val contextId = foreignKey(Contexts, "context_id")

@@ -15,7 +15,7 @@ import kotlinx.serialization.json.JsonElement
 @Serializable
 data class SignInRequest(
     val idToken: String,
-    val appId: Long,
+    val appId: String,
     val providerId: String = "Google",
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
