@@ -1,7 +1,7 @@
 import java.time.LocalDate
 
 group = "dev.shibasis"
-version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
+version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth-SNAPSHOT" }
 extensions.configure<PublishingExtension> {
     repositories {
         maven {

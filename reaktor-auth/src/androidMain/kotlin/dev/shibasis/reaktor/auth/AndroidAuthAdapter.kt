@@ -9,12 +9,14 @@ import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import dev.shibasis.reaktor.auth.api.AuthServiceClient
 
 
 class AndroidAuthAdapter(
     activity: ComponentActivity,
-    clientId: String
-): AuthAdapter<ComponentActivity>(activity) {
+    clientId: String,
+    authService: String
+): AuthAdapter<ComponentActivity>(activity, AuthServiceClient(authService)) {
     // nonce for security later
     private val googleIdOption = GetGoogleIdOption.Builder()
         .setFilterByAuthorizedAccounts(false)

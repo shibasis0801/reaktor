@@ -17,7 +17,7 @@ JWT -> Decode
 
 abstract class AuthAdapter<Controller>(
     controller: Controller,
-    private val authClient: AuthService = AuthServiceClient()
+    private val authClient: AuthService
 ): Adapter<Controller>(controller) {
 
     abstract suspend fun googleLogin(): Result<GoogleUser>

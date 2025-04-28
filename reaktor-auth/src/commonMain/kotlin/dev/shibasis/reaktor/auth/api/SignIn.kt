@@ -48,8 +48,8 @@ abstract class AuthService: Service() {
     abstract val signIn: RequestHandler<SignInRequest, SignInResponse>
 }
 
-class AuthServiceClient: AuthService() {
-    override val signIn = PostHandler("https://server.shibasis.dev/auth/sign-in") {
+class AuthServiceClient(baseUrl: String): AuthService() {
+    override val signIn = PostHandler("${baseUrl}/auth/sign-in") {
         http.postJson<SignInRequest, SignInResponse>(route, it).getOrNull() ?: SignInResponse.Failure.ServerError("Unknown Error")
     }
 }

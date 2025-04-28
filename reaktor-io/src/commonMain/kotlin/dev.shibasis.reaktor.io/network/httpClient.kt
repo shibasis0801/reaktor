@@ -12,6 +12,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -38,8 +39,12 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
         })
     }
     install(Logging) {
-        logger = Logger.DEFAULT
-        level = LogLevel.HEADERS
+        logger = object: Logger {
+            override fun log(message: String) {
+                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { message }
+            }
+        }
+        level = LogLevel.ALL
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
     install(WebSockets) {
@@ -75,3 +80,25 @@ suspend inline fun<reified O> HttpClient.getJson(
 ): Result<O> = runCatching {
     http.get(url).body()
 }
+
+class ErrorResponse(val response: HttpResponse): Throwable()
+
+suspend fun HttpClient.post(
+    urlString: String,
+    block: HttpRequestBuilder.() -> Unit = {}
+): Result<HttpResponse> = runCatching {
+    val response: HttpResponse = post(urlString, block)
+    if (!response.ok) throw ErrorResponse(response)
+    response
+}
+
+suspend fun HttpClient.get(
+    urlString: String,
+    block: HttpRequestBuilder.() -> Unit = {}
+): Result<HttpResponse> = runCatching {
+    val response: HttpResponse = get(urlString, block)
+    if (!response.ok) throw ErrorResponse(response)
+    response
+}
+
+
