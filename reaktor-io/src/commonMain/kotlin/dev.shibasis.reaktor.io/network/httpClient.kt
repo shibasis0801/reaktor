@@ -66,6 +66,7 @@ fun HeadersBuilder.replace(key: String, value: String) {
     append(key, value)
 }
 
+/* DEPRECATED */
 suspend inline fun<reified I, reified O> HttpClient.postJson(
     url: String,
     body: I
@@ -75,15 +76,10 @@ suspend inline fun<reified I, reified O> HttpClient.postJson(
     }.body()
 }
 
-suspend inline fun<reified O> HttpClient.getJson(
-    url: String
-): Result<O> = runCatching {
-    http.get(url).body()
-}
 
 class ErrorResponse(val response: HttpResponse): Throwable()
 
-suspend fun HttpClient.post(
+suspend fun HttpClient.Post(
     urlString: String,
     block: HttpRequestBuilder.() -> Unit = {}
 ): Result<HttpResponse> = runCatching {
@@ -92,7 +88,7 @@ suspend fun HttpClient.post(
     response
 }
 
-suspend fun HttpClient.get(
+suspend fun HttpClient.Get(
     urlString: String,
     block: HttpRequestBuilder.() -> Unit = {}
 ): Result<HttpResponse> = runCatching {

@@ -20,6 +20,7 @@ class Navigator(
     }
 
     init {
+        // todo bug: this fails if multistack container is root and does not have a home screen.
         currentContainer?.apply {
             push(switch.home)
         }

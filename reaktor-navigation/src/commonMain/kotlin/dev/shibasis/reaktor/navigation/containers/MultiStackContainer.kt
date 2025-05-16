@@ -22,6 +22,7 @@ open class MultiStackItemMetadata(
 
 /*
 Needs improvements in many areas.
+-2. Set home screen correctly.
 -1. Unit tests.
 0. Bugs around back navigation.
 1. Nested containers aren't present in the Navigator (bad horrible idea)

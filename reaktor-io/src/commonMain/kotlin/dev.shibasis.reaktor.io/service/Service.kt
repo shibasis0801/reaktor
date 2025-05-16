@@ -3,16 +3,20 @@ package dev.shibasis.reaktor.io.service
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.RoutePattern
-import io.ktor.http.HttpMethod
+import dev.shibasis.reaktor.io.service.RequestHandler
+import io.ktor.http.cio.Request
+import io.ktor.http.cio.Response
 import kotlin.js.JsExport
 
-/* You design your own sealed hierarchy for Request/Response */
-// todo both should have body<T>
+@JsExport
+enum class HttpMethod() {
+    GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD
+}
 
 @JsExport
 interface BaseRequest {
     val headers: MutableMap<String, String>
-    val queryParams: MutableMap<String, String> // todo needs encode/decode
+    val queryParams: MutableMap<String, String>
     val pathParams: MutableMap<String, String>
 
     companion object {
@@ -44,6 +48,7 @@ interface BaseResponse {
     }
 }
 
+@JsExport
 abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
     val method: HttpMethod,
     val route: String
@@ -53,6 +58,7 @@ abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
         return routePattern.fill(request.pathParams + extraPathParams)
     }
 
+    @JsExport.Ignore
     abstract suspend operator fun invoke(request: Request): Response
     companion object {
         inline operator fun <Request: BaseRequest, Response: BaseResponse> invoke(
@@ -66,21 +72,24 @@ abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
 }
 
 // todo add base url
+@JsExport
 abstract class Service(val baseUrl: String = ""): Adapter<Unit>(Unit) {
     val handlers = arrayListOf<RequestHandler<*, *>>()
 
+    @JsExport.Ignore
     inline fun <Request: BaseRequest, Response: BaseResponse> GetHandler(
         route: String,
         crossinline block: suspend RequestHandler<Request, Response>.(Request) -> Response
     ): RequestHandler<Request, Response> {
-        return RequestHandler(HttpMethod.Get, route, block).also { handlers.add(it) }
+        return RequestHandler(HttpMethod.GET, route, block).also { handlers.add(it) }
     }
 
+    @JsExport.Ignore
     inline fun <Request: BaseRequest, Response: BaseResponse> PostHandler(
         route: String,
         crossinline block: suspend RequestHandler<Request, Response>.(Request) -> Response
     ): RequestHandler<Request, Response> {
-        return RequestHandler(HttpMethod.Post, route, block).also { handlers.add(it) }
+        return RequestHandler(HttpMethod.POST, route, block).also { handlers.add(it) }
     }
 }
 
