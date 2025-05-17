@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.ui
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.RowScope
@@ -19,6 +20,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.FloatingActionButtonElevation
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Shapes
@@ -81,7 +83,7 @@ interface DesignSystem {
         imageVector: ImageVector,
         onClick: () -> Unit,
     ) {
-        Box(modifier) {
+        Box(modifier.clickable(onClick = onClick)) {
             Icon(imageVector, imageVector.name)
         }
     }
