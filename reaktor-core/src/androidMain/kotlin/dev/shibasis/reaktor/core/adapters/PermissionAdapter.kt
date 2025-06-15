@@ -1,23 +1,35 @@
 package dev.shibasis.reaktor.core.adapters
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.shibasis.reaktor.core.extensions.getResultFromActivity
 import dev.shibasis.reaktor.core.extensions.hasPermission
 
-
 class AndroidPermissionAdapter(
     activity: ComponentActivity
 ): PermissionAdapter<ComponentActivity>(activity) {
 
+    @SuppressLint("InlinedApi")
     private fun convert(permissions: Array<out String>): Array<String> {
-        return permissions.map {
-            when(it) {
-                Permission.CAMERA -> Manifest.permission.CAMERA
-                else -> it
+        val result = ArrayList<String>()
+
+        for (perm in permissions) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && perm == Permission.NOTIFICATIONS) {
+                continue
             }
-        }.toTypedArray()
+
+            when (perm) {
+                Permission.CAMERA        -> result.add(Manifest.permission.CAMERA)
+                Permission.NOTIFICATIONS -> result.add(Manifest.permission.POST_NOTIFICATIONS)
+                Permission.LOCATION      -> result.addAll(listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                else                     -> result.add(perm)
+            }
+        }
+
+        return result.toTypedArray()
     }
 
     override suspend fun request(vararg permissions: String): Boolean {

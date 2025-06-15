@@ -8,7 +8,7 @@ Pod::Spec.new do |spec|
     spec.summary                  = 'Some description for the Shared Module'
     spec.vendored_frameworks      = 'build/cocoapods/framework/reaktor_ui.framework'
     spec.libraries                = 'c++'
-    spec.ios.deployment_target    = '12'
+    spec.ios.deployment_target    = '13'
                 
                 
     if !Dir.exist?('build/cocoapods/framework/reaktor_ui.framework') || Dir.empty?('build/cocoapods/framework/reaktor_ui.framework')

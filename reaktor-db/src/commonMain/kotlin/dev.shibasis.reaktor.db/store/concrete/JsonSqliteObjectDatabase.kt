@@ -132,8 +132,15 @@ class SqliteObjectDatabase(
             bindString(0, key)
             bindString(1, storeName)
         }
-        cachePolicy.onItemAccess(key, storeName)
-        return result.value
+
+        val value = result.value ?: return null
+
+        val cached = cachePolicy.onItemAccess(value)
+        return if (cached == null) {
+            delete(storeName, key)
+            null
+        }
+        else cached
     }
 
     override suspend fun <T : Any> getAll(
@@ -163,7 +170,7 @@ class SqliteObjectDatabase(
         ) {
             bindString(0, storeName)
         }
-        result.value.forEach { cachePolicy.onItemAccess(it.key, it.storeName) }
+        result.value.forEach { cachePolicy.onItemAccess(it) }
         return result.value
     }
 

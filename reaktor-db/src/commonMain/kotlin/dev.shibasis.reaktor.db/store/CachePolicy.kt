@@ -3,8 +3,10 @@ package dev.shibasis.reaktor.db.store
 import kotlinx.datetime.Clock
 
 
+// todo needs upgrades
 interface CachePolicy {
-    suspend fun onItemAccess(key: String, storeName: String)
+    // return null in order to ignore the access, the object if you want to use it.
+    suspend fun<T: Any> onItemAccess(storedObject: StoredObject<T>): StoredObject<T>?
     suspend fun onItemInsertion(key: String, storeName: String)
     suspend fun onItemUpdate(key: String, storeName: String)
     suspend fun onItemDeletion(key: String, storeName: String)

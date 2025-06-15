@@ -43,14 +43,10 @@ kotlin {
     }
     server {
         dependencies = {
-            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-dao:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-json:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-kotlin-datetime:${Version.Exposed}")
             api("com.auth0:java-jwt:4.4.0")
             api("com.google.api-client:google-api-client:2.7.0")
-            api("org.postgresql:postgresql:42.7.3")
+            api("org.springframework.boot:spring-boot-starter-data-r2dbc:${Version.SDK.Spring}")
+            api("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
         }
     }
 }
@@ -58,3 +54,4 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.auth")
 }
+

@@ -1,17 +1,15 @@
 package dev.shibasis.reaktor.auth.services
 
 import co.touchlab.kermit.Logger
+import dev.shibasis.reaktor.auth.UserEntity
+import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.auth.UserStatus
-import dev.shibasis.reaktor.auth.db.Apps
 import dev.shibasis.reaktor.auth.api.SignInRequest
 import dev.shibasis.reaktor.auth.api.SignInResponse
+import dev.shibasis.reaktor.auth.db.AppRepository
+import dev.shibasis.reaktor.auth.db.UserRepository
 import dev.shibasis.reaktor.auth.jwt.TokenVerifierService
-import dev.shibasis.reaktor.auth.db.apps.AppRepository
-import dev.shibasis.reaktor.auth.db.users.UserRepository
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.Database
+import dev.shibasis.reaktor.auth.db.invoke
 import org.springframework.stereotype.Component
 import java.util.UUID
 
@@ -23,15 +21,14 @@ todo:
 class LoginService(
     private val verifierService: TokenVerifierService,
     private val userRepository: UserRepository,
-    private val appRepository: AppRepository,
-    private val profileService: ProfileService
+    private val appRepository: AppRepository
 ) {
     // wrap in transactional, etc
     suspend fun login(request: SignInRequest): SignInResponse {
         val (idToken) = request
         val appId = UUID.fromString(request.appId)
 
-        val appResult = appRepository.find(appId)
+        val appResult = appRepository { findById(appId) }
         if (appResult.isFailure)
             return SignInResponse.Failure.InvalidAppId
 
@@ -41,28 +38,36 @@ class LoginService(
             ?: return SignInResponse.Failure.InvalidGoogleIdToken
 
         Logger.i { payload.toPrettyString() }
-        payload.forEach { key, value ->
+        payload.forEach { (key, value) ->
             Logger.i { "$key: $value" }
         }
 
         val socialId = payload.subject
 
-        var user = userRepository.getUser(appId, socialId)
+        var user = userRepository { findBySocialIdAndAppId(socialId, appId) }
         if (user.isFailure) {
-            user = userRepository.create {
-                it.name = payload["name"].toString()
-                it.socialId = payload.subject
-                it.appId = EntityID(appId, Apps)
-                it.data = JsonObject(mapOf())
-                it.status = UserStatus.ONBOARDING
+            user = userRepository {
+                save(
+                    UserEntity(
+                        UUID.randomUUID(),
+                        payload["name"].toString(),
+                        payload.subject,
+                        appId,
+                        UserProvider.GOOGLE,
+                        UserStatus.ONBOARDING
+                    )
+                )
             }
-            profileService.createProfile(user.getOrThrow().id.value, JsonObject(mapOf()))
+//            profileService.createProfile(user.getOrThrow().id, JsonObject(mapOf()))
         }
 
-        var profile = profileService.fetchProfile(user.getOrThrow().id.value)
+//        var profile = profileService.fetchProfile(user.getOrNull()!!.id)
 
         return user.fold(
-            { SignInResponse.Success(it.toDto(), profile) },
+            {
+                SignInResponse.Failure.ServerError("profile transaction needed")
+//                SignInResponse.Success(it.toDto(), profile)
+            },
             { SignInResponse.Failure.ServerError("Could not store user. ") }
         )
     }

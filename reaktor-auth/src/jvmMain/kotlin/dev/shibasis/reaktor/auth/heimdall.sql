@@ -32,7 +32,6 @@ roles and users are scoped to an context and are unique within it.
 
 Need to add a mechanism for users to join their accounts across apps.
 */
-
 DROP SCHEMA IF EXISTS heimdall CASCADE;
 CREATE SCHEMA IF NOT EXISTS heimdall;
 SET search_path TO heimdall;
@@ -56,70 +55,70 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE app (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL
 ) INHERITS (auditable);
 
 CREATE TABLE "user" (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     social_id TEXT NOT NULL,
-    app_id INT NOT NULL,
+    app_id UUID NOT NULL,
     provider VARCHAR(20) DEFAULT 'GOOGLE' NOT NULL,
     status VARCHAR(50) DEFAULT 'ONBOARDING' NOT NULL,
-    unique (social_id, app_id),
+    UNIQUE (social_id, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE context (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    app_id INT NOT NULL,
-    unique (name, app_id),
+    app_id UUID NOT NULL,
+    UNIQUE (name, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE role (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) NOT NULL,
-    app_id INT NOT NULL,
-    unique (name, app_id),
+    app_id UUID NOT NULL,
+    UNIQUE (name, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE permission (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    app_id INT NOT NULL,
-    unique (name, app_id),
+    app_id UUID NOT NULL,
+    UNIQUE (name, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE role_permissions (
-    id SERIAL PRIMARY KEY,
-    role_id INT NOT NULL,
-    permission_id INT NOT NULL,
-    unique (role_id, permission_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id UUID NOT NULL,
+    permission_id UUID NOT NULL,
+    UNIQUE (role_id, permission_id),
     FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permission(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE user_role (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    role_id INT NOT NULL,
-    context_id INT NOT NULL,
-    unique (user_id, role_id, context_id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    role_id UUID NOT NULL,
+    context_id UUID NOT NULL,
+    UNIQUE (user_id, role_id, context_id),
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
     FOREIGN KEY (context_id) REFERENCES context(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE TABLE session (
-    id UUID PRIMARY KEY,
-    user_id INT NOT NULL,
-    app_id INT NOT NULL,
-    context_id INT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    app_id UUID NOT NULL,
+    context_id UUID NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (context_id) REFERENCES context(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
@@ -135,12 +134,23 @@ CREATE INDEX idx_role_permissions_permission_id ON role_permissions(permission_i
 CREATE INDEX idx_user_role_user_id ON user_role(user_id);
 CREATE INDEX idx_user_role_role_id ON user_role(role_id);
 CREATE INDEX idx_user_role_context_id ON user_role(context_id);
+CREATE INDEX idx_session_user_id ON session(user_id);
+CREATE INDEX idx_session_app_id ON session(app_id);
+CREATE INDEX idx_session_context_id ON session(context_id);
+CREATE INDEX idx_session_expires_at ON session(expires_at);
 
-CREATE OR REPLACE TRIGGER app_updated BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER user_updated BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER context_updated BEFORE UPDATE ON context FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER role_updated BEFORE UPDATE ON role FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER permission_updated BEFORE UPDATE ON permission FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER role_permissions_updated BEFORE UPDATE ON role_permissions FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER user_role_updated BEFORE UPDATE ON user_role FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE OR REPLACE TRIGGER session_updated BEFORE UPDATE ON session FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER app_updated BEFORE UPDATE ON app FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER user_updated BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER context_updated BEFORE UPDATE ON context FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER role_updated BEFORE UPDATE ON role FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER permission_updated BEFORE UPDATE ON permission FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER role_permissions_updated BEFORE UPDATE ON role_permissions FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER user_role_updated BEFORE UPDATE ON user_role FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER session_updated BEFORE UPDATE ON session FOR EACH ROW EXECUTE FUNCTION on_update();
+
+
+
+-- INSERT INTO "table" (id, name, social_id, provider, status, dob, gender, longitude, latitude, data, created_at, updated_at) VALUES (1, 'Shibasis Patnaik', '108751707621317214126', 'GOOGLE', 'ONBOARDING', '1990-01-01', 'Male', 77.5946, 12.9716, '{"email":"shibasispatnaik81@gmail.com","profile_picture":"https://images.shibasis.dev/shibasis.jpeg"}', '2025-03-06 11:19:39.175Z', '2025-03-06 11:19:51.431Z');
+-- INSERT INTO "table" (id, name, social_id, provider, status, dob, gender, longitude, latitude, data, created_at, updated_at) VALUES (3, 'Shibasis Patnaik', '112031443045154093915', 'GOOGLE', 'ONBOARDING', '1990-01-01', 'Male', 77.5946, 12.9716, '{"email":"shibasis0801@gmail.com","profile_picture":"https://images.shibasis.dev/shibasis.jpeg"}', '2025-03-06 11:19:39.175Z', '2025-03-06 11:19:57.523Z');
+-- INSERT INTO "table" (id, name, social_id, provider, status, dob, gender, longitude, latitude, data, created_at, updated_at) VALUES (2, 'Kedarnath', '104726993706978524594', 'GOOGLE', 'ONBOARDING', '1990-01-01', 'Male', 77.5946, 12.9716, '{"email":"karthikkaushal27@gmail.com","profile_picture":"https://images.shibasis.dev/kedarnath.jpeg"}', '2025-03-06 11:19:39.175Z', '2025-03-06 11:19:54.600Z');
+-- INSERT INTO "table" (id, name, social_id, provider, status, dob, gender, longitude, latitude, data, created_at, updated_at) VALUES (5, 'Manab Mohanty', '108721170736337022348', 'GOOGLE', 'ONBOARDING', '1990-01-01', 'Male', 77.5946, 12.9716, '{"email":"manabmohanty44@gmail.com","profile_picture":"https://images.shibasis.dev/manab.jpeg"}', '2025-03-23 11:05:53.996Z', '2025-03-23 11:05:53.996Z');

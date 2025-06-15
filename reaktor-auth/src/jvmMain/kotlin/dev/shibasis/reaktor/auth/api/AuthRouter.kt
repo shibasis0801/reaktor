@@ -40,11 +40,6 @@ class AuthServer(private val loginService: LoginService): AuthService() {
 @Component
 class AuthRouter(private val authServer: AuthServer): Router() {
     override fun router() = coRouter {
-        POST(authServer.signIn.route) { request ->
-            authServer.signIn(request.awaitBody<SignInRequest>())
-                .run {
-                    jsonResponse(this, statusCode.toHttpStatus())
-                }
-        }
+        attach(authServer.signIn)
     }
 }

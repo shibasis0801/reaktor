@@ -70,6 +70,7 @@ fun KotlinMultiplatformExtension.useNetworking(
                 dependency("io.ktor:ktor-client-core:$ktorVersion", isTransitive)
                 dependency("io.ktor:ktor-client-content-negotiation:$ktorVersion", isTransitive)
                 dependency("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion", isTransitive)
+                dependency("io.ktor:ktor-client-logging:$ktorVersion")
             }
             Source.Web -> jsMain.dependencies {
                 dependency("io.ktor:ktor-client-js:$ktorVersion", isTransitive)

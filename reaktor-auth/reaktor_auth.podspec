@@ -8,7 +8,7 @@ Pod::Spec.new do |spec|
     spec.summary                  = 'Some description for the Shared Module'
     spec.vendored_frameworks      = 'build/cocoapods/framework/reaktor_auth.framework'
     spec.libraries                = 'c++'
-    spec.ios.deployment_target    = '12'
+    spec.ios.deployment_target    = '13'
     spec.dependency 'GoogleSignIn', '8.0.0'
                 
     if !Dir.exist?('build/cocoapods/framework/reaktor_auth.framework') || Dir.empty?('build/cocoapods/framework/reaktor_auth.framework')

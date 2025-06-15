@@ -4,6 +4,8 @@ Libraries for scalable cross-platform development based on Kotlin Multiplatform.
 Useful abstractions and utilities to build tech better.
 Reaktor is the root library, and FlatInvoker focuses on using FlexBuffers to define foreign function interfaces.
 
+# for i in `echo location work notification`;do for j in `ls reaktor-$i/src`; do mkdir reaktor-$i/src/$j/kotlin/dev/shibasis/reaktor/$i; done; done
+
 ## FlatInvoker
 
 FlatInvoker focuses on using FlexBuffers to perform foreign function invokations(ffi)

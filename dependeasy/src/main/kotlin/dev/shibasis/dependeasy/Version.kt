@@ -10,11 +10,10 @@ object Version {
         const val ndkVersion = "25.0.8775105"
         const val CMake = "3.22.1"
 
-        const val targetDarwin = "12"
+        const val targetDarwin = "13"
 
-        const val Kotlin = "2.1.10"
-        const val Vertx = "4.4.2"
-        const val Spring = "3.4.1"
+        const val Kotlin = "2.1.21"
+        const val Spring = "3.5.0"
 
         object Java {
             val asEnum = JavaVersion.VERSION_17

@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.auth.jwt
 
 import com.auth0.jwt.interfaces.DecodedJWT
-import dev.shibasis.reaktor.auth.framework.fail
-import dev.shibasis.reaktor.auth.framework.succeed
+import dev.shibasis.reaktor.core.utils.fail
+import dev.shibasis.reaktor.core.utils.succeed
 import org.springframework.stereotype.Component
 import java.util.UUID
 

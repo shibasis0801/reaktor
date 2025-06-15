@@ -19,15 +19,10 @@ data class StoredObject<T: Any>(
     val updatedAt: Long
 )
 
-interface Synchronizer {
-
-}
-
 interface TimestampProvider {
     fun getTimestamp(): Long
 }
 
-// Usually you want a server timestamp to ensure cache correctness.
 class DefaultTimestampProvider : TimestampProvider {
     override fun getTimestamp(): Long = Clock.System.now().toEpochMilliseconds()
 }

@@ -24,5 +24,4 @@ fun KotlinDependencyHandler.commonNetworking() {
 
 fun KotlinDependencyHandler.commonLogging() {
     api("co.touchlab:kermit:${Version.Kermit}")
-    api("io.ktor:ktor-client-logging:${Version.Ktor}")
 }

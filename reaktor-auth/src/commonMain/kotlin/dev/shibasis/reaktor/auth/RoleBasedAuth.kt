@@ -1,21 +1,21 @@
 package dev.shibasis.reaktor.auth
 
-import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.js.JsExport
 
-
 @JsExport
 @Serializable
 data class RowData(
     val data: JsonElement,
-    val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val createdAt: Instant,
+    val updatedAt: Instant
 )
 
 @JsExport
@@ -45,9 +45,9 @@ enum class UserStatus {
 
 @JsExport
 enum class UserProvider {
-    GOOGLE
+    GOOGLE,
+    APPLE
 }
-
 
 @JsExport
 @Serializable
@@ -87,7 +87,7 @@ data class Session(
     val userId: String,
     val appId: String,
     val contextId: String,
-    val expiresAt: LocalDateTime,
+    val expiresAt: Instant,
     val rowData: RowData,
 )
 
