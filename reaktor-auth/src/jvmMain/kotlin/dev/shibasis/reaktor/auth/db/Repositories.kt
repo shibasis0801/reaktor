@@ -1,9 +1,20 @@
 package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.*
+import org.springframework.aot.hint.TypeReference.listOf
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.convert.converter.Converter
+import org.springframework.data.convert.ReadingConverter
+import org.springframework.data.convert.WritingConverter
+import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
+import org.springframework.data.r2dbc.dialect.PostgresDialect
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.stereotype.Component
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 interface AppRepository: CoroutineCrudRepository<AppEntity, UUID> {
@@ -51,9 +62,32 @@ suspend inline operator fun <Repo, R : Any> Repo.invoke(
 where Repo : CoroutineCrudRepository<*, *> =
     runCatching { block() ?: throw NullPointerException() }
 
+@Component
+@ReadingConverter
+class OffsetDateTimeToInstantConverter : Converter<OffsetDateTime, Instant> {
+    override fun convert(source: OffsetDateTime): Instant {
+        return source.toInstant()
+    }
+}
+
+@Component
+@WritingConverter
+class InstantToOffsetDateTimeConverter : Converter<Instant, OffsetDateTime> {
+    override fun convert(source: Instant): OffsetDateTime {
+        return source.atOffset(ZoneOffset.UTC)
+    }
+}
 
 @Configuration
-@EnableR2dbcRepositories(
-    basePackages = ["dev.shibasis.reaktor.auth.db"]
-)
+@EnableR2dbcRepositories
 open class R2dbcRepoConfig
+
+@Configuration(proxyBeanMethods = false)
+open class DbConfig {
+    @Bean
+    open fun r2dbcCustomConversions(): R2dbcCustomConversions =
+        R2dbcCustomConversions.of(
+            PostgresDialect.INSTANCE,
+            listOf(OffsetDateTimeToInstantConverter(), InstantToOffsetDateTimeConverter())
+        )
+}

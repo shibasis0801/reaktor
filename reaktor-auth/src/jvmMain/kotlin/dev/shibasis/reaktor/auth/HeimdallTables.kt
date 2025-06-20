@@ -1,17 +1,15 @@
 package dev.shibasis.reaktor.auth
 
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 import java.util.UUID
 
-val JsonEmpty = JsonObject(mapOf())
+const val JSON_EMPTY_STRING = "{}"
 
 interface Auditable {
-    var data: JsonElement
+    var data: String
     var createdAt: Instant
     var updatedAt: Instant
 }
@@ -21,7 +19,7 @@ data class AppEntity(
     @Id val id: UUID,
     val name: String,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -35,7 +33,7 @@ data class UserEntity(
     val provider: UserProvider,
     val status: UserStatus,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -46,7 +44,7 @@ data class ContextEntity(
     val name: String,
     @Column("app_id") val appId: UUID,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -57,7 +55,7 @@ data class RoleEntity(
     val name: String,
     @Column("app_id") val appId: UUID,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -68,7 +66,7 @@ data class PermissionEntity(
     val name: String,
     @Column("app_id") val appId: UUID,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -79,7 +77,7 @@ data class RolePermissionEntity(
     @Column("role_id") val roleId: UUID,
     @Column("permission_id") val permissionId: UUID,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -91,7 +89,7 @@ data class UserRoleEntity(
     @Column("role_id") val roleId: UUID,
     @Column("context_id") val contextId: UUID,
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
@@ -104,7 +102,7 @@ data class SessionEntity(
     @Column("context_id") val contextId: UUID,
     @Column("expires_at") val expiresAt: Instant = Instant.now(),
 
-    override var data: JsonElement = JsonEmpty,
+    override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ) : Auditable
