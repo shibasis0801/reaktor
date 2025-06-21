@@ -1,9 +1,10 @@
-package dev.shibasis.reaktor.db.core
+package dev.shibasis.reaktor.io.serialization
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 
+// todo move this to core, so APi
 sealed interface ObjectSerializer<Output> {
     val serializersModule: SerializersModule
     fun<Input> serialize(serializer: KSerializer<Input>, value: Input): Output
@@ -18,7 +19,7 @@ sealed interface ObjectSerializer<Output> {
 
 }
 
-open class TextSerializer(private val json: Json = Json): ObjectSerializer<String> {
+open class TextSerializer(private val json: Json = dev.shibasis.reaktor.core.framework.json): ObjectSerializer<String> {
     override val serializersModule: SerializersModule
         get() = json.serializersModule
 

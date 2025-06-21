@@ -1,11 +1,13 @@
 package dev.shibasis.reaktor.io.service
 
 import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.RoutePattern
-import dev.shibasis.reaktor.io.service.RequestHandler
-import io.ktor.http.cio.Request
-import io.ktor.http.cio.Response
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.serializer
 import kotlin.js.JsExport
 
 @JsExport
@@ -48,55 +50,78 @@ interface BaseResponse {
     }
 }
 
+typealias RequestHandlerBlock<Request, Response> =
+        suspend RequestHandler<Request, Response>.(Request) -> Response
+
 @JsExport
 abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
     val method: HttpMethod,
-    val route: String
+    val route: String,
+    val requestSerializer: KSerializer<Request>,
+    val responseSerializer: KSerializer<Response>
 ) {
     val routePattern = RoutePattern.from(route)
-    inline fun url(request: Request, vararg extraPathParams: Pair<String, String>): String {
-        return routePattern.fill(request.pathParams + extraPathParams)
-    }
+
+    inline fun url(request: Request, vararg extraPathParams: Pair<String, String>): String =
+        routePattern.fill(request.pathParams + extraPathParams)
 
     @JsExport.Ignore
     abstract suspend operator fun invoke(request: Request): Response
+
     companion object {
-        inline operator fun <Request: BaseRequest, Response: BaseResponse> invoke(
+        @JsExport.Ignore
+         inline operator fun <reified Request: BaseRequest, reified Response: BaseResponse> invoke(
             method: HttpMethod,
             rawRoute: String,
-            crossinline block: suspend RequestHandler<Request, Response>.(Request) -> Response
-        ): RequestHandler<Request, Response> = object: RequestHandler<Request, Response>(method, rawRoute) {
+            crossinline block: RequestHandlerBlock<Request, Response>
+        ): RequestHandler<Request, Response> = object : RequestHandler<Request, Response>(
+            method,
+            rawRoute,
+            serializersModule.serializer<Request>(),
+            serializersModule.serializer<Response>()
+        ) {
             override suspend fun invoke(request: Request): Response = block(request)
         }
+
+        val serializersModule = json.serializersModule
     }
 }
 
 // todo add base url
 @JsExport
-abstract class Service(val baseUrl: String = ""): Adapter<Unit>(Unit) {
+abstract class Service(val baseUrl: String = "") : Adapter<Unit>(Unit) {
     val handlers = arrayListOf<RequestHandler<*, *>>()
 
     @JsExport.Ignore
-    inline fun <Request: BaseRequest, Response: BaseResponse> GetHandler(
+    @OptIn(ExperimentalSerializationApi::class)
+    inline fun <reified Request : BaseRequest, reified Response: BaseResponse> GetHandler(
         route: String,
-        crossinline block: suspend RequestHandler<Request, Response>.(Request) -> Response
-    ): RequestHandler<Request, Response> {
-        return RequestHandler(HttpMethod.GET, route, block).also { handlers.add(it) }
-    }
+        crossinline block: RequestHandlerBlock<Request, Response>
+    ): RequestHandler<Request, Response> =
+        RequestHandler(HttpMethod.GET, route, block).also(handlers::add)
 
     @JsExport.Ignore
-    inline fun <Request: BaseRequest, Response: BaseResponse> PostHandler(
+    @OptIn(ExperimentalSerializationApi::class)
+    inline fun <reified Request: BaseRequest, reified Response : BaseResponse> PostHandler(
         route: String,
-        crossinline block: suspend RequestHandler<Request, Response>.(Request) -> Response
-    ): RequestHandler<Request, Response> {
-        return RequestHandler(HttpMethod.POST, route, block).also { handlers.add(it) }
-    }
+        crossinline block: RequestHandlerBlock<Request, Response>
+    ): RequestHandler<Request, Response> =
+        RequestHandler(HttpMethod.POST, route, block).also(handlers::add)
 }
 
 
+@Serializable
+data class EmptyRequest(
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf()
+) : BaseRequest
 
-
-
+@Serializable
+data class EmptyResponse(
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+) : BaseResponse
 
 
 

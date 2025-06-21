@@ -3,9 +3,9 @@ package dev.shibasis.reaktor.db.store.concrete
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlCursor
 import app.cash.sqldelight.db.SqlDriver
-import dev.shibasis.reaktor.db.core.BinarySerializer
-import dev.shibasis.reaktor.db.core.ObjectSerializer
-import dev.shibasis.reaktor.db.core.TextSerializer
+import dev.shibasis.reaktor.io.serialization.BinarySerializer
+import dev.shibasis.reaktor.io.serialization.ObjectSerializer
+import dev.shibasis.reaktor.io.serialization.TextSerializer
 import dev.shibasis.reaktor.db.store.CachePolicy
 import dev.shibasis.reaktor.db.store.DefaultTimestampProvider
 import dev.shibasis.reaktor.db.store.ObjectDatabase

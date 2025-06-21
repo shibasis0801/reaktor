@@ -5,7 +5,7 @@ import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
-import dev.shibasis.reaktor.db.core.ObjectSerializer
+import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import kotlinx.datetime.Clock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer

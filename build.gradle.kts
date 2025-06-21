@@ -11,7 +11,7 @@ plugins {
     id("dev.shibasis.dependeasy.application") apply false
     id("org.jetbrains.kotlinx.benchmark") apply false
     id("com.codingfeline.buildkonfig") apply false
-    id("org.jetbrains.dokka") version "2.0.0"
+//    id("org.jetbrains.dokka") version "2.0.0"
 }
 
 buildscript {
@@ -37,7 +37,7 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "org.jetbrains.dokka")
+//    apply(plugin = "org.jetbrains.dokka")
     apply(plugin = "maven-publish")
     apply(from = "$rootDir/publishing.gradle.kts")
 }
@@ -48,9 +48,9 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configure
     }
 }
 
-tasks.dokkaHtmlMultiModule.configure {
-    outputDirectory.set(file("docs"))
-}
+//tasks.dokkaHtmlMultiModule.configure {
+//    outputDirectory.set(file("docs"))
+//}
 
 rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
     rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false

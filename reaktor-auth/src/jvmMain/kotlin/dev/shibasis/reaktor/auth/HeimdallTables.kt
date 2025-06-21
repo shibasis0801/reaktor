@@ -22,7 +22,7 @@ data class AppEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("\"user\"", schema = "heimdall")
 data class UserEntity(
@@ -36,7 +36,7 @@ data class UserEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("context", schema = "heimdall")
 data class ContextEntity(
@@ -47,7 +47,7 @@ data class ContextEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("role", schema = "heimdall")
 data class RoleEntity(
@@ -58,7 +58,7 @@ data class RoleEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("permission", schema = "heimdall")
 data class PermissionEntity(
@@ -69,7 +69,7 @@ data class PermissionEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("role_permissions", schema = "heimdall")
 data class RolePermissionEntity(
@@ -80,7 +80,7 @@ data class RolePermissionEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("user_role", schema = "heimdall")
 data class UserRoleEntity(
@@ -92,7 +92,7 @@ data class UserRoleEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable
 
 @Table("session", schema = "heimdall")
 data class SessionEntity(
@@ -105,4 +105,4 @@ data class SessionEntity(
     override var data: String = JSON_EMPTY_STRING,
     @Column("created_at") override var createdAt: Instant = Instant.now(),
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
-) : Auditable
+): Auditable

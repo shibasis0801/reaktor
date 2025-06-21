@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.web.*
+import org.gradle.kotlin.dsl.implementation
 
 
 plugins {
@@ -11,6 +12,9 @@ plugins {
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+extra["kotlinx-serialization.version"] = "1.8.0"
+
 
 kotlin {
     common {
@@ -47,6 +51,9 @@ kotlin {
             api("com.google.api-client:google-api-client:2.7.0")
             api("org.springframework.boot:spring-boot-starter-data-r2dbc:${Version.SDK.Spring}")
             api("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+            api("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3")
+            api("org.jetbrains.kotlin:kotlin-reflect:${Version.SDK.Kotlin}")
+            api("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${Version.Coroutines}")
         }
     }
 }

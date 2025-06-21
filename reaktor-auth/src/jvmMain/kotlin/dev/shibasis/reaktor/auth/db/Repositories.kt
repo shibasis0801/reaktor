@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.*
-import org.springframework.aot.hint.TypeReference.listOf
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.convert.converter.Converter
@@ -82,12 +81,14 @@ class InstantToOffsetDateTimeConverter : Converter<Instant, OffsetDateTime> {
 @EnableR2dbcRepositories
 open class R2dbcRepoConfig
 
-@Configuration(proxyBeanMethods = false)
+@Configuration
 open class DbConfig {
     @Bean
     open fun r2dbcCustomConversions(): R2dbcCustomConversions =
         R2dbcCustomConversions.of(
             PostgresDialect.INSTANCE,
-            listOf(OffsetDateTimeToInstantConverter(), InstantToOffsetDateTimeConverter())
+            listOf(
+                OffsetDateTimeToInstantConverter(), InstantToOffsetDateTimeConverter(),
+            )
         )
 }
