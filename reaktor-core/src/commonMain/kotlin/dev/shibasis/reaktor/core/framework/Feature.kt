@@ -9,16 +9,6 @@ interface DependencyModule: AutoCloseable {
     fun <T> fetchDependency(id: Int): T?
 }
 
-// Create a slot for a Feature, you will need to set it somewhere.
-class CreateSlot<T>(
-    private val dependencyModule: DependencyModule = Feature
-): ReadWriteProperty<Any, T?> {
-    val id = dependencyModule.createId()
-    override fun getValue(thisRef: Any, property: KProperty<*>) = dependencyModule.fetchDependency<T>(id)
-    override fun setValue(thisRef: Any, property: KProperty<*>, value: T?) =
-        dependencyModule.storeDependency(id, value)
-}
-
 /*
 Default global dependency module.
 Will see if DI is actually needed and if it can work without making code complex.
@@ -42,4 +32,15 @@ object Feature: DependencyModule {
     override fun close() {
         moduleMap = hashMapOf()
     }
+}
+
+// Create a slot for a Feature, you will need to set it somewhere.
+class CreateSlot<T>(
+    private val dependencyModule: DependencyModule = Feature
+): ReadWriteProperty<Any, T?> {
+    val id = dependencyModule.createId()
+    override fun getValue(thisRef: Any, property: KProperty<*>) =
+        dependencyModule.fetchDependency<T>(id)
+    override fun setValue(thisRef: Any, property: KProperty<*>, value: T?) =
+        dependencyModule.storeDependency(id, value)
 }

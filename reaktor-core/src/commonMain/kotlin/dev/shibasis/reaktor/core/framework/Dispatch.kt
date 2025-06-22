@@ -25,7 +25,8 @@ class DispatchGroup(private val coroutineDispatcher: CoroutineDispatcher) {
     private val scope = CoroutineScope(SupervisorJob())
     fun cancelAll() = scope.cancel()
     fun<Result> async(fn: suspend () -> Result) = scope.async(coroutineDispatcher) { fn() }
-    fun<Result> launch(fn: suspend () -> Result) = scope.launch(coroutineDispatcher) { fn() }
+    fun launch(fn: suspend () -> Unit) = scope.launch(coroutineDispatcher) { fn() }
+    suspend fun<Result> execute(fn: suspend () -> Result): Result = async { fn() }.await()
 }
 
 object Dispatch {

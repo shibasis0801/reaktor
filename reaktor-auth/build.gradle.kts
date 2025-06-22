@@ -47,9 +47,9 @@ kotlin {
     }
     server {
         dependencies = {
-            api("com.auth0:java-jwt:4.4.0")
-            api("com.google.api-client:google-api-client:2.7.0")
-            api("org.springframework.boot:spring-boot-starter-data-r2dbc:${Version.SDK.Spring}")
+            api("org.springframework.boot:spring-boot-starter-data-r2dbc:${Version.SDK.SpringBoot}")
+            api("org.springframework.boot:spring-boot-starter-oauth2-resource-server:${Version.SDK.SpringBoot}")
+            api("org.springframework.boot:spring-boot-starter-security:${Version.SDK.SpringBoot}")
             api("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
             api("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3")
             api("org.jetbrains.kotlin:kotlin-reflect:${Version.SDK.Kotlin}")

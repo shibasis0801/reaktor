@@ -23,6 +23,7 @@ fun KotlinMultiplatformExtension.server(
         configure.targetModifier(this)
         this.compilations.forEach {
             it.kotlinOptions.jvmTarget = Version.SDK.Java.asString
+            it.kotlinOptions.freeCompilerArgs += "-Xjvm-default=all"
         }
     }
 

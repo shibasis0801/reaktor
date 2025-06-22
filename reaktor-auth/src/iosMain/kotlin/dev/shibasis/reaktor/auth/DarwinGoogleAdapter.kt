@@ -9,7 +9,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.UIKit.UIViewController
 import kotlin.coroutines.resume
 
-class DarwinAuthAdapter(
+class DarwinGoogleAdapter(
     controller: UIViewController,
     authService: String
 ): AuthAdapter<UIViewController>(controller, AuthServiceClient(authService)) {

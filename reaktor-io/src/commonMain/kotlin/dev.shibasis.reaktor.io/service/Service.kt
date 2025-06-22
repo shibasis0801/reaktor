@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.io.service
 
 import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.RoutePattern
@@ -22,7 +23,7 @@ interface BaseRequest {
     val pathParams: MutableMap<String, String>
 
     companion object {
-        inline fun new(
+        operator fun invoke(
             headers: MutableMap<String, String> = mutableMapOf(),
             queryParams: MutableMap<String, String> = mutableMapOf(),
             pathParams: MutableMap<String, String> = mutableMapOf()
@@ -40,7 +41,7 @@ interface BaseResponse {
     var statusCode: StatusCode
 
     companion object {
-        inline fun new(
+        operator fun invoke(
             headers: MutableMap<String, String> = mutableMapOf(),
             statusCode: StatusCode = StatusCode.OK
         ) = object: BaseResponse {
@@ -123,5 +124,13 @@ data class EmptyResponse(
     override val headers: MutableMap<String, String> = mutableMapOf(),
 ) : BaseResponse
 
+/*
+todo
 
+1. support arbitrary clients
+2. support cloudflare workers
+3. support split servers (worker + server)
+4. support load balancing
+5. endless.
+*/
 

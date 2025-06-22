@@ -23,7 +23,7 @@ interface AppRepository: CoroutineCrudRepository<AppEntity, UUID> {
 interface UserRepository : CoroutineCrudRepository<UserEntity, UUID> {
     suspend fun findByName(name: String): UserEntity?
     suspend fun findByAppId(appId: UUID): UserEntity?
-    suspend fun findBySocialIdAndAppId(socialId: String, appId: UUID): UserEntity?
+    suspend fun findBySocialIdAndAppId(socialId: String, appId: UUID, provider: UserProvider): UserEntity?
 }
 
 interface ContextRepository : CoroutineCrudRepository<ContextEntity, UUID> {

@@ -24,10 +24,10 @@ abstract class AuthAdapter<Controller>(
     abstract suspend fun signOut(): Result<Unit>
     abstract suspend fun getGoogleUser(): GoogleUser?
 
-    suspend fun login(appId: String): SignInResponse {
-        val user = getGoogleUser() ?: googleLogin().getOrNull() ?: return SignInResponse.Failure.InvalidGoogleIdToken
+    suspend fun login(appId: String): LoginResponse {
+        val user = getGoogleUser() ?: googleLogin().getOrNull() ?: return LoginResponse.Failure.InvalidIdToken
 
-        val response = authClient.signIn(SignInRequest(user.idToken, appId))
+        val response = authClient.signIn(LoginRequest(user.idToken, appId))
         Logger.i { response.toString() }
 
         return response

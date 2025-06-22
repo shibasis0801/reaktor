@@ -7,12 +7,11 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.NoCredentialException
 import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import dev.shibasis.reaktor.auth.api.AuthServiceClient
 
 
-class AndroidAuthAdapter(
+class AndroidGoogleAdapter(
     activity: ComponentActivity,
     clientId: String,
     authService: String

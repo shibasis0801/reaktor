@@ -2,7 +2,6 @@
 package dev.shibasis.dependeasy.server
 
 import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.utils.module
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 
 fun KotlinDependencyHandler.serverNetworking() {
@@ -10,5 +9,5 @@ fun KotlinDependencyHandler.serverNetworking() {
 }
 
 fun KotlinDependencyHandler.springWebFlux() {
-    api("org.springframework.boot:spring-boot-starter-webflux:${Version.SDK.Spring}")
+    api("org.springframework.boot:spring-boot-starter-webflux:${Version.SDK.SpringBoot}")
 }
