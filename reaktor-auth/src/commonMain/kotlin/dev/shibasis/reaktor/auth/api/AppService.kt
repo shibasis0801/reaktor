@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.auth.service
+package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.core.network.ErrorMessage

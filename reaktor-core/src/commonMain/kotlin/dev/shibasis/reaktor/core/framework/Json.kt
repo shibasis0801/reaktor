@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.core.framework
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 // Unfortunately we can't change default behaviour as other libraries may rely on it. So these wrappers.
 
@@ -15,3 +17,8 @@ fun JsonBuilder.defaults() {
 var json = Json {
     defaults()
 }
+
+inline fun JsonObject.copy(
+    fn: MutableMap<String, JsonElement>.() -> Unit
+) = JsonObject(toMutableMap().apply(fn))
+

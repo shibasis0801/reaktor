@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth
 
+import kotlinx.serialization.json.Json
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
@@ -8,13 +9,17 @@ import java.util.UUID
 
 const val JSON_EMPTY_STRING = "{}"
 
+// DO NOT USE IN R2DBC REPOSITORIES, WILL GET FUCKED BY SPRING AOT
+val JSON_EMPTY_OBJECT = Json.parseToJsonElement(JSON_EMPTY_STRING)
+
+
 interface Auditable {
     var data: String
     var createdAt: Instant
     var updatedAt: Instant
 }
 
-@Table("app", schema = "heimdall")
+@Table("heimdall.app")
 data class AppEntity(
     @Id val id: UUID,
     val name: String,
@@ -24,7 +29,7 @@ data class AppEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("\"user\"", schema = "heimdall")
+@Table("heimdall.users")
 data class UserEntity(
     @Id val id: UUID,
     val name: String,
@@ -38,7 +43,7 @@ data class UserEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("context", schema = "heimdall")
+@Table("heimdall.context")
 data class ContextEntity(
     @Id val id: UUID,
     val name: String,
@@ -49,7 +54,7 @@ data class ContextEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("role", schema = "heimdall")
+@Table("heimdall.role")
 data class RoleEntity(
     @Id val id: UUID,
     val name: String,
@@ -60,7 +65,7 @@ data class RoleEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("permission", schema = "heimdall")
+@Table("heimdall.permission")
 data class PermissionEntity(
     @Id val id: UUID,
     val name: String,
@@ -71,7 +76,7 @@ data class PermissionEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("role_permissions", schema = "heimdall")
+@Table("heimdall.role_permissions")
 data class RolePermissionEntity(
     @Id val id: UUID,
     @Column("role_id") val roleId: UUID,
@@ -82,7 +87,7 @@ data class RolePermissionEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("user_role", schema = "heimdall")
+@Table("heimdall.user_role")
 data class UserRoleEntity(
     @Id val id: UUID,
     @Column("user_id") val userId: UUID,
@@ -94,7 +99,7 @@ data class UserRoleEntity(
     @Column("updated_at") override var updatedAt: Instant = Instant.now()
 ): Auditable
 
-@Table("session", schema = "heimdall")
+@Table("heimdall.session")
 data class SessionEntity(
     @Id val id: UUID,
     @Column("user_id") val userId: UUID,

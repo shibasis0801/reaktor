@@ -3,10 +3,7 @@ package dev.shibasis.reaktor.auth.api
 import dev.shibasis.reaktor.auth.AppEntity
 import dev.shibasis.reaktor.auth.db.AppRepository
 import dev.shibasis.reaktor.auth.db.invoke
-import dev.shibasis.reaktor.auth.service.AppResponse
-import dev.shibasis.reaktor.auth.service.AppService
 import dev.shibasis.reaktor.auth.utils.toDto
-import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.serialization.TextSerializer
@@ -16,9 +13,7 @@ import dev.shibasis.reaktor.io.service.EmptyRequest
 import dev.shibasis.reaktor.io.service.HttpMethod
 import dev.shibasis.reaktor.io.service.RequestHandler
 import dev.shibasis.reaktor.io.service.Service
-import io.ktor.client.request.request
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.springframework.http.HttpStatus

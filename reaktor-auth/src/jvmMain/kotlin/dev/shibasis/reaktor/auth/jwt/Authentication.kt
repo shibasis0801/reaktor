@@ -12,7 +12,6 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import com.nimbusds.jwt.proc.DefaultJWTProcessor
 import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.auth.api.LoginRequest
-import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.utils.fail
 import kotlinx.serialization.Serializable
 import org.springframework.stereotype.Component
@@ -34,73 +33,85 @@ data class AuthenticatedUser(
     }
 }
 
-sealed class UserProviderAuthentication(open val audiences: List<String>) {
-    data class External(
+sealed class UserAuthenticationProvider(open val audiences: List<String>) {
+    sealed class External(
         val userProvider: UserProvider,
         val issuer: String,
         val jwksUrl: String,
         override val audiences: List<String>
-    ): UserProviderAuthentication(audiences)
+    ): UserAuthenticationProvider(audiences)
 
     data class App(
         override val audiences: List<String>
-    ): UserProviderAuthentication(audiences)
+    ): UserAuthenticationProvider(audiences)
+
+
+    data class Google(
+        override val audiences: List<String>
+    ): External(
+        userProvider = UserProvider.GOOGLE,
+        issuer = "https://accounts.google.com",
+        jwksUrl = "https://www.googleapis.com/oauth2/v3/certs",
+        audiences
+    )
+
+    data class Apple(
+        override val audiences: List<String>
+    ): External(
+        userProvider = UserProvider.APPLE,
+        issuer = "https://appleid.apple.com",
+        jwksUrl = "https://appleid.apple.com/auth/keys",
+        audiences
+    )
 }
 
 
 @Component
 open class JwtVerifier(
-    val userProviderAuthentications: List<UserProviderAuthentication>
+    val userAuthenticationProviders: List<UserAuthenticationProvider>
 ) {
 
-    private val cachedProcessors = ConcurrentHashMap<UserProviderAuthentication, ConfigurableJWTProcessor<SecurityContext>>()
-    fun getProcessor(userProviderAuthentication: UserProviderAuthentication): ConfigurableJWTProcessor<SecurityContext> {
-        var jwtProcessor = cachedProcessors[userProviderAuthentication]
+    private val cachedProcessors = ConcurrentHashMap<UserAuthenticationProvider, ConfigurableJWTProcessor<SecurityContext>>()
+    fun getProcessor(userAuthenticationProvider: UserAuthenticationProvider): ConfigurableJWTProcessor<SecurityContext> {
+        var jwtProcessor = cachedProcessors[userAuthenticationProvider]
         if (jwtProcessor != null) return jwtProcessor
 
         jwtProcessor = DefaultJWTProcessor()
 
-        when (userProviderAuthentication) {
-            is UserProviderAuthentication.App -> {
+        when (userAuthenticationProvider) {
+            is UserAuthenticationProvider.App -> {
                 // todo implement jwks, etc
                 // todo implement RequiresAuth as a pure kotlin function, but have DI to support spring/workers, then create the annotation.
             }
-            is UserProviderAuthentication.External -> {
-                jwtProcessor.jwsKeySelector = JWSVerificationKeySelector(JWSAlgorithm.RS256, RemoteJWKSet(URL(userProviderAuthentication.jwksUrl)))
+            is UserAuthenticationProvider.External -> {
+                jwtProcessor.jwsKeySelector = JWSVerificationKeySelector(JWSAlgorithm.RS256, RemoteJWKSet(URL(userAuthenticationProvider.jwksUrl)))
                 jwtProcessor.jwtClaimsSetVerifier = DefaultJWTClaimsVerifier(
-                    JWTClaimsSet.Builder()
-                        .issuer(userProviderAuthentication.issuer)
-                        .audience(userProviderAuthentication.audiences)
-                        .build(),
-                    setOf("sub", "email", "name", "exp", "iat", "iss", "aud")
+                    userAuthenticationProvider.audiences.toSet(),
+                    null,
+                    setOf("sub", "email", "iss", "aud"),
+                    setOf()
                 )
+
                 jwtProcessor.jwsTypeVerifier = DefaultJOSEObjectTypeVerifier(JOSEObjectType("JWT"))
             }
         }
 
-        cachedProcessors[userProviderAuthentication] = jwtProcessor
+        cachedProcessors[userAuthenticationProvider] = jwtProcessor
         return jwtProcessor
     }
 
 
-
     suspend operator fun invoke(loginRequest: LoginRequest): Result<AuthenticatedUser> {
         val userProvider = loginRequest.provider
-        val userProviderAuthentication = userProviderAuthentications
-            .find { it is UserProviderAuthentication.External && it.userProvider == loginRequest.provider }
+        val userAuthenticationProvider = userAuthenticationProviders
+            .find { it is UserAuthenticationProvider.External && it.userProvider == loginRequest.provider }
             ?: return fail("Misconfiguration, need provider for $userProvider")
 
-        val processor = getProcessor(userProviderAuthentication)
+        val processor = getProcessor(userAuthenticationProvider)
         return runCatching {
-            Dispatch.IO.execute {
-                processor.process(loginRequest.idToken, null)
-            }
+            processor.process(loginRequest.idToken, null)
         }.map {
             AuthenticatedUser(it, userProvider)
         }
-    }
-
-    suspend operator fun invoke(token: String) {
-
     }
 }

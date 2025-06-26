@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.*
+import dev.shibasis.reaktor.core.utils.onFailure
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.convert.converter.Converter
@@ -8,8 +9,10 @@ import org.springframework.data.convert.ReadingConverter
 import org.springframework.data.convert.WritingConverter
 import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
 import org.springframework.data.r2dbc.dialect.PostgresDialect
+import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -23,7 +26,13 @@ interface AppRepository: CoroutineCrudRepository<AppEntity, UUID> {
 interface UserRepository : CoroutineCrudRepository<UserEntity, UUID> {
     suspend fun findByName(name: String): UserEntity?
     suspend fun findByAppId(appId: UUID): UserEntity?
-    suspend fun findBySocialIdAndAppId(socialId: String, appId: UUID, provider: UserProvider): UserEntity?
+
+    @Query("SELECT * FROM users WHERE social_id = :socialId AND app_id = :appId AND provider = :provider")
+    suspend fun findBySocialIdAndAppIdAndProvider(
+        @Param("socialId") socialId: String,
+        @Param("appId") appId: UUID,
+        @Param("provider") provider: UserProvider
+    ): UserEntity?
 }
 
 interface ContextRepository : CoroutineCrudRepository<ContextEntity, UUID> {
@@ -55,11 +64,17 @@ interface SessionRepository: CoroutineCrudRepository<SessionEntity, UUID> {
     suspend fun findByUserIdAndAppIdAndContextId(userId: UUID, appId: UUID, contextId: UUID): SessionEntity?
 }
 
+class DataNotFoundException: NoSuchElementException()
+
 suspend inline operator fun <Repo, R : Any> Repo.invoke(
     crossinline block: suspend Repo.() -> R?
 ): Result<R>
 where Repo : CoroutineCrudRepository<*, *> =
-    runCatching { block() ?: throw NullPointerException() }
+    runCatching {
+        val data = block()
+        data ?: throw DataNotFoundException()
+        data
+    }
 
 @Component
 @ReadingConverter
@@ -76,10 +91,6 @@ class InstantToOffsetDateTimeConverter : Converter<Instant, OffsetDateTime> {
         return source.atOffset(ZoneOffset.UTC)
     }
 }
-
-@Configuration
-@EnableR2dbcRepositories
-open class R2dbcRepoConfig
 
 @Configuration
 open class DbConfig {

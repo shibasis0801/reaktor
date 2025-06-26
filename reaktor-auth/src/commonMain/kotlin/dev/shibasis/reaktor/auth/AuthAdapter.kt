@@ -4,7 +4,9 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.auth.api.*
+import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.auth.api.LoginRequest
+import dev.shibasis.reaktor.auth.api.LoginResponse
 import kotlinx.serialization.Serializable
 
 
@@ -27,7 +29,7 @@ abstract class AuthAdapter<Controller>(
     suspend fun login(appId: String): LoginResponse {
         val user = getGoogleUser() ?: googleLogin().getOrNull() ?: return LoginResponse.Failure.InvalidIdToken
 
-        val response = authClient.signIn(LoginRequest(user.idToken, appId))
+        val response = authClient.signIn(LoginRequest(user.idToken, appId, UserProvider.GOOGLE, user.name))
         Logger.i { response.toString() }
 
         return response

@@ -59,7 +59,7 @@ CREATE TABLE app (
     name VARCHAR(100) NOT NULL
 ) INHERITS (auditable);
 
-CREATE TABLE "user" (
+CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     social_id TEXT NOT NULL,
@@ -109,7 +109,7 @@ CREATE TABLE user_role (
     role_id UUID NOT NULL,
     context_id UUID NOT NULL,
     UNIQUE (user_id, role_id, context_id),
-    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
     FOREIGN KEY (context_id) REFERENCES context(id) ON DELETE CASCADE
 ) INHERITS (auditable);
@@ -121,12 +121,12 @@ CREATE TABLE session (
     context_id UUID NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (context_id) REFERENCES context(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
 CREATE INDEX idx_context_app_id ON context(app_id);
-CREATE INDEX idx_user_app_id ON "user"(app_id);
+CREATE INDEX idx_user_app_id ON users(app_id);
 CREATE INDEX idx_role_app_id ON role(app_id);
 CREATE INDEX idx_permission_app_id ON permission(app_id);
 CREATE INDEX idx_role_permissions_role_id ON role_permissions(role_id);
@@ -140,7 +140,7 @@ CREATE INDEX idx_session_context_id ON session(context_id);
 CREATE INDEX idx_session_expires_at ON session(expires_at);
 
 CREATE TRIGGER app_updated BEFORE UPDATE ON app FOR EACH ROW EXECUTE FUNCTION on_update();
-CREATE TRIGGER user_updated BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER user_updated BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER context_updated BEFORE UPDATE ON context FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER role_updated BEFORE UPDATE ON role FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER permission_updated BEFORE UPDATE ON permission FOR EACH ROW EXECUTE FUNCTION on_update();

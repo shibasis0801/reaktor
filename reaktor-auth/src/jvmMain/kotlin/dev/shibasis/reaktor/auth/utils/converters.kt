@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.auth.utils
 
 import dev.shibasis.reaktor.auth.*
+import dev.shibasis.reaktor.core.framework.json
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import kotlinx.serialization.json.Json
@@ -12,13 +13,13 @@ fun java.time.Instant.toKotlinInstant(): Instant =
 fun String.uuid(): UUID = UUID.fromString(this)
 
 fun Auditable.read(rowData: RowData) {
-    data = Json.encodeToString(rowData.data)
+    data = json.encodeToString(rowData.data)
     createdAt = rowData.createdAt.toJavaInstant()
     updatedAt = rowData.updatedAt.toJavaInstant()
 }
 
 fun Auditable.rowData(): RowData = RowData(
-    Json.parseToJsonElement(data),
+    json.parseToJsonElement(data),
     createdAt.toKotlinInstant(),
     updatedAt.toKotlinInstant()
 )
