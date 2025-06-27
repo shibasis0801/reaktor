@@ -48,10 +48,14 @@ kotlin {
 
     server {
         dependencies = {
-            api("org.springframework.boot:spring-boot-starter-data-r2dbc:${Version.SDK.SpringBoot}")
+            api("org.springframework.boot:spring-boot-starter-webflux:${Version.SDK.SpringBoot}")
             api("org.springframework.boot:spring-boot-starter-oauth2-resource-server:${Version.SDK.SpringBoot}")
             api("org.springframework.boot:spring-boot-starter-security:${Version.SDK.SpringBoot}")
-            api("io.vertx:vertx-pg-client:4.5.8")
+            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-json:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-kotlin-datetime:${Version.Exposed}")
+            api("org.postgresql:postgresql:42.7.3")
             api("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3")
             api("org.jetbrains.kotlin:kotlin-reflect:${Version.SDK.Kotlin}")
             api("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${Version.Coroutines}")

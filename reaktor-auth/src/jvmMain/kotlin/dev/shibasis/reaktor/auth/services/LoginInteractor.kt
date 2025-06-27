@@ -1,45 +1,39 @@
 package dev.shibasis.reaktor.auth.services
 
-import dev.shibasis.reaktor.auth.UserEntity
+import dev.shibasis.reaktor.auth.User
 import dev.shibasis.reaktor.auth.UserStatus
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.db.AppRepository
 import dev.shibasis.reaktor.auth.db.UserRepository
-import dev.shibasis.reaktor.auth.db.invoke
 import dev.shibasis.reaktor.auth.jwt.JwtVerifier
-import dev.shibasis.reaktor.auth.utils.toDto
-import dev.shibasis.reaktor.auth.utils.uuid
+import dev.shibasis.reaktor.core.framework.EMPTY_JSON
+import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.utils.info
 import dev.shibasis.reaktor.core.utils.invoke
 import dev.shibasis.reaktor.core.utils.logger
-import dev.shibasis.reaktor.core.utils.onFailure
 import dev.shibasis.reaktor.core.utils.read
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
+inline fun String.uuid(): UUID = UUID.fromString(this)
 
-/*
-todo:
-    if a user exists for another app, copy their data here.
- */
+/* todo: if a user exists for another app, copy their data here */
 @Component
 open class LoginInteractor(
     private val userRepository: UserRepository,
     private val appRepository: AppRepository,
-    private val profileInteractor: BaseProfileInteractor<out BaseProfileEntity>,
+    private val profileRepository: BaseProfileRepository<out BaseProfile>,
     private val jwtVerifier: JwtVerifier
 ) {
     private val logger = "Reaktor:LoginService".logger()
 
-//    @Transactional
     open suspend fun login(request: LoginRequest): LoginResponse {
         logger { request }
 
-        val appResult = appRepository {
-            findById(request.appId.uuid())
-        }
+        val appId = request.appId.uuid()
+
+        val appResult = appRepository.findById(request, appId)
 
         val app = appResult.read()
             ?: return LoginResponse.Failure.InvalidAppId
@@ -55,41 +49,37 @@ open class LoginInteractor(
         val provider = request.provider
         val userName = request.userName
 
-        val userResult = userRepository {
-            findBySocialIdAndAppIdAndProvider(subject, app.id, provider)
-        }
-
-
-        userResult.onFailure {
-            userRepository {
-                save(
-                    UserEntity(
-                        UUID.randomUUID(),
-                        userName,
-                        subject,
-                        app.id,
-                        provider,
-                        UserStatus.ONBOARDING
-                    )
-                )
+        val userResult = userRepository
+            .findByAppIdAndProvider(request, appId,subject, provider)
+            .onFailure {
+                userRepository.upsert(request, User(
+                    id = UUID.randomUUID().toString(),
+                    name = userName,
+                    socialId = subject,
+                    appId = appId.toString(),
+                    provider = provider,
+                    status = UserStatus.ONBOARDING,
+                    data = request.newUserProfile ?: EMPTY_JSON
+                ))
             }
-        }
 
         val user = userResult.read()
             ?: return LoginResponse.Failure.ServerError("Unable to read/create user")
 
         logger { user }
 
-        val profileResult = profileInteractor.fetch(user.id)
-            .onFailure {
-                val profileData = request.newUserProfile ?: return LoginResponse.Failure.RequiresUserProfile
-                profileInteractor.create(user.id, profileData)
-            }
+        var profileResult = profileRepository.fetch(request, user.id)
+
+        if (profileResult.isFailure) {
+            request.newUserProfile ?: return LoginResponse.Failure.RequiresUserProfile
+            profileResult = profileRepository.create(request, user.id)
+        }
+
 
         val profile = profileResult.read()
             ?: return LoginResponse.Failure.ServerError("Unable to read/create profile")
 
         logger { profile }
-        return LoginResponse.Success(user.toDto(), profile.toJson())
+        return LoginResponse.Success(user, profile.toJson())
     }
 }

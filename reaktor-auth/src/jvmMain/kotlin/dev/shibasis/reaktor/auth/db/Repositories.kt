@@ -1,105 +1,67 @@
 package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.*
-import dev.shibasis.reaktor.core.utils.onFailure
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
-import org.springframework.core.convert.converter.Converter
-import org.springframework.data.convert.ReadingConverter
-import org.springframework.data.convert.WritingConverter
-import org.springframework.data.r2dbc.convert.R2dbcCustomConversions
-import org.springframework.data.r2dbc.dialect.PostgresDialect
-import org.springframework.data.r2dbc.repository.Query
-import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.data.repository.query.Param
+import dev.shibasis.reaktor.auth.Apps
+import dev.shibasis.reaktor.auth.Users
+import dev.shibasis.reaktor.framework.CrudRepository
+import dev.shibasis.reaktor.framework.ExposedAdapter
+import dev.shibasis.reaktor.io.service.BaseRequest
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.upsertReturning
 import org.springframework.stereotype.Component
-import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import java.util.UUID
 
-interface AppRepository: CoroutineCrudRepository<AppEntity, UUID> {
-    suspend fun findByName(name: String): AppEntity?
-}
-
-interface UserRepository : CoroutineCrudRepository<UserEntity, UUID> {
-    suspend fun findByName(name: String): UserEntity?
-    suspend fun findByAppId(appId: UUID): UserEntity?
-
-    @Query("SELECT * FROM users WHERE social_id = :socialId AND app_id = :appId AND provider = :provider")
-    suspend fun findBySocialIdAndAppIdAndProvider(
-        @Param("socialId") socialId: String,
-        @Param("appId") appId: UUID,
-        @Param("provider") provider: UserProvider
-    ): UserEntity?
-}
-
-interface ContextRepository : CoroutineCrudRepository<ContextEntity, UUID> {
-    suspend fun findByAppId(appId: UUID): ContextEntity?
-}
-
-interface RoleRepository : CoroutineCrudRepository<RoleEntity, UUID> {
-    suspend fun findByAppId(appId: UUID): RoleEntity?
-}
-
-interface PermissionRepository: CoroutineCrudRepository<PermissionEntity, UUID> {
-    suspend fun findByAppId(appId: UUID): PermissionEntity?
-}
-
-interface RolePermissionRepository: CoroutineCrudRepository<RolePermissionEntity, UUID> {
-    suspend fun findByRoleId(roleId: UUID): RolePermissionEntity?
-    suspend fun findByPermissionId(permissionId: UUID): RolePermissionEntity?
-}
-
-interface UserRoleRepository: CoroutineCrudRepository<UserRoleEntity, UUID> {
-    suspend fun findByUserId(userId: UUID): UserRoleEntity?
-    suspend fun findByRoleId(roleId: UUID): UserRoleEntity?
-    suspend fun findByContextId(contextId: UUID): UserRoleEntity?
-    suspend fun findByUserIdAndContextId(userId: UUID, contextId: UUID): UserRoleEntity?
-}
-
-interface SessionRepository: CoroutineCrudRepository<SessionEntity, UUID> {
-    suspend fun findByUserId(userId: UUID): SessionEntity?
-    suspend fun findByUserIdAndAppIdAndContextId(userId: UUID, appId: UUID, contextId: UUID): SessionEntity?
-}
-
-class DataNotFoundException: NoSuchElementException()
-
-suspend inline operator fun <Repo, R : Any> Repo.invoke(
-    crossinline block: suspend Repo.() -> R?
-): Result<R>
-where Repo : CoroutineCrudRepository<*, *> =
-    runCatching {
-        val data = block()
-        data ?: throw DataNotFoundException()
-        data
+@Component
+class AppRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
+    suspend fun findById(
+        request: BaseRequest,
+        id: UUID
+    ) = request.sql {
+        Apps.selectAll()
+            .where { Apps.id eq id }
+            .map { Apps.toDto(it) }
+            .firstOrNull()
     }
+
+    suspend fun all(
+        request: BaseRequest
+    ) = request.sql {
+        Apps.selectAll()
+            .map { Apps.toDto(it) }
+    }
+
+    suspend fun findByName(
+        request: BaseRequest,
+        name: String
+    ) = request.sql {
+        Apps.selectAll()
+            .where { Apps.name eq name }
+            .map { Apps.toDto(it) }
+            .firstOrNull()
+    }
+}
+
 
 @Component
-@ReadingConverter
-class OffsetDateTimeToInstantConverter : Converter<OffsetDateTime, Instant> {
-    override fun convert(source: OffsetDateTime): Instant {
-        return source.toInstant()
+class UserRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
+    suspend fun findByAppIdAndProvider(
+        request: BaseRequest,
+        appId: UUID,
+        socialId: String,
+        provider: UserProvider
+    ) = request.sql {
+        Users.selectAll()
+            .where { (Users.appId eq appId) and (Users.provider eq provider) and (Users.socialId eq socialId) }
+            .map { Users.toDto(it) }
+            .firstOrNull()
     }
-}
 
-@Component
-@WritingConverter
-class InstantToOffsetDateTimeConverter : Converter<Instant, OffsetDateTime> {
-    override fun convert(source: Instant): OffsetDateTime {
-        return source.atOffset(ZoneOffset.UTC)
+    suspend fun upsert(
+        request: BaseRequest,
+        user: User
+    ) = request.sql {
+        val data = Users.upsertReturning { it.fields(user) }.toList()
+        data.firstOrNull()?.let { Users.toDto(it) }
     }
-}
-
-@Configuration
-open class DbConfig {
-    @Bean
-    open fun r2dbcCustomConversions(): R2dbcCustomConversions =
-        R2dbcCustomConversions.of(
-            PostgresDialect.INSTANCE,
-            listOf(
-                OffsetDateTimeToInstantConverter(), InstantToOffsetDateTimeConverter(),
-            )
-        )
 }

@@ -25,10 +25,6 @@ inline fun<T> Result<T>.read(): T? = fold(
 inline fun <T, R : Any> Result<T>.chain(transform: (T) -> Result<R>): Result<R> =
     fold(transform) { fail(it) }
 
-inline fun<T> Result<T>.onFailure(
-    recover: (Throwable) -> Result<T>
-): Result<T> = fold({ this }, { recover(it) })
-
 
 fun<T> fail(message: String) = Result.failure<T>(Throwable(message))
 fun<T> fail(throwable: Throwable) = Result.failure<T>(throwable)

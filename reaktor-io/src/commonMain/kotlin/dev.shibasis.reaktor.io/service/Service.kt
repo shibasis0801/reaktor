@@ -12,8 +12,18 @@ import kotlinx.serialization.serializer
 import kotlin.js.JsExport
 
 @JsExport
-enum class HttpMethod() {
+enum class HttpMethod {
     GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD
+}
+
+@JsExport
+enum class Environment {
+    STAGE, PROD;
+    companion object {
+        final val Header = "X-Environment"
+        operator fun invoke(value: String) =
+            if (value.lowercase() == "prod") PROD else STAGE
+    }
 }
 
 @JsExport
@@ -21,6 +31,7 @@ interface BaseRequest {
     val headers: MutableMap<String, String>
     val queryParams: MutableMap<String, String>
     val pathParams: MutableMap<String, String>
+    var environment: Environment
 
     companion object {
         operator fun invoke(
@@ -31,6 +42,7 @@ interface BaseRequest {
             override val headers = headers
             override val queryParams = queryParams
             override val pathParams = pathParams
+            override var environment = Environment.STAGE
         }
     }
 }
@@ -115,14 +127,15 @@ abstract class Service(val baseUrl: String = "") : Adapter<Unit>(Unit) {
 data class EmptyRequest(
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
-    override val pathParams: MutableMap<String, String> = mutableMapOf()
-) : BaseRequest
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment = Environment.STAGE
+): BaseRequest
 
 @Serializable
 data class EmptyResponse(
     override var statusCode: StatusCode = StatusCode.OK,
     override val headers: MutableMap<String, String> = mutableMapOf(),
-) : BaseResponse
+): BaseResponse
 
 /*
 todo

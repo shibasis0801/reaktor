@@ -1,30 +1,28 @@
 package dev.shibasis.reaktor.auth
 
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlin.js.JsExport
 
+
 @JsExport
-@Serializable
-data class RowData(
-    val data: JsonElement,
-    val createdAt: Instant,
-    val updatedAt: Instant
-)
+interface AuditableDto {
+    var data: JsonElement
+    var createdAt: Instant
+    var updatedAt: Instant
+}
 
 @JsExport
 @Serializable
 data class App(
     val id: String,
     val name: String,
-    val rowData: RowData
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 @Serializable
@@ -32,8 +30,10 @@ data class Entity(
     val id: String,
     val name: String,
     val appId: String,
-    val rowData: RowData
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 enum class UserStatus {
@@ -58,8 +58,10 @@ data class User(
     val appId: String,
     val provider: UserProvider,
     val status: UserStatus,
-    val rowData: RowData,
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 
 @JsExport
@@ -68,8 +70,10 @@ data class Role(
     val id: String,
     val name: String,
     val appId: String,
-    val rowData: RowData,
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 @Serializable
@@ -77,8 +81,10 @@ data class Permission(
     val id: String,
     val name: String,
     val appId: String,
-    val rowData: RowData,
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 @Serializable
@@ -87,9 +93,11 @@ data class Session(
     val userId: String,
     val appId: String,
     val contextId: String,
-    val expiresAt: Instant,
-    val rowData: RowData,
-)
+    val expiresAt: Instant = Clock.System.now() ,
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 @Serializable
@@ -97,8 +105,10 @@ data class Context(
     val id: String,
     val name: String,
     val appId: String,
-    val rowData: RowData
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 @Serializable
@@ -106,8 +116,10 @@ data class RolePermission(
     val id: String,
     val roleId: String,
     val permissionId: String,
-    val rowData: RowData
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
 
 @JsExport
 @Serializable
@@ -116,5 +128,7 @@ data class UserRole(
     val userId: String,
     val roleId: String,
     val contextId: String,
-    val rowData: RowData
-)
+    override var data: JsonElement,
+    override var createdAt: Instant = Clock.System.now(),
+    override var updatedAt: Instant = Clock.System.now()
+): AuditableDto

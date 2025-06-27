@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.io.network.Post
 import dev.shibasis.reaktor.io.network.http
 import dev.shibasis.reaktor.io.service.BaseRequest
 import dev.shibasis.reaktor.io.service.BaseResponse
+import dev.shibasis.reaktor.io.service.Environment
 import dev.shibasis.reaktor.io.service.RequestHandler
 import dev.shibasis.reaktor.io.service.Service
 import io.ktor.client.call.body
@@ -24,7 +25,8 @@ data class LoginRequest(
     val newUserProfile: JsonElement? = null,
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
-    override val pathParams: MutableMap<String, String> = mutableMapOf()
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment
 ): BaseRequest
 
 @Serializable

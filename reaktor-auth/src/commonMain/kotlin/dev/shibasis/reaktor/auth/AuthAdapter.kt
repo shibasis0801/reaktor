@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
+import dev.shibasis.reaktor.io.service.Environment
 import kotlinx.serialization.Serializable
 
 
@@ -26,10 +27,16 @@ abstract class AuthAdapter<Controller>(
     abstract suspend fun signOut(): Result<Unit>
     abstract suspend fun getGoogleUser(): GoogleUser?
 
-    suspend fun login(appId: String): LoginResponse {
+    suspend fun login(appId: String, environment: Environment = Environment.STAGE): LoginResponse {
         val user = getGoogleUser() ?: googleLogin().getOrNull() ?: return LoginResponse.Failure.InvalidIdToken
 
-        val response = authClient.signIn(LoginRequest(user.idToken, appId, UserProvider.GOOGLE, user.name))
+        val response = authClient.signIn(LoginRequest(
+            idToken = user.idToken,
+            appId = appId,
+            provider = UserProvider.GOOGLE,
+            userName = user.name,
+            environment = environment)
+        )
         Logger.i { response.toString() }
 
         return response

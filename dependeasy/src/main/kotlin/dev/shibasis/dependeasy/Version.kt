@@ -34,7 +34,7 @@ object Version {
 
     // Data
     const val SQLDelight = "2.0.0"
-    const val Exposed = "0.50.0"
+    const val Exposed = "1.0.0-beta-2"
     const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
     const val Ktor = "3.1.0"

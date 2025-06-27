@@ -18,6 +18,8 @@ var json = Json {
     defaults()
 }
 
+val EMPTY_JSON = JsonObject(emptyMap())
+
 inline fun JsonObject.copy(
     fn: MutableMap<String, JsonElement>.() -> Unit
 ) = JsonObject(toMutableMap().apply(fn))
