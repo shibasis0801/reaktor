@@ -3,9 +3,6 @@ package dev.shibasis.reaktor.core.framework
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.promise
 
-
-actual val __PLATFORM = PlatformType.WEB
-
 // noop
 actual class WeakRef<T> actual constructor(referred: T) {
     private val ref = referred

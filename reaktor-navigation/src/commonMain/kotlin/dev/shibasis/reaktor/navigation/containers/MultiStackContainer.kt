@@ -2,10 +2,8 @@ package dev.shibasis.reaktor.navigation.containers
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.common.ScreenPair
-import dev.shibasis.reaktor.navigation.navigation.Navigator
 import dev.shibasis.reaktor.navigation.route.Container
 import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.route.Route

@@ -3,13 +3,7 @@ package dev.shibasis.reaktor.io.adapters
 import android.app.Activity
 import android.net.Uri
 import android.provider.DocumentsContract.Document
-import androidx.activity.ComponentActivity
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.io.adapters.FileAdapter
-import kotlinx.io.asSource
-import kotlinx.io.buffered
-import okio.Okio
-import okio.source
 import java.io.File
 
 class AndroidFileAdapter(activity: Activity): FileAdapter<Activity>(activity) {

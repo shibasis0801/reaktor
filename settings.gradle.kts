@@ -183,10 +183,10 @@ fun linkHermes(
 }
 linkHermes(githubDir)
 
-include(":flatinvoker-core")
-include(":flatinvoker-ffi")
+include(":reaktor-flexbuffer")
+include(":reaktor-ffi")
 //include(":flatinvoker-react") // will fix later
-include(":flatinvoker-compiler")
+include(":reaktor-compiler")
 include(":reaktor-core")
 include(":reaktor-io")
 include(":reaktor-db")

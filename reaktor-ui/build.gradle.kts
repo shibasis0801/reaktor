@@ -20,8 +20,9 @@ kotlin {
             api(compose.foundation)
             api(compose.material3)
             api(compose.materialIconsExtended)
-            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-            api(compose.components.resources)
+            api("io.coil-kt.coil3:coil-compose:3.2.0")
+            api("io.coil-kt.coil3:coil-network-ktor3:3.2.0")
+            api("io.coil-kt.coil3:coil-svg:3.2.0")
         }
         testDependencies = {
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)

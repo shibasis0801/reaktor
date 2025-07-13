@@ -14,6 +14,8 @@ import io.ktor.client.call.body
 import io.ktor.client.request.setBody
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 
 @Serializable
@@ -21,8 +23,12 @@ data class LoginRequest(
     val idToken: String,
     val appId: String,
     val provider: UserProvider = UserProvider.GOOGLE,
-    val userName: String, // apple does not send it in JWT, and will only send it only once. (wtf)
-    val newUserProfile: JsonElement? = null,
+    val givenName: String? = null, // apple does not send it in JWT, and will only send it only once. (wtf)
+    val familyName: String? = null, // apple does not send it in JWT, and will only send it only once. (wtf)
+    val newUserProfile: JsonElement = JsonObject(mapOf(
+        "gender" to JsonPrimitive("Male"),
+        "location" to JsonPrimitive("0101000020E6100000E78C28ED0D6653405396218E75F12940")
+    )),
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
@@ -46,7 +52,16 @@ sealed class LoginResponse(
         data object InvalidAppId: Failure(StatusCode.BAD_REQUEST)
 
         @Serializable
+        data object UnsupportedUserProvider: Failure(StatusCode.BAD_REQUEST)
+
+        @Serializable
+        data object RequiresUserName: Failure(StatusCode.BAD_REQUEST)
+
+        @Serializable
         data object RequiresUserProfile: Failure(StatusCode.NOT_FOUND)
+
+        @Serializable
+        data class AppLoginFailure(val userProvider: UserProvider): Failure(StatusCode.BAD_REQUEST)
 
         @Serializable
         class ServerError(val message: String): Failure(StatusCode.INTERNAL_SERVER_ERROR)
@@ -55,11 +70,11 @@ sealed class LoginResponse(
 
 
 abstract class AuthService: Service() {
-    abstract val signIn: RequestHandler<LoginRequest, LoginResponse>
+    abstract val login: RequestHandler<LoginRequest, LoginResponse>
 }
 
 class AuthServiceClient(baseUrl: String): AuthService() {
-    override val signIn = PostHandler<LoginRequest, LoginResponse>("${baseUrl}/auth/sign-in") {
+    override val login = PostHandler<LoginRequest, LoginResponse>("${baseUrl}/auth/sign-in") {
         http.Post(route) { setBody(it) }
             .fold(
                 { it.body() },

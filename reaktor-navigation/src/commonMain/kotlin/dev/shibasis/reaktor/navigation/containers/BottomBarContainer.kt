@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.navigation.containers
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -10,13 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.common.Props
-import dev.shibasis.reaktor.navigation.navigation.Navigator
 import dev.shibasis.reaktor.navigation.route.ContainerProps
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.structs.collectAsState

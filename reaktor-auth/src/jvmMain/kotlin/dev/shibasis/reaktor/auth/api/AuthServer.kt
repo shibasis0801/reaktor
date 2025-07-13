@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class AuthServer(private val loginInteractor: LoginInteractor): AuthService() {
-    override val signIn = PostHandler("/sign-in") {
+    override val login = PostHandler("/sign-in") {
         loginInteractor.login(it)
     }
 }

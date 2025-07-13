@@ -7,7 +7,6 @@ import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.NavContainer
-import dev.shibasis.reaktor.navigation.route.Route
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
 
 class Navigator(

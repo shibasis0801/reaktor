@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.auth
 
 import dev.shibasis.reaktor.auth.services.uuid
 import dev.shibasis.reaktor.framework.UUIDAuditable
-import dev.shibasis.reaktor.framework.timestampZ
+import dev.shibasis.reaktor.framework.db.timestampZ
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 

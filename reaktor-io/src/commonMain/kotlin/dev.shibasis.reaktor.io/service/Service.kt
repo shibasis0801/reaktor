@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.io.service
 
 import dev.shibasis.reaktor.core.framework.Adapter
-import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.RoutePattern

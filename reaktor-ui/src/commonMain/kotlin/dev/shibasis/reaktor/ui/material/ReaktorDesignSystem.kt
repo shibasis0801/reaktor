@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.ui.material
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -16,7 +17,7 @@ internal object ReaktorColor {
 
 object ReaktorTheme: Theme() {
     override val text: Typography @Composable get() = MaterialTheme.typography
-    override val colors: ColorScheme @Composable get() = darkScheme
+    override val colors: ColorScheme @Composable get() = if (isSystemInDarkTheme()) darkScheme else lightScheme
 }
 /*
 Change to a class, pass dark/light as params.

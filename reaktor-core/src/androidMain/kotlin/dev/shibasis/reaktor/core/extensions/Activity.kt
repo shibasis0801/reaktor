@@ -2,7 +2,6 @@
 package dev.shibasis.reaktor.core.extensions
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION
 import android.content.pm.PackageManager

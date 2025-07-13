@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.core.framework
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import kotlinx.serialization.json.JsonElement

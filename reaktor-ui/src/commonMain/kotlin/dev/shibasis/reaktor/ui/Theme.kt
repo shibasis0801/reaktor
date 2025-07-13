@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -64,6 +65,7 @@ open class Theme {
         shape: Shape,
         colors: ButtonColors,
         elevation: ButtonElevation?,
+        contentPadding: PaddingValues,
         content: @Composable RowScope.() -> Unit
     ) {
         Button(
@@ -73,7 +75,8 @@ open class Theme {
             shape = shape,
             colors = colors,
             elevation = elevation,
-            content = content
+            content = content,
+            contentPadding = contentPadding
         )
     }
 
@@ -85,9 +88,10 @@ open class Theme {
         shape: Shape = ButtonDefaults.shape,
         colors: ButtonColors = ButtonDefaults.buttonColors(),
         elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+        contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
         content: @Composable RowScope.() -> Unit = {}
     ) {
-        ButtonWrapped(modifier, onClick, enabled, shape, colors, elevation, content)
+        ButtonWrapped(modifier, onClick, enabled, shape, colors, elevation, contentPadding, content)
     }
 
     @Composable
@@ -98,9 +102,10 @@ open class Theme {
         shape: Shape = ButtonDefaults.shape,
         colors: ButtonColors = ButtonDefaults.buttonColors(), // change default colors for secondary
         elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+        contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
         content: @Composable RowScope.() -> Unit = {}
     ) {
-        ButtonWrapped(modifier, onClick, enabled, shape, colors, elevation, content)
+        ButtonWrapped(modifier, onClick, enabled, shape, colors, elevation, contentPadding, content)
     }
 
     @Composable

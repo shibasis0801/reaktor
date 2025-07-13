@@ -8,7 +8,6 @@ import dev.shibasis.reaktor.auth.db.AppRepository
 import dev.shibasis.reaktor.auth.db.UserRepository
 import dev.shibasis.reaktor.auth.jwt.JwtVerifier
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
-import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.utils.info
 import dev.shibasis.reaktor.core.utils.invoke
 import dev.shibasis.reaktor.core.utils.logger
@@ -47,21 +46,27 @@ open class LoginInteractor(
 
         val subject = authenticated.subject
         val provider = request.provider
-        val userName = request.userName
+
 
         val userResult = userRepository
             .findByAppIdAndProvider(request, appId,subject, provider)
-            .onFailure {
-                userRepository.upsert(request, User(
-                    id = UUID.randomUUID().toString(),
-                    name = userName,
-                    socialId = subject,
-                    appId = appId.toString(),
-                    provider = provider,
-                    status = UserStatus.ONBOARDING,
-                    data = request.newUserProfile ?: EMPTY_JSON
-                ))
+
+        if (userResult.isFailure) {
+            // Apple does not send name in JWT, so server needs to be very reliable.
+            if (request.givenName == null || request.familyName == null) {
+                return LoginResponse.Failure.RequiresUserName
             }
+            val userName = request.givenName + " " + request.familyName
+            userRepository.upsert(request, User(
+                id = UUID.randomUUID().toString(),
+                name = userName,
+                socialId = subject,
+                appId = appId.toString(),
+                provider = provider,
+                status = UserStatus.ONBOARDING,
+                data = request.newUserProfile ?: EMPTY_JSON
+            ))
+        }
 
         val user = userResult.read()
             ?: return LoginResponse.Failure.ServerError("Unable to read/create user")
