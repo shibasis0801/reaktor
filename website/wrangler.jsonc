@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "website",
+	"name": "reaktor-docs",
 	"compatibility_date": "2025-08-07",
 	"assets": {
 		"directory": "./build"
