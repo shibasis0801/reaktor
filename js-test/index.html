@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JS Test</title>
+</head>
+<body>
+    <h1>JS Test</h1>
+    <button onclick="callGetUser()">Get User</button>
+    <div id="result"></div>
+    <script src="build/js/packages/js-test/kotlin/js-test.js"></script>
+    <script>
+        function callGetUser() {
+            const resultDiv = document.getElementById('result');
+            try {
+                const myApi = new MyApi();
+                const flow = myApi.getUser();
+                flow.collect(function (user) {
+                    resultDiv.innerText = 'User: ' + user.name;
+                });
+            } catch (e) {
+                resultDiv.innerText = 'Error: ' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -181,10 +181,10 @@ fun linkHermes(
 
     println("Hermes executable built successfully at ${hermesExecutable.absolutePath}")
 }
-linkHermes(githubDir)
+// linkHermes(githubDir)
 
 include(":reaktor-flexbuffer")
-include(":reaktor-ffi")
+// include(":reaktor-ffi")
 //include(":flatinvoker-react") // will fix later
 include(":reaktor-compiler")
 include(":reaktor-core")
