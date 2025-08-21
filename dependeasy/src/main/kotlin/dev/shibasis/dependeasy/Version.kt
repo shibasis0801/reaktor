@@ -12,7 +12,7 @@ object Version {
 
         const val targetDarwin = "13"
 
-        const val Kotlin = "2.1.21"
+        const val Kotlin = "2.2.10"
         const val SpringBoot = "3.5.0"
         const val Spring = "6.2.8"
 
