@@ -59,7 +59,7 @@ kotlin {
             api("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3")
             api("org.jetbrains.kotlin:kotlin-reflect:${Version.SDK.Kotlin}")
             api("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${Version.Coroutines}")
-            api("io.github.sebasbaumh:postgis-java-ng:25.1.1")
+            api("io.github.sebasbaumh:postgis-java-ng:23.2.0")
         }
     }
 }
