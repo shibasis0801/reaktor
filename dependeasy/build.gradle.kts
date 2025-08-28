@@ -1,10 +1,10 @@
-val kotlinVersion = "2.1.21"
+val kotlinVersion = "2.2.10"
 
 plugins {
     id("java-gradle-plugin")
     id("maven-publish")
     `kotlin-dsl`
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.2.10"
 }
 
 repositories {
@@ -24,10 +24,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("com.google.firebase:firebase-crashlytics-gradle:3.0.3")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
-    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.1.21-2.0.1")
+    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.2.10-2.0.2")
 
 }
 

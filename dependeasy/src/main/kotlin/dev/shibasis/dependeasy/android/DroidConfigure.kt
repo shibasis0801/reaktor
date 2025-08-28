@@ -24,15 +24,12 @@ fun KotlinMultiplatformExtension.droid(
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
         publishLibraryVariants("release", "debug")
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = Version.SDK.Java.asString
-                // Java 11 StringConcat Bug
-                freeCompilerArgs = listOf(
-                    "-Xstring-concat=inline"
-                )
-            }
+
+        compilerOptions {
+            jvmTarget.set(Version.SDK.Java.asTarget)
+            freeCompilerArgs.add("-Xstring-concat=inline")
         }
+
         configure.targetModifier(this)
     }
 

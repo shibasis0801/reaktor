@@ -51,9 +51,10 @@ android {
 }
 
 
-//dependencies {
-//    add("kspCommonMainMetadata", project(":flatinvoker-compiler"))
-//}
+dependencies {
+    add("kspCommonMainMetadata", project(":reaktor-compiler"))
+    add("kspJs", project(":reaktor-compiler"))
+}
 
 
 buildkonfig {

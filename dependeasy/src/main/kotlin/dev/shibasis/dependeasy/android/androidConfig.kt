@@ -16,7 +16,6 @@ import dev.shibasis.dependeasy.utils.exclude
 import org.gradle.api.artifacts.Configuration
 import org.gradle.kotlin.dsl.NamedDomainObjectContainerScope
 import org.gradle.kotlin.dsl.get
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 import java.io.File
 
 fun BuildFeatures.defaults() {
@@ -30,10 +29,6 @@ fun ApplicationBuildFeatures.defaults() {
 
 fun LibraryBuildFeatures.defaults() {
     (this as BuildFeatures).defaults()
-}
-
-fun KotlinJvmOptions.defaults() {
-    jvmTarget = Version.SDK.Java.asString
 }
 
 fun<First, Second> zip(first: Iterable<First>, second: Iterable<Second>) =

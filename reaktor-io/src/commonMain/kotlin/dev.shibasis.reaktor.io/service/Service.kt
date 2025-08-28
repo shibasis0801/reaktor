@@ -81,7 +81,7 @@ abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
     abstract suspend operator fun invoke(request: Request): Response
 
     companion object {
-        @JsExport.Ignore
+         @JsExport.Ignore
          inline operator fun <reified Request: BaseRequest, reified Response: BaseResponse> invoke(
             method: HttpMethod,
             rawRoute: String,
@@ -146,3 +146,5 @@ todo
 5. endless.
 */
 
+@JsExport.Ignore
+suspend fun ping(x: Int) = x + 1

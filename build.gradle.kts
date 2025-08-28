@@ -52,10 +52,6 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configure
 //    outputDirectory.set(file("docs"))
 //}
 
-rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
-    rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false
-}
-
 
 tasks.register("publishToGithubPackages") {
     group = "reaktor"

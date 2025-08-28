@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
-project(FlatInvokerFFI)
+project(ReaktorFFI)
 
 init()
 configure_hermes()
-fi_dependency(flatinvoker-core)
+fi_dependency(reaktor-flexbuffer)
 
 if(ANDROID)
     add_library(
@@ -22,7 +22,7 @@ if(ANDROID)
             ${common}
     )
     find_package(hermes-engine REQUIRED CONFIG)
-    target_link_libraries(${PROJECT_NAME} jsi hermes-engine::libhermes FlatInvokerCore)
+    target_link_libraries(${PROJECT_NAME} jsi hermes-engine::libhermes ReaktorFlexbuffer)
 elseif(iOS)
     setup_ios()
     add_library(
@@ -31,7 +31,7 @@ elseif(iOS)
             ${common}
             ${darwin}
     )
-    target_link_libraries(${PROJECT_NAME} jsi FlatInvokerCore hermes)
+    target_link_libraries(${PROJECT_NAME} jsi ReaktorFlexbuffer hermes)
 else()
     message(STATUS "CLI Target")
     add_executable(
@@ -39,7 +39,7 @@ else()
             ${common}
             ${main}
     )
-    target_link_libraries(${PROJECT_NAME} FlatInvokerCore hermes jsi)
+    target_link_libraries(${PROJECT_NAME} ReaktorFlexbuffer hermes jsi)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC .)
