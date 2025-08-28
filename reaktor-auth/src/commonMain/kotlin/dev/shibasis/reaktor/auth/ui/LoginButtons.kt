@@ -98,7 +98,7 @@ fun Theme.AppleLoginButton(
             contentDescription = "Apple Login"
         )
         Spacer(Modifier.size(sizes.small))
-        TextView(text = content, style = text.bodyLarge.copy(fontWeight = FontWeight.Medium))
+        TextView(text = content, style = text.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
     }
 }
 
