@@ -23,6 +23,7 @@ import io.ktor.http.HttpStatusCode
 // Priority Tasks (work manager instant tasks)
 // Scheduled Tasks (conditional)
 // Capability based design, for guarantees around the implementation.
+// https://chatgpt.com/c/68b1401b-f09c-8332-a958-ccb9890c2aaf
 @Composable
 fun AsyncImage(
     url: String,
