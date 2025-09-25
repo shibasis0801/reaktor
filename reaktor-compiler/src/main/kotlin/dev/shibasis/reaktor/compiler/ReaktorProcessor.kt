@@ -1,46 +1,224 @@
 package dev.shibasis.reaktor.compiler
 
-import com.google.devtools.ksp.getClassDeclarationByName
-import com.google.devtools.ksp.getDeclaredFunctions
-import com.google.devtools.ksp.getDeclaredProperties
-import com.google.devtools.ksp.processing.*
-import com.google.devtools.ksp.symbol.*
-import dev.shibasis.reaktor.compiler.codegen.languages.KotlinCodeGenerator
-import dev.shibasis.reaktor.compiler.codegen.toFunction
-
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFile
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSValueParameter
+import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.symbol.KSVisitorVoid
+import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.UNIT
+import com.squareup.kotlinpoet.ksp.TypeParameterResolver
+import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toTypeName
+import com.squareup.kotlinpoet.ksp.toTypeParameterResolver
+import com.squareup.kotlinpoet.ksp.toTypeVariableName
+import com.squareup.kotlinpoet.ksp.writeTo
+import java.time.Instant
 
 class ReaktorProcessor(
-    val codeGenerator: CodeGenerator,
-    val logger: KSPLogger
-): SymbolProcessor {
-    fun log(message: String) {
-        logger.warn("ReaktorProcessor: $message")
-    }
+    private val codeGenerator: CodeGenerator,
+    private val logger: KSPLogger
+) : SymbolProcessor {
+
+    private val jsExportIgnoreFqName = "kotlin.js.JsExport.Ignore"
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        log("Inside Process Function")
-        val ReaktorInterface = resolver.getClassDeclarationByName("dev.shibasis.reaktor.flatinvoker.invoker.ReaktorModule")
-        resolver.getAllFiles().flatMap { it.declarations }
-            .filterIsInstance<KSClassDeclaration>()
-            .filter { it.superTypes.any { superType -> superType.resolve().declaration == ReaktorInterface } }
-            .forEach { klass ->
-                log("Class: ${klass.qualifiedName?.asString()}")
-                klass.getDeclaredFunctions()
-                    .forEach {
-                        log(KotlinCodeGenerator.generateCompound(it.toFunction()))
-                    }
-                klass.getDeclaredProperties()
-                    .forEach {
-                        log("Property: ${it.simpleName.asString()}, ReturnType: ${it.type.resolve().declaration?.qualifiedName?.asString()}")
-                    }
+        // Emit wrappers only for JS rounds (so kotlin.js.* is available)
+        if (!isJsRound(resolver)) {
+            logger.info("ReaktorProcessor: non-JS round, skipping.")
+            return emptyList()
+        }
+
+        logger.info("ReaktorProcessor: process() started")
+
+        val annotatedFns = resolver.getSymbolsWithAnnotation(jsExportIgnoreFqName)
+            .filterIsInstance<KSFunctionDeclaration>()
+            .filter { Modifier.SUSPEND in it.modifiers }
+            .toList()
+
+        if (annotatedFns.isEmpty()) {
+            logger.info("ReaktorProcessor: nothing to generate this round.")
+            return emptyList()
+        }
+
+        annotatedFns
+            .groupBy { it.containingFile ?: return@groupBy null }
+            .filterKeys { it != null }
+            .forEach { (file, fns) ->
+                file ?: return@forEach
+                logger.info("ReaktorProcessor: processing file ${file.fileName} with ${fns.size} suspend fn(s)")
+                val visitor = PromiseVisitor(codeGenerator, logger, file)
+                fns.forEach { it.accept(visitor, Unit) }
+                visitor.write()
             }
-        return listOf()
+
+        return emptyList()
+    }
+
+    /** Heuristic gate: available only on JS stdlib. */
+    private fun isJsRound(resolver: Resolver): Boolean {
+        val name = resolver.getKSNameFromString("kotlin.js.Promise")
+        return resolver.getClassDeclarationByName(name) != null
     }
 }
 
-
-class ReaktorProcessorProvider: SymbolProcessorProvider {
+class ReaktorProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
+        environment.logger.info("ReaktorProcessorProvider: created")
         return ReaktorProcessor(environment.codeGenerator, environment.logger)
     }
 }
+
+/** Collects wrappers for all suspend functions in one source file, then emits a single .kt file. */
+private class PromiseVisitor(
+    private val codeGenerator: CodeGenerator,
+    private val logger: KSPLogger,
+    private val sourceFile: KSFile
+) : KSVisitorVoid() {
+
+    private val generatedFunctions = mutableListOf<FunSpec>()
+    private val pkgName = sourceFile.packageName.asString()
+
+    override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {
+        buildWrapper(function)?.let { generatedFunctions += it }
+    }
+
+    fun write() {
+        if (generatedFunctions.isEmpty()) return
+
+        val outName = "JsPromiseWrappers_" + sourceFile.fileName.substringBeforeLast('.').sanitizeForFile()
+        val fileSpec = FileSpec.builder(pkgName, outName)
+            .addFileComment("Generated by Reaktor KSP at ${Instant.now()} from ${sourceFile.fileName}")
+            // coroutines-js extension import so GlobalScope.promise resolves without fq-name
+            .addImport("kotlinx.coroutines", "promise")
+            .apply { generatedFunctions.forEach { addFunction(it) } }
+            .build()
+
+        fileSpec.writeTo(codeGenerator, Dependencies(aggregating = false, sourceFile))
+        logger.info("ReaktorProcessor: wrote $pkgName/$outName.kt with ${generatedFunctions.size} wrapper(s)")
+    }
+
+    /** Builds `fun <name>Async(...) : Promise<R>` for a suspend function. */
+    private fun buildWrapper(fn: KSFunctionDeclaration): FunSpec? {
+        val originalName = fn.simpleName.asString()
+        val wrapperName = "${originalName}Async"
+
+        val promise = ClassName("kotlin.js", "Promise")
+        val jsExport = ClassName("kotlin.js", "JsExport")
+        val jsName = ClassName("kotlin.js", "JsName")
+        val globalScope = ClassName("kotlinx.coroutines", "GlobalScope")
+
+        // Composite resolver: class TPs -> function TPs
+        val classTps = (fn.parentDeclaration as? KSClassDeclaration)?.typeParameters ?: emptyList()
+        val classResolver = classTps.toTypeParameterResolver()
+        val resolver: TypeParameterResolver = fn.typeParameters.toTypeParameterResolver(classResolver)
+
+        val returnType: TypeName = fn.returnType?.toTypeName(resolver) ?: UNIT
+        val promisedReturn = promise.parameterizedBy(returnType)
+
+        val builder = FunSpec.builder(wrapperName)
+            .returns(promisedReturn)
+            .addModifiers(KModifier.PUBLIC)
+            // Always stabilize name for JS consumers
+            .addAnnotation(AnnotationSpec.builder(jsName).addMember("%S", wrapperName).build())
+
+        // Export only when non-generic to avoid JS export errors for generics
+        val isGeneric = classTps.isNotEmpty() || fn.typeParameters.isNotEmpty()
+        if (!isGeneric) {
+            builder.addAnnotation(jsExport)
+        }
+
+        // Add type parameters to wrapper signature (class first, then function)
+        classTps.forEach { builder.addTypeVariable(it.toTypeVariableName()) }
+
+        val classDecl = fn.parentDeclaration as? KSClassDeclaration
+        val isMember = classDecl != null
+        val hasExtensionReceiver = fn.extensionReceiver != null
+
+        // Receivers:
+        // - member receiver (dispatch): "owner"
+        // - extension receiver: "receiver"
+        if (isMember) {
+            val className = classDecl!!.toClassName()
+            val ownerType =
+                if (classDecl.typeParameters.isEmpty()) className
+                else className.parameterizedBy(classDecl.typeParameters.map { it.toTypeVariableName() })
+            builder.addParameter("owner", ownerType)
+        }
+        if (hasExtensionReceiver) {
+            builder.addParameter("receiver", fn.extensionReceiver!!.toTypeName(resolver))
+        }
+
+        // Then function type parameters (avoid name clash with class TPs)
+        val classTpNames = classTps.map { it.name!!.getShortName() }.toSet()
+        fn.typeParameters.forEach { tp ->
+            val n = tp.name!!.getShortName()
+            if (n in classTpNames) {
+                logger.warn("Reaktor: function type parameter `$n` shadows class type parameter; keeping class TP.")
+            } else {
+                builder.addTypeVariable(tp.toTypeVariableName())
+            }
+        }
+
+        // Value parameters (preserve names; splat varargs)
+        val callArgs = mutableListOf<String>()
+        fn.parameters.forEach { p ->
+            val name = p.name?.getShortName() ?: run {
+                logger.warn("Reaktor: unnamed parameter in $originalName – skipping function.")
+                return null
+            }
+            val spec = ParameterSpec.builder(name, p.type.toTypeName(resolver))
+            if (p.isVararg) spec.addModifiers(KModifier.VARARG)
+            builder.addParameter(spec.build())
+            callArgs += if (p.isVararg) "*$name" else name
+        }
+
+        // Build invocation:
+        // - top-level:            f(a, b)
+        // - member:               owner.f(a, b)
+        // - extension (top-level):receiver.f(a, b)
+        // - member extension:     with(owner) { receiver.f(a, b) }
+        val argsJoined = callArgs.joinToString()
+        val invocation = when {
+            isMember && hasExtensionReceiver ->
+                "with(owner) { receiver.$originalName($argsJoined) }"
+            isMember ->
+                "owner.$originalName($argsJoined)"
+            hasExtensionReceiver ->
+                "receiver.$originalName($argsJoined)"
+            else ->
+                "$originalName($argsJoined)"
+        }
+
+        // return GlobalScope.promise { <invocation> }
+        builder.addStatement("return %T.promise { %L }", globalScope, invocation)
+
+        return builder.build()
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun paramTypeOf(p: KSValueParameter, resolver: TypeParameterResolver) = p.type.toTypeName(resolver)
+}
+
+private fun KSFunctionDeclaration.typeParameterResolver(): TypeParameterResolver {
+    val classResolver = (parentDeclaration as? KSClassDeclaration)?.typeParameters?.toTypeParameterResolver()
+    return typeParameters.toTypeParameterResolver(classResolver)
+}
+
+private fun String.sanitizeForFile(): String = replace(Regex("[^A-Za-z0-9_]"), "_")

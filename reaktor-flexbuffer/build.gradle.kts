@@ -10,7 +10,7 @@ plugins {
     
 }
 
-val Name = "FlatInvokerCore"
+val Name = "ReaktorFlexbuffer"
 
 
 fun darwinCmake(sdk: String): Exec {
@@ -57,7 +57,7 @@ kotlin {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
-                packageName("dev.shibasis.flatinvoker.native")
+                packageName("dev.shibasis.reaktor.native")
                 // todo create def file if not present
                 defFile(file("cpp/bindings.def"))
                 includeDirs("cpp")
@@ -90,5 +90,6 @@ dependencies {
 }
 
 android {
-   defaults("dev.shibasis.flatinvoker.core", file("cpp/CMakeLists.txt"), Name)
+   defaults("dev.shibasis.reaktor.core", file("cpp/CMakeLists.txt"), Name)
 }
+

@@ -1,3 +1,5 @@
+import java.time.LocalDate
+
 plugins {
     kotlin("multiplatform") apply false
     kotlin("android") apply false
@@ -52,16 +54,20 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configure
 //    outputDirectory.set(file("docs"))
 //}
 
-rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
-    rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().download = false
-}
-
 
 tasks.register("publishToGithubPackages") {
     group = "reaktor"
     dependsOn(gradle.includedBuild("dependeasy").task(":publish"))
     dependsOn(subprojects.mapNotNull { it.tasks.findByName("publish") })
 }
+
+tasks.register("publishToMavenCentral") {
+    group = "reaktor"
+    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
+    dependsOn(gradle.includedBuild("dependeasy").task(":publishAllPublicationsToMavenCentralRepository"))
+    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishAllPublicationsToMavenCentralRepository") })
+}
+
 
 tasks.register("publishToMavenLocal") {
     group = "reaktor"

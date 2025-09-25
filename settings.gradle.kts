@@ -1,7 +1,7 @@
 import java.nio.file.*
 import dev.shibasis.dependeasy.utils.*
 
-rootProject.name = "flatInvoker"
+rootProject.name = "reaktor"
 
 pluginManagement {
     includeBuild("dependeasy")
@@ -48,6 +48,8 @@ plugins {
     id("dev.shibasis.dependeasy.settings")
 }
 
+val cmake = "/usr/local/bin/cmake"
+val ninja = "/opt/homebrew/bin/ninja"
 
 gradle.beforeProject {
         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
@@ -60,11 +62,7 @@ gradle.beforeProject {
 
 val githubDir = file(".github_modules")
 githubDir.mkdir()
-githubDir.apply {
-    gitDependency("https://github.com/tmikov/hermes-jsi-demos.git")
-}
-
-
+println("SETTINGS PATH=" + System.getenv("PATH"))
 
 fun linkFlatBuffers(
     githubDirectory: File,
@@ -74,24 +72,25 @@ fun linkFlatBuffers(
     githubDirectory.gitDependency(url)
     val isWindows = System.getProperty("os.name").contains("Windows")
     val flatc = if(isWindows) File(buildDirectory, "Debug/flatc.exe") else File(buildDirectory, "flatc")
+
     if (!flatc.exists()) {
         println("Generating CMake build for flatbuffers")
         if (isWindows) {
             println("Generating CMake build for flatbuffers on Windows")
             exec {
                 workingDir = buildDirectory
-                commandLine("cmake", "-G", "Visual Studio 17 2022")
+                commandLine(cmake, "-G", "Visual Studio 17 2022")
             }
             println("Building flatc with make...")
             exec {
                 workingDir = buildDirectory
-                commandLine("cmake", "--build", '.')
+                commandLine(cmake, "--build", '.')
             }
         } else {
             println("Generating CMake build for flatbuffers on Unix")
             exec {
                 workingDir = buildDirectory
-                commandLine("cmake", "-G", "Unix Makefiles")
+                commandLine(cmake, "-G", "Unix Makefiles")
             }
             println("Building flatc with make...")
             exec {
@@ -113,7 +112,6 @@ fun linkFlatBuffers(
 
     includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
 }
-linkFlatBuffers(githubDir)
 
 fun linkHermes(
     githubDirectory: File,
@@ -141,7 +139,7 @@ fun linkHermes(
             exec {
                 workingDir = hermesBuildDir
                 commandLine(
-                    "cmake",
+                    cmake,
                     "-G", "Visual Studio 17 2022",
                     "-A", "x64",
                     "-DCMAKE_BUILD_TYPE=Debug",
@@ -151,24 +149,25 @@ fun linkHermes(
             println("Building Hermes with CMake...")
             exec {
                 workingDir = hermesBuildDir
-                commandLine("cmake", "--build", ".")
+                commandLine(cmake, "--build", ".")
             }
         } else {
             println("Generating CMake build for Hermes on Unix")
             exec {
                 workingDir = hermesBuildDir
                 commandLine(
-                    "cmake",
+                    cmake,
                     "-G", "Ninja",
                     "-DHERMES_BUILD_APPLE_FRAMEWORK=ON",
                     "-DCMAKE_BUILD_TYPE=Debug",
+                    "-DCMAKE_MAKE_PROGRAM=/opt/homebrew/bin/ninja",
                     hermesSrcDir.absolutePath
                 )
             }
             println("Building Hermes with Ninja...")
             exec {
                 workingDir = hermesBuildDir
-                commandLine("ninja")
+                commandLine("/opt/homebrew/bin/ninja")
             }
         }
 
@@ -181,7 +180,12 @@ fun linkHermes(
 
     println("Hermes executable built successfully at ${hermesExecutable.absolutePath}")
 }
-linkHermes(githubDir)
+
+
+    linkFlatBuffers(githubDir)
+    linkHermes(githubDir)
+
+
 
 include(":reaktor-flexbuffer")
 include(":reaktor-ffi")

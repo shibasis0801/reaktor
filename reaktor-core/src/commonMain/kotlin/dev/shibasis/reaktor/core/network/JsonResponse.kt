@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.core.network
 import kotlinx.serialization.Serializable
 import kotlin.js.JsExport
 
+
+
 @JsExport
 @Serializable
 enum class StatusCode(val code: Int) {
@@ -75,7 +77,14 @@ enum class StatusCode(val code: Int) {
     INSUFFICIENT_STORAGE(507),
     LOOP_DETECTED(508),
     NOT_EXTENDED(510),
-    NETWORK_AUTHENTICATION_REQUIRED(511)
+    NETWORK_AUTHENTICATION_REQUIRED(511);
+
+    companion object {
+        fun invoke(code: Int): StatusCode {
+            return entries.find { it.code == code } ?: throw IllegalArgumentException("Invalid Status Code")
+        }
+    }
+
 }
 
 @Serializable

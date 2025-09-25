@@ -90,5 +90,5 @@ fun KotlinDependencyHandler.androidCoroutines() = installModules(
 )
 
 fun KotlinDependencyHandler.fbjni() {
-    api("com.facebook.fbjni:fbjni:0.2.2")
+    api("com.facebook.fbjni:fbjni:0.7.0")
 }

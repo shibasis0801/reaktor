@@ -9,7 +9,7 @@ plugins {
     id("dev.shibasis.dependeasy.library")
     
 }
-val Name = "FlatInvokerFFI"
+val Name = "ReaktorFFI"
 
 fun darwinCmake(sdk: String): Exec {
     val prefix = sdk
@@ -65,10 +65,10 @@ kotlin {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
                 packageName("dev.shibasis.reaktor.native")
-                includeDirs("../flatinvoker-core/cpp")
+                includeDirs("../reaktor-flexbuffer/cpp")
                 includeDirs("cpp")
                 defFile(file("cpp/bindings.def"))
-                headers("cpp/darwin/DarwinInvokable.h", "cpp/common/Invokable.h", "../flatinvoker-core/cpp/common/CBase.h", "../flatinvoker-core/cpp/common/Flex.h")
+                headers("cpp/darwin/DarwinInvokable.h", "cpp/common/Invokable.h", "../reaktor-flexbuffer/cpp/common/CBase.h", "../reaktor-flexbuffer/cpp/common/Flex.h")
             }
         }
 
@@ -85,5 +85,5 @@ kotlin {
 dependencies { add("kspCommonMainMetadata", project(":reaktor-compiler")) }
 
 android {
-   defaults("dev.shibasis.flatinvoker.ffi", file("cpp/CMakeLists.txt"))
+   defaults("dev.shibasis.reaktor.ffi", file("cpp/CMakeLists.txt"))
 }

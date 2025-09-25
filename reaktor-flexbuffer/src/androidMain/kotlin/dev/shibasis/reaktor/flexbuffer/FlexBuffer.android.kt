@@ -57,7 +57,7 @@ todo Try to see if CriticalNative works.
 */
 actual object FlexBuffer {
     init {
-        System.loadLibrary("FlatInvokerCore")
+        System.loadLibrary("ReaktorFlexbuffer")
     }
     @JvmStatic @FastNative actual external fun Create(): Long
     @JvmStatic @FastNative actual external fun ParseJson(pointer: Long, data: String): Long

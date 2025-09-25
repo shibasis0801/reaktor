@@ -40,6 +40,7 @@ kotlin {
     darwin {
         dependencies = {}
     }
+
     server {
         dependencies = {
             springWebFlux()

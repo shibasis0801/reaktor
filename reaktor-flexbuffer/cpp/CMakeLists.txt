@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
-project(FlatInvokerCore)
+project(ReaktorFlexbuffer)
 
 set(flatbuffers_dir ../../.github_modules/flatbuffers)
 add_subdirectory(

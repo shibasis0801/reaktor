@@ -21,9 +21,9 @@ fun KotlinMultiplatformExtension.server(
 
     jvm {
         configure.targetModifier(this)
-        this.compilations.forEach {
-            it.kotlinOptions.jvmTarget = Version.SDK.Java.asString
-            it.kotlinOptions.freeCompilerArgs += "-Xjvm-default=all"
+        compilerOptions {
+            jvmTarget.set(Version.SDK.Java.asTarget)
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
     }
 

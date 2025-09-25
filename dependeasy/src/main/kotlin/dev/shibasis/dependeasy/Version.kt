@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy
 
 import org.gradle.api.JavaVersion
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 object Version {
     object SDK {
@@ -17,6 +18,7 @@ object Version {
         const val Spring = "6.2.8"
 
         object Java {
+            val asTarget = JvmTarget.JVM_17
             val asEnum = JavaVersion.VERSION_17
             val asString = "17"
             val asInt = asString.toInt() // wtf is wrong with gradle and java version types

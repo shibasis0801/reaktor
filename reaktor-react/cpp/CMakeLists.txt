@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-set(PROJECT_NAME "FlatInvokerReact")
+set(PROJECT_NAME "ReaktorReact")
 project(${PROJECT_NAME})
 
 set(NODE_MODULES "../../tester-react/node_modules")
@@ -16,7 +16,7 @@ include_directories(
 )
 
 add_subdirectory(
-        "../../flatinvoker-core/cpp" # pathToDirectory
+        "../../reaktor-core/cpp" # pathToDirectory
         ${CMAKE_CURRENT_BINARY_DIR}/flatInvoker-build # pathForBuildDirectory
 )
 

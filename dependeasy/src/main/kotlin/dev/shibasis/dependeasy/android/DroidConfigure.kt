@@ -24,15 +24,12 @@ fun KotlinMultiplatformExtension.droid(
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
         publishLibraryVariants("release", "debug")
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = Version.SDK.Java.asString
-                // Java 11 StringConcat Bug
-                freeCompilerArgs = listOf(
-                    "-Xstring-concat=inline"
-                )
-            }
+
+        compilerOptions {
+            jvmTarget.set(Version.SDK.Java.asTarget)
+            freeCompilerArgs.add("-Xstring-concat=inline")
         }
+
         configure.targetModifier(this)
     }
 
@@ -40,7 +37,7 @@ fun KotlinMultiplatformExtension.droid(
         androidMain.dependencies {
             configure.dependencies(this)
             // bad idea todo shibasis fix
-            implementation("com.facebook.fbjni:fbjni:0.2.2")
+            fbjni()
         }
 
 //        val androidUnitTest by getting {
