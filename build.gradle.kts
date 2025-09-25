@@ -1,3 +1,5 @@
+import java.time.LocalDate
+
 plugins {
     kotlin("multiplatform") apply false
     kotlin("android") apply false
@@ -58,6 +60,14 @@ tasks.register("publishToGithubPackages") {
     dependsOn(gradle.includedBuild("dependeasy").task(":publish"))
     dependsOn(subprojects.mapNotNull { it.tasks.findByName("publish") })
 }
+
+tasks.register("publishToMavenCentral") {
+    group = "reaktor"
+    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
+    dependsOn(gradle.includedBuild("dependeasy").task(":publishAllPublicationsToMavenCentralRepository"))
+    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishAllPublicationsToMavenCentralRepository") })
+}
+
 
 tasks.register("publishToMavenLocal") {
     group = "reaktor"

@@ -25,6 +25,8 @@ enum class Environment {
     }
 }
 
+// must automatically generate http clients for paths like we generate controllers
+
 @JsExport
 interface BaseRequest {
     val headers: MutableMap<String, String>
