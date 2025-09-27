@@ -18,9 +18,9 @@ object Version {
         const val Spring = "6.2.8"
 
         object Java {
-            val asTarget = JvmTarget.JVM_17
-            val asEnum = JavaVersion.VERSION_17
-            val asString = "17"
+            val asTarget = JvmTarget.JVM_21
+            val asEnum = JavaVersion.VERSION_21
+            val asString = "21"
             val asInt = asString.toInt() // wtf is wrong with gradle and java version types
         }
     }
@@ -55,7 +55,6 @@ object Version {
     const val Serialization = "1.8.0"
 
     // DevTools
-    const val Flipper = "0.162.0"
     const val LeakCanary = "2.8.1"
     const val SoLoader = "0.10.1"
 

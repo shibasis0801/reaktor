@@ -61,12 +61,12 @@ tasks.register("publishToGithubPackages") {
     dependsOn(subprojects.mapNotNull { it.tasks.findByName("publish") })
 }
 
-tasks.register("publishToMavenCentral") {
-    group = "reaktor"
-    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
-    dependsOn(gradle.includedBuild("dependeasy").task(":publishAllPublicationsToMavenCentralRepository"))
-    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishAllPublicationsToMavenCentralRepository") })
-}
+//tasks.register("publishToMavenCentral") {
+//    group = "reaktor"
+//    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
+//    dependsOn(gradle.includedBuild("dependeasy").task(":publishAllPublicationsToMavenCentralRepository"))
+//    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishAllPublicationsToMavenCentralRepository") })
+//}
 
 
 tasks.register("publishToMavenLocal") {

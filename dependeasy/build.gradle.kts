@@ -51,7 +51,7 @@ gradlePlugin {
 kotlin {
 //    jvmToolchain(11)
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-receivers")
+        freeCompilerArgs.addAll("-Xcontext-receivers", "-Xwhen-guards")
     }
 }
 
