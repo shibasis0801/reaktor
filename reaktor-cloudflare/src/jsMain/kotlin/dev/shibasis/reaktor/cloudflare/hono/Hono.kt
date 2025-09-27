@@ -1,7 +1,7 @@
 @file:JsModule("hono")
 @file:JsNonModule
 
-package dev.shibasis.reaktor.hono
+package dev.shibasis.reaktor.cloudflare.hono
 
 import org.w3c.fetch.Request
 import org.w3c.fetch.RequestInit

@@ -2,7 +2,7 @@
 @file:JsNonModule
 @file:Suppress("FunctionName", "PropertyName", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
 
-package dev.shibasis.reaktor.hono
+package dev.shibasis.reaktor.cloudflare.hono
 
 import kotlin.js.Promise
 import org.w3c.fetch.Response

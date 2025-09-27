@@ -1,7 +1,7 @@
 @file:JsModule("hono/router")
 @file:JsNonModule
 
-package dev.shibasis.reaktor.hono
+package dev.shibasis.reaktor.cloudflare.hono
 
 /**
  * Router abstraction used by Hono. Custom routers may implement this interface.

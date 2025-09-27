@@ -4,18 +4,26 @@ package dev.shibasis.reaktor.cloudflare
 
 import js.core.ReadonlyRecord
 import kotlin.js.Date
+import kotlin.js.JsName
 import kotlin.js.Promise
 import org.w3c.dom.WebSocket
 import org.w3c.fetch.Request
 
-/** Interface implemented by durable object classes. */
-external interface DurableObject {
+/** Interface implemented by durable object lifecycle callbacks. */
+external interface DurableObjectLifecycle {
     fun fetch(request: Request): WorkerResponse? = definedExternally
     fun alarm(): Any? = definedExternally
     fun webSocketMessage(ws: WebSocket, message: Any?): Any? = definedExternally
     fun webSocketClose(ws: WebSocket, code: Int, reason: String, wasClean: Boolean): Any? = definedExternally
     fun webSocketError(ws: WebSocket, error: Any?): Any? = definedExternally
 }
+
+/** Base durable object class exported by `cloudflare:workers`. */
+@JsName("DurableObject")
+external open class DurableObject<Env>(
+    protected val ctx: DurableObjectState,
+    protected val env: Env,
+) : DurableObjectLifecycle
 
 /** Stub that can be used to call a durable object instance. */
 external interface DurableObjectStub<T> : Fetcher {

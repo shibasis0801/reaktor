@@ -27,12 +27,18 @@ external interface R2ListOptions {
 }
 
 /** Cloudflare R2 object storage bucket binding. */
+typealias R2PutValue = Any /* ReadableStream<*> | ArrayBuffer | ArrayBufferView | String | Blob | Nothing? */
+
+typealias R2ConditionalInput = Any /* R2Conditional | Headers */
+
+typealias R2RangeInput = Any /* R2Range | Headers */
+
 external open class R2Bucket {
     fun head(key: String): Promise<R2Object?>
     fun get(key: String, options: R2GetOptionsWithConditions): Promise<R2Object?>
     fun get(key: String, options: R2GetOptions = definedExternally): Promise<R2ObjectBody?>
-    fun put(key: String, value: Any?, options: R2PutOptionsWithConditions): Promise<R2Object?>
-    fun put(key: String, value: Any?, options: R2PutOptions = definedExternally): Promise<R2Object>
+    fun put(key: String, value: R2PutValue, options: R2PutOptionsWithConditions): Promise<R2Object?>
+    fun put(key: String, value: R2PutValue, options: R2PutOptions = definedExternally): Promise<R2Object>
     fun createMultipartUpload(key: String, options: R2MultipartOptions = definedExternally): Promise<R2MultipartUpload>
     fun resumeMultipartUpload(key: String, uploadId: String): R2MultipartUpload
     fun delete(keys: String): Promise<Unit>
@@ -59,7 +65,7 @@ external interface R2UploadedPart {
 external open class R2Object {
     val key: String
     val version: String
-    val size: Int
+    val size: Double
     val etag: String
     val httpEtag: String
     val checksums: R2Checksums
@@ -95,14 +101,14 @@ external interface R2Conditional {
 
 /** Options supplied to [R2Bucket.get]. */
 external interface R2GetOptions {
-    var onlyIf: Any?
-    var range: Any?
+    var onlyIf: R2ConditionalInput?
+    var range: R2RangeInput?
 }
 
 /** Options supplied to [R2Bucket.put]. */
 external interface R2PutOptions {
-    var onlyIf: Any?
-    var httpMetadata: Any?
+    var onlyIf: R2ConditionalInput?
+    var httpMetadata: R2HTTPMetadata?
     var customMetadata: ReadonlyRecord<String, String>?
     var md5: Any?
     var sha1: Any?
@@ -114,19 +120,19 @@ external interface R2PutOptions {
 
 /** Options used when creating multipart uploads. */
 external interface R2MultipartOptions {
-    var httpMetadata: Any?
+    var httpMetadata: R2HTTPMetadata?
     var customMetadata: ReadonlyRecord<String, String>?
     var storageClass: String?
 }
 
 /** Strongly typed [R2Bucket.get] options that include a mandatory condition block. */
 external interface R2GetOptionsWithConditions : R2GetOptions {
-    override var onlyIf: Any
+    override var onlyIf: R2ConditionalInput
 }
 
 /** Strongly typed [R2Bucket.put] options that include a mandatory condition block. */
 external interface R2PutOptionsWithConditions : R2PutOptions {
-    override var onlyIf: Any
+    override var onlyIf: R2ConditionalInput
 }
 
 /** Object checksum metadata. */

@@ -1,7 +1,7 @@
 @file:JsModule("hono/request")
 @file:JsNonModule
 
-package dev.shibasis.reaktor.hono
+package dev.shibasis.reaktor.cloudflare.hono
 
 import kotlin.js.Promise
 import org.khronos.webgl.ArrayBuffer
@@ -27,7 +27,7 @@ external open class HonoRequest<P : String = String, I> {
     fun header(name: String): String?
     fun header(): dynamic
     fun parseBody(options: dynamic = definedExternally): Promise<dynamic>
-    fun json(): Promise<dynamic>
+    fun <T> json(): Promise<T>
     fun text(): Promise<String>
     fun arrayBuffer(): Promise<ArrayBuffer>
     fun blob(): Promise<Blob>

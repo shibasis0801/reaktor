@@ -2,7 +2,7 @@
 @file:JsNonModule
 @file:Suppress("FunctionName", "PropertyName", "NOTHING_TO_INLINE")
 
-package dev.shibasis.reaktor.hono
+package dev.shibasis.reaktor.cloudflare.hono
 
 import kotlin.js.Promise
 import org.w3c.fetch.Request
@@ -62,10 +62,10 @@ external interface TextRespond {
 /** Builder used by [Context.json]. */
 external interface JsonRespond {
     @JsName("call")
-    operator fun invoke(value: Any?, status: Int? = definedExternally, headers: dynamic = definedExternally): Promise<Response>
+    operator fun invoke(value: Any?, status: Int? = definedExternally, headers: dynamic = definedExternally): Response
 
     @JsName("call")
-    operator fun invoke(value: Any?, init: ResponseInit): Promise<Response>
+    operator fun invoke(value: Any?, init: ResponseInit): Response
 }
 
 /** Builder used by [Context.html]. */

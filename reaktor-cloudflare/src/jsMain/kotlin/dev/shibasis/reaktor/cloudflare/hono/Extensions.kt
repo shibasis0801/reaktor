@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.hono
+package dev.shibasis.reaktor.cloudflare.hono
 
 import kotlin.js.Promise
 import org.w3c.fetch.Request
