@@ -4,10 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import dev.shibasis.reaktor.navigation.navigation.Navigator
-import dev.shibasis.reaktor.ui.Theme
 
 @Composable
 actual fun BackHandlerContainer(

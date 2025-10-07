@@ -1,77 +1,62 @@
 package dev.shibasis.reaktor.navigation.containers
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import dev.shibasis.reaktor.navigation.common.Props
+import dev.shibasis.reaktor.navigation.Input
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
-import dev.shibasis.reaktor.navigation.route.ContainerProps
+import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.navigation.route.Route
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.route.Switch
-import dev.shibasis.reaktor.navigation.structs.Observable
+import dev.shibasis.reaktor.navigation.structs.KeyRouteMap
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
-import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 
 open class MultiStackItemMetadata(
     val key: String
 )
 
-/*
-Needs improvements in many areas.
--2. Set home screen correctly.
--1. Unit tests.
-0. Bugs around back navigation.
-1. Nested containers aren't present in the Navigator (bad horrible idea)
-2. In order to push a Screen inside some container hierarchy, the hierarchy needs to be pushed.
-3. In absence of that, pushing to a nested container screen would only mount the enclosing container, and not the hierarchy.
-4. Code and SRP is a little fucked in some places, fix that too.
-5. Navigator-Container coupling needs to improve without adding direct references to Container subclasses (ew)
-6. Event Bubbling like DOM needs to be done for Container.
-7. A BiMap may be needed along with some simplification of state inside a MultiStackContainer. (not too simple which would prevent subclass freedom)
-*/
+sealed class MultiStackContainerError(message: String): Error(message) {
+    class InvalidStackKey(key: String): MultiStackContainerError("Invalid Stack Key: $key")
+    data object InvalidScreen: MultiStackContainerError("Screen is not a descendant of any top-level route in this container.")
+}
+
 abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
     val start: String,
-    error: Screen<Props> = ErrorScreen(),
+    error: Screen<Input> = ErrorScreen(),
     private val builder: MultiStackContainer<Metadata>.() -> Unit = {}
 ): Container(Switch()) {
-    private val stacks = mutableMapOf<String, ObservableStack<ScreenPair>>()
-    protected var currentKey = Observable(start)
-    protected val metadata = linkedMapOf<String, Metadata>()
-    protected val routeToKeyMap = linkedMapOf<String, String>()
-    protected val keyToRouteMap = linkedMapOf<String, String>()
+    protected var currentKey = MutableStateFlow(start)
+    private val stacks = linkedMapOf<String, ObservableStack<ScreenPair>>()
 
-    protected fun getStack(key: String) = stacks[key] ?: throw Errors.InvalidStackKey(key)
+
+
+    protected val keyRouteMap = KeyRouteMap()
+
+    protected fun getStack(key: String) = stacks[key] ?: throw MultiStackContainerError.InvalidStackKey(key)
 
     private val currentStack: ObservableStack<ScreenPair>
         get() = getStack(currentKey.value)
+    override fun consumesBackEvent() = currentStack.size > 1
 
-    private fun linkMetadataKeys(route: String, data: Metadata) {
-        metadata[data.key] = data
-        routeToKeyMap[route] = data.key
-        keyToRouteMap[data.key] = route
-    }
-
-    fun item(data: Metadata, route: Route) {
-        linkMetadataKeys(route.pattern.original, data)
-    }
-
-    fun screen(route: String, screen: Screen<Props>)
+    fun screen(route: String, screen: Screen<Input>)
         = switch.screen(route, screen)
 
-    fun switch(route: String, home: Screen<Props>, error: Screen<Props> = ErrorScreen(), builder: Switch.() -> Unit = {})
+    fun switch(route: String, home: Screen<Input>, error: Screen<Input> = ErrorScreen(), builder: Switch.() -> Unit = {})
         = switch.switch(route, Switch(home, error, builder))
 
     fun container(route: String, container: Container)
         = switch.container(route, container)
 
-    fun findStartScreen(key: String = start): Screen<Props> {
-        val path = keyToRouteMap[key]
-        val route = switch.routes[path] ?: throw Errors.InvalidStackKey(key)
+    fun findStartScreen(key: String = start): Screen<Input> {
+        val path = keyRouteMap.routeFor(key)
+        val route = switch.routes[path] ?: throw MultiStackContainerError.InvalidStackKey(key)
         return when(route) {
             is Switch -> route.home
-            is Screen<Props> -> route
+            is Screen<Input> -> route
             is Container -> {
                 // todo fix this abomination
                 if (route is MultiStackContainer<*>) {
@@ -84,6 +69,17 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         }
     }
 
+    protected val metadata = linkedMapOf<String, Metadata>()
+
+    private fun linkMetadataKeys(route: String, data: Metadata) {
+        metadata[data.key] = data
+        keyRouteMap.storeMapping(route, data.key)
+    }
+
+    fun item(data: Metadata, route: Route) {
+        linkMetadataKeys(route.pattern.original, data)
+    }
+
     override fun build() {
         builder()
         super.build()
@@ -92,15 +88,9 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         }
     }
 
-    sealed class Errors(message: String): Error(message) {
-        class InvalidStackKey(key: String): Errors("Invalid Stack Key: $key")
-        data object InvalidScreen: Errors("Screen is not a descendant of any top-level route in this container.")
-    }
-
-    override fun consumesBackEvent() = currentStack.size > 1
 
     fun switchStack(key: String): ObservableStack<ScreenPair> {
-        if (stacks[key] == null) throw Errors.InvalidStackKey(key)
+        if (stacks[key] == null) throw MultiStackContainerError.InvalidStackKey(key)
 
         if (key != currentKey.value) {
             currentKey.value = key
@@ -113,16 +103,16 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         return currentStack
     }
 
-    fun findStack(screen: Screen<Props>): String {
+    fun findStack(screen: Screen<Input>): String {
         var route: Route? = screen
         while (route != null) {
-            val key = routeToKeyMap[route.pattern.original]
+            val key = keyRouteMap.keyFor(route.pattern.original)
             if (key != null)
                 return key
 
             route = route.parent
         }
-        throw Errors.InvalidScreen
+        throw MultiStackContainerError.InvalidScreen
     }
 
     override fun push(screenPair: ScreenPair) {
@@ -140,16 +130,18 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
     @Composable
     fun Content() {
         val currentKey by currentKey.collectAsState()
-        val current by getStack(currentKey).top.collectAsState(currentKey)
+        val current by getStack(currentKey).top.collectAsState()
         if (current == null) return
         val (screen, props) = current!!
 
         if (screen.container != this) {
             // todo fix later
-            screen.container?.Render(ContainerProps())
+            screen.container?.Render(ContainerInputs())
 //            Feature.Navigator?.push(current!!)
         } else {
             screen.Render(props)
         }
     }
 }
+
+

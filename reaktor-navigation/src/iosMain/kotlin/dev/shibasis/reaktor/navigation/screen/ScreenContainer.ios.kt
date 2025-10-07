@@ -12,8 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import dev.shibasis.reaktor.navigation.navigation.Navigator
-import dev.shibasis.reaktor.ui.Theme
 
 private val edgeThreshold = 64.dp
 

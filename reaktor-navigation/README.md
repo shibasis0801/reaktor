@@ -8,6 +8,9 @@ Container ->
    Contains one switch, one or more stacks and a container UI
    Navigates within the container
 
+Orchestrator -> 
+   
+
 Navigator ->
    Navigates between containers.
    All push/pop commands come to the Navigator, and navigator decides which Container

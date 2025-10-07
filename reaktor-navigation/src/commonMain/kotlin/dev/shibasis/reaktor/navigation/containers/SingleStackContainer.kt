@@ -1,34 +1,33 @@
 package dev.shibasis.reaktor.navigation.containers
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import dev.shibasis.reaktor.navigation.common.Props
+import dev.shibasis.reaktor.navigation.Input
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
-import dev.shibasis.reaktor.navigation.route.ContainerProps
+import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.route.Switch
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
-import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 open class SingleStackContainer(
     switch: Switch
 ): Container(switch) {
     constructor(
-        home: Screen<Props> = ErrorScreen("Home Screen not selected"),
-        error: Screen<Props> = ErrorScreen(),
+        home: Screen<Input> = ErrorScreen("Home Screen not selected"),
+        error: Screen<Input> = ErrorScreen(),
         builder: Switch.() -> Unit = {}
     ): this(Switch(home, error, builder))
 
     private val screenStack = ObservableStack<ScreenPair>()
 
     @Composable
-    override fun Render(props: ContainerProps) {
+    override fun Render(props: ContainerInputs) {
         val current by screenStack.top.collectAsState()
         current?.let {
-            it.screen.Render(it.props)
+            it.screen.Render(it.inputs)
         }
     }
 

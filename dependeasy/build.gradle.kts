@@ -28,6 +28,7 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics-gradle:3.0.3")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.2.10-2.0.2")
+//    implementation("io.github.turansky.seskar:seskar-gradle-plugin:4.25.0")
 
 }
 

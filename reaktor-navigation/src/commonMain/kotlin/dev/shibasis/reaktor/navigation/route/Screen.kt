@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.navigation.route
 
-import dev.shibasis.reaktor.navigation.common.Props
+import dev.shibasis.reaktor.navigation.Input
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 
 /**
@@ -9,7 +9,7 @@ import dev.shibasis.reaktor.navigation.common.ScreenPair
  * todo figure out how to remove default props
  * reified reverse map to get screen from props so that we can directly push props ?
  */
-abstract class Screen<out T: Props>(val defaultProps: T): Route(), Route.Render<T> {
+abstract class Screen<out T: Input>(val defaultProps: T): Route(), Route.Render<T> {
     fun with(props: @UnsafeVariance T, vararg params: Pair<String, Any>) =
         ScreenPair(this, props.also {
             params.forEach { pair ->

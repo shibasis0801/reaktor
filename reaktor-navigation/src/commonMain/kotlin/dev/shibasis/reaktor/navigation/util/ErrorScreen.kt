@@ -11,21 +11,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextAlign
-import dev.shibasis.reaktor.navigation.common.Props
+import dev.shibasis.reaktor.navigation.Input
 import dev.shibasis.reaktor.navigation.route.Screen
 
-class ErrorScreenProps(
+class ErrorScreenInputs(
     val errorMessage: String? = null,
     val onRetry: () -> Unit = {}
-): Props()
+): Input()
 
 
 class ErrorScreen(
-    private val defaultMessage: String = "Oops! Something went wrong.",
-    private val defaultRetry: () -> Unit = {}
-): Screen<ErrorScreenProps>(ErrorScreenProps()) {
+    val defaultMessage: String = "Oops! Something went wrong."
+): Screen<ErrorScreenInputs>(ErrorScreenInputs()) {
     @Composable
-    override fun Render(props: ErrorScreenProps) {
+    override fun Render(props: ErrorScreenInputs) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -36,7 +35,7 @@ class ErrorScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = defaultMessage,
+                    text = props.errorMessage ?: defaultMessage,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -44,7 +43,7 @@ class ErrorScreen(
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                Button(onClick = defaultRetry) {
+                Button(onClick = props.onRetry) {
                     Text(text = "Retry")
                 }
             }

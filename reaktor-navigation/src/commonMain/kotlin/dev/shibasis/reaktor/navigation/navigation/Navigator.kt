@@ -3,30 +3,31 @@ package dev.shibasis.reaktor.navigation.navigation
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.route.Container
-import dev.shibasis.reaktor.navigation.common.Props
+import dev.shibasis.reaktor.navigation.Input
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.NavContainer
 import dev.shibasis.reaktor.navigation.structs.ObservableStack
+import kotlinx.coroutines.flow.map
 
 class Navigator(
     private val root: Container
 ): NavContainer {
     var containerStack = ObservableStack(root.apply { build() })
-    val currentContainer by containerStack.top
-    val consumesBackEvent = containerStack.top.map {
+    val currentContainer = containerStack.top
+    val consumesBackEvent = currentContainer.map {
         containerStack.size > 1 || (it?.consumesBackEvent() ?: false)
     }
 
     init {
         // todo bug: this fails if multistack container is root and does not have a home screen.
-        currentContainer?.apply {
+        currentContainer.value?.apply {
             push(switch.home)
         }
     }
 
     override fun pop() {
-        val container = currentContainer ?: return
+        val container = currentContainer.value ?: return
 
         if (container.consumesBackEvent()) {
             container.pop()
@@ -54,45 +55,31 @@ class Navigator(
     /** Preferred for direct navigation */
     override fun push(screenPair: ScreenPair) {
         updateContainer(screenPair)
-        currentContainer?.push(screenPair)
+        currentContainer.value?.push(screenPair)
     }
     /** Preferred for direct navigation */
     override fun replace(screenPair: ScreenPair) {
         updateContainer(screenPair)
-        currentContainer?.replace(screenPair)
+        currentContainer.value?.replace(screenPair)
     }
 
-    fun<T: Props> findScreen(route: String, props: T): ScreenPair {
+    fun<T: Input> findScreen(route: String, props: T): ScreenPair {
         return root.findScreen(route.split("/"), props)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fun Navigator.push(screen: Screen<Props>) {
+fun Navigator.push(screen: Screen<Input>) {
     push(screen.screenPair())
 }
-fun Navigator.replace(screen: Screen<Props>) {
+fun Navigator.replace(screen: Screen<Input>) {
     replace(screen.screenPair())
 }
 
 /** Used for deep links */
-fun <T: Props> Navigator.push(route: String, props: T) {
+fun <T: Input> Navigator.push(route: String, props: T) {
     push(findScreen(route, props))
 }
-fun <T: Props> Navigator.replace(route: String, props: T) {
+fun <T: Input> Navigator.replace(route: String, props: T) {
     replace(findScreen(route, props))
 }
 

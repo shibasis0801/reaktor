@@ -17,6 +17,7 @@ RoutePattern(
     becomes
 null
 
+todo understand deeper and explain better
 */
 
 
@@ -26,12 +27,13 @@ object RegexCommon {
 }
 
 
+// todo study https://hono.dev/docs/concepts/routers
 data class RoutePattern(
     val original: String = "/",
     val regex: Regex = Regex(""),
     val paramNames: List<String> = listOf()
 ) {
-    fun params(matchResult: MatchResult): Map<String, String> {
+    fun getParams(matchResult: MatchResult): Map<String, String> {
         val values = matchResult.groupValues.drop(1)
         return paramNames.zip(values).toMap()
     }

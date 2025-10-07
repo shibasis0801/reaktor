@@ -53,6 +53,7 @@ object Version {
     const val Coroutines = "1.10.1"
     const val Kermit = "2.0.5"
     const val Serialization = "1.8.0"
+    const val Seskar = "4.25.0"
 
     // DevTools
     const val LeakCanary = "2.8.1"

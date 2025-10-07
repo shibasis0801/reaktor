@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.web
 
 
+import dev.shibasis.dependeasy.Version
 import org.gradle.api.Action
 import org.gradle.api.attributes.Attribute
 import org.gradle.internal.file.impl.DefaultFileMetadata.file
@@ -69,6 +70,7 @@ fun KotlinMultiplatformExtension.web(
     sourceSets {
         jsMain.dependencies {
             configure.dependencies(this)
+//            api("io.github.turansky.seskar:seskar-core:${Version.Seskar}")
         }
     }
 }

@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.navigation.containers
+package dev.shibasis.reaktor.navigation.containers.concrete
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Icon
@@ -7,27 +7,28 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
-import dev.shibasis.reaktor.navigation.common.Props
-import dev.shibasis.reaktor.navigation.route.ContainerProps
+import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.containers.*
+import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.navigation.route.Screen
-import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 class BottomBarItem(
     key: String,
     val icon: ImageVector
-) : MultiStackItemMetadata(key)
+): MultiStackItemMetadata(key)
 
 class BottomBarContainer(
     start: String,
-    error: Screen<Props> = ErrorScreen(),
+    error: Screen<Input> = ErrorScreen(),
     builder: MultiStackContainer<BottomBarItem>.() -> Unit = {}
 ): MultiStackContainer<BottomBarItem>(start, error, builder) {
     @Composable
-    override fun Render(props: ContainerProps) {
+    override fun Render(props: ContainerInputs) {
         val currentKey by currentKey.collectAsState()
         Scaffold(
             bottomBar = {
@@ -43,7 +44,10 @@ class BottomBarContainer(
                 }
             }
         ) { innerPadding ->
-            Box(props.modifier, contentAlignment = Alignment.Center) {
+            Box(
+//                props.modifier.padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
                 Content()
             }
         }

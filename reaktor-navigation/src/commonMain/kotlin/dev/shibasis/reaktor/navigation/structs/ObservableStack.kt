@@ -1,16 +1,17 @@
 package dev.shibasis.reaktor.navigation.structs
 
+import kotlinx.coroutines.flow.MutableStateFlow
+
 class ObservableStack<T>(initialTop: T? = null) {
-    val top = Observable(initialTop)
+    val top = MutableStateFlow(initialTop)
     private val stack = ArrayDeque<T>()
 
     init {
-        if (initialTop != null)
-            stack.add(initialTop)
+        initialTop?.apply(stack::add)
     }
 
-    val size: Int
-        get() = stack.size
+    val size: Int get() = stack.size
+    fun isEmpty() = stack.isEmpty()
 
     val entries = stack as List<T>
 
@@ -20,17 +21,22 @@ class ObservableStack<T>(initialTop: T? = null) {
     }
 
     fun replace(value: T) {
-        stack.removeLast()
-        stack.add(value)
-        top.value = value
+        pop()
+        push(value)
     }
 
     fun pop(): Boolean {
-        if (stack.isNotEmpty()) {
-            stack.removeLast()
-            top.value = stack.lastOrNull()
-            return true
-        }
-        else return false
+        if (stack.isEmpty()) return false
+
+        stack.removeLast()
+        top.value = stack.lastOrNull()
+        return true
+    }
+
+    fun clear() {
+        if (stack.isEmpty()) return
+
+        stack.clear()
+        top.value = null
     }
 }

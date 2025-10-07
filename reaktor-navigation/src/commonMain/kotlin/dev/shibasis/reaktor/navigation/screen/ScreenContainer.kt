@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.navigation.screen
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -11,11 +10,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import dev.shibasis.reaktor.navigation.common.Props
 import dev.shibasis.reaktor.navigation.navigation.Navigator
-import dev.shibasis.reaktor.navigation.route.ContainerProps
-import dev.shibasis.reaktor.navigation.structs.collectAsState
+import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.ui.Theme
+import kotlinx.coroutines.flow.MutableStateFlow
 
 
 val LocalNavigator = staticCompositionLocalOf<Navigator> {
@@ -33,7 +31,7 @@ expect fun BackHandlerContainer(
 @Composable
 fun Theme.ScreenContainer(navigator: Navigator) {
     val stack = navigator.containerStack
-    val handlesBack = navigator.consumesBackEvent.collectAsState()
+    val handlesBack = MutableStateFlow(false).collectAsState()
 
     BackHandlerContainer(Modifier.fillMaxSize(), handlesBack.value, navigator::pop) {
         val container by stack.top.collectAsState()
@@ -45,7 +43,7 @@ fun Theme.ScreenContainer(navigator: Navigator) {
             ) {
                 Scaffold(Modifier.safeDrawingPadding()) {
                     // chain containers somehow 
-                    container?.Render(ContainerProps())
+                    container?.Render(ContainerInputs())
                 }
             }
         }

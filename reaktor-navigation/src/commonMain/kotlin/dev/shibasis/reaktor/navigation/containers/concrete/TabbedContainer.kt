@@ -1,37 +1,37 @@
-package dev.shibasis.reaktor.navigation.containers
+package dev.shibasis.reaktor.navigation.containers.concrete
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import dev.shibasis.reaktor.navigation.common.Props
-import dev.shibasis.reaktor.navigation.route.ContainerProps
+import androidx.compose.ui.Alignment
+import dev.shibasis.reaktor.navigation.containers.*
+import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.navigation.route.Screen
-import dev.shibasis.reaktor.navigation.structs.collectAsState
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
 class TabBarItem(
     key: String
-) : MultiStackItemMetadata(key)
+): MultiStackItemMetadata(key)
 
 class TabbedContainer(
     start: String,
-    error: Screen<Props> = ErrorScreen(),
+    error: Screen<Input> = ErrorScreen(),
     builder: MultiStackContainer<TabBarItem>.() -> Unit = {}
-) : MultiStackContainer<TabBarItem>(start, error, builder) {
+): MultiStackContainer<TabBarItem>(start, error, builder) {
     @Composable
-    override fun Render(props: ContainerProps) {
+    override fun Render(props: ContainerInputs) {
         val currentKey by currentKey.collectAsState()
 
         val keys = metadata.keys
         val currentIndex = keys.indexOf(currentKey)
-        Scaffold {
+        Scaffold { innerPadding ->
             Column {
                 TabRow(currentIndex) {
                     keys.forEachIndexed { index, key ->
@@ -45,7 +45,10 @@ class TabbedContainer(
                     }
                 }
 
-                Box(Modifier.fillMaxSize()) {
+                Box(
+//                    props.modifier.padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
                     Content()
                 }
             }

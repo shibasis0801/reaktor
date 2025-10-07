@@ -43,6 +43,7 @@ fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) 
     plugins.apply("com.android.library")
     plugins.apply("kotlin-multiplatform")
     plugins.apply("org.jetbrains.kotlin.native.cocoapods")
+//    plugins.apply("io.github.turansky.seskar")
 
     val multiplatform = extensions.getByName("kotlin") as KotlinMultiplatformExtension
 

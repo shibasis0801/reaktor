@@ -36,6 +36,8 @@ fun KotlinMultiplatformExtension.common(
         commonTest.dependencies {
             api(kotlin("test"))
             api(kotlin("test-annotations-common"))
+            api("org.jetbrains.kotlinx:kotlinx-coroutines-test:${Version.Coroutines}")
+            api("app.cash.turbine:turbine:1.2.1")
             configure.testDependencies(this)
         }
     }
