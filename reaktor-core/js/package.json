@@ -1,11 +1,13 @@
 {
   "name": "reaktor-core",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+  "type": "module",
+  "exports": { ".": "./src/index.js" },
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "scripts": { "build": "tsc -p ." },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@cloudflare/workers-types": "^4.20250712.0"
+  }
 }

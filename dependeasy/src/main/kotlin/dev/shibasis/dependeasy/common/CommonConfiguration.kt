@@ -11,7 +11,8 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 class CommonConfiguration(
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
-    var testDependencies: KotlinDependencyHandler.() -> Unit = {}
+    var testDependencies: KotlinDependencyHandler.() -> Unit = {},
+    var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
 )
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -30,8 +31,11 @@ fun KotlinMultiplatformExtension.common(
                 optIn("kotlin.js.ExperimentalJsExport")
             }
         }
-        commonMain.dependencies {
-            configure.dependencies(this)
+        commonMain {
+            configure.sourceSetModifier(this)
+            dependencies {
+                configure.dependencies(this)
+            }
         }
         commonTest.dependencies {
             api(kotlin("test"))

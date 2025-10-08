@@ -26,6 +26,7 @@ import java.io.File
 class WebConfiguration(
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var targetModifier: KotlinJsTargetDsl.() -> Unit = {},
+    var sourceSetModifier: KotlinSourceSet.() -> Unit = {},
     var webpackConfig: KotlinWebpackConfig.() -> Unit = {},
     var packageJson: File? = null,
     var moduleName: String? = null,
@@ -68,9 +69,12 @@ fun KotlinMultiplatformExtension.web(
     }
 
     sourceSets {
-        jsMain.dependencies {
-            configure.dependencies(this)
-//            api("io.github.turansky.seskar:seskar-core:${Version.Seskar}")
+        jsMain {
+            configure.sourceSetModifier(this)
+            dependencies {
+                configure.dependencies(this)
+                //            api("io.github.turansky.seskar:seskar-core:${Version.Seskar}")
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
@@ -15,6 +16,7 @@ class DarwinConfigure(
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var podDependencies: CocoapodsExtension.() -> Unit = {},
     var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {},
+    var sourceSetModifier: KotlinSourceSet.() -> Unit = {},
     var targets: KotlinNativeTarget.() -> Unit = {}
 )
 
@@ -54,6 +56,7 @@ fun KotlinMultiplatformExtension.darwin(
 
     sourceSets {
         iosMain {
+            configure.sourceSetModifier(this)
             dependencies {
                 configure.dependencies(this)
             }

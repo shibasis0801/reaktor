@@ -32,7 +32,7 @@ object Version {
     const val Navigation = "2.3.2"
 
     // Web
-    const val KotlinJSWrappers = "1.0.0-pre.758"
+    const val KotlinJSWrappers = "2025.10.4"
 
     // Data
     const val SQLDelight = "2.0.0"

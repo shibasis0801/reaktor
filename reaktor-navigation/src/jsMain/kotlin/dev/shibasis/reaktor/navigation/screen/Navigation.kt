@@ -5,10 +5,9 @@ import dev.shibasis.reaktor.navigation.Event
 import dev.shibasis.reaktor.navigation.Input
 import dev.shibasis.reaktor.navigation.Renderer
 import dev.shibasis.reaktor.navigation.Screen
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import react.StateInstance
 import react.StateSetter
+import react.use.useMediaQuery
 import react.useEffect
 import react.useMemo
 import react.useRef
@@ -33,15 +32,9 @@ abstract class ReactScreen<I: Input, E: Event>(
 
         // stateflow to react
         useEffect(screen) {
-            val job = Dispatch.Main.launch {
-                screen.state.collect {
-                    if (it != indirectStateToAvoidClosure.current)
-                        setState(it)
-                }
-            }
-
-            cleanup {
-                job.cancel()
+            screen.state.collect {
+                if (it != indirectStateToAvoidClosure.current)
+                    setState(it)
             }
         }
 
@@ -63,5 +56,11 @@ abstract class ReactScreen<I: Input, E: Event>(
 
     abstract fun render()
 }
+
+
+class ReactListDetailContainer(
+    val listScreen: ReactScreen<Input, Event>,
+    val detailScreen: ReactScreen<Input, Event>
+)
 
 

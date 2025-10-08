@@ -11,7 +11,8 @@ import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 class ServerConfiguration(
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
-    var targetModifier: KotlinJvmTarget.() -> Unit = {}
+    var targetModifier: KotlinJvmTarget.() -> Unit = {},
+    var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
 )
 
 fun KotlinMultiplatformExtension.server(
@@ -28,8 +29,12 @@ fun KotlinMultiplatformExtension.server(
     }
 
     sourceSets {
-        jvmMain.dependencies {
-            configure.dependencies(this)
+        jvmMain {
+            configure.sourceSetModifier(this)
+            dependencies {
+                configure.dependencies(this)
+            }
         }
+
     }
 }

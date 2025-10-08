@@ -7,6 +7,7 @@ import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 
@@ -14,8 +15,10 @@ class AndroidConfiguration(
     var targetModifier: KotlinAndroidTarget.() -> Unit = {},
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var testDependencies: KotlinDependencyHandler.() -> Unit = {},
-    var integrationTestDependencies: KotlinDependencyHandler.() -> Unit = {}
+    var integrationTestDependencies: KotlinDependencyHandler.() -> Unit = {},
+    var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
 )
+
 fun KotlinMultiplatformExtension.droid(
     configuration: AndroidConfiguration.() -> Unit = {}
 ) {
@@ -34,10 +37,13 @@ fun KotlinMultiplatformExtension.droid(
     }
 
     sourceSets {
-        androidMain.dependencies {
-            configure.dependencies(this)
-            // bad idea todo shibasis fix
-            fbjni()
+        androidMain {
+            configure.sourceSetModifier(this)
+            dependencies {
+                configure.dependencies(this)
+                // bad idea todo shibasis fix
+                fbjni()
+            }
         }
 
 //        val androidUnitTest by getting {

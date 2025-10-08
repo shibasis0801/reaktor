@@ -48,8 +48,8 @@ kotlin {
     }
 
     droid {
-        dependencies {
-            implementation("com.facebook.react:hermes-android:0.76.1")
+        dependencies = {
+            implementation("com.facebook.react:hermes-android:0.81.4")
             // They have coupled this with react native, and download latest main as a tarball
             // https://github.com/facebook/react-native/blob/a9a1c86a927fc6e3854a9b4ad44d38bd3c8db588/packages/react-native/ReactAndroid/hermes-engine/build.gradle.kts#L336
 

@@ -22,6 +22,7 @@ kotlin {
 
     web {
         dependencies = {
+            api(npm("reaktor-core", file("js")))
             kotlinWrappers()
             webCoroutines()
         }
@@ -52,3 +53,30 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.core")
 }
+
+
+
+
+val jsProjectDir = file("js")
+
+//val npmInstall by tasks.registering(Exec::class) {
+//    group = "npm"
+//    workingDir = jsProjectDir
+//    commandLine("npm", "install")
+//
+//    inputs.file(jsProjectDir.resolve("package.json"))
+//    outputs.dir(jsProjectDir.resolve("node_modules"))
+//}
+//
+//
+//val compileTypeScript by tasks.registering(Exec::class) {
+//    group = "npm"
+//    workingDir = jsProjectDir
+//    commandLine("npm", "run", "build")
+//    inputs.dir(jsProjectDir.resolve("src"))
+//    dependsOn(npmInstall)
+//}
+//
+//tasks.named("jsProcessResources") {
+//    dependsOn(compileTypeScript)
+//}

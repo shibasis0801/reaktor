@@ -11,6 +11,97 @@ import kotlinx.serialization.Serializable
 import kotlin.js.JsExport
 import kotlin.js.JsName
 
+/*
+Sample usage
+
+
+/
+
+/profile
+
+/profile/edit
+
+/profile/create
+
+/home/chats
+
+/home/chats/{id}
+
+/home/campaigns
+
+/home/campaigns/current
+
+/home/campaigns/discover
+
+/home/events
+
+/home/events/private
+
+/home/events/public
+
+/home/events/create
+
+/home/friends
+
+val BestBudsSwitch = container<BlankContainer> {
+    errorScreen(appErrorScreen)
+
+    startEntry {
+        startScreen(startScreen)
+    }
+
+    entry("profile") {
+        errorScreen(profileErrorScreen)
+        startScreen("edit", editProfileScreen)
+        screen("create", createProfileScreen)
+    }
+
+    container<BottomBarContainer>("home") {
+        startEntry("chats") {
+            icon(Icons.AutoMirrored.Filled.Chat)
+            startScreen(chatsScreen)
+            container<SingleScreenContainer>("{id}") {
+                clearTop = true
+                startScreen(chatScreen)
+            }
+        }
+
+        entry("campaigns") {
+            icon(Icons.Filled.Campaign)
+            container<TabbedContainer> {
+                startEntry("current") {
+                    startScreen(currentScreen)
+                }
+                entry("discover") {
+                    startScreen(discoverScreen)
+                }
+            }
+        }
+
+        entry("events") {
+            icon(Icons.Filled.Event)
+            container<TabbedContainer> {
+                startEntry("private") {
+                    startScreen(privateEventsScreen)
+                }
+                entry("public") {
+                    startScreen(publicEventsScreen)
+                }
+                entry("create") {
+                    startScreen(createEventScreen)
+                }
+            }
+        }
+
+        entry("friends") {
+            icon(Icons.Filled.People)
+            startScreen(friendsScreen)
+            screen()
+        }
+    }
+}
+
+ */
 
 // todo add https://github.com/turansky/seskar for kotlin/js sugar
 @JsExport
@@ -46,9 +137,12 @@ abstract class Screen<I: Input, E: Event>(previewInput: I): Route<E>() {
 /*
 Holds a hierarchy of screens
 Used to export groups of mountable screens from a module
+todo critical, for this and container, take your own path into account
 */
 @JsExport
-open class Switch<E: Event>(): Route<E>() {
+open class Switch<E: Event>(): Route<E>(
+
+) {
     val routes = linkedMapOf<RoutePattern, Screen<out Input, out Event>>()
 
     fun screen(route: String, screen: Screen<Input, Event>) {
@@ -80,6 +174,8 @@ Holds a backstack of screens, to be used inside containers.
 open class Stack {
     val screenStack = ObservableStack<Screen<out Input, out Event>>()
 
+    val top = screenStack.top
+
     fun consumesBackEvent() = screenStack.size > 1
 
     fun<I: Input> push(screen: Screen<I, Event>, input: I) {
@@ -100,9 +196,64 @@ open class Stack {
 
 /*
 Contains one or more stacks,
+
+There could be different containers for different layouts, for example mobile / desktop
+Should we re-implement flexbox which would work for both ?
+
+Should have slots in which any route(screen, switch, container) can be inserted.
+focused slot would receive back event
 */
 @JsExport
 abstract class Container<E: Event>: Route<E>() {
+    // child containers forward this to correct slot, return needs pop if the slot is empty (container will pop)
+    protected fun consumesBackEvent(): Boolean {
+        val route = activeRoute.value ?: return false
+        val stack = stacks[route] ?: return false
+
+        return stack.consumesBackEvent()
+    }
+
+    protected val stacks = linkedMapOf<RoutePattern, Stack>()
+    protected val activeRoute = MutableStateFlow<RoutePattern?>(null)
+
+    protected fun entry(path: String, route: Route<E>) {
+        val pattern = RoutePattern.from(path)
+        val stack = Stack()
+
+        when (route) {
+            is Screen<*, *> -> stack.push(route as Screen<Input, Event>, route.state.value)
+            is Switch -> {}
+            is Container<*> -> {}
+        }
+
+        stacks[pattern] = stack
+    }
+}
+
+inline fun<reified C: Container<Event>> container(
+    crossinline fn: C.() -> Unit
+) {
+
+}
+
+class ListContainer: Container<Event>() {
+    fun listSanu() {
+
+    }
+}
+
+class DetailContainer: Container<Event>() {
+    fun detailSanu() {
+
+    }
+
+}
+
+fun t() {
+    container<ListContainer> {
+        listSanu()
+    }
+
 
 }
 
@@ -137,8 +288,10 @@ class Navigator {
 
 }
 
+
 @JsExport
 abstract class Renderer
+
 
 /*
 
@@ -160,6 +313,19 @@ Requirements:
 15. Containers and Switches can contain containers and switches respectively.
 16. At a single time, there must be one Container occupying the entire screen.
 17. Handle when a screen pop happens, you may need to refresh.
+18. LayoutParams somewhere
+19. The nav-graph and back-stack need to be serializable so that we can restore.
+20. Building it in compose runtime, we can use custom appliers with a input mutable state.
+deep-links would be trivial by just setting the mutable state and the entire tree would recompose.
+we should also give functionality to add more root states / ability to recompose part of the tree.
+21. Minimise number of concepts needed for a developer to build apps with this
+22. Think something like Scenes abstraction from compose jetpack navigation 3
+23. Transitions / Animations
+24. A Pod gives you a Switch
+25. Basic container will have basic entry/stack addition logic. You need to implement methods for adding icons, etc through your EntryBuilder lambda.
+26. Lifecycles ? what if another screen is rendered ?
+27. Restoration ?
+28. Uber RIBs, Permission and other guards,
 
 
 Example Containers:
@@ -198,5 +364,6 @@ The design/implementation is incomplete, and before writing code I need guidance
 The framework needs to grow into something production ready for scalable apps
 but requiring a single mental model so that we can replace react-router and compose-navigation
 with this one unified framework
+
 
 */
