@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.navigation.route
 
-import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.InputSignal
 import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
 
@@ -9,8 +9,8 @@ import dev.shibasis.reaktor.navigation.util.ErrorScreen
  * 2. Move to prefix match if needed later
  */
 class Switch(
-    val home: Screen<Input> = ErrorScreen("Home Screen not selected"),
-    val error: Screen<Input> = ErrorScreen(),
+    val home: Screen<InputSignal> = ErrorScreen("Home Screen not selected"),
+    val error: Screen<InputSignal> = ErrorScreen(),
     private val builder: Switch.() -> Unit = {}
 ): Route(), Route.Buildable {
     // maintain insertion order
@@ -23,7 +23,7 @@ class Switch(
         routes[at] = route
     }
 
-    fun screen(route: String, screen: Screen<Input>): Screen<Input> {
+    fun screen(route: String, screen: Screen<InputSignal>): Screen<InputSignal> {
         link(route, screen)
         return screen
     }
@@ -33,7 +33,7 @@ class Switch(
         return switch
     }
 
-    fun switch(route: String, home: Screen<Input>, error: Screen<Input> = ErrorScreen(), builder: Switch.() -> Unit = {})
+    fun switch(route: String, home: Screen<InputSignal>, error: Screen<InputSignal> = ErrorScreen(), builder: Switch.() -> Unit = {})
         = switch(route, Switch(home, error, builder))
 
     fun container(route: String, container: Container): Container {

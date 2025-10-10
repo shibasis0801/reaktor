@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.navigation.containers
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.InputSignal
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
 import dev.shibasis.reaktor.navigation.route.ContainerInputs
@@ -16,8 +16,8 @@ open class SingleStackContainer(
     switch: Switch
 ): Container(switch) {
     constructor(
-        home: Screen<Input> = ErrorScreen("Home Screen not selected"),
-        error: Screen<Input> = ErrorScreen(),
+        home: Screen<InputSignal> = ErrorScreen("Home Screen not selected"),
+        error: Screen<InputSignal> = ErrorScreen(),
         builder: Switch.() -> Unit = {}
     ): this(Switch(home, error, builder))
 

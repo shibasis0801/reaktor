@@ -9,17 +9,18 @@ import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.context.unloadKoinModules
 import org.koin.core.module.Module
+import org.koin.mp.KoinPlatform.getKoin
 
 class KoinAdapter(
-    koinApplication: KoinApplication = startKoin {},
-    modules: List<Module> = listOf()
+    koinApplication: KoinApplication = startKoin {}
 ): Adapter<KoinApplication>(koinApplication) {
-    init {
-        invoke { loadKoinModules(modules) }
-    }
+    fun koin() = getKoin()
 
-    fun load(pod: Pod) = invoke { loadKoinModules(pod.modules()) }
-    fun unload(pod: Pod) = invoke { unloadKoinModules(pod.modules()) }
+    fun load(modules: List<Module>) = invoke { loadKoinModules(modules) }
+    fun load(vararg modules: Module) = load(modules.toList())
+
+    fun unload(modules: List<Module>) = invoke { unloadKoinModules(modules) }
+    fun unload(vararg modules: Module) = unload(modules.toList())
 }
 
-val Feature.Koin by CreateSlot<KoinAdapter>()
+val Feature.Koin: KoinAdapter by lazy { KoinAdapter() }

@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.navigation.navigation
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.route.Container
-import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.InputSignal
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.NavContainer
@@ -63,23 +63,23 @@ class Navigator(
         currentContainer.value?.replace(screenPair)
     }
 
-    fun<T: Input> findScreen(route: String, props: T): ScreenPair {
+    fun<T: InputSignal> findScreen(route: String, props: T): ScreenPair {
         return root.findScreen(route.split("/"), props)
     }
 }
 
-fun Navigator.push(screen: Screen<Input>) {
+fun Navigator.push(screen: Screen<InputSignal>) {
     push(screen.screenPair())
 }
-fun Navigator.replace(screen: Screen<Input>) {
+fun Navigator.replace(screen: Screen<InputSignal>) {
     replace(screen.screenPair())
 }
 
 /** Used for deep links */
-fun <T: Input> Navigator.push(route: String, props: T) {
+fun <T: InputSignal> Navigator.push(route: String, props: T) {
     push(findScreen(route, props))
 }
-fun <T: Input> Navigator.replace(route: String, props: T) {
+fun <T: InputSignal> Navigator.replace(route: String, props: T) {
     replace(findScreen(route, props))
 }
 

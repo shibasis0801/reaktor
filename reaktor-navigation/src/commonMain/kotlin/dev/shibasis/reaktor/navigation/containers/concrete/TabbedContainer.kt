@@ -11,7 +11,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import dev.shibasis.reaktor.navigation.containers.*
-import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.InputSignal
 import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.navigation.route.Screen
 import dev.shibasis.reaktor.navigation.util.ErrorScreen
@@ -22,7 +22,7 @@ class TabBarItem(
 
 class TabbedContainer(
     start: String,
-    error: Screen<Input> = ErrorScreen(),
+    error: Screen<InputSignal> = ErrorScreen(),
     builder: MultiStackContainer<TabBarItem>.() -> Unit = {}
 ): MultiStackContainer<TabBarItem>(start, error, builder) {
     @Composable

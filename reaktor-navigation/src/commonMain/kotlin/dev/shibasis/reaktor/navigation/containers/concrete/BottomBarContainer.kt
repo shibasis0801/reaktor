@@ -11,7 +11,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
-import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.InputSignal
 import dev.shibasis.reaktor.navigation.containers.*
 import dev.shibasis.reaktor.navigation.route.ContainerInputs
 import dev.shibasis.reaktor.navigation.route.Screen
@@ -24,7 +24,7 @@ class BottomBarItem(
 
 class BottomBarContainer(
     start: String,
-    error: Screen<Input> = ErrorScreen(),
+    error: Screen<InputSignal> = ErrorScreen(),
     builder: MultiStackContainer<BottomBarItem>.() -> Unit = {}
 ): MultiStackContainer<BottomBarItem>(start, error, builder) {
     @Composable

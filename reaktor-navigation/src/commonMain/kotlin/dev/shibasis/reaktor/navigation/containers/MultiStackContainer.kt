@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.navigation.containers
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import dev.shibasis.reaktor.navigation.Input
+import dev.shibasis.reaktor.navigation.InputSignal
 import dev.shibasis.reaktor.navigation.common.ScreenPair
 import dev.shibasis.reaktor.navigation.route.Container
 import dev.shibasis.reaktor.navigation.route.ContainerInputs
@@ -26,7 +26,7 @@ sealed class MultiStackContainerError(message: String): Error(message) {
 
 abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
     val start: String,
-    error: Screen<Input> = ErrorScreen(),
+    error: Screen<InputSignal> = ErrorScreen(),
     private val builder: MultiStackContainer<Metadata>.() -> Unit = {}
 ): Container(Switch()) {
     protected var currentKey = MutableStateFlow(start)
@@ -42,21 +42,21 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         get() = getStack(currentKey.value)
     override fun consumesBackEvent() = currentStack.size > 1
 
-    fun screen(route: String, screen: Screen<Input>)
+    fun screen(route: String, screen: Screen<InputSignal>)
         = switch.screen(route, screen)
 
-    fun switch(route: String, home: Screen<Input>, error: Screen<Input> = ErrorScreen(), builder: Switch.() -> Unit = {})
+    fun switch(route: String, home: Screen<InputSignal>, error: Screen<InputSignal> = ErrorScreen(), builder: Switch.() -> Unit = {})
         = switch.switch(route, Switch(home, error, builder))
 
     fun container(route: String, container: Container)
         = switch.container(route, container)
 
-    fun findStartScreen(key: String = start): Screen<Input> {
+    fun findStartScreen(key: String = start): Screen<InputSignal> {
         val path = keyRouteMap.routeFor(key)
         val route = switch.routes[path] ?: throw MultiStackContainerError.InvalidStackKey(key)
         return when(route) {
             is Switch -> route.home
-            is Screen<Input> -> route
+            is Screen<InputSignal> -> route
             is Container -> {
                 // todo fix this abomination
                 if (route is MultiStackContainer<*>) {
@@ -103,7 +103,7 @@ abstract class MultiStackContainer<Metadata: MultiStackItemMetadata>(
         return currentStack
     }
 
-    fun findStack(screen: Screen<Input>): String {
+    fun findStack(screen: Screen<InputSignal>): String {
         var route: Route? = screen
         while (route != null) {
             val key = keyRouteMap.keyFor(route.pattern.original)
