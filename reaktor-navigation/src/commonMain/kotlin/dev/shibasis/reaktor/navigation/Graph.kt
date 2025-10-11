@@ -31,7 +31,7 @@ import kotlin.uuid.Uuid
 
 /*
 
-A reactive graph library for application nodes inspired by Uber/RIBs and Actor frameworks like Akka and other stuff.
+A reactive graph library for application nodes inspired from Uber/RIBs and Actor frameworks like Akka/Erlang.
 Large applications for mobile and servers can be decomposed into fully functional modules and visitors can orchestrate stuff on it.
 
 
@@ -58,7 +58,8 @@ ApiNode
 -> auth checks
 -> Execution Visitor
 
-
+ThreadSafe Visitors would be needed, initialization order is critical.
+Visitor Strategies should be there (DFS, BFS, PreOrder, PostOrder, etc)
 */
 
 interface Capability: AutoCloseable {
@@ -145,7 +146,6 @@ class DependencyCapabilityImpl(
     }
 
     init {
-
         parentScope?.linkTo()
         parentScope?.let { koinScope.linkTo(it) }
         Feature.Koin.load(module)
@@ -176,7 +176,7 @@ interface ConcurrencyCapability: Capability {
 @JsExport
 class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
-    dispatcher: CoroutineDispatcher = Dispatchers.Main
+    dispatcher: CoroutineDispatcher = Dispatchers.Default
 ): ConcurrencyCapability {
 
     val supervisorJob = SupervisorJob()
