@@ -33,6 +33,9 @@ import kotlin.uuid.Uuid
 /*
 Sample usage
 
+
+
+
 /
 
 /profile
@@ -52,6 +55,18 @@ Sample usage
 /home/events/create
 
 /home/friends
+
+
+
+
+
+
+
+
+
+
+
+
 
 val BestBudsSwitch = container<BlankContainer> {
     errorScreen(appErrorScreen)
@@ -112,316 +127,6 @@ val BestBudsSwitch = container<BlankContainer> {
 }
 */
 
-// todo add https://github.com/turansky/seskar for kotlin/js sugar
-
-@JsExport
-interface Signal
-
-
-@JsExport
-@Serializable
-open class InputSignal(
-    val params: MutableMap<String, String> = hashMapOf(),
-): Signal
-
-
-@JsExport
-interface Route<InSignal: InputSignal, OutSignal: Signal> {
-    val state: MutableStateFlow<InSignal>
-    val signal: MutableSharedFlow<OutSignal>
-}
-
-@JsExport
-data class ChatInputSignal(
-    val chatId: String = "1"
-): InputSignal()
-
-@JsExport
-abstract class Screen<Input: InputSignal, OutSignal: Signal>(
-    // mandated initial input for previews.
-    previewInput: Input
-): Route<Input, OutSignal> {
-
-    var isPreview = true
-        private set
-
-    override val state = MutableStateFlow(previewInput)
-    override val signal = MutableSharedFlow<OutSignal>()
-
-    init {
-        Dispatch.Main.launch {
-            state.drop(1).first()
-            isPreview = false
-        }
-    }
-}
-
-typealias ScreenRoute = Screen<out InputSignal, out Signal>
-
-/*
-Holds a hierarchy of screens
-Used to export groups of mountable screens from a module
-todo critical, for this and container, take your own path into account
-
-
-switch/graph is a separate entity
-Navigator is aware of it, Containers/Screens are present in it.
-
-
-*/
-@JsExport
-open class Switch() {
-    val routes = linkedMapOf<RoutePattern, ScreenRoute>()
-
-    fun screen(route: String, screen: ScreenRoute) {
-        routes[RoutePattern.from(route)] = screen
-    }
-
-    fun switch(route: String, switch: Switch) {
-        switch.routes.forEach { (pattern, screen) ->
-            val newRoute = RoutePattern.from("$route/${pattern.original}")
-            routes[newRoute] = screen
-        }
-    }
-
-    @JsName("findByPath")
-    fun find(path: String): ScreenRoute? {
-        return null
-    }
-
-    fun find(screen: ScreenRoute): ScreenRoute? {
-        return null
-    }
-}
-
-
-/*
-Holds a backstack of screens, to be used inside containers.
-*/
-@JsExport
-open class Stack {
-    val screenStack = ObservableStack<Screen<out InputSignal, out Signal>>()
-
-    val top = screenStack.top
-
-    fun consumesBackEvent() = screenStack.size > 1
-
-    fun<I: InputSignal> push(screen: Screen<I, Signal>, input: I) {
-        screen.state.value = input
-        screenStack.push(screen)
-    }
-
-    fun pop() {
-        screenStack.pop()
-    }
-
-    fun<I: InputSignal> replace(screen: Screen<I, Signal>, input: I) {
-        pop()
-        push(screen, input)
-    }
-}
-
-
-/*
-Contains one or more stacks,
-
-There could be different containers for different layouts, for example mobile / desktop
-Should we re-implement flexbox which would work for both ?
-
-Should have slots in which any route(screen, switch, container) can be inserted.
-focused slot would receive back event
-
-
-container should not be switch-aware,
-*/
-@JsExport
-abstract class Container<Input: InputSignal, OutSignal: Signal, ScreenSignal: Signal>
-    : Route<InputSignal, Signal> {
-
-    // child containers forward this to correct slot,
-    // return needs pop if the slot is empty (container will pop)
-    protected fun consumesBackEvent(): Boolean {
-        val route = activeRoute.value ?: return false
-        val stack = stacks[route] ?: return false
-
-        return stack.consumesBackEvent()
-    }
-
-    protected val stacks = linkedMapOf<RoutePattern, Stack>()
-
-    protected val activeRoute = MutableStateFlow<RoutePattern?>(null)
-
-
-    open fun entry(path: String, route: Route<out InputSignal, ScreenSignal>) {
-
-    }
-}
-
-
-@JsExport
-interface BottomNavSignal: Signal {
-    data object Vibrate: BottomNavSignal
-}
-
-class BottomNavContainer: Container<InputSignal, Signal, BottomNavSignal>() {
-    override val state = MutableStateFlow(InputSignal())
-    override val signal = MutableSharedFlow<Signal>()
-
-    override fun entry(path: String, route: Route<out InputSignal, BottomNavSignal>) {
-        super.entry(path, route)
-        Reaktor
-
-        Dispatch.Main.launch {
-            route.signal.collect {
-                when (it) {
-                    BottomNavSignal.Vibrate -> {}
-                }
-            }
-        }
-    }
-}
-
-@JsExport
-class Navigator {
-    val containerStack = ObservableStack<Container<out InputSignal, out Signal, out Signal>>()
-
-}
-
-@JsExport
-abstract class Renderer
-
-
-sealed class Lifecycle {
-    object Created: Lifecycle()
-    object Attached: Lifecycle()
-    object Destroyed: Lifecycle()
-}
-
-interface LifecycleCapability {
-    val lifecycle: MutableStateFlow<Lifecycle>
-    fun transition(new: Lifecycle) {
-        lateinit var previous: Lifecycle
-        lifecycle.update { old ->
-            previous = old
-            when(old to new) {
-                (Lifecycle.Created to Lifecycle.Attached) -> {
-                    new
-                }
-                (Lifecycle.Created to Lifecycle.Destroyed) ->  {
-                    new
-                }
-                (Lifecycle.Attached to Lifecycle.Destroyed) -> {
-                    new
-                }
-                else -> {
-                    Logger.e { "Invalid State Transition from $old to $new" }
-                    old
-                }
-            }
-        }
-        if (previous != new)
-            onTransition(previous, new)
-    }
-
-    fun onTransition(previous: Lifecycle, current: Lifecycle) {}
-}
-
-class LifecycleCapabilityImpl: LifecycleCapability {
-    override val lifecycle: MutableStateFlow<Lifecycle> = MutableStateFlow(Lifecycle.Created)
-}
-
-
-interface DependencyCapability {
-    val koinQualifier: Qualifier
-    val koinScope: Scope
-    fun dependencies() = module {}
-}
-
-class DependencyCapabilityImpl(
-    id: String,
-    type: String,
-    parentScope: Scope?
-): DependencyCapability {
-    override val koinQualifier: Qualifier = named(type)
-    override val koinScope: Scope = Feature.Koin.koin().createScope<Graph>(id, koinQualifier)
-
-    init {
-        parentScope?.let { koinScope.linkTo(it) }
-    }
-}
-
-inline fun <reified T : Any> DependencyCapability.get(
-    qualifier: Qualifier? = null,
-    noinline parameters: ParametersDefinition? = null,
-): T {
-    return koinScope.get(T::class, qualifier, parameters)
-}
-
-interface ConcurrencyCapability {
-    val coroutineScope: CoroutineScope
-}
-
-class ConcurrencyCapabilityImpl(
-    context: CoroutineContext? = null
-): ConcurrencyCapability {
-    override val coroutineScope: CoroutineScope = CoroutineScope(
-        (context ?: EmptyCoroutineContext) +
-                SupervisorJob()
-    )
-}
-
-open class Graph(
-    parentGraph: Graph? = null,
-    val id: Uuid = Uuid.random(),
-): KoinComponent,
-    LifecycleCapability by LifecycleCapabilityImpl(),
-    DependencyCapability by DependencyCapabilityImpl(id.toString(), "Graph", parentGraph?.koinScope),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(parentGraph?.coroutineScope?.coroutineContext)
-{
-init {
-    getKoin()
-}
-}
-
-
-
-open class Node(
-    val graph: Graph,
-    val id: Uuid = Uuid.random(),
-):
-    LifecycleCapability by LifecycleCapabilityImpl(),
-    DependencyCapability by DependencyCapabilityImpl(id.toString(), "Node", graph.koinScope),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(graph.coroutineScope.coroutineContext)
-
-{
-
-}
-
-open class ScreenNode: Node() {
-
-}
-
-open class ContainerNode: Node() {
-
-}
-
-open class InteractorNode: Node() {
-
-}
-
-
-open class GraphNode(
-    val graph: Graph
-): Node() {
-
-}
-
-
-
-sealed interface Edge {
-    class IncomingEdge: Edge
-    class OutgoingEdge: Edge
-}
 
 
 

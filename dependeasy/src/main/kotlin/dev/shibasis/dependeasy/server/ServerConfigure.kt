@@ -13,7 +13,11 @@ class ServerConfiguration(
     var dependencies: KotlinDependencyHandler.() -> Unit = {},
     var targetModifier: KotlinJvmTarget.() -> Unit = {},
     var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
-)
+) {
+    fun dependencies(fn: KotlinDependencyHandler.() -> Unit = {}) {
+        this.dependencies = fn
+    }
+}
 
 fun KotlinMultiplatformExtension.server(
     configuration: ServerConfiguration.() -> Unit

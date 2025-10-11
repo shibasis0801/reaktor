@@ -40,7 +40,7 @@ object Version {
     const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
     const val Ktor = "3.1.0"
-    const val Koin = "4.0.0"
+    const val Koin = "4.1.0"
     const val KoinAnnotations = "2.0.0"
 
     // Cloud

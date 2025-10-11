@@ -12,6 +12,7 @@ plugins {
     id("dev.shibasis.dependeasy.library")
     
 }
+val resilience4jVersion = "2.2.0"
 
 kotlin {
     common {
@@ -22,7 +23,15 @@ kotlin {
     droid {}
     darwin {}
     web {}
-    server {}
+    server {
+        dependencies {
+            api("io.github.resilience4j:resilience4j-kotlin:${resilience4jVersion}")
+            api("io.github.resilience4j:resilience4j-retry:${resilience4jVersion}")
+            api("io.github.resilience4j:resilience4j-circuitbreaker:${resilience4jVersion}")
+            api("io.github.resilience4j:resilience4j-ratelimiter:${resilience4jVersion}")
+            api("io.github.resilience4j:resilience4j-bulkhead:${resilience4jVersion}")
+        }
+    }
     useKoin()
 }
 
