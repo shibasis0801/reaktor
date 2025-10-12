@@ -10,6 +10,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.drop
@@ -24,6 +26,7 @@ import org.koin.dsl.module
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.js.JsExport
+import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
 
 
@@ -58,10 +61,11 @@ ApiNode
 -> auth checks
 -> Execution Visitor
 
-ThreadSafe Visitors would be needed, initialization order is critical.
-Visitor Strategies should be there (DFS, BFS, PreOrder, PostOrder, etc)
+This needs to be concurrent to make use of all cores properly.
 */
 
+
+// Your close() must be idempotent and can be called multiple times.
 interface Capability: AutoCloseable {
 
 }
@@ -106,13 +110,11 @@ interface LifecycleCapability: Capability {
     fun onTransition(previous: Lifecycle, current: Lifecycle) {}
 }
 
-
 @JsExport
 class LifecycleCapabilityImpl: LifecycleCapability {
     override val lifecycle: MutableStateFlow<Lifecycle> = MutableStateFlow(Lifecycle.Created)
     override fun close() {}
 }
-
 
 object ReaktorScope {
     val Graph = named("Reaktor.Graph")
@@ -157,7 +159,6 @@ class DependencyCapabilityImpl(
     }
 }
 
-
 @JsExport
 inline fun <reified T : Any> DependencyCapability.get(
     qualifier: Qualifier? = null,
@@ -166,12 +167,10 @@ inline fun <reified T : Any> DependencyCapability.get(
     return koinScope.get(T::class, qualifier, parameters)
 }
 
-
 @JsExport
 interface ConcurrencyCapability: Capability {
     val coroutineScope: CoroutineScope
 }
-
 
 @JsExport
 class ConcurrencyCapabilityImpl(
@@ -193,16 +192,72 @@ class ConcurrencyCapabilityImpl(
 }
 
 
+interface Unique {
+    val id: Uuid
+}
+
+@JsExport
+interface SealedRegistryCapability<SealedType: Unique> : MutableMap<Uuid, SealedType>, Capability {
+    fun add(item: SealedType)
+    fun remove(item: SealedType)
+
+    // The high-performance query method
+    fun <T : SealedType> getAllOfType(type: KClass<T>): List<T>
+}
+
+// Inline helper for a cleaner call site
+@JsExport
+inline fun <reified SealedType: Unique> SealedRegistryCapability<SealedType>.getAllOfType(): List<SealedType> {
+    return this.getAllOfType(SealedType::class)
+}
+
+@JsExport
+class SealedRegistryCapabilityImpl<SealedType: Unique>(
+    // todo not thread safe. implement a lock-free concurrentmap with atomicfu.
+    val map: MutableMap<Uuid, SealedType> = hashMapOf()
+):
+    SealedRegistryCapability<SealedType>,
+    MutableMap<Uuid, SealedType> by map {
+
+    private val indexByType = hashMapOf<KClass<out SealedType>, MutableList<SealedType>>()
+
+    override fun add(item: SealedType) {
+        put(item.id, item)
+
+        val list = indexByType.getOrPut(item::class) {
+            arrayListOf()
+        }
+
+        list.add(item)
+    }
+
+    override fun remove(item: SealedType) {
+        remove(item.id)
+        indexByType[item::class]?.remove(item)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T: SealedType> getAllOfType(type: KClass<T>): List<T> {
+        return indexByType[type]?.toList() as? List<T> ?: emptyList()
+    }
+
+    override fun close() {
+        clear()
+        indexByType.clear()
+    }
+}
+
 @JsExport
 open class Graph(
     parentGraph: Graph? = null,
-    val id: Uuid = Uuid.random(),
-    val dependency: ScopedDependency,
-    val nodes: List<Node> = arrayListOf()
+    override val id: Uuid = Uuid.random(),
+    val dependency: ScopedDependency
 ):
+    Unique,
     LifecycleCapability by LifecycleCapabilityImpl(),
     DependencyCapability by DependencyCapabilityImpl(id.toString(), ReaktorScope.Graph, parentGraph?.koinScope, dependency),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(parentGraph?.coroutineScope?.coroutineContext)
+    ConcurrencyCapability by ConcurrencyCapabilityImpl(parentGraph?.coroutineScope?.coroutineContext),
+    SealedRegistryCapability<Node> by SealedRegistryCapabilityImpl()
 {
     override fun close() {
         this<LifecycleCapability> { close() }
@@ -216,11 +271,13 @@ sealed class Node(
     val parent: Graph,
     koinQualifier: Qualifier,
     val dependency: ScopedDependency = {},
-    val id: Uuid = Uuid.random(),
+    override val id: Uuid = Uuid.random(),
 ):
+    Unique,
     LifecycleCapability by LifecycleCapabilityImpl(),
     DependencyCapability by DependencyCapabilityImpl(id.toString(), koinQualifier, parent.koinScope, dependency),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(parent.coroutineScope.coroutineContext)
+    ConcurrencyCapability by ConcurrencyCapabilityImpl(parent.coroutineScope.coroutineContext),
+    SealedRegistryCapability<DirectedEdge> by SealedRegistryCapabilityImpl()
 {
     override fun close() {
         this<LifecycleCapability> { close() }
@@ -230,6 +287,9 @@ sealed class Node(
 }
 
 
+/*
+A GraphNode is responsible to expose functionality from inside of a Graph to external users through edge factories.
+ */
 @JsExport
 open class GraphNode(
     val graph: Graph,
@@ -245,15 +305,17 @@ abstract class ApiNode(
 
 }
 
-
 @JsExport
 abstract class RouteNode(
     val pattern: RoutePattern,
     graph: Graph
 ): Node(graph, ReaktorScope.RouteNode) {
-
+    fun getViewNode(): ViewNode<*, *>? {
+        return edges
+            .firstOrNull { it.end is ViewNode<*, *> }
+            ?.let { it.end as ViewNode<*, *> }
+    }
 }
-
 
 @JsExport
 abstract class ViewNode<Input, Signal>(
@@ -273,21 +335,46 @@ abstract class ViewNode<Input, Signal>(
             isPreview = false
         }
     }
+
+
+    // You call your composable / component through this.
+    open fun render() {}
 }
 
+/*
+Instead of hardwiring functionality,
+We will use Visitor pattern to traverse the graph as needed.
 
+1. Graph level cached Traversals with invalidation on graphnode changes
+2. Traversal strategies (DFS, BFS, PreOrder, PostOrder, etc)
+3.
+ */
 open class Visitor {
     open fun visit(node: Node) {}
 }
 
-sealed class Edge(val from: Node, val to: Node) {
-    class UndirectedEdge(from: Node, to: Node): Edge(from, to)
+sealed class DirectedEdge(
+    open val start: Node,
+    open val end: Node,
+    override val id: Uuid = end.id
+): Unique {
+    class ConnectionEdge(
+        override val start: Node,
+        override val end: Node
+    ): DirectedEdge(start, end)
 
-    open class DirectedEdge(from: Node, to: Node): Edge(from, to)
-    class RouteEdge(from: Node, to: Node): DirectedEdge(from, to)
-    class ApiEdge(from: Node, to: Node): DirectedEdge(from, to)
+    class ChannelEdge<Message>(
+        override val start: Node,
+        override val end: Node,
+        val channel: Channel<Message> = Channel()
+    ): DirectedEdge(start, end)
+
+    class FlowEdge<Message>(
+        override val start: Node,
+        override val end: Node,
+        val flow: Flow<Message>
+    ): DirectedEdge(start, end)
 }
-
 
 
 
