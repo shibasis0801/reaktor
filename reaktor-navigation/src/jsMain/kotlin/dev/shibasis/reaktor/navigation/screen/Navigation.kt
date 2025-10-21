@@ -1,64 +1,41 @@
 package dev.shibasis.reaktor.navigation.screen
 
-import dev.shibasis.reaktor.navigation.Event
-import dev.shibasis.reaktor.navigation.InputSignal
-import dev.shibasis.reaktor.navigation.Renderer
-import dev.shibasis.reaktor.navigation.Screen
+
+import kotlinx.coroutines.flow.MutableStateFlow
 import react.StateInstance
 import react.StateSetter
 import react.useEffect
 import react.useMemo
 import react.useRef
 import react.useState
+import kotlin.js.unsafeCast
 
-class ReactRenderer: Renderer()
+fun<T> MutableStateFlow<T>.asReactState(): StateInstance<T> {
+    val screen = this
 
-@JsExport
-abstract class ReactScreen<I: InputSignal, E: Event>(
-    input: I
-): Screen<I, E>(input) {
-    fun setScreenState(input: I) {
-        state.value = input
+    val (state, setState) = useState(value)
+    val indirectStateToAvoidClosure = useRef(state)
+    indirectStateToAvoidClosure.current = state
+
+    // stateflow to react
+    useEffect(screen) {
+        collect {
+            if (it != indirectStateToAvoidClosure.current)
+                setState(it)
+        }
     }
 
-    fun useScreenState(): StateInstance<I> {
-        val screen = this
-
-        val (state, setState) = useState(screen.state.value)
-        val indirectStateToAvoidClosure = useRef(state)
-        indirectStateToAvoidClosure.current = state
-
-        // stateflow to react
-        useEffect(screen) {
-            screen.state.collect {
-                if (it != indirectStateToAvoidClosure.current)
-                    setState(it)
+    // react to stateflow
+    val stateSetter = useMemo(screen) {
+        { valueOrTransform: dynamic ->
+            if (js("typeof valueOrTransform === 'function'")) {
+                val transform = valueOrTransform.unsafeCast<(T) -> T>()
+                value = transform(value)
+            } else {
+                value = valueOrTransform.unsafeCast<T>()
             }
-        }
-
-        // react to stateflow
-        val stateSetter = useMemo(screen) {
-            { valueOrTransform: dynamic ->
-                if (js("typeof valueOrTransform === 'function'")) {
-                    val transform = valueOrTransform.unsafeCast<(I) -> I>()
-                    setScreenState(transform(screen.state.value))
-                } else {
-                    val newValue = valueOrTransform.unsafeCast<I>()
-                    setScreenState(newValue)
-                }
-            }.unsafeCast<StateSetter<I>>()
-        }
-
-        return StateInstance(state, stateSetter)
+        }.unsafeCast<StateSetter<T>>()
     }
 
-    abstract fun render()
+    return StateInstance(state, stateSetter)
 }
-
-
-class ReactListDetailContainer(
-    val listScreen: ReactScreen<InputSignal, Event>,
-    val detailScreen: ReactScreen<InputSignal, Event>
-)
-
-

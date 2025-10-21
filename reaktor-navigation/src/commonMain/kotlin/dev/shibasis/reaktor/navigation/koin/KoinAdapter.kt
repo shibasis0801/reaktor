@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.navigation.koin
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.navigation.Pod
 import org.koin.core.KoinApplication
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin

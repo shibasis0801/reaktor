@@ -41,7 +41,7 @@ class ObservableStackTest {
     }
 
     @Test
-    fun `pop updates top, decreases size, and returns true when stack is not empty`() = runTest {
+    fun `pop updates top decreases size and returns true when stack is not empty`() = runTest {
         val observableStack = ObservableStack(1)
         observableStack.push(2)
 
@@ -86,7 +86,7 @@ class ObservableStackTest {
     }
 
     @Test
-    fun `replace correctly pops and pushes, updating the top value`() = runTest {
+    fun `replace correctly pops and pushes updating the top value`() = runTest {
         val observableStack = ObservableStack(10)
         observableStack.push(20)
 

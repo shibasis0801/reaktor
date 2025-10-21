@@ -4,20 +4,13 @@ import dev.shibasis.reaktor.core.framework.Feature
 import org.koin.core.context.startKoin
 
 object Reaktor {
-
-    fun init(
-        startPod: Pod,
+    fun start(
         featureInitializer: Feature.() -> Unit = {}
     ) {
         featureInitializer(Feature)
-        addPod(startPod)
     }
 
     val koin = startKoin {
 
-    }
-
-    fun addPod(pod: Pod) {
-        koin.modules(pod.modules())
     }
 }

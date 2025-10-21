@@ -1,26 +1,24 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package dev.shibasis.reaktor.navigation
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.core.utils.fail
+import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.navigation.koin.Koin
-import kotlinx.atomicfu.AtomicBoolean
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.parameter.ParametersDefinition
@@ -31,7 +29,6 @@ import org.koin.dsl.ScopeDSL
 import org.koin.dsl.module
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.js.JsExport
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
 
@@ -70,6 +67,15 @@ This needs to be concurrent to make use of all cores properly.
 
 // Your close() must be idempotent and can be called multiple times.
 interface Capability: AutoCloseable {
+
+}
+
+abstract class AtomicCapability : Capability {
+    private val closed = atomic(false)
+    final override fun close() {
+        if (closed.compareAndSet(expect = false, update = true)) doClose()
+    }
+    protected abstract fun doClose()
 }
 
 inline operator fun<reified T: Capability> T.invoke(fn: T.() -> Unit) = fn(this)
@@ -82,48 +88,58 @@ interface Unique {
 
 class UniqueImpl(override val id: Uuid = Uuid.random()): Unique
 
-@JsExport
+
+
+
+
 sealed class Lifecycle {
     object Created: Lifecycle()
+    object Restoring: Lifecycle()
     object Attached: Lifecycle()
+    object Saving: Lifecycle()
     object Destroyed: Lifecycle()
 }
 
-@JsExport
+
 interface LifecycleCapability: Capability {
     val lifecycle: MutableStateFlow<Lifecycle>
+    val validTransitions: Set<Pair<Lifecycle, Lifecycle>>
+        get() = setOf(
+            Lifecycle.Created to Lifecycle.Restoring,
+            Lifecycle.Restoring to Lifecycle.Attached,
+            Lifecycle.Attached to Lifecycle.Saving,
+            //
+            Lifecycle.Saving to Lifecycle.Destroyed,
+            Lifecycle.Created to Lifecycle.Destroyed,
+            Lifecycle.Attached to Lifecycle.Destroyed,
+            Lifecycle.Restoring to Lifecycle.Destroyed
+        )
+
     fun transition(new: Lifecycle) {
         lateinit var previous: Lifecycle
         lifecycle.update { old ->
             previous = old
-            when(old to new) {
-                (Lifecycle.Created to Lifecycle.Attached) -> {
-                    new
-                }
-                (Lifecycle.Created to Lifecycle.Destroyed) ->  {
-                    new
-                }
-                (Lifecycle.Attached to Lifecycle.Destroyed) -> {
-                    new
-                }
-                else -> {
-                    Logger.e { "Invalid State Transition from $old to $new" }
-                    old
-                }
-            }
+            if (validTransitions.contains(old to new))
+                new
+            else old
         }
         if (previous != new)
             onTransition(previous, new)
     }
 
     fun onTransition(previous: Lifecycle, current: Lifecycle) {}
+    fun save() {}
+    fun restore() {}
 }
 
-@JsExport
+
 class LifecycleCapabilityImpl: LifecycleCapability {
     override val lifecycle: MutableStateFlow<Lifecycle> = MutableStateFlow(Lifecycle.Created)
     override fun close() {}
 }
+
+
+
 
 object ReaktorScope {
     val Graph = named("Reaktor.Graph")
@@ -134,17 +150,24 @@ object ReaktorScope {
 }
 
 
+
+
+
+
+
+
 typealias ScopedDependency = ScopeDSL.() -> Unit
 
-@JsExport
+
 interface DependencyCapability: Capability {
     val koinScope: Scope
+    val koinQualifier: Qualifier
 }
 
-@JsExport
+
 class DependencyCapabilityImpl(
     id: String,
-    koinQualifier: Qualifier,
+    override val koinQualifier: Qualifier,
     val parentScope: Scope?,
     dependencies: ScopedDependency
 ): DependencyCapability {
@@ -168,20 +191,31 @@ class DependencyCapabilityImpl(
     }
 }
 
-@JsExport
-inline fun <reified T : Any> DependencyCapability.get(
+inline fun <reified T : Any> DependencyCapability.Get(
     qualifier: Qualifier? = null,
     noinline parameters: ParametersDefinition? = null,
 ): T {
     return koinScope.get(T::class, qualifier, parameters)
 }
 
-@JsExport
+
+
+
+
+
+
+
+
+
+
+
+
+
 interface ConcurrencyCapability: Capability {
     val coroutineScope: CoroutineScope
 }
 
-@JsExport
+
 class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
     dispatcher: CoroutineDispatcher
@@ -201,81 +235,97 @@ class ConcurrencyCapabilityImpl(
 }
 
 
-@JsExport
-interface SealedRegistryCapability<SealedType: Unique> : MutableMap<Uuid, SealedType>, Capability {
-    fun add(item: SealedType)
-    fun remove(item: SealedType)
 
-    // The high-performance query method
-    fun <T : SealedType> getAllOfType(type: KClass<T>): List<T>
-}
 
-// Inline helper for a cleaner call site
-@JsExport
-inline fun <reified SealedType: Unique> SealedRegistryCapability<SealedType>.getAllOfType(): List<SealedType> {
-    return this.getAllOfType(SealedType::class)
-}
 
-@JsExport
-class SealedRegistryCapabilityImpl<SealedType: Unique>(
-    // todo not thread safe. implement a lock-free concurrentmap with atomicfu.
-    val map: MutableMap<Uuid, SealedType> = hashMapOf()
-):
-    SealedRegistryCapability<SealedType>,
-    MutableMap<Uuid, SealedType> by map {
 
-    private val indexByType = hashMapOf<KClass<out SealedType>, MutableList<SealedType>>()
 
-    override fun add(item: SealedType) {
-        put(item.id, item)
 
-        val list = indexByType.getOrPut(item::class) {
-            arrayListOf()
-        }
+class Registry<InnerType: Any, OuterType: Any>(
+    val linkedHashMap: LinkedHashMap<KClass<*>, OuterType>
+): MutableMap<KClass<*>, OuterType> by linkedHashMap {
+    inline operator fun<reified T: InnerType> get(key: String? = null) {
+        val field = linkedHashMap[T::class]
 
-        list.add(item)
-    }
-
-    override fun remove(item: SealedType) {
-        remove(item.id)
-        indexByType[item::class]?.remove(item)
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <T: SealedType> getAllOfType(type: KClass<T>): List<T> {
-        return indexByType[type]?.toList() as? List<T> ?: emptyList()
-    }
-
-    override fun close() {
-        clear()
-        indexByType.clear()
     }
 }
 
-@JsExport
+
+
+
 open class Graph(
     parentGraph: Graph? = null,
-    dispatcher: CoroutineDispatcher,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
     override val id: Uuid = Uuid.random(),
-    val dependency: ScopedDependency
+    val dependency: ScopedDependency = {}
 ):
     Unique,
     LifecycleCapability by LifecycleCapabilityImpl(),
     DependencyCapability by DependencyCapabilityImpl(id.toString(), ReaktorScope.Graph, parentGraph?.koinScope, dependency),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(parentGraph?.coroutineScope?.coroutineContext, dispatcher),
-    SealedRegistryCapability<Node> by SealedRegistryCapabilityImpl()
+    ConcurrencyCapability by ConcurrencyCapabilityImpl(parentGraph?.coroutineScope?.coroutineContext, dispatcher)
 {
+    private val children = linkedMapOf<Uuid, Node>()
+
+    fun <N : Node> attach(builder: (parent: Graph) -> N): N {
+        val node = builder(this)
+        if (children.containsKey(node.id)) {
+            Logger.w("Node ${node.id} is already attached. Ignoring.")
+            return children[node.id] as N
+        }
+
+        Logger.v("Attaching Node: ${node::class.simpleName} (${node.id})")
+        children[node.id] = node
+        node.transition(Lifecycle.Restoring)
+        node.restore()
+        node.transition(Lifecycle.Attached)
+        return node
+    }
+
+    fun detach(node: Node) {
+        children.remove(node.id)?.let {
+            Logger.v("Detaching Node: ${it::class.simpleName} (${it.id})")
+            it.transition(Lifecycle.Saving)
+            it.save()
+            it.transition(Lifecycle.Destroyed)
+            it.close()
+        }
+    }
+
+    inline fun <reified C : Any> connect(from: Node, to: Node): Result<Unit> {
+        val contract = C::class
+        val outputPort = to.outputPorts[contract] as? OutPort<C>
+            ?: return fail("Node ${to::class.simpleName} does not provide ${contract.simpleName}")
+
+        val inputPort = from.inputPorts[contract]
+            ?: return fail("Node ${from::class.simpleName} does not require ${contract.simpleName}")
+
+        val edge = DirectedEdge(from, to, outputPort.impl)
+        from.edges[contract] = edge
+        return succeed(Unit)
+    }
+
     override fun close() {
+        Logger.v("Closing Graph: ${this::class.simpleName} ($id)")
+        children.values.toList().forEach { detach(it) } // Detach all children
         this<LifecycleCapability> { close() }
         this<DependencyCapability> { close() }
         this<ConcurrencyCapability> { close() }
-        this<SealedRegistryCapability<Node>> { close() }
     }
 }
 
-@JsExport
+class ChatFeatureGraph(parent: Graph): Graph(parent) {
+    init {
+        val logicNode = attach(::ChatInteractorNode)
+        val viewNode = attach(::ChatViewNode)
+
+        connect<ChatInterface>(from = viewNode, to = logicNode)
+            .onFailure { Logger.e("Failed to wire ChatFeature: $it") }
+    }
+}
+
+
 sealed class Node(
-    val parent: Graph,
+    val graph: Graph,
     koinQualifier: Qualifier,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     val dependency: ScopedDependency = {},
@@ -283,52 +333,109 @@ sealed class Node(
 ):
     Unique,
     LifecycleCapability by LifecycleCapabilityImpl(),
-    DependencyCapability by DependencyCapabilityImpl(id.toString(), koinQualifier, parent.koinScope, dependency),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(parent.coroutineScope.coroutineContext, dispatcher),
-    SealedRegistryCapability<DirectedEdge<*, *>> by SealedRegistryCapabilityImpl()
+    ConcurrencyCapability by ConcurrencyCapabilityImpl(graph.coroutineScope.coroutineContext, dispatcher)
 {
     override fun close() {
         this<LifecycleCapability> { close() }
-        this<DependencyCapability> { close() }
         this<ConcurrencyCapability> { close() }
-        this<SealedRegistryCapability<DirectedEdge<*, *>>> { close() }
     }
 
-    infix fun<Request, Response> addEdge(other: Node) {
+    val inputPorts = linkedMapOf<KClass<*>, InPort<*>>()
+    val outputPorts = linkedMapOf<KClass<*>, OutPort<*>>()
+    val edges = linkedMapOf<KClass<*>, DirectedEdge<*>>()
 
+    inline fun <reified T : Any> Get(
+        noinline parameters: ParametersDefinition? = null,
+    ): T {
+        val fromNode = graph.Get<T>(graph.koinQualifier, parameters)
+        val fromEdge = edges[T::class] as? DirectedEdge<T>
+        return fromEdge?.delegate ?: fromNode
     }
+}
+
+sealed interface Port<out Contract: Any> { val owner: Node }
+class OutPort<Contract: Any>(override val owner: Node, val impl: Contract): Port<Contract>
+class InPort<Contract: Any>(override val owner: Node, val kClass: KClass<Contract>): Port<Contract>
+
+inline fun <reified Contract: Any> Node.provides(impl: Contract) = OutPort(this, impl).also { outputPorts[Contract::class] = it }
+inline fun <reified Contract: Any> Node.requires() = InPort(this, Contract::class).also { inputPorts[Contract::class] = it }
+
+
+class DirectedEdge<Contract: Any>(
+    val from: Node,
+    val to: Node,
+    val delegate: Contract,
+): Unique by UniqueImpl() {
+    inline operator fun<R> invoke(fn: Contract.() -> R) = fn(delegate)
+}
+
+interface ChatInterface {
+    fun getChats(): StateFlow<List<String>>
+}
+
+
+class ChatViewNode(
+    parent: Graph
+): ViewNode<Unit>(Unit, parent) {
+    val chatPort = requires<ChatInterface>()
+
+    fun t() {
+        val chatInterface = Get<ChatInterface>()
+        val edge = edges[ChatInterface::class]!! as DirectedEdge<ChatInterface>
+        val chats = edge { getChats() }
+    }
+}
+
+class ChatInteractorNode(
+    parent: Graph
+): LogicNode(parent), ChatInterface {
+    val chatPort = provides<ChatInterface>(this)
+
+    override fun getChats(): StateFlow<List<String>> {
+        TODO("Not yet implemented")
+    }
+}
+
+inline fun<reified Contract : Any> Node.addEdge(to: Node): Result<Unit> {
+    val from = this
+    val inputPort = from.inputPorts[Contract::class] ?: return fail("Null Input Port for type ${Contract::class}")
+    val outputPort = to.outputPorts[Contract::class] ?: return fail("Null Output Port for type ${Contract::class}")
+
+    val edge = DirectedEdge(from, to, outputPort.impl as Contract)
+    from.edges[Contract::class] = edge
+    to.edges[Contract::class] = edge
+
+    return succeed(Unit)
 }
 
 
 /*
 A GraphNode is responsible to expose functionality from inside of a Graph to external users through edge factories.
 */
-@JsExport
+
 open class GraphNode(
-    val graph: Graph,
+    val childGraph: Graph,
     parent: Graph
 ): Node(parent, ReaktorScope.GraphNode) {
 
 }
 
-@JsExport
+
 abstract class LogicNode(
     graph: Graph
 ): Node(graph, ReaktorScope.LogicNode) {
 
 }
 
-@JsExport
+
 abstract class RouteNode(
     val pattern: RoutePattern,
     graph: Graph
 ): Node(graph, ReaktorScope.RouteNode) {
-//    fun getViewNode(): ViewNode<*, *>? {
-//        return getAllOfType<ViewNode<*, *>>()?.firstOrNull()
-//    }
+
 }
 
-@JsExport
+
 abstract class ViewNode<State>(
     // mandated initial input for previews.
     previewState: State,
@@ -340,7 +447,8 @@ abstract class ViewNode<State>(
         private set
 
     init {
-        Dispatch.Main.launch {
+        coroutineScope.launch {
+
             state.drop(1).first()
             isPreview = false
         }
@@ -350,125 +458,14 @@ abstract class ViewNode<State>(
     open fun render() {}
 }
 
-/**
- * Using gRPC semantics, https://grpc.io/docs/what-is-grpc/core-concepts/#service-definition
- * gRPC lets you define four kinds of service method:
- *
- * Unary RPCs where the client sends a single request to the server and gets a single response back, just like a normal function call.
- *
- * rpc SayHello(HelloRequest) returns (HelloResponse);
- * Server streaming RPCs where the client sends a request to the server and gets a stream to read a sequence of messages back. The client reads from the returned stream until there are no more messages. gRPC guarantees message ordering within an individual RPC call.
- *
- * rpc LotsOfReplies(HelloRequest) returns (stream HelloResponse);
- * Client streaming RPCs where the client writes a sequence of messages and sends them to the server, again using a provided stream. Once the client has finished writing the messages, it waits for the server to read them and return its response. Again gRPC guarantees message ordering within an individual RPC call.
- *
- * rpc LotsOfGreetings(stream HelloRequest) returns (HelloResponse);
- * Bidirectional streaming RPCs where both sides send a sequence of messages using a read-write stream. The two streams operate independently, so clients and servers can read and write in whatever order they like: for example, the server could wait to receive all the client messages before writing its responses, or it could alternately read a message then write a message, or some other combination of reads and writes. The order of messages in each stream is preserved.
- *
- * rpc BidiHello(stream HelloRequest) returns (stream HelloResponse);
- *
- */
-sealed class Command<Request, Response> {
-    data class UnarySync<Request, Response>(
-        val request: Request,
-        val response: Response
-    ): Command<Request, Response>()
 
-    data class Unary<Request, Response>(
-        val request: Request,
-        val response: CompletableDeferred<Response>
-    ): Command<Request, Response>()
 
-    data class ResponseStream<Request, Response>(
-        val request: Request,
-        val response: Channel<Response>
-    ): Command<Request, Response>()
 
-    data class RequestStream<Request, Response>(
-        val request: Channel<Request>,
-        val response: CompletableDeferred<Response>
-    ): Command<Request, Response>()
 
-    data class BidirectionalStream<Request, Response>(
-        val request: Channel<Request>,
-        val response: Channel<Response>
-    ): Command<Request, Response>()
-}
 
-sealed class DirectedEdge<Request, Response>(
-    val start: Node,
-    val end: Node,
-    val outgoing: MutableSharedFlow<Command<Request, Response>> = MutableSharedFlow(),
-): Unique by UniqueImpl() {
 
-    suspend fun unary(request: Request): Response {
-        val response = CompletableDeferred<Response>()
-        val command = Command.Unary(request, response)
-        outgoing.emit(command)
-        return response.await()
-    }
 
-    suspend fun responseStream(request: Request): Channel<Response> {
-        val response = Channel<Response>()
-        val command = Command.ResponseStream(request, response)
-        outgoing.emit(command)
-        return response
-    }
 
-    suspend fun requestStream(request: Channel<Request>): Response {
-        val response = CompletableDeferred<Response>()
-        val command = Command.RequestStream(request, response)
-        outgoing.emit(command)
-        return response.await()
-    }
-
-    suspend fun responseStream(request: Channel<Request>): Channel<Response> {
-        val response = Channel<Response>()
-        val command = Command.BidirectionalStream(request, response)
-        outgoing.emit(command)
-        return response
-    }
-}
-
-class UnaryDirectedEdge<Request, Response>(
-    start: Node, end: Node
-): DirectedEdge<Request, Response>(start, end)
-
-class DuplexDirectedEdge<
-    ForwardRequest, ForwardResponse,
-    ReverseRequest, ReverseResponse>(
-        start: Node,
-        end: Node,
-        val incoming: MutableSharedFlow<Command<ReverseRequest, ReverseResponse>> = MutableSharedFlow()
-): DirectedEdge<ForwardRequest, ForwardResponse>(start, end) {
-    suspend fun unaryReverse(request: ReverseRequest): ReverseResponse {
-        val response = CompletableDeferred<ReverseResponse>()
-        val command = Command.Unary(request, response)
-        incoming.emit(command)
-        return response.await()
-    }
-
-    suspend fun responseStreamReverse(request: ReverseRequest): Channel<ReverseResponse> {
-        val response = Channel<ReverseResponse>()
-        val command = Command.ResponseStream(request, response)
-        incoming.emit(command)
-        return response
-    }
-
-    suspend fun requestStreamReverse(request: Channel<ReverseRequest>): ReverseResponse {
-        val response = CompletableDeferred<ReverseResponse>()
-        val command = Command.RequestStream(request, response)
-        incoming.emit(command)
-        return response.await()
-    }
-
-    suspend fun responseStreamReverse(request: Channel<ReverseRequest>): Channel<ReverseResponse> {
-        val response = Channel<ReverseResponse>()
-        val command = Command.BidirectionalStream(request, response)
-        incoming.emit(command)
-        return response
-    }
-}
 
 /*
 Instead of hardwiring functionality,
@@ -487,40 +484,15 @@ open class Visitor {
     open fun visit(routeNode: RouteNode) {}
     open fun visit(viewNode: ViewNode<*>) {}
 
-    open fun visit(edge: DirectedEdge<*, *>) {}
+//    open fun visit(edge: DirectedEdge<*, *>) {}
 }
 
 
-sealed interface HomeScreenCommand {
-    data object ApiRequest: HomeScreenCommand
-}
+/*
 
-class HomeScreenNode(
-    graph: Graph,
-    val edge: UnaryDirectedEdge<HomeScreenCommand, HomeInteractorResponse>
-): ViewNode<Unit>(Unit, graph) {
 
-    fun t() {
-        coroutineScope.launch {
-            val x = edge.unary(HomeScreenCommand.ApiRequest)
-            val c = Channel<HomeScreenCommand>()
-            val y = edge.requestStream(c)
+1. Layouts
+2. Stacks
 
-        }
-    }
-}
 
-sealed interface HomeInteractorResponse {
-    data object ApiResponse: HomeInteractorResponse
-}
-
-class HomeInteractorNode(graph: Graph): LogicNode(graph) {
-
-}
-
-fun t(graph: Graph) {
-    val screen = HomeScreenNode(graph)
-    val interactor = HomeInteractorNode(graph)
-
-    val edge = UnaryDirectedEdge<HomeScreenCommand, HomeInteractorResponse>(screen, interactor)
-}
+*/
