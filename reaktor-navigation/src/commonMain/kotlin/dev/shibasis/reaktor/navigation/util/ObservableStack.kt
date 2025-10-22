@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.navigation.structs
+package dev.shibasis.reaktor.navigation.util
 
 import kotlinx.coroutines.flow.MutableStateFlow
 

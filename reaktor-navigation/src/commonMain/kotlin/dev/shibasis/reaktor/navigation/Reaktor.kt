@@ -9,8 +9,4 @@ object Reaktor {
     ) {
         featureInitializer(Feature)
     }
-
-    val koin = startKoin {
-
-    }
 }

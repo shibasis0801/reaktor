@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.navigation.screen
+package dev.shibasis.reaktor.navigation.util
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

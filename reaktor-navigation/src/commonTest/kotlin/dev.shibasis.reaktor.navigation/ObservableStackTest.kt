@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.navigation
 
 import kotlinx.coroutines.test.runTest
 import app.cash.turbine.test
-import dev.shibasis.reaktor.navigation.structs.ObservableStack
+import dev.shibasis.reaktor.navigation.util.ObservableStack
 import kotlin.test.*
 
 class ObservableStackTest {

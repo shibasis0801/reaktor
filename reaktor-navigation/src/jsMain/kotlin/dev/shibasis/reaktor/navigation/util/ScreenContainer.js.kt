@@ -1,8 +1,6 @@
-package dev.shibasis.reaktor.navigation.screen
+package dev.shibasis.reaktor.navigation.util
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -13,10 +11,10 @@ actual fun BackHandlerContainer(
     onBack: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    Box(Modifier.fillMaxSize()) {
-        BackHandler(enabled) {
-            onBack()
-        }
+    Box(modifier) {
+//        BackHandler(enabled = navigator.stack.size > 1) {
+//            navigator.pop()
+//        }
         content()
     }
 }

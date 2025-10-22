@@ -1,40 +1,55 @@
-package dev.shibasis.reaktor.navigation
+package dev.shibasis.reaktor.navigation.graph
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.core.framework.Dispatch
-import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.io.network.RoutePattern
-import dev.shibasis.reaktor.navigation.koin.Koin
-import dev.shibasis.reaktor.navigation.koin.KoinAdapter
-import dev.shibasis.reaktor.navigation.structs.ObservableStack
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
-import kotlinx.serialization.Serializable
-import org.koin.core.Koin
-import org.koin.core.KoinApplication
-import org.koin.core.component.KoinComponent
-import org.koin.core.module.Module
-import org.koin.core.parameter.ParametersDefinition
-import org.koin.core.qualifier.Qualifier
-import org.koin.core.qualifier.named
-import org.koin.core.scope.Scope
-import org.koin.dsl.module
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
+import dev.shibasis.reaktor.navigation.capabilities.ConcurrencyCapability
+import dev.shibasis.reaktor.navigation.capabilities.ConcurrencyCapabilityImpl
+import dev.shibasis.reaktor.navigation.capabilities.DependencyCapability
+import dev.shibasis.reaktor.navigation.capabilities.DependencyCapabilityImpl
+import dev.shibasis.reaktor.navigation.capabilities.Lifecycle
+import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapability
+import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapabilityImpl
+import dev.shibasis.reaktor.navigation.capabilities.ReaktorScope
+import dev.shibasis.reaktor.navigation.capabilities.ScopedDependency
+import dev.shibasis.reaktor.navigation.capabilities.Unique
+import dev.shibasis.reaktor.navigation.capabilities.invoke
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
-import kotlin.js.JsName
 import kotlin.uuid.Uuid
 
 /*
+
+A reactive graph library for application nodes inspired from Uber/RIBs and Actor frameworks like Akka/Erlang.
+Large applications for mobile and servers can be decomposed into fully functional modules and visitors can orchestrate stuff on it.
+
+
+Graph, Node, Edge (UI & Server)
+-> dependencies & structured concurrency
+-> observable, reactive graph state reconciliation
+-> visitor pattern
+-> cycle detection
+-> unreachable detection
+-> DAG validation & topological sort
+-> Visitor for JSON / React-flow
+
+RouteNode
+-> Route (pattern, input, output)
+-> View, Interaction used within - platform
+(no containers, just nested views) - independent
+-> Navigation Edges for visual, auth checks
+-> Navigation Visitor
+-> Feature Toggles / guards / etc
+
+ApiNode
+-> App (input, output)
+-> Resilience4j - circuit breaker, retry, bulkhead, etc
+-> auth checks
+-> Execution Visitor
+
+This needs to be concurrent to make use of all cores properly.
+
+
 Sample usage
-
-
-
 
 /
 
@@ -55,18 +70,6 @@ Sample usage
 /home/events/create
 
 /home/friends
-
-
-
-
-
-
-
-
-
-
-
-
 
 val BestBudsSwitch = container<BlankContainer> {
     errorScreen(appErrorScreen)
@@ -125,12 +128,7 @@ val BestBudsSwitch = container<BlankContainer> {
         }
     }
 }
-*/
 
-
-
-
-/*
 Requirements:
 1. Support compose and react (native too)
 2. Handle Adaptive Layouts
@@ -200,5 +198,63 @@ The design/implementation is incomplete, and before writing code I need guidance
 The framework needs to grow into something production ready for scalable apps
 but requiring a single mental model so that we can replace react-router and compose-navigation
 with this one unified framework
+
 */
 
+
+
+@JsExport
+open class Graph(
+    parentGraph: Graph? = null,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    override val id: Uuid = Uuid.random(),
+    val dependency: ScopedDependency = {}
+):
+    Unique,
+    LifecycleCapability by LifecycleCapabilityImpl(),
+    DependencyCapability by DependencyCapabilityImpl(
+        id.toString(),
+        ReaktorScope.Graph,
+        parentGraph?.koinScope,
+        dependency
+    ),
+    ConcurrencyCapability by ConcurrencyCapabilityImpl(
+        parentGraph?.coroutineScope?.coroutineContext,
+        dispatcher
+    )
+{
+    private val children = linkedMapOf<Uuid, Node>()
+
+    fun <N : Node> attach(builder: (parent: Graph) -> N): N {
+        val node = builder(this)
+        if (children.containsKey(node.id)) {
+            Logger.w("Node ${node.id} is already attached. Ignoring.")
+            return children[node.id] as N
+        }
+
+        Logger.v("Attaching Node: ${node::class.simpleName} (${node.id})")
+        children[node.id] = node
+        node.transition(Lifecycle.Restoring)
+        node.restore()
+        node.transition(Lifecycle.Attached)
+        return node
+    }
+
+    fun detach(node: Node) {
+        children.remove(node.id)?.let {
+            Logger.v("Detaching Node: ${it::class.simpleName} (${it.id})")
+            it.transition(Lifecycle.Saving)
+            it.save()
+            it.transition(Lifecycle.Destroyed)
+            it.close()
+        }
+    }
+
+    override fun close() {
+        Logger.v("Closing Graph: ${this::class.simpleName} ($id)")
+        children.values.toList().forEach { detach(it) } // Detach all children
+        invoke<LifecycleCapability> { close() }
+        invoke<DependencyCapability> { close() }
+        invoke<ConcurrencyCapability> { close() }
+    }
+}
