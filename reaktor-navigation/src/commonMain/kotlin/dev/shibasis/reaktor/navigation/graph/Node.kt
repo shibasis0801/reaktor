@@ -13,6 +13,8 @@ import dev.shibasis.reaktor.core.capabilities.invoke
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
 
@@ -33,10 +35,6 @@ sealed class Node(
         invoke<LifecycleCapability> { close() }
         invoke<ConcurrencyCapability> { close() }
     }
-
-    init {
-        graph.attach(this)
-    }
 }
 
 open class GraphNode(
@@ -52,17 +50,25 @@ abstract class LogicNode(
 
 }
 
-abstract class RouteNode(
-    val pattern: RoutePattern,
-    graph: Graph
-): Node(graph) {
+@Serializable
+data class Parameters(val routeParams: HashMap<String, String>)
 
+interface RouteBinding {
+    fun parameters(): StateFlow<Parameters>
+}
+
+abstract class RouteNode(
+    graph: Graph,
+    val pattern: RoutePattern,
+): Node(graph) {
+    abstract val bindingPort: ProducerPort<RouteBinding>
 }
 
 abstract class ViewNode<State>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
+    val routeBinding by consumer<RouteBinding>()
 }
 
 fun interface ComposeView {
