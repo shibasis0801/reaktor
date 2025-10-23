@@ -2,10 +2,15 @@ package dev.shibasis.reaktor.navigation.layouts
 
 import dev.shibasis.reaktor.navigation.graph.Graph
 import dev.shibasis.reaktor.navigation.graph.ViewNode
+import dev.shibasis.reaktor.navigation.graph.connect
 import dev.shibasis.reaktor.navigation.graph.consumer
 import dev.shibasis.reaktor.navigation.graph.consumes
+import dev.shibasis.reaktor.navigation.graph.producer
 import dev.shibasis.reaktor.navigation.graph.retrieve
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class BottomNavigationState(
     val start: String
@@ -16,7 +21,7 @@ interface BottomNavigationContent {
 }
 
 interface BottomNavigationController {
-
+    val selectionState: StateFlow<String>
 }
 
 class BottomNavigationLayout(
@@ -41,7 +46,39 @@ class BottomNavigationLayout(
         val x = startPort {
             sendData()
         }
+
+        launch {
+            controller
+                .contract
+                ?.selectionState
+                ?.collect { new ->
+                    state.update {
+                        BottomNavigationState(new)
+                    }
+                }
+        }
     }
+}
+
+class Screen(
+    graph: Graph,
+    override val state: MutableStateFlow<Unit>
+): ViewNode<Unit>(graph), BottomNavigationContent {
+    val content by producer<BottomNavigationContent>(this)
+
+    override fun sendData(): Int {
+        return 15
+    }
+}
 
 
+fun t(
+    bottomNavigationLayout: BottomNavigationLayout,
+    screen: Screen,
+    key: String,
+) {
+    connect(
+        bottomNavigationLayout.consumerPorts.retrieve<BottomNavigationContent>(key)!!,
+        screen.content
+    )
 }

@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.navigation.capabilities
+package dev.shibasis.reaktor.core.capabilities
 
 import kotlinx.atomicfu.atomic
 

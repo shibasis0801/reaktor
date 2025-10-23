@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.navigation.capabilities
 
+import dev.shibasis.reaktor.core.capabilities.Capability
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.navigation.koin.Koin
 import org.koin.core.parameter.ParametersDefinition

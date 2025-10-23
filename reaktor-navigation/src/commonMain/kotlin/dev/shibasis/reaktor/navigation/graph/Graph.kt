@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.navigation.graph
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.navigation.capabilities.ConcurrencyCapability
-import dev.shibasis.reaktor.navigation.capabilities.ConcurrencyCapabilityImpl
+import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
+import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.DependencyCapability
 import dev.shibasis.reaktor.navigation.capabilities.DependencyCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.Lifecycle
@@ -11,7 +11,9 @@ import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.ReaktorScope
 import dev.shibasis.reaktor.navigation.capabilities.ScopedDependency
 import dev.shibasis.reaktor.navigation.capabilities.Unique
-import dev.shibasis.reaktor.navigation.capabilities.invoke
+import dev.shibasis.reaktor.core.capabilities.invoke
+import dev.shibasis.reaktor.core.utils.fail
+import dev.shibasis.reaktor.core.utils.succeed
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
@@ -225,24 +227,23 @@ open class Graph(
 {
     private val children = linkedMapOf<Uuid, Node>()
 
-    fun <N : Node> attach(builder: (parent: Graph) -> N): N {
-        val node = builder(this)
+    fun attach(node: Node): Result<Unit> {
         if (children.containsKey(node.id)) {
             Logger.w("Node ${node.id} is already attached. Ignoring.")
-            return children[node.id] as N
+            return fail(ConcurrentModificationException())
         }
 
-        Logger.v("Attaching Node: ${node::class.simpleName} (${node.id})")
         children[node.id] = node
+
         node.transition(Lifecycle.Restoring)
         node.restore()
         node.transition(Lifecycle.Attached)
-        return node
+
+        return succeed(Unit)
     }
 
     fun detach(node: Node) {
         children.remove(node.id)?.let {
-            Logger.v("Detaching Node: ${it::class.simpleName} (${it.id})")
             it.transition(Lifecycle.Saving)
             it.save()
             it.transition(Lifecycle.Destroyed)
@@ -251,8 +252,7 @@ open class Graph(
     }
 
     override fun close() {
-        Logger.v("Closing Graph: ${this::class.simpleName} ($id)")
-        children.values.toList().forEach { detach(it) } // Detach all children
+        children.values.toList().forEach { detach(it) }
         invoke<LifecycleCapability> { close() }
         invoke<DependencyCapability> { close() }
         invoke<ConcurrencyCapability> { close() }

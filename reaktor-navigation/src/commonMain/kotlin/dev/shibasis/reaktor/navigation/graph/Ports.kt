@@ -9,8 +9,18 @@ import kotlin.reflect.KProperty
 
 sealed class Port<Contract: Any>(val owner: PortCapability, val key: String, var edge: Edge<Contract>? = null)
 class ConsumerPort<Contract: Any>(owner: PortCapability, key: String, val kClass: KClass<Contract>): Port<Contract>(owner, key) {
-    inline operator fun<R> invoke(fn: Contract.() -> R) = edge?.invoke(fn)
-    suspend inline fun<R> suspended(fn: suspend Contract.() -> R) = edge?.suspended(fn)
+    val contract: Contract?
+        get() = edge?.producer?.impl
+
+    inline operator fun<R> invoke(fn: Contract.() -> R): R {
+        require(contract != null) { "Can't invoke methods on a null edge." }
+        return fn(contract!!)
+    }
+
+    suspend inline fun<R> suspended(fn: suspend Contract.() -> R): R {
+        require(contract != null) { "Can't invoke methods on a null edge." }
+        return fn(contract!!)
+    }
 }
 class ProducerPort<Contract: Any>(owner: PortCapability, key: String, val impl: Contract): Port<Contract>(owner, key)
 
@@ -44,10 +54,9 @@ interface PortCapability {
 }
 
 fun <Contract: Any> PortCapability.produces(key: String, impl: Contract, kClass: KClass<Contract>): ProducerPort<Contract> {
-    val port = ProducerPort(this, key, impl)
-    val map = producerPorts.getOrPut(kClass) { linkedMapOf() }
-    map[key] = port
-    return port
+    return producerPorts
+        .getOrPut(kClass) { linkedMapOf() }
+        .getOrPut(key) { ProducerPort(this, key, impl) } as ProducerPort<Contract>
 }
 
 inline fun <reified Contract: Any> PortCapability.produces(key: String, impl: Contract): ProducerPort<Contract> {
@@ -69,10 +78,9 @@ inline fun <reified Contract: Any> PortCapability.producer(impl: Contract): Read
 }
 
 fun <Contract: Any> PortCapability.consumes(key: String, kClass: KClass<Contract>): ConsumerPort<Contract> {
-    val port = ConsumerPort(this, key, kClass)
-    val map = consumerPorts.getOrPut(kClass) { linkedMapOf() }
-    map[key] = port
-    return port
+    return consumerPorts
+        .getOrPut(kClass) { linkedMapOf() }
+        .getOrPut(key) { ConsumerPort(this, key, kClass) } as ConsumerPort<Contract>
 }
 
 inline fun <reified Contract: Any> PortCapability.consumes(key: String): ConsumerPort<Contract> {
@@ -120,6 +128,9 @@ inline fun <reified C : Any> connect(consumerPort: ConsumerPort<C>, producerPort
     source.addEdge(consumerPort.key, edge)
 }
 
+inline fun <reified C : Any> connect(producerPort: ProducerPort<C>, consumerPort: ConsumerPort<C>)
+    = connect(consumerPort, producerPort)
+
 
 inline fun <reified C : Any> disconnect(consumerPort: ConsumerPort<C>, producerPort: ProducerPort<C>) {
     val source = consumerPort.owner
@@ -130,3 +141,6 @@ inline fun <reified C : Any> disconnect(consumerPort: ConsumerPort<C>, producerP
     consumerPort.edge = null
     producerPort.edge = null
 }
+
+inline fun <reified C : Any> disconnect(producerPort: ProducerPort<C>, consumerPort: ConsumerPort<C>)
+    = disconnect(consumerPort, producerPort)

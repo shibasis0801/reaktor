@@ -4,12 +4,12 @@ package dev.shibasis.reaktor.navigation.graph
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.io.network.RoutePattern
-import dev.shibasis.reaktor.navigation.capabilities.ConcurrencyCapability
-import dev.shibasis.reaktor.navigation.capabilities.ConcurrencyCapabilityImpl
+import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
+import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.Unique
-import dev.shibasis.reaktor.navigation.capabilities.invoke
+import dev.shibasis.reaktor.core.capabilities.invoke
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +32,10 @@ sealed class Node(
     override fun close() {
         invoke<LifecycleCapability> { close() }
         invoke<ConcurrencyCapability> { close() }
+    }
+
+    init {
+        graph.attach(this)
     }
 }
 
@@ -61,15 +65,15 @@ abstract class ViewNode<State>(
     abstract val state: MutableStateFlow<State>
 }
 
-fun interface ComposeView<State> {
+fun interface ComposeView {
     @Composable
-    fun Compose(viewNode: ViewNode<State>)
+    fun Compose()
 }
 
 // participate in both hierarchies.
 abstract class ComposeViewNode<State>(
     graph: Graph
-): ViewNode<State>(graph), ComposeView<State>
+): ViewNode<State>(graph), ComposeView
 
 
 

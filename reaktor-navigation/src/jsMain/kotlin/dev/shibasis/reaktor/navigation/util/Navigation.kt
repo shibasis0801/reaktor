@@ -44,11 +44,11 @@ fun<T> MutableStateFlow<T>.asReactState(): StateInstance<T> {
 }
 
 
-fun interface ReactView<State> {
-    fun Render(viewNode: ViewNode<State>)
+fun interface ReactView {
+    fun Render()
 }
 
 // participate in both hierarchies.
 abstract class ReactViewNode<State>(
     graph: Graph
-): ViewNode<State>(graph), ReactView<State>
+): ViewNode<State>(graph), ReactView
