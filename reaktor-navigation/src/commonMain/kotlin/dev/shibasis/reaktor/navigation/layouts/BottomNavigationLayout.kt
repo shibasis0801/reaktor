@@ -4,13 +4,11 @@ import dev.shibasis.reaktor.navigation.graph.Graph
 import dev.shibasis.reaktor.navigation.graph.ViewNode
 import dev.shibasis.reaktor.navigation.graph.connect
 import dev.shibasis.reaktor.navigation.graph.consumer
-import dev.shibasis.reaktor.navigation.graph.consumes
 import dev.shibasis.reaktor.navigation.graph.producer
 import dev.shibasis.reaktor.navigation.graph.retrieve
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 data class BottomNavigationState(
     val start: String
@@ -38,10 +36,10 @@ class BottomNavigationLayout(
 
     init {
         keys.forEach {
-            consumes<BottomNavigationContent>(it)
+            consumer<BottomNavigationContent>(it)
         }
 
-        val startPort = consumerPorts.retrieve<BottomNavigationContent>(start)!!
+        val startPort = consumer<BottomNavigationContent>(start)
 
         val x = startPort {
             sendData()
@@ -78,7 +76,7 @@ fun t(
     key: String,
 ) {
     connect(
-        bottomNavigationLayout.consumerPorts.retrieve<BottomNavigationContent>(key)!!,
+        bottomNavigationLayout.consumer<BottomNavigationContent>(key),
         screen.content
     )
 }
