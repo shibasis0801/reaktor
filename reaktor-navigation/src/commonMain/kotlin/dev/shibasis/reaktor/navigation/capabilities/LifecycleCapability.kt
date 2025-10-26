@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.navigation.capabilities
 
 import dev.shibasis.reaktor.core.capabilities.Capability
-import dev.shibasis.reaktor.navigation.graph.Node
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -9,9 +8,9 @@ import kotlinx.coroutines.flow.update
 sealed class Lifecycle {
     object Created: Lifecycle()
     object Restoring: Lifecycle()
-    object Attached: Lifecycle()
+    object Attaching: Lifecycle()
     object Saving: Lifecycle()
-    object Destroyed: Lifecycle()
+    object Destroying: Lifecycle()
 }
 
 
@@ -20,28 +19,28 @@ interface LifecycleCapability: Capability {
     val validTransitions: Set<Pair<Lifecycle, Lifecycle>>
         get() = setOf(
             Lifecycle.Created to Lifecycle.Restoring,
-            Lifecycle.Restoring to Lifecycle.Attached,
-            Lifecycle.Attached to Lifecycle.Saving,
+            Lifecycle.Restoring to Lifecycle.Attaching,
+            Lifecycle.Attaching to Lifecycle.Saving,
             //
-            Lifecycle.Saving to Lifecycle.Destroyed,
-            Lifecycle.Created to Lifecycle.Destroyed,
-            Lifecycle.Attached to Lifecycle.Destroyed,
-            Lifecycle.Restoring to Lifecycle.Destroyed
+            Lifecycle.Saving to Lifecycle.Destroying,
+            Lifecycle.Created to Lifecycle.Destroying,
+            Lifecycle.Attaching to Lifecycle.Destroying,
+            Lifecycle.Restoring to Lifecycle.Destroying
         )
 
-    fun transition(new: Lifecycle) {
+    fun transition(next: Lifecycle) {
         lateinit var previous: Lifecycle
         lifecycle.update { old ->
             previous = old
-            if (validTransitions.contains(old to new))
-                new
+            if (validTransitions.contains(old to next))
+                next
             else old
         }
-        if (previous != new)
-            onTransition(previous, new)
+        if (previous != next)
+            onTransition(previous, next)
     }
 
-    fun onTransition(previous: Lifecycle, current: Lifecycle) {}
+    fun onTransition(previous: Lifecycle, next: Lifecycle) {}
     fun save() {}
     fun restore() {}
 }

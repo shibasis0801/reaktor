@@ -23,6 +23,8 @@ import dev.shibasis.reaktor.navigation.graph.Node
 import dev.shibasis.reaktor.navigation.graph.Properties
 import dev.shibasis.reaktor.navigation.graph.connect
 import dev.shibasis.reaktor.navigation.graph.consumer
+import dev.shibasis.reaktor.navigation.graph.getConsumer
+import dev.shibasis.reaktor.navigation.graph.getProvider
 import dev.shibasis.reaktor.navigation.graph.provider
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,7 +91,9 @@ open class BottomNavigationView<Props: Properties>(
 
     infix fun connectWith(nodes: LinkedHashMap<String, Node>) {
         nodes.forEach { (k, v) ->
-            connect(this@BottomNavigationView, v)
+            val provider = v.getProvider<Content>(k) ?: return@forEach
+            val consumer = getConsumer<Content>(k) ?: return@forEach
+            connect(consumer, provider)
         }
     }
 
@@ -105,7 +109,7 @@ open class BottomNavigationView<Props: Properties>(
         }
         else {
             val navState by contract.state.collectAsState()
-            val consumer = remember(navState) { consumer<Content>(navState.selected) }
+            val consumer = remember(navState) { getConsumer<Content>(navState.selected) }
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {
@@ -126,7 +130,7 @@ open class BottomNavigationView<Props: Properties>(
                         .padding(innerPadding)
                         .fillMaxSize()
                 ) {
-                    consumer.contract?.Compose {}
+                    consumer?.contract?.Compose {}
                 }
             }
         }

@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.navigation.capabilities.UniqueImpl
+import dev.shibasis.reaktor.navigation.visitor.Visitable
+import dev.shibasis.reaktor.navigation.visitor.Visitor
 import kotlin.reflect.KClass
 
 // Always a directed edge
@@ -13,7 +15,7 @@ class Edge<Contract: Any>(
     val consumer: ConsumerPort<Contract>,
     val destination: PortCapability,
     val provider: ProviderPort<Contract>
-): Unique by UniqueImpl()
+): Unique by UniqueImpl(), Visitable
 
 
 fun <C : Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>, kClass: KClass<C>) {

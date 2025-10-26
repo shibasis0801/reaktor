@@ -4,6 +4,8 @@ package dev.shibasis.reaktor.navigation.graph
 
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
+import dev.shibasis.reaktor.navigation.visitor.Visitable
+import dev.shibasis.reaktor.navigation.visitor.Visitor
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlin.coroutines.CoroutineContext
@@ -15,10 +17,14 @@ typealias TypedKeyedMap<Contract, UsesContract> = HashMap<KClass<Contract>, Link
 typealias ProviderTypedKeyedMap<Contract> = TypedKeyedMap<Contract, ProviderPort<Contract>>
 typealias ConsumerTypedKeyedMap<Contract> = TypedKeyedMap<Contract, ConsumerPort<Contract>>
 
+inline fun<reified Port> TypedKeyedMap<*, Port>.flattenedValues() = values.flatMap { it.values }
+
 // ------- Provider/Consumer ports at nodes allow edges for interface based communication -------
 
-sealed class Port<Contract: Any>(val owner: PortCapability, val key: String) {
+sealed class Port<Contract: Any>(val owner: PortCapability, val key: String): Visitable {
     abstract fun isConnected(): Boolean
+    val node: Node
+        get() = owner as Node
 }
 
 class ConsumerPort<Contract: Any>(owner: PortCapability, key: String, val kClass: KClass<Contract>, var edge: Edge<Contract>? = null): Port<Contract>(owner, key) {

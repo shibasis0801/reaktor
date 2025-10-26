@@ -11,6 +11,8 @@ import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.core.capabilities.invoke
 import dev.shibasis.reaktor.io.network.toRoutePattern
+import dev.shibasis.reaktor.navigation.visitor.Visitable
+import dev.shibasis.reaktor.navigation.visitor.Visitor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,8 +26,9 @@ sealed class Node(
     val graph: Graph,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     override val id: Uuid = Uuid.random(),
+    override val label: String = "",
 ):
-    Unique,
+    Unique, Visitable,
     LifecycleCapability by LifecycleCapabilityImpl(),
     PortCapability by PortCapabilityImpl(
         graph.coroutineScope.coroutineContext
@@ -35,6 +38,10 @@ sealed class Node(
         dispatcher
     )
 {
+    init {
+        graph.attach(this)
+    }
+
     override fun close() {
         invoke<LifecycleCapability> { close() }
         invoke<ConcurrencyCapability> { close() }

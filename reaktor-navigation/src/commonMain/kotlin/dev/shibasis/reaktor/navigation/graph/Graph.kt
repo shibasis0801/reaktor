@@ -14,6 +14,7 @@ import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.core.capabilities.invoke
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
+import dev.shibasis.reaktor.navigation.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
@@ -21,8 +22,38 @@ import kotlin.uuid.Uuid
 
 /*
 
+reaktor-graph ->
+Decompose large codebases into modular communicating components.
+Leverage structured concurrency and dependency injection without the boilerplate.
+This must enable navigation and DAG execution on mobile / server
+RPC / FFI should be possible though consumer / provider
+Core concepts are: Graph, Node, Port, Edge, Consumer, Provider, Visitor, Traversal
+A Graph contains multiple Nodes
+Nodes abstract a functionality and provide an interface for interaction.
+Nodes can also consume functionality provided by other Nodes.
+This happens through ConsumerPort <- Edge -> ProviderPort
+Edges are always Directed
+We can connect arbitrary nodes together at runtime provided their ports are compatible.
+Edges contain the interface provided by a Node with provider and consumed by a Node with consumer.
+
+We leverage this graph structure with visitors.
+Routing, react/compose rendering, topological sort, state saving/restoring, etc
+
+Advanced visitors like visualisation, dynamic configuration will be enabled through
+(react-flow + karakum + reaktor-ffi (hermes js engine))
+
+This is meant to allow dynamic providers/consumers written in JS and executed through reaktor-ffi, and will leverage code push.
+
+We can have different strategies to traverse this graph, and it should be possible to traverse arbitrary sub-graphs.
+
+This will be the base for Reaktor and will combine every other functionality.
+The endgame is to create an AppEngine (apps + distributed systems) similar to UnrealEngine 5
+This will allow future devs to create substantially complex applications with the DX of GameDev.
+AAA games are extremely sophisticated and will not be possible without equally or even more sophisticated Game Engines.
+
 A reactive graph library for application nodes inspired from Uber/RIBs and Actor frameworks like Akka/Erlang.
 Large applications for mobile and servers can be decomposed into fully functional modules and visitors can orchestrate stuff on it.
+
 
 
 Graph, Node, Edge (UI & Server)
@@ -96,6 +127,8 @@ Requirements:
 1. Support compose and react (native too)
 2. Handle Adaptive Layouts
 3. Allow modularity by grouping multiple screens together
+4. Pluggable DI from koin/spring
+5. Orleans/Akka substitute for Kotlin apps
 6. Loading mechanism to gracefully handle APIs
 7. First class integration with Interactors which handle state + actions within, and provide a mechanism.
 9. deep links, unified across web and app.
@@ -129,15 +162,16 @@ Adaptive Containers
 */
 
 
-
 @JsExport
 open class Graph(
     parentGraph: Graph? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     override val id: Uuid = Uuid.random(),
-    val dependency: ScopedDependency = {}
+    override val label: String = "", // should be a field
+    val dependency: ScopedDependency = {},
+    builder: Graph.() -> Unit = {}
 ):
-    Unique,
+    Unique, Visitable,
     LifecycleCapability by LifecycleCapabilityImpl(),
     DependencyCapability by DependencyCapabilityImpl(
         id.toString(),
@@ -150,34 +184,58 @@ open class Graph(
         dispatcher
     )
 {
-    private val children = linkedMapOf<Uuid, Node>()
+    val nodes = linkedMapOf<Uuid, Node>()
+
+    init {
+        builder()
+    }
 
     fun attach(node: Node): Result<Unit> {
-        if (children.containsKey(node.id)) {
+        if (nodes.containsKey(node.id)) {
             Logger.w("Node ${node.id} is already attached. Ignoring.")
             return fail(ConcurrentModificationException())
         }
 
-        children[node.id] = node
+        nodes[node.id] = node
 
-        node.transition(Lifecycle.Restoring)
-        node.restore()
-        node.transition(Lifecycle.Attached)
+        node.transition(Lifecycle.Attaching)
 
         return succeed(Unit)
     }
 
     fun detach(node: Node) {
-        children.remove(node.id)?.let {
-            it.transition(Lifecycle.Saving)
-            it.save()
-            it.transition(Lifecycle.Destroyed)
-            it.close()
+        node.transition(Lifecycle.Destroying)
+        nodes.remove(node.id)
+    }
+
+    override fun onTransition(
+        previous: Lifecycle,
+        next: Lifecycle
+    ) {
+        val transitionNodes = { nodes.values.forEach { it.transition(next) } }
+        when (next) {
+            Lifecycle.Created -> {
+                // do stuff
+                transitionNodes()
+            }
+            Lifecycle.Restoring -> {
+                transitionNodes()
+            }
+            Lifecycle.Attaching -> {
+
+            }
+            Lifecycle.Saving -> {
+                transitionNodes()
+            }
+            Lifecycle.Destroying -> {
+                nodes.values.forEach { detach(it) }
+                nodes.clear()
+            }
         }
     }
 
     override fun close() {
-        children.values.toList().forEach { detach(it) }
+        transition(Lifecycle.Destroying)
         invoke<LifecycleCapability> { close() }
         invoke<DependencyCapability> { close() }
         invoke<ConcurrencyCapability> { close() }
