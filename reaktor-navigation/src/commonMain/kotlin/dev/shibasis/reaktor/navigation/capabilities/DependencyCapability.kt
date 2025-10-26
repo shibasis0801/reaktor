@@ -13,6 +13,8 @@ import org.koin.dsl.module
 
 typealias ScopedDependency = ScopeDSL.() -> Unit
 
+// todo, remove koin refs and allow server side code to use spring DI instead of koin.
+// https://chatgpt.com/c/68fd312b-8684-8323-aebd-a5fc63d8486d
 
 interface DependencyCapability: Capability {
     val koinScope: Scope

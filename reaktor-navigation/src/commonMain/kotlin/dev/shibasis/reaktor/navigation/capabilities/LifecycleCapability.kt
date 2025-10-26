@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.navigation.capabilities
 
 import dev.shibasis.reaktor.core.capabilities.Capability
+import dev.shibasis.reaktor.navigation.graph.Node
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 

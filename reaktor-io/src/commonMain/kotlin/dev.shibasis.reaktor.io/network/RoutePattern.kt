@@ -69,3 +69,5 @@ data class RoutePattern(
     }
 }
 
+
+inline fun String.toRoutePattern() = RoutePattern.from(this)

@@ -208,3 +208,9 @@ val Color.Companion.Teal: Color
 
 val Color.Companion.BlackText: Color
     get() = Color(0xFF282c3f)
+
+/*
+todo
+1. finish this design system
+2. learn subcompose layout, measure etc
+ */

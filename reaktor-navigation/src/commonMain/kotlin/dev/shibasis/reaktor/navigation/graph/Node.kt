@@ -10,11 +10,13 @@ import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.navigation.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.core.capabilities.invoke
+import dev.shibasis.reaktor.io.network.toRoutePattern
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
+import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
 
 
@@ -25,7 +27,9 @@ sealed class Node(
 ):
     Unique,
     LifecycleCapability by LifecycleCapabilityImpl(),
-    PortCapability by PortCapabilityImpl(),
+    PortCapability by PortCapabilityImpl(
+        graph.coroutineScope.coroutineContext
+    ),
     ConcurrencyCapability by ConcurrencyCapabilityImpl(
         graph.coroutineScope.coroutineContext,
         dispatcher
@@ -44,47 +48,61 @@ open class GraphNode(
 
 }
 
+fun Graph.graph(graph: Graph) = GraphNode(graph, this)
+    .also { attach(it) }
+
 abstract class LogicNode(
     graph: Graph
-): Node(graph) {
+): Node(graph)
 
-}
+fun Graph.logic(fn: Graph.() -> LogicNode) = fn()
 
 @Serializable
-data class Parameters(val routeParams: HashMap<String, String>)
+open class Properties(
+    val routeParams: HashMap<String, String> = hashMapOf()
+)
 
-interface RouteBinding {
-    fun parameters(): StateFlow<Parameters>
+interface RouteBinding<P: Properties> {
+    fun props(): StateFlow<P>
 }
 
-abstract class RouteNode(
+class RouteNode<Props: Properties>(
     graph: Graph,
     val pattern: RoutePattern,
-): Node(graph) {
-    abstract val bindingPort: ProducerPort<RouteBinding>
+    props: Props
+): Node(graph), RouteBinding<Props> {
+    val routeBinding by provider<RouteBinding<Props>>(this)
+    val props = MutableStateFlow(props)
+    override fun props() = props
 }
 
-abstract class ViewNode<State>(
+fun<Props: Properties> Graph.route(pattern: String, initialProps: Props) =
+    RouteNode(this, pattern.toRoutePattern(), initialProps)
+        .also { attach(it) }
+
+
+// todo use recomposer / rerenderer to check useless renders
+abstract class ViewNode<Props: Properties, State>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
-    val routeBinding by consumer<RouteBinding>()
+    val routeBinding by consumer<RouteBinding<Props>>()
 }
 
-fun interface ComposeView {
+fun<Props: Properties, State> Graph.view(fn: Graph.() -> ViewNode<Props, State>) = fn()
+
+interface View {
+
+}
+
+interface ComposeView: View {
     @Composable
-    fun Compose()
+    fun Compose(content: @Composable () -> Unit = {})
 }
 
-// participate in both hierarchies.
-abstract class ComposeViewNode<State>(
+abstract class ComposeViewNode<Props: Properties, State>(
     graph: Graph
-): ViewNode<State>(graph), ComposeView
-
-
-
-
-
+): ViewNode<Props, State>(graph), ComposeView
 
 
 

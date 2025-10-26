@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.core.capabilities
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -22,9 +23,8 @@ interface ConcurrencyCapability: Capability {
 
 class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
-    dispatcher: CoroutineDispatcher
+    dispatcher: CoroutineDispatcher = Dispatchers.Default
 ): ConcurrencyCapability {
-
     val supervisorJob = SupervisorJob()
 
     override val coroutineScope: CoroutineScope = CoroutineScope(

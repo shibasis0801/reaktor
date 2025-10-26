@@ -1,10 +1,10 @@
 package dev.shibasis.reaktor.navigation.util
 
 import dev.shibasis.reaktor.navigation.graph.Graph
+import dev.shibasis.reaktor.navigation.graph.Properties
+import dev.shibasis.reaktor.navigation.graph.View
 import dev.shibasis.reaktor.navigation.graph.ViewNode
 import kotlinx.coroutines.flow.MutableStateFlow
-import react.FC
-import react.Props
 import react.StateInstance
 import react.StateSetter
 import react.useEffect
@@ -44,11 +44,10 @@ fun<T> MutableStateFlow<T>.asReactState(): StateInstance<T> {
 }
 
 
-fun interface ReactView {
+interface ReactView: View {
     fun Render()
 }
 
-// participate in both hierarchies.
-abstract class ReactViewNode<State>(
+abstract class ReactViewNode<Props: Properties, State>(
     graph: Graph
-): ViewNode<State>(graph), ReactView
+): ViewNode<Props, State>(graph), ReactView
