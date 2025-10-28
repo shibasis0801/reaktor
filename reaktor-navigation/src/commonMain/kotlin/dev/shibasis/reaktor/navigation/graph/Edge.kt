@@ -7,9 +7,12 @@ import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.navigation.capabilities.UniqueImpl
 import dev.shibasis.reaktor.navigation.visitor.Visitable
 import dev.shibasis.reaktor.navigation.visitor.Visitor
+import kotlin.js.JsExport
+import kotlin.js.JsName
 import kotlin.reflect.KClass
 
 // Always a directed edge
+@JsExport
 class Edge<Contract: Any>(
     val source: PortCapability,
     val consumer: ConsumerPort<Contract>,
@@ -18,6 +21,8 @@ class Edge<Contract: Any>(
 ): Unique by UniqueImpl(), Visitable
 
 
+@JsExport
+@JsName("connectPort")
 fun <C : Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>, kClass: KClass<C>) {
     val source = consumerPort.owner
     val destination = providerPort.owner
@@ -42,6 +47,7 @@ inline fun <reified C : Any> connect(consumerPort: ConsumerPort<C>, providerPort
 inline fun <reified C : Any> connect(providerPort: ProviderPort<C>, consumerPort: ConsumerPort<C>)
         = connect(consumerPort, providerPort, C::class)
 
+@JsName("connectPorts")
 fun <C: Any> connect(
     consumers: Map<String, ConsumerPort<C>>,
     providers: Map<String, ProviderPort<C>>,
@@ -69,6 +75,7 @@ inline fun <reified C: Any> connect(
     consumers: Map<String, ConsumerPort<C>>,
     providers: Map<String, ProviderPort<C>>
 ) = connect(consumers, providers, C::class)
+
 
 fun <C : Any> connect(
     node1: PortCapability,
@@ -107,6 +114,8 @@ fun <C : Any> connect(
 inline fun <reified C : Any> connect(node1: PortCapability, node2: PortCapability) =
     connect(node1, node2, C::class)
 
+@JsExport
+@JsName("connectNode")
 fun connect(node1: PortCapability, node2: PortCapability) {
     val node1Consumers = node1.consumerPorts.keys
     val node1Providers = node1.providerPorts.keys

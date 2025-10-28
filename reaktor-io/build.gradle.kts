@@ -67,7 +67,7 @@ buildkonfig {
 }
 
 fun getMachineIpAddress(): String = Socket().run {
-    connect(InetSocketAddress("google.com", 80))
+//    connect(InetSocketAddress("google.com", 80))
     localAddress.hostAddress
 }
 

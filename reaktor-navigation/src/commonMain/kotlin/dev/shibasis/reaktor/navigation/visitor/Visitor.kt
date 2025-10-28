@@ -131,11 +131,8 @@ object BreadthFirstTraverser : Traverser {
             val current = queue.removeFirst()
             if (!visited.add(current)) continue
 
-            // Call visit directly.
-            // We ignore the returned ExitScope, which is correct for BFS.
             visitor.visit(current)
 
-            // Enqueue neighbors
             selector.neighbors(current).forEach { n ->
                 if (!visited.contains(n)) {
                     queue.add(n)
@@ -181,10 +178,8 @@ open class Visitor() {
 
 
 class HierarchyVisitor : Visitor() {
-    // This will be the final, top-level map
     lateinit var rootMap: MutableMap<String, Any>
 
-    // A stack to keep track of the current parent map we are adding to
     private val mapStack = ArrayDeque<MutableMap<String, Any>>()
 
     private fun getElementLabel(visitable: Visitable): String = when (visitable) {
@@ -200,34 +195,26 @@ class HierarchyVisitor : Visitor() {
     }
 
     private fun processVisit(visitable: Visitable): ExitScope {
-        // 1. Create the map for this element
         val currentMap = mutableMapOf<String, Any>(
             "element" to getElementLabel(visitable)
         )
 
-        // 2. Add this map to its parent (if one exists)
         if (mapStack.isNotEmpty()) {
             val parentMap = mapStack.last()
-            // Get or create the "children" list for the parent
             val childrenList = parentMap.getOrPut("children") {
                 mutableListOf<Map<String, Any>>()
             } as MutableList<Map<String, Any>>
 
             childrenList.add(currentMap)
         } else {
-            // If the stack is empty, this is the root node
             rootMap = currentMap
         }
 
-        // 3. Push this map onto the stack, so its children can add to it
         mapStack.add(currentMap)
 
-        // 4. Return the onExit scope, which pops this map off the stack
-        // This is the "end" of the scope.
         return { mapStack.removeLast() }
     }
 
-    // Override all visit methods to use the same processing logic
     override fun visitGraph(graph: Graph) = processVisit(graph)
     override fun visitGraphNode(graphNode: GraphNode) = processVisit(graphNode)
     override fun visitLogicNode(logicNode: LogicNode) = processVisit(logicNode)

@@ -19,9 +19,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlin.coroutines.coroutineContext
+import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
-
+@JsExport
 sealed class Node(
     val graph: Graph,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -48,6 +49,7 @@ sealed class Node(
     }
 }
 
+@JsExport
 open class GraphNode(
     val childGraph: Graph,
     parent: Graph
@@ -58,31 +60,36 @@ open class GraphNode(
 fun Graph.graph(graph: Graph) = GraphNode(graph, this)
     .also { attach(it) }
 
+@JsExport
 abstract class LogicNode(
     graph: Graph
 ): Node(graph)
 
 fun Graph.logic(fn: Graph.() -> LogicNode) = fn()
 
+@JsExport
 @Serializable
 open class Properties(
     val routeParams: HashMap<String, String> = hashMapOf()
 )
 
+@JsExport
 interface RouteBinding<P: Properties> {
     fun props(): StateFlow<P>
 }
 
+@JsExport
 class RouteNode<Props: Properties>(
     graph: Graph,
     val pattern: RoutePattern,
     props: Props
 ): Node(graph), RouteBinding<Props> {
     val routeBinding by provider<RouteBinding<Props>>(this)
-    val props = MutableStateFlow(props)
-    override fun props() = props
+    val propFlow = MutableStateFlow(props)
+    override fun props() = propFlow
 }
 
+@JsExport
 fun<Props: Properties> Graph.route(pattern: String, initialProps: Props) =
     RouteNode(this, pattern.toRoutePattern(), initialProps)
         .also { attach(it) }
@@ -96,8 +103,10 @@ abstract class ViewNode<Props: Properties, State>(
     val routeBinding by consumer<RouteBinding<Props>>()
 }
 
+@JsExport
 fun<Props: Properties, State> Graph.view(fn: Graph.() -> ViewNode<Props, State>) = fn()
 
+@JsExport
 interface View {
 
 }

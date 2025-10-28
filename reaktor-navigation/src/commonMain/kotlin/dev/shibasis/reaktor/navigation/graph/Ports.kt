@@ -9,24 +9,28 @@ import dev.shibasis.reaktor.navigation.visitor.Visitor
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlin.coroutines.CoroutineContext
+import kotlin.js.JsExport
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
 
 typealias TypedKeyedMap<Contract, UsesContract> = HashMap<KClass<Contract>, LinkedHashMap<String, UsesContract>>
+
 typealias ProviderTypedKeyedMap<Contract> = TypedKeyedMap<Contract, ProviderPort<Contract>>
+
 typealias ConsumerTypedKeyedMap<Contract> = TypedKeyedMap<Contract, ConsumerPort<Contract>>
 
 inline fun<reified Port> TypedKeyedMap<*, Port>.flattenedValues() = values.flatMap { it.values }
 
 // ------- Provider/Consumer ports at nodes allow edges for interface based communication -------
-
+@JsExport
 sealed class Port<Contract: Any>(val owner: PortCapability, val key: String): Visitable {
     abstract fun isConnected(): Boolean
     val node: Node
         get() = owner as Node
 }
 
+@JsExport
 class ConsumerPort<Contract: Any>(owner: PortCapability, key: String, val kClass: KClass<Contract>, var edge: Edge<Contract>? = null): Port<Contract>(owner, key) {
     val contract: Contract?
         get() = edge?.provider?.impl
@@ -38,11 +42,14 @@ class ConsumerPort<Contract: Any>(owner: PortCapability, key: String, val kClass
         return fn(contract!!)
     }
 
+    @JsExport.Ignore
     suspend inline fun<R> suspended(fn: suspend Contract.() -> R): R {
         require(isConnected()) { "Can't invoke functions through unconnected ports." }
         return fn(contract!!)
     }
 }
+
+@JsExport
 class ProviderPort<Contract: Any>(
     owner: PortCapability, key: String, val impl: Contract, val edges: LinkedHashMap<ConsumerPort<Contract>, Edge<Contract>> = linkedMapOf()
 ): Port<Contract>(owner, key) {
@@ -52,12 +59,14 @@ class ProviderPort<Contract: Any>(
 
 // ---------------------------- PortCapability ----------------------------
 
+@JsExport
 sealed class PortEvent(val port: Port<*>) {
     class Created(port: Port<*>): PortEvent(port)
     class Connected(port: Port<*>, val other: Port<*>): PortEvent(port)
     class Disconnected(port: Port<*>, val other: Port<*>): PortEvent(port)
 }
 
+@JsExport
 interface PortCapability {
     val consumerPorts: ConsumerTypedKeyedMap<*>
     val providerPorts: ProviderTypedKeyedMap<*>
@@ -65,6 +74,7 @@ interface PortCapability {
     fun emit(event: PortEvent)
 }
 
+@JsExport
 class PortCapabilityImpl(
     context: CoroutineContext? = null,
     override val consumerPorts: ConsumerTypedKeyedMap<*> = hashMapOf(),
@@ -81,7 +91,7 @@ class PortCapabilityImpl(
 typealias PortDelegate<Port> = ReadOnlyProperty<PortCapability, Port>
 
 // ---------------------------- Provider ----------------------------
-
+@JsExport
 fun <Contract: Any> PortCapability.provider(key: String, impl: Contract, kClass: KClass<Contract>): ProviderPort<Contract> {
     return providerPorts
         .getOrPut(kClass) { linkedMapOf() }
@@ -98,6 +108,7 @@ inline fun <reified Contract: Any> PortCapability.provider(impl: Contract) =
         ReadOnlyProperty { _, _ -> port }
     }
 
+@JsExport
 fun <Contract: Any> PortCapability.getProvider(key: String, kClass: KClass<Contract>): ProviderPort<Contract>? {
     return providerPorts
         .getOrPut(kClass) { linkedMapOf() }
@@ -109,7 +120,7 @@ inline fun <reified Contract: Any> PortCapability.getProvider(key: String): Prov
 }
 
 // ---------------------------- Consumer ----------------------------
-
+@JsExport
 fun <Contract: Any> PortCapability.consumer(key: String, kClass: KClass<Contract>): ConsumerPort<Contract> {
     return consumerPorts
         .getOrPut(kClass) { linkedMapOf() }
@@ -126,6 +137,7 @@ inline fun <reified Contract: Any> PortCapability.consumer() =
         ReadOnlyProperty { _, _ -> port }
     }
 
+@JsExport
 fun <Contract: Any> PortCapability.getConsumer(key: String, kClass: KClass<Contract>): ConsumerPort<Contract>? {
     return consumerPorts
         .getOrPut(kClass) { linkedMapOf() }
