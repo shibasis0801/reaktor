@@ -9,14 +9,14 @@ plugins {
 }
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             implementation("io.modelcontextprotocol:kotlin-sdk-client:0.7.2")
         }
     }
     droid {}
     darwin {}
     server {
-        dependencies = {
+        dependencies {
             implementation("io.modelcontextprotocol:kotlin-sdk-server:0.7.2")
 
         }

@@ -9,14 +9,14 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-core"))
         }
     }
     droid {}
     darwin {}
     web {
-        dependencies = {
+        dependencies {
             api(npm("hono", "4.9.8"))
         }
     }

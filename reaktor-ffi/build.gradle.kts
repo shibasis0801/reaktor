@@ -40,7 +40,7 @@ tasks.named("build") {
 kotlin {
     jvmToolchain(11)
     common {
-        dependencies = {
+        dependencies {
             implementation(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
             api(project(":reaktor-flexbuffer"))
@@ -48,19 +48,19 @@ kotlin {
     }
 
     droid {
-        dependencies = {
+        dependencies {
             implementation("com.facebook.react:hermes-android:0.81.4")
             // They have coupled this with react native, and download latest main as a tarball
             // https://github.com/facebook/react-native/blob/a9a1c86a927fc6e3854a9b4ad44d38bd3c8db588/packages/react-native/ReactAndroid/hermes-engine/build.gradle.kts#L336
 
         }
-        integrationTestDependencies = {
+        integrationTestDependencies {
 //            api()
         }
     }
 
     darwin {
-        cinterops = {
+        cinterops {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
@@ -72,7 +72,7 @@ kotlin {
             }
         }
 
-        targets = {
+        targetModifier {
             println("DarwinTarget: $name")
             val code = if (name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"
             binaries.all {

@@ -12,7 +12,7 @@ val sqldelightVersion: String by project
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-io"))
             api("app.cash.sqldelight:runtime:$sqldelightVersion")
         }
@@ -21,14 +21,14 @@ kotlin {
     // https://web.dev/articles/origin-private-file-system
     // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
     web {
-        dependencies = {
+        dependencies {
             api("app.cash.sqldelight:web-worker-driver:$sqldelightVersion")
             implementation(devNpm("copy-webpack-plugin", "9.1.0"))
         }
     }
 
     droid {
-        dependencies = {
+        dependencies {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
             implementation("androidx.sqlite:sqlite-framework:2.4.0")
             api("app.cash.sqldelight:android-driver:$sqldelightVersion")
@@ -36,18 +36,18 @@ kotlin {
     }
 
     darwin {
-        dependencies = {
+        dependencies {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
             api("app.cash.sqldelight:native-driver:$sqldelightVersion")
         }
-        podDependencies = {
+        podDependencies {
             framework {
                 linkerOpts("-lsqlite3")
             }
         }
     }
     server {
-        dependencies = {
+        dependencies {
             implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
         }
     }

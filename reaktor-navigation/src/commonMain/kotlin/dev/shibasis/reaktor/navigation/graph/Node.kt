@@ -58,7 +58,6 @@ open class GraphNode(
 }
 
 fun Graph.graph(graph: Graph) = GraphNode(graph, this)
-    .also { attach(it) }
 
 @JsExport
 abstract class LogicNode(
@@ -92,7 +91,6 @@ class RouteNode<Props: Properties>(
 @JsExport
 fun<Props: Properties> Graph.route(pattern: String, initialProps: Props) =
     RouteNode(this, pattern.toRoutePattern(), initialProps)
-        .also { attach(it) }
 
 
 // todo use recomposer / rerenderer to check useless renders
@@ -102,6 +100,7 @@ abstract class ViewNode<Props: Properties, State>(
     abstract val state: MutableStateFlow<State>
     val routeBinding by consumer<RouteBinding<Props>>()
 }
+
 
 @JsExport
 fun<Props: Properties, State> Graph.view(fn: Graph.() -> ViewNode<Props, State>) = fn()

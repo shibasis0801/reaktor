@@ -1,0 +1,17 @@
+{
+  "name": "reaktor-navigation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "postbuild": "karakum --config karakum.config.json",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "reaktor-reaktor-navigation": "file://./export"
+  },
+  "devDependencies": {
+    "karakum": "^1.0.0-alpha.78",
+    "typescript": "^5.9.3"
+  }
+}

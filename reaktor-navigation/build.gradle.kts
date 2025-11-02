@@ -16,7 +16,7 @@ val resilience4jVersion = "2.2.0"
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-ui"))
         }
     }

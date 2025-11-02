@@ -8,18 +8,10 @@ plugins {
     id("dev.shibasis.dependeasy.library")
 }
 kotlin {
-    common {
-        dependencies = {
-
-        }
-    }
+    common {}
     droid {}
     darwin {}
-    server {
-        dependencies = {
-
-        }
-    }
+    server {}
 }
 
 android {

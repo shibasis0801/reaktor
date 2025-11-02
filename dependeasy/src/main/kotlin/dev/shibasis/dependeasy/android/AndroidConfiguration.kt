@@ -1,23 +1,26 @@
 package dev.shibasis.dependeasy.android
 
 import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.common.Configuration
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 
 class AndroidConfiguration(
-    var targetModifier: KotlinAndroidTarget.() -> Unit = {},
-    var dependencies: KotlinDependencyHandler.() -> Unit = {},
-    var testDependencies: KotlinDependencyHandler.() -> Unit = {},
-    var integrationTestDependencies: KotlinDependencyHandler.() -> Unit = {},
-    var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
-)
+
+): Configuration<KotlinAndroidTarget>() {
+    internal var integrationTestDependencies: KotlinDependencyHandler.() -> Unit = {}
+        private set
+
+    fun integrationTestDependencies(fn: KotlinDependencyHandler.() -> Unit = {}) {
+        this.integrationTestDependencies = fn
+    }
+}
 
 fun KotlinMultiplatformExtension.droid(
     configuration: AndroidConfiguration.() -> Unit = {}

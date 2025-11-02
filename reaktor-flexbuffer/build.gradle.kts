@@ -39,21 +39,21 @@ tasks.named("build") {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
         }
     }
 
     droid {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-io"))
             implementation("com.google.flatbuffers:flatbuffers-java:2.0.3")
         }
     }
 
     darwin {
-        cinterops = {
+        cinterops {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
@@ -65,7 +65,7 @@ kotlin {
             }
         }
 
-        targets = {
+        targetModifier {
             println("DarwinTarget: $name")
             val code = if (name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"
             binaries.all {

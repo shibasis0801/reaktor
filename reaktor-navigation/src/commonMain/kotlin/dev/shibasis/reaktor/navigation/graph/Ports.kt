@@ -4,34 +4,62 @@ package dev.shibasis.reaktor.navigation.graph
 
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
+import dev.shibasis.reaktor.navigation.graph.Type.Companion.Type
 import dev.shibasis.reaktor.navigation.visitor.Visitable
 import dev.shibasis.reaktor.navigation.visitor.Visitor
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlin.coroutines.CoroutineContext
 import kotlin.js.JsExport
+import kotlin.js.JsName
+import kotlin.jvm.JvmInline
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
 
-typealias TypedKeyedMap<Contract, UsesContract> = HashMap<KClass<Contract>, LinkedHashMap<String, UsesContract>>
+@JsExport
+data class Key(val key: String)
 
-typealias ProviderTypedKeyedMap<Contract> = TypedKeyedMap<Contract, ProviderPort<Contract>>
+@JsExport
+data class Type(val type: String, val kClass: KClass<*>? = null) {
+    companion object {
+        val _sequence = atomic(0)
+        @JsExport.Ignore
+        inline fun<reified T> Type() = Type(
+            T::class.simpleName ?: "anonymous_${_sequence.getAndIncrement()}",
+            T::class
+        )
+    }
+}
 
-typealias ConsumerTypedKeyedMap<Contract> = TypedKeyedMap<Contract, ConsumerPort<Contract>>
+typealias TypedKeyedMap<Value> = MutableMap<Type, MutableMap<Key, Value>>
 
-inline fun<reified Port> TypedKeyedMap<*, Port>.flattenedValues() = values.flatMap { it.values }
+inline fun<reified Port> TypedKeyedMap<Port>.flattenedValues() = values.flatMap { it.values }
 
 // ------- Provider/Consumer ports at nodes allow edges for interface based communication -------
 @JsExport
-sealed class Port<Contract: Any>(val owner: PortCapability, val key: String): Visitable {
+sealed class Port<Contract: Any>(
+    val owner: PortCapability,
+    val key: Key,
+    val type: Type
+): Visitable {
     abstract fun isConnected(): Boolean
     val node: Node
         get() = owner as Node
+
+    @JsName("createWithStrings")
+    constructor(owner: PortCapability, key: String, type: String)
+            : this(owner, Key(key), Type(type))
 }
 
 @JsExport
-class ConsumerPort<Contract: Any>(owner: PortCapability, key: String, val kClass: KClass<Contract>, var edge: Edge<Contract>? = null): Port<Contract>(owner, key) {
+class ConsumerPort<Contract: Any>(
+    owner: PortCapability,
+    key: Key,
+    type: Type,
+    var edge: Edge<Contract>? = null
+): Port<Contract>(owner, key, type) {
     val contract: Contract?
         get() = edge?.provider?.impl
 
@@ -51,8 +79,12 @@ class ConsumerPort<Contract: Any>(owner: PortCapability, key: String, val kClass
 
 @JsExport
 class ProviderPort<Contract: Any>(
-    owner: PortCapability, key: String, val impl: Contract, val edges: LinkedHashMap<ConsumerPort<Contract>, Edge<Contract>> = linkedMapOf()
-): Port<Contract>(owner, key) {
+    owner: PortCapability,
+    key: Key,
+    type: Type,
+    val impl: Contract,
+    val edges: LinkedHashMap<ConsumerPort<Contract>, Edge<Contract>> = linkedMapOf()
+): Port<Contract>(owner, key, type) {
     override fun isConnected() = edges.isNotEmpty()
 }
 
@@ -68,8 +100,8 @@ sealed class PortEvent(val port: Port<*>) {
 
 @JsExport
 interface PortCapability {
-    val consumerPorts: ConsumerTypedKeyedMap<*>
-    val providerPorts: ProviderTypedKeyedMap<*>
+    val consumerPorts: TypedKeyedMap<ConsumerPort<Any>>
+    val providerPorts: TypedKeyedMap<ProviderPort<Any>>
     val portEvents: SharedFlow<PortEvent>
     fun emit(event: PortEvent)
 }
@@ -77,8 +109,8 @@ interface PortCapability {
 @JsExport
 class PortCapabilityImpl(
     context: CoroutineContext? = null,
-    override val consumerPorts: ConsumerTypedKeyedMap<*> = hashMapOf(),
-    override val providerPorts: ProviderTypedKeyedMap<*> = hashMapOf(),
+    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = hashMapOf(),
+    override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = hashMapOf(),
     override val portEvents: MutableSharedFlow<PortEvent> = MutableSharedFlow(),
 ): PortCapability, ConcurrencyCapability by ConcurrencyCapabilityImpl(context) {
     override fun emit(event: PortEvent) {
@@ -92,14 +124,14 @@ typealias PortDelegate<Port> = ReadOnlyProperty<PortCapability, Port>
 
 // ---------------------------- Provider ----------------------------
 @JsExport
-fun <Contract: Any> PortCapability.provider(key: String, impl: Contract, kClass: KClass<Contract>): ProviderPort<Contract> {
+fun <Contract: Any> PortCapability.provider(key: Key, type: Type, impl: Contract): ProviderPort<Contract> {
     return providerPorts
-        .getOrPut(kClass) { linkedMapOf() }
-        .getOrPut(key) { ProviderPort(this, key, impl) } as ProviderPort<Contract>
+        .getOrPut(type) { linkedMapOf() }
+        .getOrPut(key) { ProviderPort(this, key, type, impl) } as ProviderPort<Contract>
 }
 
 inline fun <reified Contract: Any> PortCapability.provider(key: String, impl: Contract): ProviderPort<Contract> {
-    return provider(key, impl, Contract::class)
+    return provider(Key(key), Type<Contract>(), impl)
 }
 
 inline fun <reified Contract: Any> PortCapability.provider(impl: Contract) =
@@ -109,26 +141,26 @@ inline fun <reified Contract: Any> PortCapability.provider(impl: Contract) =
     }
 
 @JsExport
-fun <Contract: Any> PortCapability.getProvider(key: String, kClass: KClass<Contract>): ProviderPort<Contract>? {
+fun <Contract: Any> PortCapability.getProvider(key: Key, type: Type): ProviderPort<Contract>? {
     return providerPorts
-        .getOrPut(kClass) { linkedMapOf() }
+        .getOrPut(type) { linkedMapOf() }
         .get(key) as? ProviderPort<Contract>
 }
 
 inline fun <reified Contract: Any> PortCapability.getProvider(key: String): ProviderPort<Contract>? {
-    return getProvider(key, Contract::class)
+    return getProvider(Key(key), Type<Contract>())
 }
 
 // ---------------------------- Consumer ----------------------------
 @JsExport
-fun <Contract: Any> PortCapability.consumer(key: String, kClass: KClass<Contract>): ConsumerPort<Contract> {
+fun <Contract: Any> PortCapability.consumer(key: Key, type: Type): ConsumerPort<Contract> {
     return consumerPorts
-        .getOrPut(kClass) { linkedMapOf() }
-        .getOrPut(key) { ConsumerPort(this, key, kClass) } as ConsumerPort<Contract>
+        .getOrPut(type) { linkedMapOf() }
+        .getOrPut(key) { ConsumerPort(this, key, type) } as ConsumerPort<Contract>
 }
 
 inline fun <reified Contract: Any> PortCapability.consumer(key: String): ConsumerPort<Contract> {
-    return consumer(key, Contract::class)
+    return consumer(Key(key), Type<Contract>())
 }
 
 inline fun <reified Contract: Any> PortCapability.consumer() =
@@ -138,12 +170,12 @@ inline fun <reified Contract: Any> PortCapability.consumer() =
     }
 
 @JsExport
-fun <Contract: Any> PortCapability.getConsumer(key: String, kClass: KClass<Contract>): ConsumerPort<Contract>? {
+fun <Contract: Any> PortCapability.getConsumer(key: Key, type: Type): ConsumerPort<Contract>? {
     return consumerPorts
-        .getOrPut(kClass) { linkedMapOf() }
+        .getOrPut(type) { linkedMapOf() }
         .get(key) as? ConsumerPort<Contract>
 }
 
 inline fun <reified Contract: Any> PortCapability.getConsumer(key: String): ConsumerPort<Contract>? {
-    return getConsumer(key, Contract::class)
+    return getConsumer(Key(key), Type<Contract>())
 }

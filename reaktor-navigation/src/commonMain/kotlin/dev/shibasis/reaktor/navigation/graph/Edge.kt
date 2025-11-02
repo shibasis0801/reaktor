@@ -1,15 +1,15 @@
 @file:Suppress("UNCHECKED_CAST")
 package dev.shibasis.reaktor.navigation.graph
 
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.navigation.capabilities.UniqueImpl
+import dev.shibasis.reaktor.navigation.graph.Type.Companion.Type
 import dev.shibasis.reaktor.navigation.visitor.Visitable
-import dev.shibasis.reaktor.navigation.visitor.Visitor
 import kotlin.js.JsExport
 import kotlin.js.JsName
-import kotlin.reflect.KClass
 
 // Always a directed edge
 @JsExport
@@ -20,10 +20,11 @@ class Edge<Contract: Any>(
     val provider: ProviderPort<Contract>
 ): Unique by UniqueImpl(), Visitable
 
+fun<C: Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>): Result<Unit> {
+    if (consumerPort.type != providerPort.type)
+        return fail("Incompatible ports: consumer -> ${consumerPort.type}, provider -> ${providerPort.type}")
 
-@JsExport
-@JsName("connectPort")
-fun <C : Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>, kClass: KClass<C>) {
+
     val source = consumerPort.owner
     val destination = providerPort.owner
 
@@ -39,101 +40,60 @@ fun <C : Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<
 
     consumerPort.owner.emit(PortEvent.Connected(consumerPort, providerPort))
     providerPort.owner.emit(PortEvent.Connected(providerPort, consumerPort))
+
+    return succeed(Unit)
 }
 
-inline fun <reified C : Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>)
-        = connect(consumerPort, providerPort, C::class)
-
-inline fun <reified C : Any> connect(providerPort: ProviderPort<C>, consumerPort: ConsumerPort<C>)
-        = connect(consumerPort, providerPort, C::class)
+@JsExport
+@JsName("connectPort")
+fun connectPort(consumerPort: ConsumerPort<Any>, providerPort: ProviderPort<Any>)
+    = connect(consumerPort, providerPort)
 
 @JsName("connectPorts")
-fun <C: Any> connect(
-    consumers: Map<String, ConsumerPort<C>>,
-    providers: Map<String, ProviderPort<C>>,
-    kClass: KClass<C>
-) {
-    if (consumers.size == 1 && providers.size == 1) {
-        connect(
+fun connect(
+    consumers: Map<Key, ConsumerPort<Any>>,
+    providers: Map<Key, ProviderPort<Any>>
+): Result<Unit> {
+    if (
+        consumers.size == 1 && providers.size == 1 &&
+        consumers.values.first().type == providers.values.first().type
+    ) {
+        return connect(
             consumers.values.first(),
-            providers.values.first(),
-            kClass
+            providers.values.first()
         )
-        return
     }
 
     consumers.keys
         .intersect(providers.keys)
         .forEach {
-            val consumer = consumers[it] as ConsumerPort<C>
-            val provider = providers[it] as ProviderPort<C>
-            connect(consumer, provider, kClass)
+            val consumer = consumers[it] as ConsumerPort<Any>
+            val provider = providers[it] as ProviderPort<Any>
+            if (consumer.type == provider.type)
+                connect(consumer, provider)
+        }
+
+    return succeed(Unit)
+}
+
+private fun connectConsumerProvider(consumerNode: PortCapability, providerNode: PortCapability) {
+    val consumerTypes = consumerNode.consumerPorts.keys
+    val providerTypes = providerNode.providerPorts.keys
+    consumerTypes.intersect(providerTypes)
+        .forEach {
+            connect(
+                consumerNode.consumerPorts[it] ?: mapOf(),
+                providerNode.providerPorts[it] ?: mapOf()
+            )
         }
 }
 
-inline fun <reified C: Any> connect(
-    consumers: Map<String, ConsumerPort<C>>,
-    providers: Map<String, ProviderPort<C>>
-) = connect(consumers, providers, C::class)
-
-
-fun <C : Any> connect(
-    node1: PortCapability,
-    node2: PortCapability,
-    kClass: KClass<C>
-): Result<Unit> {
-    val node1Consumers = node1.consumerPorts[kClass]
-    val node1Providers = node1.providerPorts[kClass]
-
-    val node2Consumers = node2.consumerPorts[kClass]
-    val node2Providers = node2.providerPorts[kClass]
-
-    var result = fail<Unit>(IllegalArgumentException("Unable to find compatible ports"))
-
-    if (node1Consumers != null && node2Providers != null) {
-        connect(
-            node1Consumers as Map<String, ConsumerPort<C>>,
-            node2Providers as Map<String, ProviderPort<C>>,
-            kClass
-        )
-        result = succeed(Unit)
-    }
-
-    if (node2Consumers != null && node1Providers != null) {
-        connect(
-            node2Consumers as Map<String, ConsumerPort<C>>,
-            node1Providers as Map<String, ProviderPort<C>>,
-            kClass
-        )
-        result = succeed(Unit)
-    }
-
-    return result
-}
-
-inline fun <reified C : Any> connect(node1: PortCapability, node2: PortCapability) =
-    connect(node1, node2, C::class)
 
 @JsExport
 @JsName("connectNode")
 fun connect(node1: PortCapability, node2: PortCapability) {
-    val node1Consumers = node1.consumerPorts.keys
-    val node1Providers = node1.providerPorts.keys
-
-    val node2Consumers = node2.consumerPorts.keys
-    val node2Providers = node2.providerPorts.keys
-
-    node1Consumers
-        .intersect(node2Providers)
-        .forEach { kClass ->
-            connect(node1, node2, kClass)
-        }
-
-    node2Consumers
-        .intersect(node1Providers)
-        .forEach { kClass ->
-            connect(node1, node2, kClass)
-        }
+    connectConsumerProvider(node1, node2)
+    connectConsumerProvider(node2, node1)
 }
 
 infix fun PortCapability.connectWith(other: PortCapability) = connect(this, other)

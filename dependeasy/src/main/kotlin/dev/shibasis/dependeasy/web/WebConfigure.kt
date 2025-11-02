@@ -1,39 +1,44 @@
 package dev.shibasis.dependeasy.web
 
 
-import dev.shibasis.dependeasy.Version
-import org.gradle.api.Action
-import org.gradle.api.attributes.Attribute
-import org.gradle.internal.file.impl.DefaultFileMetadata.file
+import dev.shibasis.dependeasy.common.Configuration
 import org.gradle.kotlin.dsl.get
-import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
+import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.ExternalKotlinTargetApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.jetbrains.kotlin.gradle.plugin.mpp.external.project
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.npm.PackageJson
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import java.io.File
 
-class WebConfiguration(
-    var dependencies: KotlinDependencyHandler.() -> Unit = {},
-    var targetModifier: KotlinJsTargetDsl.() -> Unit = {},
-    var sourceSetModifier: KotlinSourceSet.() -> Unit = {},
-    var webpackConfig: KotlinWebpackConfig.() -> Unit = {},
-    var packageJson: File? = null,
-    var moduleName: String? = null,
-    var packageJsonCustomizer: (PackageJson.() -> Unit)? = null
-)
+class WebConfiguration: Configuration<KotlinJsTargetDsl>() {
+    var moduleName: String? = null
+    var packageJson: File? = null
 
-@OptIn(ExperimentalMainFunctionArgumentsDsl::class)
+    internal var packageJsonCustomizer: (PackageJson.() -> Unit)? = null
+    private set
+    internal var webpackConfig: (KotlinWebpackConfig.() -> Unit) = {}
+    private set
+
+
+    fun packageJsonCustomizer(fn: PackageJson.() -> Unit) {
+        this.packageJsonCustomizer = fn
+    }
+
+    fun webpackConfig(fn: KotlinWebpackConfig.() -> Unit) {
+        this.webpackConfig = fn
+    }
+}
+
+
+@OptIn(ExperimentalMainFunctionArgumentsDsl::class, ExperimentalDistributionDsl::class)
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
 ) {
@@ -44,6 +49,7 @@ fun KotlinMultiplatformExtension.web(
 //        moduleName = "index"
         compilerOptions {
             target.set("es2015")
+            freeCompilerArgs.add("-Xes-long-as-bigint")
         }
         useEsModules()
         nodejs {
@@ -59,6 +65,16 @@ fun KotlinMultiplatformExtension.web(
                 }
                 configure.webpackConfig(this)
             }
+
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+
+            distribution {
+                outputDirectory.set(project.projectDir.resolve("ts/export"))
+            }
         }
         compilations["main"].packageJson {
             configure.moduleName?.apply { name = this }
@@ -70,11 +86,17 @@ fun KotlinMultiplatformExtension.web(
 
     sourceSets {
         jsMain {
+            kotlin.srcDir("ts/import")
             configure.sourceSetModifier(this)
             dependencies {
                 configure.dependencies(this)
-                //            api("io.github.turansky.seskar:seskar-core:${Version.Seskar}")
             }
         }
+    }
+
+    project.plugins.withType<YarnPlugin> {
+        project.the<YarnRootExtension>().yarnLockMismatchReport = YarnLockMismatchReport.WARNING
+        project.the<YarnRootExtension>().reportNewYarnLock = false
+        project.the<YarnRootExtension>().yarnLockAutoReplace = false
     }
 }

@@ -10,7 +10,7 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             commonLogging()
             commonCoroutines()
             commonSerialization()
@@ -21,7 +21,7 @@ kotlin {
     }
 
     web {
-        dependencies = {
+        dependencies {
             api(npm("reaktor-core", file("js")))
             kotlinWrappers()
             webCoroutines()
@@ -29,7 +29,7 @@ kotlin {
     }
 
     droid {
-        dependencies = {
+        dependencies {
             activityFragment()
             androidCoroutines()
             fbjni()
@@ -39,11 +39,11 @@ kotlin {
     }
 
     darwin {
-        dependencies = {}
+        dependencies {}
     }
 
     server {
-        dependencies = {
+        dependencies {
             springWebFlux()
         }
     }

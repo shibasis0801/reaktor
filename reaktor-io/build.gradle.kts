@@ -18,7 +18,7 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-core"))
             api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
 //            api("androidx.datastore:datastore-preferences-core:1.1.0")
@@ -28,17 +28,17 @@ kotlin {
     // https://web.dev/articles/origin-private-file-system
     // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
     web {
-        dependencies = {}
+        dependencies {}
     }
 
     droid {
-        dependencies = {
+        dependencies {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
         }
     }
 
     darwin {
-        dependencies = {
+        dependencies {
             api("androidx.datastore:datastore-preferences-core:1.1.0")
         }
     }

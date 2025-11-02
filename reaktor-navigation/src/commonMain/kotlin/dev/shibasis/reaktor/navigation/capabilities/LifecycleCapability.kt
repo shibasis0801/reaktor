@@ -41,8 +41,6 @@ interface LifecycleCapability: Capability {
     }
 
     fun onTransition(previous: Lifecycle, next: Lifecycle) {}
-    fun save() {}
-    fun restore() {}
 }
 
 

@@ -4,9 +4,12 @@ import dev.shibasis.reaktor.navigation.graph.Graph
 import dev.shibasis.reaktor.navigation.graph.Properties
 import dev.shibasis.reaktor.navigation.graph.View
 import dev.shibasis.reaktor.navigation.graph.ViewNode
-import kotlinx.coroutines.flow.MutableStateFlow
+import dev.shibasis.reaktor.navigation.karakum.Greeter
+import js.internal.InternalApi
 import react.PropsWithChildren
 import react.ReactNode
+import react.StateInstance
+import react.StateSetter
 import react.useEffect
 import react.useMemo
 import react.useRef
@@ -14,40 +17,8 @@ import react.useState
 import kotlin.js.unsafeCast
 
 @JsExport
-class ReactState<T>(val state: T, val setState: (T) -> Unit) {
-    operator fun component1(): T = state
-    operator fun component2(): (T) -> Unit = setState
-}
-
-@JsExport
-fun<T> MutableStateFlow<T>.asReactState(): ReactState<T> {
-    val node = this
-
-    val (state, setState) = useState(value)
-    val indirectStateToAvoidClosure = useRef(state)
-    indirectStateToAvoidClosure.current = state
-
-    // stateflow to react
-    useEffect(node) {
-        collect {
-            if (it != indirectStateToAvoidClosure.current)
-                setState(it)
-        }
-    }
-
-    // react to stateflow
-    val stateSetter = useMemo(node) {
-        { valueOrTransform: dynamic ->
-            if (js("typeof valueOrTransform === 'function'")) {
-                val transform = valueOrTransform.unsafeCast<(T) -> T>()
-                value = transform(value)
-            } else {
-                value = valueOrTransform.unsafeCast<T>()
-            }
-        }
-    }
-
-    return ReactState(state, stateSetter)
+fun sanusanu() {
+    Greeter("sanusanu").greet("hello")
 }
 
 @JsExport
@@ -59,7 +30,34 @@ interface ReactView: View {
 abstract class ReactViewNode<Props: Properties, State>(
     graph: Graph
 ): ViewNode<Props, State>(graph), ReactView {
-    fun useNodeState() = state.asReactState()
+    @OptIn(InternalApi::class)
+    fun useNodeState(): StateInstance<State> {
+        val node = this
+        val (state, setState) = useState(node.state.value)
+        val indirectStateToAvoidClosure = useRef(state)
+        indirectStateToAvoidClosure.current = state
+        // stateflow to react
+        useEffect(node) {
+            node.state.collect {
+                if (it != indirectStateToAvoidClosure.current)
+                    setState(it)
+            }
+        }
+        // react to stateflow
+        val stateSetter = useMemo(node) {
+            { valueOrTransform: dynamic ->
+                if (js("typeof valueOrTransform === 'function'")) {
+                    val transform = valueOrTransform.unsafeCast<(State) -> State>()
+                    setState(transform(node.state.value))
+                } else {
+                    val newValue = valueOrTransform.unsafeCast<State>()
+                    setState(newValue)
+                }
+            }.unsafeCast<StateSetter<State>>()
+        }
+
+        return StateInstance(state, stateSetter)
+    }
 }
 
 

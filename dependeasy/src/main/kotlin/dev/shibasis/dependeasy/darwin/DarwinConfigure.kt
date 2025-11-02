@@ -1,24 +1,30 @@
 package dev.shibasis.dependeasy.darwin
 
 import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.common.Configuration
 import dev.shibasis.dependeasy.plugins.getExtension
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
-class DarwinConfigure(
-    var armOnly: Boolean = true,
-    var dependencies: KotlinDependencyHandler.() -> Unit = {},
-    var podDependencies: CocoapodsExtension.() -> Unit = {},
-    var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {},
-    var sourceSetModifier: KotlinSourceSet.() -> Unit = {},
-    var targets: KotlinNativeTarget.() -> Unit = {}
-)
+class DarwinConfigure(): Configuration<KotlinNativeTarget>() {
+    var armOnly: Boolean = true
+    internal var podDependencies: CocoapodsExtension.() -> Unit = {}
+        private set
+    internal var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {}
+        private set
+
+    fun podDependencies(fn: CocoapodsExtension.() -> Unit = {}){
+        this.podDependencies = fn
+    }
+
+    fun cinterops(fn: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {}) {
+        this.cinterops = fn
+    }
+}
 
 fun KotlinMultiplatformExtension.darwin(
     configuration: DarwinConfigure.() -> Unit = {}
@@ -37,7 +43,7 @@ fun KotlinMultiplatformExtension.darwin(
 //        }
 
     targets.forEach {
-        configure.targets(it)
+        configure.targetModifier(it)
         it.compilations.getByName("main").cinterops {
             configure.cinterops(this)
         }

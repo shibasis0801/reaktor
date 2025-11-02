@@ -198,13 +198,13 @@ open class Graph(
 
         nodes[node.id] = node
 
-        node.transition(Lifecycle.Attaching)
+        node.transition(Lifecycle.Restoring)
 
         return succeed(Unit)
     }
 
     fun detach(node: Node) {
-        node.transition(Lifecycle.Destroying)
+        node.transition(Lifecycle.Saving)
         nodes.remove(node.id)
     }
 
@@ -228,7 +228,7 @@ open class Graph(
                 transitionNodes()
             }
             Lifecycle.Destroying -> {
-                nodes.values.forEach { detach(it) }
+                nodes.values.toList().forEach { detach(it) }
                 nodes.clear()
             }
         }
