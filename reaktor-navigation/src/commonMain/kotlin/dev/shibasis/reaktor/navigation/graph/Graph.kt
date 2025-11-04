@@ -42,6 +42,9 @@ Routing, react/compose rendering, topological sort, state saving/restoring, etc
 Advanced visitors like visualisation, dynamic configuration will be enabled through
 (react-flow + karakum + reaktor-ffi (hermes js engine))
 
+for example, RoutingVisitor will traverse the graph and create a list of visible nodes.
+Then a recursive renderer (React/Compose) will render the views.
+
 This is meant to allow dynamic providers/consumers written in JS and executed through reaktor-ffi, and will leverage code push.
 
 We can have different strategies to traverse this graph, and it should be possible to traverse arbitrary sub-graphs.
@@ -131,12 +134,14 @@ Requirements:
 5. Orleans/Akka substitute for Kotlin apps
 6. Loading mechanism to gracefully handle APIs
 7. First class integration with Interactors which handle state + actions within, and provide a mechanism.
+8. DurableObject API for DX
 9. deep links, unified across web and app.
 10. One Navigator
 11. Event bubbling
 12. Make it closer to the theory (i.e. PushdownAutomata) and make everything testable.
 13. We need to build the navigation graph, and it should be possible to see it and interactions using react flow, etc.
 14. As far as possible, use interfaces instead of classes.
+15. Implement timers with work manager, etc.
 17. Handle when a screen pop happens, you may need to refresh.
 19. need to be serializable so that we can restore.
 20. Building it in compose runtime, we can use custom appliers with a input mutable state.

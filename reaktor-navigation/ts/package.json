@@ -8,9 +8,11 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "react": "^19.2.0",
     "reaktor-reaktor-navigation": "file://./export"
   },
   "devDependencies": {
+    "@types/react": "^19.2.2",
     "karakum": "^1.0.0-alpha.78",
     "typescript": "^5.9.3"
   }

@@ -12,8 +12,9 @@ import kotlin.js.JsExport
 import kotlin.js.JsName
 
 // Always a directed edge
+// Edges need to connect to remote destinations with inbuilt serialization/rate-limiting/etc
 @JsExport
-class Edge<Contract: Any>(
+open class Edge<Contract: Any>(
     val source: PortCapability,
     val consumer: ConsumerPort<Contract>,
     val destination: PortCapability,

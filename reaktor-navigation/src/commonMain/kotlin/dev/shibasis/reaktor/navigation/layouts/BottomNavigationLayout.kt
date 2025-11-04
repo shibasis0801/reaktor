@@ -15,8 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import dev.shibasis.reaktor.navigation.graph.ComposeContent
 import dev.shibasis.reaktor.navigation.graph.ComposeView
-import dev.shibasis.reaktor.navigation.graph.ComposeViewNode
 import dev.shibasis.reaktor.navigation.graph.Graph
 import dev.shibasis.reaktor.navigation.graph.LogicNode
 import dev.shibasis.reaktor.navigation.graph.Node
@@ -70,11 +70,11 @@ class BottomNavigation(
     })
 }
 
-open class BottomNavigationView<Props: Properties>(
+open class BottomNavigationStateful<Props: Properties>(
     graph: Graph,
     initialState: BottomNavigation.State
-): ComposeViewNode<Props, BottomNavigation.State>(graph) {
-    interface Content: ComposeView {
+): ComposeView<Props, BottomNavigation.State>(graph) {
+    interface Content: ComposeContent {
 
     }
 
@@ -98,7 +98,7 @@ open class BottomNavigationView<Props: Properties>(
     }
 
     @Composable
-    override fun Compose(content: @Composable (() -> Unit)) = themed {
+    override fun Content(content: @Composable (() -> Unit)) = themed {
         val contract = controller.contract
         if (contract == null || contract.state.value.selected == "INVALID") {
             TextView(
@@ -130,7 +130,7 @@ open class BottomNavigationView<Props: Properties>(
                         .padding(innerPadding)
                         .fillMaxSize()
                 ) {
-                    consumer?.contract?.Compose {}
+                    consumer?.contract?.Content {}
                 }
             }
         }

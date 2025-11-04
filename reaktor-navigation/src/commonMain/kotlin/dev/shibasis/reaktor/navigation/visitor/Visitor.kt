@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.navigation.visitor
 
 
-import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.navigation.graph.*
 import kotlin.collections.emptyList
 
@@ -43,11 +42,11 @@ object StructuralSelector : Selector {
 object RoutingSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
         is Graph -> visitable.nodes.values
-            .filter { it is RouteNode<*> || it is ViewNode<*, *> }
+            .filter { it is RouteNode<*> || it is StatefulNode<*, *> }
 
         is RouteNode<*> -> buildList {
             // todo fix
-            // expose any ViewNodes that consume this RouteNode's binding contract
+            // expose any StatefulNodes that consume this RouteNode's binding contract
             // We can discover them by checking edges on provider ports in this node
             visitable.providerPorts
                 .flattenedValues()
@@ -57,11 +56,11 @@ object RoutingSelector : Selector {
                         .keys
                         .map { it.owner }
                 }
-                .filterIsInstance<ViewNode<*, *>>()
+                .filterIsInstance<StatefulNode<*, *>>()
                 .forEach { add(it) }
         }
 
-        is ViewNode<*, *> -> buildList {
+        is StatefulNode<*, *> -> buildList {
             // todo fix
             visitable.consumerPorts
                 .flattenedValues()
@@ -159,7 +158,7 @@ open class Visitor() {
             is GraphNode -> visitGraphNode(visitable)
             is LogicNode -> visitLogicNode(visitable)
             is RouteNode<*> -> visitRouteNode(visitable)
-            is ViewNode<*, *> -> visitViewNode(visitable)
+            is StatefulNode<*, *> -> visitStatefulNode(visitable)
             is ConsumerPort<*> -> visitConsumerPort(visitable)
             is ProviderPort<*> -> visitProviderPort(visitable)
             is Edge<*> -> visitEdge(visitable)
@@ -170,7 +169,7 @@ open class Visitor() {
     protected open fun visitGraphNode(graphNode: GraphNode): ExitScope = NoOpExit
     protected open fun visitLogicNode(logicNode: LogicNode): ExitScope = NoOpExit
     protected open fun visitRouteNode(routeNode: RouteNode<*>): ExitScope = NoOpExit
-    protected open fun visitViewNode(viewNode: ViewNode<*, *>): ExitScope = NoOpExit
+    protected open fun visitStatefulNode(statefulNode: StatefulNode<*, *>): ExitScope = NoOpExit
     protected open fun visitConsumerPort(port: ConsumerPort<*>): ExitScope = NoOpExit
     protected open fun visitProviderPort(port: ProviderPort<*>): ExitScope = NoOpExit
     protected open fun visitEdge(edge: Edge<*>): ExitScope = NoOpExit
@@ -187,7 +186,7 @@ class HierarchyVisitor : Visitor() {
         is GraphNode -> "[GraphNode] ${visitable.label.ifEmpty { visitable.id.toString() }}"
         is LogicNode -> "[LogicNode] ${visitable::class.simpleName}"
         is RouteNode<*> -> "[RouteNode] ${visitable.pattern}"
-        is ViewNode<*, *> -> "[ViewNode] ${visitable::class.simpleName}"
+        is StatefulNode<*, *> -> "[StatefulNode] ${visitable::class.simpleName}"
         is ConsumerPort<*> -> "[ConsumerPort] ${visitable.key}"
         is ProviderPort<*> -> "[ProviderPort] ${visitable.key}"
         is Edge<*> -> "[Edge] ${visitable.id.toString().take(8)}..."
@@ -219,7 +218,7 @@ class HierarchyVisitor : Visitor() {
     override fun visitGraphNode(graphNode: GraphNode) = processVisit(graphNode)
     override fun visitLogicNode(logicNode: LogicNode) = processVisit(logicNode)
     override fun visitRouteNode(routeNode: RouteNode<*>) = processVisit(routeNode)
-    override fun visitViewNode(viewNode: ViewNode<*, *>) = processVisit(viewNode)
+    override fun visitStatefulNode(statefulNode: StatefulNode<*, *>) = processVisit(statefulNode)
     override fun visitConsumerPort(port: ConsumerPort<*>) = processVisit(port)
     override fun visitProviderPort(port: ProviderPort<*>) = processVisit(port)
     override fun visitEdge(edge: Edge<*>) = processVisit(edge)

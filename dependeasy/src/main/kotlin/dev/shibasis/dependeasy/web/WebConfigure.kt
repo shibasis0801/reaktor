@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgume
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.npm.PackageJson
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import org.jetbrains.kotlin.gradle.targets.js.webpack.WebpackDevtool
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
@@ -64,6 +65,8 @@ fun KotlinMultiplatformExtension.web(
                     enabled.set(true)
                 }
                 configure.webpackConfig(this)
+                devtool = WebpackDevtool.SOURCE_MAP
+
             }
 
             testTask {

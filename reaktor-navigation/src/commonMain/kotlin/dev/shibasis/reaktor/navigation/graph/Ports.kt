@@ -104,6 +104,31 @@ interface PortCapability {
     val providerPorts: TypedKeyedMap<ProviderPort<Any>>
     val portEvents: SharedFlow<PortEvent>
     fun emit(event: PortEvent)
+
+    fun <Contract: Any> provider(key: Key, type: Type, impl: Contract): ProviderPort<Contract> {
+        return providerPorts
+            .getOrPut(type) { linkedMapOf() }
+            .getOrPut(key) { ProviderPort(this, key, type, impl) } as ProviderPort<Contract>
+    }
+
+    fun <Contract: Any> getProvider(key: Key, type: Type): ProviderPort<Contract>? {
+        return providerPorts
+            .getOrPut(type) { linkedMapOf() }
+            .get(key) as? ProviderPort<Contract>
+    }
+
+    fun <Contract: Any> consumer(key: Key, type: Type): ConsumerPort<Contract> {
+        return consumerPorts
+            .getOrPut(type) { linkedMapOf() }
+            .getOrPut(key) { ConsumerPort(this, key, type) } as ConsumerPort<Contract>
+    }
+
+    fun <Contract: Any> getConsumer(key: Key, type: Type): ConsumerPort<Contract>? {
+        return consumerPorts
+            .getOrPut(type) { linkedMapOf() }
+            .get(key) as? ConsumerPort<Contract>
+    }
+
 }
 
 @JsExport
@@ -123,12 +148,7 @@ class PortCapabilityImpl(
 typealias PortDelegate<Port> = ReadOnlyProperty<PortCapability, Port>
 
 // ---------------------------- Provider ----------------------------
-@JsExport
-fun <Contract: Any> PortCapability.provider(key: Key, type: Type, impl: Contract): ProviderPort<Contract> {
-    return providerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { ProviderPort(this, key, type, impl) } as ProviderPort<Contract>
-}
+
 
 inline fun <reified Contract: Any> PortCapability.provider(key: String, impl: Contract): ProviderPort<Contract> {
     return provider(Key(key), Type<Contract>(), impl)
@@ -140,24 +160,12 @@ inline fun <reified Contract: Any> PortCapability.provider(impl: Contract) =
         ReadOnlyProperty { _, _ -> port }
     }
 
-@JsExport
-fun <Contract: Any> PortCapability.getProvider(key: Key, type: Type): ProviderPort<Contract>? {
-    return providerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .get(key) as? ProviderPort<Contract>
-}
-
 inline fun <reified Contract: Any> PortCapability.getProvider(key: String): ProviderPort<Contract>? {
     return getProvider(Key(key), Type<Contract>())
 }
 
 // ---------------------------- Consumer ----------------------------
-@JsExport
-fun <Contract: Any> PortCapability.consumer(key: Key, type: Type): ConsumerPort<Contract> {
-    return consumerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { ConsumerPort(this, key, type) } as ConsumerPort<Contract>
-}
+
 
 inline fun <reified Contract: Any> PortCapability.consumer(key: String): ConsumerPort<Contract> {
     return consumer(Key(key), Type<Contract>())
@@ -168,13 +176,6 @@ inline fun <reified Contract: Any> PortCapability.consumer() =
         val port = thisRef.consumer<Contract>(property.name)
         ReadOnlyProperty { _, _ -> port }
     }
-
-@JsExport
-fun <Contract: Any> PortCapability.getConsumer(key: Key, type: Type): ConsumerPort<Contract>? {
-    return consumerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .get(key) as? ConsumerPort<Contract>
-}
 
 inline fun <reified Contract: Any> PortCapability.getConsumer(key: String): ConsumerPort<Contract>? {
     return getConsumer(Key(key), Type<Contract>())

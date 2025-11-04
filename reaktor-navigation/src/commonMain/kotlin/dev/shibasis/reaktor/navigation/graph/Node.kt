@@ -12,13 +12,11 @@ import dev.shibasis.reaktor.navigation.capabilities.Unique
 import dev.shibasis.reaktor.core.capabilities.invoke
 import dev.shibasis.reaktor.io.network.toRoutePattern
 import dev.shibasis.reaktor.navigation.visitor.Visitable
-import dev.shibasis.reaktor.navigation.visitor.Visitor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
-import kotlin.coroutines.coroutineContext
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
@@ -93,8 +91,7 @@ fun<Props: Properties> Graph.route(pattern: String, initialProps: Props) =
     RouteNode(this, pattern.toRoutePattern(), initialProps)
 
 
-// todo use recomposer / rerenderer to check useless renders
-abstract class ViewNode<Props: Properties, State>(
+abstract class StatefulNode<Props: Properties, State>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
@@ -103,21 +100,21 @@ abstract class ViewNode<Props: Properties, State>(
 
 
 @JsExport
-fun<Props: Properties, State> Graph.view(fn: Graph.() -> ViewNode<Props, State>) = fn()
+fun<Props: Properties, State> Graph.node(fn: Graph.() -> StatefulNode<Props, State>) = fn()
 
 @JsExport
 interface View {
 
 }
 
-interface ComposeView: View {
+interface ComposeContent: View {
     @Composable
-    fun Compose(content: @Composable () -> Unit = {})
+    fun Content(content: @Composable () -> Unit = {})
 }
 
-abstract class ComposeViewNode<Props: Properties, State>(
+abstract class ComposeView<Props: Properties, State>(
     graph: Graph
-): ViewNode<Props, State>(graph), ComposeView
+): StatefulNode<Props, State>(graph), ComposeContent
 
 
 

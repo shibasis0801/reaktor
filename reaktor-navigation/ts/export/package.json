@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-navigation",
-  "version": "2025.11.3-SNAPSHOT",
+  "version": "2025.11.4-SNAPSHOT",
   "main": "reaktor-reaktor-navigation.mjs",
   "types": "reaktor-reaktor-navigation.d.mts",
   "devDependencies": {},

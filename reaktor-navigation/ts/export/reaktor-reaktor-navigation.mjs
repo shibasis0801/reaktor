@@ -37,17 +37,6 @@ if (typeof Array.prototype.fill === 'undefined') {
     Object.defineProperty(TypedArray.prototype, 'fill', {value: Array.prototype.fill});
   }
 });
-if (typeof Math.trunc === 'undefined') {
-  Math.trunc = function (x) {
-    if (isNaN(x)) {
-      return NaN;
-    }
-    if (x > 0) {
-      return Math.floor(x);
-    }
-    return Math.ceil(x);
-  };
-}
 if (typeof Math.clz32 === 'undefined') {
   Math.clz32 = function (log, LN2) {
     return function (x) {
@@ -59,15 +48,24 @@ if (typeof Math.clz32 === 'undefined') {
     };
   }(Math.log, Math.LN2);
 }
+if (typeof Math.trunc === 'undefined') {
+  Math.trunc = function (x) {
+    if (isNaN(x)) {
+      return NaN;
+    }
+    if (x > 0) {
+      return Math.floor(x);
+    }
+    return Math.ceil(x);
+  };
+}
 //endregion
 import {
-  createElement as createElement,
   useEffect as useEffect,
   useState as useState,
   useRef as useRef,
   useMemo as useMemo,
 } from 'react';
-import { Greeter as Greeter } from 'dev-shibasis-reaktor-navigation-karakum/karakum';
 //region block: imports
 var imul_0 = Math.imul;
 var trunc = Math.trunc;
@@ -9821,6 +9819,92 @@ class Graph {
   }
 }
 class PortCapability {}
+function provider(key, type, impl) {
+  // Inline function 'kotlin.collections.getOrPut' call
+  var this_0 = this.providerPorts;
+  var value = this_0.k2(type);
+  var tmp;
+  if (value == null) {
+    // Inline function 'kotlin.collections.linkedMapOf' call
+    var answer = LinkedHashMap.h3();
+    this_0.b2(type, answer);
+    tmp = answer;
+  } else {
+    tmp = value;
+  }
+  // Inline function 'kotlin.collections.getOrPut' call
+  var this_1 = tmp;
+  var value_0 = this_1.k2(key);
+  var tmp_0;
+  if (value_0 == null) {
+    var answer_0 = ProviderPort.k1i(this, key, type, impl);
+    this_1.b2(key, answer_0);
+    tmp_0 = answer_0;
+  } else {
+    tmp_0 = value_0;
+  }
+  var tmp_1 = tmp_0;
+  return tmp_1 instanceof ProviderPort ? tmp_1 : THROW_CCE();
+}
+function getProvider(key, type) {
+  // Inline function 'kotlin.collections.getOrPut' call
+  var this_0 = this.providerPorts;
+  var value = this_0.k2(type);
+  var tmp;
+  if (value == null) {
+    // Inline function 'kotlin.collections.linkedMapOf' call
+    var answer = LinkedHashMap.h3();
+    this_0.b2(type, answer);
+    tmp = answer;
+  } else {
+    tmp = value;
+  }
+  var tmp_0 = tmp.k2(key);
+  return tmp_0 instanceof ProviderPort ? tmp_0 : null;
+}
+function consumer(key, type) {
+  // Inline function 'kotlin.collections.getOrPut' call
+  var this_0 = this.consumerPorts;
+  var value = this_0.k2(type);
+  var tmp;
+  if (value == null) {
+    // Inline function 'kotlin.collections.linkedMapOf' call
+    var answer = LinkedHashMap.h3();
+    this_0.b2(type, answer);
+    tmp = answer;
+  } else {
+    tmp = value;
+  }
+  // Inline function 'kotlin.collections.getOrPut' call
+  var this_1 = tmp;
+  var value_0 = this_1.k2(key);
+  var tmp_0;
+  if (value_0 == null) {
+    var answer_0 = ConsumerPort.f1i(this, key, type);
+    this_1.b2(key, answer_0);
+    tmp_0 = answer_0;
+  } else {
+    tmp_0 = value_0;
+  }
+  var tmp_1 = tmp_0;
+  return tmp_1 instanceof ConsumerPort ? tmp_1 : THROW_CCE();
+}
+function getConsumer(key, type) {
+  // Inline function 'kotlin.collections.getOrPut' call
+  var this_0 = this.consumerPorts;
+  var value = this_0.k2(type);
+  var tmp;
+  if (value == null) {
+    // Inline function 'kotlin.collections.linkedMapOf' call
+    var answer = LinkedHashMap.h3();
+    this_0.b2(type, answer);
+    tmp = answer;
+  } else {
+    tmp = value;
+  }
+  var tmp_0 = tmp.k2(key);
+  return tmp_0 instanceof ConsumerPort ? tmp_0 : null;
+}
 class Node_0 {
   constructor(graph, dispatcher, id, label) {
     dispatcher = dispatcher === VOID ? Dispatchers_getInstance().sz_1 : dispatcher;
@@ -9872,6 +9956,18 @@ class Node_0 {
   }
   emit(event) {
     this.e1g_1.emit(event);
+  }
+  provider(key, type, impl) {
+    return this.e1g_1.provider(key, type, impl);
+  }
+  getProvider(key, type) {
+    return this.e1g_1.getProvider(key, type);
+  }
+  consumer(key, type) {
+    return this.e1g_1.consumer(key, type);
+  }
+  getConsumer(key, type) {
+    return this.e1g_1.getConsumer(key, type);
   }
   h15() {
     this.f1g_1.h15();
@@ -10117,19 +10213,19 @@ class sam$kotlin_properties_PropertyDelegateProvider$0_0 {
     return hashCode(this.u2());
   }
 }
-class ViewNode extends Node_0 {
+class StatefulNode extends Node_0 {
   constructor(graph) {
     super(graph);
     var tmp = this;
     // Inline function 'dev.shibasis.reaktor.navigation.graph.consumer' call
-    var tmp_0 = ViewNode$routeBinding$delegate$lambda;
+    var tmp_0 = StatefulNode$routeBinding$delegate$lambda;
     var tmp_1 = new sam$kotlin_properties_PropertyDelegateProvider$0_0(tmp_0);
     var tmp_2 = KProperty1;
-    tmp.w1h_1 = tmp_1.ki(this, getPropertyCallableRef('routeBinding', 1, tmp_2, ViewNode$_get_routeBinding_$ref_hbwa3f(), null));
+    tmp.w1h_1 = tmp_1.ki(this, getPropertyCallableRef('routeBinding', 1, tmp_2, StatefulNode$_get_routeBinding_$ref_998sus(), null));
   }
   n1h() {
     var tmp = KProperty1;
-    return this.w1h_1.ji(this, getPropertyCallableRef('routeBinding', 1, tmp, ViewNode$_get_routeBinding_$ref_hbwa3f_0(), null));
+    return this.w1h_1.ji(this, getPropertyCallableRef('routeBinding', 1, tmp, StatefulNode$_get_routeBinding_$ref_998sus_0(), null));
   }
 }
 class Key_4 {
@@ -10456,30 +10552,30 @@ class KoinAdapter extends Adapter {
     return this.s1i(toList(modules));
   }
 }
-class ReactView {}
-class ReactViewNode$useNodeState$slambda$slambda {
-  constructor($indirectStateToAvoidClosure, $setState) {
-    this.y1i_1 = $indirectStateToAvoidClosure;
-    this.z1i_1 = $setState;
+class ReactContent {}
+class ReactView$useNodeState$slambda$slambda {
+  constructor($ref, $setState) {
+    this.f1j_1 = $ref;
+    this.g1j_1 = $setState;
   }
-  a1j(it, $completion) {
-    if (!equals(it, this.y1i_1.current)) {
-      this.z1i_1(it);
+  h1j(it, $completion) {
+    if (!equals(it, this.f1j_1.current)) {
+      this.g1j_1(it);
     }
   }
   xa(p1, $completion) {
-    return this.a1j((p1 == null ? true : !(p1 == null)) ? p1 : THROW_CCE(), $completion);
+    return this.h1j((p1 == null ? true : !(p1 == null)) ? p1 : THROW_CCE(), $completion);
   }
 }
 class sam$kotlinx_coroutines_flow_FlowCollector$0 {
   constructor(function_0) {
-    this.b1j_1 = function_0;
+    this.i1j_1 = function_0;
   }
   d10(value, $completion) {
-    return this.b1j_1(value, $completion);
+    return this.i1j_1(value, $completion);
   }
   u2() {
-    return this.b1j_1;
+    return this.i1j_1;
   }
   equals(other) {
     var tmp;
@@ -10500,10 +10596,10 @@ class sam$kotlinx_coroutines_flow_FlowCollector$0 {
     return hashCode(this.u2());
   }
 }
-class ReactViewNode$useNodeState$slambda {
-  constructor($node, $indirectStateToAvoidClosure, $setState) {
+class ReactView$useNodeState$slambda {
+  constructor($node, $ref, $setState) {
     this.v1i_1 = $node;
-    this.w1i_1 = $indirectStateToAvoidClosure;
+    this.w1i_1 = $ref;
     this.x1i_1 = $setState;
   }
   e15($this$useEffect, $completion) {
@@ -10513,7 +10609,26 @@ class ReactViewNode$useNodeState$slambda {
     return this.e15((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
   }
 }
-class ReactViewNode extends ViewNode {
+class ReactView extends StatefulNode {
+  constructor(graph, build, render) {
+    super(graph);
+    this.build = build;
+    this.render = render;
+    this.e1j_1 = MutableStateFlow(this.build(this));
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this.Content = this.Content.bind(this);
+    this.children = null;
+  }
+  j1j() {
+    return this.build;
+  }
+  k1j() {
+    return this.render;
+  }
+  q16() {
+    return this.e1j_1;
+  }
   useNodeState() {
     var node = this;
     var _destruct__k2r9zo = useState(node.q16().n2());
@@ -10523,12 +10638,12 @@ class ReactViewNode extends ViewNode {
     // Inline function 'react.StateInstance.component2' call
     // Inline function 'kotlin.js.asDynamic' call
     var setState = _destruct__k2r9zo[1];
-    var indirectStateToAvoidClosure = useRef(state);
-    indirectStateToAvoidClosure.current = state;
-    useEffect_0([node], ReactViewNode$useNodeState$slambda_0(node, indirectStateToAvoidClosure, setState));
+    var ref = useRef(state);
+    ref.current = state;
+    useEffect_0([node], ReactView$useNodeState$slambda_0(node, ref, setState));
     var tmp0 = [node];
     // Inline function 'react.useMemo' call
-    var callback = ReactViewNode$useNodeState$lambda(setState, node);
+    var callback = ReactView$useNodeState$lambda(node, setState);
     var stateSetter = useMemo(callback, tmp0);
     // Inline function 'react.StateInstance' call
     // Inline function 'kotlin.arrayOf' call
@@ -10538,6 +10653,101 @@ class ReactViewNode extends ViewNode {
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
     return [state, stateSetter];
+  }
+  l1j() {
+    return this.children;
+  }
+  Content(children) {
+    this.children = children;
+    return this.render(this);
+  }
+}
+class Person {
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+  q2() {
+    return this.name;
+  }
+  m1j() {
+    return this.age;
+  }
+  fh() {
+    return this.name;
+  }
+  gh() {
+    return this.age;
+  }
+  n1j(name, age) {
+    return new Person(name, age);
+  }
+  copy(name, age, $super) {
+    name = name === VOID ? this.name : name;
+    age = age === VOID ? this.age : age;
+    return $super === VOID ? this.n1j(name, age) : $super.n1j.call(this, name, age);
+  }
+  toString() {
+    return 'Person(name=' + this.name + ', age=' + this.age + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.name);
+    result = imul_0(result, 31) + this.age | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof Person))
+      return false;
+    if (!(this.name === other.name))
+      return false;
+    if (!(this.age === other.age))
+      return false;
+    return true;
+  }
+}
+class ViewData {}
+class sam$dev_shibasis_reaktor_navigation_util_ViewData$0 {
+  constructor(function_0) {
+    this.o1j_1 = function_0;
+  }
+  getPerson() {
+    return this.o1j_1();
+  }
+  u2() {
+    return this.o1j_1;
+  }
+  equals(other) {
+    var tmp;
+    if (!(other == null) ? isInterface(other, ViewData) : false) {
+      var tmp_0;
+      if (!(other == null) ? isInterface(other, FunctionAdapter) : false) {
+        tmp_0 = equals(this.u2(), other.u2());
+      } else {
+        tmp_0 = false;
+      }
+      tmp = tmp_0;
+    } else {
+      tmp = false;
+    }
+    return tmp;
+  }
+  hashCode() {
+    return hashCode(this.u2());
+  }
+}
+class TestLogic extends LogicNode {
+  constructor(graph) {
+    super(graph);
+    var tmp = this;
+    var tmp_0 = new Key_4('');
+    var tmp_1 = new Type('viewdata');
+    var tmp_2 = TestLogic$data$lambda;
+    tmp.data = this.provider(tmp_0, tmp_1, new sam$dev_shibasis_reaktor_navigation_util_ViewData$0(tmp_2));
+  }
+  r16() {
+    return this.data;
   }
 }
 //endregion
@@ -20205,135 +20415,6 @@ function js_promise_PromiseSettledResult_Companion_q7irkf_invoke_jkqnwo(status) 
 function js_promise_PromiseSettledResult_Companion_q7irkf_copy_1tks5(source, status) {
   status = status === VOID ? VOID : status;
   return Object.assign({}, source, {status: status});
-}
-function get_CHILD_ARRAY() {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  return CHILD_ARRAY;
-}
-var CHILD_ARRAY;
-function get_DEFAULT_KEY() {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  return DEFAULT_KEY;
-}
-var DEFAULT_KEY;
-function addChildNode(_this__u8e3s4, node) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  // Inline function 'react.childArray' call
-  // Inline function 'kotlin.js.asDynamic' call
-  if (!(_this__u8e3s4[get_CHILD_ARRAY()] == null)) {
-    // Inline function 'react.childArray' call
-    // Inline function 'kotlin.js.asDynamic' call
-    // Inline function 'kotlin.js.asDynamic' call
-    _this__u8e3s4[get_CHILD_ARRAY()].push(node);
-  } else {
-    // Inline function 'kotlin.arrayOf' call
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    // Inline function 'react.childArray' call
-    var value = [node];
-    // Inline function 'kotlin.js.asDynamic' call
-    _this__u8e3s4[get_CHILD_ARRAY()] = value;
-  }
-}
-function addChild(_this__u8e3s4, type, props) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  addChildElement(_this__u8e3s4, type, props, VOID, getDefaultKey(_this__u8e3s4));
-}
-function addChild_0(_this__u8e3s4, type) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  addChildElement(_this__u8e3s4, type, VOID, VOID, getDefaultKey(_this__u8e3s4));
-}
-function addChild_1(_this__u8e3s4, type, block) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  var defaultKey = getDefaultKey(_this__u8e3s4);
-  // Inline function 'js.objects.unsafeJso' call
-  // Inline function 'js.objects.unsafeJso' call
-  // Inline function 'kotlin.apply' call
-  var this_0 = {};
-  block(this_0);
-  var props = this_0;
-  addChildElement(_this__u8e3s4, type, props, getChildArray(props), defaultKey);
-}
-function addChild_2(_this__u8e3s4, provider, value, block) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  addChild_1(_this__u8e3s4, provider, addChild$lambda(value, block));
-}
-function addChildElement(_this__u8e3s4, type, props, children, defaultKey) {
-  props = props === VOID ? null : props;
-  children = children === VOID ? null : children;
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  var childProps_0 = childProps(props, defaultKey);
-  var tmp;
-  if (!(children == null)) {
-    tmp = createElement.apply(null, [type, childProps_0].concat([].slice.call(children.slice())));
-  } else {
-    tmp = createElement(type, childProps_0);
-  }
-  var element = tmp;
-  addChildNode(_this__u8e3s4, element);
-}
-function getDefaultKey(_this__u8e3s4) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  // Inline function 'kotlin.js.asDynamic' call
-  var key = _this__u8e3s4[get_DEFAULT_KEY()];
-  Reflect.deleteProperty(_this__u8e3s4, get_DEFAULT_KEY());
-  return key;
-}
-function getChildArray(_this__u8e3s4) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  // Inline function 'kotlin.js.asDynamic' call
-  return _this__u8e3s4[get_CHILD_ARRAY()];
-}
-function childProps(props, defaultKey) {
-  _init_properties_ChildrenBuilder_kt__gexuom();
-  if (defaultKey == null)
-    return props;
-  if (props == null) {
-    // Inline function 'js.objects.unsafeJso' call
-    // Inline function 'js.objects.unsafeJso' call
-    // Inline function 'kotlin.apply' call
-    var this_0 = {};
-    this_0.key = defaultKey;
-    return this_0;
-  }
-  if (!(props.key == null))
-    return props;
-  // Inline function 'js.objects.unsafeJso' call
-  // Inline function 'js.objects.unsafeJso' call
-  // Inline function 'kotlin.apply' call
-  var this_1 = {};
-  // Inline function 'react.Props.unaryPlus' call
-  Object.assign(this_1, props);
-  this_1.key = defaultKey;
-  return this_1;
-}
-function addChild$lambda($value, $block) {
-  return ($this$addChild) => {
-    $this$addChild.value = $value;
-    $block($this$addChild);
-    return Unit_instance;
-  };
-}
-var properties_initialized_ChildrenBuilder_kt_gby2z0;
-function _init_properties_ChildrenBuilder_kt__gexuom() {
-  if (!properties_initialized_ChildrenBuilder_kt_gby2z0) {
-    properties_initialized_ChildrenBuilder_kt_gby2z0 = true;
-    CHILD_ARRAY = Symbol('@@child-array');
-    DEFAULT_KEY = Symbol('@@default-key');
-  }
-}
-function ReactNode(source) {
-  // Inline function 'js.reflect.unsafeCast' call
-  // Inline function 'kotlin.js.unsafeCast' call
-  // Inline function 'kotlin.js.asDynamic' call
-  return source;
-}
-function ReactNode_0(source) {
-  // Inline function 'react.ReactNode' call
-  // Inline function 'js.reflect.unsafeCast' call
-  // Inline function 'kotlin.js.unsafeCast' call
-  // Inline function 'kotlin.js.asDynamic' call
-  return toString(source);
 }
 function createCleanupCallback(block) {
   return createCleanupCallback$lambda(block);
@@ -32622,8 +32703,8 @@ var dev_shibasis_reaktor_navigation_graph_LogicNode$stable;
 var dev_shibasis_reaktor_navigation_graph_Properties_$serializer$stable;
 var dev_shibasis_reaktor_navigation_graph_Properties$stable;
 var dev_shibasis_reaktor_navigation_graph_RouteNode$stable;
-var dev_shibasis_reaktor_navigation_graph_ViewNode$stable;
-var dev_shibasis_reaktor_navigation_graph_ComposeViewNode$stable;
+var dev_shibasis_reaktor_navigation_graph_StatefulNode$stable;
+var dev_shibasis_reaktor_navigation_graph_ComposeView$stable;
 function Properties$Companion$$childSerializers$_anonymous__6wypdj() {
   return new HashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
 }
@@ -32652,7 +32733,7 @@ function RouteNode$routeBinding$delegate$lambda($impl) {
     var this_0 = Companion_getInstance_25();
     var tmp0_elvis_lhs = getKClass(RouteBinding).wb();
     var tmp$ret$0 = new Type(tmp0_elvis_lhs == null ? 'anonymous_' + this_0._sequence.atomicfu$getAndIncrement() : tmp0_elvis_lhs, getKClass(RouteBinding));
-    var port = provider(thisRef, tmp, tmp$ret$0, impl);
+    var port = thisRef.provider(tmp, tmp$ret$0, impl);
     var tmp_0 = RouteNode$routeBinding$delegate$lambda$lambda(port);
     return new sam$kotlin_properties_ReadOnlyProperty$0(tmp_0);
   };
@@ -32668,10 +32749,10 @@ function route(_this__u8e3s4, pattern, initialProps) {
   var tmp$ret$0 = Companion_instance_19.j1d(pattern);
   return new RouteNode(_this__u8e3s4, tmp$ret$0, initialProps);
 }
-function view(_this__u8e3s4, fn) {
+function node(_this__u8e3s4, fn) {
   return fn(_this__u8e3s4);
 }
-function ViewNode$routeBinding$delegate$lambda(thisRef, property) {
+function StatefulNode$routeBinding$delegate$lambda(thisRef, property) {
   // Inline function 'dev.shibasis.reaktor.navigation.graph.consumer' call
   var key = property.callableName;
   var tmp = new Key_4(key);
@@ -32679,18 +32760,21 @@ function ViewNode$routeBinding$delegate$lambda(thisRef, property) {
   var this_0 = Companion_getInstance_25();
   var tmp0_elvis_lhs = getKClass(RouteBinding).wb();
   var tmp$ret$0 = new Type(tmp0_elvis_lhs == null ? 'anonymous_' + this_0._sequence.atomicfu$getAndIncrement() : tmp0_elvis_lhs, getKClass(RouteBinding));
-  var port = consumer(thisRef, tmp, tmp$ret$0);
-  var tmp_0 = ViewNode$routeBinding$delegate$lambda$lambda(port);
+  var port = thisRef.consumer(tmp, tmp$ret$0);
+  var tmp_0 = StatefulNode$routeBinding$delegate$lambda$lambda(port);
   return new sam$kotlin_properties_ReadOnlyProperty$0_0(tmp_0);
 }
-function ViewNode$routeBinding$delegate$lambda$lambda($port) {
+function StatefulNode$routeBinding$delegate$lambda$lambda($port) {
   return (_unused_var__etf5q3, _unused_var__etf5q3_0) => $port;
 }
-function ViewNode$_get_routeBinding_$ref_hbwa3f() {
+function StatefulNode$_get_routeBinding_$ref_998sus() {
   return (p0) => p0.n1h();
 }
-function ViewNode$_get_routeBinding_$ref_hbwa3f_0() {
+function StatefulNode$_get_routeBinding_$ref_998sus_0() {
   return (p0) => p0.n1h();
+}
+function dev_shibasis_reaktor_navigation_graph_LogicNode$stableprop_getter() {
+  return dev_shibasis_reaktor_navigation_graph_LogicNode$stable;
 }
 var dev_shibasis_reaktor_navigation_graph_Key$stable;
 var dev_shibasis_reaktor_navigation_graph_Type$stable;
@@ -32720,91 +32804,8 @@ function PortCapabilityImpl$emit$slambda_0(this$0, $event) {
   l.$arity = 1;
   return l;
 }
-function provider(_this__u8e3s4, key, type, impl) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.providerPorts;
-  var value = this_0.k2(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.h3();
-    this_0.b2(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_1 = tmp;
-  var value_0 = this_1.k2(key);
-  var tmp_0;
-  if (value_0 == null) {
-    var answer_0 = ProviderPort.k1i(_this__u8e3s4, key, type, impl);
-    this_1.b2(key, answer_0);
-    tmp_0 = answer_0;
-  } else {
-    tmp_0 = value_0;
-  }
-  var tmp_1 = tmp_0;
-  return tmp_1 instanceof ProviderPort ? tmp_1 : THROW_CCE();
-}
-function getProvider(_this__u8e3s4, key, type) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.providerPorts;
-  var value = this_0.k2(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.h3();
-    this_0.b2(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  var tmp_0 = tmp.k2(key);
-  return tmp_0 instanceof ProviderPort ? tmp_0 : null;
-}
-function consumer(_this__u8e3s4, key, type) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.consumerPorts;
-  var value = this_0.k2(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.h3();
-    this_0.b2(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_1 = tmp;
-  var value_0 = this_1.k2(key);
-  var tmp_0;
-  if (value_0 == null) {
-    var answer_0 = ConsumerPort.f1i(_this__u8e3s4, key, type);
-    this_1.b2(key, answer_0);
-    tmp_0 = answer_0;
-  } else {
-    tmp_0 = value_0;
-  }
-  var tmp_1 = tmp_0;
-  return tmp_1 instanceof ConsumerPort ? tmp_1 : THROW_CCE();
-}
-function getConsumer(_this__u8e3s4, key, type) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.consumerPorts;
-  var value = this_0.k2(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.h3();
-    this_0.b2(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  var tmp_0 = tmp.k2(key);
-  return tmp_0 instanceof ConsumerPort ? tmp_0 : null;
+function dev_shibasis_reaktor_navigation_graph_ProviderPort$stableprop_getter() {
+  return dev_shibasis_reaktor_navigation_graph_ProviderPort$stable;
 }
 function get_Koin(_this__u8e3s4) {
   _init_properties_KoinAdapter_kt__mc58t0();
@@ -32851,7 +32852,7 @@ var dev_shibasis_reaktor_navigation_layouts_BottomNavigation_Metadata$stable;
 var dev_shibasis_reaktor_navigation_layouts_BottomNavigation_State_$serializer$stable;
 var dev_shibasis_reaktor_navigation_layouts_BottomNavigation_State$stable;
 var dev_shibasis_reaktor_navigation_layouts_BottomNavigation$stable;
-var dev_shibasis_reaktor_navigation_layouts_BottomNavigationView$stable;
+var dev_shibasis_reaktor_navigation_layouts_BottomNavigationStateful$stable;
 var dev_shibasis_reaktor_navigation_util_ObservableStack$stable;
 var dev_shibasis_reaktor_navigation_visitor_StructuralSelector$stable;
 var dev_shibasis_reaktor_navigation_visitor_RoutingSelector$stable;
@@ -32860,53 +32861,72 @@ var dev_shibasis_reaktor_navigation_visitor_DepthFirstTraverser$stable;
 var dev_shibasis_reaktor_navigation_visitor_BreadthFirstTraverser$stable;
 var dev_shibasis_reaktor_navigation_visitor_Visitor$stable;
 var dev_shibasis_reaktor_navigation_visitor_HierarchyVisitor$stable;
-var dev_shibasis_reaktor_navigation_util_ReactViewNode$stable;
-function sanusanu() {
-  (new Greeter('sanusanu')).greet('hello');
-}
+var dev_shibasis_reaktor_navigation_util_ReactView$stable;
+var dev_shibasis_reaktor_navigation_util_Person$stable;
+var dev_shibasis_reaktor_navigation_util_TestLogic$stable;
 function *_generator_invoke__zhh2q8_1($this, $this$useEffect, $completion) {
   var tmp = $this.v1i_1.q16();
-  var tmp_0 = ReactViewNode$useNodeState$slambda$slambda_0($this.w1i_1, $this.x1i_1);
+  var tmp_0 = ReactView$useNodeState$slambda$slambda_0($this.w1i_1, $this.x1i_1);
   var tmp_1 = tmp.i11(new sam$kotlinx_coroutines_flow_FlowCollector$0(tmp_0), $completion);
   if (tmp_1 === get_COROUTINE_SUSPENDED())
     tmp_1 = yield tmp_1;
   throwKotlinNothingValueException();
 }
-function ReactViewNode$useNodeState$slambda$slambda_0($indirectStateToAvoidClosure, $setState) {
-  var i = new ReactViewNode$useNodeState$slambda$slambda($indirectStateToAvoidClosure, $setState);
-  var l = (it, $completion) => i.a1j(it, $completion);
+function ReactView$useNodeState$slambda$slambda_0($ref, $setState) {
+  var i = new ReactView$useNodeState$slambda$slambda($ref, $setState);
+  var l = (it, $completion) => i.h1j(it, $completion);
   l.$arity = 1;
   return l;
 }
-function ReactViewNode$useNodeState$slambda_0($node, $indirectStateToAvoidClosure, $setState) {
-  var i = new ReactViewNode$useNodeState$slambda($node, $indirectStateToAvoidClosure, $setState);
+function ReactView$useNodeState$slambda_0($node, $ref, $setState) {
+  var i = new ReactView$useNodeState$slambda($node, $ref, $setState);
   var l = ($this$useEffect, $completion) => i.e15($this$useEffect, $completion);
   l.$arity = 1;
   return l;
 }
-function ReactViewNode$useNodeState$lambda$lambda($setState, $node) {
+function ReactView$useNodeState$lambda$lambda($node, $setState) {
   return (valueOrTransform) => {
     var tmp;
     if (typeof valueOrTransform === 'function') {
       // Inline function 'kotlin.js.unsafeCast' call
       var transform = valueOrTransform;
-      $setState(transform($node.q16().n2()));
+      $node.q16().a12(transform($node.q16().n2()));
       tmp = Unit_instance;
     } else {
       // Inline function 'kotlin.js.unsafeCast' call
       var newValue = valueOrTransform;
-      $setState(newValue);
+      $node.q16().a12(newValue);
       tmp = Unit_instance;
     }
+    $setState($node.q16().n2());
     return Unit_instance;
   };
 }
-function ReactViewNode$useNodeState$lambda($setState, $node) {
+function ReactView$useNodeState$lambda($node, $setState) {
   return () => {
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    return ReactViewNode$useNodeState$lambda$lambda($setState, $node);
+    return ReactView$useNodeState$lambda$lambda($node, $setState);
   };
+}
+function ViewNode(build, render) {
+  _init_properties_Node_kt__ese4wu();
+  return ViewNode$lambda(build, render);
+}
+function TestLogic$data$lambda() {
+  return new Person('Shibasis Patnaik', 30);
+}
+function ViewNode$lambda($build, $render) {
+  return (graph) => new ReactView(graph, $build, $render);
+}
+var properties_initialized_Node_kt_x2gnwk;
+function _init_properties_Node_kt__ese4wu() {
+  if (!properties_initialized_Node_kt_x2gnwk) {
+    properties_initialized_Node_kt_x2gnwk = true;
+    dev_shibasis_reaktor_navigation_util_ReactView$stable = 8;
+    dev_shibasis_reaktor_navigation_util_Person$stable = 0;
+    dev_shibasis_reaktor_navigation_util_TestLogic$stable = dev_shibasis_reaktor_navigation_graph_LogicNode$stableprop_getter() | dev_shibasis_reaktor_navigation_graph_ProviderPort$stableprop_getter();
+  }
 }
 var dev_shibasis_reaktor_navigation_karakum_Greeter$stable;
 //region block: post-declaration
@@ -32943,20 +32963,20 @@ protoOf(AbstractMap).l2 = asJsReadonlyMapView;
 initMetadataForClass(AbstractMap, 'AbstractMap', VOID, VOID, [KtMap]);
 protoOf(AbstractMutableMap).asJsMapView = asJsMapView;
 initMetadataForClass(AbstractMutableMap, 'AbstractMutableMap', VOID, VOID, [AbstractMap, KtMutableMap_0]);
-initMetadataForClass(AbstractMutableSet, 'AbstractMutableSet', VOID, VOID, [AbstractMutableCollection, KtSet, MutableIterable, Collection]);
+initMetadataForClass(AbstractMutableSet, 'AbstractMutableSet', VOID, VOID, [AbstractMutableCollection, MutableIterable, KtSet, Collection]);
 initMetadataForCompanion(Companion_1);
 initMetadataForInterface(RandomAccess, 'RandomAccess');
 initMetadataForClass(ArrayList, 'ArrayList', ArrayList.m1, VOID, [AbstractMutableList, MutableIterable, KtList, Collection, RandomAccess]);
 initMetadataForClass(HashMap, 'HashMap', HashMap.k6, VOID, [AbstractMutableMap, KtMutableMap_0]);
-initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, VOID, [KtSet, MutableIterable, Collection, AbstractMutableSet]);
+initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, VOID, [MutableIterable, KtSet, Collection, AbstractMutableSet]);
 initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [Collection, MutableIterable, AbstractMutableCollection]);
-initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, VOID, [KtSet, MutableIterable, Collection, AbstractMutableSet]);
+initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, VOID, [MutableIterable, KtSet, Collection, AbstractMutableSet]);
 initMetadataForClass(HashMapEntrySet, 'HashMapEntrySet');
 initMetadataForClass(HashMapKeysDefault$iterator$1);
 initMetadataForClass(HashMapKeysDefault, 'HashMapKeysDefault');
 initMetadataForClass(HashMapValuesDefault$iterator$1);
 initMetadataForClass(HashMapValuesDefault, 'HashMapValuesDefault');
-initMetadataForClass(HashSet, 'HashSet', HashSet.a8, VOID, [AbstractMutableSet, KtSet, MutableIterable, Collection]);
+initMetadataForClass(HashSet, 'HashSet', HashSet.a8, VOID, [AbstractMutableSet, MutableIterable, KtSet, Collection]);
 initMetadataForCompanion(Companion_2);
 initMetadataForClass(Itr, 'Itr');
 initMetadataForClass(KeysItr, 'KeysItr');
@@ -32967,7 +32987,7 @@ initMetadataForInterface(InternalMap, 'InternalMap');
 protoOf(InternalHashMap).u7 = containsAllEntries;
 initMetadataForClass(InternalHashMap, 'InternalHashMap', InternalHashMap.v6, VOID, [InternalMap]);
 initMetadataForClass(LinkedHashMap, 'LinkedHashMap', LinkedHashMap.h3, VOID, [HashMap, KtMutableMap_0]);
-initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet.i1, VOID, [HashSet, KtSet, MutableIterable, Collection]);
+initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet.i1, VOID, [HashSet, MutableIterable, KtSet, Collection]);
 initMetadataForObject(CompletedContinuation, 'CompletedContinuation');
 initMetadataForClass(InterceptedCoroutine, 'InterceptedCoroutine');
 initMetadataForClass(GeneratorCoroutineImpl, 'GeneratorCoroutineImpl');
@@ -33254,7 +33274,7 @@ initMetadataForClass(ConcurrentMutableIterator, 'ConcurrentMutableIterator');
 protoOf(ConcurrentMutableMap).asJsMapView = asJsMapView;
 protoOf(ConcurrentMutableMap).l2 = asJsReadonlyMapView;
 initMetadataForClass(ConcurrentMutableMap, 'ConcurrentMutableMap', ConcurrentMutableMap.i17, VOID, [KtMutableMap_0]);
-initMetadataForClass(ConcurrentMutableSet, 'ConcurrentMutableSet', ConcurrentMutableSet.j17, VOID, [ConcurrentMutableCollection, KtSet, MutableIterable, Collection]);
+initMetadataForClass(ConcurrentMutableSet, 'ConcurrentMutableSet', ConcurrentMutableSet.j17, VOID, [ConcurrentMutableCollection, MutableIterable, KtSet, Collection]);
 initMetadataForClass(Koin, 'Koin', Koin);
 initMetadataForCompanion(Companion_16);
 initMetadataForClass(KoinApplication, 'KoinApplication');
@@ -33359,7 +33379,7 @@ initMetadataForClass(RouteNode, 'RouteNode', VOID, VOID, [Node_0, RouteBinding],
 initMetadataForInterface(View, 'View');
 initMetadataForClass(sam$kotlin_properties_ReadOnlyProperty$0_0, 'sam$kotlin_properties_ReadOnlyProperty$0', VOID, VOID, [ReadOnlyProperty, FunctionAdapter]);
 initMetadataForClass(sam$kotlin_properties_PropertyDelegateProvider$0_0, 'sam$kotlin_properties_PropertyDelegateProvider$0', VOID, VOID, [PropertyDelegateProvider, FunctionAdapter]);
-initMetadataForClass(ViewNode, 'ViewNode', VOID, VOID, VOID, [1]);
+initMetadataForClass(StatefulNode, 'StatefulNode', VOID, VOID, VOID, [1]);
 initMetadataForClass(Key_4, 'Key');
 initMetadataForCompanion(Companion_25);
 initMetadataForClass(Type, 'Type');
@@ -33372,13 +33392,21 @@ initMetadataForClass(Created_0, 'Created');
 initMetadataForClass(Connected, 'Connected');
 initMetadataForClass(Disconnected, 'Disconnected');
 initMetadataForLambda(PortCapabilityImpl$emit$slambda, VOID, VOID, [1]);
+protoOf(PortCapabilityImpl).provider = provider;
+protoOf(PortCapabilityImpl).getProvider = getProvider;
+protoOf(PortCapabilityImpl).consumer = consumer;
+protoOf(PortCapabilityImpl).getConsumer = getConsumer;
 initMetadataForClass(PortCapabilityImpl, 'PortCapabilityImpl', PortCapabilityImpl, VOID, [PortCapability, ConcurrencyCapability], [1]);
 initMetadataForClass(KoinAdapter, 'KoinAdapter', KoinAdapter, VOID, VOID, [1]);
-initMetadataForInterface(ReactView, 'ReactView', VOID, VOID, [View]);
-initMetadataForLambda(ReactViewNode$useNodeState$slambda$slambda, VOID, VOID, [1]);
+initMetadataForInterface(ReactContent, 'ReactContent', VOID, VOID, [View]);
+initMetadataForLambda(ReactView$useNodeState$slambda$slambda, VOID, VOID, [1]);
 initMetadataForClass(sam$kotlinx_coroutines_flow_FlowCollector$0, 'sam$kotlinx_coroutines_flow_FlowCollector$0', VOID, VOID, [FlowCollector, FunctionAdapter], [1]);
-initMetadataForLambda(ReactViewNode$useNodeState$slambda, VOID, VOID, [1]);
-initMetadataForClass(ReactViewNode, 'ReactViewNode', VOID, VOID, [ViewNode, ReactView], [1]);
+initMetadataForLambda(ReactView$useNodeState$slambda, VOID, VOID, [1]);
+initMetadataForClass(ReactView, 'ReactView', VOID, VOID, [StatefulNode, ReactContent], [1]);
+initMetadataForClass(Person, 'Person');
+initMetadataForInterface(ViewData, 'ViewData');
+initMetadataForClass(sam$dev_shibasis_reaktor_navigation_util_ViewData$0, 'sam$dev_shibasis_reaktor_navigation_util_ViewData$0', VOID, VOID, [ViewData, FunctionAdapter]);
+initMetadataForClass(TestLogic, 'TestLogic', VOID, VOID, VOID, [1]);
 //endregion
 //region block: init
 Companion_instance = new Companion();
@@ -45770,8 +45798,8 @@ dev_shibasis_reaktor_navigation_graph_LogicNode$stable = 8;
 dev_shibasis_reaktor_navigation_graph_Properties_$serializer$stable = 8;
 dev_shibasis_reaktor_navigation_graph_Properties$stable = 8;
 dev_shibasis_reaktor_navigation_graph_RouteNode$stable = 8;
-dev_shibasis_reaktor_navigation_graph_ViewNode$stable = 8;
-dev_shibasis_reaktor_navigation_graph_ComposeViewNode$stable = 8;
+dev_shibasis_reaktor_navigation_graph_StatefulNode$stable = 8;
+dev_shibasis_reaktor_navigation_graph_ComposeView$stable = 8;
 dev_shibasis_reaktor_navigation_graph_Key$stable = 0;
 dev_shibasis_reaktor_navigation_graph_Type$stable = 8;
 dev_shibasis_reaktor_navigation_graph_Port$stable = 8;
@@ -45787,7 +45815,7 @@ dev_shibasis_reaktor_navigation_layouts_BottomNavigation_Metadata$stable = 0;
 dev_shibasis_reaktor_navigation_layouts_BottomNavigation_State_$serializer$stable = 8;
 dev_shibasis_reaktor_navigation_layouts_BottomNavigation_State$stable = 8;
 dev_shibasis_reaktor_navigation_layouts_BottomNavigation$stable = 8;
-dev_shibasis_reaktor_navigation_layouts_BottomNavigationView$stable = 8;
+dev_shibasis_reaktor_navigation_layouts_BottomNavigationStateful$stable = 8;
 dev_shibasis_reaktor_navigation_util_ObservableStack$stable = 8;
 dev_shibasis_reaktor_navigation_visitor_StructuralSelector$stable = 0;
 dev_shibasis_reaktor_navigation_visitor_RoutingSelector$stable = 0;
@@ -45796,7 +45824,6 @@ dev_shibasis_reaktor_navigation_visitor_DepthFirstTraverser$stable = 0;
 dev_shibasis_reaktor_navigation_visitor_BreadthFirstTraverser$stable = 0;
 dev_shibasis_reaktor_navigation_visitor_Visitor$stable = 0;
 dev_shibasis_reaktor_navigation_visitor_HierarchyVisitor$stable = 8;
-dev_shibasis_reaktor_navigation_util_ReactViewNode$stable = 8;
 dev_shibasis_reaktor_navigation_karakum_Greeter$stable = 0;
 //endregion
 //region block: eager init
@@ -45929,7 +45956,7 @@ export {
   Properties as Properties,
   RouteNode as RouteNode,
   route as route,
-  view as view,
+  node as node,
   Key_4 as Key,
   Type as Type,
   Port as Port,
@@ -45937,12 +45964,10 @@ export {
   ProviderPort as ProviderPort,
   PortEvent as PortEvent,
   PortCapabilityImpl as PortCapabilityImpl,
-  provider as provider,
-  getProvider as getProvider,
-  consumer as consumer,
-  getConsumer as getConsumer,
-  sanusanu as sanusanu,
-  ReactViewNode as ReactViewNode,
+  ReactView as ReactView,
+  ViewNode as ViewNode,
+  Person as Person,
+  TestLogic as TestLogic,
 };
 //endregion
 

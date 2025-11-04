@@ -538,6 +538,10 @@ export declare abstract class Node implements PortCapability/*, Unique, Visitabl
     get providerPorts(): KtMutableMap<Type, KtMutableMap<Key, ProviderPort<any>>>;
     get portEvents(): any/* SharedFlow<PortEvent> */;
     emit(event: PortEvent): void;
+    provider<Contract extends any>(key: Key, type: Type, impl: Contract): ProviderPort<Contract>;
+    getProvider<Contract extends any>(key: Key, type: Type): Nullable<ProviderPort<Contract>>;
+    consumer<Contract extends any>(key: Key, type: Type): ConsumerPort<Contract>;
+    getConsumer<Contract extends any>(key: Key, type: Type): Nullable<ConsumerPort<Contract>>;
     readonly __doNotUseOrImplementIt: PortCapability["__doNotUseOrImplementIt"];
 }
 /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -597,7 +601,7 @@ export declare namespace RouteNode.$metadata$ {
     const constructor: abstract new <Props extends Properties>() => RouteNode<Props>;
 }
 export declare function route<Props extends Properties>(_this_: Graph, pattern: string, initialProps: Props): RouteNode<Props>;
-export declare function view<Props extends Properties, State>(_this_: Graph, fn: (p0: Graph) => Node/* ViewNode<Props, State> */): Node/* ViewNode<Props, State> */;
+export declare function node<Props extends Properties, State>(_this_: Graph, fn: (p0: Graph) => Node/* StatefulNode<Props, State> */): Node/* StatefulNode<Props, State> */;
 export declare interface View {
     readonly __doNotUseOrImplementIt: {
         readonly "dev.shibasis.reaktor.navigation.graph.View": unique symbol;
@@ -713,6 +717,10 @@ export declare interface PortCapability {
     readonly providerPorts: KtMutableMap<Type, KtMutableMap<Key, ProviderPort<any>>>;
     readonly portEvents: any/* SharedFlow<PortEvent> */;
     emit(event: PortEvent): void;
+    provider<Contract extends any>(key: Key, type: Type, impl: Contract): ProviderPort<Contract>;
+    getProvider<Contract extends any>(key: Key, type: Type): Nullable<ProviderPort<Contract>>;
+    consumer<Contract extends any>(key: Key, type: Type): ConsumerPort<Contract>;
+    getConsumer<Contract extends any>(key: Key, type: Type): Nullable<ConsumerPort<Contract>>;
     readonly __doNotUseOrImplementIt: {
         readonly "dev.shibasis.reaktor.navigation.graph.PortCapability": unique symbol;
     };
@@ -723,30 +731,61 @@ export declare class PortCapabilityImpl implements PortCapability/*, Concurrency
     get providerPorts(): KtMutableMap<Type, KtMutableMap<Key, ProviderPort<any>>>;
     get portEvents(): any/* MutableSharedFlow<PortEvent> */;
     emit(event: PortEvent): void;
+    provider<Contract extends any>(key: Key, type: Type, impl: Contract): ProviderPort<Contract>;
+    getProvider<Contract extends any>(key: Key, type: Type): Nullable<ProviderPort<Contract>>;
+    consumer<Contract extends any>(key: Key, type: Type): ConsumerPort<Contract>;
+    getConsumer<Contract extends any>(key: Key, type: Type): Nullable<ConsumerPort<Contract>>;
     readonly __doNotUseOrImplementIt: PortCapability["__doNotUseOrImplementIt"];
 }
 /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
 export declare namespace PortCapabilityImpl.$metadata$ {
     const constructor: abstract new () => PortCapabilityImpl;
 }
-export declare function provider<Contract extends any>(_this_: PortCapability, key: Key, type: Type, impl: Contract): ProviderPort<Contract>;
-export declare function getProvider<Contract extends any>(_this_: PortCapability, key: Key, type: Type): Nullable<ProviderPort<Contract>>;
-export declare function consumer<Contract extends any>(_this_: PortCapability, key: Key, type: Type): ConsumerPort<Contract>;
-export declare function getConsumer<Contract extends any>(_this_: PortCapability, key: Key, type: Type): Nullable<ConsumerPort<Contract>>;
-export declare function sanusanu(): void;
-export declare interface ReactView extends View {
-    Content(props: PropsWithChildren): Nullable<ReactNode>;
+export declare interface ReactContent extends View {
+    Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
     readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.navigation.util.ReactView": unique symbol;
+        readonly "dev.shibasis.reaktor.navigation.util.ReactContent": unique symbol;
     } & View["__doNotUseOrImplementIt"];
 }
-export declare abstract class ReactViewNode<Props extends Properties, State> extends /* ViewNode<Props, State> */ Node.$metadata$.constructor implements ReactView {
-    constructor(graph: Graph);
+export declare class ReactView<Props extends Properties, State> extends /* StatefulNode<Props, State> */ Node.$metadata$.constructor implements ReactContent {
+    constructor(graph: Graph, build: (p0: ReactView<Props, State>) => State, render: (p0: ReactView<Props, State>) => Nullable<ReactNode>);
+    get build(): (p0: ReactView<Props, State>) => State;
+    get render(): (p0: ReactView<Props, State>) => Nullable<ReactNode>;
     useNodeState(): StateInstance<State>;
-    abstract Content(props: PropsWithChildren): Nullable<ReactNode>;
-    readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & ReactView["__doNotUseOrImplementIt"];
+    get children(): Nullable<ReactNode>;
+    set children(value: Nullable<ReactNode>);
+    Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & ReactContent["__doNotUseOrImplementIt"];
 }
 /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-export declare namespace ReactViewNode.$metadata$ {
-    const constructor: abstract new <Props extends Properties, State>() => ReactViewNode<Props, State>;
+export declare namespace ReactView.$metadata$ {
+    const constructor: abstract new <Props extends Properties, State>() => ReactView<Props, State>;
+}
+export declare function ViewNode<Props extends Properties, State>(build: (p0: ReactView<Props, State>) => State, render: (p0: ReactView<Props, State>) => Nullable<ReactNode>): (p0: Graph) => ReactView<Props, State>;
+export declare class Person {
+    constructor(name: string, age: number);
+    get name(): string;
+    get age(): number;
+    copy(name?: string, age?: number): Person;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+/** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+export declare namespace Person.$metadata$ {
+    const constructor: abstract new () => Person;
+}
+export declare interface ViewData {
+    getPerson(): Person;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.navigation.util.ViewData": unique symbol;
+    };
+}
+export declare class TestLogic extends LogicNode.$metadata$.constructor {
+    constructor(graph: Graph);
+    get data(): ProviderPort<ViewData>;
+}
+/** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+export declare namespace TestLogic.$metadata$ {
+    const constructor: abstract new () => TestLogic;
 }
