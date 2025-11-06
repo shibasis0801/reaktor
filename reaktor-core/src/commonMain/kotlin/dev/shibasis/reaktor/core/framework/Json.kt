@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.serializer
 
 // Unfortunately we can't change default behaviour as other libraries may rely on it. So these wrappers.
 
@@ -23,3 +24,4 @@ inline fun JsonObject.copy(
     fn: MutableMap<String, JsonElement>.() -> Unit
 ) = JsonObject(toMutableMap().apply(fn))
 
+inline fun<reified T> KSerializer() = json.serializersModule.serializer<T>()

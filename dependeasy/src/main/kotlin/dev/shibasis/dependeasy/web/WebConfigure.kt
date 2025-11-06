@@ -6,6 +6,7 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JsSourceMapEmbedMode
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
@@ -50,6 +51,8 @@ fun KotlinMultiplatformExtension.web(
 //        moduleName = "index"
         compilerOptions {
             target.set("es2015")
+            sourceMap.set(false)
+            sourceMapEmbedSources.set(JsSourceMapEmbedMode.SOURCE_MAP_SOURCE_CONTENT_NEVER)
             freeCompilerArgs.add("-Xes-long-as-bigint")
         }
         useEsModules()
@@ -64,9 +67,10 @@ fun KotlinMultiplatformExtension.web(
                 cssSupport {
                     enabled.set(true)
                 }
+                webpackTask { sourceMaps = false }
+                runTask     { sourceMaps = false }
+                devtool = WebpackDevtool.NOSOURCES_SOURCE_MAP
                 configure.webpackConfig(this)
-                devtool = WebpackDevtool.SOURCE_MAP
-
             }
 
             testTask {

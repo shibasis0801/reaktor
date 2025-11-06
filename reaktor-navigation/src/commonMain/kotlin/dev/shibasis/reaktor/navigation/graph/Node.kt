@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlin.js.JsExport
+import kotlin.js.JsName
 import kotlin.uuid.Uuid
 
 @JsExport
@@ -58,9 +59,17 @@ open class GraphNode(
 fun Graph.graph(graph: Graph) = GraphNode(graph, this)
 
 @JsExport
-abstract class LogicNode(
+open class LogicNode(
     graph: Graph
-): Node(graph)
+): Node(graph) {
+    @JsName("build")
+    constructor(
+        graph: Graph,
+        build: (logic: LogicNode) -> Unit
+    ): this(graph) {
+        build(this)
+    }
+}
 
 fun Graph.logic(fn: Graph.() -> LogicNode) = fn()
 

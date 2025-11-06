@@ -5,7 +5,7 @@ import dev.shibasis.reaktor.auth.Apps
 import dev.shibasis.reaktor.auth.Users
 import dev.shibasis.reaktor.framework.CrudRepository
 import dev.shibasis.reaktor.framework.ExposedAdapter
-import dev.shibasis.reaktor.io.service.BaseRequest
+import dev.shibasis.reaktor.io.service.Request
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsertReturning
@@ -15,7 +15,7 @@ import java.util.UUID
 @Component
 class AppRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     suspend fun findById(
-        request: BaseRequest,
+        request: Request,
         id: UUID
     ) = request.sql {
         Apps.selectAll()
@@ -25,14 +25,14 @@ class AppRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     }
 
     suspend fun all(
-        request: BaseRequest
+        request: Request
     ) = request.sql {
         Apps.selectAll()
             .map { Apps.toDto(it) }
     }
 
     suspend fun findByName(
-        request: BaseRequest,
+        request: Request,
         name: String
     ) = request.sql {
         Apps.selectAll()
@@ -46,7 +46,7 @@ class AppRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
 @Component
 class UserRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     suspend fun findByAppIdAndProvider(
-        request: BaseRequest,
+        request: Request,
         appId: UUID,
         socialId: String,
         provider: UserProvider
@@ -58,7 +58,7 @@ class UserRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     }
 
     suspend fun upsert(
-        request: BaseRequest,
+        request: Request,
         user: User
     ) = request.sql {
         val data = Users.upsertReturning { it.fields(user) }.toList()

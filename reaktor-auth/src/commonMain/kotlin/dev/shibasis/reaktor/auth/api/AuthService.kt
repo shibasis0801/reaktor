@@ -5,9 +5,10 @@ import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.Post
 import dev.shibasis.reaktor.io.network.http
-import dev.shibasis.reaktor.io.service.BaseRequest
-import dev.shibasis.reaktor.io.service.BaseResponse
+import dev.shibasis.reaktor.io.service.Request
+import dev.shibasis.reaktor.io.service.Response
 import dev.shibasis.reaktor.io.service.Environment
+import dev.shibasis.reaktor.io.service.PostHandler
 import dev.shibasis.reaktor.io.service.RequestHandler
 import dev.shibasis.reaktor.io.service.Service
 import io.ktor.client.call.body
@@ -33,13 +34,13 @@ data class LoginRequest(
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
     override var environment: Environment
-): BaseRequest
+): Request()
 
 @Serializable
 sealed class LoginResponse(
     override var statusCode: StatusCode = StatusCode.OK,
     override val headers: MutableMap<String, String> = mutableMapOf()
-): BaseResponse {
+): Response() {
     @Serializable
     data class Success(val user: User, val profile: JsonElement): LoginResponse(StatusCode.OK)
 
@@ -73,8 +74,8 @@ abstract class AuthService: Service() {
     abstract val login: RequestHandler<LoginRequest, LoginResponse>
 }
 
-class AuthServiceClient(baseUrl: String): AuthService() {
-    override val login = PostHandler<LoginRequest, LoginResponse>("${baseUrl}/auth/sign-in") {
+open class AuthServiceClient(baseUrl: String): AuthService() {
+    override val login = PostHandler<LoginRequest, LoginResponse>("/auth/sign-in") {
         http.Post(route) { setBody(it) }
             .fold(
                 { it.body() },

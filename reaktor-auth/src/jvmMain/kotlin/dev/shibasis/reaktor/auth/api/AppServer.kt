@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.db.AppRepository
 import dev.shibasis.reaktor.core.network.ErrorMessage
-import dev.shibasis.reaktor.io.service.BaseRequest
+import dev.shibasis.reaktor.io.service.Request
 import org.springframework.stereotype.Component
 import java.util.UUID
 
@@ -11,7 +11,7 @@ import java.util.UUID
 class AppServer(
     private val appRepository: AppRepository
 ): AppService() {
-    override val getAll = GetHandler<BaseRequest, AppResponse>("/") {
+    override val getAll = GetHandler<Request, AppResponse>("/") {
         appRepository
             .all(it)
             .fold(
@@ -20,7 +20,7 @@ class AppServer(
             )
     }
 
-    override val getApp = GetHandler<BaseRequest, AppResponse>("/{id}") { request ->
+    override val getApp = GetHandler<Request, AppResponse>("/{id}") { request ->
         val id = request.pathParams["id"] ?: return@GetHandler AppResponse.Failure(ErrorMessage(1, "Invalid id"))
 
         runCatching {

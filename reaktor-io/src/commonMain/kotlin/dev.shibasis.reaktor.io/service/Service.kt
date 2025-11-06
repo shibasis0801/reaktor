@@ -1,152 +1,109 @@
 package dev.shibasis.reaktor.io.service
 
-import dev.shibasis.reaktor.core.framework.Adapter
+import dev.shibasis.reaktor.core.framework.KSerializer
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.io.network.RoutePattern
-import kotlinx.serialization.ExperimentalSerializationApi
+import dev.shibasis.reaktor.io.network.http
+import io.ktor.client.HttpClient
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.serializer
 import kotlin.js.JsExport
+import io.ktor.http.HttpMethod as KtorMethod
 
 @JsExport
-enum class HttpMethod {
-    GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD
-}
-
-@JsExport
-enum class Environment {
-    STAGE, PROD;
-    companion object {
-        final val Header = "X-Environment"
-        operator fun invoke(value: String) =
-            if (value.lowercase() == "prod") PROD else STAGE
-    }
-}
-
-// must automatically generate http clients for paths like we generate controllers
-
-@JsExport
-interface BaseRequest {
-    val headers: MutableMap<String, String>
-    val queryParams: MutableMap<String, String>
-    val pathParams: MutableMap<String, String>
-    var environment: Environment
-
-    companion object {
-        operator fun invoke(
-            headers: MutableMap<String, String> = mutableMapOf(),
-            queryParams: MutableMap<String, String> = mutableMapOf(),
-            pathParams: MutableMap<String, String> = mutableMapOf()
-        ) = object: BaseRequest {
-            override val headers = headers
-            override val queryParams = queryParams
-            override val pathParams = pathParams
-            override var environment = Environment.STAGE
-        }
-    }
-}
-
-@JsExport
-interface BaseResponse {
-    val headers: MutableMap<String, String>
-    var statusCode: StatusCode
-
-    companion object {
-        operator fun invoke(
-            headers: MutableMap<String, String> = mutableMapOf(),
-            statusCode: StatusCode = StatusCode.OK
-        ) = object: BaseResponse {
-            override val headers = headers
-            override var statusCode = statusCode
-        }
-    }
-}
-
-typealias RequestHandlerBlock<Request, Response> =
-        suspend RequestHandler<Request, Response>.(Request) -> Response
-
-@JsExport
-abstract class RequestHandler<Request: BaseRequest, Response: BaseResponse>(
-    val method: HttpMethod,
-    val route: String,
-    val requestSerializer: KSerializer<Request>,
-    val responseSerializer: KSerializer<Response>
+abstract class Service(
+    baseUrl: String = "",
+    val httpClient: HttpClient = http
 ) {
-    val routePattern = RoutePattern.from(route)
+    val handlers = arrayListOf<RequestHandler<*, *>>()
+    val baseUrl: String = baseUrl.trimEnd('/')
 
-    inline fun url(request: Request, vararg extraPathParams: Pair<String, String>): String =
-        routePattern.fill(request.pathParams + extraPathParams)
+    fun <In : Request, Out: Response> server(
+        factory: RequestHandler.Factory,
+        endpoint: String,
+        requestSerializer: KSerializer<In>,
+        responseSerializer: KSerializer<Out>,
+        block: RequestHandlerBlock<In, Out>
+    ) = factory(baseUrl + endpoint, requestSerializer, responseSerializer, block).also(handlers::add)
 
-    @JsExport.Ignore
-    abstract suspend operator fun invoke(request: Request): Response
+    fun <In : Request, Out : Response> client(
+        factory: RequestHandler.Factory,
+        route: String,
+        requestSerializer: KSerializer<In>,
+        responseSerializer: KSerializer<Out>
+    ): RequestHandler<In, Out> {
+        return factory(route, requestSerializer, responseSerializer) { request ->
+            val fullUrl = baseUrl + url(request)
+            val ktorMethod = method.toKtorMethod()
 
-    companion object {
-         @JsExport.Ignore
-         inline operator fun <reified Request: BaseRequest, reified Response: BaseResponse> invoke(
-            method: HttpMethod,
-            rawRoute: String,
-            crossinline block: RequestHandlerBlock<Request, Response>
-        ): RequestHandler<Request, Response> = object : RequestHandler<Request, Response>(
-            method,
-            rawRoute,
-            serializersModule.serializer<Request>(),
-            serializersModule.serializer<Response>()
-        ) {
-            override suspend fun invoke(request: Request): Response = block(request)
+            val response = httpClient.request(fullUrl) {
+                method = ktorMethod
+                headers.append(Environment.Header, request.environment.name)
+                request.headers.forEach { (k, v) -> headers.append(k, v) }
+                request.queryParams.forEach { (k, v) -> url.parameters.append(k, v) }
+
+                when (method) {
+                    KtorMethod.Post, KtorMethod.Put, KtorMethod.Patch -> {
+                        contentType(ContentType.Application.Json)
+                        setBody(json.encodeToString(requestSerializer, request))
+                    }
+                }
+            }
+
+            json.decodeFromString(responseSerializer, response.bodyAsText())
         }
-
-        val serializersModule = json.serializersModule
     }
 }
 
-// todo add base url
-@JsExport
-abstract class Service(val baseUrl: String = "") : Adapter<Unit>(Unit) {
-    val handlers = arrayListOf<RequestHandler<*, *>>()
+inline fun <reified In : Request, reified Out: Response> Service.server(
+    factory: RequestHandler.Factory,
+    endpoint: String,
+    noinline block: RequestHandlerBlock<In, Out>
+) = server(factory, endpoint, KSerializer<In>(), KSerializer<Out>(), block)
 
-    @JsExport.Ignore
-    @OptIn(ExperimentalSerializationApi::class)
-    inline fun <reified Request : BaseRequest, reified Response: BaseResponse> GetHandler(
-        route: String,
-        crossinline block: RequestHandlerBlock<Request, Response>
-    ): RequestHandler<Request, Response> =
-        RequestHandler(HttpMethod.GET, route, block).also(handlers::add)
+inline fun <reified In : Request, reified Out: Response> Service.client(
+    factory: RequestHandler.Factory,
+    endpoint: String,
+) = client(factory, endpoint, KSerializer<In>(), KSerializer<Out>())
 
-    @JsExport.Ignore
-    @OptIn(ExperimentalSerializationApi::class)
-    inline fun <reified Request: BaseRequest, reified Response : BaseResponse> PostHandler(
-        route: String,
-        crossinline block: RequestHandlerBlock<Request, Response>
-    ): RequestHandler<Request, Response> =
-        RequestHandler(HttpMethod.POST, route, block).also(handlers::add)
-}
+inline fun <reified In: Request, reified Out: Response> Service.GetHandler(
+    endpoint: String,
+    noinline block: RequestHandlerBlock<In, Out>
+) = server(GetHandler.Companion, endpoint, block)
+
+inline fun <reified In: Request, reified Out: Response> Service.GetHandler(
+    endpoint: String
+) = client<In, Out>(GetHandler.Companion, endpoint)
+
+inline fun <reified In: Request, reified Out: Response> Service.PostHandler(
+    endpoint: String,
+    noinline block: RequestHandlerBlock<In, Out>
+) = server(PostHandler.Companion, endpoint, block)
+
+inline fun <reified In: Request, reified Out: Response> Service.PostHandler(
+    endpoint: String
+) = client<In, Out>(PostHandler.Companion, endpoint)
 
 
-@Serializable
-data class EmptyRequest(
-    override val headers: MutableMap<String, String> = mutableMapOf(),
-    override val queryParams: MutableMap<String, String> = mutableMapOf(),
-    override val pathParams: MutableMap<String, String> = mutableMapOf(),
-    override var environment: Environment = Environment.STAGE
-): BaseRequest
+inline fun <reified In: Request, reified Out: Response> Service.PutHandler(
+    endpoint: String,
+    noinline block: RequestHandlerBlock<In, Out>
+) = server(PutHandler.Companion, endpoint, block)
 
-@Serializable
-data class EmptyResponse(
-    override var statusCode: StatusCode = StatusCode.OK,
-    override val headers: MutableMap<String, String> = mutableMapOf(),
-): BaseResponse
+inline fun <reified In: Request, reified Out: Response> Service.PutHandler(
+    endpoint: String
+) = client<In, Out>(PutHandler.Companion, endpoint)
 
-/*
-todo
 
-1. support arbitrary clients
-2. support cloudflare workers
-3. support split servers (worker + server)
-4. support load balancing
-5. endless.
-*/
+inline fun <reified In: Request, reified Out: Response> Service.DeleteHandler(
+    endpoint: String,
+    noinline block: RequestHandlerBlock<In, Out>
+) = server(DeleteHandler.Companion, endpoint, block)
 
-@JsExport.Ignore
-suspend fun ping(x: Int) = x + 1
+inline fun <reified In: Request, reified Out: Response> Service.DeleteHandler(
+    endpoint: String
+) = client<In, Out>(DeleteHandler.Companion, endpoint)
+

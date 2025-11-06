@@ -2,9 +2,8 @@ package dev.shibasis.reaktor.framework
 
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.serialization.TextSerializer
-import dev.shibasis.reaktor.io.service.BaseRequest
-import dev.shibasis.reaktor.io.service.BaseResponse
-import dev.shibasis.reaktor.io.service.EmptyRequest
+import dev.shibasis.reaktor.io.service.Request
+import dev.shibasis.reaktor.io.service.Response
 import dev.shibasis.reaktor.io.service.Environment
 import dev.shibasis.reaktor.io.service.HttpMethod
 import dev.shibasis.reaktor.io.service.RequestHandler
@@ -32,22 +31,16 @@ fun Service.toRouter(): RouterFunction<ServerResponse> {
     val builder = RouterFunctions.route()
     handlers.forEach {
         @Suppress("UNCHECKED_CAST")
-        val handler = it as RequestHandler<BaseRequest, BaseResponse>
+        val handler = it as RequestHandler<Request, Response>
 
         val predicate = RequestPredicates.method(handler.method.toSpring())
-            .and(RequestPredicates.path(baseUrl + handler.route))
+            .and(RequestPredicates.path(handler.route))
             .and(RequestPredicates.accept(MediaType.APPLICATION_JSON))
 
         builder.route(predicate) { req ->
             mono {
-                val request: BaseRequest = when(handler.method) {
-                    HttpMethod.GET, HttpMethod.DELETE, HttpMethod.HEAD ->
-                        textSerializer.deserialize(EmptyRequest.serializer(), "{}")
-                    else -> {
-                        val body = req.bodyToMono(String::class.java).awaitSingleOrNull() ?: "{}"
-                        textSerializer.deserialize(handler.requestSerializer, body)
-                    }
-                }
+                val body = runCatching { req.bodyToMono(String::class.java).awaitSingleOrNull() }.getOrNull() ?: "{}"
+                val request: Request = textSerializer.deserialize(handler.requestSerializer, body)
 
                 request.pathParams.putAll(req.pathVariables())
 

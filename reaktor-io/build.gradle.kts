@@ -10,6 +10,7 @@ import dev.shibasis.dependeasy.dependencies.useKoin
 import dev.shibasis.dependeasy.dependencies.useNetworking
 import java.net.InetSocketAddress
 import java.net.Socket
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("dev.shibasis.dependeasy.library")

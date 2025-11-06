@@ -22,6 +22,7 @@ import dev.shibasis.reaktor.navigation.graph.LogicNode
 import dev.shibasis.reaktor.navigation.graph.Node
 import dev.shibasis.reaktor.navigation.graph.Properties
 import dev.shibasis.reaktor.navigation.graph.connect
+import dev.shibasis.reaktor.navigation.graph.registerConsumer
 import dev.shibasis.reaktor.navigation.graph.consumer
 import dev.shibasis.reaktor.navigation.graph.getConsumer
 import dev.shibasis.reaktor.navigation.graph.getProvider
@@ -84,7 +85,7 @@ open class BottomNavigationStateful<Props: Properties>(
 
     init {
         initialState.options.forEach { (key, value) ->
-            consumer<Content>(key)
+            registerConsumer<Content>(key)
         }
 
     }

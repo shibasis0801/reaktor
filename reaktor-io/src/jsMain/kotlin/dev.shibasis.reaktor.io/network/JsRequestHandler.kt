@@ -1,44 +1,40 @@
 package dev.shibasis.reaktor.io.network
 
-import dev.shibasis.reaktor.io.service.BaseRequest
-import dev.shibasis.reaktor.io.service.BaseResponse
-import dev.shibasis.reaktor.io.service.HttpMethod
-import dev.shibasis.reaktor.io.service.RequestHandler
-import dev.shibasis.reaktor.io.service.Service
+import dev.shibasis.reaktor.io.service.*
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
+import kotlinx.coroutines.promise
+import kotlinx.serialization.KSerializer
 import kotlin.js.Promise
 
 
-//
-//@JsExport
-//class JsRequestHandler<Request: BaseRequest, Response: BaseResponse>(
-//    method: HttpMethod,
-//    route: String,
-//    val handler: (Request) -> Promise<Response>
-//): RequestHandler<Request, Response>(method, route) {
-//    @JsExport.Ignore
-//    override suspend fun invoke(request: Request): Response {
-//        return handler(request).await()
-//    }
-//}
-//
-//@JsExport
-//fun <Request: BaseRequest, Response: BaseResponse> Service.GetHandler(
-//    route: String,
-//    handler: (Request) -> Promise<Response>
-//): RequestHandler<Request, Response> {
-//    return GetHandler(route) {
-//        handler(it).await()
-//    }
-//}
-//
-//@JsExport
-//fun <Request: BaseRequest, Response: BaseResponse> Service.PostHandler(
-//    route: String,
-//    handler: (Request) -> Promise<Response>
-//): RequestHandler<Request, Response> {
-//    return PostHandler(route) {
-//        handler(it).await()
-//    }
-//}
-//
+fun <In: Request, Out: Response> promised(
+    handler: RequestHandler<In, Out>,
+    request: In
+) = GlobalScope.promise { handler.invoke(request) }
+
+fun <In: Request, Out: Response> RequestHandler<In, Out>.promised(
+    request: In
+) = promised(this, request)
+
+fun <In: Request, Out: Response> handler(
+    method: HttpMethod,
+    route: String,
+    requestSerializer: KSerializer<In>,
+    responseSerializer: KSerializer<Out>,
+    handler: (In) -> Promise<Out>
+): RequestHandler<In, Out> {
+    val factory = when(method) {
+        HttpMethod.GET -> GetHandler.Companion
+        HttpMethod.POST -> PostHandler.Companion
+        HttpMethod.PUT -> PutHandler.Companion
+        HttpMethod.DELETE -> DeleteHandler.Companion
+        HttpMethod.PATCH -> TODO()
+        HttpMethod.OPTIONS -> TODO()
+        HttpMethod.HEAD -> TODO()
+    }
+
+    return factory(route, requestSerializer, responseSerializer) { request ->
+        handler(request).await()
+    }
+}
