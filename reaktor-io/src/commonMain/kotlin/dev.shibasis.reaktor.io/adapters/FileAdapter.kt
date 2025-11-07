@@ -69,7 +69,7 @@ Key Differences
 Sandbox Environment: iOS maintains a strict sandbox environment for each app, meaning an app has access only to its own directory and specific system directories (like the Photo Library) with proper permissions.
 File System Access: Unlike Android, where apps can request permission to access the entire file system (scoped storage notwithstanding), iOS apps are generally confined to their sandbox and specific shared directories like the Photo Library.
 iCloud Backup: Certain iOS directories (like Documents) are backed up to iCloud by default, unlike Android's more manual approach to backup and restore.
- */
+*/
 
 fun bufferedSink(path: String, actions: Sink.() -> Unit) {
     val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
@@ -117,7 +117,6 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
 
     fun bufferedWriteBinaryFile(source: Source, outputPath: String) {
         val bufferedSink = SystemFileSystem.sink(Path(outputPath)).buffered()
-//        bufferedSink.write(source, source.)
         bufferedSink.close()
     }
 }

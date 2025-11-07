@@ -13,6 +13,15 @@ import kotlinx.serialization.KSerializer
 import kotlin.js.JsExport
 import io.ktor.http.HttpMethod as KtorMethod
 
+
+/*
+A service is a typesafe way of declaring clients and servers.
+todo:
+1. complete documentation
+2. Add support for interceptors / middleware before / after
+3. Use those to implement auth, jwt, caching, etc.
+
+*/
 @JsExport
 abstract class Service(
     baseUrl: String = "",

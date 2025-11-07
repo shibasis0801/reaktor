@@ -19,7 +19,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-ui"))
-            api(project(":reaktor-navigation"))
+            api(project(":reaktor-graph"))
             api(project(":reaktor-io"))
         }
     }

@@ -33,11 +33,5 @@ abstract class AppService: Service() {
 }
 
 abstract class AppClient: AppService() {
-    override val getApp = GetHandler<Request, AppResponse>("") {
-        http.get(route) {
-            it.headers
-            it.pathParams
-            it.queryParams
-        }.body<AppResponse>()
-    }
+    override val getApp = GetHandler<Request, AppResponse>("")
 }
