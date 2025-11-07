@@ -9,7 +9,7 @@ import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.utils.read
-import dev.shibasis.reaktor.io.service.Environment
+import dev.shibasis.reaktor.graph.service.Environment
 
 abstract class AuthAdapter<Controller>(
     controller: Controller,

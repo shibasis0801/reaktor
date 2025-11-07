@@ -3,16 +3,12 @@ package dev.shibasis.reaktor.auth.api
 import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.io.network.http
-import dev.shibasis.reaktor.io.service.GetHandler
-import dev.shibasis.reaktor.io.service.Request
-import dev.shibasis.reaktor.io.service.Response
-import dev.shibasis.reaktor.io.service.RequestHandler
-import dev.shibasis.reaktor.io.service.Service
-import io.ktor.client.call.body
-import io.ktor.client.request.get
+import dev.shibasis.reaktor.graph.service.GetHandler
+import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.graph.service.Response
+import dev.shibasis.reaktor.graph.service.RequestHandler
+import dev.shibasis.reaktor.graph.service.Service
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 
 @Serializable

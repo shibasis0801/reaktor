@@ -2,12 +2,12 @@ package dev.shibasis.reaktor.framework
 
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.serialization.TextSerializer
-import dev.shibasis.reaktor.io.service.Request
-import dev.shibasis.reaktor.io.service.Response
-import dev.shibasis.reaktor.io.service.Environment
-import dev.shibasis.reaktor.io.service.HttpMethod
-import dev.shibasis.reaktor.io.service.RequestHandler
-import dev.shibasis.reaktor.io.service.Service
+import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.graph.service.Response
+import dev.shibasis.reaktor.graph.service.Environment
+import dev.shibasis.reaktor.graph.service.HttpMethod
+import dev.shibasis.reaktor.graph.service.RequestHandler
+import dev.shibasis.reaktor.graph.service.Service
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.springframework.http.HttpStatus

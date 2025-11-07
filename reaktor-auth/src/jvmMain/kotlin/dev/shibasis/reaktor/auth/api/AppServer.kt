@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.db.AppRepository
 import dev.shibasis.reaktor.core.network.ErrorMessage
-import dev.shibasis.reaktor.io.service.Request
+import dev.shibasis.reaktor.graph.service.Request
 import org.springframework.stereotype.Component
 import java.util.UUID
 

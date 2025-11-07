@@ -1,9 +1,8 @@
-package dev.shibasis.reaktor.io.service
+package dev.shibasis.reaktor.graph.service
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.js.JsExport
-import kotlin.js.JsName
 
 @JsExport
 @Serializable

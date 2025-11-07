@@ -1,6 +1,5 @@
-package dev.shibasis.reaktor.io.network
+package dev.shibasis.reaktor.graph.service
 
-import dev.shibasis.reaktor.io.service.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.promise

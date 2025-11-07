@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.framework
 
-import dev.shibasis.reaktor.io.service.Request
+import dev.shibasis.reaktor.graph.service.Request
 
 abstract class CrudRepository(
     val adapter: ExposedAdapter

@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.io.service
+package dev.shibasis.reaktor.graph.service
 
 import io.ktor.http.HttpMethod as KtorMethod
 

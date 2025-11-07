@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.io.service
+package dev.shibasis.reaktor.graph.service
 
 import dev.shibasis.reaktor.core.framework.KSerializer
 import dev.shibasis.reaktor.core.framework.json

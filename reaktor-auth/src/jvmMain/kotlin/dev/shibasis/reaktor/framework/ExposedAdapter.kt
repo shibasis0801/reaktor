@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.framework
 
 import dev.shibasis.reaktor.core.framework.Adapter
-import dev.shibasis.reaktor.io.service.Environment
+import dev.shibasis.reaktor.graph.service.Environment
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.asCoroutineDispatcher

@@ -2,9 +2,7 @@ package dev.shibasis.reaktor.auth
 
 import dev.shibasis.reaktor.auth.api.AuthServiceClient
 import dev.shibasis.reaktor.auth.api.LoginRequest
-import dev.shibasis.reaktor.io.network.promised
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.promise
+import dev.shibasis.reaktor.graph.service.promised
 
 
 class AuthServiceJs(baseUrl: String): AuthServiceClient(baseUrl) {
