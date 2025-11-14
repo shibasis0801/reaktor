@@ -47,6 +47,7 @@ fun KotlinMultiplatformExtension.common(
     sourceSets {
         compilerOptions {
             freeCompilerArgs.add("-Xexpect-actual-classes")
+            freeCompilerArgs.add("-XXLanguage:+JsAllowExportingSuspendFunctions")
         }
         all {
             languageSettings.apply {

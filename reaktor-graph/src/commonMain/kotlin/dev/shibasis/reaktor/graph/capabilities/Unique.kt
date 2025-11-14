@@ -7,7 +7,7 @@ interface Unique {
     val label: String
 }
 
-class UniqueImpl(
+open class UniqueImpl(
     override val id: Uuid = Uuid.random(),
     override val label: String = ""
 ): Unique

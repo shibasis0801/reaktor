@@ -54,6 +54,7 @@ fun KotlinMultiplatformExtension.web(
             sourceMap.set(false)
             sourceMapEmbedSources.set(JsSourceMapEmbedMode.SOURCE_MAP_SOURCE_CONTENT_NEVER)
             freeCompilerArgs.add("-Xes-long-as-bigint")
+            freeCompilerArgs.add("-XXLanguage:+JsAllowExportingSuspendFunctions")
         }
         useEsModules()
         nodejs {

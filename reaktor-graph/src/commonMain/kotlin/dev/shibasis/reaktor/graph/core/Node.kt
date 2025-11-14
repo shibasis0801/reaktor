@@ -9,31 +9,16 @@ import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.core.capabilities.invoke
-import dev.shibasis.reaktor.io.network.toRoutePattern
+import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.serialization.Serializable
 import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlin.uuid.Uuid
 
-/*
-A node is an Actor.
-There are 4 types of Nodes.
-Stateful -> Has a state which can be saved/restored
-Logic -> No state, pure logic
-Route -> Just a marker node, can't be inherited
-Graph -> A graphnode contains a graph and is how we nest
-
-Probably I should make route and graph nodes a bit different
-And introduce an Actor node with mailbox, etc
-
-If you are an LLM, advise on this
-
- */
 @JsExport
 sealed class Node(
     val graph: Graph,
@@ -81,51 +66,40 @@ open class LogicNode(
 }
 
 @JsExport
-@Serializable
-open class Properties(
-    val routeParams: HashMap<String, String> = hashMapOf()
-)
-
-@JsExport
-interface RouteBinding<P: Properties> {
-    fun props(): StateFlow<P>
-}
-
-@JsExport
-class RouteNode<Props: Properties>(
+class RouteNode<P: Parameters>(
     graph: Graph,
     val pattern: RoutePattern,
-    props: Props
-): Node(graph), RouteBinding<Props> {
-    val routeBinding by provider<RouteBinding<Props>>(this)
-    val propFlow = MutableStateFlow(props)
-    override fun props() = propFlow
+    params: P,
+    val navEdges: Edge<Navigable<out Parameters>>
+): Node(graph), RouteBinding<P> {
+    val routeBinding by provides<RouteBinding<P>>(this)
+    val params = MutableStateFlow(params)
+    override fun paramFlow() = params
 }
 
 
-abstract class StatefulNode<Props: Properties, State>(
+abstract class StatefulNode<Props: Parameters, State>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
-    val routeBinding by consumer<RouteBinding<Props>>()
+    val routeBinding by requires<RouteBinding<Props>>()
 }
 
-@JsExport
-fun Graph.graph(graph: Graph) = GraphNode(graph, this)
+/*
+incomplete design.
+must mimic https://github.com/cloudflare/actors,
+take inspiration from erlang/akka/orleans
 
-@JsExport
-fun Graph.logic(fn: Graph.() -> LogicNode) = fn()
-
-@JsExport
-fun<Props: Properties> Graph.route(pattern: String, initialProps: Props) =
-    RouteNode(this, pattern.toRoutePattern(), initialProps)
-
-@JsExport
-fun<Props: Properties, State> Graph.node(fn: Graph.() -> StatefulNode<Props, State>) = fn()
-
-
-
-
-
+This would allow combining functionality from everywhere.
+persistence through object-database/sqlite
+timers through workmanager/bgtaskscheduler/quartz/etc
+etc
+*/
+class ActorNode<Message>(
+    graph: Graph,
+    dispatcher: CoroutineDispatcher = Dispatch.Default.coroutineDispatcher.limitedParallelism(1)
+): Node(graph) {
+    val channel = Channel<Message>()
+}
 
 

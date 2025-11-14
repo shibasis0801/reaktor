@@ -18,13 +18,13 @@ import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.LogicNode
 import dev.shibasis.reaktor.graph.core.Node
-import dev.shibasis.reaktor.graph.core.Properties
+import dev.shibasis.reaktor.graph.core.Parameters
 import dev.shibasis.reaktor.graph.core.connect
-import dev.shibasis.reaktor.graph.core.registerConsumer
-import dev.shibasis.reaktor.graph.core.consumer
-import dev.shibasis.reaktor.graph.core.getConsumer
+import dev.shibasis.reaktor.graph.core.registerRequirer
+import dev.shibasis.reaktor.graph.core.requires
+import dev.shibasis.reaktor.graph.core.getRequirer
 import dev.shibasis.reaktor.graph.core.getProvider
-import dev.shibasis.reaktor.graph.core.provider
+import dev.shibasis.reaktor.graph.core.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +55,7 @@ class BottomNavigation(
     )
 
 
-    val controller by provider<Controller>(object: Controller {
+    val controller by provides<Controller>(object: Controller {
         override fun select(key: String) {
             if (controllerState.value.options.keys.contains(key)) {
                 controllerState.update {
@@ -69,7 +69,7 @@ class BottomNavigation(
     })
 }
 
-open class BottomNavigationStateful<Props: Properties>(
+open class BottomNavigationStateful<Props: Parameters>(
     graph: Graph,
     initialState: BottomNavigation.State
 ): ComposeNode<Props, BottomNavigation.State>(graph) {
@@ -79,11 +79,11 @@ open class BottomNavigationStateful<Props: Properties>(
 
     override val state = MutableStateFlow(initialState)
 
-    val controller by consumer<BottomNavigation.Controller>()
+    val controller by requires<BottomNavigation.Controller>()
 
     init {
         initialState.options.forEach { (key, value) ->
-            registerConsumer<Content>(key)
+            registerRequirer<Content>(key)
         }
 
     }
@@ -91,7 +91,7 @@ open class BottomNavigationStateful<Props: Properties>(
     infix fun connectWith(nodes: LinkedHashMap<String, Node>) {
         nodes.forEach { (k, v) ->
             val provider = v.getProvider<Content>(k) ?: return@forEach
-            val consumer = getConsumer<Content>(k) ?: return@forEach
+            val consumer = getRequirer<Content>(k) ?: return@forEach
             connect(consumer, provider)
         }
     }
@@ -108,7 +108,7 @@ open class BottomNavigationStateful<Props: Properties>(
         }
         else {
             val navState by contract.state.collectAsState()
-            val consumer = remember(navState) { getConsumer<Content>(navState.selected) }
+            val consumer = remember(navState) { getRequirer<Content>(navState.selected) }
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {

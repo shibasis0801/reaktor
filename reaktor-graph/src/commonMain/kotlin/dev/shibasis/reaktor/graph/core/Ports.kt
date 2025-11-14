@@ -41,7 +41,7 @@ typealias TypedKeyedMap<Value> = MutableMap<Type, MutableMap<Key, Value>>
 
 inline fun<reified Port> TypedKeyedMap<Port>.flattenedValues() = values.flatMap { it.values }
 
-// ------- Provider/Consumer ports at nodes allow edges for interface based communication -------
+// ------- Provider/Requirer ports at nodes allow edges for interface based communication -------
 @JsExport
 sealed class Port<Functionality: Any>(
     val owner: PortCapability,
@@ -58,7 +58,7 @@ sealed class Port<Functionality: Any>(
 }
 
 @JsExport
-class ConsumerPort<Functionality: Any>(
+class RequirerPort<Functionality: Any>(
     owner: PortCapability,
     key: Key,
     type: Type,
@@ -87,7 +87,7 @@ class ProviderPort<Functionality: Any>(
     key: Key,
     type: Type,
     val impl: Functionality,
-    val edges: LinkedHashMap<ConsumerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
+    val edges: LinkedHashMap<RequirerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
 ): Port<Functionality>(owner, key, type) {
     override fun isConnected() = edges.isNotEmpty()
 }
@@ -104,7 +104,7 @@ sealed class PortEvent(val port: Port<*>) {
 
 @JsExport
 interface PortCapability {
-    val consumerPorts: TypedKeyedMap<ConsumerPort<Any>>
+    val requirerPorts: TypedKeyedMap<RequirerPort<Any>>
     val providerPorts: TypedKeyedMap<ProviderPort<Any>>
     val portEvents: SharedFlow<PortEvent>
     fun emit(event: PortEvent)
@@ -117,19 +117,19 @@ interface PortCapability {
         return getProvider(keyType.key, keyType.type)
     }
 
-    fun <Functionality: Any> registerConsumer(keyType: KeyType): ConsumerPort<Functionality> {
-        return registerConsumer(keyType.key, keyType.type)
+    fun <Functionality: Any> registerRequirer(keyType: KeyType): RequirerPort<Functionality> {
+        return registerRequirer(keyType.key, keyType.type)
     }
 
-    fun <Functionality: Any> getConsumer(keyType: KeyType): ConsumerPort<Functionality>? {
-        return getConsumer(keyType.key, keyType.type)
+    fun <Functionality: Any> getRequirer(keyType: KeyType): RequirerPort<Functionality>? {
+        return getRequirer(keyType.key, keyType.type)
     }
 }
 
 @JsExport
 class PortCapabilityImpl(
     context: CoroutineContext? = null,
-    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = hashMapOf(),
+    override val requirerPorts: TypedKeyedMap<RequirerPort<Any>> = hashMapOf(),
     override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = hashMapOf(),
     override val portEvents: MutableSharedFlow<PortEvent> = MutableSharedFlow(),
 ): PortCapability, ConcurrencyCapability by ConcurrencyCapabilityImpl(context) {
@@ -160,7 +160,7 @@ inline fun <reified Functionality: Any> PortCapability.registerProvider(key: Str
     return registerProvider(Key(key), Type<Functionality>(), impl)
 }
 
-inline fun <reified Functionality: Any> PortCapability.provider(impl: Functionality) =
+inline fun <reified Functionality: Any> PortCapability.provides(impl: Functionality) =
     PropertyDelegateProvider<PortCapability, PortDelegate<ProviderPort<Functionality>>> { thisRef, property ->
         val port = thisRef.registerProvider(property.name, impl)
         ReadOnlyProperty { _, _ -> port }
@@ -170,30 +170,30 @@ inline fun <reified Functionality: Any> PortCapability.getProvider(key: String):
     return getProvider(Key(key), Type<Functionality>())
 }
 
-// ---------------------------- Consumer ----------------------------
+// ---------------------------- Requirer ----------------------------
 
-fun <Functionality: Any> PortCapability.registerConsumer(key: Key, type: Type): ConsumerPort<Functionality> {
-    return consumerPorts
+fun <Functionality: Any> PortCapability.registerRequirer(key: Key, type: Type): RequirerPort<Functionality> {
+    return requirerPorts
         .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { ConsumerPort(this, key, type) } as ConsumerPort<Functionality>
+        .getOrPut(key) { RequirerPort(this, key, type) } as RequirerPort<Functionality>
 }
 
-fun <Functionality: Any> PortCapability.getConsumer(key: Key, type: Type): ConsumerPort<Functionality>? {
-    return consumerPorts
+fun <Functionality: Any> PortCapability.getRequirer(key: Key, type: Type): RequirerPort<Functionality>? {
+    return requirerPorts
         .getOrPut(type) { linkedMapOf() }
-        .get(key) as? ConsumerPort<Functionality>
+        .get(key) as? RequirerPort<Functionality>
 }
 
-inline fun <reified Functionality: Any> PortCapability.registerConsumer(key: String): ConsumerPort<Functionality> {
-    return registerConsumer(Key(key), Type<Functionality>())
+inline fun <reified Functionality: Any> PortCapability.registerRequirer(key: String): RequirerPort<Functionality> {
+    return registerRequirer(Key(key), Type<Functionality>())
 }
 
-inline fun <reified Functionality: Any> PortCapability.consumer() =
-    PropertyDelegateProvider<PortCapability, PortDelegate<ConsumerPort<Functionality>>> { thisRef, property ->
-        val port = thisRef.registerConsumer<Functionality>(property.name)
+inline fun <reified Functionality: Any> PortCapability.requires() =
+    PropertyDelegateProvider<PortCapability, PortDelegate<RequirerPort<Functionality>>> { thisRef, property ->
+        val port = thisRef.registerRequirer<Functionality>(property.name)
         ReadOnlyProperty { _, _ -> port }
     }
 
-inline fun <reified Functionality: Any> PortCapability.getConsumer(key: String): ConsumerPort<Functionality>? {
-    return getConsumer(Key(key), Type<Functionality>())
+inline fun <reified Functionality: Any> PortCapability.getRequirer(key: String): RequirerPort<Functionality>? {
+    return getRequirer(Key(key), Type<Functionality>())
 }

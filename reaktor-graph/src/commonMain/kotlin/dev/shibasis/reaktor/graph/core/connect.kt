@@ -6,38 +6,38 @@ import kotlin.js.JsExport
 import kotlin.js.JsName
 
 
-fun<C: Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>): Result<Unit> {
-    if (consumerPort.type != providerPort.type)
-        return fail("Incompatible ports: consumer -> ${consumerPort.type}, provider -> ${providerPort.type}")
+fun<C: Any> connect(requirerPort: RequirerPort<C>, providerPort: ProviderPort<C>): Result<Unit> {
+    if (requirerPort.type != providerPort.type)
+        return fail("Incompatible ports: consumer -> ${requirerPort.type}, provider -> ${providerPort.type}")
 
 
-    val source = consumerPort.owner
+    val source = requirerPort.owner
     val destination = providerPort.owner
 
     val edge = Edge(
         source,
-        consumerPort,
+        requirerPort,
         destination,
         providerPort
     )
 
-    consumerPort.edge = edge
-    providerPort.edges[consumerPort] = edge
+    requirerPort.edge = edge
+    providerPort.edges[requirerPort] = edge
 
-    consumerPort.owner.emit(PortEvent.Connected(consumerPort, providerPort))
-    providerPort.owner.emit(PortEvent.Connected(providerPort, consumerPort))
+    requirerPort.owner.emit(PortEvent.Connected(requirerPort, providerPort))
+    providerPort.owner.emit(PortEvent.Connected(providerPort, requirerPort))
 
     return succeed(Unit)
 }
 
 @JsExport
 @JsName("connectPort")
-fun connectPort(consumerPort: ConsumerPort<Any>, providerPort: ProviderPort<Any>)
-        = connect(consumerPort, providerPort)
+fun connectPort(requirerPort: RequirerPort<Any>, providerPort: ProviderPort<Any>)
+        = connect(requirerPort, providerPort)
 
 @JsName("connectPorts")
 fun connect(
-    consumers: Map<Key, ConsumerPort<Any>>,
+    consumers: Map<Key, RequirerPort<Any>>,
     providers: Map<Key, ProviderPort<Any>>
 ): Result<Unit> {
     if (
@@ -53,7 +53,7 @@ fun connect(
     consumers.keys
         .intersect(providers.keys)
         .forEach {
-            val consumer = consumers[it] as ConsumerPort<Any>
+            val consumer = consumers[it] as RequirerPort<Any>
             val provider = providers[it] as ProviderPort<Any>
             if (consumer.type == provider.type)
                 connect(consumer, provider)
@@ -63,12 +63,12 @@ fun connect(
 }
 
 private fun connectConsumerProvider(consumerNode: PortCapability, providerNode: PortCapability) {
-    val consumerTypes = consumerNode.consumerPorts.keys
+    val consumerTypes = consumerNode.requirerPorts.keys
     val providerTypes = providerNode.providerPorts.keys
     consumerTypes.intersect(providerTypes)
         .forEach {
             connect(
-                consumerNode.consumerPorts[it] ?: mapOf(),
+                consumerNode.requirerPorts[it] ?: mapOf(),
                 providerNode.providerPorts[it] ?: mapOf()
             )
         }
@@ -84,10 +84,10 @@ fun connect(node1: PortCapability, node2: PortCapability) {
 
 infix fun PortCapability.connectWith(other: PortCapability) = connect(this, other)
 
-inline fun <reified C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>) {
-    consumerPort.edge = null
-    providerPort.edges.remove(consumerPort)
+inline fun <reified C : Any> disconnect(requirerPort: RequirerPort<C>, providerPort: ProviderPort<C>) {
+    requirerPort.edge = null
+    providerPort.edges.remove(requirerPort)
 }
 
-inline fun <reified C : Any> disconnect(providerPort: ProviderPort<C>, consumerPort: ConsumerPort<C>)
-        = disconnect(consumerPort, providerPort)
+inline fun <reified C : Any> disconnect(providerPort: ProviderPort<C>, requirerPort: RequirerPort<C>)
+        = disconnect(requirerPort, providerPort)

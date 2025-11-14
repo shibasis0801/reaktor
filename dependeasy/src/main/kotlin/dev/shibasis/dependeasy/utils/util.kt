@@ -43,7 +43,7 @@ fun File.gitDependency(repoURL: String) {
 
 fun Settings.includeWithPath(name: String, path: String? = null) {
     val newName = ":$name"
-    settings.include(newName)
+    include(newName)
     if (path != null) {
         project(newName).projectDir = File(path)
     }

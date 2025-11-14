@@ -39,6 +39,9 @@ class ReaktorProcessor(
     private val jsExportIgnoreFqName = "kotlin.js.JsExport.Ignore"
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        // kotlin 2.3.0-beta has official support. code is kept for understanding.
+        if (true) return emptyList()
+
         // Emit wrappers only for JS rounds (so kotlin.js.* is available)
         if (!isJsRound(resolver)) {
             logger.info("ReaktorProcessor: non-JS round, skipping.")

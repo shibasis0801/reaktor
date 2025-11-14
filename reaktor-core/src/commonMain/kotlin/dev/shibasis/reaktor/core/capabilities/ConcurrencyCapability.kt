@@ -14,6 +14,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 interface ConcurrencyCapability: Capability {
     val coroutineScope: CoroutineScope
+    val coroutineDispatcher: CoroutineDispatcher
     fun cancel() = coroutineScope.cancel()
     fun<Result> async(fn: suspend CoroutineScope.() -> Result) = coroutineScope.async { fn() }
     fun launch(fn: suspend CoroutineScope.() -> Unit) = coroutineScope.launch { fn() }
@@ -23,13 +24,13 @@ interface ConcurrencyCapability: Capability {
 
 class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default
+    override val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default
 ): ConcurrencyCapability {
     val supervisorJob = SupervisorJob()
 
     override val coroutineScope: CoroutineScope = CoroutineScope(
         (context ?: EmptyCoroutineContext) +
-                dispatcher +
+                coroutineDispatcher +
                 supervisorJob
     )
 
