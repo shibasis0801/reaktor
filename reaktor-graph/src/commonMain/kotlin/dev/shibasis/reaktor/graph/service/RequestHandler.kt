@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.graph.service
 
-import dev.shibasis.reaktor.core.framework.KSerializer
+import dev.shibasis.reaktor.core.framework.kSerializer
 import dev.shibasis.reaktor.io.network.RoutePattern
 import kotlinx.serialization.KSerializer
 import kotlin.js.JsExport
@@ -21,7 +21,6 @@ sealed class RequestHandler<In: Request, Out: Response>(
     inline fun url(request: In, vararg extraPathParams: Pair<String, String>): String =
         routePattern.fill(request.pathParams + extraPathParams)
 
-    @JsExport.Ignore
     suspend operator fun invoke(request: In): Out = handler(request)
 
     interface Factory {
@@ -41,7 +40,7 @@ fun <reified In: Request, reified Out: Response> RequestHandler.Factory.invoke(
     noinline fn: RequestHandlerBlock<In, Out>
 ) = invoke(
     rawRoute,
-    KSerializer<In>(),
-    KSerializer<Out>(),
+    kSerializer<In>(),
+    kSerializer<Out>(),
     fn
 )

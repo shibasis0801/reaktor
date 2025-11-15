@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.graph.service
 
-import dev.shibasis.reaktor.core.framework.KSerializer
+import dev.shibasis.reaktor.core.framework.kSerializer
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.HttpClient
@@ -71,12 +71,12 @@ inline fun <reified In : Request, reified Out: Response> Service.server(
     factory: RequestHandler.Factory,
     endpoint: String,
     noinline block: RequestHandlerBlock<In, Out>
-) = server(factory, endpoint, KSerializer<In>(), KSerializer<Out>(), block)
+) = server(factory, endpoint, kSerializer<In>(), kSerializer<Out>(), block)
 
 inline fun <reified In : Request, reified Out: Response> Service.client(
     factory: RequestHandler.Factory,
     endpoint: String,
-) = client(factory, endpoint, KSerializer<In>(), KSerializer<Out>())
+) = client(factory, endpoint, kSerializer<In>(), kSerializer<Out>())
 
 inline fun <reified In: Request, reified Out: Response> Service.GetHandler(
     endpoint: String,

@@ -24,4 +24,4 @@ inline fun JsonObject.copy(
     fn: MutableMap<String, JsonElement>.() -> Unit
 ) = JsonObject(toMutableMap().apply(fn))
 
-inline fun<reified T> KSerializer() = json.serializersModule.serializer<T>()
+inline fun<reified T> kSerializer() = json.serializersModule.serializer<T>()

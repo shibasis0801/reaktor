@@ -9,15 +9,15 @@
 * A small **service layer** for type-safe HTTP clients/servers (Ktor-based).
 * Multiplatform packaging for **Android, iOS (CocoaPods), JVM, JS/React, TypeScript**.
 
-This module is the core that powers `navigation` (Compose + React navigation) and `graph` (general graph runtime).
+This module, `reaktor-graph`, provides the core runtime (`Graph`, `Node`, `Port`) and a concrete navigation system (`Navigator`, `ComposeNode`, `ReactNode`) built on top of it.
 
 > ⚠️ **Status:** Experimental / WIP. APIs may change.
 
----
+-----
 
 ## High-level Navigation Vocabulary
 
-Original mental model (from the rough README):
+Original mental model:
 
 * **Screen**
   Renders a `Composable` (or React component) at a unique path.
@@ -35,11 +35,11 @@ Original mental model (from the rough README):
 
 This model is implemented *on top of* the core graph primitives:
 
-* Screens ≈ `StatefulNode<Props, State>` with `ComposeContent` / `ReactContent`.
+* Screens ≈ `StatefulNode<State, Binding>` with `ComposeContent` / `ReactContent`.
 * Switch/Container ≈ Nodes that own one or more `ObservableStack`s and render graphs.
-* Navigator ≈ a `LogicNode` that interprets `NavCommand` and mutates stacks.
+* Navigator ≈ A `Graph` that implements `NavigationCapability` (or a `LogicNode`) that interprets `NavCommand` and mutates stacks.
 
----
+-----
 
 ## Core Concepts
 
@@ -55,32 +55,31 @@ open class Graph(
     override val label: String = "",
     val configureDependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},
     builder: Graph.() -> Unit = {}
-)
+): NavigationCapability by NavigationCapabilityImpl()
 ```
 
 A `Graph`:
 
 * Is a **scope** for:
-
-   * Nodes (navigation, logic, UI, services…)
-   * Dependency injection
-   * Concurrency (coroutine scope)
-   * Lifecycle
+    * Nodes (navigation, logic, UI, services…)
+    * Dependency injection
+    * Concurrency (coroutine scope)
+    * Lifecycle
+* Implements `NavigationCapability`, providing a `dispatch(NavCommand)` method and an `activeStack`.
 * Owns a `linkedMapOf<Uuid, Node>` and attaches/detaches nodes with lifecycle transitions:
+    * `Created → Restoring → Attaching → Saving → Destroying`
 
-   * `Created → Restoring → Attaching → Saving → Destroying`
-
-Helper DSL:
+Helper DSL (from `util.kt`):
 
 ```kotlin
 @JsExport fun Graph.graph(graph: Graph) = GraphNode(graph, this)
-@JsExport fun Graph.logic(fn: Graph.() -> LogicNode) = fn()
-@JsExport fun <Props: Parameters> Graph.route(pattern: String, initialProps: Props) =
+@JsExport fun Graph.logic(fn: Graph.(LogicNode) -> Unit) = LogicNode(this) { fn(it) }
+@JsExport fun<Props: Props> Graph.route(pattern: String, initialProps: Props) =
+    // This is a simplified helper; the real RouteNode is abstract
     RouteNode(this, pattern.toRoutePattern(), initialProps)
-@JsExport fun <Props: Parameters, State> Graph.node(fn: Graph.() -> StatefulNode<Props, State>) = fn()
 ```
 
----
+-----
 
 ### Node = Actor
 
@@ -91,9 +90,8 @@ sealed class Node(
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     override val id: Uuid = Uuid.random(),
     override val label: String = "",
-) :
-    Unique,
-    Visitable,
+):
+    Unique, Visitable,
     LifecycleCapability by LifecycleCapabilityImpl(),
     PortCapability by PortCapabilityImpl(graph.coroutineScope.coroutineContext),
     ConcurrencyCapability by ConcurrencyCapabilityImpl(graph.coroutineScope.coroutineContext, dispatcher)
@@ -104,46 +102,73 @@ Node types:
 * `LogicNode`
   Stateless behavior (navigation, orchestration, controllers).
 
-* `StatefulNode<Props : Parameters, State>`
-  Holds a `MutableStateFlow<State>` and a `RouteBinding<Props>`.
+* `StatefulNode<State, Binding: RouteBinding<out Props>>`
+  Holds a `MutableStateFlow<State>` and requires a `RouteBinding`.
 
-* `RouteNode<Props : Parameters>`
-  Binds a route pattern (`RoutePattern`) to `props: StateFlow<Props>`.
+* `RouteNode<P: Props, Binding: RouteBinding<P>>`
+  Binds a route pattern (`RoutePattern`) to `props` (via its `Binding`).
+  Provides a `NavBinding<P>` for `NavigationEdge`s to connect to.
   Think: “route definition” that other nodes consume.
 
 * `GraphNode`
   Embeds a child `Graph` inside a parent graph (nesting).
 
-> Comment in code: *“A node is an Actor.”*
-> They have their own concurrency context and lifecycle, and they communicate via ports.
+> A node is an Actor. They have their own concurrency context and lifecycle, and they communicate via ports.
 
----
+-----
 
-### Parameters & NavCommand
+### Navigation Primitives (Props & NavCommand)
+
+This is the core navigation contract, defined in `Navigator.kt`.
 
 ```kotlin
 @JsExport
 @Serializable
-open class Parameters(
+open class Props(
     val routeParams: HashMap<String, String> = hashMapOf()
 )
 
 @JsExport
-sealed class NavCommand {
-    data class Push(val target: RouteNode<out Parameters>, val props: Parameters) : NavCommand()
-    data class Replace(val target: RouteNode<out Parameters>, val props: Parameters) : NavCommand()
-    object Pop : NavCommand()
-    object PopToRoot : NavCommand()
+data class BackStackEntry<P: Props, R>(
+    val edge: NavigationEdge<P>,
+    val props: P,
+    val result: CompleTableDeferred<R> = CompletableDeferred()
+): Unique by UniqueImpl()
+
+@JsExport
+sealed interface NavCommand {
+    sealed interface Forward<P: Props, R>: NavCommand {
+        val entry: BackStackEntry<P, R>
+    }
+
+    sealed interface Back<R>: NavCommand {
+        val value: R
+    }
+
+    class Push<P: Props, R>(
+        override val entry: BackStackEntry<P, R>
+    ): Forward<P, R>
+
+    class Replace<P: Props, R>(
+        override val entry: BackStackEntry<P, R>
+    ): Forward<P, R>
+
+    class Return<R>(
+        override val value: R
+    ): Back<R>
+
+    object Pop: Back<Unit> {
+        override val value = Unit
+    }
 }
 ```
 
-This is the minimal navigation contract:
+* Every route carries typed `Props`.
+* Navigation is expressed as `NavCommand` (Push, Replace, Return, Pop).
+* A `Graph` (or other `NavigationCapability`) interprets these commands and manipulates the `activeStack: ObservableStack<BackStackEntry<*, *>>`.
+* `Push` and `Replace` can carry a `CompletableDeferred` for screen results, which is completed by `Return`.
 
-* Every route carries typed `Parameters`.
-* Navigation is expressed as `NavCommand` (push/replace/pop/popToRoot).
-* A future `Navigator` node interprets these commands and manipulates stacks (`ObservableStack`).
-
----
+-----
 
 ## Ports & Edges (Contracts Between Nodes)
 
@@ -152,18 +177,14 @@ Ports are how nodes talk to each other via typed contracts.
 ```kotlin
 @JsExport data class Key(val key: String)
 @JsExport data class Type(val type: String, val kClass: KClass<*>? = null)
-
-@JsExport
-data class KeyType(val key: Key, val type: Type)
+@JsExport data class KeyType(val key: Key, val type: Type)
 
 @JsExport
 sealed class Port<Functionality : Any>(
     val owner: PortCapability,
     val key: Key,
     val type: Type
-) : Visitable {
-    val node: Node get() = owner as Node
-}
+) : Visitable
 ```
 
 Two flavors:
@@ -172,14 +193,11 @@ Two flavors:
 @JsExport
 class ProviderPort<Functionality : Any>(/* … */) : Port<Functionality>(/* … */) {
     val impl: Functionality
-    override fun isConnected() = edges.isNotEmpty()
 }
 
 @JsExport
 class RequirerPort<Functionality : Any>(/* … */) : Port<Functionality>(/* … */) {
     val functionality: Functionality?
-        get() = edge?.provider?.impl
-
     inline operator fun <R> invoke(fn: Functionality.() -> R): R
 }
 ```
@@ -190,6 +208,8 @@ Ports live on any `PortCapability` (all nodes):
 inline fun <reified Functionality : Any> PortCapability.provides(impl: Functionality)
 inline fun <reified Functionality : Any> PortCapability.requires()
 ```
+
+### Edges
 
 Edges connect compatible ports:
 
@@ -203,22 +223,72 @@ open class Edge<Contract : Any>(
 )
 ```
 
-Connect helpers:
+`NavigationEdge` is a specialized `Edge` for navigation:
 
 ```kotlin
-fun <C : Any> connect(requirerPort: RequirerPort<C>, providerPort: ProviderPort<C>): Result<Unit>
-
-@JsExport @JsName("connectPort")
-fun connectPort(requirerPort: RequirerPort<Any>, providerPort: ProviderPort<Any>)
+@JsExport
+class NavigationEdge<P: Props>(
+    val start: RouteNode<*, *>,
+    val end: RouteNode<P, out RouteBinding<P>>
+): Edge<NavBinding<P>>(
+    start,
+    start.registerRequirer<NavBinding<P>>(end.id.toString()),
+    end,
+    end.navBinding
+)
 ```
 
-> Use case:
->
-> * View nodes require `BottomNavigation.Controller`.
-> * A logic node provides it.
-> * `connect` wires them at runtime, and the consumer calls `controller { select("home") }`.
+### Example: Navigation via Ports
 
----
+This example from `Edge.kt` shows how a `HomeRoute` (a `RouteNode`) defines its navigation options as `NavigationEdge`s, which are then used by a `HomeNode` (a `StatefulNode`) to dispatch `NavCommand`s.
+
+```kotlin
+// 1. Define bindings and route nodes
+interface HomeBinding: RouteBinding<HomeProps> {
+    val chatEdge: NavigationEdge<ChatProps>
+    val onboardingEdge: NavigationEdge<OnboardingProps>
+}
+
+class HomeRoute(
+    graph: Graph,
+    chatRoute: RouteNode<ChatProps, *>,
+    onboardingRoute: RouteNode<OnboardingProps, *>
+): RouteNode<HomeProps, HomeBinding>(graph, "/home"), HomeBinding {
+    override val props = MutableStateFlow(HomeProps())
+    override val chatEdge = navigationEdge(chatRoute)
+    override val onboardingEdge = navigationEdge(onboardingRoute)
+    override val routeBinding by provides<HomeBinding>(this)
+}
+
+// 2. Define a screen node that consumes the binding
+class HomeNode(graph: Graph): StatefulNode<Unit, HomeBinding>(graph) {
+    override val state = MutableStateFlow(Unit)
+    override val routeBinding by requires<HomeBinding>()
+
+    init {
+        // 3. Connect HomeNode and HomeRoute (e.g., in the Graph builder)
+        // connect(this, homeRouteNode)
+
+        // 4. Use the binding to navigate
+        routeBinding {
+            // Get a deferred for the result of onboarding
+            val result = CompletableDeferred<String>()
+            navigate(NavCommand.Push(onboardingEdge, OnboardingProps(), result))
+
+            // Navigate to chat (fire and forget)
+            navigate(NavCommand.Push(chatEdge, ChatProps()))
+
+            // Wait for the onboarding result
+            launch {
+                val onboardingResult = result.await()
+                // ... do something with result
+            }
+        }
+    }
+}
+```
+
+-----
 
 ## Lifecycle
 
@@ -240,24 +310,22 @@ sealed class Lifecycle {
 
 `Graph` drives this by calling `transition(next)` on nodes when its own lifecycle changes.
 
----
+-----
 
 ## Dependency Injection Scopes
 
 All DI is abstracted through `DependencyAdapter`.
 
 ```kotlin
-abstract class DependencyAdapter<Controller>(controller: Controller) :
-    Adapter<Controller>(controller) {
-
+abstract class DependencyAdapter<Controller>(controller: Controller) {
     interface ScopeBuilder {
-        fun <T : Any> factory(type: KClass<T>, qualifier: String? = null, definition: DependencyScopeCapability.() -> T)
-        fun <T : Any> singleton(type: KClass<T>, qualifier: String? = null, definition: DependencyScopeCapability.() -> T)
+        fun <T : Any> factory(type: KClass<T>, /* ... */)
+        fun <T : Any> singleton(type: KClass<T>, /* ... */)
     }
 
-    abstract fun createScope(id: String, parent: DependencyScopeCapability? = null, configure: (ScopeBuilder.() -> Unit) = {}): DependencyScopeCapability
+    abstract fun createScope(/* ... */): DependencyScopeCapability
     abstract fun closeScope(scope: DependencyScopeCapability)
-    abstract fun <T : Any> get(scope: DependencyScopeCapability, type: KClass<T>, qualifier: String? = null, parameters: Map<String, Any?> = emptyMap()): T
+    abstract fun <T : Any> get(scope: DependencyScopeCapability, /* ... */): T
 }
 ```
 
@@ -296,18 +364,18 @@ class SpringDependencyAdapter(
 * Beans are dynamically registered and cleaned up when the graph scope closes.
 * Plays nicely with `@Autowired` and normal Spring wiring.
 
----
+-----
 
 ## UI Integration
 
 ### Compose
 
-`ComposeNode<Props, State>` ties a `StatefulNode` to Compose:
+`ComposeNode` ties a `StatefulNode` to Compose:
 
 ```kotlin
-abstract class ComposeNode<Props : Parameters, State>(
+abstract class ComposeNode<State, Binding: RouteBinding<out Props>>(
     graph: Graph
-) : StatefulNode<Props, State>(graph), ComposeContent {
+): StatefulNode<State, Binding>(graph), ComposeContent {
     @Composable
     abstract fun Content(content: @Composable () -> Unit = {})
 }
@@ -316,8 +384,10 @@ abstract class ComposeNode<Props : Parameters, State>(
 Back handling per platform:
 
 * `androidMain` → `BackHandler` from `activity-compose`.
-* `iosMain` → edge-swipe to go back.
+* `iosMain` → edge-swipe to go back (via `detectHorizontalDragGestures`).
 * `jvmMain` / `jsMain` → simple `Box` wrapper (no back).
+
+<!-- end list -->
 
 ```kotlin
 @Composable
@@ -336,7 +406,8 @@ Used for back stacks in containers:
 ```kotlin
 class ObservableStack<T>(initialTop: T? = null) {
     val top = MutableStateFlow(initialTop)
-    private val stack = ArrayDeque<T>()
+    val size: Int
+    val entries: List<T>
 
     fun push(value: T)
     fun replace(value: T)
@@ -352,11 +423,11 @@ There are extensive tests in `ObservableStackTest.kt`.
 `BottomNavigation` + `BottomNavigationStateful` implement a multi-stack container with a Material 3 bottom bar:
 
 ```kotlin
+// LogicNode that holds the tab state
 class BottomNavigation(
     graph: Graph,
     initialState: State
-) : LogicNode(graph) {
-
+): LogicNode(graph) {
     interface Controller {
         fun select(key: String)
         val state: StateFlow<State>
@@ -370,11 +441,35 @@ class BottomNavigation(
 
     val controller by provides<Controller>(/* … */)
 }
+
+// ComposeNode that renders the Scaffold and tabs
+open class BottomNavigationStateful<Props: Props>(
+    graph: Graph,
+    initialState: BottomNavigation.State
+): ComposeNode<Props, BottomNavigation.State>(graph) {
+    // Requires the controller from the LogicNode
+    val controller by requires<BottomNavigation.Controller>()
+
+    // Registers a requirer port for each tab
+    init {
+        initialState.options.forEach { (key, value) ->
+            registerRequirer<Content>(key) // Content is a ComposeContent interface
+        }
+    }
+
+    // Renders the Scaffold + NavigationBar
+    @Composable
+    override fun Content(content: @Composable (() -> Unit)) = themed {
+        // ... renders Scaffold, NavigationBar
+        // ... gets the currently selected tab's content
+        val consumer = remember(navState) { getRequirer<Content>(navState.selected) }
+        // ... renders the content
+        consumer?.functionality?.Content {}
+    }
+}
 ```
 
-A `ComposeNode` consumes the controller and renders `Scaffold + NavigationBar`, wiring each tab to a child `Content` via ports.
-
----
+-----
 
 ## React / JS Integration
 
@@ -382,11 +477,12 @@ A `ComposeNode` consumes the controller and renders `Scaffold + NavigationBar`, 
 
 ```kotlin
 @JsExport
-open class ReactNode<Props : Parameters, State>(
+abstract class ReactNode<P: Props, State, Binding: RouteBinding<P>>(
     graph: Graph,
-    val build: (node: ReactNode<Props, State>) -> State,
-    val render: (node: ReactNode<Props, State>) -> ReactNode?
-) : StatefulNode<Props, State>(graph), ReactContent {
+    val build: (node: ReactNode<P, State, Binding>) -> State,
+    val render: (node: ReactNode<P, State, Binding>) -> ReactNode? // ReactNode from 'react'
+): StatefulNode<State, Binding>(graph), ReactContent {
+
     override val state = MutableStateFlow(build(this))
 
     fun useNodeState(): StateInstance<State> = state.toReactState()
@@ -399,29 +495,30 @@ Helpers:
 
 ```kotlin
 @JsExport
-fun <Props : Parameters, State> ViewNode(
-    build: (node: ReactNode<Props, State>) -> State,
-    render: (node: ReactNode<Props, State>) -> ReactNode?
-) = { graph: Graph -> ReactNode(graph, build, render) }
-
-@JsExport
 fun Logic(build: (logic: LogicNode) -> Unit) = { graph: Graph -> LogicNode(graph, build) }
 ```
 
-`WindowSize` and `useWindowSize()` in JS give adaptive layout info (width/height classes) based on Material guidelines.
+`WindowSize` and `useWindowSize()` in JS give adaptive layout info (width/height classes) based on Material guidelines, using a `MutableStateFlow` bridged to a React state.
 
 ### TypeScript / Karakum bridge
 
 * `ts/package.json` + `ts/tsconfig.json` + `ts/karakum.config.json` define a TS build.
+* `karakum` generates Kotlin bindings for TS classes like `Greeter` (from `ts/karakum.ts`).
+* `ts/index.ts` augments the exported `Node` prototype and re-exports everything from the JS library:
+  ```typescript
+  // ts/index.ts
+  declare module "reaktor-reaktor-navigation" {
+      interface Node {
+          getContract<Contract>(keyType: KeyType): Optional<Contract>;
+      }
+  }
 
-* `karakum` generates Kotlin bindings for TS classes like `Greeter`:
+  Node.prototype.getContract = function<Contract>(keyType: KeyType) {
+      return this.getConsumer<Contract>(keyType)?.contract;
+  }
+  ```
 
-   * TS: `ts/karakum.ts`
-   * Generated Kotlin: `ts/import/karakum.kt`
-
-* `ts/index.ts` augments `Node` with `getContract` and re-exports everything from the JS library.
-
----
+-----
 
 ## HTTP Service Layer
 
@@ -435,7 +532,7 @@ open class Request(
     @Transient open val headers: MutableMap<String, String> = mutableMapOf(),
     @Transient open val queryParams: MutableMap<String, String> = mutableMapOf(),
     @Transient open val pathParams: MutableMap<String, String> = mutableMapOf(),
-    @Transient open val environment: Environment = Environment.STAGE
+    // ...
 )
 
 @Serializable @JsExport
@@ -454,8 +551,7 @@ typealias RequestHandlerBlock<In, Out> =
 @JsExport
 sealed class RequestHandler<In : Request, Out : Response>(/* … */) {
     val routePattern = RoutePattern.from(route)
-
-    inline fun url(request: In, vararg extraPathParams: Pair<String, String>): String
+    inline fun url(request: In, /* ... */): String
 }
 ```
 
@@ -469,61 +565,36 @@ abstract class Service(
     baseUrl: String = "",
     val httpClient: HttpClient = http
 ) {
-    val handlers = arrayListOf<RequestHandler<*, *>>()
-    val baseUrl: String = baseUrl.trimEnd('/')
-
+    // Defines a server-side endpoint
     fun <In : Request, Out : Response> server(
         factory: RequestHandler.Factory,
         endpoint: String,
-        requestSerializer: KSerializer<In>,
-        responseSerializer: KSerializer<Out>,
+        // ... serializers
         block: RequestHandlerBlock<In, Out>
     )
 
+    // Defines a client-side implementation
     fun <In : Request, Out : Response> client(
         factory: RequestHandler.Factory,
         route: String,
-        requestSerializer: KSerializer<In>,
-        responseSerializer: KSerializer<Out>
+        // ... serializers
     ): RequestHandler<In, Out>
 }
-```
-
-Kotlin helpers:
-
-```kotlin
-inline fun <reified In : Request, reified Out : Response> Service.GetHandler(endpoint: String)
-inline fun <reified In : Request, reified Out : Response> Service.PostHandler(endpoint: String)
-// … Put/Delete variants
-```
-
-JS helpers wrap handlers into `Promise`s:
-
-```kotlin
-fun <In : Request, Out : Response> RequestHandler<In, Out>.promised(request: In): Promise<Out>
-
-fun <In : Request, Out : Response> handler(
-    method: HttpMethod,
-    route: String,
-    requestSerializer: KSerializer<In>,
-    responseSerializer: KSerializer<Out>,
-    handler: (In) -> Promise<Out>
-): RequestHandler<In, Out>
 ```
 
 This allows *the same* service definition to be reused:
 
 * On the **server** (e.g., Ktor routing).
 * On the **client** (Ktor / JS fetch / etc.).
-* In **JS/TS** through promises.
+* In **JS/TS** through promise-based helpers (`promised`, `handler`).
 
----
+-----
 
 ## Traversal & Visualization
 
 The `visitor` package lets you traverse graphs for introspection, tooling, or visualization.
 
-* `Selector`: decides adjacency (structural, routing, connectivity).
+* `Selector`: decides adjacency (Structural, Routing, Connectivity).
 * `DepthFirstTraverser`, `BreadthFirstTraverser`.
 * `HierarchyVisitor`: turns a graph into a nested `Map<String, Any>` with `"element"` and `"children"` entries (easy to convert to JSON or feed into React Flow).
 
@@ -533,69 +604,76 @@ You can build:
 * Dependency graphs.
 * Visualization for debugging or UE5-style blueprint editors.
 
----
+-----
 
 ## Roadmap / Alignment with Requirements
 
-From the original requirements (and partially implemented):
+1.  **Navigation Graph**
 
-1. **Navigation Graph**
+    * `Graph` + `RouteNode` + `StatefulNode` + `Ports` + `Visitor`.
 
-   * Graph + RouteNode + StatefulNode + Ports + Visitor.
+2.  **Back Stack**
 
-2. **Back Stack**
+    * `ObservableStack`, containers (e.g. `BottomNavigation`), and `NavigationCapability` logic.
 
-   * `ObservableStack`, containers (e.g. `BottomNavigation`), and future `Navigator` logic.
+3.  **Deep Linking**
 
-3. **Deep Linking**
+    * `RoutePattern` + `Props` + `NavCommand.Push`.
+    * URL parsing & integration sits on top of this.
 
-   * `RoutePattern` + `Parameters` + `NavCommand.Push/Replace`.
-   * URL parsing & integration sits on top of this.
+4.  **Cross-Platform Views**
 
-4. **Cross-Platform Views**
+    * Compose: Android / iOS / JVM.
+    * React: JS/TS bindings and ReactNode.
 
-   * Compose: Android / iOS / JVM.
-   * React: JS/TS bindings and ReactNode.
+5.  **Cross-Platform Screens**
 
-5. **Cross-Platform Screens**
+    * Same node graph drives both Compose and React with shared business logic & DI.
 
-   * Same node graph drives both Compose and React with shared business logic & DI.
+6.  **Back Handler**
 
-6. **Back Handler**
+    * Implemented per platform via `BackHandlerContainer` + `ObservableStack`.
 
-   * Implemented per platform via `BackHandlerContainer` + `ObservableStack`.
-
----
+-----
 
 ## CocoaPods / Mobile Integration
 
-Two pods are exposed:
+Two pods are exposed, `reaktor_graph` and `reaktor_navigation`, from their respective `.podspec` files. They ship KMP frameworks through a standard configuration.
 
-* `reaktor_graph`
-* `reaktor_navigation`
-
-They ship KMP frameworks through:
+Example (`reaktor_graph.podspec`):
 
 ```ruby
-spec.vendored_frameworks = 'build/cocoapods/framework/reaktor_graph.framework'
-spec.libraries           = 'c++'
-spec.ios.deployment_target = '13'
-spec.script_phases = [ /* Gradle syncFramework invocation */ ]
-spec.resources = ['build/compose/cocoapods/compose-resources']
+Pod::Spec.new do |spec|
+    spec.name               = 'reaktor_graph'
+    spec.version            = '1.0'
+    # ...
+    spec.vendored_frameworks = 'build/cocoapods/framework/reaktor_graph.framework'
+    spec.libraries           = 'c++'
+    spec.ios.deployment_target = '13'
+    # ...
+    spec.pod_target_xcconfig = {
+        'KOTLIN_PROJECT_PATH' => ':reaktor-graph',
+        'PRODUCT_MODULE_NAME' => 'reaktor_graph',
+    }
+    spec.script_phases = [
+        {
+            :name => 'Build reaktor_graph',
+            :execution_position => :before_compile,
+            :shell_path => '/bin/sh',
+            :script => <<-SCRIPT
+                # ... calls ../gradlew :reaktor-graph:syncFramework
+            SCRIPT
+        }
+    ]
+    spec.resources = ['build/compose/cocoapods/compose-resources']
+end
 ```
 
-The script phases call:
-
-```sh
-"$REPO_ROOT/../gradlew" -p "$REPO_ROOT" $KOTLIN_PROJECT_PATH:syncFramework \
-  -Pkotlin.native.cocoapods.platform=$PLATFORM_NAME \
-  -Pkotlin.native.cocoapods.archs="$ARCHS" \
-  -Pkotlin.native.cocoapods.configuration="$CONFIGURATION"
-```
+The `reaktor_navigation.podspec` file is identical, targeting the `:reaktor-navigation` Gradle project.
 
 This keeps the frameworks up to date during `pod install` / Xcode builds.
 
----
+-----
 
 ## Testing
 
@@ -604,12 +682,8 @@ Currently:
 * `ObservableStackTest` validates stack semantics and `top` flow behavior.
 * More tests are expected around navigation graphs, DI scopes, and service wiring.
 
----
+-----
 
 ## License
 
 > TODO: add license information.
-
----
-
-You can tweak tone/details, but this should be a solid, code-accurate README shaped by your original Screen/Switch/Container/Navigator model.

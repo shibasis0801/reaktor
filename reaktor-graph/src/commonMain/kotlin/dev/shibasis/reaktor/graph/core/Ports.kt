@@ -158,7 +158,7 @@ fun <Functionality: Any> PortCapability.getProvider(key: Key, type: Type): Provi
         .getOrPut(type) { linkedMapOf() }
         .get(key) as? ProviderPort<Functionality>
 }
-inline fun <reified Functionality: Any> PortCapability.registerProvider(key: String, impl: Functionality): ProviderPort<Functionality> {
+inline fun <reified Functionality: Any> PortCapability.registerProvider(key: String = "", impl: Functionality): ProviderPort<Functionality> {
     return registerProvider(Key(key), Type<Functionality>(), impl)
 }
 
@@ -168,7 +168,7 @@ inline fun <reified Functionality: Any> PortCapability.provides(impl: Functional
         ReadOnlyProperty { _, _ -> port }
     }
 
-inline fun <reified Functionality: Any> PortCapability.getProvider(key: String): ProviderPort<Functionality>? {
+inline fun <reified Functionality: Any> PortCapability.getProvider(key: String = ""): ProviderPort<Functionality>? {
     return getProvider(Key(key), Type<Functionality>())
 }
 
@@ -186,7 +186,7 @@ fun <Functionality: Any> PortCapability.getRequirer(key: Key, type: Type): Requi
         .get(key) as? RequirerPort<Functionality>
 }
 
-inline fun <reified Functionality: Any> PortCapability.registerRequirer(key: String): RequirerPort<Functionality> {
+inline fun <reified Functionality: Any> PortCapability.registerRequirer(key: String = ""): RequirerPort<Functionality> {
     return registerRequirer(Key(key), Type<Functionality>())
 }
 
@@ -196,6 +196,6 @@ inline fun <reified Functionality: Any> PortCapability.requires() =
         ReadOnlyProperty { _, _ -> port }
     }
 
-inline fun <reified Functionality: Any> PortCapability.getRequirer(key: String): RequirerPort<Functionality>? {
+inline fun <reified Functionality: Any> PortCapability.getRequirer(key: String = ""): RequirerPort<Functionality>? {
     return getRequirer(Key(key), Type<Functionality>())
 }

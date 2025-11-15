@@ -76,19 +76,21 @@ interface RouteBinding<P: Props> {
 
 @JsExport
 interface NavBinding<P: Props> {
+    @JsName("updateFn")
     fun update(fn: (P) -> P)
     fun update(props: Props) = update { props as P }
 }
 
 
 @JsExport
-abstract class RouteNode<P: Props, Binding: RouteBinding<P>>(
+abstract class RouteNode<P: Props>(
     graph: Graph,
     val pattern: RoutePattern
-): Node(graph) {
+): Node(graph), RouteBinding<P> {
+    @JsName("construct")
     constructor(graph: Graph, pattern: String): this(graph, RoutePattern.from(pattern))
 
-    abstract val routeBinding: ProviderPort<Binding>
+    abstract val routeBinding: ProviderPort<out RouteBinding<P>>
 
     val navBinding by provides<NavBinding<P>>(object: NavBinding<P> {
         override fun update(fn: (P) -> P) {
@@ -96,17 +98,18 @@ abstract class RouteNode<P: Props, Binding: RouteBinding<P>>(
         }
     })
 
-    fun navigate(navCommand: NavCommand) =
+    // llm -> What if the node is in another graph ?
+    override fun navigate(navCommand: NavCommand) =
         (graph as NavigationCapability).dispatch(navCommand)
 
 }
 
 @JsExport
-abstract class StatefulNode<State, Binding: RouteBinding<out Props>>(
+abstract class StatefulNode<State>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
-    abstract val routeBinding: RequirerPort<Binding>
+    abstract val routeBinding: RequirerPort<out RouteBinding<out Props>>
 }
 
 /*

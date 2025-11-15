@@ -40,8 +40,8 @@ open class Edge<Contract: Any>(
 
 @JsExport
 class NavigationEdge<P: Props>(
-    val start: RouteNode<*, *>,
-    val end: RouteNode<P, out RouteBinding<P>>
+    val start: RouteNode<*>,
+    val end: RouteNode<P>
 ): Edge<NavBinding<P>>(
     start,
     start.registerRequirer<NavBinding<P>>(end.id.toString()),
@@ -57,8 +57,8 @@ class NavigationEdge<P: Props>(
     }
 }
 
-fun <P: Props> RouteNode<*, *>.navigationEdge(
-    destination: RouteNode<P, out RouteBinding<P>>
+fun <P: Props> RouteNode<*>.navigationEdge(
+    destination: RouteNode<P>
 ) = NavigationEdge(this, destination)
 
 
@@ -75,11 +75,11 @@ interface HomeBinding: RouteBinding<HomeProps> {
 
 class HomeRoute(
     graph: Graph,
-    chatRoute: RouteNode<ChatProps, *>,
-    onboardingRoute: RouteNode<OnboardingProps, *>,
-    eventRoute: RouteNode<EventProps, *>
+    chatRoute: RouteNode<ChatProps>,
+    onboardingRoute: RouteNode<OnboardingProps>,
+    eventRoute: RouteNode<EventProps>
 ):
-    RouteNode<HomeProps, HomeBinding>(graph, "/home"),
+    RouteNode<HomeProps>(graph, "/home"),
     HomeBinding {
 
     override val props = MutableStateFlow(HomeProps())
@@ -93,15 +93,15 @@ class HomeRoute(
 
 class HomeNode(
     graph: Graph
-): StatefulNode<Unit, HomeBinding>(graph) {
+): StatefulNode<Unit>(graph) {
     override val state = MutableStateFlow(Unit)
     override val routeBinding by requires<HomeBinding>()
 
     init {
         routeBinding {
-            navigate(NavCommand.Push(chatEdge, ChatProps()))
+            navigate(Push(chatEdge, ChatProps()))
             val result = CompletableDeferred<String>()
-            navigate(NavCommand.Push(onboardingEdge, OnboardingProps(), result))
+            navigate(Push(onboardingEdge, OnboardingProps(), result))
 
             invoke<ConcurrencyCapability> {
                 launch {
