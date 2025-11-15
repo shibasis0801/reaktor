@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.LogicNode
 import dev.shibasis.reaktor.graph.core.Node
-import dev.shibasis.reaktor.graph.core.Parameters
 import dev.shibasis.reaktor.graph.core.connect
 import dev.shibasis.reaktor.graph.core.registerRequirer
 import dev.shibasis.reaktor.graph.core.requires
@@ -69,7 +68,7 @@ class BottomNavigation(
     })
 }
 
-open class BottomNavigationStateful<Props: Parameters>(
+open class BottomNavigationStateful<Props: dev.shibasis.reaktor.graph.core.Props>(
     graph: Graph,
     initialState: BottomNavigation.State
 ): ComposeNode<Props, BottomNavigation.State>(graph) {

@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.graph.ui
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.KeyType
 import dev.shibasis.reaktor.graph.core.LogicNode
-import dev.shibasis.reaktor.graph.core.Parameters
 import dev.shibasis.reaktor.graph.core.StatefulNode
 import js.internal.InternalApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +16,7 @@ interface ReactContent: View {
 }
 
 @JsExport
-open class ReactNode<Props: Parameters, State>(
+open class ReactNode<Props: dev.shibasis.reaktor.graph.core.Props, State>(
     graph: Graph,
     val build: (node: ReactNode<Props, State>) -> State,
     val render: (node: ReactNode<Props, State>) -> Component?
@@ -47,7 +46,7 @@ open class ReactNode<Props: Parameters, State>(
 
 
 @JsExport
-fun<Props: Parameters, State> ViewNode(
+fun<Props: dev.shibasis.reaktor.graph.core.Props, State> ViewNode(
     build: (node: ReactNode<Props, State>) -> State,
     render: (node: ReactNode<Props, State>) -> Component?
 ) = { graph: Graph -> ReactNode(graph, build, render) }

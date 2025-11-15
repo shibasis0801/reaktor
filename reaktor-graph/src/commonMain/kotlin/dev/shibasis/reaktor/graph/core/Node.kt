@@ -15,6 +15,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlin.uuid.Uuid
@@ -65,29 +67,51 @@ open class LogicNode(
     }
 }
 
+
 @JsExport
-class RouteNode<P: Parameters>(
-    graph: Graph,
-    val pattern: RoutePattern,
-    params: P,
-    val navEdges: Edge<Navigable<out Parameters>>
-): Node(graph), RouteBinding<P> {
-    val routeBinding by provides<RouteBinding<P>>(this)
-    val params = MutableStateFlow(params)
-    override fun paramFlow() = params
+interface RouteBinding<P: Props> {
+    val props: MutableStateFlow<P>
+    fun navigate(navCommand: NavCommand)
+}
+
+@JsExport
+interface NavBinding<P: Props> {
+    fun update(fn: (P) -> P)
+    fun update(props: Props) = update { props as P }
 }
 
 
-abstract class StatefulNode<Props: Parameters, State>(
+@JsExport
+abstract class RouteNode<P: Props, Binding: RouteBinding<P>>(
+    graph: Graph,
+    val pattern: RoutePattern
+): Node(graph) {
+    constructor(graph: Graph, pattern: String): this(graph, RoutePattern.from(pattern))
+
+    abstract val routeBinding: ProviderPort<Binding>
+
+    val navBinding by provides<NavBinding<P>>(object: NavBinding<P> {
+        override fun update(fn: (P) -> P) {
+            routeBinding.impl.props.update(fn)
+        }
+    })
+
+    fun navigate(navCommand: NavCommand) =
+        (graph as NavigationCapability).dispatch(navCommand)
+
+}
+
+@JsExport
+abstract class StatefulNode<State, Binding: RouteBinding<out Props>>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
-    val routeBinding by requires<RouteBinding<Props>>()
+    abstract val routeBinding: RequirerPort<Binding>
 }
 
 /*
 incomplete design.
-must mimic https://github.com/cloudflare/actors,
+must mimic https://github.com/cloudflare/actors (DurableObject wrapper),
 take inspiration from erlang/akka/orleans
 
 This would allow combining functionality from everywhere.
@@ -95,7 +119,7 @@ persistence through object-database/sqlite
 timers through workmanager/bgtaskscheduler/quartz/etc
 etc
 */
-class ActorNode<Message>(
+open class ActorNode<Message>(
     graph: Graph,
     dispatcher: CoroutineDispatcher = Dispatch.Default.coroutineDispatcher.limitedParallelism(1)
 ): Node(graph) {

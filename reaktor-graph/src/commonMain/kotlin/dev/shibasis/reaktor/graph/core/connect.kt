@@ -1,34 +1,31 @@
 package dev.shibasis.reaktor.graph.core
 
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
 import kotlin.js.JsExport
 import kotlin.js.JsName
 
 
-fun<C: Any> connect(requirerPort: RequirerPort<C>, providerPort: ProviderPort<C>): Result<Unit> {
-    if (requirerPort.type != providerPort.type)
-        return fail("Incompatible ports: consumer -> ${requirerPort.type}, provider -> ${providerPort.type}")
-
+fun<C: Any> connect(requirerPort: RequirerPort<C>, providerPort: ProviderPort<C>): Result<Edge<C>> {
+    if (requirerPort.type != providerPort.type) {
+        val error = "Incompatible ports: consumer -> ${requirerPort.type}, provider -> ${providerPort.type}"
+        Logger.e { error }
+        return fail(error)
+    }
 
     val source = requirerPort.owner
     val destination = providerPort.owner
 
-    val edge = Edge(
+    return succeed(Edge(
         source,
         requirerPort,
         destination,
         providerPort
-    )
-
-    requirerPort.edge = edge
-    providerPort.edges[requirerPort] = edge
-
-    requirerPort.owner.emit(PortEvent.Connected(requirerPort, providerPort))
-    providerPort.owner.emit(PortEvent.Connected(providerPort, requirerPort))
-
-    return succeed(Unit)
+    ))
 }
+
+fun<C: Any> connect(providerPort: ProviderPort<C>, requirerPort: RequirerPort<C>) = connect(requirerPort, providerPort)
 
 @JsExport
 @JsName("connectPort")
@@ -39,7 +36,7 @@ fun connectPort(requirerPort: RequirerPort<Any>, providerPort: ProviderPort<Any>
 fun connect(
     consumers: Map<Key, RequirerPort<Any>>,
     providers: Map<Key, ProviderPort<Any>>
-): Result<Unit> {
+): Result<List<Edge<Any>>> {
     if (
         consumers.size == 1 && providers.size == 1 &&
         consumers.values.first().type == providers.values.first().type
@@ -47,19 +44,20 @@ fun connect(
         return connect(
             consumers.values.first(),
             providers.values.first()
-        )
+        ).map { listOf(it) }
     }
 
-    consumers.keys
+    val edges = consumers.keys
         .intersect(providers.keys)
-        .forEach {
+        .mapNotNull {
             val consumer = consumers[it] as RequirerPort<Any>
             val provider = providers[it] as ProviderPort<Any>
             if (consumer.type == provider.type)
-                connect(consumer, provider)
+                connect(consumer, provider).getOrNull()
+            else null
         }
 
-    return succeed(Unit)
+    return succeed(edges)
 }
 
 private fun connectConsumerProvider(consumerNode: PortCapability, providerNode: PortCapability) {

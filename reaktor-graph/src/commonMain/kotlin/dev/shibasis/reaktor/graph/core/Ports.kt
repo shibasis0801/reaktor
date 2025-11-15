@@ -74,7 +74,6 @@ class RequirerPort<Functionality: Any>(
         return fn(functionality!!)
     }
 
-    @JsExport.Ignore
     suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R {
         require(isConnected()) { "Can't invoke functions through unconnected ports." }
         return fn(functionality!!)
@@ -90,6 +89,9 @@ class ProviderPort<Functionality: Any>(
     val edges: LinkedHashMap<RequirerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
 ): Port<Functionality>(owner, key, type) {
     override fun isConnected() = edges.isNotEmpty()
+
+    inline operator fun<R> invoke(fn: Functionality.() -> R): R = fn(impl)
+    suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R = fn(impl)
 }
 
 

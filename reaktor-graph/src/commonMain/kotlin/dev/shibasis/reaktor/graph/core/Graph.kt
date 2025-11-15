@@ -19,7 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
-
+// rooted graph
 @JsExport
 open class Graph(
     parentGraph: Graph? = null,
@@ -29,7 +29,7 @@ open class Graph(
     override val label: String = "",
     val configureDependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},
     builder: Graph.() -> Unit = {}
-) :
+):
     Unique,
     Visitable,
     LifecycleCapability by LifecycleCapabilityImpl(),
