@@ -10,8 +10,10 @@ import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlin.coroutines.CoroutineContext
+import kotlin.js.ExperimentalJsStatic
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import kotlin.js.JsStatic
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
@@ -33,8 +35,11 @@ data class Type(val type: String, val kClass: KClass<*>? = null) {
 
 @JsExport
 data class KeyType(val key: Key, val type: Type) {
-    @JsName("fromString")
-    constructor(key: String, type: String): this(Key(key), Type(type))
+    companion object {
+        @OptIn(ExperimentalJsStatic::class)
+        @JsStatic
+        operator fun invoke(key: String, type: String) = KeyType(Key(key), Type(type))
+    }
 }
 
 typealias TypedKeyedMap<Value> = MutableMap<Type, MutableMap<Key, Value>>
@@ -63,7 +68,7 @@ class RequirerPort<Functionality: Any>(
     key: Key,
     type: Type,
     var edge: Edge<Functionality>? = null
-): Port<Functionality>(owner, key, type) {
+): Port<Functionality>(owner, key, type), AutoCloseable {
     val functionality: Functionality?
         get() = edge?.provider?.impl
 
@@ -78,6 +83,11 @@ class RequirerPort<Functionality: Any>(
         require(isConnected()) { "Can't invoke functions through unconnected ports." }
         return fn(functionality!!)
     }
+
+    override fun close() {
+        edge?.provider?.edges?.remove(this)
+        edge = null
+    }
 }
 
 @JsExport
@@ -87,11 +97,16 @@ class ProviderPort<Functionality: Any>(
     type: Type,
     val impl: Functionality,
     val edges: LinkedHashMap<RequirerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
-): Port<Functionality>(owner, key, type) {
+): Port<Functionality>(owner, key, type), AutoCloseable {
     override fun isConnected() = edges.isNotEmpty()
 
     inline operator fun<R> invoke(fn: Functionality.() -> R): R = fn(impl)
     suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R = fn(impl)
+
+    override fun close() {
+        edges.keys.forEach { it.edge = null }
+        edges.clear()
+    }
 }
 
 

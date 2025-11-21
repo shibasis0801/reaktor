@@ -1,0 +1,17 @@
+{
+  "name": "reaktor-reaktor-io",
+  "version": "2025.11.22-SNAPSHOT",
+  "main": "reaktor-reaktor-io.mjs",
+  "types": "reaktor-reaktor-io.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "ws": "8.18.0",
+    "@js-joda/core": "3.2.0",
+    "format-util": "^1.0.5"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

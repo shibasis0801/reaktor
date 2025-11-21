@@ -18,8 +18,7 @@ import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.LogicNode
 import dev.shibasis.reaktor.graph.core.Node
-import dev.shibasis.reaktor.graph.core.Props
-import dev.shibasis.reaktor.graph.core.RequirerPort
+import dev.shibasis.reaktor.graph.core.Payload
 import dev.shibasis.reaktor.graph.core.RouteBinding
 import dev.shibasis.reaktor.graph.core.connect
 import dev.shibasis.reaktor.graph.core.registerRequirer
@@ -79,7 +78,7 @@ open class BottomNavigationLayout(
 
     }
 
-    override val routeBinding by requires<RouteBinding<Props>>()
+    override val routeBinding by requires<RouteBinding<Payload>>()
 
     override val state = MutableStateFlow(initialState)
 

@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import java.time.LocalDate
 
 plugins {
@@ -73,4 +76,16 @@ tasks.register("publishToMavenLocal") {
     group = "reaktor"
     dependsOn(gradle.includedBuild("dependeasy").task(":publishToMavenLocal"))
     dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishToMavenLocal") })
+}
+
+
+rootProject.plugins.withType(YarnPlugin::class.java) {
+    rootProject.extensions.configure(YarnRootExtension::class.java) {
+        // "FAIL" ensures CI breaks if the lockfile drifts, preventing phantom dependency issues.
+        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
+
+        // Set to FALSE on CI (via System.getenv("CI")) to ensure reproducible builds.
+        reportNewYarnLock = false
+        yarnLockAutoReplace = true
+    }
 }

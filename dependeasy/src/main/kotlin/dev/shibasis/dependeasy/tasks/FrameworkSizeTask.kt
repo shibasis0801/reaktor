@@ -71,6 +71,10 @@ private fun Task.logSizes(aarSize: Double, xcfSize: Double) {
     }
     val commitId = outputStream.toString().trim()
 
+    if (!csvFile.exists() || csvFile.length() == 0L) {
+        csvFile.writeText("date, commitId, aarSizeKb, xcfSizeKb\n")
+    }
+
     val dataLine = "$date, $commitId, $aarSize, $xcfSize\n"
     csvFile.appendText(dataLine)
     println("Built Android AAR and Apple XCFramework")

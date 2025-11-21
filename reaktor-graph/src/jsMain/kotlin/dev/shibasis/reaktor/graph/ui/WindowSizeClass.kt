@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.graph.ui
 
 import js.array.ReadonlyArray
 import kotlinx.browser.window
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.w3c.dom.Window
 import org.w3c.dom.events.Event
@@ -14,34 +15,6 @@ import react.useEffect
 import react.useMemo
 import react.useState
 import kotlin.js.unsafeCast
-
-// From Google docs on Adaptive Layouts
-
-@JsExport
-data class WindowSize(
-    val width: WindowWidthClass,
-    val height: WindowHeightClass
-) {
-    companion object: AutoCloseable {
-        @JsExport.Ignore
-        val state = MutableStateFlow(window.sizeClass())
-
-        private val callback = { e: Event -> state.value = window.sizeClass() }
-
-        override fun close() {
-            window.removeEventListener("resize", callback)
-        }
-
-        init {
-            window.addEventListener("resize", callback)
-        }
-    }
-
-    override fun toString(): String {
-        return "(width: ${width.name}, height: ${height.name})"
-    }
-}
-
 
 fun Window.widthClass() = when {
     innerWidth < 600 -> WindowWidthClass.COMPACT
@@ -102,8 +75,26 @@ fun<T> MutableStateFlow<T>.toReactState(): StateInstance<T> {
     return StateInstance(state, stateSetter)
 }
 
+fun getWindowSizeFlow(): MutableStateFlow<WindowSize> {
+    val state = MutableStateFlow(window.sizeClass())
+
+    val callback = { e: Event -> state.value = window.sizeClass() }
+
+    WindowSize.startListening(
+        {
+            window.addEventListener("resize", callback)
+            state
+        },
+        {
+            window.removeEventListener("resize", callback)
+        }
+    )
+
+    return WindowSize.state
+}
+
 @JsExport
 fun useWindowSize(): WindowSize {
-    val (state, _) = WindowSize.state.toReactState()
+    val (state, _) = getWindowSizeFlow().toReactState()
     return state
 }

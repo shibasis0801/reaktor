@@ -1,0 +1,17 @@
+{
+  "name": "reaktor-reaktor-cloudflare",
+  "version": "2025.11.22-SNAPSHOT",
+  "main": "reaktor-reaktor-cloudflare.mjs",
+  "types": "reaktor-reaktor-cloudflare.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "hono": "4.9.8",
+    "@js-joda/core": "3.2.0",
+    "format-util": "^1.0.5"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

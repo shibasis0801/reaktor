@@ -71,7 +71,7 @@ sealed class LoginResponse(
 
 
 abstract class AuthService: Service() {
-    abstract val login: RequestHandler<LoginRequest, LoginResponse>
+    abstract val login: PostHandler<LoginRequest, LoginResponse>
 }
 
 open class AuthServiceClient(baseUrl: String): AuthService() {

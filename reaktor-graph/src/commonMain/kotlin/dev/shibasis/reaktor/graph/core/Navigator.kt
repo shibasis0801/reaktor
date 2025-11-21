@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.graph.core
 
 import dev.shibasis.reaktor.core.capabilities.Capability
-import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.graph.capabilities.UniqueImpl
 import dev.shibasis.reaktor.graph.ui.ObservableStack
@@ -12,12 +11,12 @@ import kotlin.js.JsName
 
 @JsExport
 @Serializable
-open class Props(
+open class Payload(
     val routeParams: HashMap<String, String> = hashMapOf()
 )
 
 @JsExport
-data class BackStackEntry<P: Props, R>(
+data class BackStackEntry<P: Payload, R>(
     val edge: NavigationEdge<P>,
     val props: P,
     val result: CompletableDeferred<R> = CompletableDeferred()
@@ -37,7 +36,7 @@ data class BackStackEntry<P: Props, R>(
 sealed interface NavCommand
 
 @JsExport
-sealed interface Forward<P: Props, R>: NavCommand {
+sealed interface Forward<P: Payload, R>: NavCommand {
     val entry: BackStackEntry<P, R>
 }
 
@@ -46,31 +45,31 @@ sealed interface Back<R>: NavCommand {
     val value: R
 }
 @JsExport
-class Push<P: Props, R>(
+class Push<P: Payload, R>(
     override val entry: BackStackEntry<P, R>
 ): Forward<P, R> {
     companion object {
         @JsName("construct")
-        operator fun<P: Props, R> invoke(edge: NavigationEdge<P>, props: P, result: CompletableDeferred<R>)
+        operator fun<P: Payload, R> invoke(edge: NavigationEdge<P>, props: P, result: CompletableDeferred<R>)
                 = Push(BackStackEntry(edge, props, result))
 
         @JsName("construstUnit")
-        operator fun<P: Props> invoke(edge: NavigationEdge<P>, props: P)
+        operator fun<P: Payload> invoke(edge: NavigationEdge<P>, props: P)
                 = Push(BackStackEntry(edge, props, CompletableDeferred(Unit)))
     }
 }
 
 @JsExport
-class Replace<P: Props, R>(
+class Replace<P: Payload, R>(
     override val entry: BackStackEntry<P, R>
 ): Forward<P, R> {
     companion object {
         @JsName("construct")
-        operator fun<P: Props, R> invoke(edge: NavigationEdge<P>, props: P, result: CompletableDeferred<R>)
+        operator fun<P: Payload, R> invoke(edge: NavigationEdge<P>, props: P, result: CompletableDeferred<R>)
                 = Replace(BackStackEntry(edge, props, result))
 
         @JsName("constructUnit")
-        operator fun<P: Props> invoke(edge: NavigationEdge<P>, props: P)
+        operator fun<P: Payload> invoke(edge: NavigationEdge<P>, props: P)
                 = Replace(BackStackEntry(edge, props, CompletableDeferred(Unit)))
     }
 }

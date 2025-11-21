@@ -1,150 +1,115 @@
 package dev.shibasis.reaktor.io.network.websocket
 
+import co.touchlab.kermit.Logger
+import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
+import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
+import dev.shibasis.reaktor.core.framework.Async
+import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
+import io.ktor.client.plugins.websocket.WebSocketException
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.CloseReason
-import io.ktor.websocket.Frame
-import io.ktor.websocket.Frame.Close
-import io.ktor.websocket.Frame.Text
-import io.ktor.websocket.readText
-import kotlinx.coroutines.CompletableDeferred
+import io.ktor.websocket.close
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
-interface Logger {
-    operator fun invoke(message: String, error: Throwable? = null)
+sealed class ConnectionState {
+    data object Idle: ConnectionState()
+    data class Connecting(val url: String): ConnectionState()
+    data class Open(val session: DefaultClientWebSocketSession): ConnectionState()
+    data class Closing(val reason: CloseReason): ConnectionState()
+    data class Closed(val reason: CloseReason): ConnectionState()
+    data class Failed(val exception: Exception): ConnectionState()
 }
 
-typealias UrlProvider = suspend () -> String
+data class WebSocketOptions(
+    val connectionTimeout: Duration = 4.seconds,
+    val eager: Boolean = true,
+    val receiverReplay: Int = 0
+)
 
-enum class Status {
-    OPEN,
-    CLOSING,
-    CLOSED
-}
-
-open class WebSocket(
-    val httpClient: HttpClient,
-    protected var options: WebSocketOptions = WebSocketOptions(),
-    protected var urlProvider: UrlProvider,
-    protected var reconnectionStrategy: ReconnectionStrategy = ExponentialBackoffStrategy(),
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) {
-    val scope = CoroutineScope(dispatcher + SupervisorJob())
-
-    var status = Status.CLOSED
-        private set
-    val frames = MutableSharedFlow<Frame>()
-
-    // dont join with assignment, init is behaving weird
-    private val connectingMutex: Mutex
-    private val disconnectingMutex: Mutex
+class WebSocket(
+    var options: WebSocketOptions = WebSocketOptions(),
+    var urlProvider: suspend () -> String, // round-robin if needed, or whatever logic you need.
+    var reconnectionStrategy: ReconnectionStrategy = ExponentialBackoffStrategy(),
+    // A single-threaded dispatcher is created from this.
+    dispatcher: CoroutineDispatcher = Dispatchers.Async,
+    val httpClient: HttpClient = http
+): ConcurrencyCapability by ConcurrencyCapabilityImpl(dispatcher.limitedParallelism(1)) {
+    private val connection = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
+    val state: StateFlow<ConnectionState> = connection
 
     init {
-        connectingMutex = Mutex()
-        disconnectingMutex = Mutex()
-        if (!options.startClosed) {
-            scope.launch {
-                connect()
-            }
-        }
+        if (options.eager) launch { connect() }
     }
 
-    private var sessionDeferred = CompletableDeferred<DefaultClientWebSocketSession>()
-    suspend fun<T> withSession(fn: suspend DefaultClientWebSocketSession.() -> T) =
-        fn(sessionDeferred.await())
+    val sender = Sender(this)
+    val receiver = Receiver(this)
 
+    suspend fun connect() = withContext {
+        if (connection.value is ConnectionState.Open ||
+            connection.value is ConnectionState.Connecting) {
+            Logger.e("Invalid Connection State: ${connection.value}")
+            return@withContext
+        }
 
-    private var sendChannel = Channel<Frame>(options.maxEnqueuedMessages)
-
-    suspend fun connect(url: String? = null) {
-        connectingMutex.withLock {
-            if (status == Status.OPEN) return
-
-            sessionDeferred = CompletableDeferred()
-            try {
-                val session = httpClient.webSocketSession(url ?: urlProvider()) {
+        val url = urlProvider()
+        connection.value = ConnectionState.Connecting(url)
+        try {
+            connection.value = ConnectionState.Open(
+                httpClient.webSocketSession(url) {
                     timeout {
                         requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
                     }
-                }
-                status = Status.OPEN
-                sessionDeferred.complete(session)
-                onConnect()
+                })
+            reconnectionStrategy.reset()
+        } catch (e: Exception) {
+            connection.value = ConnectionState.Failed(e)
+        }
+    }
+
+    suspend fun disconnect(
+        reason: CloseReason = CloseReason(CloseReason.Codes.NORMAL, "")
+    ) = withContext {
+        if (connection.value is ConnectionState.Closed) return@withContext
+
+        val previousState = connection.value
+        connection.value = ConnectionState.Closing(reason)
+
+        if (previousState is ConnectionState.Open) {
+            try {
+                previousState.session.close(reason)
             } catch (e: Exception) {
-                onClose(Result.failure(e))
-            }
-
-        }
-    }
-
-    protected suspend fun onConnect() {
-        withSession {
-            scope.launch {
-                sendChannel.consumeEach {
-                    send(it)
-                }
-            }
-            scope.launch {
-                for (frame in incoming)
-                    if (status == Status.OPEN)
-                        frames.emit(frame)
-                onClose(Result.success(Unit))
+                Logger.w("Error during close", e)
             }
         }
+
+        connection.value = ConnectionState.Closed(reason)
     }
 
+    suspend fun reconnect(throwable: Throwable?, closeReason: CloseReason? = null) = withContext {
+        if (connection.value is ConnectionState.Closed) return@withContext
 
-    protected suspend fun onClose(closeResult: Result<Unit>) {
-        disconnectingMutex.withLock {
-            if (status == Status.CLOSED) return
+        while (reconnectionStrategy.shouldReconnect(throwable, closeReason)) {
+            reconnectionStrategy.wait()
+            if (connection.value is ConnectionState.Closed) return@withContext
 
-            status = Status.CLOSED
+            connect()
+            if (connection.value is ConnectionState.Open) return@withContext
+        }
 
-            // not withSession, because we call connect and it can cause a deadlock
-            sessionDeferred.await().apply {
-                val closeReason = if (closeResult.isSuccess) closeReason.await() else null
-                if (false && reconnectionStrategy.shouldReconnect(closeResult, closeReason)) {
-                    reconnectionStrategy.wait()
-                    connect()
-                }
+        if (connection.value !is ConnectionState.Closed) {
+            if (closeReason != null) {
+                connection.value = ConnectionState.Closed(closeReason)
+            } else {
+                connection.value = ConnectionState.Failed(RuntimeException(throwable?.message ?: "Reconnection Failure"))
             }
         }
-    }
-
-    suspend fun sendFrame(frame: Frame) {
-        sendChannel.send(frame)
-    }
-
-    suspend fun close(reason: CloseReason = CloseReason(CloseReason.Codes.NORMAL, "")) {
-        withSession {
-            status = Status.CLOSING
-            sendFrame(Close(reason))
-        }
-    }
-}
-
-suspend fun WebSocket.sendTextFrame(text: String) = sendFrame(Text(text))
-
-suspend fun WebSocket.onTextFrame(fn: suspend (String) -> Unit) = withSession {
-    scope.launch {
-        frames
-            .filter { it is Text }
-            .map { (it as Text).readText() }
-            .collect {
-                fn(it)
-            }
     }
 }

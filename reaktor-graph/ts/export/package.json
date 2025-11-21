@@ -1,11 +1,12 @@
 {
-  "name": "reaktor-reaktor-navigation",
-  "version": "2025.11.6-SNAPSHOT",
-  "main": "reaktor-reaktor-navigation.mjs",
-  "types": "reaktor-reaktor-navigation.d.mts",
-  "devDependencies": {},
+  "name": "reaktor-reaktor-graph",
+  "version": "2025.11.22-SNAPSHOT",
+  "main": "reaktor-reaktor-graph.mjs",
+  "types": "reaktor-reaktor-graph.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
   "dependencies": {
-    "typescript": "^5.9.2",
     "@js-joda/core": "3.2.0",
     "format-util": "^1.0.5",
     "ws": "8.18.0",

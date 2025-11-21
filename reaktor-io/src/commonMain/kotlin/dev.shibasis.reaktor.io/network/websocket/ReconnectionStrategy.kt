@@ -7,8 +7,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 interface ReconnectionStrategy {
-    suspend fun shouldReconnect(closeResult: Result<Unit>, closeReason: CloseReason? = null): Boolean
+    suspend fun shouldReconnect(throwable: Throwable? = null, closeReason: CloseReason? = null): Boolean
     suspend fun wait()
+    fun reset()
 }
 
 class ExponentialBackoffStrategy(
@@ -20,10 +21,9 @@ class ExponentialBackoffStrategy(
     private var waitTime = minDelay
     private var retries = 0
 
-    override suspend fun shouldReconnect(closeResult: Result<Unit>, closeReason: CloseReason?): Boolean {
+    override suspend fun shouldReconnect(throwable: Throwable?, closeReason: CloseReason?): Boolean {
         if (waitTime < maxDelay) {
-            waitTime = (waitTime * growFactor)
-                .coerceAtMost(maxDelay)
+            waitTime = (waitTime * growFactor).coerceAtMost(maxDelay)
         }
         retries++
         return retries < maxRetries
@@ -31,5 +31,10 @@ class ExponentialBackoffStrategy(
 
     override suspend fun wait() {
         delay(waitTime)
+    }
+
+    override fun reset() {
+        retries = 0
+        waitTime = minDelay
     }
 }

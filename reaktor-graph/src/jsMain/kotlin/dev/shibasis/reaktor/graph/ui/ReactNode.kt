@@ -1,10 +1,10 @@
 package dev.shibasis.reaktor.graph.ui
 
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.HomeBinding
 import dev.shibasis.reaktor.graph.core.KeyType
 import dev.shibasis.reaktor.graph.core.LogicNode
-import dev.shibasis.reaktor.graph.core.Props
-import dev.shibasis.reaktor.graph.core.RequirerPort
+import dev.shibasis.reaktor.graph.core.Payload
 import dev.shibasis.reaktor.graph.core.RouteBinding
 import dev.shibasis.reaktor.graph.core.StatefulNode
 import dev.shibasis.reaktor.graph.core.requires
@@ -22,13 +22,16 @@ interface ReactContent: View {
 
 // to be fixed
 @JsExport
-abstract class ReactNode<P: Props, State, Binding: RouteBinding<P>>(
+class ReactNode<State>(
     graph: Graph,
-    val build: (node: ReactNode<P, State, Binding>) -> State,
-    val render: (node: ReactNode<P, State, Binding>) -> Component?
+    val build: (node: ReactNode<State>) -> State,
+    val render: (node: ReactNode<State>) -> Component?
 ): StatefulNode<State>(graph), ReactContent {
     @JsExport.Ignore
     override val state = MutableStateFlow(build(this))
+
+    @JsExport.Ignore
+    override val routeBinding by requires<RouteBinding<*>>()
 
     init {
         @OptIn(InternalApi::class)
@@ -50,12 +53,11 @@ abstract class ReactNode<P: Props, State, Binding: RouteBinding<P>>(
 }
 
 
-
-//@JsExport
-//fun<Props: dev.shibasis.reaktor.graph.core.Props, State> ViewNode(
-//    build: (node: ReactNode<Props, State>) -> State,
-//    render: (node: ReactNode<Props, State>) -> Component?
-//) = { graph: Graph -> ReactNode(graph, build, render) }
+@JsExport
+fun<P: Payload, State> ViewNode(
+    build: (node: ReactNode<State>) -> State,
+    render: (node: ReactNode<State>) -> Component?
+) = { graph: Graph -> ReactNode(graph, build, render) }
 
 @JsExport
 fun Logic(

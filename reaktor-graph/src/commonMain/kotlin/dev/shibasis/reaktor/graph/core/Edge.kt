@@ -1,10 +1,12 @@
 @file:Suppress("UNCHECKED_CAST")
 package dev.shibasis.reaktor.graph.core
 
+import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.invoke
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.graph.capabilities.UniqueImpl
+import dev.shibasis.reaktor.graph.ui.ComposeNode
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +41,7 @@ open class Edge<Contract: Any>(
 }
 
 @JsExport
-class NavigationEdge<P: Props>(
+class NavigationEdge<P: Payload>(
     val start: RouteNode<*>,
     val end: RouteNode<P>
 ): Edge<NavBinding<P>>(
@@ -57,32 +59,33 @@ class NavigationEdge<P: Props>(
     }
 }
 
-fun <P: Props> RouteNode<*>.navigationEdge(
+@JsExport
+fun <P: Payload> RouteNode<*>.navigationEdge(
     destination: RouteNode<P>
 ) = NavigationEdge(this, destination)
 
 
-class HomeProps: Props()
-class ChatProps: Props()
-class OnboardingProps: Props()
-class EventProps: Props()
+class HomePayload: Payload()
+class ChatPayload: Payload()
+class OnboardingPayload: Payload()
+class EventPayload: Payload()
 
-interface HomeBinding: RouteBinding<HomeProps> {
-    val chatEdge: NavigationEdge<ChatProps>
-    val onboardingEdge: NavigationEdge<OnboardingProps>
-    val eventEdge: NavigationEdge<EventProps>
+interface HomeBinding: RouteBinding<HomePayload> {
+    val chatEdge: NavigationEdge<ChatPayload>
+    val onboardingEdge: NavigationEdge<OnboardingPayload>
+    val eventEdge: NavigationEdge<EventPayload>
 }
 
 class HomeRoute(
     graph: Graph,
-    chatRoute: RouteNode<ChatProps>,
-    onboardingRoute: RouteNode<OnboardingProps>,
-    eventRoute: RouteNode<EventProps>
+    chatRoute: RouteNode<ChatPayload>,
+    onboardingRoute: RouteNode<OnboardingPayload>,
+    eventRoute: RouteNode<EventPayload>
 ):
-    RouteNode<HomeProps>(graph, "/home"),
+    RouteNode<HomePayload>(graph, "/home"),
     HomeBinding {
 
-    override val props = MutableStateFlow(HomeProps())
+    override val props = MutableStateFlow(HomePayload())
     override val chatEdge = navigationEdge(chatRoute)
     override val onboardingEdge = navigationEdge(onboardingRoute)
     override val eventEdge = navigationEdge(eventRoute)
@@ -93,21 +96,28 @@ class HomeRoute(
 
 class HomeNode(
     graph: Graph
-): StatefulNode<Unit>(graph) {
+): ComposeNode<Unit>(graph) {
     override val state = MutableStateFlow(Unit)
     override val routeBinding by requires<HomeBinding>()
 
     init {
         routeBinding {
-            navigate(Push(chatEdge, ChatProps()))
+            navigate(Push(chatEdge, ChatPayload()))
             val result = CompletableDeferred<String>()
-            navigate(Push(onboardingEdge, OnboardingProps(), result))
+            navigate(Push(onboardingEdge, OnboardingPayload(), result))
 
             invoke<ConcurrencyCapability> {
                 launch {
                     val x = result.await()
                 }
             }
+        }
+    }
+
+    @Composable
+    override fun Content(content: @Composable (() -> Unit)) {
+        routeBinding {
+
         }
     }
 }

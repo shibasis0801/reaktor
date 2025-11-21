@@ -8,17 +8,20 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 
+// if your coroutines have infinite loops without any suspendcancellable blocks inside make sure you do.
 interface ConcurrencyCapability: Capability {
     val coroutineScope: CoroutineScope
     val coroutineDispatcher: CoroutineDispatcher
     fun cancel() = coroutineScope.cancel()
-    fun<Result> async(fn: suspend CoroutineScope.() -> Result) = coroutineScope.async { fn() }
+    fun<R> async(fn: suspend CoroutineScope.() -> R) = coroutineScope.async { fn() }
     fun launch(fn: suspend CoroutineScope.() -> Unit) = coroutineScope.launch { fn() }
-    suspend fun<Result> execute(fn: suspend () -> Result): Result = async { fn() }.await()
+    suspend fun<R> execute(fn: suspend () -> R): R = async { fn() }.await()
+    suspend fun<R> withContext(fn: suspend CoroutineScope.() -> R): R = withContext(coroutineDispatcher, fn)
 }
 
 
@@ -28,6 +31,7 @@ class ConcurrencyCapabilityImpl(
 ): ConcurrencyCapability {
     val supervisorJob = SupervisorJob()
 
+    //todo add CEH -> CoroutineExceptionHandler later
     override val coroutineScope: CoroutineScope = CoroutineScope(
         (context ?: EmptyCoroutineContext) +
                 coroutineDispatcher +
@@ -37,7 +41,6 @@ class ConcurrencyCapabilityImpl(
     override fun close() {
         coroutineScope.cancel(CancellationException("Reaktor:AutoCloseable"))
     }
-
 }
 
 

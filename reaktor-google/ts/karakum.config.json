@@ -1,0 +1,5 @@
+{
+  "input": "index.ts",
+  "output": "import",
+  "libraryName": "dev-shibasis-reaktor-google-karakum"
+}

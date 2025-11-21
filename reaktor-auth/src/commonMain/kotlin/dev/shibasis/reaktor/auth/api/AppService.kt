@@ -3,7 +3,13 @@ package dev.shibasis.reaktor.auth.api
 import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.core.network.StatusCode
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.LogicNode
+import dev.shibasis.reaktor.graph.core.connect
+import dev.shibasis.reaktor.graph.core.provides
+import dev.shibasis.reaktor.graph.core.requires
 import dev.shibasis.reaktor.graph.service.GetHandler
+import dev.shibasis.reaktor.graph.service.PostHandler
 import dev.shibasis.reaktor.graph.service.Request
 import dev.shibasis.reaktor.graph.service.Response
 import dev.shibasis.reaktor.graph.service.RequestHandler
@@ -24,10 +30,37 @@ sealed class AppResponse(
 
 
 abstract class AppService: Service() {
-    abstract val getAll: RequestHandler<Request, AppResponse>
-    abstract val getApp: RequestHandler<Request, AppResponse>
+    abstract val getAll: GetHandler<Request, AppResponse>
+    abstract val getApp: GetHandler<Request, AppResponse>
 }
 
 abstract class AppClient: AppService() {
     override val getApp = GetHandler<Request, AppResponse>("")
 }
+
+
+
+class First(
+    graph: Graph,
+    appService: AppService
+): LogicNode(graph) {
+    val getData by provides<AppService>(appService)
+}
+
+
+class Second(graph: Graph): LogicNode(graph) {
+    val getData by requires<AppService>()
+
+
+    init {
+        getData {
+            getApp
+        }
+    }
+}
+
+
+fun t(first: First, second: Second) {
+    connect(first, second)
+}
+

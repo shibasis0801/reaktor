@@ -13,6 +13,7 @@ import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
+import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,7 @@ import kotlin.uuid.Uuid
 open class Graph(
     parentGraph: Graph? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    dependencyAdapter: DependencyAdapter<*>,
+    dependencyAdapter: DependencyAdapter<*> = KoinDependencyAdapter(),
     override val id: Uuid = Uuid.random(),
     override val label: String = "",
     val configureDependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},

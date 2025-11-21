@@ -27,13 +27,6 @@ class DefaultTimestampProvider : TimestampProvider {
     override fun getTimestamp(): Long = Clock.System.now().toEpochMilliseconds()
 }
 
-/*
-1. Gemini -> https://gemini.google.com/app/11ff9fb0c1b8dbf0
-2. GPT -> https://chatgpt.com/c/679d4d1a-b424-8012-b0a3-a2eb75eaf967
-
-Kotlin like Java has Type Erasure, so you need to ensure you use the same type for crud operations.
-(we can't store it, probably through reified types, but ignore for now)
-*/
 abstract class ObjectDatabase(
     val objectSerializer: ObjectSerializer<*>,
     protected val cachePolicy: CachePolicy,

@@ -15,7 +15,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.js.JsExport
 import kotlin.js.JsName
@@ -43,6 +42,8 @@ sealed class Node(
     }
 
     override fun close() {
+        requirerPorts.flattenedValues().forEach { it.close() }
+        providerPorts.flattenedValues().forEach { it.close() }
         invoke<LifecycleCapability> { close() }
         invoke<ConcurrencyCapability> { close() }
     }
@@ -69,21 +70,21 @@ open class LogicNode(
 
 
 @JsExport
-interface RouteBinding<P: Props> {
+interface RouteBinding<P: Payload> {
     val props: MutableStateFlow<P>
     fun navigate(navCommand: NavCommand)
 }
 
 @JsExport
-interface NavBinding<P: Props> {
+interface NavBinding<P: Payload> {
     @JsName("updateFn")
     fun update(fn: (P) -> P)
-    fun update(props: Props) = update { props as P }
+    fun update(payload: Payload) = update { payload as P }
 }
 
 
 @JsExport
-abstract class RouteNode<P: Props>(
+abstract class RouteNode<P: Payload>(
     graph: Graph,
     val pattern: RoutePattern
 ): Node(graph), RouteBinding<P> {
@@ -109,7 +110,7 @@ abstract class StatefulNode<State>(
     graph: Graph
 ): Node(graph) {
     abstract val state: MutableStateFlow<State>
-    abstract val routeBinding: RequirerPort<out RouteBinding<out Props>>
+    abstract val routeBinding: RequirerPort<out RouteBinding<out Payload>>
 }
 
 /*

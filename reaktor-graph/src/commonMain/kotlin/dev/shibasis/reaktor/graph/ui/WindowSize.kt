@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.graph.ui
 
 import dev.shibasis.reaktor.core.framework.Dispatch
+import dev.shibasis.reaktor.core.utils.fail
+import dev.shibasis.reaktor.core.utils.succeed
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
@@ -40,20 +42,28 @@ data class WindowSize(
 ) {
     companion object: AutoCloseable {
         val state = MutableStateFlow(WindowSize())
-        private var onClose: (WindowSize) -> Unit = {}
+        private var noop: (WindowSize) -> Unit = {}
+        private var onStop: (WindowSize) -> Unit = noop
 
         fun startListening(
-            source: Flow<WindowSize>,
-            onClose: (WindowSize) -> Unit = {}
-        ) {
-            this.onClose = onClose
+            onStart: () -> Flow<WindowSize>,
+            onStop: (WindowSize) -> Unit = {}
+        ): Result<Unit> {
+            if (this.onStop != noop) return fail("Already Listening")
+
+            this.onStop = onStop
+            val source = onStart()
             Dispatch.Default.launch {
                 source.collect { state.value = it }
             }
+
+            return succeed(Unit)
         }
 
         override fun close() {
-            onClose(state.value)
+            onStop(state.value)
+            onStop = noop
+
         }
     }
 

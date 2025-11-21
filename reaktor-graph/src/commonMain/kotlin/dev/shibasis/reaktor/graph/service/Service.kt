@@ -81,38 +81,38 @@ inline fun <reified In : Request, reified Out: Response> Service.client(
 inline fun <reified In: Request, reified Out: Response> Service.GetHandler(
     endpoint: String,
     noinline block: RequestHandlerBlock<In, Out>
-) = server(GetHandler.Companion, endpoint, block)
+) = server(GetHandler.Companion, endpoint, block) as GetHandler<In, Out>
 
 inline fun <reified In: Request, reified Out: Response> Service.GetHandler(
     endpoint: String
-) = client<In, Out>(GetHandler.Companion, endpoint)
+) = client<In, Out>(GetHandler.Companion, endpoint) as GetHandler<In, Out>
 
 inline fun <reified In: Request, reified Out: Response> Service.PostHandler(
     endpoint: String,
     noinline block: RequestHandlerBlock<In, Out>
-) = server(PostHandler.Companion, endpoint, block)
+) = server(PostHandler.Companion, endpoint, block) as PostHandler<In, Out>
 
 inline fun <reified In: Request, reified Out: Response> Service.PostHandler(
     endpoint: String
-) = client<In, Out>(PostHandler.Companion, endpoint)
+) = client<In, Out>(PostHandler.Companion, endpoint) as PostHandler<In, Out>
 
 
 inline fun <reified In: Request, reified Out: Response> Service.PutHandler(
     endpoint: String,
     noinline block: RequestHandlerBlock<In, Out>
-) = server(PutHandler.Companion, endpoint, block)
+) = server(PutHandler.Companion, endpoint, block) as PutHandler<In, Out>
 
 inline fun <reified In: Request, reified Out: Response> Service.PutHandler(
     endpoint: String
-) = client<In, Out>(PutHandler.Companion, endpoint)
+) = client<In, Out>(PutHandler.Companion, endpoint) as PutHandler<In, Out>
 
 
 inline fun <reified In: Request, reified Out: Response> Service.DeleteHandler(
     endpoint: String,
     noinline block: RequestHandlerBlock<In, Out>
-) = server(DeleteHandler.Companion, endpoint, block)
+) = server(DeleteHandler.Companion, endpoint, block) as DeleteHandler<In, Out>
 
 inline fun <reified In: Request, reified Out: Response> Service.DeleteHandler(
     endpoint: String
-) = client<In, Out>(DeleteHandler.Companion, endpoint)
+) = client<In, Out>(DeleteHandler.Companion, endpoint) as DeleteHandler<In, Out>
 

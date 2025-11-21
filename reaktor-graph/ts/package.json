@@ -1,5 +1,5 @@
 {
-  "name": "reaktor-navigation",
+  "name": "reaktor-graph",
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "react": "^19.2.0",
-    "reaktor-reaktor-navigation": "file://./export"
+    "reaktor-reaktor-graph": "file://./export"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",

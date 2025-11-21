@@ -46,7 +46,7 @@ type ApiState =
 
 const flow = Flow<ApiState>({ type: 'loading' })
 
- */
+*/
 
 import { Nullable } from "../index";
 
