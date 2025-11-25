@@ -15,7 +15,7 @@ plugins {
 kotlin {
     common {
         dependencies {
-            api(project(":reaktor-io"))
+            api(project(":reaktor-auth"))
         }
     }
     droid {
@@ -29,7 +29,12 @@ kotlin {
         }
     }
     web {}
-    server {}
+    server {
+        dependencies {
+            api("com.google.apis:google-api-services-sheets:v4-rev20250211-2.0.0")
+
+        }
+    }
 }
 
 android {

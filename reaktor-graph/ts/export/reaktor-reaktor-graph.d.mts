@@ -381,6 +381,25 @@ export declare namespace PromiseResult {
 export declare function usePromise<T>(dependencies: Array<Nullable<any>>, promiseFactory: () => Nullable<Promise<T>>): PromiseResult<T>;
 /** @deprecated  */
 export declare const initHook: { get(): any; };
+export declare abstract class FileAdapter<Controller> /* extends Adapter<Controller> */ {
+    constructor(controller: Controller);
+    abstract get cacheDirectory(): string;
+    abstract get documentDirectory(): string;
+    resolvePath(fileName: string, directory?: string): string;
+    exists(path: string): boolean;
+    delete(path: string): void;
+    copy(sourcePath: string, destPath: string): void;
+    readBinaryFile(path: string): Nullable<Int8Array>;
+    readTextFile(path: string): Nullable<string>;
+    writeTextFile(path: string, data: string): void;
+    writeBinaryFile(path: string, data: Int8Array): void;
+}
+export declare namespace FileAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <Controller>() => FileAdapter<Controller>;
+    }
+}
 /** @deprecated  */
 export declare const initHook: { get(): any; };
 /** @deprecated  */
@@ -419,7 +438,8 @@ export declare function navigationEdge<P extends Payload>(_this_: RouteNode<any 
 export declare class Graph /* implements Unique, Visitable, LifecycleCapability, DependencyCapability, ConcurrencyCapability, NavigationCapability */ {
     constructor(parentGraph?: Nullable<Graph>, dispatcher?: any/* CoroutineDispatcher */, dependencyAdapter?: any/* DependencyAdapter<UnknownType *> */, id?: any/* Uuid */, label?: string, configureDependencies?: (p0: any/* DependencyAdapter.ScopeBuilder */) => void, builder?: (p0: Graph) => void);
     get configureDependencies(): (p0: any/* DependencyAdapter.ScopeBuilder */) => void;
-    get nodes(): KtMutableMap<any/* Uuid */, Node>/* LinkedHashMap<Uuid, Node> */;
+    get nodes(): any/* ArrayList<Node> */;
+    useRoot(uuid: any/* Uuid */): void;
 }
 export declare namespace Graph {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */

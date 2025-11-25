@@ -17,6 +17,7 @@ import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
@@ -46,14 +47,14 @@ open class Graph(
     ),
     NavigationCapability by NavigationCapabilityImpl()
 {
-    val nodes = linkedMapOf<Uuid, Node>()
+    val nodes = arrayListOf<Node>()
     init { builder() }
 
     override fun onTransition(
         previous: Lifecycle,
         next: Lifecycle
     ) {
-        val transitionNodes = { nodes.values.forEach { it.transition(next) } }
+        val transitionNodes = { nodes.forEach { it.transition(next) } }
 
         when (next) {
             Lifecycle.Created -> transitionNodes()
@@ -61,7 +62,7 @@ open class Graph(
             Lifecycle.Attaching -> { /* hook if needed */ }
             Lifecycle.Saving -> transitionNodes()
             Lifecycle.Destroying -> {
-                nodes.values.toList().forEach { detach(it) }
+                nodes.toList().forEach { detach(it) }
                 nodes.clear()
             }
         }
@@ -75,15 +76,18 @@ open class Graph(
     }
 }
 
-
+class GraphRoot(graph: Graph): RouteNode<Payload>(graph, "/") {
+    override val props = MutableStateFlow(Payload())
+    override val routeBinding by provides(this)
+}
 
 fun Graph.attach(node: Node): Result<Unit> {
-    if (nodes.containsKey(node.id)) {
+    if (nodes.find { it.id == node.id } != null) {
         Logger.w("Node ${node.id} is already attached. Ignoring.")
         return fail(ConcurrentModificationException("Node already attached"))
     }
 
-    nodes[node.id] = node
+    nodes += node
     node.transition(Lifecycle.Restoring)
 
     return succeed(Unit)
@@ -91,5 +95,5 @@ fun Graph.attach(node: Node): Result<Unit> {
 
 fun Graph.detach(node: Node) {
     node.transition(Lifecycle.Saving)
-    nodes.remove(node.id)
+    nodes.remove(node)
 }

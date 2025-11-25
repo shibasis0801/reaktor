@@ -11,6 +11,7 @@ import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
 import kotlinx.io.readString
 import kotlinx.io.writeString
+import kotlin.js.JsExport
 
 /*
 https://chat.openai.com/c/10795b61-e0ea-4e17-afdf-10f4079ac440
@@ -83,9 +84,45 @@ fun bufferedSource(path: String, actions: (source: Source) -> Unit) {
     bufferedSource.close()
 }
 
+@JsExport
 abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     abstract val cacheDirectory: String
     abstract val documentDirectory: String
+
+    fun resolvePath(fileName: String, directory: String = documentDirectory): String {
+        return "$directory/$fileName"
+    }
+
+    fun exists(path: String): Boolean {
+        return SystemFileSystem.exists(Path(path))
+    }
+
+    fun delete(path: String) {
+        val p = Path(path)
+        if (SystemFileSystem.exists(p)) {
+            SystemFileSystem.delete(p, false)
+        }
+    }
+
+    fun copy(sourcePath: String, destPath: String) {
+        val source = Path(sourcePath)
+        val dest = Path(destPath)
+        if (!SystemFileSystem.exists(source)) return
+
+        val sourceData = SystemFileSystem.source(source).buffered()
+        val sinkData = SystemFileSystem.sink(dest).buffered()
+
+        val buffer = ByteArray(8192)
+        while (true) {
+            val bytesRead = sourceData.readAtMostTo(buffer)
+            if (bytesRead <= 0) break
+            sinkData.write(buffer, 0, bytesRead)
+        }
+
+        sourceData.close()
+        sinkData.close()
+    }
+
     fun readBinaryFile(path: String): ByteArray? {
         val actualPath = Path(path)
         if (!SystemFileSystem.exists(actualPath)) return null
@@ -95,6 +132,7 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
         bufferedSource.close()
         return data
     }
+
     fun readTextFile(path: String): String? {
         val actualPath = Path(path)
         if (!SystemFileSystem.exists(actualPath)) return null
@@ -104,52 +142,18 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
         bufferedSource.close()
         return data
     }
+
     fun writeTextFile(path: String, data: String) {
         val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
         bufferedSink.writeString(data)
         bufferedSink.close()
     }
+
     fun writeBinaryFile(path: String, data: ByteArray) {
         val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
         bufferedSink.write(data)
         bufferedSink.close()
     }
-
-    fun bufferedWriteBinaryFile(source: Source, outputPath: String) {
-        val bufferedSink = SystemFileSystem.sink(Path(outputPath)).buffered()
-        bufferedSink.close()
-    }
 }
 
 var Feature.File by CreateSlot<FileAdapter<*>>()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

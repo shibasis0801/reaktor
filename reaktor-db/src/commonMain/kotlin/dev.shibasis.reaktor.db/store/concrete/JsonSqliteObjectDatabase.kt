@@ -81,7 +81,7 @@ class SqliteObjectDatabase(
         driver.execute(
             null,
             "INSERT OR REPLACE INTO $tableName ($KEY_COLUMN, $VALUE_COLUMN, $STORE_NAME_COLUMN, $CREATED_AT_COLUMN, $UPDATED_AT_COLUMN) VALUES (?, ?, ?, ?, ?)",
-            6
+            5
         ) {
             bindString(0, key)
             when (serializedValue) {
@@ -170,8 +170,14 @@ class SqliteObjectDatabase(
         ) {
             bindString(0, storeName)
         }
-        result.value.forEach { cachePolicy.onItemAccess(it) }
-        return result.value
+
+        return result.value.mapNotNull {
+            val cached = cachePolicy.onItemAccess(it)
+            if (cached == null) {
+                delete(storeName, it.key)
+                null
+            } else it
+        }
     }
 
     override suspend fun delete(storeName: String, key: String) {

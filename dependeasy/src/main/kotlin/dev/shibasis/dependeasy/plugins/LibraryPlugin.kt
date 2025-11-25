@@ -40,6 +40,9 @@ internal inline fun <reified T : Any> Any.getExtension(name: String): T? =
     (this as ExtensionAware).extensions.getByName(name) as T?
 
 fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) {
+    // DO NOT CHANGE TO KMM until
+    // https://youtrack.jetbrains.com/projects/KMT/issues/KMT-1554/Unable-to-configure-NDK-and-CMake-in-Android-Kotlin-Multiplatform-Library-module?utm_source=chatgpt.com
+    // https://issuetracker.google.com/u/1/issues/439746703
     plugins.apply("com.android.library")
     plugins.apply("kotlin-multiplatform")
     plugins.apply("org.jetbrains.kotlin.native.cocoapods")

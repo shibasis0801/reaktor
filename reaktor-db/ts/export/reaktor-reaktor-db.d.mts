@@ -1,5 +1,23 @@
 type Nullable<T> = T | null | undefined
 declare function KtSingleton<T>(): T & (abstract new() => any);
+export declare interface KtList<E> /* extends Collection<E> */ {
+    asJsReadonlyArrayView(): ReadonlyArray<E>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtList": unique symbol;
+    };
+}
+export declare namespace KtList {
+    function fromJsArray<E>(array: ReadonlyArray<E>): KtList<E>;
+}
+export declare interface KtMap<K, V> {
+    asJsReadonlyMapView(): ReadonlyMap<K, V>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtMap": unique symbol;
+    };
+}
+export declare namespace KtMap {
+    function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMap<K, V>;
+}
 export declare abstract class StatusCode {
     private constructor();
     static get CONTINUE(): StatusCode & {
@@ -311,3 +329,520 @@ export declare namespace JsFailureResult {
 export declare function getPatnaikUserAgent(): string;
 /** @deprecated  */
 export declare const initHook: { get(): any; };
+export declare abstract class FileAdapter<Controller> /* extends Adapter<Controller> */ {
+    constructor(controller: Controller);
+    abstract get cacheDirectory(): string;
+    abstract get documentDirectory(): string;
+    resolvePath(fileName: string, directory?: string): string;
+    exists(path: string): boolean;
+    delete(path: string): void;
+    copy(sourcePath: string, destPath: string): void;
+    readBinaryFile(path: string): Nullable<Int8Array>;
+    readTextFile(path: string): Nullable<string>;
+    writeTextFile(path: string, data: string): void;
+    writeBinaryFile(path: string, data: Int8Array): void;
+}
+export declare namespace FileAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <Controller>() => FileAdapter<Controller>;
+    }
+}
+export declare abstract class SqlAdapter<Controller> /* extends Adapter<Controller> */ {
+    constructor(controller: Controller, dbName?: string, fileAdapter?: FileAdapter<any /*UnknownType **/>);
+    get dbName(): string;
+    get fileAdapter(): FileAdapter<any /*UnknownType **/>;
+    protected abstract createDriver(): any/* SqlDriver */;
+    getDriver(): any/* SqlDriver */;
+    closeDriver(): void;
+    transaction<T>(body: () => T): T;
+    execute(statement: Statement): bigint;
+    executeRaw(sql: string, args: Array<Nullable<any>>): bigint;
+    checkSize(): bigint;
+    vacuum(): void;
+    backup(backupName: string): void;
+    restore(backupName: string): void;
+}
+export declare namespace SqlAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <Controller>() => SqlAdapter<Controller>;
+    }
+}
+export declare class SyncAdapter {
+    constructor(client: any/* HttpClient */, sqlAdapter: SqlAdapter<any /*UnknownType **/>, fileAdapter: FileAdapter<any /*UnknownType **/>);
+    upload(uploadUrl: string, snapshotName?: string): Promise<void>;
+    download(downloadUrl: string, restoreName?: string): Promise<void>;
+}
+export declare namespace SyncAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SyncAdapter;
+    }
+}
+export declare interface SqlType<T> {
+    readonly sqlString: string;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.db.sql.SqlType": unique symbol;
+    };
+}
+export declare abstract class IntegerType {
+    static readonly getInstance: () => typeof IntegerType.$metadata$.type;
+    private constructor();
+}
+export declare namespace IntegerType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<number> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<number>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class TextType {
+    static readonly getInstance: () => typeof TextType.$metadata$.type;
+    private constructor();
+}
+export declare namespace TextType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<string> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<string>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class BooleanType {
+    static readonly getInstance: () => typeof BooleanType.$metadata$.type;
+    private constructor();
+}
+export declare namespace BooleanType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<boolean> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<boolean>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class DoubleType {
+    static readonly getInstance: () => typeof DoubleType.$metadata$.type;
+    private constructor();
+}
+export declare namespace DoubleType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<number> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<number>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class BlobType {
+    static readonly getInstance: () => typeof BlobType.$metadata$.type;
+    private constructor();
+}
+export declare namespace BlobType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<Int8Array> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<Int8Array>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare class ColumnDefinition {
+    constructor(isPrimaryKey?: boolean, isAutoIncrement?: boolean, isNullable?: boolean, defaultValue?: Nullable<string>);
+    get isPrimaryKey(): boolean;
+    get isAutoIncrement(): boolean;
+    get isNullable(): boolean;
+    get defaultValue(): Nullable<string>;
+    copy(isPrimaryKey?: boolean, isAutoIncrement?: boolean, isNullable?: boolean, defaultValue?: Nullable<string>): ColumnDefinition;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ColumnDefinition {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ColumnDefinition;
+    }
+}
+export declare abstract class Table {
+    constructor(tableName: string);
+    get tableName(): string;
+    get columns(): KtList<Column<any /*UnknownType **/>>;
+    protected integer(name: string, primaryKey?: boolean, autoIncrement?: boolean, nullable?: boolean, _default?: Nullable<number>): Column<number>;
+    protected text(name: string, primaryKey?: boolean, nullable?: boolean, _default?: Nullable<string>): Column<string>;
+    protected bool(name: string, nullable?: boolean, _default?: Nullable<boolean>): Column<boolean>;
+    protected double(name: string, nullable?: boolean, _default?: Nullable<number>): Column<number>;
+    protected blob(name: string, nullable?: boolean): Column<Int8Array>;
+}
+export declare namespace Table {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Table;
+    }
+}
+export declare class Column<T> {
+    constructor(name: string, type: SqlType<T>, table: Table, definition: ColumnDefinition);
+    get name(): string;
+    get type(): SqlType<T>;
+    get table(): Table;
+    get definition(): ColumnDefinition;
+    copy(name?: string, type?: SqlType<T>, table?: Table, definition?: ColumnDefinition): Column<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace Column {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => Column<T>;
+    }
+}
+export declare abstract class Expression {
+    protected constructor();
+}
+export declare namespace Expression {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Expression;
+    }
+    class Eq<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Eq<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Eq {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Eq<T>;
+        }
+    }
+    class Neq<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Neq<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Neq {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Neq<T>;
+        }
+    }
+    class Gt<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Gt<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Gt {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Gt<T>;
+        }
+    }
+    class Lt<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Lt<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Lt {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Lt<T>;
+        }
+    }
+    class Gte<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Gte<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Gte {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Gte<T>;
+        }
+    }
+    class Lte<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Lte<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Lte {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Lte<T>;
+        }
+    }
+    class Like extends Expression.$metadata$.constructor {
+        constructor(column: Column<string>, value: string);
+        get column(): Column<string>;
+        get value(): string;
+        copy(column?: Column<string>, value?: string): Expression.Like;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Like {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => Like;
+        }
+    }
+    class And extends Expression.$metadata$.constructor {
+        constructor(left: Expression, right: Expression);
+        get left(): Expression;
+        get right(): Expression;
+        copy(left?: Expression, right?: Expression): Expression.And;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace And {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => And;
+        }
+    }
+    class Or extends Expression.$metadata$.constructor {
+        constructor(left: Expression, right: Expression);
+        get left(): Expression;
+        get right(): Expression;
+        copy(left?: Expression, right?: Expression): Expression.Or;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Or {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => Or;
+        }
+    }
+    abstract class Empty extends KtSingleton<Empty.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Empty {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor extends Expression.$metadata$.constructor {
+                private constructor();
+            }
+        }
+    }
+}
+export declare interface Statement {
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.db.sql.Statement": unique symbol;
+    };
+}
+export declare class RenderResult {
+    constructor(sql: string, args: Array<Nullable<any>>);
+    get sql(): string;
+    get args(): Array<Nullable<any>>;
+    copy(sql?: string, args?: Array<Nullable<any>>): RenderResult;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace RenderResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RenderResult;
+    }
+}
+export declare class CreateTableStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace CreateTableStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => CreateTableStatement;
+    }
+}
+export declare class DropTableStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace DropTableStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DropTableStatement;
+    }
+}
+export declare class SelectStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, columns: KtList<Column<any /*UnknownType **/>>, where: Expression, limit?: Nullable<number>, offset?: Nullable<number>);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace SelectStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SelectStatement;
+    }
+}
+export declare class InsertStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, values: KtMap<Column<any /*UnknownType **/>, Nullable<any>>);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace InsertStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => InsertStatement;
+    }
+}
+export declare class UpdateStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, values: KtMap<Column<any /*UnknownType **/>, Nullable<any>>, where: Expression);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace UpdateStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => UpdateStatement;
+    }
+}
+export declare class DeleteStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, where: Expression);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace DeleteStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DeleteStatement;
+    }
+}
+export declare abstract class SqlBuilder {
+    static readonly getInstance: () => typeof SqlBuilder.$metadata$.type;
+    private constructor();
+}
+export declare namespace SqlBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            create(table: Table): CreateTableStatement;
+            drop(table: Table): DropTableStatement;
+            select(columns: Array<Column<any /*UnknownType **/>>): SelectBuilder;
+            insert(table: Table): InsertBuilder;
+            update(table: Table): UpdateBuilder;
+            delete(table: Table): DeleteBuilder;
+            private constructor();
+        }
+    }
+}
+export declare class SelectBuilder {
+    constructor(columns: KtList<Column<any /*UnknownType **/>>);
+    from(table: Table): SelectFromBuilder;
+}
+export declare namespace SelectBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SelectBuilder;
+    }
+}
+export declare class SelectFromBuilder {
+    constructor(table: Table, columns: KtList<Column<any /*UnknownType **/>>);
+    where(expression: Expression): SelectStatement;
+    all(): SelectStatement;
+    limit(limit: number, offset?: number): SelectStatement;
+}
+export declare namespace SelectFromBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SelectFromBuilder;
+    }
+}
+export declare class InsertBuilder {
+    constructor(table: Table);
+    set<T>(column: Column<T>, value: T): InsertBuilder;
+    build(): InsertStatement;
+}
+export declare namespace InsertBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => InsertBuilder;
+    }
+}
+export declare class UpdateBuilder {
+    constructor(table: Table);
+    set<T>(column: Column<T>, value: T): UpdateBuilder;
+    where(expression: Expression): UpdateStatement;
+}
+export declare namespace UpdateBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => UpdateBuilder;
+    }
+}
+export declare class DeleteBuilder {
+    constructor(table: Table);
+    where(expression: Expression): DeleteStatement;
+    all(): DeleteStatement;
+}
+export declare namespace DeleteBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DeleteBuilder;
+    }
+}

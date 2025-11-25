@@ -29,7 +29,6 @@ kotlin {
 
     droid {
         dependencies {
-            api("androidx.datastore:datastore-preferences-core:1.1.0")
             implementation("androidx.sqlite:sqlite-framework:2.4.0")
             api("app.cash.sqldelight:android-driver:$sqldelightVersion")
         }
@@ -37,7 +36,6 @@ kotlin {
 
     darwin {
         dependencies {
-            api("androidx.datastore:datastore-preferences-core:1.1.0")
             api("app.cash.sqldelight:native-driver:$sqldelightVersion")
         }
         podDependencies {

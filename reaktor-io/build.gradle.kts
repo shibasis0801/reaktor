@@ -22,27 +22,14 @@ kotlin {
         dependencies {
             api(project(":reaktor-core"))
             api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
-//            api("androidx.datastore:datastore-preferences-core:1.1.0")
         }
     }
 
     // https://web.dev/articles/origin-private-file-system
     // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
-    web {
-        dependencies {}
-    }
-
-    droid {
-        dependencies {
-            api("androidx.datastore:datastore-preferences-core:1.1.0")
-        }
-    }
-
-    darwin {
-        dependencies {
-            api("androidx.datastore:datastore-preferences-core:1.1.0")
-        }
-    }
+    web {}
+    droid {}
+    darwin {}
     server {}
     useNetworking()
 }
@@ -73,6 +60,3 @@ fun getMachineIpAddress(): String = Socket().run {
 }
 
 tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
-dependencies {
-    implementation("androidx.wear.compose:compose-material-core:1.4.1")
-}

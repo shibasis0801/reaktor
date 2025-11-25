@@ -69,6 +69,7 @@ open class LogicNode(
 }
 
 
+// todo needs improvements, very confusing for consumers.
 @JsExport
 interface RouteBinding<P: Payload> {
     val props: MutableStateFlow<P>

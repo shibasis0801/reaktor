@@ -13,7 +13,7 @@ import dev.shibasis.reaktor.db.sql.ReaktorSqliteHelper
 class AndroidSqlAdapter(
     activity: ComponentActivity
 ): SqlAdapter<ComponentActivity>(activity) {
-    override fun getDriver(): SqlDriver = invoke {
+    override fun createDriver(): SqlDriver = invoke {
         val factory = FrameworkSQLiteOpenHelperFactory()
         val helper = factory.create(
             SupportSQLiteOpenHelper.Configuration.builder(this)

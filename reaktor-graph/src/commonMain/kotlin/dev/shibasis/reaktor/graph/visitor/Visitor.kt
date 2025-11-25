@@ -18,8 +18,7 @@ fun interface Selector {
 
 object StructuralSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
-        is Graph -> visitable.nodes.values.toList()
-
+        is Graph -> visitable.nodes
         is Node -> buildList {
             if (visitable is GraphNode) {
                 add(visitable.childGraph)
@@ -41,7 +40,7 @@ object StructuralSelector : Selector {
 
 object RoutingSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
-        is Graph -> visitable.nodes.values
+        is Graph -> visitable.nodes
             .filter { it is RouteNode<*> || it is StatefulNode<*> }
 
         is RouteNode<*> -> buildList {

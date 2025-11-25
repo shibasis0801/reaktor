@@ -44,7 +44,7 @@ class SpringDependencyAdapter(
 
         fun registerPrototype(name: String, type: Class<*>, supplier: () -> Any) {
             val bd = GenericBeanDefinition().apply {
-                beanClass = type
+                setBeanClass(type)
                 scope = BeanDefinition.SCOPE_PROTOTYPE
                 instanceSupplier = Supplier { supplier() }
             }

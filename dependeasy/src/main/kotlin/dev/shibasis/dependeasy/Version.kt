@@ -13,9 +13,8 @@ object Version {
 
         const val targetDarwin = "13"
 
-        const val Kotlin = "2.2.10"
-        const val SpringBoot = "3.5.0"
-        const val Spring = "6.2.8"
+        const val Kotlin = "2.3.0-Beta2"
+        const val SpringBoot = "4.0.0"
 
         object Java {
             val asTarget = JvmTarget.JVM_21

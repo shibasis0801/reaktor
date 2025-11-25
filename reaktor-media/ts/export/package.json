@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-media",
-  "version": "2025.11.22-SNAPSHOT",
+  "version": "2025.11.26-SNAPSHOT",
   "main": "reaktor-reaktor-media.mjs",
   "types": "reaktor-reaktor-media.d.mts",
   "devDependencies": {

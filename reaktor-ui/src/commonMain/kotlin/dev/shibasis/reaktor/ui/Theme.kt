@@ -38,6 +38,10 @@ import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 
 /*
+todo react-compose
+https://gemini.google.com/app/517a5bbc3a721f7f
+https://chatgpt.com/c/6925f43d-ae54-8320-a09e-69f0742ce4bc
+
 Figure out
 1. Set Defaults
 2. Better DX

@@ -30,6 +30,7 @@ buildscript {
 }
 
 allprojects {
+    group = "dev.shibasis.reaktor"
     repositories {
         mavenLocal()
         mavenCentral()

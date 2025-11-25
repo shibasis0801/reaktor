@@ -61,7 +61,7 @@ class ObjectStore(
         objectDatabase.getAll(storeName, T::class, serializer())
 
 
-    suspend fun delete(key: String) = objectDatabase.delete(key, storeName)
+    suspend fun delete(key: String) = objectDatabase.delete(storeName, key)
     suspend fun clear() = objectDatabase.clear(storeName)
 
 

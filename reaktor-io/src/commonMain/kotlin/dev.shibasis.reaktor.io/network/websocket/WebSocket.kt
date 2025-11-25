@@ -8,7 +8,6 @@ import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-import io.ktor.client.plugins.websocket.WebSocketException
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
@@ -33,10 +32,11 @@ data class WebSocketOptions(
     val eager: Boolean = true,
     val receiverReplay: Int = 0
 )
+typealias UrlProvider = suspend () -> String
 
-class WebSocket(
+open class WebSocket(
     var options: WebSocketOptions = WebSocketOptions(),
-    var urlProvider: suspend () -> String, // round-robin if needed, or whatever logic you need.
+    var urlProvider: UrlProvider, // round-robin if needed, or whatever logic you need.
     var reconnectionStrategy: ReconnectionStrategy = ExponentialBackoffStrategy(),
     // A single-threaded dispatcher is created from this.
     dispatcher: CoroutineDispatcher = Dispatchers.Async,

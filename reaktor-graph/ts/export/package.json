@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-graph",
-  "version": "2025.11.22-SNAPSHOT",
+  "version": "2025.11.26-SNAPSHOT",
   "main": "reaktor-reaktor-graph.mjs",
   "types": "reaktor-reaktor-graph.d.mts",
   "devDependencies": {
