@@ -13,10 +13,11 @@ import kotlinx.coroutines.flow.update
 import kotlin.js.JsExport
 import kotlin.js.JsName
 
-// todo needs improvements, very confusing for consumers.
 @JsExport
-interface RouteBinding<P: Payload> {
-    val payload: MutableStateFlow<P>
+open class RouteBinding<P: Payload>(
+    initial: P
+) {
+    val payload = MutableStateFlow(initial)
 }
 
 @JsExport
@@ -27,12 +28,14 @@ interface NavBinding<P: Payload> {
 }
 
 
+typealias Binder<P, Binding> = (RouteNode<P, Binding>) -> Binding
+
 @JsExport
-abstract class RouteNode<P: Payload, Binding: RouteBinding<P>>(
+open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
     graph: Graph,
     val pattern: RoutePattern,
     portName: String,
-    binder: (RouteNode<P, Binding>) -> Binding
+    binder: Binder<P, Binding>
 ): Node(graph) {
     @JsName("constructNamed")
     constructor(graph: Graph, pattern: String, portName: String, binder: (RouteNode<P, Binding>) -> Binding):
@@ -42,11 +45,14 @@ abstract class RouteNode<P: Payload, Binding: RouteBinding<P>>(
     constructor(graph: Graph, pattern: String, binder: (RouteNode<P, Binding>) -> Binding):
             this(graph, RoutePattern.from(pattern), "routeBinding", binder)
 
-    val routeBinding = ProviderPort(this, portName, binder(this))
+
+    private val binding = binder(this)
+
+    val routeBinding = ProviderPort(this, portName, binding)
 
     val navBinding by provides<NavBinding<P>>(object: NavBinding<P> {
         override fun update(fn: (P) -> P) {
-            routeBinding.impl.payload.update(fn)
+            binding.payload.update(fn)
         }
     })
 
@@ -54,4 +60,9 @@ abstract class RouteNode<P: Payload, Binding: RouteBinding<P>>(
     fun <P: Payload> edge(
         destination: RouteNode<P, *>
     ) = NavigationEdge(this, destination)
+
+    companion object {
+        operator fun invoke(graph: Graph, pattern: String) =
+            RouteNode(graph, pattern) { RouteBinding(Payload()) }
+    }
 }

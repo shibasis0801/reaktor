@@ -13,7 +13,7 @@ class ProviderPort<Functionality: Any>(
     key: Key,
     type: Type,
     val impl: Functionality,
-    val edges: LinkedHashMap<RequirerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
+    val edges: LinkedHashMap<ConsumerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
 ): Port<Functionality>(owner, key, type), AutoCloseable {
 
     constructor(owner: PortCapability, key: String, impl: Functionality):

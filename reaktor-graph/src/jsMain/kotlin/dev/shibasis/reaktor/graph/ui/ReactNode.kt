@@ -6,7 +6,7 @@ import dev.shibasis.reaktor.graph.core.LogicNode
 import dev.shibasis.reaktor.graph.capabilities.Payload
 import dev.shibasis.reaktor.graph.core.node.RouteBinding
 import dev.shibasis.reaktor.graph.core.StatefulNode
-import dev.shibasis.reaktor.graph.core.port.requires
+import dev.shibasis.reaktor.graph.core.port.consumes
 import js.internal.InternalApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import react.ReactNode as Component
@@ -30,7 +30,7 @@ class ReactNode<State>(
     override val state = MutableStateFlow(build(this))
 
     @JsExport.Ignore
-    override val routeBinding by requires<RouteBinding<*>>()
+    override val routeBinding by consumes<RouteBinding<*>>()
 
     init {
         @OptIn(InternalApi::class)

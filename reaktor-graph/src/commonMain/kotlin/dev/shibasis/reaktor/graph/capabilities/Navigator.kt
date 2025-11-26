@@ -17,7 +17,7 @@ open class Payload(
 @JsExport
 data class BackStackEntry<P: Payload, R>(
     val edge: NavigationEdge<P>,
-    val props: P,
+    val payload: P,
     val result: CompletableDeferred<R> = CompletableDeferred()
 ): Unique by UniqueImpl() {
 
@@ -49,12 +49,12 @@ class Push<P: Payload, R>(
 ): Forward<P, R> {
     companion object {
         @JsName("construct")
-        operator fun<P: Payload, R> invoke(edge: NavigationEdge<P>, props: P, result: CompletableDeferred<R>)
-                = Push(BackStackEntry(edge, props, result))
+        operator fun<P: Payload, R> invoke(edge: NavigationEdge<P>, payload: P, result: CompletableDeferred<R>)
+                = Push(BackStackEntry(edge, payload, result))
 
         @JsName("construstUnit")
-        operator fun<P: Payload> invoke(edge: NavigationEdge<P>, props: P)
-                = Push(BackStackEntry(edge, props, CompletableDeferred(Unit)))
+        operator fun<P: Payload> invoke(edge: NavigationEdge<P>, payload: P)
+                = Push(BackStackEntry(edge, payload, CompletableDeferred(Unit)))
     }
 }
 
@@ -64,12 +64,12 @@ class Replace<P: Payload, R>(
 ): Forward<P, R> {
     companion object {
         @JsName("construct")
-        operator fun<P: Payload, R> invoke(edge: NavigationEdge<P>, props: P, result: CompletableDeferred<R>)
-                = Replace(BackStackEntry(edge, props, result))
+        operator fun<P: Payload, R> invoke(edge: NavigationEdge<P>, payload: P, result: CompletableDeferred<R>)
+                = Replace(BackStackEntry(edge, payload, result))
 
         @JsName("constructUnit")
-        operator fun<P: Payload> invoke(edge: NavigationEdge<P>, props: P)
-                = Replace(BackStackEntry(edge, props, CompletableDeferred(Unit)))
+        operator fun<P: Payload> invoke(edge: NavigationEdge<P>, payload: P)
+                = Replace(BackStackEntry(edge, payload, CompletableDeferred(Unit)))
     }
 }
 
@@ -92,14 +92,14 @@ class NavigationCapabilityImpl: NavigationCapability {
     override val activeStack = ObservableStack<BackStackEntry<*, *>>()
 
     private fun onPush(navCommand: Push<*, *>) {
-        val (edge, props, _) = navCommand.entry
-        edge.end.navBinding.invoke { update(props) }
+        val (edge, payload, _) = navCommand.entry
+        edge.end.navBinding.invoke { update(payload) }
         activeStack.push(navCommand.entry)
     }
 
     private fun onReplace(navCommand: Replace<*, *>) {
-        val (edge, props, _) = navCommand.entry
-        edge.end.navBinding.invoke { update(props) }
+        val (edge, payload, _) = navCommand.entry
+        edge.end.navBinding.invoke { update(payload) }
         activeStack.replace(navCommand.entry)
     }
 

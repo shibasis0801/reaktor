@@ -12,9 +12,14 @@ import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
+import dev.shibasis.reaktor.graph.capabilities.NavCommand
 import dev.shibasis.reaktor.graph.capabilities.NavigationCapability
 import dev.shibasis.reaktor.graph.capabilities.NavigationCapabilityImpl
-import dev.shibasis.reaktor.graph.core.node.route
+import dev.shibasis.reaktor.graph.capabilities.Payload
+import dev.shibasis.reaktor.graph.capabilities.Push
+import dev.shibasis.reaktor.graph.core.node.Node
+import dev.shibasis.reaktor.graph.core.node.RouteBinding
+import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.graph.visitor.Visitable
@@ -50,9 +55,16 @@ open class Graph(
     NavigationCapability by NavigationCapabilityImpl()
 {
     val nodes = arrayListOf<Node>()
+    val sentinel = RouteNode(this, "")
+
     init { builder() }
 
-    val root = route("")
+    fun<P: Payload> addRoot(routeNode: RouteNode<P, *>, payload: P) {
+        val edge = sentinel.edge(routeNode)
+        dispatch(Push(
+            edge, payload
+        ))
+    }
 
     override fun onTransition(
         previous: Lifecycle,

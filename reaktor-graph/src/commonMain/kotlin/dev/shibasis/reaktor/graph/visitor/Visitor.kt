@@ -3,9 +3,13 @@ package dev.shibasis.reaktor.graph.visitor
 
 import dev.shibasis.reaktor.graph.core.*
 import dev.shibasis.reaktor.graph.core.edge.Edge
+import dev.shibasis.reaktor.graph.core.node.ContainerNode
+import dev.shibasis.reaktor.graph.core.node.LogicNode
+import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.graph.core.node.StatefulNode
 import dev.shibasis.reaktor.graph.core.port.ProviderPort
-import dev.shibasis.reaktor.graph.core.port.RequirerPort
+import dev.shibasis.reaktor.graph.core.port.ConsumerPort
 import dev.shibasis.reaktor.graph.core.port.flattenedValues
 import kotlin.collections.emptyList
 
@@ -25,15 +29,15 @@ object StructuralSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
         is Graph -> visitable.nodes
         is Node -> buildList {
-            if (visitable is GraphNode) {
-                add(visitable.childGraph)
+            if (visitable is ContainerNode) {
+                visitable.graphs.forEach { add(it) }
             }
 
             addAll(visitable.providerPorts.flattenedValues())
-            addAll(visitable.requirerPorts.flattenedValues())
+            addAll(visitable.consumerPorts.flattenedValues())
         }
 
-        is RequirerPort<*> -> visitable.edge?.let { listOf(it) } ?: listOf()
+        is ConsumerPort<*> -> visitable.edge?.let { listOf(it) } ?: listOf()
 
         is ProviderPort<*> -> visitable.edges.values.toList()
 
@@ -46,9 +50,9 @@ object StructuralSelector : Selector {
 object RoutingSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
         is Graph -> visitable.nodes
-            .filter { it is dev.shibasis.reaktor.graph.core.node.RouteNode<*> || it is StatefulNode<*> }
+            .filter { it is RouteNode<*, *> || it is StatefulNode<*> }
 
-        is dev.shibasis.reaktor.graph.core.node.RouteNode<*> -> buildList {
+        is RouteNode<*, *> -> buildList {
             // todo fix
             // expose any StatefulNodes that consume this RouteNode's binding contract
             // We can discover them by checking edges on provider ports in this node
@@ -66,10 +70,10 @@ object RoutingSelector : Selector {
 
         is StatefulNode<*> -> buildList {
             // todo fix
-            visitable.requirerPorts
+            visitable.consumerPorts
                 .flattenedValues()
                 .mapNotNull { it.edge?.provider?.owner }
-                .filterIsInstance<RouteNode<*>>()
+                .filterIsInstance<RouteNode<*, *>>()
                 .forEach { add(it) }
         }
 
@@ -80,7 +84,7 @@ object RoutingSelector : Selector {
 object ConnectivitySelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
         is Node -> {
-            visitable.requirerPorts
+            visitable.consumerPorts
                 .flattenedValues()
                 .mapNotNull { consumer ->
                     val edge = consumer.edge ?: return@mapNotNull null
@@ -159,22 +163,22 @@ open class Visitor() {
     fun visit(visitable: Visitable) =
         when (visitable) {
             is Graph -> visitGraph(visitable)
-            is GraphNode -> visitGraphNode(visitable)
+            is ContainerNode -> visitContainerNode(visitable)
             is LogicNode -> visitLogicNode(visitable)
-            is dev.shibasis.reaktor.graph.core.node.RouteNode<*> -> visitRouteNode(visitable)
+            is RouteNode<*, *> -> visitRouteNode(visitable)
             is StatefulNode<*> -> visitStatefulNode(visitable)
-            is RequirerPort<*> -> visitConsumerPort(visitable)
+            is ConsumerPort<*> -> visitConsumerPort(visitable)
             is ProviderPort<*> -> visitProviderPort(visitable)
             is Edge<*> -> visitEdge(visitable)
             else -> NoOpExit
         }
 
     protected open fun visitGraph(graph: Graph): ExitScope = NoOpExit
-    protected open fun visitGraphNode(graphNode: GraphNode): ExitScope = NoOpExit
+    protected open fun visitContainerNode(containerNode: ContainerNode): ExitScope = NoOpExit
     protected open fun visitLogicNode(logicNode: LogicNode): ExitScope = NoOpExit
-    protected open fun visitRouteNode(routeNode: dev.shibasis.reaktor.graph.core.node.RouteNode<*>): ExitScope = NoOpExit
+    protected open fun visitRouteNode(routeNode: RouteNode<*, *>): ExitScope = NoOpExit
     protected open fun visitStatefulNode(statefulNode: StatefulNode<*>): ExitScope = NoOpExit
-    protected open fun visitConsumerPort(port: RequirerPort<*>): ExitScope = NoOpExit
+    protected open fun visitConsumerPort(port: ConsumerPort<*>): ExitScope = NoOpExit
     protected open fun visitProviderPort(port: ProviderPort<*>): ExitScope = NoOpExit
     protected open fun visitEdge(edge: Edge<*>): ExitScope = NoOpExit
 }
@@ -187,11 +191,11 @@ class HierarchyVisitor : Visitor() {
 
     private fun getElementLabel(visitable: Visitable): String = when (visitable) {
         is Graph -> "[Graph] ${visitable.label.ifEmpty { visitable.id.toString() }}"
-        is GraphNode -> "[GraphNode] ${visitable.label.ifEmpty { visitable.id.toString() }}"
+        is ContainerNode -> "[GraphNode] ${visitable.label.ifEmpty { visitable.id.toString() }}"
         is LogicNode -> "[LogicNode] ${visitable::class.simpleName}"
-        is dev.shibasis.reaktor.graph.core.node.RouteNode<*> -> "[RouteNode] ${visitable.pattern}"
+        is RouteNode<*, *> -> "[RouteNode] ${visitable.pattern}"
         is StatefulNode<*> -> "[StatefulNode] ${visitable::class.simpleName}"
-        is RequirerPort<*> -> "[ConsumerPort] ${visitable.key}"
+        is ConsumerPort<*> -> "[ConsumerPort] ${visitable.key}"
         is ProviderPort<*> -> "[ProviderPort] ${visitable.key}"
         is Edge<*> -> "[Edge] ${visitable.id.toString().take(8)}..."
         else -> "[Visitable] ${visitable.hashCode()}"
@@ -219,11 +223,11 @@ class HierarchyVisitor : Visitor() {
     }
 
     override fun visitGraph(graph: Graph) = processVisit(graph)
-    override fun visitGraphNode(graphNode: GraphNode) = processVisit(graphNode)
+    override fun visitContainerNode(containerNode: ContainerNode) = processVisit(containerNode)
     override fun visitLogicNode(logicNode: LogicNode) = processVisit(logicNode)
-    override fun visitRouteNode(routeNode: dev.shibasis.reaktor.graph.core.node.RouteNode<*>) = processVisit(routeNode)
+    override fun visitRouteNode(routeNode: RouteNode<*, *>) = processVisit(routeNode)
     override fun visitStatefulNode(statefulNode: StatefulNode<*>) = processVisit(statefulNode)
-    override fun visitConsumerPort(port: RequirerPort<*>) = processVisit(port)
+    override fun visitConsumerPort(port: ConsumerPort<*>) = processVisit(port)
     override fun visitProviderPort(port: ProviderPort<*>) = processVisit(port)
     override fun visitEdge(edge: Edge<*>) = processVisit(edge)
 }

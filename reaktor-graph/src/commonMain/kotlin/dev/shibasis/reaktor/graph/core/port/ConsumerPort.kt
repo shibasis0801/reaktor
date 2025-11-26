@@ -8,7 +8,7 @@ import kotlin.properties.ReadOnlyProperty
 
 
 @JsExport
-class RequirerPort<Functionality: Any>(
+class ConsumerPort<Functionality: Any>(
     owner: PortCapability,
     key: Key,
     type: Type,
@@ -37,28 +37,28 @@ class RequirerPort<Functionality: Any>(
 
 
 
-fun <Functionality: Any> PortCapability.registerRequirer(key: Key, type: Type): RequirerPort<Functionality> {
-    return requirerPorts
+fun <Functionality: Any> PortCapability.registerConsumer(key: Key, type: Type): ConsumerPort<Functionality> {
+    return consumerPorts
         .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { RequirerPort(this, key, type) } as RequirerPort<Functionality>
+        .getOrPut(key) { ConsumerPort(this, key, type) } as ConsumerPort<Functionality>
 }
 
-fun <Functionality: Any> PortCapability.getRequirer(key: Key, type: Type): RequirerPort<Functionality>? {
-    return requirerPorts
+fun <Functionality: Any> PortCapability.getConsumer(key: Key, type: Type): ConsumerPort<Functionality>? {
+    return consumerPorts
         .getOrPut(type) { linkedMapOf() }
-        .get(key) as? RequirerPort<Functionality>
+        .get(key) as? ConsumerPort<Functionality>
 }
 
-inline fun <reified Functionality: Any> PortCapability.registerRequirer(key: String = ""): RequirerPort<Functionality> {
-    return registerRequirer(Key(key), Type<Functionality>())
+inline fun <reified Functionality: Any> PortCapability.registerConsumer(key: String = ""): ConsumerPort<Functionality> {
+    return registerConsumer(Key(key), Type<Functionality>())
 }
 
-inline fun <reified Functionality: Any> PortCapability.requires() =
-    PropertyDelegateProvider<PortCapability, PortDelegate<RequirerPort<Functionality>>> { thisRef, property ->
-        val port = thisRef.registerRequirer<Functionality>(property.name)
+inline fun <reified Functionality: Any> PortCapability.consumes() =
+    PropertyDelegateProvider<PortCapability, PortDelegate<ConsumerPort<Functionality>>> { thisRef, property ->
+        val port = thisRef.registerConsumer<Functionality>(property.name)
         ReadOnlyProperty { _, _ -> port }
     }
 
-inline fun <reified Functionality: Any> PortCapability.getRequirer(key: String = ""): RequirerPort<Functionality>? {
-    return getRequirer(Key(key), Type<Functionality>())
+inline fun <reified Functionality: Any> PortCapability.getConsumer(key: String = ""): ConsumerPort<Functionality>? {
+    return getConsumer(Key(key), Type<Functionality>())
 }

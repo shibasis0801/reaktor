@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.core.capabilities.invoke
+import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.attach
 import dev.shibasis.reaktor.graph.core.port.PortCapability
 import dev.shibasis.reaktor.graph.core.port.PortCapabilityImpl
@@ -20,8 +21,8 @@ import kotlin.uuid.Uuid
 
 @JsExport
 sealed class Node(
-    val graph: dev.shibasis.reaktor.graph.core.Graph,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    val graph: Graph,
+    dispatcher: CoroutineDispatcher = graph.coroutineDispatcher,
     override val id: Uuid = Uuid.random(),
     override val label: String = "",
 ):
@@ -40,7 +41,7 @@ sealed class Node(
     }
 
     override fun close() {
-        requirerPorts.flattenedValues().forEach { it.close() }
+        consumerPorts.flattenedValues().forEach { it.close() }
         providerPorts.flattenedValues().forEach { it.close() }
         invoke<LifecycleCapability> { close() }
         invoke<ConcurrencyCapability> { close() }

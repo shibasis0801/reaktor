@@ -11,11 +11,14 @@ interface View {
 
 }
 
+interface ComposeContainer: View {
+    @Composable
+    fun Content(childRenderer: @Composable (key: String) -> Unit)
+}
+
 interface ComposeContent: View {
     @Composable
-    fun Content(content: @Composable () -> Unit = {}) {}
-    @Composable
-    fun Content() { Content({}) }
+    fun Content()
 }
 
 abstract class ComposeNode<State>(

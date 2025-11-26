@@ -16,7 +16,7 @@ sealed class PortEvent(val port: Port<*>) {
 
 @JsExport
 interface PortCapability {
-    val requirerPorts: TypedKeyedMap<RequirerPort<Any>>
+    val consumerPorts: TypedKeyedMap<ConsumerPort<Any>>
     val providerPorts: TypedKeyedMap<ProviderPort<Any>>
     val portEvents: SharedFlow<PortEvent>
     fun emit(event: PortEvent)
@@ -29,19 +29,19 @@ interface PortCapability {
         return getProvider(keyType.key, keyType.type)
     }
 
-    fun <Functionality: Any> registerRequirer(keyType: KeyType): RequirerPort<Functionality> {
-        return registerRequirer(keyType.key, keyType.type)
+    fun <Functionality: Any> registerConsumer(keyType: KeyType): ConsumerPort<Functionality> {
+        return registerConsumer(keyType.key, keyType.type)
     }
 
-    fun <Functionality: Any> getRequirer(keyType: KeyType): RequirerPort<Functionality>? {
-        return getRequirer(keyType.key, keyType.type)
+    fun <Functionality: Any> getConsumer(keyType: KeyType): ConsumerPort<Functionality>? {
+        return getConsumer(keyType.key, keyType.type)
     }
 }
 
 @JsExport
 class PortCapabilityImpl(
     context: CoroutineContext? = null,
-    override val requirerPorts: TypedKeyedMap<RequirerPort<Any>> = hashMapOf(),
+    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = hashMapOf(),
     override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = hashMapOf(),
     override val portEvents: MutableSharedFlow<PortEvent> = MutableSharedFlow(),
 ): PortCapability, ConcurrencyCapability by ConcurrencyCapabilityImpl(context) {

@@ -12,7 +12,7 @@ import kotlin.js.JsStatic
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
 
-// ------- Provider/Requirer ports at nodes allow edges for interface based communication -------
+// ------- Provider/Consumer ports at nodes allow edges for interface based communication -------
 @JsExport
 sealed class Port<Functionality: Any>(
     val owner: PortCapability,
