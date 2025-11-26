@@ -3,6 +3,11 @@ package dev.shibasis.reaktor.graph.core
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
+import dev.shibasis.reaktor.graph.core.edge.Edge
+import dev.shibasis.reaktor.graph.core.port.Key
+import dev.shibasis.reaktor.graph.core.port.PortCapability
+import dev.shibasis.reaktor.graph.core.port.ProviderPort
+import dev.shibasis.reaktor.graph.core.port.RequirerPort
 import kotlin.js.JsExport
 import kotlin.js.JsName
 
@@ -17,12 +22,14 @@ fun<C: Any> connect(requirerPort: RequirerPort<C>, providerPort: ProviderPort<C>
     val source = requirerPort.owner
     val destination = providerPort.owner
 
-    return succeed(Edge(
-        source,
-        requirerPort,
-        destination,
-        providerPort
-    ))
+    return succeed(
+        Edge(
+            source,
+            requirerPort,
+            destination,
+            providerPort
+        )
+    )
 }
 
 fun<C: Any> connect(providerPort: ProviderPort<C>, requirerPort: RequirerPort<C>) = connect(requirerPort, providerPort)

@@ -6,13 +6,11 @@ import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.LogicNode
 import dev.shibasis.reaktor.graph.core.connect
-import dev.shibasis.reaktor.graph.core.provides
-import dev.shibasis.reaktor.graph.core.requires
+import dev.shibasis.reaktor.graph.core.port.provides
+import dev.shibasis.reaktor.graph.core.port.requires
 import dev.shibasis.reaktor.graph.service.GetHandler
-import dev.shibasis.reaktor.graph.service.PostHandler
 import dev.shibasis.reaktor.graph.service.Request
 import dev.shibasis.reaktor.graph.service.Response
-import dev.shibasis.reaktor.graph.service.RequestHandler
 import dev.shibasis.reaktor.graph.service.Service
 import kotlinx.serialization.Serializable
 

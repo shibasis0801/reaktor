@@ -2,6 +2,11 @@ package dev.shibasis.reaktor.graph.visitor
 
 
 import dev.shibasis.reaktor.graph.core.*
+import dev.shibasis.reaktor.graph.core.edge.Edge
+import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.graph.core.port.ProviderPort
+import dev.shibasis.reaktor.graph.core.port.RequirerPort
+import dev.shibasis.reaktor.graph.core.port.flattenedValues
 import kotlin.collections.emptyList
 
 
@@ -41,9 +46,9 @@ object StructuralSelector : Selector {
 object RoutingSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
         is Graph -> visitable.nodes
-            .filter { it is RouteNode<*> || it is StatefulNode<*> }
+            .filter { it is dev.shibasis.reaktor.graph.core.node.RouteNode<*> || it is StatefulNode<*> }
 
-        is RouteNode<*> -> buildList {
+        is dev.shibasis.reaktor.graph.core.node.RouteNode<*> -> buildList {
             // todo fix
             // expose any StatefulNodes that consume this RouteNode's binding contract
             // We can discover them by checking edges on provider ports in this node
@@ -156,7 +161,7 @@ open class Visitor() {
             is Graph -> visitGraph(visitable)
             is GraphNode -> visitGraphNode(visitable)
             is LogicNode -> visitLogicNode(visitable)
-            is RouteNode<*> -> visitRouteNode(visitable)
+            is dev.shibasis.reaktor.graph.core.node.RouteNode<*> -> visitRouteNode(visitable)
             is StatefulNode<*> -> visitStatefulNode(visitable)
             is RequirerPort<*> -> visitConsumerPort(visitable)
             is ProviderPort<*> -> visitProviderPort(visitable)
@@ -167,7 +172,7 @@ open class Visitor() {
     protected open fun visitGraph(graph: Graph): ExitScope = NoOpExit
     protected open fun visitGraphNode(graphNode: GraphNode): ExitScope = NoOpExit
     protected open fun visitLogicNode(logicNode: LogicNode): ExitScope = NoOpExit
-    protected open fun visitRouteNode(routeNode: RouteNode<*>): ExitScope = NoOpExit
+    protected open fun visitRouteNode(routeNode: dev.shibasis.reaktor.graph.core.node.RouteNode<*>): ExitScope = NoOpExit
     protected open fun visitStatefulNode(statefulNode: StatefulNode<*>): ExitScope = NoOpExit
     protected open fun visitConsumerPort(port: RequirerPort<*>): ExitScope = NoOpExit
     protected open fun visitProviderPort(port: ProviderPort<*>): ExitScope = NoOpExit
@@ -184,7 +189,7 @@ class HierarchyVisitor : Visitor() {
         is Graph -> "[Graph] ${visitable.label.ifEmpty { visitable.id.toString() }}"
         is GraphNode -> "[GraphNode] ${visitable.label.ifEmpty { visitable.id.toString() }}"
         is LogicNode -> "[LogicNode] ${visitable::class.simpleName}"
-        is RouteNode<*> -> "[RouteNode] ${visitable.pattern}"
+        is dev.shibasis.reaktor.graph.core.node.RouteNode<*> -> "[RouteNode] ${visitable.pattern}"
         is StatefulNode<*> -> "[StatefulNode] ${visitable::class.simpleName}"
         is RequirerPort<*> -> "[ConsumerPort] ${visitable.key}"
         is ProviderPort<*> -> "[ProviderPort] ${visitable.key}"
@@ -216,7 +221,7 @@ class HierarchyVisitor : Visitor() {
     override fun visitGraph(graph: Graph) = processVisit(graph)
     override fun visitGraphNode(graphNode: GraphNode) = processVisit(graphNode)
     override fun visitLogicNode(logicNode: LogicNode) = processVisit(logicNode)
-    override fun visitRouteNode(routeNode: RouteNode<*>) = processVisit(routeNode)
+    override fun visitRouteNode(routeNode: dev.shibasis.reaktor.graph.core.node.RouteNode<*>) = processVisit(routeNode)
     override fun visitStatefulNode(statefulNode: StatefulNode<*>) = processVisit(statefulNode)
     override fun visitConsumerPort(port: RequirerPort<*>) = processVisit(port)
     override fun visitProviderPort(port: ProviderPort<*>) = processVisit(port)

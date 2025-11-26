@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.graph.ui
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.StatefulNode
+import dev.shibasis.reaktor.graph.core.node.StatefulNode
 import kotlin.js.JsExport
 
 
@@ -13,11 +13,15 @@ interface View {
 
 interface ComposeContent: View {
     @Composable
-    fun Content(content: @Composable () -> Unit = {})
+    fun Content(content: @Composable () -> Unit = {}) {}
+    @Composable
+    fun Content() { Content({}) }
 }
 
 abstract class ComposeNode<State>(
     graph: Graph
-): StatefulNode<State>(graph), ComposeContent
+): StatefulNode<State>(graph), ComposeContent {
+
+}
 
 

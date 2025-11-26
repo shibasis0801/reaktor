@@ -12,12 +12,14 @@ import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
+import dev.shibasis.reaktor.graph.capabilities.NavigationCapability
+import dev.shibasis.reaktor.graph.capabilities.NavigationCapabilityImpl
+import dev.shibasis.reaktor.graph.core.node.route
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
@@ -50,6 +52,8 @@ open class Graph(
     val nodes = arrayListOf<Node>()
     init { builder() }
 
+    val root = route("")
+
     override fun onTransition(
         previous: Lifecycle,
         next: Lifecycle
@@ -74,11 +78,6 @@ open class Graph(
         invoke<ConcurrencyCapability> { close() }
         invoke<LifecycleCapability> { close() }
     }
-}
-
-class GraphRoot(graph: Graph): RouteNode<Payload>(graph, "/") {
-    override val props = MutableStateFlow(Payload())
-    override val routeBinding by provides(this)
 }
 
 fun Graph.attach(node: Node): Result<Unit> {

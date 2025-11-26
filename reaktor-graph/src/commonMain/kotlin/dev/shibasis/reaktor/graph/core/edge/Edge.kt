@@ -1,11 +1,27 @@
 @file:Suppress("UNCHECKED_CAST")
-package dev.shibasis.reaktor.graph.core
+
+package dev.shibasis.reaktor.graph.core.edge
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.invoke
+import dev.shibasis.reaktor.graph.capabilities.NavCommand
+import dev.shibasis.reaktor.graph.capabilities.NavigationCapability
+import dev.shibasis.reaktor.graph.capabilities.Payload
+import dev.shibasis.reaktor.graph.capabilities.Push
 import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.graph.capabilities.UniqueImpl
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.port.PortCapability
+import dev.shibasis.reaktor.graph.core.port.PortEvent
+import dev.shibasis.reaktor.graph.core.port.ProviderPort
+import dev.shibasis.reaktor.graph.core.port.RequirerPort
+import dev.shibasis.reaktor.graph.core.node.NavBinding
+import dev.shibasis.reaktor.graph.core.node.RouteBinding
+import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.graph.core.port.provides
+import dev.shibasis.reaktor.graph.core.port.registerRequirer
+import dev.shibasis.reaktor.graph.core.port.requires
 import dev.shibasis.reaktor.graph.ui.ComposeNode
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CompletableDeferred
@@ -42,8 +58,8 @@ open class Edge<Contract: Any>(
 
 @JsExport
 class NavigationEdge<P: Payload>(
-    val start: RouteNode<*>,
-    val end: RouteNode<P>
+    val start: RouteNode<*, *>,
+    val end: RouteNode<P, *>
 ): Edge<NavBinding<P>>(
     start,
     start.registerRequirer<NavBinding<P>>(end.id.toString()),
@@ -59,11 +75,6 @@ class NavigationEdge<P: Payload>(
     }
 }
 
-@JsExport
-fun <P: Payload> RouteNode<*>.navigationEdge(
-    destination: RouteNode<P>
-) = NavigationEdge(this, destination)
-
 
 class HomePayload: Payload()
 class ChatPayload: Payload()
@@ -75,24 +86,27 @@ interface HomeBinding: RouteBinding<HomePayload> {
     val onboardingEdge: NavigationEdge<OnboardingPayload>
     val eventEdge: NavigationEdge<EventPayload>
 }
+lateinit var chatRoute: RouteNode<ChatPayload, RouteBinding<ChatPayload>>
+lateinit var onboardingRoute: RouteNode<OnboardingPayload, RouteBinding<OnboardingPayload>>
+lateinit var eventRoute: RouteNode<EventPayload, RouteBinding<EventPayload>>
 
 class HomeRoute(
     graph: Graph,
-    chatRoute: RouteNode<ChatPayload>,
-    onboardingRoute: RouteNode<OnboardingPayload>,
-    eventRoute: RouteNode<EventPayload>
-):
-    RouteNode<HomePayload>(graph, "/home"),
-    HomeBinding {
+    binder: (RouteNode<HomePayload, HomeBinding>) -> HomeBinding
+): RouteNode<HomePayload, HomeBinding>(
+    graph, "/home", binder
+)
 
-    override val props = MutableStateFlow(HomePayload())
-    override val chatEdge = navigationEdge(chatRoute)
-    override val onboardingEdge = navigationEdge(onboardingRoute)
-    override val eventEdge = navigationEdge(eventRoute)
-
-    override val routeBinding by provides<HomeBinding>(this)
+val homeRoute = { graph: Graph ->
+    HomeRoute(graph) { node ->
+        object: HomeBinding {
+            override val payload = MutableStateFlow(HomePayload())
+            override val chatEdge = node.edge(chatRoute)
+            override val onboardingEdge = node.edge(onboardingRoute)
+            override val eventEdge = node.edge(eventRoute)
+        }
+    }
 }
-
 
 class HomeNode(
     graph: Graph
@@ -102,9 +116,9 @@ class HomeNode(
 
     init {
         routeBinding {
-            navigate(Push(chatEdge, ChatPayload()))
+            graph.dispatch(Push(chatEdge, ChatPayload()))
             val result = CompletableDeferred<String>()
-            navigate(Push(onboardingEdge, OnboardingPayload(), result))
+            graph.dispatch(Push(onboardingEdge, OnboardingPayload(), result))
 
             invoke<ConcurrencyCapability> {
                 launch {

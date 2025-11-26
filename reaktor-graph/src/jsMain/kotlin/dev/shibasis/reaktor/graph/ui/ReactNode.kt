@@ -1,13 +1,12 @@
 package dev.shibasis.reaktor.graph.ui
 
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.HomeBinding
-import dev.shibasis.reaktor.graph.core.KeyType
+import dev.shibasis.reaktor.graph.core.port.KeyType
 import dev.shibasis.reaktor.graph.core.LogicNode
-import dev.shibasis.reaktor.graph.core.Payload
-import dev.shibasis.reaktor.graph.core.RouteBinding
+import dev.shibasis.reaktor.graph.capabilities.Payload
+import dev.shibasis.reaktor.graph.core.node.RouteBinding
 import dev.shibasis.reaktor.graph.core.StatefulNode
-import dev.shibasis.reaktor.graph.core.requires
+import dev.shibasis.reaktor.graph.core.port.requires
 import js.internal.InternalApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import react.ReactNode as Component

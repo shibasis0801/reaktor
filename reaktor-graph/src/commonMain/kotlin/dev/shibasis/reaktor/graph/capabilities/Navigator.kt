@@ -1,8 +1,7 @@
-package dev.shibasis.reaktor.graph.core
+package dev.shibasis.reaktor.graph.capabilities
 
 import dev.shibasis.reaktor.core.capabilities.Capability
-import dev.shibasis.reaktor.graph.capabilities.Unique
-import dev.shibasis.reaktor.graph.capabilities.UniqueImpl
+import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
 import dev.shibasis.reaktor.graph.ui.ObservableStack
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.Serializable
