@@ -1,37 +1,50 @@
 package dev.shibasis.reaktor.graph.core.port
 
 import dev.shibasis.reaktor.graph.core.edge.Edge
+import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.port.Type.Companion.Type
 import kotlin.js.JsExport
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
-
 @JsExport
 class ConsumerPort<Functionality: Any>(
     owner: PortCapability,
     key: Key,
-    type: Type,
-    var edge: Edge<Functionality>? = null
+    type: Type
 ): Port<Functionality>(owner, key, type), AutoCloseable {
-    val functionality: Functionality?
+    var edge: Edge<Functionality>? = null
+        internal set
+
+    val impl: Functionality?
         get() = edge?.provider?.impl
 
-    override fun isConnected() = functionality != null
+    override fun isConnected() = impl != null
+
+    fun __guard() {
+        require(isConnected()) {
+            "Can't invoke functions through unconnected ports. ${toString()}, \n Owner: ${owner as Node}."
+        }
+    }
 
     inline operator fun<R> invoke(fn: Functionality.() -> R): R {
-        require(isConnected()) { "Can't invoke functions through unconnected ports." }
-        return fn(functionality!!)
+        __guard()
+        return fn(impl!!)
     }
 
     suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R {
-        require(isConnected()) { "Can't invoke functions through unconnected ports." }
-        return fn(functionality!!)
+        __guard()
+        return fn(impl!!)
     }
 
     override fun close() {
         edge?.provider?.edges?.remove(this)
         edge = null
+    }
+
+    override fun toString(): String {
+        val connectionState = if (isConnected()) "Connected -> ${edge?.id}" else "Unconnected"
+        return "${super.toString()} $connectionState"
     }
 }
 

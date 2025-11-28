@@ -10,11 +10,18 @@ import dev.shibasis.reaktor.graph.core.port.ProviderPort
 import dev.shibasis.reaktor.graph.core.port.ConsumerPort
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import kotlin.reflect.KClass
 
 
 fun<C: Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>): Result<Edge<C>> {
     if (consumerPort.type != providerPort.type) {
         val error = "Incompatible ports: consumer -> ${consumerPort.type}, provider -> ${providerPort.type}"
+        Logger.e { error }
+        return fail(error)
+    }
+
+    if (consumerPort.isConnected()) {
+        val error = "Consumer is already connected, $consumerPort"
         Logger.e { error }
         return fail(error)
     }
@@ -89,10 +96,13 @@ fun connect(node1: PortCapability, node2: PortCapability) {
 
 infix fun PortCapability.connectWith(other: PortCapability) = connect(this, other)
 
-inline fun <reified C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>) {
+fun <C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>, kClass: KClass<C>) {
     consumerPort.edge = null
     providerPort.edges.remove(consumerPort)
 }
 
+inline fun <reified C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>)
+    = disconnect(consumerPort, providerPort, C::class)
+
 inline fun <reified C : Any> disconnect(providerPort: ProviderPort<C>, consumerPort: ConsumerPort<C>)
-        = disconnect(consumerPort, providerPort)
+    = disconnect(consumerPort, providerPort)

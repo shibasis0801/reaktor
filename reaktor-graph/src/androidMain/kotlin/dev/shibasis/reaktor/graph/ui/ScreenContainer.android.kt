@@ -9,14 +9,15 @@ import androidx.compose.ui.Modifier
 @Composable
 actual fun BackHandlerContainer(
     modifier: Modifier,
-    enabled: Boolean,
+    intercept: Boolean,
     onBack: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
-        BackHandler(enabled) {
+        BackHandler(intercept) {
             onBack()
         }
+
         content()
     }
 }

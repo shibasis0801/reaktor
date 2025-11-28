@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.graph.core.port
 
 import dev.shibasis.reaktor.graph.core.edge.Edge
+import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.port.Type.Companion.Type
 import kotlin.js.JsExport
 import kotlin.properties.PropertyDelegateProvider
@@ -27,6 +28,10 @@ class ProviderPort<Functionality: Any>(
     override fun close() {
         edges.keys.forEach { it.edge = null }
         edges.clear()
+    }
+
+    override fun toString(): String {
+        return "${super.toString()} Consumers=${edges.size}, \n Owner: ${owner as Node}."
     }
 }
 

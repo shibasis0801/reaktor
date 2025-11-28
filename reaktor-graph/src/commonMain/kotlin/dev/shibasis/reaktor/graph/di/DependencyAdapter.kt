@@ -5,6 +5,7 @@ package dev.shibasis.reaktor.graph.di
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.graph.di.DependencyAdapter.ScopeBuilder
 import kotlin.reflect.KClass
 
 
@@ -51,6 +52,16 @@ inline fun <reified T : Any> DependencyAdapter<*>.get(
     qualifier: String? = null,
     parameters: Map<String, Any?> = emptyMap()
 ): T = get(scope, T::class, qualifier, parameters)
+
+inline fun <reified T: Any> ScopeBuilder.singleton(
+    qualifier: String? = null,
+    noinline definition: DependencyScopeCapability.() -> T
+) = singleton(T::class, qualifier, definition)
+
+inline fun <reified T: Any> ScopeBuilder.factory(
+    qualifier: String? = null,
+    noinline definition: DependencyScopeCapability.() -> T
+) = factory(T::class, qualifier, definition)
 
 
 var Feature.Dependency by CreateSlot<DependencyAdapter<*>>()

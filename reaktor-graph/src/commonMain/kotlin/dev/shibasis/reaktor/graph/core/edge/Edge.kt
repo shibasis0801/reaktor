@@ -28,6 +28,7 @@ open class Edge<Contract: Any>(
     val provider: ProviderPort<Contract>
 ): Unique by UniqueImpl(), Visitable {
     init {
+        require(!consumer.isConnected()) { "Consumer is already connected." }
         consumer.edge = this
         provider.edges[consumer] = this
 
@@ -37,5 +38,11 @@ open class Edge<Contract: Any>(
 
     inline operator fun<R> invoke(fn: Contract.() -> R): R = provider.invoke(fn)
     suspend inline fun<R> suspended(fn: suspend Contract.() -> R): R = provider.suspended(fn)
+
+    override fun toString(): String {
+        val src = (source as? Unique)?.let { "${it.label} (${it.id})" } ?: "Unknown"
+        val dest = (destination as? Unique)?.let { "${it.label} (${it.id})" } ?: "Unknown"
+        return "[Edge] $id: $src.${consumer.key} -> $dest.${provider.key}"
+    }
 }
 

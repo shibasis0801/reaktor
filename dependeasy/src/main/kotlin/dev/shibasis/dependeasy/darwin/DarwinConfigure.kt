@@ -56,6 +56,10 @@ fun KotlinMultiplatformExtension.darwin(
         ios.deploymentTarget = Version.SDK.targetDarwin
         framework {
             isStatic = true
+            freeCompilerArgs += listOf(
+                "-Xbinary=stripDebugSymbols=true",
+                "-Xbinary=stripDwarf=true"
+            )
         }
         configure.podDependencies(this)
     }

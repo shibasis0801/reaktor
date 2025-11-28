@@ -8,7 +8,6 @@ object Reaktor {
     fun start(
         featureInitializer: Feature.() -> Unit = {}
     ) {
-        Feature.Dependency = KoinDependencyAdapter()
         featureInitializer(Feature)
     }
 }

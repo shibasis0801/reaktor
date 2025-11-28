@@ -1,11 +1,11 @@
 package dev.shibasis.reaktor.graph.ui
 
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.node.BasicNode
+import dev.shibasis.reaktor.graph.core.node.ControllerNode
 import dev.shibasis.reaktor.graph.core.port.KeyType
-import dev.shibasis.reaktor.graph.core.LogicNode
-import dev.shibasis.reaktor.graph.capabilities.Payload
+import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.core.node.RouteBinding
-import dev.shibasis.reaktor.graph.core.StatefulNode
 import dev.shibasis.reaktor.graph.core.port.consumes
 import js.internal.InternalApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +25,7 @@ class ReactNode<State>(
     graph: Graph,
     val build: (node: ReactNode<State>) -> State,
     val render: (node: ReactNode<State>) -> Component?
-): StatefulNode<State>(graph), ReactContent {
+): ControllerNode<State>(graph), ReactContent {
     @JsExport.Ignore
     override val state = MutableStateFlow(build(this))
 
@@ -60,8 +60,8 @@ fun<P: Payload, State> ViewNode(
 
 @JsExport
 fun Logic(
-    build: (logic: LogicNode) -> Unit
-) = { graph: Graph -> LogicNode(graph, build) }
+    build: (logic: BasicNode) -> Unit
+) = { graph: Graph -> BasicNode(graph, build) }
 
 @JsExport
 data class Person(val name: String, val age: Int)
@@ -75,9 +75,9 @@ fun interface ViewData {
 val PersonViewDataKey = KeyType("personViewData", "ViewData")
 
 @JsExport
-class TestLogic(
+class TestBasic(
     graph: Graph
-): LogicNode(graph) {
+): BasicNode(graph) {
     val data = registerProvider(PersonViewDataKey, ViewData {
         Person("Shibasis Patnaik", 30)
     })

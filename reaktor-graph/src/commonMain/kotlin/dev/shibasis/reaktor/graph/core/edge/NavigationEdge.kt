@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.graph.core.edge
 
 import androidx.compose.runtime.Composable
-import dev.shibasis.reaktor.graph.capabilities.Payload
-import dev.shibasis.reaktor.graph.capabilities.Push
+import dev.shibasis.reaktor.graph.navigation.Payload
+import dev.shibasis.reaktor.graph.navigation.Push
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Binder
 import dev.shibasis.reaktor.graph.core.node.NavBinding
@@ -27,15 +27,10 @@ class NavigationEdge<P: Payload>(
     end,
     end.navBinding
 ) {
-    init {
-        consumer.edge = this
-        provider.edges[consumer] = this
-
-        source.emit(PortEvent.Connected(consumer, provider))
-        destination.emit(PortEvent.Connected(provider, consumer))
+    override fun toString(): String {
+        return "[NavigationEdge] $id: ${start.pattern} -> ${end.pattern}"
     }
 }
-
 
 class HomePayload: Payload()
 class ChatPayload: Payload()

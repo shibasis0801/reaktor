@@ -18,6 +18,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-ui"))
+            api(project(":reaktor-db"))
             arrow()
         }
     }

@@ -19,21 +19,21 @@ private val edgeThreshold = 64.dp
 @Composable
 actual fun BackHandlerContainer(
     modifier: Modifier,
-    enabled: Boolean,
+    intercept: Boolean,
     onBack: () -> Unit,
     content: @Composable () -> Unit
 ) {
     var shouldGoBack by remember { mutableStateOf(false) }
 
     LaunchedEffect(shouldGoBack) {
-        if (enabled && shouldGoBack)
+        if (intercept && shouldGoBack)
             onBack()
     }
 
     Box(
         modifier = Modifier.fillMaxSize()
-            .pointerInput(enabled) {
-                if (enabled)
+            .pointerInput(intercept) {
+                if (intercept)
                     detectHorizontalDragGestures(
                         onDragStart = { shouldGoBack = it.x < edgeThreshold.toPx() },
                         onHorizontalDrag = { _, dragAmount -> shouldGoBack = (shouldGoBack && dragAmount > 0) },

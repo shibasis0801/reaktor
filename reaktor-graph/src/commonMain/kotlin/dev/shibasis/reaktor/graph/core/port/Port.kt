@@ -2,6 +2,7 @@
 
 package dev.shibasis.reaktor.graph.core.port
 
+import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.atomicfu.atomic
@@ -26,6 +27,11 @@ sealed class Port<Functionality: Any>(
     @JsName("createWithStrings")
     constructor(owner: PortCapability, key: String, type: String)
             : this(owner, Key(key), Type(type))
+
+    override fun toString(): String {
+        val ownerId = (owner as? Unique)?.let { "${it.label} (${it.id})" } ?: "Unknown"
+        return "[${this::class.simpleName}] key='${key.key}' type='${type.type}' owner='$ownerId'"
+    }
 }
 
 
@@ -49,6 +55,8 @@ data class Type(val type: String, val kClass: KClass<*>? = null) {
             value::class
         )
     }
+
+    override fun toString() = type
 }
 
 @JsExport

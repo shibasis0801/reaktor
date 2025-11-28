@@ -31,7 +31,7 @@ import kotlin.reflect.KClass
  */
 @OptIn(KoinInternalApi::class)
 class KoinDependencyAdapter(
-    private val app: KoinApplication = startKoin {}
+    private val app: KoinApplication
 ) : DependencyAdapter<KoinApplication>(app) {
 
     private val koin get() = app.koin

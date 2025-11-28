@@ -4,10 +4,10 @@ package dev.shibasis.reaktor.graph.visitor
 import dev.shibasis.reaktor.graph.core.*
 import dev.shibasis.reaktor.graph.core.edge.Edge
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.LogicNode
+import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
-import dev.shibasis.reaktor.graph.core.node.StatefulNode
+import dev.shibasis.reaktor.graph.core.node.ControllerNode
 import dev.shibasis.reaktor.graph.core.port.ProviderPort
 import dev.shibasis.reaktor.graph.core.port.ConsumerPort
 import dev.shibasis.reaktor.graph.core.port.flattenedValues
@@ -50,7 +50,7 @@ object StructuralSelector : Selector {
 object RoutingSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
         is Graph -> visitable.nodes
-            .filter { it is RouteNode<*, *> || it is StatefulNode<*> }
+            .filter { it is RouteNode<*, *> || it is ControllerNode<*> }
 
         is RouteNode<*, *> -> buildList {
             // todo fix
@@ -64,11 +64,11 @@ object RoutingSelector : Selector {
                         .keys
                         .map { it.owner }
                 }
-                .filterIsInstance<StatefulNode<*>>()
+                .filterIsInstance<ControllerNode<*>>()
                 .forEach { add(it) }
         }
 
-        is StatefulNode<*> -> buildList {
+        is ControllerNode<*> -> buildList {
             // todo fix
             visitable.consumerPorts
                 .flattenedValues()
@@ -164,9 +164,9 @@ open class Visitor() {
         when (visitable) {
             is Graph -> visitGraph(visitable)
             is ContainerNode -> visitContainerNode(visitable)
-            is LogicNode -> visitLogicNode(visitable)
+            is BasicNode -> visitLogicNode(visitable)
             is RouteNode<*, *> -> visitRouteNode(visitable)
-            is StatefulNode<*> -> visitStatefulNode(visitable)
+            is ControllerNode<*> -> visitControllerNode(visitable)
             is ConsumerPort<*> -> visitConsumerPort(visitable)
             is ProviderPort<*> -> visitProviderPort(visitable)
             is Edge<*> -> visitEdge(visitable)
@@ -175,9 +175,9 @@ open class Visitor() {
 
     protected open fun visitGraph(graph: Graph): ExitScope = NoOpExit
     protected open fun visitContainerNode(containerNode: ContainerNode): ExitScope = NoOpExit
-    protected open fun visitLogicNode(logicNode: LogicNode): ExitScope = NoOpExit
+    protected open fun visitLogicNode(basicNode: BasicNode): ExitScope = NoOpExit
     protected open fun visitRouteNode(routeNode: RouteNode<*, *>): ExitScope = NoOpExit
-    protected open fun visitStatefulNode(statefulNode: StatefulNode<*>): ExitScope = NoOpExit
+    protected open fun visitControllerNode(controllerNode: ControllerNode<*>): ExitScope = NoOpExit
     protected open fun visitConsumerPort(port: ConsumerPort<*>): ExitScope = NoOpExit
     protected open fun visitProviderPort(port: ProviderPort<*>): ExitScope = NoOpExit
     protected open fun visitEdge(edge: Edge<*>): ExitScope = NoOpExit
@@ -192,9 +192,9 @@ class HierarchyVisitor : Visitor() {
     private fun getElementLabel(visitable: Visitable): String = when (visitable) {
         is Graph -> "[Graph] ${visitable.label.ifEmpty { visitable.id.toString() }}"
         is ContainerNode -> "[GraphNode] ${visitable.label.ifEmpty { visitable.id.toString() }}"
-        is LogicNode -> "[LogicNode] ${visitable::class.simpleName}"
+        is BasicNode -> "[LogicNode] ${visitable::class.simpleName}"
         is RouteNode<*, *> -> "[RouteNode] ${visitable.pattern}"
-        is StatefulNode<*> -> "[StatefulNode] ${visitable::class.simpleName}"
+        is ControllerNode<*> -> "[StatefulNode] ${visitable::class.simpleName}"
         is ConsumerPort<*> -> "[ConsumerPort] ${visitable.key}"
         is ProviderPort<*> -> "[ProviderPort] ${visitable.key}"
         is Edge<*> -> "[Edge] ${visitable.id.toString().take(8)}..."
@@ -224,9 +224,9 @@ class HierarchyVisitor : Visitor() {
 
     override fun visitGraph(graph: Graph) = processVisit(graph)
     override fun visitContainerNode(containerNode: ContainerNode) = processVisit(containerNode)
-    override fun visitLogicNode(logicNode: LogicNode) = processVisit(logicNode)
+    override fun visitLogicNode(basicNode: BasicNode) = processVisit(basicNode)
     override fun visitRouteNode(routeNode: RouteNode<*, *>) = processVisit(routeNode)
-    override fun visitStatefulNode(statefulNode: StatefulNode<*>) = processVisit(statefulNode)
+    override fun visitControllerNode(controllerNode: ControllerNode<*>) = processVisit(controllerNode)
     override fun visitConsumerPort(port: ConsumerPort<*>) = processVisit(port)
     override fun visitProviderPort(port: ProviderPort<*>) = processVisit(port)
     override fun visitEdge(edge: Edge<*>) = processVisit(edge)

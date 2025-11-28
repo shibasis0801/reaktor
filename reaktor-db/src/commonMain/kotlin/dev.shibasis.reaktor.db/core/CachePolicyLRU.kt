@@ -1,16 +1,14 @@
-package dev.shibasis.reaktor.db.store.concrete
+package dev.shibasis.reaktor.db.core
 
 import dev.shibasis.reaktor.core.utils.epochTime
-import dev.shibasis.reaktor.db.store.CachePolicy
-import dev.shibasis.reaktor.db.store.StoredObject
+import dev.shibasis.reaktor.db.StoredObject
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 // todo AI wrote this, review.
-class LRUCachePolicy(
+class CachePolicyLRU(
     private val capacity: Int,
     private val cacheTime: Duration = 5.minutes
 ) : CachePolicy {

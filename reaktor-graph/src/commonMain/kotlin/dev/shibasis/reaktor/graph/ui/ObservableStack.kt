@@ -1,23 +1,24 @@
 package dev.shibasis.reaktor.graph.ui
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
 
 class ObservableStack<T>(initialTop: T? = null) {
     val top = MutableStateFlow(initialTop)
     private val stack = ArrayDeque<T>()
 
+    private val _entries = MutableStateFlow<List<T>>(emptyList())
+    val entries: StateFlow<List<T>> = _entries
+
     init {
         initialTop?.apply(stack::add)
     }
 
-    val size: Int get() = stack.size
-    fun isEmpty() = stack.isEmpty()
-
-    val entries = stack as List<T>
-
     fun push(value: T) {
         stack.add(value)
         top.value = value
+        _entries.value = stack.toList() // todo improve, shoddy.
     }
 
     fun replace(value: T) {
@@ -25,12 +26,13 @@ class ObservableStack<T>(initialTop: T? = null) {
         push(value)
     }
 
-    fun pop(): Boolean {
-        if (stack.isEmpty()) return false
+    fun pop(): T? {
+        if (stack.isEmpty()) return null
 
-        stack.removeLast()
+        val removed = stack.removeLast()
         top.value = stack.lastOrNull()
-        return true
+        _entries.value = stack.toList() // todo improve, shoddy.
+        return removed
     }
 
     fun clear() {
@@ -38,5 +40,7 @@ class ObservableStack<T>(initialTop: T? = null) {
 
         stack.clear()
         top.value = null
+
+        _entries.value = stack.toList() // todo improve, shoddy.
     }
 }

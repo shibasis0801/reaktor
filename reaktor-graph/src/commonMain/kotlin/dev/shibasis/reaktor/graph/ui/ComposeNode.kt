@@ -2,7 +2,8 @@ package dev.shibasis.reaktor.graph.ui
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.node.StatefulNode
+import dev.shibasis.reaktor.graph.core.node.ControllerNode
+import dev.shibasis.reaktor.ui.themed
 import kotlin.js.JsExport
 
 
@@ -16,6 +17,7 @@ interface ComposeContainer: View {
     fun Content(childRenderer: @Composable (key: String) -> Unit)
 }
 
+// Make content impossible to render if there is no route binding
 interface ComposeContent: View {
     @Composable
     fun Content()
@@ -23,7 +25,7 @@ interface ComposeContent: View {
 
 abstract class ComposeNode<State>(
     graph: Graph
-): StatefulNode<State>(graph), ComposeContent {
+): ControllerNode<State>(graph), ComposeContent {
 
 }
 

@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.db.store.concrete
+package dev.shibasis.reaktor.db.core
 
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlCursor
@@ -6,11 +6,8 @@ import app.cash.sqldelight.db.SqlDriver
 import dev.shibasis.reaktor.io.serialization.BinarySerializer
 import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import dev.shibasis.reaktor.io.serialization.TextSerializer
-import dev.shibasis.reaktor.db.store.CachePolicy
-import dev.shibasis.reaktor.db.store.DefaultTimestampProvider
-import dev.shibasis.reaktor.db.store.ObjectDatabase
-import dev.shibasis.reaktor.db.store.StoredObject
-import dev.shibasis.reaktor.db.store.TimestampProvider
+import dev.shibasis.reaktor.db.ObjectDatabase
+import dev.shibasis.reaktor.db.StoredObject
 import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 
@@ -19,7 +16,7 @@ class SqliteObjectDatabase(
     private val driver: SqlDriver,
     name: String,
     objectSerializer: ObjectSerializer<*> = TextSerializer(),
-    cachePolicy: CachePolicy = LRUCachePolicy(100),
+    cachePolicy: CachePolicy = CachePolicyLRU(100),
     timestampProvider: TimestampProvider = DefaultTimestampProvider()
 ): ObjectDatabase(objectSerializer, cachePolicy, timestampProvider) {
     private val tableName = "object_db_$name"
