@@ -19,10 +19,10 @@ import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.Push
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.graph.core.port.ProviderPort
 import dev.shibasis.reaktor.graph.core.port.flattenedValues
 import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
-import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +44,7 @@ open class Graph(
     Visitable,
     LifecycleCapability by LifecycleCapabilityImpl(),
     DependencyCapability by DependencyCapabilityImpl(
-        adapter = dependencyAdapter,
+        diAdapter = dependencyAdapter,
         id = id.toString(),
         parentScope = parentGraph?.let { (it as DependencyCapability).diScope },
         configure = dependencies
@@ -114,27 +114,41 @@ fun Graph.detach(node: Node) {
     nodes.remove(node)
 }
 
+inline fun <reified Functionality : Any> Node.exposePort(port: ProviderPort<Functionality>) {
+    graph.diAdapter.register(
+        scope = graph.diScope,
+        instance = port,
+        type = ProviderPort::class,
+        qualifier = port.qualifier
+    )
+}
 
 fun Graph.autoWire() {
-    val availableProviders = nodes
+    val localProviders = nodes
         .flatMap { node -> node.providerPorts.flattenedValues() }
         .groupBy { it.type }
 
     nodes.flatMap { it.consumerPorts.flattenedValues() }
         .filter { !it.isConnected() }
         .forEach { consumer ->
-            val candidates = availableProviders[consumer.type] ?: emptyList()
+            val localCandidates = localProviders[consumer.type] ?: emptyList()
+            var match = if (consumer.key.key.isEmpty()) {
+                if (localCandidates.size == 1) localCandidates.first()
+                else localCandidates.find { it.key.key.isEmpty() }
+            } else {
+                localCandidates.find { it.key == consumer.key }
+            }
 
-            val match = when {
-                candidates.isEmpty() -> null
-                candidates.size == 1 -> candidates.first()
-                else -> {
-                    // Ambiguity! Try to resolve by Key (Name)
-                    val exactMatch = candidates.find { it.key == consumer.key }
-                    if (exactMatch == null) {
-                        error("Ambiguous wiring for ${consumer.type}. Found ${candidates.size} providers: ${candidates.map { it.owner }}")
-                    }
-                    exactMatch
+            if (match == null) {
+                val portFromDI = try {
+                    diScope.get(ProviderPort::class, consumer.qualifier)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (portFromDI != null) {
+                    @Suppress("UNCHECKED_CAST")
+                    match = portFromDI as ProviderPort<Any>
                 }
             }
 

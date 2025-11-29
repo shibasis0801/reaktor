@@ -198,4 +198,24 @@ class KoinDependencyAdapter(
         qualifier: String?,
         parameters: Map<String, Any?>
     ): T = (scope as KoinScopeCapability).get(type, qualifier, parameters)
+
+    override fun <T : Any> register(
+        scope: DependencyScopeCapability,
+        instance: T,
+        type: KClass<T>,
+        qualifier: String?
+    ) {
+        val koinScope = (scope as KoinScopeCapability).scope
+
+        // Workaround for "Cannot use 'T' as reified":
+        // 1. We declare 'T' as 'Any' (which satisfies the reified constraint).
+        // 2. We pass the actual 'type' (KClass<T>) as a secondary type.
+        // Koin will index the instance under 'type', making it resolvable.
+        koinScope.declare(
+            instance = instance as Any,
+            qualifier = qualifier?.let { named(it) },
+            secondaryTypes = listOf(type),
+            allowOverride = true
+        )
+    }
 }

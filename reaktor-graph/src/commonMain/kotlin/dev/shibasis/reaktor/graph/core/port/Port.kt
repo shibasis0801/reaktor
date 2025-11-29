@@ -32,6 +32,8 @@ sealed class Port<Functionality: Any>(
         val ownerId = (owner as? Unique)?.let { "${it.label} (${it.id})" } ?: "Unknown"
         return "[${this::class.simpleName}] key='${key.key}' type='${type.type}' owner='$ownerId'"
     }
+
+    val qualifier = "Port:$key:$type"
 }
 
 

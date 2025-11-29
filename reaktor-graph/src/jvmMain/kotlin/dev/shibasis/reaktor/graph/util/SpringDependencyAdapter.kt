@@ -131,4 +131,19 @@ class SpringDependencyAdapter(
         qualifier: String?,
         parameters: Map<String, Any?>
     ): T = (scope as SpringScopeCapability).get(type, qualifier, parameters)
+
+    override fun <T : Any> register(
+        scope: DependencyScopeCapability,
+        instance: T,
+        type: KClass<T>,
+        qualifier: String?
+    ) {
+        val springScope = scope as? SpringScopeCapability
+            ?: error("Scope is not a SpringScopeCapability")
+
+        // Use the type name or qualifier as the bean name
+        val name = qualifier ?: "${type.qualifiedName}:${scope.id}"
+
+        springScope.registerSingleton(name, instance)
+    }
 }

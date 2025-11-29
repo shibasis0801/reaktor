@@ -45,6 +45,13 @@ abstract class DependencyAdapter<Controller>(
         qualifier: String? = null,
         parameters: Map<String, Any?> = emptyMap()
     ): T
+
+    abstract fun <T : Any> register(
+        scope: DependencyScopeCapability,
+        instance: T,
+        type: KClass<T>,
+        qualifier: String? = null
+    )
 }
 
 inline fun <reified T : Any> DependencyAdapter<*>.get(
