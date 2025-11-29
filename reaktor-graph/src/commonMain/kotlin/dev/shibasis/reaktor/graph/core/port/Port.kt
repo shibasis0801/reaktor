@@ -36,7 +36,23 @@ sealed class Port<Functionality: Any>(
     val qualifier = "Port:$key:$type"
 }
 
+private val _sequence = atomic(0)
+fun KClass<*>.name(): String {
+    try {
+        val fqn = qualifiedName
+        if (!fqn.isNullOrBlank()) return fqn
+    } catch (e: Throwable) {
+        e.printStackTrace()
+        // Ignore reflection errors on some platforms
+    }
 
+    // 2. Try Simple Name
+    val simple = simpleName
+    if (!simple.isNullOrBlank()) return simple
+
+    // 3. Fallback
+    return "anonymous_${_sequence.getAndIncrement()}"
+}
 
 @JsExport
 data class Key(val key: String)
@@ -44,18 +60,13 @@ data class Key(val key: String)
 @JsExport
 data class Type(val type: String, val kClass: KClass<*>? = null) {
     companion object {
-        val _sequence = atomic(0)
-        @JsExport.Ignore
-        inline fun<reified T> Type() = Type(
-            T::class.simpleName ?: "anonymous_${_sequence.getAndIncrement()}",
-            T::class
-        )
+        fun create(kClass: KClass<*>) = Type(kClass.name(), kClass)
 
         @JsExport.Ignore
-        fun<T: Any> Type(value: T) = Type(
-            value::class.simpleName ?: "anonymous_${_sequence.getAndIncrement()}",
-            value::class
-        )
+        inline fun<reified T> Type() = create(T::class)
+
+        @JsExport.Ignore
+        fun<T: Any> Type(value: T) = create(value::class)
     }
 
     override fun toString() = type

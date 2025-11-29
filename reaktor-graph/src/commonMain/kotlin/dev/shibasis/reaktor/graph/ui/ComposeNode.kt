@@ -14,10 +14,10 @@ interface View {
 
 interface ComposeContainer: View {
     @Composable
-    fun Content(childRenderer: @Composable (key: String) -> Unit)
+    fun Content(renderer: @Composable (graph: Graph, isFocused: Boolean) -> Unit)
 }
 
-// Make content impossible to render if there is no route binding
+// todo Make content impossible to render if there is no route binding
 interface ComposeContent: View {
     @Composable
     fun Content()

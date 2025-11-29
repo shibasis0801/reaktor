@@ -21,47 +21,45 @@ val LocalGraph = staticCompositionLocalOf<Graph> {
 }
 
 @Composable
-fun Theme.Renderer(
+fun GraphApplication(
     graph: Graph
-) {
-    val top by graph.activeStack.top.collectAsState()
-    val destination = top?.edge?.end
-
-    CompositionLocalProvider(LocalGraph provides graph) {
-        if (destination == null) {
-            TextView(text = "Null Destination")
-        }
-        else {
-            val node = destination.attachedNode()
-            if (node == null || node !is ComposeNode<*>) {
-                TextView(text = "No Attached Node")
-            }
-            else {
-                node.Content()
-            }
+) = themed { // Your theme wrapper
+    MaterialTheme(
+        colorScheme = colors,
+        typography = text,
+        shapes = shapes
+    ) {
+        Scaffold(Modifier.safeDrawingPadding()) {
+            GraphContent(graph)
         }
     }
 }
 
-
+// 2. The Recursive Renderer (Pure Logic)
+// This is what ContainerNode calls for child graphs
 @Composable
-fun ComposeRenderer(
-    graph: Graph
-) = themed {
+fun GraphContent(
+    graph: Graph,
+    isFocused: Boolean = true // todo provide an helper for user to get this value
+) {
     val entries by graph.activeStack.entries.collectAsState()
+    val topEntry = entries.lastOrNull()
 
     BackHandlerContainer(
-        Modifier.fillMaxSize(),
-        entries.size > 1,
-        { graph.dispatch(Pop) }
+        modifier = Modifier.fillMaxSize(),
+        intercept = entries.size > 1 && isFocused,
+        onBack = { graph.dispatch(Pop) }
     ) {
-        MaterialTheme(
-            colorScheme = colors,
-            typography = text,
-            shapes = shapes
-        ) {
-            Scaffold(Modifier.safeDrawingPadding()) {
-                Renderer(graph)
+        if (topEntry != null) {
+            val node = topEntry.edge.end.attachedNode()
+            if (node != null) {
+                when (node) {
+                    is ComposeContainer -> node.Content { graph, isFocused ->
+                        GraphContent(graph, isFocused)
+                    }
+                    is ComposeContent -> node.Content()
+                    // ... error handling ...
+                }
             }
         }
     }

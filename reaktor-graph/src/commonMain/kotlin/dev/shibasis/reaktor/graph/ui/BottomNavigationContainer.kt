@@ -44,10 +44,12 @@ open class BottomNavigationContainer(
     })
 
     @Composable
-    override fun Content(childRenderer: @Composable (key: String) -> Unit) = themed {
+    override fun Content(renderer: @Composable (graph: Graph, isFocused: Boolean) -> Unit) = themed {
         val contract = controller.impl
 
         val selected by contract.selected.collectAsState()
+        val activeGraph = children[selected] ?: throw IllegalStateException("selected key is invalid")
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
@@ -68,7 +70,7 @@ open class BottomNavigationContainer(
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
-                childRenderer(selected)
+                renderer(activeGraph.graph, true)
             }
         }
     }
