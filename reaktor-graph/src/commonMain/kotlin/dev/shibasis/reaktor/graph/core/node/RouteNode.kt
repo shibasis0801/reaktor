@@ -79,7 +79,7 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
 
     companion object {
         operator fun invoke(graph: Graph, pattern: String) =
-            Route(graph, pattern)
+            RouteNode(graph, pattern) { RouteBinding(Payload()) }
     }
 
     override fun toString(): String {
@@ -87,7 +87,6 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
     }
 }
 
-open class Route(
-    graph: Graph,
-    pattern: String
-): RouteNode<Payload, RouteBinding<Payload>>(graph, pattern, { RouteBinding(Payload()) })
+
+fun<P: Payload, Binding: RouteBinding<P>> Graph.Route(pattern: String, binder: Binder<P, Binding>) =
+    RouteNode(this, pattern, binder)

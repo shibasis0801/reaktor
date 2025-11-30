@@ -34,8 +34,8 @@ open class BottomNavigationContainer(
     val children: Map<String, ChildGraph>,
     initialSelection: String
 ): ContainerNode(
-    ArrayList(children.values.map { it.graph }),
-    graph
+    graph,
+    ArrayList(children.values.map { it.graph })
 ), ComposeContainer {
     val selected = MutableStateFlow(initialSelection)
 

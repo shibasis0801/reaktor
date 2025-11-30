@@ -157,3 +157,7 @@ fun Graph.autoWire() {
             }
         }
 }
+
+
+
+fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this)

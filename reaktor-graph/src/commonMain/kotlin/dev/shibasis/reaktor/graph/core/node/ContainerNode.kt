@@ -7,8 +7,8 @@ import kotlin.js.JsExport
 
 @JsExport
 open class ContainerNode(
-    val graphs: ArrayList<Graph> = arrayListOf(),
-    parent: Graph
+    parent: Graph,
+    val graphs: ArrayList<Graph> = arrayListOf()
 ): Node(parent), Node.Routable {
     // It is the responsibility of the implementing container to cast it correctly to the actual screen.
     override val routeBinding by consumes<RouteBinding<Payload>>()
@@ -16,3 +16,4 @@ open class ContainerNode(
         return "${super.toString()} [Container] children=${graphs.size}"
     }
 }
+

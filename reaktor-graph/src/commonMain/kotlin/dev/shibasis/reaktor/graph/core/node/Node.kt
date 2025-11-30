@@ -72,3 +72,5 @@ sealed class Node(
 }
 
 
+
+fun<N: Node> Graph.Node(builder: (Graph) -> N): N = builder(this)
