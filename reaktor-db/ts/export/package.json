@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-db",
-  "version": "2025.12.27-SNAPSHOT",
+  "version": "2025.12.29-SNAPSHOT",
   "main": "reaktor-reaktor-db.mjs",
   "types": "reaktor-reaktor-db.d.mts",
   "devDependencies": {

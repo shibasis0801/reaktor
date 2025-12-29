@@ -37,17 +37,6 @@ if (typeof Array.prototype.fill === 'undefined') {
     Object.defineProperty(TypedArray.prototype, 'fill', {value: Array.prototype.fill});
   }
 });
-if (typeof Math.trunc === 'undefined') {
-  Math.trunc = function (x) {
-    if (isNaN(x)) {
-      return NaN;
-    }
-    if (x > 0) {
-      return Math.floor(x);
-    }
-    return Math.ceil(x);
-  };
-}
 if (typeof Math.clz32 === 'undefined') {
   Math.clz32 = function (log, LN2) {
     return function (x) {
@@ -58,6 +47,17 @@ if (typeof Math.clz32 === 'undefined') {
       return 31 - (log(asUint) / LN2 | 0) | 0; // the "| 0" acts like math.floor
     };
   }(Math.log, Math.LN2);
+}
+if (typeof Math.trunc === 'undefined') {
+  Math.trunc = function (x) {
+    if (isNaN(x)) {
+      return NaN;
+    }
+    if (x > 0) {
+      return Math.floor(x);
+    }
+    return Math.ceil(x);
+  };
 }
 if (typeof String.prototype.startsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
@@ -15907,11 +15907,6 @@ class BufferedChannelIterator {
     }
   }
 }
-class SendChannel {}
-function close$default(cause, $super) {
-  cause = cause === VOID ? null : cause;
-  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
-}
 class ReceiveChannel {}
 function cancel$default_0(cause, $super) {
   cause = cause === VOID ? null : cause;
@@ -15923,6 +15918,11 @@ function cancel$default_0(cause, $super) {
     tmp = $super.cancel_hkmm2i_k$.call(this, cause);
   }
   return tmp;
+}
+class SendChannel {}
+function close$default(cause, $super) {
+  cause = cause === VOID ? null : cause;
+  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
 }
 class BufferedChannel {
   constructor(capacity, onUndeliveredElement) {
@@ -78310,11 +78310,11 @@ initMetadataForClass(Segment, 'Segment', VOID, VOID, [ConcurrentLinkedListNode, 
 initMetadataForClass(ChannelSegment, 'ChannelSegment');
 initMetadataForClass(SendBroadcast, 'SendBroadcast', VOID, VOID, [Waiter]);
 initMetadataForClass(BufferedChannelIterator, 'BufferedChannelIterator', VOID, VOID, [Waiter], [0, 3]);
-initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
 initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
+initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
 protoOf(BufferedChannel).close$default_kcbl7u_k$ = close$default;
 protoOf(BufferedChannel).cancel$default_880p35_k$ = cancel$default_0;
-initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [SendChannel, ReceiveChannel], [1, 4, 0, 3]);
+initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [ReceiveChannel, SendChannel], [1, 4, 0, 3]);
 initMetadataForClass(WaiterEB, 'WaiterEB');
 initMetadataForClass(ReceiveCatching, 'ReceiveCatching', VOID, VOID, [Waiter]);
 initMetadataForObject(Factory, 'Factory');
@@ -78325,7 +78325,7 @@ initMetadataForClass(ChannelResult, 'ChannelResult');
 initMetadataForClass(ClosedReceiveChannelException, 'ClosedReceiveChannelException');
 initMetadataForClass(ClosedSendChannelException, 'ClosedSendChannelException');
 protoOf(ChannelCoroutine).close$default_kcbl7u_k$ = close$default;
-initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, SendChannel, ReceiveChannel], [1, 0]);
+initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, ReceiveChannel, SendChannel], [1, 0]);
 initMetadataForClass(ConflatedBufferedChannel, 'ConflatedBufferedChannel', VOID, VOID, VOID, [1, 0]);
 initMetadataForInterface(ProducerScope, 'ProducerScope', VOID, VOID, [CoroutineScope, SendChannel], [1]);
 initMetadataForClass(ProducerCoroutine, 'ProducerCoroutine', VOID, VOID, [ChannelCoroutine, ProducerScope], [1, 0]);

@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-io",
-  "version": "2025.12.27-SNAPSHOT",
+  "version": "2025.12.29-SNAPSHOT",
   "main": "reaktor-reaktor-io.mjs",
   "types": "reaktor-reaktor-io.d.mts",
   "devDependencies": {

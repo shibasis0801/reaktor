@@ -59,6 +59,12 @@ if (typeof Math.trunc === 'undefined') {
     return Math.ceil(x);
   };
 }
+if (typeof String.prototype.startsWith === 'undefined') {
+  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
+    position = position || 0;
+    return this.lastIndexOf(searchString, position) === position;
+  }});
+}
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
     var subjectString = this.toString();
@@ -68,12 +74,6 @@ if (typeof String.prototype.endsWith === 'undefined') {
     position -= searchString.length;
     var lastIndex = subjectString.indexOf(searchString, position);
     return lastIndex !== -1 && lastIndex === position;
-  }});
-}
-if (typeof String.prototype.startsWith === 'undefined') {
-  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
-    position = position || 0;
-    return this.lastIndexOf(searchString, position) === position;
   }});
 }
 //endregion
@@ -81038,7 +81038,7 @@ initMetadataForClass(ContextScope, 'ContextScope', VOID, VOID, [CoroutineScope])
 initMetadataForClass(Symbol_0, 'Symbol');
 initMetadataForInterface(SelectInstance, 'SelectInstance');
 initMetadataForClass(ClauseData, 'ClauseData', VOID, VOID, VOID, [1]);
-initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, SelectInstance, Waiter], [0, 2]);
+initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, Waiter, SelectInstance], [0, 2]);
 initMetadataForClass(TrySelectDetailedResult, 'TrySelectDetailedResult');
 initMetadataForClass(SetTimeoutBasedDispatcher, 'SetTimeoutBasedDispatcher', VOID, VOID, [CoroutineDispatcher, Delay], [1]);
 initMetadataForObject(NodeDispatcher, 'NodeDispatcher', VOID, VOID, VOID, [1]);

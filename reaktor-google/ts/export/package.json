@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-google",
-  "version": "2025.12.27-SNAPSHOT",
+  "version": "2025.12.29-SNAPSHOT",
   "main": "reaktor-reaktor-google.mjs",
   "types": "reaktor-reaktor-google.d.mts",
   "devDependencies": {

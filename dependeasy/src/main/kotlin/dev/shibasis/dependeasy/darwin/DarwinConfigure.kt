@@ -3,6 +3,7 @@ package dev.shibasis.dependeasy.darwin
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.common.Configuration
 import dev.shibasis.dependeasy.plugins.getExtension
+import dev.shibasis.dependeasy.tasks.darwinCmake
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -30,6 +31,14 @@ fun KotlinMultiplatformExtension.darwin(
     configuration: DarwinConfigure.() -> Unit = {}
 ) {
     val configure = DarwinConfigure().apply(configuration)
+
+    val iosCmake = project.darwinCmake("iphoneos")
+    val iosSimulatorCmake = project.darwinCmake("iphonesimulator")
+    if (iosCmake != null && iosSimulatorCmake != null) {
+        project.tasks.named("build") {
+            dependsOn(iosCmake, iosSimulatorCmake)
+        }
+    }
 
     val targets = mutableListOf(
 //        iosSimulatorArm64(),

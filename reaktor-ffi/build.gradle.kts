@@ -11,32 +11,6 @@ plugins {
 }
 val Name = "ReaktorFFI"
 
-fun darwinCmake(sdk: String): Exec {
-    val prefix = sdk
-    return tasks.create<Exec>("${prefix}CMake") {
-        group = "reaktor"
-        workingDir = file("cpp")
-        commandLine = listOf("bash", "-c", """
-            mkdir -p build &&
-            cd build &&   
-            rm -rf $prefix &&
-            cmake -B $prefix -G Xcode \
-                -DCMAKE_BUILD_TYPE=Release \
-                -Dsdk=${sdk} .. \
-                -DiOS=true &&
-            cmake --build $prefix --config Release
-        """.trimIndent()
-        )
-    }
-}
-val iosCmake = darwinCmake("iphoneos")
-val iosSimulatorCmake = darwinCmake("iphonesimulator")
-
-tasks.named("build") {
-    dependsOn(iosCmake, iosSimulatorCmake)
-}
-
-
 kotlin {
     jvmToolchain(11)
     common {

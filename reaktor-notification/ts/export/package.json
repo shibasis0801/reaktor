@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-notification",
-  "version": "2025.12.27-SNAPSHOT",
+  "version": "2025.12.29-SNAPSHOT",
   "main": "reaktor-reaktor-notification.mjs",
   "types": "reaktor-reaktor-notification.d.mts",
   "devDependencies": {

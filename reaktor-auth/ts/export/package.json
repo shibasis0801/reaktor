@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-auth",
-  "version": "2025.12.27-SNAPSHOT",
+  "version": "2025.12.29-SNAPSHOT",
   "main": "reaktor-reaktor-auth.mjs",
   "types": "reaktor-reaktor-auth.d.mts",
   "devDependencies": {
