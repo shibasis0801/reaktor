@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.graph.core.edge.Edge
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.port.Type.Companion.Type
 import kotlin.js.JsExport
+import kotlin.js.JsName
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
@@ -17,6 +18,7 @@ class ProviderPort<Functionality: Any>(
     val edges: LinkedHashMap<ConsumerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
 ): Port<Functionality>(owner, key, type), AutoCloseable {
 
+    @JsName("create")
     constructor(owner: PortCapability, key: String, impl: Functionality):
             this(owner, Key(key), Type(impl), impl)
 

@@ -14,14 +14,13 @@ import dev.shibasis.reaktor.graph.core.port.ConsumerPort
 import dev.shibasis.reaktor.graph.core.port.PortCapability
 import dev.shibasis.reaktor.graph.core.port.PortCapabilityImpl
 import dev.shibasis.reaktor.graph.core.port.flattenedValues
-import dev.shibasis.reaktor.graph.di.DependencyCapability
 import dev.shibasis.reaktor.graph.di.get
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.visitor.Visitable
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
+import kotlin.properties.ReadOnlyProperty
 import kotlin.uuid.Uuid
 
 @JsExport
@@ -52,11 +51,6 @@ sealed class Node(
         invoke<LifecycleCapability> { close() }
         invoke<ConcurrencyCapability> { close() }
     }
-
-    inline fun <reified T : Any> inject(
-        qualifier: String? = null,
-        parameters: Map<String, Any?> = emptyMap()
-    ): T = graph.diScope.get(qualifier, parameters)
 
     interface Stateful<State> {
         val state: MutableStateFlow<State>

@@ -38,13 +38,13 @@ sealed class Port<Functionality: Any>(
 
 private val _sequence = atomic(0)
 fun KClass<*>.name(): String {
-    try {
-        val fqn = qualifiedName
-        if (!fqn.isNullOrBlank()) return fqn
-    } catch (e: Throwable) {
-        e.printStackTrace()
-        // Ignore reflection errors on some platforms
-    }
+//    try {
+//        val fqn = qualifiedName
+//        if (!fqn.isNullOrBlank()) return fqn
+//    } catch (e: Throwable) {
+//        e.printStackTrace()
+//         Ignore reflection errors on some platforms
+//    }
 
     // 2. Try Simple Name
     val simple = simpleName

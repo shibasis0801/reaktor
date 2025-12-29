@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.db.core
 
 import dev.shibasis.reaktor.db.StoredObject
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 // todo needs upgrades
 interface CachePolicy {

@@ -62,7 +62,6 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
         }
     })
 
-    @JsExport
     fun attachedNode(): ControllerNode<*>? {
         val edge = routeBinding.edges.values.firstOrNull()
         val bound = edge?.source ?: return null
@@ -72,7 +71,6 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
         return bound
     }
 
-    @JsExport
     fun <D: Payload> edge(
         destination: RouteNode<D, *>
     ) = NavigationEdge(this, destination)

@@ -60,7 +60,7 @@ kotlin {
     }
     server {
         dependencies {
-
+            api(compose.desktop.currentOs)
         }
     }
 }

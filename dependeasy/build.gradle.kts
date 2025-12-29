@@ -1,9 +1,9 @@
-val kotlinVersion = "2.3.0-Beta2"
+val kotlinVersion = "2.3.0"
 
 plugins {
     id("java-gradle-plugin")
     id("maven-publish")
-    id("org.gradle.kotlin.kotlin-dsl") version "6.4.2"
+    id("org.gradle.kotlin.kotlin-dsl") version "6.5.2"
 }
 
 repositories {

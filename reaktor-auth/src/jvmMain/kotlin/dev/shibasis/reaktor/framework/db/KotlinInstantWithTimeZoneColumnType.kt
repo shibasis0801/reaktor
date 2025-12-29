@@ -1,19 +1,21 @@
 package dev.shibasis.reaktor.framework.db
 
 import dev.shibasis.reaktor.framework.toKotlinInstant
-import kotlinx.datetime.Instant
-import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toKotlinInstant
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
+import kotlin.time.toKotlinInstant
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ColumnType
+import org.jetbrains.exposed.v1.core.Function
 import org.jetbrains.exposed.v1.core.IDateColumnType
+import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.vendors.currentDialect
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 /**
- * Custom Exposed column type for storing a kotlinx.datetime.Instant
+ * Custom Exposed column type for storing a kotlin.time.Instant
  * in a column that is timezone-aware (e.g., TIMESTAMP WITH TIME ZONE in PostgreSQL).
  */
 class KotlinInstantWithTimeZoneColumnType: ColumnType<Instant>(), IDateColumnType {
@@ -48,4 +50,10 @@ class KotlinInstantWithTimeZoneColumnType: ColumnType<Instant>(), IDateColumnTyp
 
 fun Table.timestampZ(name: String): Column<Instant> {
     return registerColumn(name, KotlinInstantWithTimeZoneColumnType())
+}
+
+object CurrentTimestamp : Function<Instant>(KotlinInstantWithTimeZoneColumnType()) {
+    override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+        queryBuilder.append("CURRENT_TIMESTAMP")
+    }
 }

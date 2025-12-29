@@ -53,7 +53,6 @@ kotlin {
             api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-json:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-kotlin-datetime:${Version.Exposed}")
             api("org.postgresql:postgresql:42.7.3")
             api("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3")
             api("org.jetbrains.kotlin:kotlin-reflect:${Version.SDK.Kotlin}")
@@ -66,4 +65,3 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.auth")
 }
-

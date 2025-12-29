@@ -8,7 +8,6 @@ import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.db.core.CachePolicy
 import dev.shibasis.reaktor.db.core.TimestampProvider
 import dev.shibasis.reaktor.io.serialization.ObjectSerializer
-import kotlinx.datetime.Clock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
@@ -36,7 +35,6 @@ abstract class ObjectDatabase(
 }
 
 var Feature.Database by CreateSlot<ObjectDatabase>()
-
 
 
 

@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.core.utils
 
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 
 fun epochTime() = Clock.System.now().toEpochMilliseconds()

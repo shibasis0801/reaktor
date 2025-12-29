@@ -47,6 +47,7 @@ kotlin {
     server {
         dependencies {
             implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
+            implementation("app.cash.sqldelight:sqlite-driver:$sqldelightVersion")
         }
     }
 }

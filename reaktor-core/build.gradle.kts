@@ -14,7 +14,7 @@ kotlin {
             commonLogging()
             commonCoroutines()
             commonSerialization()
-            api("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+            api("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
             api("org.jetbrains.kotlinx:atomicfu:0.28.0")
             api("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
         }

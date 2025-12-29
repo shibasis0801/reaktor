@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.db.core
 
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 interface TimestampProvider {
     fun getTimestamp(): Long

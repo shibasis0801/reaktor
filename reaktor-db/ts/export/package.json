@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-db",
-  "version": "2025.11.26-SNAPSHOT",
+  "version": "2025.12.27-SNAPSHOT",
   "main": "reaktor-reaktor-db.mjs",
   "types": "reaktor-reaktor-db.d.mts",
   "devDependencies": {
@@ -9,8 +9,7 @@
   },
   "dependencies": {
     "ws": "8.18.0",
-    "@js-joda/core": "3.2.0",
-    "format-util": "^1.0.5"
+    "@js-joda/core": "3.2.0"
   },
   "peerDependencies": {},
   "optionalDependencies": {},

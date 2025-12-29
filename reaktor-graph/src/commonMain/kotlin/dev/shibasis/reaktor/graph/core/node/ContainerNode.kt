@@ -17,3 +17,4 @@ open class ContainerNode(
     }
 }
 
+fun<CN: ContainerNode, G: Graph> Graph.Container(builder: (Graph, ArrayList<G>) -> CN, graphs: ArrayList<G>): CN = builder(this, graphs)

@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
+// incorporate data oriented concepts. fix cpu cache behaviour, reduce random memory accesses.
 // steroids(https://developer.android.com/static/images/topic/libraries/architecture/navigation-design-graph-nested.png)
 @JsExport
 open class Graph(

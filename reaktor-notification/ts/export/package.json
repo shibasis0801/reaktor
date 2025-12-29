@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-notification",
-  "version": "2025.11.26-SNAPSHOT",
+  "version": "2025.12.27-SNAPSHOT",
   "main": "reaktor-reaktor-notification.mjs",
   "types": "reaktor-reaktor-notification.d.mts",
   "devDependencies": {
@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@js-joda/core": "3.2.0",
-    "format-util": "^1.0.5",
     "ws": "8.18.0",
     "@emotion/react": "^11.14.0",
     "@emotion/css": "^11.13.5",
