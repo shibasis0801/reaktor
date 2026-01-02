@@ -8,8 +8,8 @@ extensions.configure<PublishingExtension> {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
             credentials {
-                username = System.getenv("USERNAME") ?: "ERROR_NO_USERNAME"
-                password = System.getenv("TOKEN") ?: "ERROR_NO_TOKEN"
+                username = System.getenv("USERNAME")
+                password = System.getenv("TOKEN")
             }
         }
 

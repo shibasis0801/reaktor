@@ -24,7 +24,8 @@ open class DependeasyExtension {
         "kotlin.uuid.ExperimentalUuidApi",
         "kotlinx.coroutines.DelicateCoroutinesApi",
         "kotlinx.serialization.ExperimentalSerializationApi",
-        "androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi"
+        "androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi",
+        "kotlin.time.ExperimentalTime"
     )
 
     companion object {
