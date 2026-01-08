@@ -52,7 +52,7 @@ open class LoginInteractor(
             .findByAppIdAndProvider(request, appId,subject, provider)
 
         if (userResult.isFailure) {
-            // Apple does not send name in JWT, so server needs to be very reliable.
+            // Apple does not send name in JWT, so server needs to be very reliable. todo add queue here
             if (request.givenName == null || request.familyName == null) {
                 return LoginResponse.Failure.RequiresUserName
             }

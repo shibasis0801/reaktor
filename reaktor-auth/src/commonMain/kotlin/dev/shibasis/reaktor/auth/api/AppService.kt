@@ -3,22 +3,22 @@ package dev.shibasis.reaktor.auth.api
 import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.io.network.http
-import dev.shibasis.reaktor.io.service.BaseRequest
-import dev.shibasis.reaktor.io.service.BaseResponse
-import dev.shibasis.reaktor.io.service.RequestHandler
-import dev.shibasis.reaktor.io.service.Service
-import io.ktor.client.call.body
-import io.ktor.client.request.get
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.connect
+import dev.shibasis.reaktor.graph.core.port.provides
+import dev.shibasis.reaktor.graph.core.port.consumes
+import dev.shibasis.reaktor.graph.service.GetHandler
+import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.graph.service.Response
+import dev.shibasis.reaktor.graph.service.Service
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 
 @Serializable
 sealed class AppResponse(
-    @Transient override var statusCode: StatusCode = StatusCode.OK,
-    @Transient override val headers: MutableMap<String, String> = mutableMapOf(),
-): BaseResponse {
+    override val statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+): Response() {
     @Serializable
     data class Success(val apps: List<App>): AppResponse(StatusCode.OK)
     @Serializable
@@ -27,16 +27,11 @@ sealed class AppResponse(
 
 
 abstract class AppService: Service() {
-    abstract val getAll: RequestHandler<BaseRequest, AppResponse>
-    abstract val getApp: RequestHandler<BaseRequest, AppResponse>
+    abstract val getAll: GetHandler<Request, AppResponse>
+    abstract val getApp: GetHandler<Request, AppResponse>
 }
 
 abstract class AppClient: AppService() {
-    override val getApp = GetHandler<BaseRequest, AppResponse>("") {
-        http.get(route) {
-            it.headers
-            it.pathParams
-            it.queryParams
-        }.body<AppResponse>()
-    }
+    override val getApp = GetHandler<Request, AppResponse>("")
 }
+

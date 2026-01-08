@@ -185,23 +185,24 @@ fun linkHermes(
     linkFlatBuffers(githubDir)
     linkHermes(githubDir)
 
-
-
-include(":reaktor-flexbuffer")
-include(":reaktor-ffi")
 //include(":flatinvoker-react") // will fix later
+
+
 include(":reaktor-compiler")
 include(":reaktor-core")
+include(":reaktor-flexbuffer")
+include(":reaktor-ffi")
 include(":reaktor-io")
 include(":reaktor-db")
 include(":reaktor-ui")
 include(":reaktor-auth")
 include(":reaktor-media")
 include(":reaktor-notification")
-include(":reaktor-navigation")
+include(":reaktor-graph")
 include(":reaktor-location")
 include(":reaktor-work")
 include(":reaktor-cloudflare")
-include(":suspend-js-test")
-include(":suspend-function-processor")
-include(":suspend-function-sample")
+include(":reaktor-cloudflare")
+include(":reaktor-mcp")
+include(":reaktor-web")
+include(":reaktor-google")

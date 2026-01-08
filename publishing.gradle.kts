@@ -8,19 +8,19 @@ extensions.configure<PublishingExtension> {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
             credentials {
-                username = System.getenv("USERNAME") ?: ""
-                password = System.getenv("TOKEN") ?: ""
+                username = System.getenv("USERNAME")
+                password = System.getenv("TOKEN")
             }
         }
 
-        maven {
-            name = "MavenCentral"
-            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            credentials {
-                username = System.getenv("MAVEN_USERNAME") ?: ""
-                password = System.getenv("MAVEN_TOKEN") ?: ""
-            }
-        }
+//        maven {
+//            name = "MavenCentral"
+//            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+//            credentials {
+//                username = System.getenv("MAVEN_USERNAME") ?: ""
+//                password = System.getenv("MAVEN_TOKEN") ?: ""
+//            }
+//        }
     }
 }
 //

@@ -1,10 +1,11 @@
 package dev.shibasis.reaktor.auth
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlin.js.JsExport
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 @JsExport
@@ -20,8 +21,8 @@ data class App(
     val id: String,
     val name: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -31,8 +32,8 @@ data class Entity(
     val name: String,
     val appId: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -59,8 +60,8 @@ data class User(
     val provider: UserProvider,
     val status: UserStatus,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 
@@ -71,8 +72,8 @@ data class Role(
     val name: String,
     val appId: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -82,8 +83,8 @@ data class Permission(
     val name: String,
     val appId: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -93,10 +94,10 @@ data class Session(
     val userId: String,
     val appId: String,
     val contextId: String,
-    val expiresAt: Instant = Clock.System.now() ,
+    @Contextual val expiresAt: Instant = Clock.System.now() ,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -106,8 +107,8 @@ data class Context(
     val name: String,
     val appId: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -117,8 +118,8 @@ data class RolePermission(
     val roleId: String,
     val permissionId: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto
 
 @JsExport
@@ -129,6 +130,6 @@ data class UserRole(
     val roleId: String,
     val contextId: String,
     override var data: JsonElement,
-    override var createdAt: Instant = Clock.System.now(),
-    override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
 ): AuditableDto

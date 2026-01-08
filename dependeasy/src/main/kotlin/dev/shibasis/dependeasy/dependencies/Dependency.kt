@@ -8,13 +8,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
-/*
-Need to migrate to V2
-There would be groups of functions for dependencies
-You would call them after configuring sourceSets
-One function would setup the dependency for all supported targets
-*/
-
 enum class Source { Common, Android, Darwin, Web, Server }
 val CommonSourceList = listOf(Source.Common)
 val MobileSourceList = CommonSourceList + listOf(Source.Android) + listOf(Source.Darwin)

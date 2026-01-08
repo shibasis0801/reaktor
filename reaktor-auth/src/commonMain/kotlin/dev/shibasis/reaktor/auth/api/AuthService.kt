@@ -2,22 +2,28 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.auth.User
 import dev.shibasis.reaktor.auth.UserProvider
+import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.Post
 import dev.shibasis.reaktor.io.network.http
-import dev.shibasis.reaktor.io.service.BaseRequest
-import dev.shibasis.reaktor.io.service.BaseResponse
-import dev.shibasis.reaktor.io.service.Environment
-import dev.shibasis.reaktor.io.service.RequestHandler
-import dev.shibasis.reaktor.io.service.Service
+import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.graph.service.Response
+import dev.shibasis.reaktor.graph.service.Environment
+import dev.shibasis.reaktor.graph.service.PostHandler
+import dev.shibasis.reaktor.graph.service.RequestHandler
+import dev.shibasis.reaktor.graph.service.Service
 import io.ktor.client.call.body
 import io.ktor.client.request.setBody
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlin.js.ExperimentalJsStatic
+import kotlin.js.JsExport
+import kotlin.js.JsName
+import kotlin.js.JsStatic
 
-
+@JsExport
 @Serializable
 data class LoginRequest(
     val idToken: String,
@@ -33,13 +39,23 @@ data class LoginRequest(
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
     override var environment: Environment
-): BaseRequest
+): Request() {
+    companion object {
+        @OptIn(ExperimentalJsStatic::class)
+        @JsStatic
+        fun Create(idToken: String, appId: String, provider: UserProvider = UserProvider.GOOGLE, environment: Environment) =
+            LoginRequest(idToken, appId, provider, environment = environment)
+    }
+}
 
+
+
+@JsExport
 @Serializable
 sealed class LoginResponse(
     override var statusCode: StatusCode = StatusCode.OK,
     override val headers: MutableMap<String, String> = mutableMapOf()
-): BaseResponse {
+): Response() {
     @Serializable
     data class Success(val user: User, val profile: JsonElement): LoginResponse(StatusCode.OK)
 
@@ -68,13 +84,14 @@ sealed class LoginResponse(
     }
 }
 
-
-abstract class AuthService: Service() {
-    abstract val login: RequestHandler<LoginRequest, LoginResponse>
+@JsExport
+abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
+    abstract val login: PostHandler<LoginRequest, LoginResponse>
 }
 
-class AuthServiceClient(baseUrl: String): AuthService() {
-    override val login = PostHandler<LoginRequest, LoginResponse>("${baseUrl}/auth/sign-in") {
+@JsExport
+open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
+    override val login = PostHandler<LoginRequest, LoginResponse>("/auth/sign-in") {
         http.Post(route) { setBody(it) }
             .fold(
                 { it.body() },

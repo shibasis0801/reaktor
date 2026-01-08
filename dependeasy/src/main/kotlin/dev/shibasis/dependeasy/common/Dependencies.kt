@@ -25,3 +25,12 @@ fun KotlinDependencyHandler.commonNetworking() {
 fun KotlinDependencyHandler.commonLogging() {
     api("co.touchlab:kermit:${Version.Kermit}")
 }
+
+fun KotlinDependencyHandler.arrow() {
+    api(project.dependencies.platform("io.arrow-kt:arrow-stack:2.2.0"))
+    api("io.arrow-kt:arrow-core")
+    api("io.arrow-kt:arrow-fx-coroutines")
+    api("io.arrow-kt:arrow-resilience")
+}
+
+

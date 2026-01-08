@@ -5,8 +5,7 @@ import kotlinx.coroutines.Dispatchers
 
 // If you need to extend another class, then store a reference to it inside your adapter.
 open class Adapter<Controller>(
-    controller: Controller,
-    val scope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+    controller: Controller
 ): Component {
     val ref: WeakRef<Controller> = WeakRef(controller)
     val controller: Controller? get() = ref.get()

@@ -15,7 +15,7 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-ui"))
         }
     }

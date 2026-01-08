@@ -38,6 +38,10 @@ import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 
 /*
+todo react-compose
+https://gemini.google.com/app/517a5bbc3a721f7f
+https://chatgpt.com/c/6925f43d-ae54-8320-a09e-69f0742ce4bc
+
 Figure out
 1. Set Defaults
 2. Better DX
@@ -208,3 +212,9 @@ val Color.Companion.Teal: Color
 
 val Color.Companion.BlackText: Color
     get() = Color(0xFF282c3f)
+
+/*
+todo
+1. finish this design system
+2. learn subcompose layout, measure etc
+ */

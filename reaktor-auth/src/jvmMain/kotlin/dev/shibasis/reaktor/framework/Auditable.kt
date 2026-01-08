@@ -1,10 +1,10 @@
 package dev.shibasis.reaktor.framework
 
 import dev.shibasis.reaktor.auth.AuditableDto
+import dev.shibasis.reaktor.framework.db.CurrentTimestamp
 import dev.shibasis.reaktor.framework.db.timestampZ
-import kotlinx.datetime.Instant
-import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toKotlinInstant
+import kotlin.time.Instant
+import kotlin.time.toKotlinInstant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
@@ -18,7 +18,6 @@ import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.IdTable
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.core.vendors.currentDialect
-import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.json.jsonb
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -74,4 +73,3 @@ abstract class UUIDAuditable<DTO: AuditableDto>(
     final override val id = uuid(keyColumn).autoGenerate().entityId()
     final override val primaryKey = PrimaryKey(id)
 }
-

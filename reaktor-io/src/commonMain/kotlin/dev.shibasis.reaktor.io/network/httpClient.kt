@@ -7,7 +7,6 @@ import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
@@ -17,7 +16,6 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
@@ -26,7 +24,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
+import kotlin.coroutines.cancellation.CancellationException
 
 expect val http: HttpClient
 
@@ -79,10 +77,20 @@ suspend inline fun<reified I, reified O> HttpClient.postJson(
 
 class ErrorResponse(val response: HttpResponse): Throwable()
 
+private inline fun <T> suspendedResult(block: () -> T): Result<T> {
+    return try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Result.failure(e)
+    }
+}
+
 suspend fun HttpClient.Post(
     urlString: String,
     block: HttpRequestBuilder.() -> Unit = {}
-): Result<HttpResponse> = runCatching {
+): Result<HttpResponse> = suspendedResult {
     val response: HttpResponse = post(urlString, block)
     if (!response.ok) throw ErrorResponse(response)
     response
@@ -91,7 +99,7 @@ suspend fun HttpClient.Post(
 suspend fun HttpClient.Get(
     urlString: String,
     block: HttpRequestBuilder.() -> Unit = {}
-): Result<HttpResponse> = runCatching {
+): Result<HttpResponse> = suspendedResult {
     val response: HttpResponse = get(urlString, block)
     if (!response.ok) throw ErrorResponse(response)
     response

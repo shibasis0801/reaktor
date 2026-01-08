@@ -1,0 +1,19 @@
+{
+  "name": "reaktor-graph",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "postbuild": "karakum --config karakum.config.json",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "reaktor-reaktor-graph": "file://./export"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "karakum": "^1.0.0-alpha.78",
+    "typescript": "^5.9.3"
+  }
+}

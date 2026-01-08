@@ -5,7 +5,7 @@ import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import co.touchlab.sqliter.DatabaseConfiguration
 
 class DarwinSqlAdapter: SqlAdapter<Unit>(Unit) {
-    override fun getDriver(): SqlDriver {
+    override fun createDriver(): SqlDriver {
         return NativeSqliteDriver(DatabaseConfiguration(
             "reaktor.db",
             1,

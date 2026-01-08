@@ -13,7 +13,7 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-core"))
             api(project(":reaktor-io"))
             api(compose.runtime)
@@ -24,17 +24,17 @@ kotlin {
             api("io.coil-kt.coil3:coil-network-ktor3:3.2.0")
             api("io.coil-kt.coil3:coil-svg:3.2.0")
         }
-        testDependencies = {
+        testDependencies {
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             api(compose.uiTest)
         }
     }
 
     web {
-        webpackConfig = {
+        webpackConfig {
             configDirectory = file("${projectDir}/webpack.config.d")
         }
-        dependencies = {
+        dependencies {
             kotlinWrappers()
             react()
             webCoroutines()
@@ -43,7 +43,7 @@ kotlin {
     }
 
     droid {
-        dependencies = {
+        dependencies {
             activityFragment()
             androidCoroutines()
             fbjni()
@@ -53,14 +53,14 @@ kotlin {
     }
 
     darwin {
-        dependencies = {
+        dependencies {
             // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
             api("org.jetbrains.kotlinx:atomicfu:0.23.1")
         }
     }
     server {
-        dependencies = {
-
+        dependencies {
+            api(compose.desktop.currentOs)
         }
     }
 }

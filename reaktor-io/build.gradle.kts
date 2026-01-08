@@ -10,6 +10,7 @@ import dev.shibasis.dependeasy.dependencies.useKoin
 import dev.shibasis.dependeasy.dependencies.useNetworking
 import java.net.InetSocketAddress
 import java.net.Socket
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("dev.shibasis.dependeasy.library")
@@ -18,30 +19,17 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-core"))
             api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
-//            api("androidx.datastore:datastore-preferences-core:1.1.0")
         }
     }
 
     // https://web.dev/articles/origin-private-file-system
     // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
-    web {
-        dependencies = {}
-    }
-
-    droid {
-        dependencies = {
-            api("androidx.datastore:datastore-preferences-core:1.1.0")
-        }
-    }
-
-    darwin {
-        dependencies = {
-            api("androidx.datastore:datastore-preferences-core:1.1.0")
-        }
-    }
+    web {}
+    droid {}
+    darwin {}
     server {}
     useNetworking()
 }
@@ -67,11 +55,8 @@ buildkonfig {
 }
 
 fun getMachineIpAddress(): String = Socket().run {
-    connect(InetSocketAddress("google.com", 80))
+//    connect(InetSocketAddress("google.com", 80))
     localAddress.hostAddress
 }
 
 tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
-dependencies {
-    implementation("androidx.wear.compose:compose-material-core:1.4.1")
-}

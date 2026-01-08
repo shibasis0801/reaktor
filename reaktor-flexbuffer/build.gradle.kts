@@ -12,48 +12,23 @@ plugins {
 
 val Name = "ReaktorFlexbuffer"
 
-
-fun darwinCmake(sdk: String): Exec {
-    return tasks.create<Exec>("${sdk}CMake") {
-        group = "reaktor"
-        workingDir = file("cpp")
-        commandLine = listOf("bash", "-c", """
-            mkdir -p build &&
-            cd build &&   
-            rm -rf $sdk &&
-            cmake -B $sdk -G Xcode \
-                -DCMAKE_BUILD_TYPE=Release \
-                -Dsdk=${sdk} .. \
-                -DiOS=true &&
-            cmake --build $sdk --config Release
-        """.trimIndent()
-        )
-    }
-}
-val iosCmake = darwinCmake("iphoneos")
-val iosSimulatorCmake = darwinCmake("iphonesimulator")
-
-tasks.named("build") {
-    dependsOn(iosCmake, iosSimulatorCmake)
-}
-
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
         }
     }
 
     droid {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-io"))
             implementation("com.google.flatbuffers:flatbuffers-java:2.0.3")
         }
     }
 
     darwin {
-        cinterops = {
+        cinterops {
             val reaktor by creating {
                 extraOpts("-Xsource-compiler-option", "-std=c++20")
                 extraOpts("-Xsource-compiler-option", "-stdlib=libc++")
@@ -65,7 +40,7 @@ kotlin {
             }
         }
 
-        targets = {
+        targetModifier {
             println("DarwinTarget: $name")
             val code = if (name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"
             binaries.all {
@@ -92,4 +67,3 @@ dependencies {
 android {
    defaults("dev.shibasis.reaktor.core", file("cpp/CMakeLists.txt"), Name)
 }
-

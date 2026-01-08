@@ -12,6 +12,7 @@ interface DependencyModule: AutoCloseable {
 /*
 Default global dependency module.
 Will see if DI is actually needed and if it can work without making code complex.
+todo errors must be shown on a error screen like react native
  */
 object Feature: DependencyModule {
     private var moduleIdx = AtomicInt(0)

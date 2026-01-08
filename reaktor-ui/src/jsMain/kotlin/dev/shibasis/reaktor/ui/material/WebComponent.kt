@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.ui.material
 
-import react.Dependencies
+
 import react.useEffect
 import react.useState
 import web.html.HTMLElement
@@ -19,8 +19,8 @@ data class PromiseResult<T>(
 
 @JsExport
 fun<T> usePromise(
+    vararg dependencies: Any?,
     promiseFactory: () -> Promise<T>?,
-    dependencies: Dependencies
 ): PromiseResult<T> {
     val (data, setData) = useState(PromiseResult<T>(PromiseState.Initial))
 

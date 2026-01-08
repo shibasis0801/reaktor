@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.plugins
 
+import com.android.build.api.dsl.AndroidSourceSet
 import dev.shibasis.dependeasy.tasks.generateDocumentation
 import dev.shibasis.dependeasy.tasks.buildReleaseBinariesLogSizes
 import org.gradle.api.Plugin
@@ -9,6 +10,8 @@ import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.konan.target.Family
 
 open class DependeasyExtension {
     // Living on the edge
@@ -21,7 +24,8 @@ open class DependeasyExtension {
         "kotlin.uuid.ExperimentalUuidApi",
         "kotlinx.coroutines.DelicateCoroutinesApi",
         "kotlinx.serialization.ExperimentalSerializationApi",
-        "androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi"
+        "androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi",
+        "kotlin.time.ExperimentalTime"
     )
 
     companion object {
@@ -37,18 +41,28 @@ internal inline fun <reified T : Any> Any.getExtension(name: String): T? =
     (this as ExtensionAware).extensions.getByName(name) as T?
 
 fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) {
+    // DO NOT CHANGE TO KMM until
+    // https://youtrack.jetbrains.com/projects/KMT/issues/KMT-1554/Unable-to-configure-NDK-and-CMake-in-Android-Kotlin-Multiplatform-Library-module?utm_source=chatgpt.com
+    // https://issuetracker.google.com/u/1/issues/439746703
     plugins.apply("com.android.library")
     plugins.apply("kotlin-multiplatform")
+    plugins.apply("org.jetbrains.kotlin.native.cocoapods")
+//    plugins.apply("io.github.turansky.seskar")
+//    plugins.apply("com.github.node-gradle.node")
+
     val multiplatform = extensions.getByName("kotlin") as KotlinMultiplatformExtension
+
+//    multiplatform.sourceSets
+//        .find { it is KotlinNativeTarget && it.konanTarget.family == Family.IOS }
+//        ?.run { plugins.apply("org.jetbrains.kotlin.native.cocoapods") }
+
     multiplatform.sourceSets.all {
-        dependeasyExtension.annotations.forEach { languageSettings.optIn(it) }
+        dependeasyExtension.annotations.forEach {
+            languageSettings.optIn(it)
+        }
     }
 
-    val enableDarwin = project.properties["enableDarwin"]?.toString()?.toBoolean() ?: true
-    if (enableDarwin) {
-        plugins.apply("org.jetbrains.kotlin.native.cocoapods")
-        val cocoapods = multiplatform.getExtension<CocoapodsExtension>("cocoapods")
-    }
+
 }
 
 class LibraryPlugin: Plugin<Project> {

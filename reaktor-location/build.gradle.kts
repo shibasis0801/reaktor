@@ -15,17 +15,17 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
+        dependencies {
             api(project(":reaktor-ui"))
         }
     }
     droid {
-        dependencies = {
+        dependencies {
             api("com.google.android.gms:play-services-location:21.2.0")
         }
     }
     darwin {
-        podDependencies = {
+        podDependencies {
             framework {
                 linkerOpts("-framework", "CoreLocation")
             }

@@ -13,14 +13,13 @@ object Version {
 
         const val targetDarwin = "13"
 
-        const val Kotlin = "2.2.10"
-        const val SpringBoot = "3.5.0"
-        const val Spring = "6.2.8"
+        const val Kotlin = "2.3.0-Beta2"
+        const val SpringBoot = "4.0.0"
 
         object Java {
-            val asTarget = JvmTarget.JVM_17
-            val asEnum = JavaVersion.VERSION_17
-            val asString = "17"
+            val asTarget = JvmTarget.JVM_21
+            val asEnum = JavaVersion.VERSION_21
+            val asString = "21"
             val asInt = asString.toInt() // wtf is wrong with gradle and java version types
         }
     }
@@ -32,7 +31,7 @@ object Version {
     const val Navigation = "2.3.2"
 
     // Web
-    const val KotlinJSWrappers = "1.0.0-pre.758"
+    const val KotlinJSWrappers = "2025.10.4"
 
     // Data
     const val SQLDelight = "2.0.0"
@@ -40,22 +39,22 @@ object Version {
     const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
     const val Ktor = "3.1.0"
-    const val Koin = "4.0.0"
+    const val Koin = "4.1.0"
     const val KoinAnnotations = "2.0.0"
 
     // Cloud
     const val Firebase = "32.0.0"
 
     // Android Camera
-    const val CameraX = "1.3.4"
+    const val CameraX = "1.5.2"
 
     // KMM Async
     const val Coroutines = "1.10.1"
     const val Kermit = "2.0.5"
-    const val Serialization = "1.8.0"
+    const val Serialization = "1.9.0"
+    const val Seskar = "4.25.0"
 
     // DevTools
-    const val Flipper = "0.162.0"
     const val LeakCanary = "2.8.1"
     const val SoLoader = "0.10.1"
 

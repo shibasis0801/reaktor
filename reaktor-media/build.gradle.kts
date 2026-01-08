@@ -11,32 +11,32 @@ plugins {
 
 kotlin {
     common {
-        dependencies = {
-            api(project(":reaktor-navigation"))
+        dependencies {
+            api(project(":reaktor-graph"))
             api(project(":reaktor-io"))
         }
     }
 
     web {
-        dependencies = {
+        dependencies {
 
         }
     }
 
     droid {
-        dependencies = {
+        dependencies {
             camera()
             workManager()
         }
     }
 
     darwin {
-        dependencies = {
+        dependencies {
 
         }
     }
     server {
-        dependencies = {
+        dependencies {
 
         }
     }
