@@ -19,7 +19,7 @@ dependencies {
     implementation("com.android.tools.build:gradle:8.8.0") {
         exclude(group = "org.apache.commons", module = "commons-compress")
     }
-    implementation("org.apache.commons:commons-compress:1.25.0") // todo remember to upgrade on upgrading Spring
+    implementation("org.apache.commons:commons-compress:1.28.0") // todo remember to upgrade on upgrading Spring
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")

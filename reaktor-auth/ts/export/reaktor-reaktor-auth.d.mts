@@ -372,6 +372,23 @@ export declare namespace FileAdapter {
         const constructor: abstract new <Controller>() => FileAdapter<Controller>;
     }
 }
+export declare abstract class Reaktor {
+    static readonly getInstance: () => typeof Reaktor.$metadata$.type;
+    private constructor();
+}
+export declare namespace Reaktor {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            start(featureInitializer?: (p0: any/* typeof Feature.$metadata$.type */) => void): void;
+            web(): void;
+            private constructor();
+        }
+    }
+}
 export declare class Graph /* implements Unique, Visitable, LifecycleCapability, DependencyCapability, ConcurrencyCapability, NavigationCapability */ {
     constructor(parentGraph?: Nullable<Graph>, dispatcher?: any/* CoroutineDispatcher */, dependencyAdapter?: any/* DependencyAdapter<UnknownType *> */, id?: any/* Uuid */, label?: string, dependencies?: (p0: any/* DependencyAdapter.ScopeBuilder */) => void, builder?: (p0: Graph) => void);
     get dependencies(): (p0: any/* DependencyAdapter.ScopeBuilder */) => void;
@@ -2031,5 +2048,191 @@ export declare namespace UserRole {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
         const constructor: abstract new () => UserRole;
+    }
+}
+export declare class LoginRequest extends Request.$metadata$.constructor {
+    constructor(idToken: string, appId: string, provider: UserProvider | undefined, givenName: Nullable<string> | undefined, familyName: Nullable<string> | undefined, newUserProfile: any/* JsonElement */ | undefined, headers: KtMutableMap<string, string> | undefined, queryParams: KtMutableMap<string, string> | undefined, pathParams: KtMutableMap<string, string> | undefined, environment: Environment);
+    get idToken(): string;
+    get appId(): string;
+    get provider(): UserProvider;
+    get givenName(): Nullable<string>;
+    get familyName(): Nullable<string>;
+    get newUserProfile(): any/* JsonElement */;
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(idToken?: string, appId?: string, provider?: UserProvider, givenName?: Nullable<string>, familyName?: Nullable<string>, newUserProfile?: any/* JsonElement */, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): LoginRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+    static Create(idToken: string, appId: string, provider: UserProvider | undefined, environment: Environment): LoginRequest;
+}
+export declare namespace LoginRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => LoginRequest;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                private constructor();
+            }
+        }
+    }
+}
+export declare abstract class LoginResponse extends Response.$metadata$.constructor {
+    protected constructor(statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    get statusCode(): StatusCode;
+    set statusCode(value: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+}
+export declare namespace LoginResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => LoginResponse;
+    }
+    class Success extends LoginResponse.$metadata$.constructor {
+        constructor(user: User, profile: any/* JsonElement */);
+        get user(): User;
+        get profile(): any/* JsonElement */;
+        copy(user?: User, profile?: any/* JsonElement */): LoginResponse.Success;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Success {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => Success;
+        }
+    }
+    abstract class Failure extends LoginResponse.$metadata$.constructor {
+        protected constructor(hack: StatusCode);
+    }
+    namespace Failure {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => Failure;
+        }
+        abstract class InvalidIdToken extends KtSingleton<InvalidIdToken.$metadata$.constructor>() {
+            private constructor();
+        }
+        namespace InvalidIdToken {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
+                    toString(): string;
+                    hashCode(): number;
+                    equals(other: Nullable<any>): boolean;
+                    private constructor();
+                }
+            }
+        }
+        abstract class InvalidAppId extends KtSingleton<InvalidAppId.$metadata$.constructor>() {
+            private constructor();
+        }
+        namespace InvalidAppId {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
+                    toString(): string;
+                    hashCode(): number;
+                    equals(other: Nullable<any>): boolean;
+                    private constructor();
+                }
+            }
+        }
+        abstract class UnsupportedUserProvider extends KtSingleton<UnsupportedUserProvider.$metadata$.constructor>() {
+            private constructor();
+        }
+        namespace UnsupportedUserProvider {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
+                    toString(): string;
+                    hashCode(): number;
+                    equals(other: Nullable<any>): boolean;
+                    private constructor();
+                }
+            }
+        }
+        abstract class RequiresUserName extends KtSingleton<RequiresUserName.$metadata$.constructor>() {
+            private constructor();
+        }
+        namespace RequiresUserName {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
+                    toString(): string;
+                    hashCode(): number;
+                    equals(other: Nullable<any>): boolean;
+                    private constructor();
+                }
+            }
+        }
+        abstract class RequiresUserProfile extends KtSingleton<RequiresUserProfile.$metadata$.constructor>() {
+            private constructor();
+        }
+        namespace RequiresUserProfile {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
+                    toString(): string;
+                    hashCode(): number;
+                    equals(other: Nullable<any>): boolean;
+                    private constructor();
+                }
+            }
+        }
+        class AppLoginFailure extends LoginResponse.Failure.$metadata$.constructor {
+            constructor(userProvider: UserProvider);
+            get userProvider(): UserProvider;
+            copy(userProvider?: UserProvider): LoginResponse.Failure.AppLoginFailure;
+            toString(): string;
+            hashCode(): number;
+            equals(other: Nullable<any>): boolean;
+        }
+        namespace AppLoginFailure {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => AppLoginFailure;
+            }
+        }
+        class ServerError extends LoginResponse.Failure.$metadata$.constructor {
+            constructor(message: string);
+            get message(): string;
+        }
+        namespace ServerError {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => ServerError;
+            }
+        }
+    }
+}
+export declare abstract class AuthService extends Service.$metadata$.constructor {
+    constructor(baseUrl?: string);
+    abstract get login(): PostHandler<LoginRequest, LoginResponse>;
+}
+export declare namespace AuthService {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AuthService;
+    }
+}
+export declare class AuthServiceClient extends AuthService.$metadata$.constructor {
+    constructor(baseUrl: string);
+    get login(): PostHandler<LoginRequest, LoginResponse>;
+}
+export declare namespace AuthServiceClient {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AuthServiceClient;
     }
 }

@@ -3,7 +3,12 @@ package dev.shibasis.reaktor.graph.ui
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ControllerNode
+import dev.shibasis.reaktor.graph.core.node.RouteBinding
+import dev.shibasis.reaktor.graph.core.port.ConsumerPort
+import dev.shibasis.reaktor.graph.core.port.consumes
+import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.ui.themed
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
 
 
@@ -23,6 +28,7 @@ interface ComposeContent: View {
     fun Content()
 }
 
+// todo how to pass routebinding and create a consumer automatically ?
 abstract class ComposeNode<State>(
     graph: Graph
 ): ControllerNode<State>(graph), ComposeContent {
@@ -30,3 +36,8 @@ abstract class ComposeNode<State>(
 }
 
 
+abstract class StatelessComposeNode(
+    graph: Graph
+): ComposeNode<Unit>(graph) {
+    override val state = MutableStateFlow(Unit)
+}

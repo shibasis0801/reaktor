@@ -9,6 +9,7 @@ private fun Project.isMacOs(): Boolean =
 
 fun Project.darwinCmake(sdk: String): Exec? {
     if (!isMacOs()) return null
+    if (!file("cpp").exists()) return null
     val prefix = sdk
     return tasks.create<Exec>("${prefix}CMake") {
         group = "reaktor"

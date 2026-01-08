@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.graph.di.DependencyAdapter.ScopeBuilder
+import org.koin.core.context.startKoin
 import kotlin.reflect.KClass
 
 

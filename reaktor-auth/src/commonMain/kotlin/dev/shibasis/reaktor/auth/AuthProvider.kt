@@ -14,7 +14,7 @@ abstract class AuthProvider<out Adapter: AuthAdapter<*>, User: AuthProviderUser>
 }
 
 abstract class GoogleAuthProvider<out Adapter: AuthAdapter<*>>(
-    adapter: Adapter
+    adapter: Adapter,
 ): AuthProvider<Adapter, GoogleUser>(adapter)
 
 abstract class AppleAuthProvider<out Adapter: AuthAdapter<*>>(

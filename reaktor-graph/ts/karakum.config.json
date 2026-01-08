@@ -1,5 +1,5 @@
 {
   "input": "karakum.ts",
   "output": "import",
-  "libraryName": "dev-shibasis-reaktor-navigation-karakum"
+  "libraryName": "dev-shibasis-reaktor-graph-karakum"
 }

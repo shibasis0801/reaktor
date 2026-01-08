@@ -46,7 +46,7 @@ object Version {
     const val Firebase = "32.0.0"
 
     // Android Camera
-    const val CameraX = "1.3.4"
+    const val CameraX = "1.5.2"
 
     // KMM Async
     const val Coroutines = "1.10.1"

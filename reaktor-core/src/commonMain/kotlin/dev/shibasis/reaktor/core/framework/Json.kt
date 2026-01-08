@@ -25,9 +25,6 @@ fun JsonBuilder.defaults() {
 
 var json = Json {
     defaults()
-    serializersModule = SerializersModule {
-        contextual(Instant::class, InstantAsStringSerializer)
-    }
 }
 
 val EMPTY_JSON = JsonObject(emptyMap())
@@ -37,16 +34,3 @@ inline fun JsonObject.copy(
 ) = JsonObject(toMutableMap().apply(fn))
 
 inline fun<reified T> kSerializer() = json.serializersModule.serializer<T>()
-
-object InstantAsStringSerializer : KSerializer<Instant> {
-    override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("kotlin.time.Instant", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: Instant) {
-        encoder.encodeString(value.toString())
-    }
-
-    override fun deserialize(decoder: Decoder): Instant {
-        return Instant.parse(decoder.decodeString())
-    }
-}
