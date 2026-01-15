@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-cloudflare",
-  "version": "2026.1.8-SNAPSHOT",
+  "version": "2026.1.15-SNAPSHOT",
   "main": "reaktor-reaktor-cloudflare.mjs",
   "types": "reaktor-reaktor-cloudflare.d.mts",
   "devDependencies": {

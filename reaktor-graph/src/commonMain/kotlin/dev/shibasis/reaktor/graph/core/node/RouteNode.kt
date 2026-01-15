@@ -24,6 +24,7 @@ open class RouteBinding<P: Payload>(
         internal set
 }
 
+typealias Binding = RouteBinding<Payload>
 
 @JsExport
 interface NavBinding<P: Payload> {

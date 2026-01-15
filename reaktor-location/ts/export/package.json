@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-location",
-  "version": "2026.1.8-SNAPSHOT",
+  "version": "2026.1.15-SNAPSHOT",
   "main": "reaktor-reaktor-location.mjs",
   "types": "reaktor-reaktor-location.d.mts",
   "devDependencies": {

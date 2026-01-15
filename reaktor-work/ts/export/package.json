@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-work",
-  "version": "2026.1.8-SNAPSHOT",
+  "version": "2026.1.15-SNAPSHOT",
   "main": "reaktor-reaktor-work.mjs",
   "types": "reaktor-reaktor-work.d.mts",
   "devDependencies": {
