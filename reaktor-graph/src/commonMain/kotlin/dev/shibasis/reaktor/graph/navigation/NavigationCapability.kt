@@ -16,29 +16,27 @@ interface NavigationCapability: Capability {
     fun dispatch(navCommand: NavCommand)
 }
 
-class NavigationCapabilityImpl: NavigationCapability {
+open class NavigationCapabilityImpl: NavigationCapability {
     override val activeStack = ObservableStack<BackStackEntry<*, *>>()
 
-    private fun onPush(navCommand: Push<*, *>) {
+    protected open fun onPush(navCommand: Push<*, *>) {
         val (edge, payload, _) = navCommand.entry
         edge.end.navBinding.invoke { update(payload) }
         activeStack.push(navCommand.entry)
     }
 
-    private fun onReplace(navCommand: Replace<*, *>) {
+    protected open fun onReplace(navCommand: Replace<*, *>) {
         val (edge, payload, _) = navCommand.entry
         edge.end.navBinding.invoke { update(payload) }
         activeStack.replace(navCommand.entry)
     }
 
-
-    private fun onReturn(navCommand: Return<*>) {
+    protected open fun onReturn(navCommand: Return<*>) {
         val popped = activeStack.pop() ?: return
         popped.complete(navCommand.value as Any)
     }
 
-
-    private fun onPop(navCommand: Pop) {
+    protected open fun onPop(navCommand: Pop) {
         activeStack.pop()
     }
 

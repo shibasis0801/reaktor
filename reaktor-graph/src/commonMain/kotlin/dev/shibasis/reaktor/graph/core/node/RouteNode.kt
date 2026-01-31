@@ -63,10 +63,10 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
         }
     })
 
-    fun attachedNode(): ControllerNode<*>? {
+    fun attachedNode(): Routable? {
         val edge = routeBinding.edges.values.firstOrNull()
         val bound = edge?.source ?: return null
-        if (bound !is ControllerNode<*>)
+        if (bound !is Routable)
             return null
 
         return bound

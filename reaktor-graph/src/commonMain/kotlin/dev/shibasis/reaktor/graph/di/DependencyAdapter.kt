@@ -74,3 +74,5 @@ inline fun <reified T: Any> ScopeBuilder.factory(
 
 var Feature.Dependency by CreateSlot<DependencyAdapter<*>>()
 
+val DependencyException = IllegalStateException("Please Initialize Feature.Dependency or pass it as a parameter")
+

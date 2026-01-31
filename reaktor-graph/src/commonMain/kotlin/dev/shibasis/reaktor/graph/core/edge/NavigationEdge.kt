@@ -27,7 +27,12 @@ class NavigationEdge<P: Payload>(
     end,
     end.navBinding
 ) {
+    val sourceGraph: Graph get() = start.graph
+    val destinationGraph: Graph get() = end.graph
+    val isCrossGraph: Boolean get() = sourceGraph != destinationGraph
+
     override fun toString(): String {
-        return "[NavigationEdge] $id: ${start.pattern} -> ${end.pattern}"
+        return "[NavigationEdge] $id: ${start.pattern} -> ${end.pattern}" +
+            if (isCrossGraph) " (cross-graph)" else ""
     }
 }

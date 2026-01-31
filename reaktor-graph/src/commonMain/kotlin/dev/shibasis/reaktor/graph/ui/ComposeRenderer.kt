@@ -35,12 +35,10 @@ fun GraphApplication(
     }
 }
 
-// 2. The Recursive Renderer (Pure Logic)
-// This is what ContainerNode calls for child graphs
 @Composable
 fun GraphContent(
     graph: Graph,
-    isFocused: Boolean = true // todo provide an helper for user to get this value
+    isFocused: Boolean = true
 ) {
     val entries by graph.activeStack.entries.collectAsState()
     val topEntry = entries.lastOrNull()
@@ -51,15 +49,13 @@ fun GraphContent(
         onBack = { graph.dispatch(Pop) }
     ) {
         if (topEntry != null) {
-            val node = topEntry.edge.end.attachedNode()
-            if (node != null) {
-                when (node) {
-                    is ComposeContainer -> node.Content { graph, isFocused ->
-                        GraphContent(graph, isFocused)
-                    }
-                    is ComposeContent -> node.Content()
-                    // ... error handling ...
+            val node = topEntry.edge.end.attachedNode() ?: return@BackHandlerContainer
+            when (node) {
+                is ComposeContainer -> node.Content { childGraph, childFocused ->
+                    GraphContent(childGraph, childFocused && isFocused)
                 }
+                is ComposeContent -> node.Content()
+                else -> {}
             }
         }
     }

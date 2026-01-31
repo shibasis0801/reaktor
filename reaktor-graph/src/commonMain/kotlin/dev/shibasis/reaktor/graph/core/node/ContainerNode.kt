@@ -5,29 +5,55 @@ import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.port.consumes
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.ui.ComposeContainer
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
 
 @JsExport
 open class ContainerNode(
     parent: Graph,
-    val graphs: ArrayList<Graph> = arrayListOf()
+    val graphs: ArrayList<Graph> = arrayListOf(),
+    pattern: String = ""
 ): Node(parent), Node.Routable {
-    // It is the responsibility of the implementing container to cast it correctly to the actual screen.
     override val routeBinding by consumes<RouteBinding<Payload>>()
+
+    val route = RouteNode(parent, pattern) { RouteBinding(Payload()) }
+    val activeGraphIndex = MutableStateFlow(0)
+
+    init {
+        dev.shibasis.reaktor.graph.core.connect(routeBinding, route.routeBinding)
+    }
+
+    val activeGraph: Graph?
+        get() = graphs.getOrNull(activeGraphIndex.value)
+
+    fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
+        val index = graphs.indexOfFirst { graph -> graph.nodes.any { it == route } }
+        if (index >= 0) {
+            activeGraphIndex.value = index
+            return true
+        }
+        return false
+    }
+
     override fun toString(): String {
-        return "${super.toString()} [Container] children=${graphs.size}"
+        return "${super.toString()} [Container] children=${graphs.size} active=${activeGraphIndex.value}"
     }
 }
 
 class ComposeContainerNode(
     parent: Graph,
-    graphs: ArrayList<Graph> = arrayListOf()
-): ContainerNode(parent, graphs), ComposeContainer {
+    graphs: ArrayList<Graph> = arrayListOf(),
+    pattern: String = ""
+): ContainerNode(parent, graphs, pattern), ComposeContainer {
     @Composable
     override fun Content(renderer: @Composable ((Graph, Boolean) -> Unit)) {
-        // todo fix / enhance
-        renderer(graphs[0], true)
+        val active = activeGraph ?: return
+        renderer(active, true)
     }
 }
 
-fun<CN: ContainerNode, G: Graph> Graph.Container(builder: (Graph, ArrayList<G>) -> CN, graphs: ArrayList<G>): CN = builder(this, graphs)
+fun<CN: ContainerNode, G: Graph> Graph.Container(
+    pattern: String,
+    builder: (Graph, ArrayList<G>, String) -> CN,
+    graphs: ArrayList<G>
+): CN = builder(this, graphs, pattern)
