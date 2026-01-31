@@ -26,12 +26,13 @@ sealed class AppResponse(
 }
 
 
-abstract class AppService: Service() {
+abstract class AppService(baseUrl: String): Service(baseUrl) {
     abstract val getAll: GetHandler<Request, AppResponse>
     abstract val getApp: GetHandler<Request, AppResponse>
 }
 
-abstract class AppClient: AppService() {
-    override val getApp = GetHandler<Request, AppResponse>("")
+abstract class AppClient: AppService("http://cloudflare/api") {
+    override val getAll = GetHandler<Request, AppResponse>("/")
+    override val getApp = GetHandler<Request, AppResponse>("/{id}")
 }
 

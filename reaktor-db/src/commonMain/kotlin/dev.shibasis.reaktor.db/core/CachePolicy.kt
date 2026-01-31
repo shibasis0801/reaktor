@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.db.core
 import dev.shibasis.reaktor.db.StoredObject
 import kotlin.time.Clock
 
-// todo needs upgrades
+// todo needs upgrades, most importantly this needs to be store level not db level
 interface CachePolicy {
     // return null in order to ignore the access, the object if you want to use it.
     suspend fun<T: Any> onItemAccess(storedObject: StoredObject<T>): StoredObject<T>?

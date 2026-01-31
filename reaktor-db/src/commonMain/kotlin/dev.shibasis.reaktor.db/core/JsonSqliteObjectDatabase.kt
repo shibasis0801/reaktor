@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.db.core
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlCursor
 import app.cash.sqldelight.db.SqlDriver
+import dev.shibasis.reaktor.db.DatabaseEvent
 import dev.shibasis.reaktor.io.serialization.BinarySerializer
 import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import dev.shibasis.reaktor.io.serialization.TextSerializer
@@ -19,7 +20,7 @@ class SqliteObjectDatabase(
     cachePolicy: CachePolicy = CachePolicyLRU(100),
     timestampProvider: TimestampProvider = DefaultTimestampProvider()
 ): ObjectDatabase(objectSerializer, cachePolicy, timestampProvider) {
-    private val tableName = "object_db_$name"
+    private val tableName = "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
 
     companion object {
         const val KEY_COLUMN = "key"
@@ -41,7 +42,7 @@ class SqliteObjectDatabase(
                 $STORE_NAME_COLUMN TEXT NOT NULL,
                 $CREATED_AT_COLUMN INTEGER NOT NULL,
                 $UPDATED_AT_COLUMN INTEGER NOT NULL,
-                PRIMARY KEY ($KEY_COLUMN, $STORE_NAME_COLUMN)
+                PRIMARY KEY ($STORE_NAME_COLUMN, $KEY_COLUMN)
             )
             """.trimIndent(),
             0
@@ -70,14 +71,24 @@ class SqliteObjectDatabase(
         return StoredObject(key, value, storeName, createdAt, updatedAt)
     }
 
-    override suspend fun <T : Any> put(storeName: String, key: String, value: T, serializer: KSerializer<T>) {
+    override suspend fun <T : Any> put(storeName: String, key: String, value: T, serializer: KSerializer<T>): StoredObject<T> {
+        emit(DatabaseEvent.Put(storeName, key))
+
         val serializedValue = objectSerializer.serialize(serializer, value)
 
         val now = timestampProvider.getTimestamp()
 
         driver.execute(
             null,
-            "INSERT OR REPLACE INTO $tableName ($KEY_COLUMN, $VALUE_COLUMN, $STORE_NAME_COLUMN, $CREATED_AT_COLUMN, $UPDATED_AT_COLUMN) VALUES (?, ?, ?, ?, ?)",
+            """
+        INSERT INTO $tableName ($KEY_COLUMN, $VALUE_COLUMN, $STORE_NAME_COLUMN, $CREATED_AT_COLUMN, $UPDATED_AT_COLUMN)
+        VALUES (
+            ?, ?, ?, ?, ?
+        )
+        ON CONFLICT($STORE_NAME_COLUMN, $KEY_COLUMN) DO UPDATE SET
+            $VALUE_COLUMN = excluded.$VALUE_COLUMN,
+            $UPDATED_AT_COLUMN = excluded.$UPDATED_AT_COLUMN
+        """.trimIndent(),
             5
         ) {
             bindString(0, key)
@@ -103,8 +114,16 @@ class SqliteObjectDatabase(
         // Trigger eviction if needed
         val keysToEvict = cachePolicy.findKeysToEvict(storeName)
         keysToEvict.forEach { (keyToEvict, storeNameToEvictFrom) ->
-            delete(keyToEvict, storeNameToEvictFrom)
+            delete(storeNameToEvictFrom, keyToEvict)
         }
+
+        return StoredObject(
+            key = key,
+            value = value,
+            storeName = storeName,
+            createdAt = now,
+            updatedAt = now
+        )
     }
 
     override suspend fun <T : Any> get(
@@ -113,6 +132,8 @@ class SqliteObjectDatabase(
         type: KClass<T>,
         serializer: KSerializer<T>
     ): StoredObject<T>? {
+        emit(DatabaseEvent.Get(storeName, key))
+
         val result = driver.executeQuery(
             null,
             "SELECT * FROM $tableName WHERE $KEY_COLUMN = ? AND $STORE_NAME_COLUMN = ?",
@@ -145,6 +166,8 @@ class SqliteObjectDatabase(
         type: KClass<T>,
         serializer: KSerializer<T>
     ): List<StoredObject<T>> {
+        emit(DatabaseEvent.GetAll(storeName))
+
         val result = driver.executeQuery(
             null,
             "SELECT * FROM $tableName WHERE $STORE_NAME_COLUMN = ?",
@@ -178,6 +201,8 @@ class SqliteObjectDatabase(
     }
 
     override suspend fun delete(storeName: String, key: String) {
+        emit(DatabaseEvent.Delete(storeName, key))
+
         driver.execute(
             null,
             "DELETE FROM $tableName WHERE \"$KEY_COLUMN\" = ? AND $STORE_NAME_COLUMN = ?",
@@ -190,6 +215,8 @@ class SqliteObjectDatabase(
     }
 
     override suspend fun clear(storeName: String) {
+        emit(DatabaseEvent.Clear(storeName))
+
         driver.execute(
             null,
             "DELETE FROM $tableName WHERE $STORE_NAME_COLUMN = ?",
@@ -200,6 +227,8 @@ class SqliteObjectDatabase(
     }
 
     override suspend fun clear() {
+        emit(DatabaseEvent.ClearAll)
+
         driver.execute(
             null,
             "DELETE FROM $tableName",

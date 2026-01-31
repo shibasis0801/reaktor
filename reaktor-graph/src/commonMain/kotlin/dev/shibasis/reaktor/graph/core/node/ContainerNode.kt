@@ -1,8 +1,10 @@
 package dev.shibasis.reaktor.graph.core.node
 
+import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.port.consumes
 import dev.shibasis.reaktor.graph.navigation.Payload
+import dev.shibasis.reaktor.graph.ui.ComposeContainer
 import kotlin.js.JsExport
 
 @JsExport
@@ -14,6 +16,17 @@ open class ContainerNode(
     override val routeBinding by consumes<RouteBinding<Payload>>()
     override fun toString(): String {
         return "${super.toString()} [Container] children=${graphs.size}"
+    }
+}
+
+class ComposeContainerNode(
+    parent: Graph,
+    graphs: ArrayList<Graph> = arrayListOf()
+): ContainerNode(parent, graphs), ComposeContainer {
+    @Composable
+    override fun Content(renderer: @Composable ((Graph, Boolean) -> Unit)) {
+        // todo fix / enhance
+        renderer(graphs[0], true)
     }
 }
 

@@ -11,7 +11,7 @@ import java.util.UUID
 @Component
 class AppServer(
     private val appRepository: AppRepository
-): AppService() {
+): AppService("") {
     override val getAll = GetHandler<Request, AppResponse>("/") {
         appRepository
             .all(it)

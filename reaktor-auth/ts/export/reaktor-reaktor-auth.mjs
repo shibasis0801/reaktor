@@ -69973,6 +69973,7 @@ function Environment_PROD_getInstance() {
 var dev_shibasis_reaktor_graph_ui_ChildGraph$stable;
 var dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable;
 var dev_shibasis_reaktor_graph_ui_ComposeNode$stable;
+var dev_shibasis_reaktor_graph_ui_StatelessComposeNode$stable;
 var dev_shibasis_reaktor_graph_ui_ObservableStack$stable;
 var dev_shibasis_reaktor_graph_ui_WindowSize$stable;
 var WindowWidthClass_COMPACT_instance;
@@ -85646,6 +85647,7 @@ Companion_instance_82 = new Companion_82();
 dev_shibasis_reaktor_graph_ui_ChildGraph$stable = 8;
 dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable = 8;
 dev_shibasis_reaktor_graph_ui_ComposeNode$stable = 8;
+dev_shibasis_reaktor_graph_ui_StatelessComposeNode$stable = 8;
 dev_shibasis_reaktor_graph_ui_ObservableStack$stable = 8;
 dev_shibasis_reaktor_graph_ui_WindowSize$stable = 0;
 dev_shibasis_reaktor_graph_utilities_RepositoryNode$stable = 8;

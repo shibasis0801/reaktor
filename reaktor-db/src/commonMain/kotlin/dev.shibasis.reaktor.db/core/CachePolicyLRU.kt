@@ -13,6 +13,7 @@ class CachePolicyLRU(
     private val cacheTime: Duration = 5.minutes
 ) : CachePolicy {
 
+    // todo replace every stupid mutex with a concurrent hash map after writing one.
     private val mutex = Mutex()
 
     private data class Entry(

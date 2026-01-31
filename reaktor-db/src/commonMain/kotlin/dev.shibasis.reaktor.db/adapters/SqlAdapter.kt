@@ -66,15 +66,14 @@ abstract class SqlAdapter<Controller>(
 
     private fun bindArgs(binder: SqlPreparedStatement, args: Array<Any?>) {
         args.forEachIndexed { index, arg ->
-            val idx = index + 1
             when (arg) {
-                is Long -> binder.bindLong(idx, arg)
-                is Int -> binder.bindLong(idx, arg.toLong())
-                is String -> binder.bindString(idx, arg)
-                is Boolean -> binder.bindLong(idx, if (arg) 1L else 0L)
-                is Double -> binder.bindDouble(idx, arg)
-                is ByteArray -> binder.bindBytes(idx, arg)
-                null -> binder.bindBytes(idx, null)
+                is Long -> binder.bindLong(index, arg)
+                is Int -> binder.bindLong(index, arg.toLong())
+                is String -> binder.bindString(index, arg)
+                is Boolean -> binder.bindLong(index, if (arg) 1L else 0L)
+                is Double -> binder.bindDouble(index, arg)
+                is ByteArray -> binder.bindBytes(index, arg)
+                null -> binder.bindBytes(index, null)
                 else -> throw IllegalArgumentException("Unsupported type: ${arg::class}")
             }
         }
@@ -104,7 +103,7 @@ abstract class SqlAdapter<Controller>(
         fileAdapter.delete(backupPath)
 
         getDriver().execute(null, "VACUUM INTO ?", 1) {
-            bindString(1, backupPath)
+            bindString(0, backupPath)
         }
     }
 

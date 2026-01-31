@@ -37,17 +37,6 @@ if (typeof Array.prototype.fill === 'undefined') {
     Object.defineProperty(TypedArray.prototype, 'fill', {value: Array.prototype.fill});
   }
 });
-if (typeof Math.clz32 === 'undefined') {
-  Math.clz32 = function (log, LN2) {
-    return function (x) {
-      var asUint = x >>> 0;
-      if (asUint === 0) {
-        return 32;
-      }
-      return 31 - (log(asUint) / LN2 | 0) | 0; // the "| 0" acts like math.floor
-    };
-  }(Math.log, Math.LN2);
-}
 if (typeof Math.trunc === 'undefined') {
   Math.trunc = function (x) {
     if (isNaN(x)) {
@@ -58,6 +47,17 @@ if (typeof Math.trunc === 'undefined') {
     }
     return Math.ceil(x);
   };
+}
+if (typeof Math.clz32 === 'undefined') {
+  Math.clz32 = function (log, LN2) {
+    return function (x) {
+      var asUint = x >>> 0;
+      if (asUint === 0) {
+        return 32;
+      }
+      return 31 - (log(asUint) / LN2 | 0) | 0; // the "| 0" acts like math.floor
+    };
+  }(Math.log, Math.LN2);
 }
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
@@ -65981,6 +65981,7 @@ function Environment_PROD_getInstance() {
 var dev_shibasis_reaktor_graph_ui_ChildGraph$stable;
 var dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable;
 var dev_shibasis_reaktor_graph_ui_ComposeNode$stable;
+var dev_shibasis_reaktor_graph_ui_StatelessComposeNode$stable;
 var dev_shibasis_reaktor_graph_ui_ObservableStack$stable;
 var dev_shibasis_reaktor_graph_ui_WindowSize$stable;
 var WindowWidthClass_COMPACT_instance;
@@ -79435,7 +79436,7 @@ initMetadataForClass(ContextScope, 'ContextScope', VOID, VOID, [CoroutineScope])
 initMetadataForClass(Symbol_0, 'Symbol');
 initMetadataForInterface(SelectInstance, 'SelectInstance');
 initMetadataForClass(ClauseData, 'ClauseData', VOID, VOID, VOID, [1]);
-initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, SelectInstance, Waiter], [0, 2]);
+initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, Waiter, SelectInstance], [0, 2]);
 initMetadataForClass(TrySelectDetailedResult, 'TrySelectDetailedResult');
 initMetadataForClass(SetTimeoutBasedDispatcher, 'SetTimeoutBasedDispatcher', VOID, VOID, [CoroutineDispatcher, Delay], [1]);
 initMetadataForObject(NodeDispatcher, 'NodeDispatcher', VOID, VOID, VOID, [1]);
@@ -80775,6 +80776,7 @@ Companion_instance_82 = new Companion_82();
 dev_shibasis_reaktor_graph_ui_ChildGraph$stable = 8;
 dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable = 8;
 dev_shibasis_reaktor_graph_ui_ComposeNode$stable = 8;
+dev_shibasis_reaktor_graph_ui_StatelessComposeNode$stable = 8;
 dev_shibasis_reaktor_graph_ui_ObservableStack$stable = 8;
 dev_shibasis_reaktor_graph_ui_WindowSize$stable = 0;
 dev_shibasis_reaktor_graph_utilities_RepositoryNode$stable = 8;

@@ -17,6 +17,7 @@ sealed interface Forward<P: Payload, R>: NavCommand {
 sealed interface Back<R>: NavCommand {
     val value: R
 }
+
 @JsExport
 class Push<P: Payload, R>(
     override val entry: BackStackEntry<P, R>
