@@ -1,0 +1,13 @@
+{
+  "name": "reaktor-reaktor-graph-port",
+  "version": "2026.2.4-SNAPSHOT",
+  "main": "reaktor-reaktor-graph-port.mjs",
+  "types": "reaktor-reaktor-graph-port.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

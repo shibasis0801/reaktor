@@ -2,12 +2,13 @@ package dev.shibasis.reaktor.graph.core.node
 
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.attach
 import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
-import dev.shibasis.reaktor.graph.core.port.Key
-import dev.shibasis.reaktor.graph.core.port.KeyType
-import dev.shibasis.reaktor.graph.core.port.ProviderPort
-import dev.shibasis.reaktor.graph.core.port.Type.Companion.Type
-import dev.shibasis.reaktor.graph.core.port.provides
+import dev.shibasis.reaktor.portgraph.port.Key
+import dev.shibasis.reaktor.portgraph.port.KeyType
+import dev.shibasis.reaktor.portgraph.port.ProviderPort
+import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
+import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.io.network.RoutePattern
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,5 +88,8 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
 }
 
 
-fun<P: Payload, Binding: RouteBinding<P>> Graph.Route(pattern: String, binder: Binder<P, Binding>) =
-    RouteNode(this, pattern, binder)
+fun<P: Payload, Binding: RouteBinding<P>> Graph.Route(pattern: String, binder: Binder<P, Binding>): RouteNode<P, Binding> {
+    val node = RouteNode(this, pattern, binder)
+    attach(node)
+    return node
+}

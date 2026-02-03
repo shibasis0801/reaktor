@@ -10,7 +10,6 @@ import dev.shibasis.reaktor.graph.di.DependencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
-import dev.shibasis.reaktor.graph.capabilities.Unique
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.graph.navigation.Forward
@@ -22,21 +21,20 @@ import dev.shibasis.reaktor.graph.navigation.Replace
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
-import dev.shibasis.reaktor.graph.core.port.ProviderPort
-import dev.shibasis.reaktor.graph.core.port.flattenedValues
+import dev.shibasis.reaktor.portgraph.port.ProviderPort
+import dev.shibasis.reaktor.portgraph.port.flattenedValues
+import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.DependencyException
 import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.NavCommand
-import dev.shibasis.reaktor.graph.visitor.Visitable
+import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
-// incorporate data oriented concepts. fix cpu cache behaviour, reduce random memory accesses.
-// steroids(https://developer.android.com/static/images/topic/libraries/architecture/navigation-design-graph-nested.png)
 @JsExport
 open class Graph(
     parentGraph: Graph? = null,
@@ -46,9 +44,7 @@ open class Graph(
     override val label: String = "",
     val dependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},
     builder: Graph.() -> Unit = {}
-):
-    Unique,
-    Visitable,
+): PortGraph<Graph, Node>(id, label),
     LifecycleCapability by LifecycleCapabilityImpl(),
     DependencyCapability by DependencyCapabilityImpl(
         diAdapter = dependencyAdapter,
@@ -62,11 +58,10 @@ open class Graph(
     ),
     NavigationCapability
 {
-    val nodes = arrayListOf<Node>()
     val sentinel = RouteNode(this, "")
 
     private val navigationImpl = NavigationCapabilityImpl()
-    override val activeStack get() = navigationImpl.activeStack
+    override val backStack get() = navigationImpl.backStack
 
     override fun dispatch(navCommand: NavCommand) {
         when (navCommand) {
@@ -135,7 +130,7 @@ open class Graph(
     }
 
     override fun toString(): String {
-        return "[Graph] label='$label' id='$id' nodes=${nodes.size} stackDepth=${activeStack.entries.value.size}, sentinel=$sentinel"
+        return "[Graph] label='$label' id='$id' nodes=${nodes.size} stackDepth=${backStack.entries.value.size}, sentinel=$sentinel"
     }
 }
 
@@ -199,8 +194,6 @@ fun Graph.autoWire() {
             }
         }
 }
-
-
 
 fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this)
 

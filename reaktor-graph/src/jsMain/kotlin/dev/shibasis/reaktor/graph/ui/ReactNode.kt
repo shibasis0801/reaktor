@@ -3,10 +3,10 @@ package dev.shibasis.reaktor.graph.ui
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.ControllerNode
-import dev.shibasis.reaktor.graph.core.port.KeyType
+import dev.shibasis.reaktor.portgraph.port.KeyType
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.core.node.RouteBinding
-import dev.shibasis.reaktor.graph.core.port.consumes
+import dev.shibasis.reaktor.portgraph.port.consumes
 import js.internal.InternalApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import react.ReactNode as Component

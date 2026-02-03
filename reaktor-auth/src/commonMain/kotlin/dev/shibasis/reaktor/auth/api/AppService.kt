@@ -4,9 +4,9 @@ import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.connect
-import dev.shibasis.reaktor.graph.core.port.provides
-import dev.shibasis.reaktor.graph.core.port.consumes
+import dev.shibasis.reaktor.portgraph.graph.connect
+import dev.shibasis.reaktor.portgraph.port.provides
+import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.graph.service.GetHandler
 import dev.shibasis.reaktor.graph.service.Request
 import dev.shibasis.reaktor.graph.service.Response

@@ -2,7 +2,9 @@ package dev.shibasis.reaktor.graph.core.node
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.port.consumes
+import dev.shibasis.reaktor.graph.core.attach
+import dev.shibasis.reaktor.portgraph.graph.connect
+import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.ui.ComposeContainer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +22,7 @@ open class ContainerNode(
     val activeGraphIndex = MutableStateFlow(0)
 
     init {
-        dev.shibasis.reaktor.graph.core.connect(routeBinding, route.routeBinding)
+        connect(routeBinding, route.routeBinding)
     }
 
     val activeGraph: Graph?
@@ -56,4 +58,8 @@ fun<CN: ContainerNode, G: Graph> Graph.Container(
     pattern: String,
     builder: (Graph, ArrayList<G>, String) -> CN,
     graphs: ArrayList<G>
-): CN = builder(this, graphs, pattern)
+): CN {
+    val node = builder(this, graphs, pattern)
+    attach(node)
+    return node
+}

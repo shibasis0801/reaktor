@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.graph.core.node
 
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
 

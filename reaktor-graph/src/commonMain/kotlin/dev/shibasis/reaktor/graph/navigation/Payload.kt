@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.graph.navigation
 
-import dev.shibasis.reaktor.graph.capabilities.Unique
-import dev.shibasis.reaktor.graph.capabilities.UniqueImpl
+import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.portgraph.UniqueImpl
 import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.Serializable

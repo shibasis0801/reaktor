@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ControllerNode
 import dev.shibasis.reaktor.graph.core.node.RouteBinding
-import dev.shibasis.reaktor.graph.core.port.ConsumerPort
-import dev.shibasis.reaktor.graph.core.port.consumes
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow

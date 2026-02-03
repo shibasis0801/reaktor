@@ -1,43 +1,36 @@
 package dev.shibasis.reaktor.graph.navigation
 
 import dev.shibasis.reaktor.core.capabilities.Capability
-import dev.shibasis.reaktor.graph.capabilities.Unique
-import dev.shibasis.reaktor.graph.capabilities.UniqueImpl
-import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
 import dev.shibasis.reaktor.graph.ui.ObservableStack
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.serialization.Serializable
-import kotlin.js.JsExport
-
 
 
 interface NavigationCapability: Capability {
-    val activeStack: ObservableStack<BackStackEntry<*, *>>
+    val backStack: ObservableStack<BackStackEntry<*, *>>
     fun dispatch(navCommand: NavCommand)
 }
 
 open class NavigationCapabilityImpl: NavigationCapability {
-    override val activeStack = ObservableStack<BackStackEntry<*, *>>()
+    override val backStack = ObservableStack<BackStackEntry<*, *>>()
 
     protected open fun onPush(navCommand: Push<*, *>) {
         val (edge, payload, _) = navCommand.entry
         edge.end.navBinding.invoke { update(payload) }
-        activeStack.push(navCommand.entry)
+        backStack.push(navCommand.entry)
     }
 
     protected open fun onReplace(navCommand: Replace<*, *>) {
         val (edge, payload, _) = navCommand.entry
         edge.end.navBinding.invoke { update(payload) }
-        activeStack.replace(navCommand.entry)
+        backStack.replace(navCommand.entry)
     }
 
     protected open fun onReturn(navCommand: Return<*>) {
-        val popped = activeStack.pop() ?: return
+        val popped = backStack.pop() ?: return
         popped.complete(navCommand.value as Any)
     }
 
     protected open fun onPop(navCommand: Pop) {
-        activeStack.pop()
+        backStack.pop()
     }
 
     override fun dispatch(navCommand: NavCommand) {
@@ -60,7 +53,7 @@ open class NavigationCapabilityImpl: NavigationCapability {
 
     class AutoClosed: Exception("Closed through AutoCloseable, debug if this was not expected")
     override fun close() {
-        activeStack.entries.value.forEach {
+        backStack.entries.value.forEach {
             it.result.completeExceptionally(AutoClosed())
         }
     }

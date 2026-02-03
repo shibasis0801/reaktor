@@ -5,14 +5,12 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.navigation.Pop
-import dev.shibasis.reaktor.ui.Theme
 import dev.shibasis.reaktor.ui.themed
 
 
@@ -40,7 +38,7 @@ fun GraphContent(
     graph: Graph,
     isFocused: Boolean = true
 ) {
-    val entries by graph.activeStack.entries.collectAsState()
+    val entries by graph.backStack.entries.collectAsState()
     val topEntry = entries.lastOrNull()
 
     BackHandlerContainer(
