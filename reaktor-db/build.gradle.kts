@@ -48,6 +48,8 @@ kotlin {
         dependencies {
             implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
             implementation("app.cash.sqldelight:sqlite-driver:$sqldelightVersion")
+            api("com.google.cloud:google-cloud-pubsub:1.147.0")
+            api("org.springframework.boot:spring-boot-starter-data-neo4j:4.0.2")
         }
     }
 }
