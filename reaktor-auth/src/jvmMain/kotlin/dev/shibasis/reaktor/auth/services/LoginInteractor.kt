@@ -22,7 +22,6 @@ inline fun String.uuid(): UUID = UUID.fromString(this)
 open class LoginInteractor(
     private val userRepository: UserRepository,
     private val appRepository: AppRepository,
-    private val profileRepository: BaseProfileRepository<out BaseProfile>,
     private val jwtVerifier: JwtVerifier
 ) {
     private val logger = "Reaktor:LoginService".logger()
@@ -51,7 +50,7 @@ open class LoginInteractor(
         val userResult = userRepository
             .findByAppIdAndProvider(request, appId,subject, provider)
 
-        if (userResult.isFailure) {
+        val user = if (userResult.isFailure) {
             // Apple does not send name in JWT, so server needs to be very reliable. todo add queue here
             if (request.givenName == null || request.familyName == null) {
                 return LoginResponse.Failure.RequiresUserName
@@ -66,25 +65,17 @@ open class LoginInteractor(
                 status = UserStatus.ONBOARDING,
                 data = request.newUserProfile ?: EMPTY_JSON
             ))
-        }
 
-        val user = userResult.read()
-            ?: return LoginResponse.Failure.ServerError("Unable to read/create user")
+            // Re-fetch the user after upsert
+            userRepository
+                .findByAppIdAndProvider(request, appId, subject, provider)
+                .read()
+                ?: return LoginResponse.Failure.ServerError("Unable to read/create user")
+        } else {
+            userResult.read()!!
+        }
 
         logger { user }
-
-        var profileResult = profileRepository.fetch(request, user.id)
-
-        if (profileResult.isFailure) {
-            request.newUserProfile ?: return LoginResponse.Failure.RequiresUserProfile
-            profileResult = profileRepository.create(request, user.id)
-        }
-
-
-        val profile = profileResult.read()
-            ?: return LoginResponse.Failure.ServerError("Unable to read/create profile")
-
-        logger { profile }
-        return LoginResponse.Success(user, profile.toJson())
+        return LoginResponse.Success(user, user.data)
     }
 }
