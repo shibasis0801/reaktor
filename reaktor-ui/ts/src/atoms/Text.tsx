@@ -24,7 +24,7 @@ export interface RTextProps extends React.HTMLAttributes<HTMLElement> {
   color?: string;
   maxLines?: number;
   overflow?: TextOverflow;
-  as?: keyof JSX.IntrinsicElements;
+  as?: React.ElementType;
   textAlign?: React.CSSProperties['textAlign'];
 }
 
@@ -112,7 +112,7 @@ export function RText({
   };
 
   // Determine semantic HTML element
-  const getElement = (): keyof JSX.IntrinsicElements => {
+  const getElement = (): React.ElementType => {
     if (as) return as;
     switch (role) {
       case 'display':
@@ -134,7 +134,7 @@ export function RText({
 
   const styleTokens = getStyleTokens();
   const resolvedColor = color || getDefaultColor();
-  const Element = getElement();
+  const ElementComponent = getElement();
 
   const textStyle: React.CSSProperties = {
     color: resolvedColor,
@@ -155,9 +155,9 @@ export function RText({
   };
 
   return (
-    <Element {...props} style={textStyle}>
+    <ElementComponent {...props} style={textStyle}>
       {text || children}
-    </Element>
+    </ElementComponent>
   );
 }
 

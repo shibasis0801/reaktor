@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.ui.demo
 
 import dev.shibasis.reaktor.ui.components.*
 import dev.shibasis.reaktor.ui.tokens.*
+import js.objects.jso
 import react.*
 import react.dom.html.ReactHTML.div
 import react.dom.html.ReactHTML.h1
@@ -453,10 +454,6 @@ val ReaktorUIDemo = FC<ReaktorUIDemoProps> { props ->
             }
         }
     }
-}
-
-enum class ThemeOption {
-    Default, Blue, Green, Reaktor
 }
 
 // Helper Components

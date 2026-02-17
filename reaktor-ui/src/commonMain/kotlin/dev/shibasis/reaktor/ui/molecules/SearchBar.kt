@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.ui.atoms.RIconButton
 import dev.shibasis.reaktor.ui.atoms.RInput
 import dev.shibasis.reaktor.ui.core.components.ComponentSize

@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.ui.components
 
 import dev.shibasis.reaktor.ui.tokens.WebDesignTokens
 import dev.shibasis.reaktor.ui.tokens.WebTextStyle
+import js.objects.jso
 import react.*
 import react.dom.html.ReactHTML.h1
 import react.dom.html.ReactHTML.h2

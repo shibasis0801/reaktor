@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.ui.components
 
 import dev.shibasis.reaktor.ui.tokens.WebDesignTokens
+import js.objects.jso
 import react.*
 import react.dom.html.ReactHTML.button
 import react.dom.html.ReactHTML.span
