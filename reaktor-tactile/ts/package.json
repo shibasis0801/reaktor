@@ -1,0 +1,59 @@
+{
+  "name": "reaktor-tactile",
+  "version": "1.0.0",
+  "description": "Tactile Design System",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./tokens": {
+      "types": "./dist/tokens/index.d.ts",
+      "import": "./dist/tokens/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
+    "./atoms": {
+      "types": "./dist/atoms/index.d.ts",
+      "import": "./dist/atoms/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "postbuild": "karakum --config karakum.config.json",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.0",
+    "karakum": "^1.0.0-alpha.78",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "keywords": [
+    "react",
+    "ui",
+    "components",
+    "design-system",
+    "material",
+    "kotlin",
+    "compose-multiplatform",
+    "cross-platform"
+  ],
+  "author": "BestBudsVentures",
+  "license": "MIT"
+}

@@ -13,17 +13,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
+import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
 
+interface BottomNavigable {
+    val key: String
+    val label: String
+    val icon: ImageVector
+}
+
 data class ChildGraph(
-    val icon: String,
-    val label: String,
-    val graph: Graph
-)
+    val graph: Graph,
+    override val key: String,
+    override val label: String,
+    override val icon: ImageVector
+): BottomNavigable
+
 
 interface Controller {
     val selected: MutableStateFlow<String>
@@ -31,10 +41,11 @@ interface Controller {
 
 open class BottomNavigationContainer(
     graph: Graph,
+    pattern: String,
     val children: Map<String, ChildGraph>,
     initialSelection: String
 ): ContainerNode(
-    graph,
+    graph, pattern,
     ArrayList(children.values.map { it.graph })
 ), ComposeContainer {
     val selected = MutableStateFlow(initialSelection)
@@ -58,7 +69,7 @@ open class BottomNavigationContainer(
                         NavigationBarItem(
                             selected = (selected == key),
                             onClick = { contract.selected.value = key },
-                            icon = { Icon(Icons.Filled.Map, value.label) },
+                            icon = { Icon(value.icon, value.label) },
                             label = { TextView(text = value.label) }
                         )
                     }

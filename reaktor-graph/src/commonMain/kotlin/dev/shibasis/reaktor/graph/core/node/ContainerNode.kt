@@ -13,8 +13,8 @@ import kotlin.js.JsExport
 @JsExport
 open class ContainerNode(
     parent: Graph,
-    val graphs: ArrayList<Graph> = arrayListOf(),
-    pattern: String = ""
+    pattern: String = "",
+    val graphs: ArrayList<Graph> = arrayListOf()
 ): Node(parent), Node.Routable {
     override val routeBinding by consumes<RouteBinding<Payload>>()
 
@@ -46,7 +46,7 @@ class ComposeContainerNode(
     parent: Graph,
     graphs: ArrayList<Graph> = arrayListOf(),
     pattern: String = ""
-): ContainerNode(parent, graphs, pattern), ComposeContainer {
+): ContainerNode(parent, pattern, graphs), ComposeContainer {
     @Composable
     override fun Content(renderer: @Composable ((Graph, Boolean) -> Unit)) {
         val active = activeGraph ?: return
@@ -56,10 +56,10 @@ class ComposeContainerNode(
 
 fun<CN: ContainerNode, G: Graph> Graph.Container(
     pattern: String,
-    builder: (Graph, ArrayList<G>, String) -> CN,
-    graphs: ArrayList<G>
+    children: ArrayList<G>,
+    builder: Graph.(pattern: String, children: ArrayList<G>) -> CN,
 ): CN {
-    val node = builder(this, graphs, pattern)
+    val node = builder(this, pattern, children)
     attach(node)
     return node
 }
