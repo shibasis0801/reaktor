@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     styleX({
-      libraries: ['react-strict-dom'],
+      importSources: [{ from: 'react-strict-dom', as: 'css' }],
     }),
   ],
 });

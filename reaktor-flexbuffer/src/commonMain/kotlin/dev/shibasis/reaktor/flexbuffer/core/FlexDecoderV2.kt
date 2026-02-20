@@ -143,7 +143,7 @@ class FlexDecoderV2 private constructor(
         }
     }
 
-    override fun decodeSequentially(): Boolean = true
+    override fun decodeSequentially(): Boolean = false
 
     override fun decodeCollectionSize(descriptor: SerialDescriptor): Int {
         val ctx = currentContext ?: return 0

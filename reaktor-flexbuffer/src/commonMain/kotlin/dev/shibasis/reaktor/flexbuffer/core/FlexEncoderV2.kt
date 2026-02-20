@@ -77,101 +77,97 @@ class FlexEncoderV2 private constructor(
 
     // ==================== Primitive Encoding ====================
 
-    override fun encodeBoolean(value: Boolean) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
+    /**
+     * Handles map key capture for Map<K,V> encoding.
+     * When we're in a MAP context and expecting a key, capture the value as the key
+     * for the next value, rather than encoding it.
+     * @return true if the value should NOT be encoded (was captured as key), false if it should be encoded
+     */
+    private fun handleMapKey(value: Any): Boolean {
+        val current = structureStack.peek() ?: return false
+        if (current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString()
+            return true // Key captured, don't encode
         }
+        return false
+    }
+
+    /**
+     * Gets the key to use for encoding, either from pendingKey or capturedKey.
+     */
+    private fun getEncodingKey(): String? {
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.capturedKey != null) {
+            val key = current.capturedKey
+            current.capturedKey = null
+            return key
+        }
+        return consumeKey()
+    }
+
+    override fun encodeBoolean(value: Boolean) {
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeByte(value: Byte) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeShort(value: Short) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeInt(value: Int) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeLong(value: Long) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeFloat(value: Float) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeDouble(value: Double) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeChar(value: Char) {
-        // Encode char as int (code point)
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value.code
-        } else {
-            builder.put(value.code)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value.code)
     }
 
     override fun encodeString(value: String) {
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = value
-        } else {
-            builder.put(value)
-        }
+        if (handleMapKey(value)) return
+        val key = getEncodingKey()
+        builder.set(key, value)
     }
 
     override fun encodeNull() {
-        val key = consumeKey()
+        val key = getEncodingKey()
         builder.putNull(key)
     }
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) {
-        // Encode enum as its ordinal value
-        val key = consumeKey()
-        if (key != null) {
-            builder[key] = index
-        } else {
-            builder.put(index)
-        }
+        if (handleMapKey(index)) return
+        val key = getEncodingKey()
+        builder.set(key, index)
     }
 
     // ==================== Structure Handling ====================
@@ -207,37 +203,6 @@ class FlexEncoderV2 private constructor(
             }
         }
         return true
-    }
-
-    override fun encodeValue(value: Any) {
-        val current = structureStack.peek()
-
-        // Handle map key capture
-        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
-            // This value is a map key - store it for the next value
-            current.capturedKey = value.toString()
-            return // Don't encode the key as a value
-        }
-
-        // Use captured key for map values
-        if (current != null && current.kind == StructureType.MAP && current.capturedKey != null) {
-            pendingKey = current.capturedKey
-            current.capturedKey = null
-        }
-
-        // Dispatch to appropriate encode method
-        when (value) {
-            is Boolean -> encodeBoolean(value)
-            is Byte -> encodeByte(value)
-            is Short -> encodeShort(value)
-            is Int -> encodeInt(value)
-            is Long -> encodeLong(value)
-            is Float -> encodeFloat(value)
-            is Double -> encodeDouble(value)
-            is Char -> encodeChar(value)
-            is String -> encodeString(value)
-            else -> throw IllegalArgumentException("Unsupported primitive type: ${value::class}")
-        }
     }
 
     override fun beginCollection(
