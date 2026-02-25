@@ -1,7 +1,9 @@
 package dev.shibasis.reaktor.graph.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
@@ -9,11 +11,13 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.io.network.RoutePattern
@@ -21,18 +25,20 @@ import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
 
-interface BottomNavigable {
+interface Navigable {
     val key: String
     val label: String
     val icon: ImageVector
 }
+
+typealias BottomNavigable = Navigable
 
 data class ChildGraph(
     val graph: Graph,
     override val key: String,
     override val label: String,
     override val icon: ImageVector
-): BottomNavigable
+): Navigable
 
 
 interface Controller {
@@ -61,17 +67,22 @@ open class BottomNavigationContainer(
         val selected by contract.selected.collectAsState()
         val activeGraph = children[selected] ?: throw IllegalStateException("selected key is invalid")
 
+        val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+        val isKeyboardVisible = imeBottom > 0
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
-                NavigationBar {
-                    children.forEach { (key, value) ->
-                        NavigationBarItem(
-                            selected = (selected == key),
-                            onClick = { contract.selected.value = key },
-                            icon = { Icon(value.icon, value.label) },
-                            label = { TextView(text = value.label) }
-                        )
+                if (!isKeyboardVisible) {
+                    NavigationBar {
+                        children.forEach { (key, value) ->
+                            NavigationBarItem(
+                                selected = (selected == key),
+                                onClick = { contract.selected.value = key },
+                                icon = { Icon(value.icon, value.label) },
+                                label = { TextView(text = value.label) }
+                            )
+                        }
                     }
                 }
             }
@@ -81,19 +92,14 @@ open class BottomNavigationContainer(
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
-                renderer(activeGraph.graph, true)
+                children.forEach { (childKey, child) ->
+                    key(child.graph.id) {
+                        if (childKey == selected) {
+                            renderer(child.graph, true)
+                        }
+                    }
+                }
             }
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
