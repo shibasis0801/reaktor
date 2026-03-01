@@ -13,6 +13,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
+import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,18 @@ open class TabbedContainer(
     val controller by provides<Controller>(object: Controller {
         override val selected = this@TabbedContainer.selected
     })
+
+    override fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
+        val activated = super.activateGraphForRoute(route)
+        if (activated) {
+            val index = activeGraphIndex.value
+            val key = children.keys.elementAtOrNull(index)
+            if (key != null) {
+                selected.value = key
+            }
+        }
+        return activated
+    }
 
     @Composable
     override fun Content(renderer: @Composable (graph: Graph, isFocused: Boolean) -> Unit) = themed {

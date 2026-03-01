@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.navigation.Pop
 import dev.shibasis.reaktor.ui.themed
@@ -47,7 +48,11 @@ fun GraphContent(
         onBack = { graph.dispatch(Pop) }
     ) {
         if (topEntry != null) {
-            val node = topEntry.edge.end.attachedNode() ?: return@BackHandlerContainer
+            val node = topEntry.edge.end.attachedNode()
+            if (node == null) {
+                Logger.w("GraphContent: No attached node for route '${topEntry.edge.end.id}'. Screen will be blank.")
+                return@BackHandlerContainer
+            }
             when (node) {
                 is ComposeContainer -> node.Content { childGraph, childFocused ->
                     GraphContent(childGraph, childFocused && isFocused)

@@ -11,19 +11,33 @@ class ObservableStack<T>(initialTop: T? = null) {
     private val _entries = MutableStateFlow<List<T>>(emptyList())
     val entries: StateFlow<List<T>> = _entries
 
+    private var version = 0
+
     init {
-        initialTop?.apply(stack::add)
+        initialTop?.let {
+            stack.add(it)
+            _entries.value = listOf(it)
+        }
+    }
+
+    private fun emitSnapshot() {
+        version++
+        _entries.value = ArrayList(stack)
     }
 
     fun push(value: T) {
         stack.add(value)
         top.value = value
-        _entries.value = stack.toList() // todo improve, shoddy.
+        emitSnapshot()
     }
 
     fun replace(value: T) {
-        pop()
-        push(value)
+        if (stack.isNotEmpty()) {
+            stack.removeLast()
+        }
+        stack.add(value)
+        top.value = value
+        emitSnapshot()
     }
 
     fun pop(): T? {
@@ -31,7 +45,7 @@ class ObservableStack<T>(initialTop: T? = null) {
 
         val removed = stack.removeLast()
         top.value = stack.lastOrNull()
-        _entries.value = stack.toList() // todo improve, shoddy.
+        emitSnapshot()
         return removed
     }
 
@@ -40,7 +54,6 @@ class ObservableStack<T>(initialTop: T? = null) {
 
         stack.clear()
         top.value = null
-
-        _entries.value = stack.toList() // todo improve, shoddy.
+        emitSnapshot()
     }
 }

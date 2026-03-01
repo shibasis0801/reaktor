@@ -17,7 +17,6 @@ import dev.shibasis.reaktor.graph.navigation.NavigationCapability
 import dev.shibasis.reaktor.graph.navigation.NavigationCapabilityImpl
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.Push
-import dev.shibasis.reaktor.graph.navigation.Replace
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
@@ -27,7 +26,6 @@ import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.DependencyException
-import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import kotlinx.coroutines.CoroutineDispatcher
@@ -37,7 +35,7 @@ import kotlin.uuid.Uuid
 
 @JsExport
 open class Graph(
-    parentGraph: Graph? = null,
+    val parentGraph: Graph? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     dependencyAdapter: DependencyAdapter<*> = Feature.Dependency ?: throw DependencyException,
     override val id: Uuid = Uuid.random(),
@@ -78,20 +76,22 @@ open class Graph(
     }
 
     private fun handleCrossGraphForward(navCommand: Forward<*, *>) {
+        // Bubble up to the parent that owns the container
+        if (parentGraph != null) {
+            parentGraph.dispatch(navCommand as NavCommand)
+            return
+        }
+
+        // We are the root graph — find the container and handle it
         val edge = navCommand.entry.edge
         val destGraph = edge.destinationGraph
         val container = findContainerForGraph(destGraph)
+
         if (container != null) {
             container.activateGraphForRoute(edge.end)
-            val containerEdge = edge.start.edge(container.route)
-            val containerEntry = BackStackEntry<Payload, Unit>(containerEdge, Payload())
-            when (navCommand) {
-                is Push<*, *> -> navigationImpl.dispatch(Push(containerEntry))
-                is Replace<*, *> -> navigationImpl.dispatch(Replace(containerEntry))
-            }
-            destGraph.dispatch(navCommand as NavCommand)
+            destGraph.navigationImpl.dispatch(navCommand)
         } else {
-            navigationImpl.dispatch(navCommand as NavCommand)
+            Logger.w("Cross-graph navigation failed: no container found for graph '${destGraph.label}' (${destGraph.id}).")
         }
     }
 
@@ -197,13 +197,17 @@ fun Graph.autoWire() {
 
 fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this)
 
-fun Graph.findContainerForGraph(targetGraph: Graph): ContainerNode? {
+fun Graph.findContainerForGraph(
+    targetGraph: Graph,
+    visited: MutableSet<Graph> = mutableSetOf()
+): ContainerNode? {
+    if (!visited.add(this)) return null
     for (container in nodes.filterIsInstance<ContainerNode>()) {
         if (container.graphs.contains(targetGraph)) {
             return container
         }
         for (childGraph in container.graphs) {
-            val found = childGraph.findContainerForGraph(targetGraph)
+            val found = childGraph.findContainerForGraph(targetGraph, visited)
             if (found != null) return found
         }
     }

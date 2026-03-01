@@ -28,7 +28,7 @@ open class ContainerNode(
     val activeGraph: Graph?
         get() = graphs.getOrNull(activeGraphIndex.value)
 
-    fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
+    open fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
         val index = graphs.indexOfFirst { graph -> graph.nodes.any { it == route } }
         if (index >= 0) {
             activeGraphIndex.value = index

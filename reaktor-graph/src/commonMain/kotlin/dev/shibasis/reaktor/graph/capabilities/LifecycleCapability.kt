@@ -21,7 +21,7 @@ interface LifecycleCapability: Capability {
             Lifecycle.Created to Lifecycle.Restoring,
             Lifecycle.Restoring to Lifecycle.Attaching,
             Lifecycle.Attaching to Lifecycle.Saving,
-            //
+            Lifecycle.Saving to Lifecycle.Restoring,
             Lifecycle.Saving to Lifecycle.Destroying,
             Lifecycle.Created to Lifecycle.Destroying,
             Lifecycle.Attaching to Lifecycle.Destroying,
