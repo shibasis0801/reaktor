@@ -20,7 +20,7 @@ fun Hono.mount(service: Service): Hono {
         @Suppress("UNCHECKED_CAST")
         val handler = it as RequestHandler<Request, Response>
 
-        on(handler.method.name, handler.route) { context ->
+        on(handler.method.name, handler.route.toHonoRoute()) { context ->
             handler.asHonoHandler(context)
         }
     }
@@ -63,6 +63,13 @@ private fun toStringMap(source: dynamic): MutableMap<String, String> {
     }
     return result
 }
+
+private fun String.toHonoRoute(): String =
+    replace(routeParameterPattern) { matchResult ->
+        ":${matchResult.groupValues[1]}"
+    }
+
+private val routeParameterPattern = """\{([^}]+)\}""".toRegex()
 
 private fun Response.toWorkerResponse(body: String): dynamic {
     val initHeaders = js("({})")

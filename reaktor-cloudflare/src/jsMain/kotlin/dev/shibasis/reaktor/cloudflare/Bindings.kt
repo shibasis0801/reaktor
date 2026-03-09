@@ -17,6 +17,12 @@ external interface WorkerResponse {
     fun json(): Promise<dynamic>
 }
 
+external interface WorkerRequest {
+    val method: String?
+    val url: String
+    fun text(): Promise<String>
+}
+
 external interface HonoRequest {
     fun text(): Promise<String>
     fun query(): dynamic

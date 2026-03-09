@@ -37,17 +37,6 @@ if (typeof Array.prototype.fill === 'undefined') {
     Object.defineProperty(TypedArray.prototype, 'fill', {value: Array.prototype.fill});
   }
 });
-if (typeof Math.trunc === 'undefined') {
-  Math.trunc = function (x) {
-    if (isNaN(x)) {
-      return NaN;
-    }
-    if (x > 0) {
-      return Math.floor(x);
-    }
-    return Math.ceil(x);
-  };
-}
 if (typeof Math.clz32 === 'undefined') {
   Math.clz32 = function (log, LN2) {
     return function (x) {
@@ -59,11 +48,16 @@ if (typeof Math.clz32 === 'undefined') {
     };
   }(Math.log, Math.LN2);
 }
-if (typeof String.prototype.startsWith === 'undefined') {
-  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
-    position = position || 0;
-    return this.lastIndexOf(searchString, position) === position;
-  }});
+if (typeof Math.trunc === 'undefined') {
+  Math.trunc = function (x) {
+    if (isNaN(x)) {
+      return NaN;
+    }
+    if (x > 0) {
+      return Math.floor(x);
+    }
+    return Math.ceil(x);
+  };
 }
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
@@ -74,6 +68,12 @@ if (typeof String.prototype.endsWith === 'undefined') {
     position -= searchString.length;
     var lastIndex = subjectString.indexOf(searchString, position);
     return lastIndex !== -1 && lastIndex === position;
+  }});
+}
+if (typeof String.prototype.startsWith === 'undefined') {
+  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
+    position = position || 0;
+    return this.lastIndexOf(searchString, position) === position;
   }});
 }
 //endregion
@@ -3043,6 +3043,84 @@ class findNext$1$groups$1 extends AbstractCollection {
     return tmp;
   }
 }
+class AbstractList extends AbstractCollection {
+  static new_kotlin_collections_AbstractList_7zpyyf_k$($box) {
+    return this.new_kotlin_collections_AbstractCollection_s1tlv0_k$($box);
+  }
+  iterator_jk1svi_k$() {
+    return new IteratorImpl_0(this);
+  }
+  indexOf_si1fv9_k$(element) {
+    var tmp$ret$1;
+    $l$block: {
+      // Inline function 'kotlin.collections.indexOfFirst' call
+      var index = 0;
+      var _iterator__ex2g4s = this.iterator_jk1svi_k$();
+      while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+        var item = _iterator__ex2g4s.next_20eer_k$();
+        if (equals(item, element)) {
+          tmp$ret$1 = index;
+          break $l$block;
+        }
+        index = index + 1 | 0;
+      }
+      tmp$ret$1 = -1;
+    }
+    return tmp$ret$1;
+  }
+  lastIndexOf_v2p1fv_k$(element) {
+    var tmp$ret$1;
+    $l$block: {
+      // Inline function 'kotlin.collections.indexOfLast' call
+      var iterator = this.listIterator_70e65o_k$(this.get_size_woubt6_k$());
+      while (iterator.hasPrevious_qh0629_k$()) {
+        var it = iterator.previous_l2dfd5_k$();
+        if (equals(it, element)) {
+          tmp$ret$1 = iterator.nextIndex_jshxun_k$();
+          break $l$block;
+        }
+      }
+      tmp$ret$1 = -1;
+    }
+    return tmp$ret$1;
+  }
+  listIterator_xjshxw_k$() {
+    return new ListIteratorImpl_0(this, 0);
+  }
+  listIterator_70e65o_k$(index) {
+    return new ListIteratorImpl_0(this, index);
+  }
+  subList_xle3r2_k$(fromIndex, toIndex) {
+    return SubList_0.new_kotlin_collections_AbstractList_SubList_n10zp_k$(this, fromIndex, toIndex);
+  }
+  equals(other) {
+    if (other === this)
+      return true;
+    if (!(!(other == null) ? isInterface(other, KtList) : false))
+      return false;
+    return Companion_instance_9.orderedEquals_jt170c_k$(this, other);
+  }
+  hashCode() {
+    return Companion_instance_9.orderedHashCode_srkix_k$(this);
+  }
+}
+class findNext$1$groupValues$1 extends AbstractList {
+  static new_kotlin_text__no_name_provided___no_name_provided__gwoum9_k$($match, $box) {
+    if ($box === VOID)
+      $box = {};
+    $box.$match_1 = $match;
+    return this.new_kotlin_collections_AbstractList_7zpyyf_k$($box);
+  }
+  get_size_woubt6_k$() {
+    return this.$match_1.length;
+  }
+  get_c1px32_k$(index) {
+    // Inline function 'kotlin.js.get' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0_elvis_lhs = this.$match_1[index];
+    return tmp0_elvis_lhs == null ? '' : tmp0_elvis_lhs;
+  }
+}
 class findNext$1 {
   constructor($range, $match, $nextPattern, $input) {
     this.$range_1 = $range;
@@ -3059,6 +3137,13 @@ class findNext$1 {
   }
   get_groups_dy12vx_k$() {
     return this.groups_1;
+  }
+  get_groupValues_rkv314_k$() {
+    if (this.groupValues__1 == null) {
+      var tmp = this;
+      tmp.groupValues__1 = findNext$1$groupValues$1.new_kotlin_text__no_name_provided___no_name_provided__gwoum9_k$(this.$match_1);
+    }
+    return ensureNotNull(this.groupValues__1);
   }
   next_20eer_k$() {
     return findNext(this.$nextPattern_1, this.$input_1, this.$range_1.isEmpty_y1axqb_k$() ? advanceToNextCharacter(this, this.$range_1.get_start_iypx6h_k$()) : this.$range_1.get_endInclusive_r07xpi_k$() + 1 | 0, this.$nextPattern_1);
@@ -3294,70 +3379,9 @@ class DateNowTimeSource {
     return 'TimeSource(Date.now())';
   }
 }
-class AbstractList extends AbstractCollection {
-  static new_kotlin_collections_AbstractList_ccp2qg_k$() {
-    return this.new_kotlin_collections_AbstractCollection_s1tlv0_k$();
-  }
-  iterator_jk1svi_k$() {
-    return new IteratorImpl_0(this);
-  }
-  indexOf_si1fv9_k$(element) {
-    var tmp$ret$1;
-    $l$block: {
-      // Inline function 'kotlin.collections.indexOfFirst' call
-      var index = 0;
-      var _iterator__ex2g4s = this.iterator_jk1svi_k$();
-      while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
-        var item = _iterator__ex2g4s.next_20eer_k$();
-        if (equals(item, element)) {
-          tmp$ret$1 = index;
-          break $l$block;
-        }
-        index = index + 1 | 0;
-      }
-      tmp$ret$1 = -1;
-    }
-    return tmp$ret$1;
-  }
-  lastIndexOf_v2p1fv_k$(element) {
-    var tmp$ret$1;
-    $l$block: {
-      // Inline function 'kotlin.collections.indexOfLast' call
-      var iterator = this.listIterator_70e65o_k$(this.get_size_woubt6_k$());
-      while (iterator.hasPrevious_qh0629_k$()) {
-        var it = iterator.previous_l2dfd5_k$();
-        if (equals(it, element)) {
-          tmp$ret$1 = iterator.nextIndex_jshxun_k$();
-          break $l$block;
-        }
-      }
-      tmp$ret$1 = -1;
-    }
-    return tmp$ret$1;
-  }
-  listIterator_xjshxw_k$() {
-    return new ListIteratorImpl_0(this, 0);
-  }
-  listIterator_70e65o_k$(index) {
-    return new ListIteratorImpl_0(this, index);
-  }
-  subList_xle3r2_k$(fromIndex, toIndex) {
-    return SubList_0.new_kotlin_collections_AbstractList_SubList_n10zp_k$(this, fromIndex, toIndex);
-  }
-  equals(other) {
-    if (other === this)
-      return true;
-    if (!(!(other == null) ? isInterface(other, KtList) : false))
-      return false;
-    return Companion_instance_9.orderedEquals_jt170c_k$(this, other);
-  }
-  hashCode() {
-    return Companion_instance_9.orderedHashCode_srkix_k$(this);
-  }
-}
 class SubList_0 extends AbstractList {
   static new_kotlin_collections_AbstractList_SubList_n10zp_k$(list, fromIndex, toIndex) {
-    var $this = this.new_kotlin_collections_AbstractList_ccp2qg_k$();
+    var $this = this.new_kotlin_collections_AbstractList_7zpyyf_k$();
     $this.list_1 = list;
     $this.fromIndex_1 = fromIndex;
     $this._size_1 = 0;
@@ -4675,7 +4699,7 @@ class ReversedListReadOnly$listIterator$1 {
 }
 class ReversedListReadOnly extends AbstractList {
   static new_kotlin_collections_ReversedListReadOnly_s1exex_k$(delegate) {
-    var $this = this.new_kotlin_collections_AbstractList_ccp2qg_k$();
+    var $this = this.new_kotlin_collections_AbstractList_7zpyyf_k$();
     $this.delegate_1 = delegate;
     return $this;
   }
@@ -4937,7 +4961,7 @@ class AbstractCoroutineContextElement {
 class CoroutineSingletons extends Enum {}
 class EnumEntriesList extends AbstractList {
   static new_kotlin_enums_EnumEntriesList_dxc840_k$(entries) {
-    var $this = this.new_kotlin_collections_AbstractList_ccp2qg_k$();
+    var $this = this.new_kotlin_collections_AbstractList_7zpyyf_k$();
     $this.entries_1 = entries;
     return $this;
   }
@@ -21983,7 +22007,7 @@ class Companion_47 {
   }
 }
 class PhaseContent {
-  static new_io_ktor_util_pipeline_PhaseContent_6d9x0e_k$(phase, relation, interceptors) {
+  static new_io_ktor_util_pipeline_PhaseContent_3kwv0m_k$(phase, relation, interceptors) {
     Companion_getInstance_47();
     var $this = createThis(this);
     $this.phase_1 = phase;
@@ -21995,7 +22019,7 @@ class PhaseContent {
   static new_io_ktor_util_pipeline_PhaseContent_24bg4y_k$(phase, relation) {
     Companion_getInstance_47();
     var tmp = Companion_getInstance_47().SharedArrayList_1;
-    var $this = this.new_io_ktor_util_pipeline_PhaseContent_6d9x0e_k$(phase, relation, isInterface(tmp, KtMutableList) ? tmp : THROW_CCE());
+    var $this = this.new_io_ktor_util_pipeline_PhaseContent_3kwv0m_k$(phase, relation, isInterface(tmp, KtMutableList) ? tmp : THROW_CCE());
     // Inline function 'kotlin.check' call
     if (!Companion_getInstance_47().SharedArrayList_1.isEmpty_y1axqb_k$()) {
       var message = 'The shared empty array list has been modified';
@@ -22015,7 +22039,7 @@ class PhaseContent {
     }
     this.interceptors_1.add_utx5q5_k$(interceptor);
   }
-  addTo_h97ksk_k$(destination) {
+  addTo_219g88_k$(destination) {
     var interceptors = this.interceptors_1;
     if (destination instanceof ArrayList) {
       destination.ensureCapacity_wr7980_k$(destination.get_size_woubt6_k$() + interceptors.get_size_woubt6_k$() | 0);
@@ -28601,7 +28625,7 @@ class ConcurrentMutableMap {
   }
 }
 class ConcurrentMutableSet extends ConcurrentMutableCollection {
-  static new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(rootArg, del) {
+  static new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(rootArg, del) {
     var $this = this.new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(rootArg, del);
     $this.del_2 = del;
     return $this;
@@ -28609,7 +28633,7 @@ class ConcurrentMutableSet extends ConcurrentMutableCollection {
   static new_co_touchlab_stately_collections_ConcurrentMutableSet_t534k6_k$() {
     // Inline function 'kotlin.collections.mutableSetOf' call
     var tmp$ret$0 = LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$();
-    return this.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(null, tmp$ret$0);
+    return this.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(null, tmp$ret$0);
   }
 }
 class Koin {
@@ -32246,6 +32270,24 @@ class CloudflareDurableObject {
   text_yxj031_k$(body) {
     return workerTextResponse(body);
   }
+  requestBody_j7u9iw_k$(request, $completion) {
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return await_1(request.text(), $completion);
+  }
+}
+class CloudflareWorker {
+  constructor(app) {
+    this.app_1 = app;
+  }
+  fetch_bfzgk_k$(request, env, executionContext) {
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp = env;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return this.app_1.fetch(request, tmp, executionContext);
+  }
 }
 class Binding {
   constructor(name, typeName) {
@@ -32264,27 +32306,6 @@ class Binding {
     return tmp;
   }
 }
-class DurableObjectBinding extends Binding {
-  constructor(name) {
-    super(name, 'DurableObjectNamespace');
-  }
-  resolve_akzwmm_k$(context) {
-    return context.durableObjectOrNull_owhb56_k$(this.name_1);
-  }
-}
-class CloudflareWorker {
-  constructor(app) {
-    this.app_1 = app;
-  }
-  fetch_bfzgk_k$(request, env, executionContext) {
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    var tmp = env;
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    return this.app_1.fetch(request, tmp, executionContext);
-  }
-}
 class D1Binding extends Binding {
   constructor(name) {
     super(name, 'D1Database');
@@ -32299,6 +32320,14 @@ class R2Binding extends Binding {
   }
   resolve_akzwmm_k$(context) {
     return context.r2OrNull_htwyk0_k$(this.name_1);
+  }
+}
+class DurableObjectBinding extends Binding {
+  constructor(name) {
+    super(name, 'DurableObjectNamespace');
+  }
+  resolve_akzwmm_k$(context) {
+    return context.durableObjectOrNull_owhb56_k$(this.name_1);
   }
 }
 class Companion_85 {
@@ -35523,6 +35552,37 @@ class ServiceLoaderComponentRegistry {
 }
 class KtorNetworkFetcherServiceLoaderTarget {}
 class SvgDecoderServiceLoaderTarget {}
+class ExperimentRootService$slambda {
+  invoke_xyxs4w_k$($this$GetHandler, it, $completion) {
+    return ChatOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_cgpcub_k$('Cloudflare chat experiment powered by Kotlin services', listOf_0(['/chat', '/chat/rooms', '/chat/media', '/chat/rooms/{roomId}/messages']), listOf_0(['POST /chat/rooms to create a room', 'POST /chat/rooms/{roomId}/members to coordinate presence via Durable Objects', 'POST /chat/media to store attachments in R2', 'POST /chat/rooms/{roomId}/messages to persist chat history in D1', 'GET /chat/rooms/{roomId}/messages to replay persisted history']));
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_xyxs4w_k$(tmp, p2 instanceof ChatOverviewRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ExperimentRootService extends Service {
+  constructor() {
+    super();
+    // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block = ExperimentRootService$slambda_0();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_0 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_1 = serializer_0(this_0, createKType(getKClass(ChatOverviewRequest), arrayOf([]), false));
+    var tmp = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_2 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_3 = serializer_0(this_2, createKType(getKClass(ChatOverviewResponse), arrayOf([]), false));
+    var tmp$ret$5 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+    var tmp_0 = this.server(Companion_instance_78, '/', tmp, tmp$ret$5, block);
+    tmp_0 instanceof GetHandler || THROW_CCE();
+  }
+}
 class HelloCounterDurableObject$fetch$slambda {
   constructor(this$0) {
     this.this$0__1 = this$0;
@@ -35543,53 +35603,1466 @@ class HelloCounterDurableObject extends CloudflareDurableObject {
 class HelloWorker_0 {
   constructor() {
     HelloWorker_instance = this;
-    this.worker_1 = toWorker(new HelloService());
+    this.worker_1 = toWorker(nest(mount(Hono(), new ExperimentRootService()), '/chat', new ChatService()));
   }
   fetch(request, env, executionContext) {
     return this.worker_1.fetch_bfzgk_k$(request, env, executionContext);
   }
 }
-class HelloBindings {
+class ChatBindings {
   constructor() {
-    HelloBindings_instance = this;
-    this.db_1 = d1('HELLO_DB');
-    this.bucket_1 = r2('HELLO_BUCKET');
-    this.stateful_1 = durableObject('HELLO_STATEFUL');
-    this.durableObjectName_1 = 'hello-singleton';
-    this.r2Key_1 = 'hello/world.txt';
+    ChatBindings_instance = this;
+    this.database_1 = d1('CHAT_DB');
+    this.media_1 = r2('CHAT_MEDIA');
+    this.coordinator_1 = durableObject('CHAT_COORDINATOR');
+    this.mediaPrefix_1 = 'chat/media';
   }
 }
-class Companion_86 {
+class sam$kotlin_Comparator$0_3 {
+  constructor(function_0) {
+    this.function_1 = function_0;
+  }
+  compare_bczr_k$(a, b) {
+    return this.function_1(a, b);
+  }
+  compare(a, b) {
+    return this.compare_bczr_k$(a, b);
+  }
+  getFunctionDelegate_jtodtf_k$() {
+    return this.function_1;
+  }
+  equals(other) {
+    var tmp;
+    if (!(other == null) ? isInterface(other, Comparator) : false) {
+      var tmp_0;
+      if (!(other == null) ? isInterface(other, FunctionAdapter) : false) {
+        tmp_0 = equals(this.getFunctionDelegate_jtodtf_k$(), other.getFunctionDelegate_jtodtf_k$());
+      } else {
+        tmp_0 = false;
+      }
+      tmp = tmp_0;
+    } else {
+      tmp = false;
+    }
+    return tmp;
+  }
+  hashCode() {
+    return hashCode(this.getFunctionDelegate_jtodtf_k$());
+  }
+}
+class ChatRoomDurableObject$fetch$slambda {
+  constructor($request, this$0) {
+    this.$request_1 = $request;
+    this.this$0__1 = this$0;
+  }
+  invoke_ri3sjx_k$($this$promise, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_75.bind(VOID, this, $this$promise), $completion);
+  }
+  invoke_ja922n_k$(p1, $completion) {
+    return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
+  }
+}
+class ChatRoomDurableObject extends CloudflareDurableObject {
+  fetch(request) {
+    var tmp = GlobalScope_instance;
+    return promise(tmp, VOID, VOID, ChatRoomDurableObject$fetch$slambda_0(request, this));
+  }
+}
+class Companion_86 {}
+class $serializer_4 {
   constructor() {
-    Companion_instance_86 = this;
+    $serializer_instance_4 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ReservedMessageSequence', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('roomId', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('sequence', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('presence', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('reservedAt', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_lsdro3_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.roomId_1);
+    tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 1, value.sequence_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, $serializer_getInstance_12(), value.presence_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 3, value.reservedAt_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_lsdro3_k$(encoder, value instanceof ReservedMessageSequence ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = 0;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp8_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp8_input.decodeIntElement_941u6a_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, $serializer_getInstance_12(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp8_input.decodeStringElement_3oenpg_k$(tmp0_desc, 3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp8_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp8_input.decodeIntElement_941u6a_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, $serializer_getInstance_12(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp8_input.decodeStringElement_3oenpg_k$(tmp0_desc, 3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ReservedMessageSequence.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ReservedMessageSequence_ymdoyn_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), IntSerializer_getInstance(), $serializer_getInstance_12(), StringSerializer_getInstance()];
+  }
+}
+class ReservedMessageSequence {
+  constructor(roomId, sequence, presence, reservedAt) {
+    this.roomId_1 = roomId;
+    this.sequence_1 = sequence;
+    this.presence_1 = presence;
+    this.reservedAt_1 = reservedAt;
+  }
+  toString() {
+    return 'ReservedMessageSequence(roomId=' + this.roomId_1 + ', sequence=' + this.sequence_1 + ', presence=' + this.presence_1.toString() + ', reservedAt=' + this.reservedAt_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.roomId_1);
+    result = imul_0(result, 31) + this.sequence_1 | 0;
+    result = imul_0(result, 31) + this.presence_1.hashCode() | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.reservedAt_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof ReservedMessageSequence))
+      return false;
+    if (!(this.roomId_1 === other.roomId_1))
+      return false;
+    if (!(this.sequence_1 === other.sequence_1))
+      return false;
+    if (!this.presence_1.equals(other.presence_1))
+      return false;
+    if (!(this.reservedAt_1 === other.reservedAt_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ReservedMessageSequence_ymdoyn_k$(seen0, roomId, sequence, presence, reservedAt, serializationConstructorMarker) {
+    if (!(15 === (15 & seen0))) {
+      throwMissingFieldException(seen0, 15, $serializer_getInstance_4().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.roomId_1 = roomId;
+    $this.sequence_1 = sequence;
+    $this.presence_1 = presence;
+    $this.reservedAt_1 = reservedAt;
+    return $this;
+  }
+}
+class Companion_87 {}
+class $serializer_5 {
+  constructor() {
+    $serializer_instance_5 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.JoinRoomCommand', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('roomId', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('participant', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_oe4g61_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.roomId_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, $serializer_getInstance_9(), value.participant_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_oe4g61_k$(encoder, value instanceof JoinRoomCommand ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_9(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_9(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return JoinRoomCommand.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_JoinRoomCommand_rgwgk_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), $serializer_getInstance_9()];
+  }
+}
+class JoinRoomCommand {
+  constructor(roomId, participant) {
+    this.roomId_1 = roomId;
+    this.participant_1 = participant;
+  }
+  toString() {
+    return 'JoinRoomCommand(roomId=' + this.roomId_1 + ', participant=' + this.participant_1.toString() + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.roomId_1);
+    result = imul_0(result, 31) + this.participant_1.hashCode() | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof JoinRoomCommand))
+      return false;
+    if (!(this.roomId_1 === other.roomId_1))
+      return false;
+    if (!this.participant_1.equals(other.participant_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_JoinRoomCommand_rgwgk_k$(seen0, roomId, participant, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_5().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.roomId_1 = roomId;
+    $this.participant_1 = participant;
+    return $this;
+  }
+}
+class Companion_88 {}
+class $serializer_6 {
+  constructor() {
+    $serializer_instance_6 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.LeaveRoomCommand', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('roomId', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('participantId', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_r5bt34_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.roomId_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.participantId_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_r5bt34_k$(encoder, value instanceof LeaveRoomCommand ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return LeaveRoomCommand.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_LeaveRoomCommand_de3a5w_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), StringSerializer_getInstance()];
+  }
+}
+class LeaveRoomCommand {
+  constructor(roomId, participantId) {
+    this.roomId_1 = roomId;
+    this.participantId_1 = participantId;
+  }
+  toString() {
+    return 'LeaveRoomCommand(roomId=' + this.roomId_1 + ', participantId=' + this.participantId_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.roomId_1);
+    result = imul_0(result, 31) + getStringHashCode(this.participantId_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof LeaveRoomCommand))
+      return false;
+    if (!(this.roomId_1 === other.roomId_1))
+      return false;
+    if (!(this.participantId_1 === other.participantId_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_LeaveRoomCommand_de3a5w_k$(seen0, roomId, participantId, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_6().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.roomId_1 = roomId;
+    $this.participantId_1 = participantId;
+    return $this;
+  }
+}
+class Companion_89 {}
+class $serializer_7 {
+  constructor() {
+    $serializer_instance_7 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.PublishMessageCommand', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('roomId', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('participant', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_zlynu_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.roomId_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, $serializer_getInstance_9(), value.participant_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_zlynu_k$(encoder, value instanceof PublishMessageCommand ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_9(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_9(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return PublishMessageCommand.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_PublishMessageCommand_hsrdsp_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), $serializer_getInstance_9()];
+  }
+}
+class PublishMessageCommand {
+  constructor(roomId, participant) {
+    this.roomId_1 = roomId;
+    this.participant_1 = participant;
+  }
+  toString() {
+    return 'PublishMessageCommand(roomId=' + this.roomId_1 + ', participant=' + this.participant_1.toString() + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.roomId_1);
+    result = imul_0(result, 31) + this.participant_1.hashCode() | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof PublishMessageCommand))
+      return false;
+    if (!(this.roomId_1 === other.roomId_1))
+      return false;
+    if (!this.participant_1.equals(other.participant_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_PublishMessageCommand_hsrdsp_k$(seen0, roomId, participant, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_7().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.roomId_1 = roomId;
+    $this.participant_1 = participant;
+    return $this;
+  }
+}
+class Companion_90 {
+  constructor() {
+    Companion_instance_90 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_1 = lazy(tmp_0, HelloRequest$Companion$$childSerializers$_anonymous__ovooul);
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [lazy(tmp_0, CoordinatorState$Companion$$childSerializers$_anonymous__i6obo7), null, null];
+  }
+}
+class $serializer_8 {
+  constructor() {
+    $serializer_instance_8 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.CoordinatorState', this, 3);
+    tmp0_serialDesc.addElement_5pzumi_k$('participants', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('latestSequence', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('updatedAt', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_6m46mg_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_90().$childSerializers_1;
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 0) ? true : !equals(value.participants_1, emptyList())) {
+      tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.participants_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 1) ? true : !(value.latestSequence_1 === 0)) {
+      tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 1, value.latestSequence_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 2) ? true : !(value.updatedAt_1 === nowIsoString())) {
+      tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 2, value.updatedAt_1);
+    }
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_6m46mg_k$(encoder, value instanceof CoordinatorState ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = 0;
+    var tmp6_local2 = null;
+    var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp8_cached = Companion_getInstance_90().$childSerializers_1;
+    if (tmp7_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp8_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp7_input.decodeIntElement_941u6a_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp7_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp8_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp7_input.decodeIntElement_941u6a_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp7_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return CoordinatorState.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_CoordinatorState_47z9rb_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [Companion_getInstance_90().$childSerializers_1[0].get_value_j01efc_k$(), IntSerializer_getInstance(), StringSerializer_getInstance()];
+  }
+}
+class CoordinatorState {
+  constructor(participants, latestSequence, updatedAt) {
+    Companion_getInstance_90();
+    participants = participants === VOID ? emptyList() : participants;
+    latestSequence = latestSequence === VOID ? 0 : latestSequence;
+    updatedAt = updatedAt === VOID ? nowIsoString() : updatedAt;
+    this.participants_1 = participants;
+    this.latestSequence_1 = latestSequence;
+    this.updatedAt_1 = updatedAt;
+  }
+  copy_7igp1y_k$(participants, latestSequence, updatedAt) {
+    return new CoordinatorState(participants, latestSequence, updatedAt);
+  }
+  copy$default_g00jk6_k$(participants, latestSequence, updatedAt, $super) {
+    participants = participants === VOID ? this.participants_1 : participants;
+    latestSequence = latestSequence === VOID ? this.latestSequence_1 : latestSequence;
+    updatedAt = updatedAt === VOID ? this.updatedAt_1 : updatedAt;
+    return $super === VOID ? this.copy_7igp1y_k$(participants, latestSequence, updatedAt) : $super.copy_7igp1y_k$.call(this, participants, latestSequence, updatedAt);
+  }
+  toString() {
+    return 'CoordinatorState(participants=' + toString_1(this.participants_1) + ', latestSequence=' + this.latestSequence_1 + ', updatedAt=' + this.updatedAt_1 + ')';
+  }
+  hashCode() {
+    var result = hashCode(this.participants_1);
+    result = imul_0(result, 31) + this.latestSequence_1 | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.updatedAt_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof CoordinatorState))
+      return false;
+    if (!equals(this.participants_1, other.participants_1))
+      return false;
+    if (!(this.latestSequence_1 === other.latestSequence_1))
+      return false;
+    if (!(this.updatedAt_1 === other.updatedAt_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_CoordinatorState_47z9rb_k$(seen0, participants, latestSequence, updatedAt, serializationConstructorMarker) {
+    Companion_getInstance_90();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_8().descriptor_1);
+    }
+    var $this = createThis(this);
+    if (0 === (seen0 & 1))
+      $this.participants_1 = emptyList();
+    else
+      $this.participants_1 = participants;
+    if (0 === (seen0 & 2))
+      $this.latestSequence_1 = 0;
+    else
+      $this.latestSequence_1 = latestSequence;
+    if (0 === (seen0 & 4))
+      $this.updatedAt_1 = nowIsoString();
+    else
+      $this.updatedAt_1 = updatedAt;
+    return $this;
+  }
+}
+class ChatRoomCoordinator {
+  constructor(namespace) {
+    this.namespace_1 = namespace;
+  }
+  snapshot_uk25g1_k$(roomId, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_snapshot__vo99oc.bind(VOID, this, roomId), $completion);
+  }
+  join_t4iu6y_k$(roomId, participant, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_join__qmovdu.bind(VOID, this, roomId, participant), $completion);
+  }
+  leave_dwdfle_k$(roomId, participantId, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_leave__rme0nx.bind(VOID, this, roomId, participantId), $completion);
+  }
+  reserveSequence_5oqgcz_k$(roomId, participant, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_reserveSequence__y7rnpl.bind(VOID, this, roomId, participant), $completion);
+  }
+}
+class Companion_91 {}
+class $serializer_9 {
+  constructor() {
+    $serializer_instance_9 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatParticipant', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('id', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('displayName', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_jubwky_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.id_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.displayName_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_jubwky_k$(encoder, value instanceof ChatParticipant ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatParticipant.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatParticipant_igrye8_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), StringSerializer_getInstance()];
+  }
+}
+class ChatParticipant {
+  constructor(id, displayName) {
+    this.id_1 = id;
+    this.displayName_1 = displayName;
+  }
+  toString() {
+    return 'ChatParticipant(id=' + this.id_1 + ', displayName=' + this.displayName_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.id_1);
+    result = imul_0(result, 31) + getStringHashCode(this.displayName_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof ChatParticipant))
+      return false;
+    if (!(this.id_1 === other.id_1))
+      return false;
+    if (!(this.displayName_1 === other.displayName_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatParticipant_igrye8_k$(seen0, id, displayName, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_9().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.id_1 = id;
+    $this.displayName_1 = displayName;
+    return $this;
+  }
+}
+class Companion_92 {}
+class $serializer_10 {
+  constructor() {
+    $serializer_instance_10 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatMediaRef', this, 6);
+    tmp0_serialDesc.addElement_5pzumi_k$('id', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('key', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('fileName', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('contentType', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('uploadedBy', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('uploadedAt', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_3203gu_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.id_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.key_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 2, value.fileName_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 3, value.contentType_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 4, $serializer_getInstance_9(), value.uploadedBy_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 5, value.uploadedAt_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_3203gu_k$(encoder, value instanceof ChatMediaRef ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = null;
+    var tmp10_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp10_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp10_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp10_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp10_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp10_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp10_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatMediaRef.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaRef_8v6h1l_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), $serializer_getInstance_9(), StringSerializer_getInstance()];
+  }
+}
+class ChatMediaRef {
+  constructor(id, key, fileName, contentType, uploadedBy, uploadedAt) {
+    this.id_1 = id;
+    this.key_1 = key;
+    this.fileName_1 = fileName;
+    this.contentType_1 = contentType;
+    this.uploadedBy_1 = uploadedBy;
+    this.uploadedAt_1 = uploadedAt;
+  }
+  toString() {
+    return 'ChatMediaRef(id=' + this.id_1 + ', key=' + this.key_1 + ', fileName=' + this.fileName_1 + ', contentType=' + this.contentType_1 + ', uploadedBy=' + this.uploadedBy_1.toString() + ', uploadedAt=' + this.uploadedAt_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.id_1);
+    result = imul_0(result, 31) + getStringHashCode(this.key_1) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.fileName_1) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.contentType_1) | 0;
+    result = imul_0(result, 31) + this.uploadedBy_1.hashCode() | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.uploadedAt_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof ChatMediaRef))
+      return false;
+    if (!(this.id_1 === other.id_1))
+      return false;
+    if (!(this.key_1 === other.key_1))
+      return false;
+    if (!(this.fileName_1 === other.fileName_1))
+      return false;
+    if (!(this.contentType_1 === other.contentType_1))
+      return false;
+    if (!this.uploadedBy_1.equals(other.uploadedBy_1))
+      return false;
+    if (!(this.uploadedAt_1 === other.uploadedAt_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaRef_8v6h1l_k$(seen0, id, key, fileName, contentType, uploadedBy, uploadedAt, serializationConstructorMarker) {
+    if (!(63 === (63 & seen0))) {
+      throwMissingFieldException(seen0, 63, $serializer_getInstance_10().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.id_1 = id;
+    $this.key_1 = key;
+    $this.fileName_1 = fileName;
+    $this.contentType_1 = contentType;
+    $this.uploadedBy_1 = uploadedBy;
+    $this.uploadedAt_1 = uploadedAt;
+    return $this;
+  }
+}
+class Companion_93 {}
+class $serializer_11 {
+  constructor() {
+    $serializer_instance_11 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatMessage', this, 7);
+    tmp0_serialDesc.addElement_5pzumi_k$('id', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('roomId', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('sequence', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('author', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('body', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('media', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('createdAt', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_j3tzdq_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.id_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.roomId_1);
+    tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 2, value.sequence_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, $serializer_getInstance_9(), value.author_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 4, value.body_1);
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 5) ? true : !(value.media_1 == null)) {
+      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 5, $serializer_getInstance_10(), value.media_1);
+    }
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 6, value.createdAt_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_j3tzdq_k$(encoder, value instanceof ChatMessage ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = 0;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = null;
+    var tmp10_local6 = null;
+    var tmp11_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp11_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp11_input.decodeIntElement_941u6a_k$(tmp0_desc, 2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, $serializer_getInstance_9(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp11_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 5, $serializer_getInstance_10(), tmp9_local5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+      tmp10_local6 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 6);
+      tmp3_bitMask0 = tmp3_bitMask0 | 64;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp11_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp11_input.decodeIntElement_941u6a_k$(tmp0_desc, 2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, $serializer_getInstance_9(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp11_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 5, $serializer_getInstance_10(), tmp9_local5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          case 6:
+            tmp10_local6 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 6);
+            tmp3_bitMask0 = tmp3_bitMask0 | 64;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp11_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatMessage.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMessage_ees9e6_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), StringSerializer_getInstance(), IntSerializer_getInstance(), $serializer_getInstance_9(), StringSerializer_getInstance(), get_nullable($serializer_getInstance_10()), StringSerializer_getInstance()];
+  }
+}
+class ChatMessage {
+  constructor(id, roomId, sequence, author, body, media, createdAt) {
+    media = media === VOID ? null : media;
+    this.id_1 = id;
+    this.roomId_1 = roomId;
+    this.sequence_1 = sequence;
+    this.author_1 = author;
+    this.body_1 = body;
+    this.media_1 = media;
+    this.createdAt_1 = createdAt;
+  }
+  toString() {
+    return 'ChatMessage(id=' + this.id_1 + ', roomId=' + this.roomId_1 + ', sequence=' + this.sequence_1 + ', author=' + this.author_1.toString() + ', body=' + this.body_1 + ', media=' + toString_0(this.media_1) + ', createdAt=' + this.createdAt_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.id_1);
+    result = imul_0(result, 31) + getStringHashCode(this.roomId_1) | 0;
+    result = imul_0(result, 31) + this.sequence_1 | 0;
+    result = imul_0(result, 31) + this.author_1.hashCode() | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.body_1) | 0;
+    result = imul_0(result, 31) + (this.media_1 == null ? 0 : this.media_1.hashCode()) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.createdAt_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof ChatMessage))
+      return false;
+    if (!(this.id_1 === other.id_1))
+      return false;
+    if (!(this.roomId_1 === other.roomId_1))
+      return false;
+    if (!(this.sequence_1 === other.sequence_1))
+      return false;
+    if (!this.author_1.equals(other.author_1))
+      return false;
+    if (!(this.body_1 === other.body_1))
+      return false;
+    if (!equals(this.media_1, other.media_1))
+      return false;
+    if (!(this.createdAt_1 === other.createdAt_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMessage_ees9e6_k$(seen0, id, roomId, sequence, author, body, media, createdAt, serializationConstructorMarker) {
+    if (!(95 === (95 & seen0))) {
+      throwMissingFieldException(seen0, 95, $serializer_getInstance_11().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.id_1 = id;
+    $this.roomId_1 = roomId;
+    $this.sequence_1 = sequence;
+    $this.author_1 = author;
+    $this.body_1 = body;
+    if (0 === (seen0 & 32))
+      $this.media_1 = null;
+    else
+      $this.media_1 = media;
+    $this.createdAt_1 = createdAt;
+    return $this;
+  }
+}
+class Companion_94 {
+  constructor() {
+    Companion_instance_94 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [null, lazy(tmp_0, ChatPresence$Companion$$childSerializers$_anonymous__fesj7t), null, null, null];
+  }
+}
+class $serializer_12 {
+  constructor() {
+    $serializer_instance_12 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatPresence', this, 5);
+    tmp0_serialDesc.addElement_5pzumi_k$('roomId', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('participants', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('activeParticipants', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('latestSequence', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('updatedAt', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_f8vshy_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_94().$childSerializers_1;
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.roomId_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.participants_1);
+    tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 2, value.activeParticipants_1);
+    tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 3, value.latestSequence_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 4, value.updatedAt_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_f8vshy_k$(encoder, value instanceof ChatPresence ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = 0;
+    var tmp7_local3 = 0;
+    var tmp8_local4 = null;
+    var tmp9_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp10_cached = Companion_getInstance_94().$childSerializers_1;
+    if (tmp9_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp9_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp10_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp9_input.decodeIntElement_941u6a_k$(tmp0_desc, 2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp9_input.decodeIntElement_941u6a_k$(tmp0_desc, 3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp9_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp9_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp9_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp10_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp9_input.decodeIntElement_941u6a_k$(tmp0_desc, 2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp9_input.decodeIntElement_941u6a_k$(tmp0_desc, 3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp9_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp9_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatPresence.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatPresence_wp1jng_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_94().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), tmp0_cached[1].get_value_j01efc_k$(), IntSerializer_getInstance(), IntSerializer_getInstance(), StringSerializer_getInstance()];
+  }
+}
+class ChatPresence {
+  constructor(roomId, participants, activeParticipants, latestSequence, updatedAt) {
+    Companion_getInstance_94();
+    this.roomId_1 = roomId;
+    this.participants_1 = participants;
+    this.activeParticipants_1 = activeParticipants;
+    this.latestSequence_1 = latestSequence;
+    this.updatedAt_1 = updatedAt;
+  }
+  toString() {
+    return 'ChatPresence(roomId=' + this.roomId_1 + ', participants=' + toString_1(this.participants_1) + ', activeParticipants=' + this.activeParticipants_1 + ', latestSequence=' + this.latestSequence_1 + ', updatedAt=' + this.updatedAt_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.roomId_1);
+    result = imul_0(result, 31) + hashCode(this.participants_1) | 0;
+    result = imul_0(result, 31) + this.activeParticipants_1 | 0;
+    result = imul_0(result, 31) + this.latestSequence_1 | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.updatedAt_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof ChatPresence))
+      return false;
+    if (!(this.roomId_1 === other.roomId_1))
+      return false;
+    if (!equals(this.participants_1, other.participants_1))
+      return false;
+    if (!(this.activeParticipants_1 === other.activeParticipants_1))
+      return false;
+    if (!(this.latestSequence_1 === other.latestSequence_1))
+      return false;
+    if (!(this.updatedAt_1 === other.updatedAt_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatPresence_wp1jng_k$(seen0, roomId, participants, activeParticipants, latestSequence, updatedAt, serializationConstructorMarker) {
+    Companion_getInstance_94();
+    if (!(31 === (31 & seen0))) {
+      throwMissingFieldException(seen0, 31, $serializer_getInstance_12().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.roomId_1 = roomId;
+    $this.participants_1 = participants;
+    $this.activeParticipants_1 = activeParticipants;
+    $this.latestSequence_1 = latestSequence;
+    $this.updatedAt_1 = updatedAt;
+    return $this;
+  }
+}
+class Companion_95 {}
+class $serializer_13 {
+  constructor() {
+    $serializer_instance_13 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatRoomSummary', this, 7);
+    tmp0_serialDesc.addElement_5pzumi_k$('id', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('name', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('topic', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('createdBy', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('createdAt', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('activeParticipants', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('latestSequence', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_gioaqu_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.id_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.name_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 2, value.topic_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, $serializer_getInstance_9(), value.createdBy_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 4, value.createdAt_1);
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 5) ? true : !(value.activeParticipants_1 === 0)) {
+      tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 5, value.activeParticipants_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 6) ? true : !(value.latestSequence_1 === 0)) {
+      tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 6, value.latestSequence_1);
+    }
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_gioaqu_k$(encoder, value instanceof ChatRoomSummary ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = 0;
+    var tmp10_local6 = 0;
+    var tmp11_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp11_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, $serializer_getInstance_9(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp11_input.decodeIntElement_941u6a_k$(tmp0_desc, 5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+      tmp10_local6 = tmp11_input.decodeIntElement_941u6a_k$(tmp0_desc, 6);
+      tmp3_bitMask0 = tmp3_bitMask0 | 64;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp11_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, $serializer_getInstance_9(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp11_input.decodeIntElement_941u6a_k$(tmp0_desc, 5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          case 6:
+            tmp10_local6 = tmp11_input.decodeIntElement_941u6a_k$(tmp0_desc, 6);
+            tmp3_bitMask0 = tmp3_bitMask0 | 64;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp11_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatRoomSummary.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomSummary_lkdub6_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), $serializer_getInstance_9(), StringSerializer_getInstance(), IntSerializer_getInstance(), IntSerializer_getInstance()];
+  }
+}
+class ChatRoomSummary {
+  constructor(id, name, topic, createdBy, createdAt, activeParticipants, latestSequence) {
+    activeParticipants = activeParticipants === VOID ? 0 : activeParticipants;
+    latestSequence = latestSequence === VOID ? 0 : latestSequence;
+    this.id_1 = id;
+    this.name_1 = name;
+    this.topic_1 = topic;
+    this.createdBy_1 = createdBy;
+    this.createdAt_1 = createdAt;
+    this.activeParticipants_1 = activeParticipants;
+    this.latestSequence_1 = latestSequence;
+  }
+  copy_3elrm8_k$(id, name, topic, createdBy, createdAt, activeParticipants, latestSequence) {
+    return new ChatRoomSummary(id, name, topic, createdBy, createdAt, activeParticipants, latestSequence);
+  }
+  copy$default_b2qtis_k$(id, name, topic, createdBy, createdAt, activeParticipants, latestSequence, $super) {
+    id = id === VOID ? this.id_1 : id;
+    name = name === VOID ? this.name_1 : name;
+    topic = topic === VOID ? this.topic_1 : topic;
+    createdBy = createdBy === VOID ? this.createdBy_1 : createdBy;
+    createdAt = createdAt === VOID ? this.createdAt_1 : createdAt;
+    activeParticipants = activeParticipants === VOID ? this.activeParticipants_1 : activeParticipants;
+    latestSequence = latestSequence === VOID ? this.latestSequence_1 : latestSequence;
+    return $super === VOID ? this.copy_3elrm8_k$(id, name, topic, createdBy, createdAt, activeParticipants, latestSequence) : $super.copy_3elrm8_k$.call(this, id, name, topic, createdBy, createdAt, activeParticipants, latestSequence);
+  }
+  toString() {
+    return 'ChatRoomSummary(id=' + this.id_1 + ', name=' + this.name_1 + ', topic=' + this.topic_1 + ', createdBy=' + this.createdBy_1.toString() + ', createdAt=' + this.createdAt_1 + ', activeParticipants=' + this.activeParticipants_1 + ', latestSequence=' + this.latestSequence_1 + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.id_1);
+    result = imul_0(result, 31) + getStringHashCode(this.name_1) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.topic_1) | 0;
+    result = imul_0(result, 31) + this.createdBy_1.hashCode() | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.createdAt_1) | 0;
+    result = imul_0(result, 31) + this.activeParticipants_1 | 0;
+    result = imul_0(result, 31) + this.latestSequence_1 | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof ChatRoomSummary))
+      return false;
+    if (!(this.id_1 === other.id_1))
+      return false;
+    if (!(this.name_1 === other.name_1))
+      return false;
+    if (!(this.topic_1 === other.topic_1))
+      return false;
+    if (!this.createdBy_1.equals(other.createdBy_1))
+      return false;
+    if (!(this.createdAt_1 === other.createdAt_1))
+      return false;
+    if (!(this.activeParticipants_1 === other.activeParticipants_1))
+      return false;
+    if (!(this.latestSequence_1 === other.latestSequence_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomSummary_lkdub6_k$(seen0, id, name, topic, createdBy, createdAt, activeParticipants, latestSequence, serializationConstructorMarker) {
+    if (!(31 === (31 & seen0))) {
+      throwMissingFieldException(seen0, 31, $serializer_getInstance_13().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.id_1 = id;
+    $this.name_1 = name;
+    $this.topic_1 = topic;
+    $this.createdBy_1 = createdBy;
+    $this.createdAt_1 = createdAt;
+    if (0 === (seen0 & 32))
+      $this.activeParticipants_1 = 0;
+    else
+      $this.activeParticipants_1 = activeParticipants;
+    if (0 === (seen0 & 64))
+      $this.latestSequence_1 = 0;
+    else
+      $this.latestSequence_1 = latestSequence;
+    return $this;
+  }
+}
+class Companion_96 {
+  constructor() {
+    Companion_instance_96 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik);
     var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_3 = lazy(tmp_2, HelloRequest$Companion$$childSerializers$_anonymous__ovooul_0);
+    var tmp_3 = lazy(tmp_2, ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_0);
     var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_5 = lazy(tmp_4, HelloRequest$Companion$$childSerializers$_anonymous__ovooul_1);
+    var tmp_5 = lazy(tmp_4, ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_1);
     var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, HelloRequest$Companion$$childSerializers$_anonymous__ovooul_2)];
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_2)];
   }
 }
-class $serializer_4 {
+class $serializer_14 {
   constructor() {
-    $serializer_instance_4 = this;
-    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.HelloRequest', this, 4);
+    $serializer_instance_14 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatOverviewRequest', this, 4);
     tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
     tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
     tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
     tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
     this.descriptor_1 = tmp0_serialDesc;
   }
-  serialize_rhp1t2_k$(encoder, value) {
+  serialize_ihgnw0_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_86().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_96().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -35597,7 +37070,7 @@ class $serializer_4 {
     tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
   }
   serialize_5ase3y_k$(encoder, value) {
-    return this.serialize_rhp1t2_k$(encoder, value instanceof HelloRequest ? value : THROW_CCE());
+    return this.serialize_ihgnw0_k$(encoder, value instanceof ChatOverviewRequest ? value : THROW_CCE());
   }
   deserialize_sy6x50_k$(decoder) {
     var tmp0_desc = this.descriptor_1;
@@ -35609,7 +37082,7 @@ class $serializer_4 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_86().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_96().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -35647,71 +37120,180 @@ class $serializer_4 {
         }
       }
     tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
-    return HelloRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloRequest_ph2q80_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+    return ChatOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_st0ioq_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
   }
   get_descriptor_wjt6a0_k$() {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_86().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_96().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
     return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
   }
 }
-class HelloRequest extends CloudflareRequest {
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloRequest_nhcxul_k$() {
-    Companion_getInstance_86();
+class ChatOverviewRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_2hr453_k$() {
+    Companion_getInstance_96();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloRequest_ph2q80_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_86();
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_st0ioq_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_96();
     if (!(0 === (0 & seen0))) {
-      throwMissingFieldException(seen0, 0, $serializer_getInstance_4().descriptor_1);
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_14().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_87 {
+class Companion_97 {
   constructor() {
-    Companion_instance_87 = this;
+    Companion_instance_97 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    tmp.$childSerializers_1 = [null, null, null, lazy(tmp_0, HelloResponse$Companion$$childSerializers$_anonymous__q4t7t5)];
+    tmp.$childSerializers_1 = [null, tmp_1, lazy(tmp_2, ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs_0)];
   }
 }
-class $serializer_5 {
+class $serializer_15 {
   constructor() {
-    $serializer_instance_5 = this;
-    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.HelloResponse', this, 4);
+    $serializer_instance_15 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatOverviewResponse', this, 3);
     tmp0_serialDesc.addElement_5pzumi_k$('message', false);
-    tmp0_serialDesc.addElement_5pzumi_k$('binding', true);
-    tmp0_serialDesc.addElement_5pzumi_k$('detail', true);
-    tmp0_serialDesc.addElement_5pzumi_k$('routes', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('routes', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('flow', false);
     this.descriptor_1 = tmp0_serialDesc;
   }
-  serialize_ydppy6_k$(encoder, value) {
+  serialize_w29jjg_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_87().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_97().$childSerializers_1;
     tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.message_1);
-    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 1) ? true : !(value.binding_1 == null)) {
-      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 1, StringSerializer_getInstance(), value.binding_1);
-    }
-    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 2) ? true : !(value.detail_1 == null)) {
-      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 2, StringSerializer_getInstance(), value.detail_1);
-    }
-    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 3) ? true : !equals(value.routes_1, emptyList())) {
-      tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.routes_1);
-    }
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.routes_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.flow_1);
     tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
   }
   serialize_5ase3y_k$(encoder, value) {
-    return this.serialize_ydppy6_k$(encoder, value instanceof HelloResponse ? value : THROW_CCE());
+    return this.serialize_w29jjg_k$(encoder, value instanceof ChatOverviewResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp8_cached = Companion_getInstance_97().$childSerializers_1;
+    if (tmp7_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp7_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp7_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_umpzvi_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_97().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$()];
+  }
+}
+class ChatOverviewResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_cgpcub_k$(message, routes, flow) {
+    Companion_getInstance_97();
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.message_1 = message;
+    $this.routes_1 = routes;
+    $this.flow_1 = flow;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_umpzvi_k$(seen0, message, routes, flow, serializationConstructorMarker) {
+    Companion_getInstance_97();
+    if (!(7 === (7 & seen0))) {
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_15().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.message_1 = message;
+    $this.routes_1 = routes;
+    $this.flow_1 = flow;
+    return $this;
+  }
+}
+class Companion_98 {
+  constructor() {
+    Companion_instance_98 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_2)];
+  }
+}
+class $serializer_16 {
+  constructor() {
+    $serializer_instance_16 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ListRoomsRequest', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_sv00vv_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_98().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_sv00vv_k$(encoder, value instanceof ListRoomsRequest ? value : THROW_CCE());
   }
   deserialize_sy6x50_k$(decoder) {
     var tmp0_desc = this.descriptor_1;
@@ -35723,13 +37305,13 @@ class $serializer_5 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_87().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_98().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
-      tmp4_local0 = tmp8_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
-      tmp5_local1 = tmp8_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 1, StringSerializer_getInstance(), tmp5_local1);
+      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
       tmp3_bitMask0 = tmp3_bitMask0 | 2;
-      tmp6_local2 = tmp8_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 2, StringSerializer_getInstance(), tmp6_local2);
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
       tmp3_bitMask0 = tmp3_bitMask0 | 4;
       tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
       tmp3_bitMask0 = tmp3_bitMask0 | 8;
@@ -35741,15 +37323,15 @@ class $serializer_5 {
             tmp1_flag = false;
             break;
           case 0:
-            tmp4_local0 = tmp8_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
             tmp3_bitMask0 = tmp3_bitMask0 | 1;
             break;
           case 1:
-            tmp5_local1 = tmp8_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 1, StringSerializer_getInstance(), tmp5_local1);
+            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
             tmp3_bitMask0 = tmp3_bitMask0 | 2;
             break;
           case 2:
-            tmp6_local2 = tmp8_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 2, StringSerializer_getInstance(), tmp6_local2);
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
             tmp3_bitMask0 = tmp3_bitMask0 | 4;
             break;
           case 3:
@@ -35761,162 +37343,1770 @@ class $serializer_5 {
         }
       }
     tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
-    return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_72t0ar_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+    return ListRoomsRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_k98aqp_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
   }
   get_descriptor_wjt6a0_k$() {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_87().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_98().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    return [StringSerializer_getInstance(), get_nullable(StringSerializer_getInstance()), get_nullable(StringSerializer_getInstance()), tmp0_cached[3].get_value_j01efc_k$()];
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
   }
 }
-class HelloResponse extends Response_0 {
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$(message, binding, detail, routes) {
-    Companion_getInstance_87();
-    binding = binding === VOID ? null : binding;
-    detail = detail === VOID ? null : detail;
-    routes = routes === VOID ? emptyList() : routes;
+class ListRoomsRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_awg7t0_k$() {
+    Companion_getInstance_98();
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_k98aqp_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_98();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_16().descriptor_1);
+    }
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+  }
+}
+class Companion_99 {
+  constructor() {
+    Companion_instance_99 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [lazy(tmp_0, ChatRoomsResponse$Companion$$childSerializers$_anonymous__fpgg3b)];
+  }
+}
+class $serializer_17 {
+  constructor() {
+    $serializer_instance_17 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatRoomsResponse', this, 1);
+    tmp0_serialDesc.addElement_5pzumi_k$('rooms', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_8l6olt_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_99().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.rooms_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_8l6olt_k$(encoder, value instanceof ChatRoomsResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp6_cached = Companion_getInstance_99().$childSerializers_1;
+    if (tmp5_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp5_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp6_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp5_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp5_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp6_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp5_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatRoomsResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomsResponse_6uszwk_k$(tmp3_bitMask0, tmp4_local0, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [Companion_getInstance_99().$childSerializers_1[0].get_value_j01efc_k$()];
+  }
+}
+class ChatRoomsResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomsResponse_nlklp7_k$(rooms) {
+    Companion_getInstance_99();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
-    $this.message_1 = message;
-    $this.binding_1 = binding;
-    $this.detail_1 = detail;
-    $this.routes_1 = routes;
+    $this.rooms_1 = rooms;
     return $this;
   }
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_72t0ar_k$(seen0, message, binding, detail, routes, serializationConstructorMarker) {
-    Companion_getInstance_87();
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomsResponse_6uszwk_k$(seen0, rooms, serializationConstructorMarker) {
+    Companion_getInstance_99();
     if (!(1 === (1 & seen0))) {
-      throwMissingFieldException(seen0, 1, $serializer_getInstance_5().descriptor_1);
+      throwMissingFieldException(seen0, 1, $serializer_getInstance_17().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.rooms_1 = rooms;
+    return $this;
+  }
+}
+class Companion_100 {
+  constructor() {
+    Companion_instance_100 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_7 = lazy(tmp_6, CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_2);
+    var tmp_8 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, tmp_7, null, null, null, lazy(tmp_8, CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_3)];
+  }
+}
+class $serializer_18 {
+  constructor() {
+    $serializer_instance_18 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.CreateRoomRequest', this, 8);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('name', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('topic', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('createdBy', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('seedMembers', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_fkz4tm_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_100().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 4, value.name_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 5, value.topic_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 6, $serializer_getInstance_9(), value.createdBy_1);
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 7) ? true : !equals(value.seedMembers_1, emptyList())) {
+      tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 7, tmp2_cached[7].get_value_j01efc_k$(), value.seedMembers_1);
+    }
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_fkz4tm_k$(encoder, value instanceof CreateRoomRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = null;
+    var tmp10_local6 = null;
+    var tmp11_local7 = null;
+    var tmp12_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp13_cached = Companion_getInstance_100().$childSerializers_1;
+    if (tmp12_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp13_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp13_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp13_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp13_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+      tmp10_local6 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 6, $serializer_getInstance_9(), tmp10_local6);
+      tmp3_bitMask0 = tmp3_bitMask0 | 64;
+      tmp11_local7 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 7, tmp13_cached[7].get_value_j01efc_k$(), tmp11_local7);
+      tmp3_bitMask0 = tmp3_bitMask0 | 128;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp12_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp13_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp13_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp13_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp13_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          case 6:
+            tmp10_local6 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 6, $serializer_getInstance_9(), tmp10_local6);
+            tmp3_bitMask0 = tmp3_bitMask0 | 64;
+            break;
+          case 7:
+            tmp11_local7 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 7, tmp13_cached[7].get_value_j01efc_k$(), tmp11_local7);
+            tmp3_bitMask0 = tmp3_bitMask0 | 128;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp12_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return CreateRoomRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_CreateRoomRequest_241nfy_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_100().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$(), StringSerializer_getInstance(), StringSerializer_getInstance(), $serializer_getInstance_9(), tmp0_cached[7].get_value_j01efc_k$()];
+  }
+}
+class CreateRoomRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_CreateRoomRequest_241nfy_k$(seen0, headers, queryParams, pathParams, environment, name, topic, createdBy, seedMembers, serializationConstructorMarker) {
+    Companion_getInstance_100();
+    if (!(112 === (112 & seen0))) {
+      throwMissingFieldException(seen0, 112, $serializer_getInstance_18().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+    $this.name_1 = name;
+    $this.topic_1 = topic;
+    $this.createdBy_1 = createdBy;
+    if (0 === (seen0 & 128))
+      $this.seedMembers_1 = emptyList();
+    else
+      $this.seedMembers_1 = seedMembers;
+    return $this;
+  }
+}
+class Companion_101 {
+  constructor() {
+    Companion_instance_101 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, RoomRequest$Companion$$childSerializers$_anonymous__8cox56);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, RoomRequest$Companion$$childSerializers$_anonymous__8cox56_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, RoomRequest$Companion$$childSerializers$_anonymous__8cox56_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, RoomRequest$Companion$$childSerializers$_anonymous__8cox56_2)];
+  }
+}
+class $serializer_19 {
+  constructor() {
+    $serializer_instance_19 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.RoomRequest', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_2257ie_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_101().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_2257ie_k$(encoder, value instanceof RoomRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp9_cached = Companion_getInstance_101().$childSerializers_1;
+    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return RoomRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_aqfllc_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_101().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
+  }
+}
+class RoomRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_nl1bbh_k$() {
+    Companion_getInstance_101();
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_aqfllc_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_101();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_19().descriptor_1);
+    }
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+  }
+}
+class Companion_102 {
+  constructor() {
+    Companion_instance_102 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_2), null];
+  }
+}
+class $serializer_20 {
+  constructor() {
+    $serializer_instance_20 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.RoomMembershipRequest', this, 5);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('participant', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_hgn9zk_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_102().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 4, $serializer_getInstance_9(), value.participant_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_hgn9zk_k$(encoder, value instanceof RoomMembershipRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp10_cached = Companion_getInstance_102().$childSerializers_1;
+    if (tmp9_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp10_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp10_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp10_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp10_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp9_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp10_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp10_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp10_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp10_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp9_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return RoomMembershipRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMembershipRequest_q415wy_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_102().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$(), $serializer_getInstance_9()];
+  }
+}
+class RoomMembershipRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMembershipRequest_q415wy_k$(seen0, headers, queryParams, pathParams, environment, participant, serializationConstructorMarker) {
+    Companion_getInstance_102();
+    if (!(16 === (16 & seen0))) {
+      throwMissingFieldException(seen0, 16, $serializer_getInstance_20().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+    $this.participant_1 = participant;
+    return $this;
+  }
+}
+class Companion_103 {
+  constructor() {
+    Companion_instance_103 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_2), null, null, null];
+  }
+}
+class $serializer_21 {
+  constructor() {
+    $serializer_instance_21 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.SendMessageRequest', this, 7);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('author', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('body', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('mediaId', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_9i4jwq_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_103().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 4, $serializer_getInstance_9(), value.author_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 5, value.body_1);
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 6) ? true : !(value.mediaId_1 == null)) {
+      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 6, StringSerializer_getInstance(), value.mediaId_1);
+    }
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_9i4jwq_k$(encoder, value instanceof SendMessageRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = null;
+    var tmp10_local6 = null;
+    var tmp11_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp12_cached = Companion_getInstance_103().$childSerializers_1;
+    if (tmp11_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp12_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp12_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp12_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp12_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+      tmp10_local6 = tmp11_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 6, StringSerializer_getInstance(), tmp10_local6);
+      tmp3_bitMask0 = tmp3_bitMask0 | 64;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp11_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp12_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp12_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp12_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp12_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp11_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          case 6:
+            tmp10_local6 = tmp11_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 6, StringSerializer_getInstance(), tmp10_local6);
+            tmp3_bitMask0 = tmp3_bitMask0 | 64;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp11_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return SendMessageRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_SendMessageRequest_6o91to_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_103().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$(), $serializer_getInstance_9(), StringSerializer_getInstance(), get_nullable(StringSerializer_getInstance())];
+  }
+}
+class SendMessageRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_SendMessageRequest_6o91to_k$(seen0, headers, queryParams, pathParams, environment, author, body, mediaId, serializationConstructorMarker) {
+    Companion_getInstance_103();
+    if (!(48 === (48 & seen0))) {
+      throwMissingFieldException(seen0, 48, $serializer_getInstance_21().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+    $this.author_1 = author;
+    $this.body_1 = body;
+    if (0 === (seen0 & 64))
+      $this.mediaId_1 = null;
+    else
+      $this.mediaId_1 = mediaId;
+    return $this;
+  }
+}
+class Companion_104 {
+  constructor() {
+    Companion_instance_104 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_2)];
+  }
+}
+class $serializer_22 {
+  constructor() {
+    $serializer_instance_22 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.RoomMessagesRequest', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_7vfvdy_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_104().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_7vfvdy_k$(encoder, value instanceof RoomMessagesRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp9_cached = Companion_getInstance_104().$childSerializers_1;
+    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return RoomMessagesRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_t4ezgk_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_104().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
+  }
+}
+class RoomMessagesRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_nj9zmp_k$() {
+    Companion_getInstance_104();
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_t4ezgk_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_104();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_22().descriptor_1);
+    }
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+  }
+}
+class Companion_105 {
+  constructor() {
+    Companion_instance_105 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_2), null, null, null, null];
+  }
+}
+class $serializer_23 {
+  constructor() {
+    $serializer_instance_23 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.UploadMediaRequest', this, 8);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('uploadedBy', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('fileName', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('contentType', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('base64Data', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_g4mb3m_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_105().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 4, $serializer_getInstance_9(), value.uploadedBy_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 5, value.fileName_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 6, value.contentType_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 7, value.base64Data_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_g4mb3m_k$(encoder, value instanceof UploadMediaRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = null;
+    var tmp10_local6 = null;
+    var tmp11_local7 = null;
+    var tmp12_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp13_cached = Companion_getInstance_105().$childSerializers_1;
+    if (tmp12_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp13_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp13_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp13_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp13_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+      tmp10_local6 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 6);
+      tmp3_bitMask0 = tmp3_bitMask0 | 64;
+      tmp11_local7 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 7);
+      tmp3_bitMask0 = tmp3_bitMask0 | 128;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp12_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp13_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp13_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp13_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp13_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 4, $serializer_getInstance_9(), tmp8_local4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          case 6:
+            tmp10_local6 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 6);
+            tmp3_bitMask0 = tmp3_bitMask0 | 64;
+            break;
+          case 7:
+            tmp11_local7 = tmp12_input.decodeStringElement_3oenpg_k$(tmp0_desc, 7);
+            tmp3_bitMask0 = tmp3_bitMask0 | 128;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp12_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return UploadMediaRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_UploadMediaRequest_71vn47_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_105().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$(), $serializer_getInstance_9(), StringSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance()];
+  }
+}
+class UploadMediaRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_UploadMediaRequest_71vn47_k$(seen0, headers, queryParams, pathParams, environment, uploadedBy, fileName, contentType, base64Data, serializationConstructorMarker) {
+    Companion_getInstance_105();
+    if (!(240 === (240 & seen0))) {
+      throwMissingFieldException(seen0, 240, $serializer_getInstance_23().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+    $this.uploadedBy_1 = uploadedBy;
+    $this.fileName_1 = fileName;
+    $this.contentType_1 = contentType;
+    $this.base64Data_1 = base64Data;
+    return $this;
+  }
+}
+class Companion_106 {
+  constructor() {
+    Companion_instance_106 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_2)];
+  }
+}
+class $serializer_24 {
+  constructor() {
+    $serializer_instance_24 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.MediaRequest', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_y4nfov_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_106().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_y4nfov_k$(encoder, value instanceof MediaRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp9_cached = Companion_getInstance_106().$childSerializers_1;
+    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return MediaRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_7u43uz_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_106().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
+  }
+}
+class MediaRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_swvzn2_k$() {
+    Companion_getInstance_106();
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_7u43uz_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_106();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_24().descriptor_1);
+    }
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+  }
+}
+class Companion_107 {
+  constructor() {
+    Companion_instance_107 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [null, null, lazy(tmp_0, ChatRoomStateResponse$Companion$$childSerializers$_anonymous__cp3qx7)];
+  }
+}
+class $serializer_25 {
+  constructor() {
+    $serializer_instance_25 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatRoomStateResponse', this, 3);
+    tmp0_serialDesc.addElement_5pzumi_k$('room', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('presence', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('messages', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_ekd7kj_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_107().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_13(), value.room_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, $serializer_getInstance_12(), value.presence_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.messages_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_ekd7kj_k$(encoder, value instanceof ChatRoomStateResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp8_cached = Companion_getInstance_107().$childSerializers_1;
+    if (tmp7_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_13(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_12(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp7_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_13(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_12(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp7_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatRoomStateResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_gbq7as_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_107().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [$serializer_getInstance_13(), $serializer_getInstance_12(), tmp0_cached[2].get_value_j01efc_k$()];
+  }
+}
+class ChatRoomStateResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(room, presence, messages) {
+    Companion_getInstance_107();
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.room_1 = room;
+    $this.presence_1 = presence;
+    $this.messages_1 = messages;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_gbq7as_k$(seen0, room, presence, messages, serializationConstructorMarker) {
+    Companion_getInstance_107();
+    if (!(7 === (7 & seen0))) {
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_25().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.room_1 = room;
+    $this.presence_1 = presence;
+    $this.messages_1 = messages;
+    return $this;
+  }
+}
+class Companion_108 {}
+class $serializer_26 {
+  constructor() {
+    $serializer_instance_26 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatMessageResponse', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('message', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('presence', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_o3uvb6_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_11(), value.message_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, $serializer_getInstance_12(), value.presence_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_o3uvb6_k$(encoder, value instanceof ChatMessageResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_11(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_12(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_11(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, $serializer_getInstance_12(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatMessageResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMessageResponse_gvcowx_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [$serializer_getInstance_11(), $serializer_getInstance_12()];
+  }
+}
+class ChatMessageResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMessageResponse_sg8uij_k$(message, presence) {
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.message_1 = message;
+    $this.presence_1 = presence;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMessageResponse_gvcowx_k$(seen0, message, presence, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_26().descriptor_1);
     }
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
     $this.message_1 = message;
-    if (0 === (seen0 & 2))
-      $this.binding_1 = null;
-    else
-      $this.binding_1 = binding;
-    if (0 === (seen0 & 4))
-      $this.detail_1 = null;
-    else
-      $this.detail_1 = detail;
-    if (0 === (seen0 & 8))
-      $this.routes_1 = emptyList();
-    else
-      $this.routes_1 = routes;
+    $this.presence_1 = presence;
     return $this;
   }
 }
-class HelloService$slambda {
-  invoke_59nui_k$($this$GetHandler, request, $completion) {
-    get_context(request);
-    return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from kotlin service on cloudflare', VOID, VOID, listOf_0(['/', '/d1', '/r2', '/do']));
+class Companion_109 {}
+class $serializer_27 {
+  constructor() {
+    $serializer_instance_27 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatMediaResponse', this, 1);
+    tmp0_serialDesc.addElement_5pzumi_k$('media', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_k6yc4b_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_10(), value.media_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_k6yc4b_k$(encoder, value instanceof ChatMediaResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp5_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp5_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_10(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp5_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp5_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_10(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp5_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatMediaResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaResponse_y5db6q_k$(tmp3_bitMask0, tmp4_local0, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [$serializer_getInstance_10()];
+  }
+}
+class ChatMediaResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaResponse_ac01id_k$(media) {
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.media_1 = media;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaResponse_y5db6q_k$(seen0, media, serializationConstructorMarker) {
+    if (!(1 === (1 & seen0))) {
+      throwMissingFieldException(seen0, 1, $serializer_getInstance_27().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.media_1 = media;
+    return $this;
+  }
+}
+class Companion_110 {}
+class $serializer_28 {
+  constructor() {
+    $serializer_instance_28 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatMediaDownloadResponse', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('media', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('base64Data', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_z15zst_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_10(), value.media_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.base64Data_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_z15zst_k$(encoder, value instanceof ChatMediaDownloadResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_10(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_10(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return ChatMediaDownloadResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaDownloadResponse_oou5tr_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [$serializer_getInstance_10(), StringSerializer_getInstance()];
+  }
+}
+class ChatMediaDownloadResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaDownloadResponse_fc7l5_k$(media, base64Data) {
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.media_1 = media;
+    $this.base64Data_1 = base64Data;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaDownloadResponse_oou5tr_k$(seen0, media, base64Data, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_28().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.media_1 = media;
+    $this.base64Data_1 = base64Data;
+    return $this;
+  }
+}
+class Companion_111 {}
+class $serializer_29 {
+  constructor() {
+    $serializer_instance_29 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.chat.StoredMediaEnvelope', this, 2);
+    tmp0_serialDesc.addElement_5pzumi_k$('media', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('base64Data', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_vsn0p0_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_10(), value.media_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 1, value.base64Data_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_vsn0p0_k$(encoder, value instanceof StoredMediaEnvelope ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp6_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_10(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp6_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp6_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_10(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp6_input.decodeStringElement_3oenpg_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp6_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return StoredMediaEnvelope.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_StoredMediaEnvelope_x6jfet_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [$serializer_getInstance_10(), StringSerializer_getInstance()];
+  }
+}
+class StoredMediaEnvelope {
+  constructor(media, base64Data) {
+    this.media_1 = media;
+    this.base64Data_1 = base64Data;
+  }
+  toString() {
+    return 'StoredMediaEnvelope(media=' + this.media_1.toString() + ', base64Data=' + this.base64Data_1 + ')';
+  }
+  hashCode() {
+    var result = this.media_1.hashCode();
+    result = imul_0(result, 31) + getStringHashCode(this.base64Data_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof StoredMediaEnvelope))
+      return false;
+    if (!this.media_1.equals(other.media_1))
+      return false;
+    if (!(this.base64Data_1 === other.base64Data_1))
+      return false;
+    return true;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_StoredMediaEnvelope_x6jfet_k$(seen0, media, base64Data, serializationConstructorMarker) {
+    if (!(3 === (3 & seen0))) {
+      throwMissingFieldException(seen0, 3, $serializer_getInstance_29().descriptor_1);
+    }
+    var $this = createThis(this);
+    $this.media_1 = media;
+    $this.base64Data_1 = base64Data;
+    return $this;
+  }
+}
+class ChatRepository {
+  constructor(database, mediaBucket) {
+    this.database_1 = database;
+    this.mediaBucket_1 = mediaBucket;
+  }
+  createRoom_il5ksf_k$(request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_createRoom__s56z5d.bind(VOID, this, request), $completion);
+  }
+  listRooms_hoycxl_k$(limit, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_listRooms__ykwpae.bind(VOID, this, limit), $completion);
+  }
+  requireRoom_79lp1n_k$(roomId, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_requireRoom__vxyrak.bind(VOID, this, roomId), $completion);
+  }
+  saveMessage_y97t2_k$(roomId, sequence, author, body, media, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_saveMessage__dgbr6e.bind(VOID, this, roomId, sequence, author, body, media), $completion);
+  }
+  listMessages_o4h6ug_k$(roomId, limit, beforeSequence, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_listMessages__tjn5tq.bind(VOID, this, roomId, limit, beforeSequence), $completion);
+  }
+  storeMedia_l2rmnb_k$(request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_storeMedia__36yjqd.bind(VOID, this, request), $completion);
+  }
+  loadMedia_q36lah_k$(mediaId, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_loadMedia__obhot2.bind(VOID, this, mediaId), $completion);
+  }
+  requireMedia_uzggm_k$(mediaId, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_requireMedia__1nq4q1.bind(VOID, this, mediaId), $completion);
+  }
+}
+class ChatService$slambda {
+  invoke_xyxs4w_k$($this$GetHandler, it, $completion) {
+    return ChatOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_cgpcub_k$('Kotlin-first Cloudflare chat demo', listOf_0(['POST /chat/rooms', 'GET /chat/rooms', 'POST /chat/rooms/{roomId}/members', 'POST /chat/rooms/{roomId}/leave', 'POST /chat/media', 'GET /chat/media/{mediaId}', 'POST /chat/rooms/{roomId}/messages', 'GET /chat/rooms/{roomId}/messages']), listOf_0(['Create a room', 'Join members into the room coordinator', 'Upload media into R2', 'Send messages that reserve sequence numbers via Durable Objects and persist to D1', 'Read room history from D1 with live presence from Durable Objects']));
   }
   invoke_x3sdos_k$(p1, p2, $completion) {
     var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
-    return this.invoke_59nui_k$(tmp, p2 instanceof HelloRequest ? p2 : THROW_CCE(), $completion);
+    return this.invoke_xyxs4w_k$(tmp, p2 instanceof ChatOverviewRequest ? p2 : THROW_CCE(), $completion);
   }
 }
-class HelloService$slambda_0 {
-  invoke_59nui_k$($this$GetHandler, request, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_75.bind(VOID, this, $this$GetHandler, request), $completion);
-  }
-  invoke_x3sdos_k$(p1, p2, $completion) {
-    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
-    return this.invoke_59nui_k$(tmp, p2 instanceof HelloRequest ? p2 : THROW_CCE(), $completion);
-  }
-}
-class HelloService$slambda_1 {
-  invoke_59nui_k$($this$GetHandler, request, $completion) {
+class ChatService$slambda_0 {
+  invoke_7kgcbt_k$($this$GetHandler, request, $completion) {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_76.bind(VOID, this, $this$GetHandler, request), $completion);
   }
   invoke_x3sdos_k$(p1, p2, $completion) {
     var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
-    return this.invoke_59nui_k$(tmp, p2 instanceof HelloRequest ? p2 : THROW_CCE(), $completion);
+    return this.invoke_7kgcbt_k$(tmp, p2 instanceof ListRoomsRequest ? p2 : THROW_CCE(), $completion);
   }
 }
-class HelloService$slambda_2 {
-  invoke_59nui_k$($this$GetHandler, request, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_77.bind(VOID, this, $this$GetHandler, request), $completion);
+class ChatService$slambda_1 {
+  invoke_q1jdy3_k$($this$PostHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_77.bind(VOID, this, $this$PostHandler, request), $completion);
   }
   invoke_x3sdos_k$(p1, p2, $completion) {
     var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
-    return this.invoke_59nui_k$(tmp, p2 instanceof HelloRequest ? p2 : THROW_CCE(), $completion);
+    return this.invoke_q1jdy3_k$(tmp, p2 instanceof CreateRoomRequest ? p2 : THROW_CCE(), $completion);
   }
 }
-class HelloService extends Service {
+class ChatService$slambda_2 {
+  invoke_jykvh_k$($this$GetHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_78.bind(VOID, this, $this$GetHandler, request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_jykvh_k$(tmp, p2 instanceof RoomRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService$slambda_3 {
+  invoke_ebfc61_k$($this$PostHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_79.bind(VOID, this, $this$PostHandler, request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_ebfc61_k$(tmp, p2 instanceof RoomMembershipRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService$slambda_4 {
+  invoke_ebfc61_k$($this$PostHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_80.bind(VOID, this, $this$PostHandler, request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_ebfc61_k$(tmp, p2 instanceof RoomMembershipRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService$slambda_5 {
+  invoke_fnezrf_k$($this$PostHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_81.bind(VOID, this, $this$PostHandler, request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_fnezrf_k$(tmp, p2 instanceof UploadMediaRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService$slambda_6 {
+  invoke_2lbq6b_k$($this$GetHandler, request, $completion) {
+    return repository(request).loadMedia_q36lah_k$(mediaId(request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_2lbq6b_k$(tmp, p2 instanceof MediaRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService$slambda_7 {
+  invoke_gfwd4_k$($this$PostHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_82.bind(VOID, this, $this$PostHandler, request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_gfwd4_k$(tmp, p2 instanceof SendMessageRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService$slambda_8 {
+  invoke_zictfp_k$($this$GetHandler, request, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_83.bind(VOID, this, $this$GetHandler, request), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_zictfp_k$(tmp, p2 instanceof RoomMessagesRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class ChatService extends Service {
   constructor() {
     super();
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
-    var block = HelloService$slambda_3();
+    var block = ChatService$slambda_9();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_0 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_1 = serializer_0(this_0, createKType(getKClass(HelloRequest), arrayOf([]), false));
+    var this_1 = serializer_0(this_0, createKType(getKClass(ChatOverviewRequest), arrayOf([]), false));
     var tmp = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_2 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_3 = serializer_0(this_2, createKType(getKClass(HelloResponse), arrayOf([]), false));
+    var this_3 = serializer_0(this_2, createKType(getKClass(ChatOverviewResponse), arrayOf([]), false));
     var tmp$ret$5 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
     var tmp_0 = this.server(Companion_instance_78, '/', tmp, tmp$ret$5, block);
     tmp_0 instanceof GetHandler || THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
-    var block_0 = HelloService$slambda_4();
+    var block_0 = ChatService$slambda_10();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_4 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_5 = serializer_0(this_4, createKType(getKClass(HelloRequest), arrayOf([]), false));
+    var this_5 = serializer_0(this_4, createKType(getKClass(ListRoomsRequest), arrayOf([]), false));
     var tmp_1 = isInterface(this_5, KSerializer) ? this_5 : THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_6 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_7 = serializer_0(this_6, createKType(getKClass(HelloResponse), arrayOf([]), false));
+    var this_7 = serializer_0(this_6, createKType(getKClass(ChatRoomsResponse), arrayOf([]), false));
     var tmp$ret$13 = isInterface(this_7, KSerializer) ? this_7 : THROW_CCE();
-    var tmp_2 = this.server(Companion_instance_78, '/d1', tmp_1, tmp$ret$13, block_0);
+    var tmp_2 = this.server(Companion_instance_78, '/rooms', tmp_1, tmp$ret$13, block_0);
     tmp_2 instanceof GetHandler || THROW_CCE();
-    // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
-    var block_1 = HelloService$slambda_5();
+    var block_1 = ChatService$slambda_11();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_8 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_9 = serializer_0(this_8, createKType(getKClass(HelloRequest), arrayOf([]), false));
+    var this_9 = serializer_0(this_8, createKType(getKClass(CreateRoomRequest), arrayOf([]), false));
     var tmp_3 = isInterface(this_9, KSerializer) ? this_9 : THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_10 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_11 = serializer_0(this_10, createKType(getKClass(HelloResponse), arrayOf([]), false));
+    var this_11 = serializer_0(this_10, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$21 = isInterface(this_11, KSerializer) ? this_11 : THROW_CCE();
-    var tmp_4 = this.server(Companion_instance_78, '/r2', tmp_3, tmp$ret$21, block_1);
-    tmp_4 instanceof GetHandler || THROW_CCE();
+    var tmp_4 = this.server(Companion_instance_79, '/rooms', tmp_3, tmp$ret$21, block_1);
+    tmp_4 instanceof PostHandler || THROW_CCE();
+    var tmp2 = '/rooms/{roomId}';
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
-    var block_2 = HelloService$slambda_6();
+    var block_2 = ChatService$slambda_12();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_12 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_13 = serializer_0(this_12, createKType(getKClass(HelloRequest), arrayOf([]), false));
+    var this_13 = serializer_0(this_12, createKType(getKClass(RoomRequest), arrayOf([]), false));
     var tmp_5 = isInterface(this_13, KSerializer) ? this_13 : THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
     // Inline function 'kotlinx.serialization.serializer' call
     var this_14 = get_json().get_serializersModule_piitvg_k$();
     // Inline function 'kotlinx.serialization.internal.cast' call
-    var this_15 = serializer_0(this_14, createKType(getKClass(HelloResponse), arrayOf([]), false));
+    var this_15 = serializer_0(this_14, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$29 = isInterface(this_15, KSerializer) ? this_15 : THROW_CCE();
-    var tmp_6 = this.server(Companion_instance_78, '/do', tmp_5, tmp$ret$29, block_2);
+    var tmp_6 = this.server(Companion_instance_78, tmp2, tmp_5, tmp$ret$29, block_2);
     tmp_6 instanceof GetHandler || THROW_CCE();
+    var tmp2_0 = '/rooms/{roomId}/members';
+    // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_3 = ChatService$slambda_13();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_16 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_17 = serializer_0(this_16, createKType(getKClass(RoomMembershipRequest), arrayOf([]), false));
+    var tmp_7 = isInterface(this_17, KSerializer) ? this_17 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_18 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_19 = serializer_0(this_18, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
+    var tmp$ret$37 = isInterface(this_19, KSerializer) ? this_19 : THROW_CCE();
+    var tmp_8 = this.server(Companion_instance_79, tmp2_0, tmp_7, tmp$ret$37, block_3);
+    tmp_8 instanceof PostHandler || THROW_CCE();
+    var tmp2_1 = '/rooms/{roomId}/leave';
+    // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_4 = ChatService$slambda_14();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_20 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_21 = serializer_0(this_20, createKType(getKClass(RoomMembershipRequest), arrayOf([]), false));
+    var tmp_9 = isInterface(this_21, KSerializer) ? this_21 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_22 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_23 = serializer_0(this_22, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
+    var tmp$ret$45 = isInterface(this_23, KSerializer) ? this_23 : THROW_CCE();
+    var tmp_10 = this.server(Companion_instance_79, tmp2_1, tmp_9, tmp$ret$45, block_4);
+    tmp_10 instanceof PostHandler || THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_5 = ChatService$slambda_15();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_24 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_25 = serializer_0(this_24, createKType(getKClass(UploadMediaRequest), arrayOf([]), false));
+    var tmp_11 = isInterface(this_25, KSerializer) ? this_25 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_26 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_27 = serializer_0(this_26, createKType(getKClass(ChatMediaResponse), arrayOf([]), false));
+    var tmp$ret$53 = isInterface(this_27, KSerializer) ? this_27 : THROW_CCE();
+    var tmp_12 = this.server(Companion_instance_79, '/media', tmp_11, tmp$ret$53, block_5);
+    tmp_12 instanceof PostHandler || THROW_CCE();
+    var tmp2_2 = '/media/{mediaId}';
+    // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_6 = ChatService$slambda_16();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_28 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_29 = serializer_0(this_28, createKType(getKClass(MediaRequest), arrayOf([]), false));
+    var tmp_13 = isInterface(this_29, KSerializer) ? this_29 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_30 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_31 = serializer_0(this_30, createKType(getKClass(ChatMediaDownloadResponse), arrayOf([]), false));
+    var tmp$ret$61 = isInterface(this_31, KSerializer) ? this_31 : THROW_CCE();
+    var tmp_14 = this.server(Companion_instance_78, tmp2_2, tmp_13, tmp$ret$61, block_6);
+    tmp_14 instanceof GetHandler || THROW_CCE();
+    var tmp2_3 = '/rooms/{roomId}/messages';
+    // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_7 = ChatService$slambda_17();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_32 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_33 = serializer_0(this_32, createKType(getKClass(SendMessageRequest), arrayOf([]), false));
+    var tmp_15 = isInterface(this_33, KSerializer) ? this_33 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_34 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_35 = serializer_0(this_34, createKType(getKClass(ChatMessageResponse), arrayOf([]), false));
+    var tmp$ret$69 = isInterface(this_35, KSerializer) ? this_35 : THROW_CCE();
+    var tmp_16 = this.server(Companion_instance_79, tmp2_3, tmp_15, tmp$ret$69, block_7);
+    tmp_16 instanceof PostHandler || THROW_CCE();
+    var tmp2_4 = '/rooms/{roomId}/messages';
+    // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_8 = ChatService$slambda_18();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_36 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_37 = serializer_0(this_36, createKType(getKClass(RoomMessagesRequest), arrayOf([]), false));
+    var tmp_17 = isInterface(this_37, KSerializer) ? this_37 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_38 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_39 = serializer_0(this_38, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
+    var tmp$ret$77 = isInterface(this_39, KSerializer) ? this_39 : THROW_CCE();
+    var tmp_18 = this.server(Companion_instance_78, tmp2_4, tmp_17, tmp$ret$77, block_8);
+    tmp_18 instanceof GetHandler || THROW_CCE();
   }
 }
 //endregion
@@ -42989,6 +46179,14 @@ function indexOfAny(_this__u8e3s4, chars, startIndex, ignoreCase) {
      while (!(index === last));
   return -1;
 }
+function requireNonNegativeLimit(limit) {
+  // Inline function 'kotlin.require' call
+  if (!(limit >= 0)) {
+    var message = 'Limit must be non-negative, but was ' + limit;
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+  }
+  return Unit_instance;
+}
 function indexOf_7(_this__u8e3s4, other, startIndex, endIndex, ignoreCase, last) {
   last = last === VOID ? false : last;
   var indices = !last ? numberRangeToNumber(coerceAtLeast(startIndex, 0), coerceAtMost(endIndex, charSequenceLength(_this__u8e3s4))) : downTo(coerceAtMost(startIndex, get_lastIndex_3(_this__u8e3s4)), coerceAtLeast(endIndex, 0));
@@ -43108,14 +46306,6 @@ function rangesDelimitedBy_0(_this__u8e3s4, delimiters, startIndex, ignoreCase, 
 var State_instance;
 function State_getInstance() {
   return State_instance;
-}
-function requireNonNegativeLimit(limit) {
-  // Inline function 'kotlin.require' call
-  if (!(limit >= 0)) {
-    var message = 'Limit must be non-negative, but was ' + limit;
-    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
-  }
-  return Unit_instance;
 }
 function calcNext($this) {
   if ($this.nextSearchIndex_1 < 0) {
@@ -57988,7 +61178,7 @@ function cacheInterceptors($this) {
         tmp_2 = tmp1_elvis_lhs;
       }
       var phase = tmp_2;
-      phase.addTo_h97ksk_k$(destination);
+      phase.addTo_219g88_k$(destination);
     }
      while (!(phaseIndex_0 === last_0));
   notSharedInterceptorsList($this, destination);
@@ -67745,10 +70935,10 @@ function ConcurrentMutableMap$_get_size_$lambda_nuyc4q(this$0) {
   return () => this$0.del_1.get_size_woubt6_k$();
 }
 function ConcurrentMutableMap$_get_entries_$lambda_dp7xtt(this$0) {
-  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(this$0, this$0.del_1.get_entries_p20ztl_k$());
+  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(this$0, this$0.del_1.get_entries_p20ztl_k$());
 }
 function ConcurrentMutableMap$_get_keys_$lambda_5gjoyr(this$0) {
-  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(this$0, this$0.del_1.get_keys_wop4xp_k$());
+  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(this$0, this$0.del_1.get_keys_wop4xp_k$());
 }
 function ConcurrentMutableMap$_get_values_$lambda_tyvlyt(this$0) {
   return () => ConcurrentMutableCollection.new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(this$0, this$0.del_1.get_values_ksazhn_k$());
@@ -69595,13 +72785,13 @@ function getWindowSizeFlow$lambda_1($callback) {
   };
 }
 var dev_shibasis_reaktor_graph_karakum_Greeter$stable;
+function Hono() {
+  return new HonoFactory();
+}
 function bindingOrNull($this, name) {
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
   return $this.raw_sqci3y_k$(name);
-}
-function Hono() {
-  return new HonoFactory();
 }
 function *_generator_int__cbdpzv(_this__u8e3s4, key, $completion) {
   var tmp = await_1(_this__u8e3s4.get(key), $completion);
@@ -69623,11 +72813,8 @@ function *_generator_putInt__kfh08(_this__u8e3s4, key, value, $completion) {
 function putInt(_this__u8e3s4, key, value, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_putInt__kfh08.bind(VOID, _this__u8e3s4, key, value), $completion);
 }
-function find(_this__u8e3s4, binding) {
-  return binding.resolve_akzwmm_k$(_this__u8e3s4);
-}
 function toWorker(_this__u8e3s4) {
-  return toWorker_0(toHono(_this__u8e3s4));
+  return new CloudflareWorker(_this__u8e3s4);
 }
 function d1(name) {
   return new D1Binding(name);
@@ -69638,11 +72825,48 @@ function r2(name) {
 function durableObject(name) {
   return new DurableObjectBinding(name);
 }
-function string(_this__u8e3s4, query, columnName, $completion) {
-  return string_0(_this__u8e3s4.prepare(query), columnName, $completion);
+function named_0(_this__u8e3s4, name) {
+  return _this__u8e3s4.getByName(name);
+}
+function execute_0(_this__u8e3s4, $completion) {
+  return await_1(_this__u8e3s4.run(), $completion);
+}
+function *_generator_rows__qia84x(_this__u8e3s4, $completion) {
+  var tmp = await_1(_this__u8e3s4.all(), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_elvis_lhs = tmp.results;
+  var tmp_0;
+  if (tmp0_elvis_lhs == null) {
+    // Inline function 'kotlin.emptyArray' call
+    tmp_0 = [];
+  } else {
+    tmp_0 = tmp0_elvis_lhs;
+  }
+  return tmp_0;
+}
+function rows(_this__u8e3s4, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_rows__qia84x.bind(VOID, _this__u8e3s4), $completion);
 }
 function get_3(_this__u8e3s4, binding) {
   return binding.require_rt1k4n_k$(_this__u8e3s4);
+}
+function workerTextResponse(body) {
+  var contentType = 'text/plain; charset=utf-8';
+  return new Response(body, {headers: {'Content-Type': contentType}});
+}
+function workerJsonResponse(body) {
+  var contentType = 'application/json; charset=utf-8';
+  return new Response(body, {headers: {'Content-Type': contentType}});
+}
+function jsonRequestInit(method, body) {
+  body = body === VOID ? null : body;
+  // Inline function 'kotlin.js.unsafeCast' call
+  var init = {};
+  init.method = method;
+  init.headers = {'Content-Type': 'application/json'};
+  init.body = body;
+  return init;
 }
 function *_generator_putText__hffj8o(_this__u8e3s4, key, value, $completion) {
   var tmp = await_1(_this__u8e3s4.put(key, value), $completion);
@@ -69672,39 +72896,6 @@ function *_generator_getText__eglyj3(_this__u8e3s4, key, $completion) {
 }
 function getText(_this__u8e3s4, key, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_getText__eglyj3.bind(VOID, _this__u8e3s4, key), $completion);
-}
-function *_generator_text__qhd01x(_this__u8e3s4, input, init, $completion) {
-  var tmp = await_1(_this__u8e3s4.fetch(input, init), $completion);
-  if (tmp === get_COROUTINE_SUSPENDED())
-    tmp = yield tmp;
-  var tmp_0 = await_1(tmp.text(), $completion);
-  if (tmp_0 === get_COROUTINE_SUSPENDED())
-    tmp_0 = yield tmp_0;
-  return tmp_0;
-}
-function text(_this__u8e3s4, input, init, $completion) {
-  init = init === VOID ? null : init;
-  return suspendOrReturn(/*#__NOINLINE__*/_generator_text__qhd01x.bind(VOID, _this__u8e3s4, input, init), $completion);
-}
-function named_0(_this__u8e3s4, name) {
-  return _this__u8e3s4.getByName(name);
-}
-function workerTextResponse(body) {
-  var contentType = 'text/plain; charset=utf-8';
-  return new Response(body, {headers: {'Content-Type': contentType}});
-}
-function toWorker_0(_this__u8e3s4) {
-  return new CloudflareWorker(_this__u8e3s4);
-}
-function *_generator_string__s1xgmh(_this__u8e3s4, columnName, $completion) {
-  var tmp = await_1(_this__u8e3s4.first(columnName), $completion);
-  if (tmp === get_COROUTINE_SUSPENDED())
-    tmp = yield tmp;
-  var tmp0_safe_receiver = tmp;
-  return tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
-}
-function string_0(_this__u8e3s4, columnName, $completion) {
-  return suspendOrReturn(/*#__NOINLINE__*/_generator_string__s1xgmh.bind(VOID, _this__u8e3s4, columnName), $completion);
 }
 function CloudflareRequest$Companion$$childSerializers$_anonymous__tm7pp0() {
   return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
@@ -69750,9 +72941,14 @@ function get_textSerializer() {
   return textSerializer;
 }
 var textSerializer;
-function toHono(_this__u8e3s4) {
+function get_routeParameterPattern() {
   _init_properties_Router_kt__77pu09();
-  return mount(Hono(), _this__u8e3s4);
+  return routeParameterPattern;
+}
+var routeParameterPattern;
+function nest(_this__u8e3s4, path, service) {
+  _init_properties_Router_kt__77pu09();
+  return _this__u8e3s4.route(path, toHono(service));
 }
 function mount(_this__u8e3s4, service) {
   _init_properties_Router_kt__77pu09();
@@ -69761,9 +72957,21 @@ function mount(_this__u8e3s4, service) {
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var element = _iterator__ex2g4s.next_20eer_k$();
     var handler = element instanceof RequestHandler ? element : THROW_CCE();
-    _this__u8e3s4.on(handler.method.name_1, handler.route, mount$lambda(handler));
+    var tmp = toHonoRoute(handler.route);
+    _this__u8e3s4.on(handler.method.name_1, tmp, mount$lambda(handler));
   }
   return _this__u8e3s4;
+}
+function toHono(_this__u8e3s4) {
+  _init_properties_Router_kt__77pu09();
+  return mount(Hono(), _this__u8e3s4);
+}
+function toHonoRoute(_this__u8e3s4) {
+  _init_properties_Router_kt__77pu09();
+  var tmp2 = get_routeParameterPattern();
+  // Inline function 'kotlin.text.replace' call
+  var transform = toHonoRoute$lambda;
+  return tmp2.replace_dbivij_k$(_this__u8e3s4, transform);
 }
 function asHonoHandler(_this__u8e3s4, context) {
   _init_properties_Router_kt__77pu09();
@@ -69833,6 +73041,10 @@ function toWorkerResponse(_this__u8e3s4, body) {
 }
 function mount$lambda($handler) {
   return (context) => asHonoHandler($handler, context);
+}
+function toHonoRoute$lambda(matchResult) {
+  _init_properties_Router_kt__77pu09();
+  return ':' + matchResult.get_groupValues_rkv314_k$().get_c1px32_k$(1);
 }
 function *_generator_invoke__zhh2q8_73($this, $this$promise, $completion) {
   // Inline function 'kotlin.runCatching' call
@@ -69914,6 +73126,9 @@ function _init_properties_Router_kt__77pu09() {
   if (!properties_initialized_Router_kt_w3eu7f) {
     properties_initialized_Router_kt_w3eu7f = true;
     textSerializer = new TextSerializer();
+    // Inline function 'kotlin.text.toRegex' call
+    var this_0 = '\\{([^}]+)\\}';
+    routeParameterPattern = Regex.new_kotlin_text_Regex_acuq4a_k$(this_0);
   }
 }
 var androidx_compose_ui_geometry_MutableRect$stable;
@@ -85741,24 +88956,22 @@ function initHook$init$_1() {
   return Unit_instance;
 }
 var strictMemoryModel;
+function ExperimentRootService$slambda_0() {
+  var i = new ExperimentRootService$slambda();
+  var l = ($this$GetHandler, it, $completion) => i.invoke_xyxs4w_k$($this$GetHandler, it, $completion);
+  l.$arity = 2;
+  return l;
+}
 function *_generator_invoke__zhh2q8_74($this, $this$promise, $completion) {
   var tmp = int($this.this$0__1.get_storage_twal4e_k$(), 'count', $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   var tmp0_elvis_lhs = tmp;
-  var current = tmp0_elvis_lhs == null ? 0 : tmp0_elvis_lhs;
-  var next = current + 1 | 0;
+  var next = (tmp0_elvis_lhs == null ? 0 : tmp0_elvis_lhs) + 1 | 0;
   var tmp_0 = putInt($this.this$0__1.get_storage_twal4e_k$(), 'count', next, $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
     tmp_0 = yield tmp_0;
-  var tmp_1;
-  if (!(find($this.this$0__1.context_1, HelloBindings_getInstance().stateful_1) == null)) {
-    tmp_1 = HelloBindings_getInstance().stateful_1.name_1;
-  } else {
-    tmp_1 = 'missing-binding';
-  }
-  var binding = tmp_1;
-  return $this.this$0__1.text_yxj031_k$('hello world from durable object count=' + next + ' id=' + $this.this$0__1.get_id_kntnx8_k$().toString() + ' binding=' + binding);
+  return $this.this$0__1.text_yxj031_k$('legacy hello counter count=' + next);
 }
 function HelloCounterDurableObject$fetch$slambda_0(this$0) {
   var i = new HelloCounterDurableObject$fetch$slambda(this$0);
@@ -85772,28 +88985,274 @@ function HelloWorker_getInstance() {
     new HelloWorker_0();
   return HelloWorker_instance;
 }
-var HelloBindings_instance;
-function HelloBindings_getInstance() {
-  if (HelloBindings_instance === VOID)
-    new HelloBindings();
-  return HelloBindings_instance;
+var ChatBindings_instance;
+function ChatBindings_getInstance() {
+  if (ChatBindings_instance === VOID)
+    new ChatBindings();
+  return ChatBindings_instance;
 }
-function HelloRequest$Companion$$childSerializers$_anonymous__ovooul() {
-  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+function *_generator_invoke__zhh2q8_75($this, $this$promise, $completion) {
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  var workerRequest = $this.$request_1;
+  var tmp;
+  switch (requestPath(workerRequest)) {
+    case '/snapshot':
+      $this.this$0__1;
+      var tmp_0 = loadState($this.this$0__1, $completion);
+      if (tmp_0 === get_COROUTINE_SUSPENDED())
+        tmp_0 = yield tmp_0;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.json' call
+
+      var value = toPresence($this.this$0__1, tmp_0, requestRoomId(workerRequest));
+      var tmp_1 = get_json();
+      // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_0 = get_json().get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_1 = serializer_0(this_0, createKType(getKClass(ChatPresence), arrayOf([]), false));
+      var tmp$ret$4 = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+      tmp = workerJsonResponse(tmp_1.encodeToString_k0apqx_k$(tmp$ret$4, value));
+      break;
+    case '/join':
+      var tmp0 = $this.this$0__1;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.decode' call
+
+      var request = $this.$request_1;
+      var tmp0_0 = get_json();
+      var tmp_2 = tmp0.requestBody_j7u9iw_k$(request, $completion);
+      if (tmp_2 === get_COROUTINE_SUSPENDED())
+        tmp_2 = yield tmp_2;
+      // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+
+      var string = tmp_2;
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_2 = tmp0_0.get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_3 = serializer_0(this_2, createKType(getKClass(JoinRoomCommand), arrayOf([]), false));
+      var tmp$ret$7 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+      var command = tmp0_0.decodeFromString_jwu9sq_k$(tmp$ret$7, string);
+      var tmp_3 = loadState($this.this$0__1, $completion);
+      if (tmp_3 === get_COROUTINE_SUSPENDED())
+        tmp_3 = yield tmp_3;
+      var tmp_4 = persist($this.this$0__1, touch($this.this$0__1, upsert($this.this$0__1, tmp_3, command.participant_1)), $completion);
+      if (tmp_4 === get_COROUTINE_SUSPENDED())
+        tmp_4 = yield tmp_4;
+      var state = tmp_4;
+      $this.this$0__1;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.json' call
+
+      var value_0 = toPresence($this.this$0__1, state, command.roomId_1);
+      var tmp_5 = get_json();
+      // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_4 = get_json().get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_5 = serializer_0(this_4, createKType(getKClass(ChatPresence), arrayOf([]), false));
+      var tmp$ret$12 = isInterface(this_5, KSerializer) ? this_5 : THROW_CCE();
+      tmp = workerJsonResponse(tmp_5.encodeToString_k0apqx_k$(tmp$ret$12, value_0));
+      break;
+    case '/leave':
+      var tmp0_1 = $this.this$0__1;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.decode' call
+
+      var request_0 = $this.$request_1;
+      var tmp0_2 = get_json();
+      var tmp_6 = tmp0_1.requestBody_j7u9iw_k$(request_0, $completion);
+      if (tmp_6 === get_COROUTINE_SUSPENDED())
+        tmp_6 = yield tmp_6;
+      // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+
+      var string_0 = tmp_6;
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_6 = tmp0_2.get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_7 = serializer_0(this_6, createKType(getKClass(LeaveRoomCommand), arrayOf([]), false));
+      var tmp$ret$15 = isInterface(this_7, KSerializer) ? this_7 : THROW_CCE();
+      var command_0 = tmp0_2.decodeFromString_jwu9sq_k$(tmp$ret$15, string_0);
+      var tmp_7 = loadState($this.this$0__1, $completion);
+      if (tmp_7 === get_COROUTINE_SUSPENDED())
+        tmp_7 = yield tmp_7;
+      var tmp_8 = persist($this.this$0__1, touch($this.this$0__1, remove($this.this$0__1, tmp_7, command_0.participantId_1)), $completion);
+      if (tmp_8 === get_COROUTINE_SUSPENDED())
+        tmp_8 = yield tmp_8;
+      var state_0 = tmp_8;
+      $this.this$0__1;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.json' call
+
+      var value_1 = toPresence($this.this$0__1, state_0, command_0.roomId_1);
+      var tmp_9 = get_json();
+      // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_8 = get_json().get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_9 = serializer_0(this_8, createKType(getKClass(ChatPresence), arrayOf([]), false));
+      var tmp$ret$20 = isInterface(this_9, KSerializer) ? this_9 : THROW_CCE();
+      tmp = workerJsonResponse(tmp_9.encodeToString_k0apqx_k$(tmp$ret$20, value_1));
+      break;
+    case '/publish':
+      var tmp0_3 = $this.this$0__1;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.decode' call
+
+      var request_1 = $this.$request_1;
+      var tmp0_4 = get_json();
+      var tmp_10 = tmp0_3.requestBody_j7u9iw_k$(request_1, $completion);
+      if (tmp_10 === get_COROUTINE_SUSPENDED())
+        tmp_10 = yield tmp_10;
+      // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+
+      var string_1 = tmp_10;
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_10 = tmp0_4.get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_11 = serializer_0(this_10, createKType(getKClass(PublishMessageCommand), arrayOf([]), false));
+      var tmp$ret$23 = isInterface(this_11, KSerializer) ? this_11 : THROW_CCE();
+      var command_1 = tmp0_4.decodeFromString_jwu9sq_k$(tmp$ret$23, string_1);
+      var tmp_11 = loadState($this.this$0__1, $completion);
+      if (tmp_11 === get_COROUTINE_SUSPENDED())
+        tmp_11 = yield tmp_11;
+      var tmp_12 = persist($this.this$0__1, touch($this.this$0__1, increment($this.this$0__1, upsert($this.this$0__1, tmp_11, command_1.participant_1))), $completion);
+      if (tmp_12 === get_COROUTINE_SUSPENDED())
+        tmp_12 = yield tmp_12;
+      var state_1 = tmp_12;
+      $this.this$0__1;
+      // Inline function 'dev.shibasis.reaktor.cloudflare.CloudflareDurableObject.json' call
+
+      var value_2 = new ReservedMessageSequence(command_1.roomId_1, state_1.latestSequence_1, toPresence($this.this$0__1, state_1, command_1.roomId_1), state_1.updatedAt_1);
+      var tmp_13 = get_json();
+      // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+
+      // Inline function 'kotlinx.serialization.serializer' call
+
+      var this_12 = get_json().get_serializersModule_piitvg_k$();
+      // Inline function 'kotlinx.serialization.internal.cast' call
+
+      var this_13 = serializer_0(this_12, createKType(getKClass(ReservedMessageSequence), arrayOf([]), false));
+      var tmp$ret$28 = isInterface(this_13, KSerializer) ? this_13 : THROW_CCE();
+      tmp = workerJsonResponse(tmp_13.encodeToString_k0apqx_k$(tmp$ret$28, value_2));
+      break;
+    default:
+      tmp = $this.this$0__1.text_yxj031_k$("Unknown coordinator route '" + requestPath(workerRequest) + "'");
+      break;
+  }
+  return tmp;
 }
-function HelloRequest$Companion$$childSerializers$_anonymous__ovooul_0() {
-  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+function *_generator_loadState__rdynd5($this, $completion) {
+  var tmp = await_1($this.get_storage_twal4e_k$().get('state'), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = tmp;
+  var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
+  var tmp_0;
+  if (tmp1_safe_receiver == null) {
+    tmp_0 = null;
+  } else {
+    // Inline function 'kotlin.let' call
+    // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+    var this_0 = get_json();
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_1 = this_0.get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_2 = serializer_0(this_1, createKType(getKClass(CoordinatorState), arrayOf([]), true));
+    var tmp$ret$1 = isInterface(this_2, KSerializer) ? this_2 : THROW_CCE();
+    tmp_0 = this_0.decodeFromString_jwu9sq_k$(tmp$ret$1, tmp1_safe_receiver);
+  }
+  var tmp2_elvis_lhs = tmp_0;
+  return tmp2_elvis_lhs == null ? new CoordinatorState() : tmp2_elvis_lhs;
 }
-function HelloRequest$Companion$$childSerializers$_anonymous__ovooul_1() {
-  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+function loadState($this, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_loadState__rdynd5.bind(VOID, $this), $completion);
 }
-function HelloRequest$Companion$$childSerializers$_anonymous__ovooul_2() {
-  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+function *_generator_persist__vdoyxs($this, _this__u8e3s4, $completion) {
+  var tmp = $this.get_storage_twal4e_k$();
+  // Inline function 'kotlinx.serialization.json.Json.encodeToString' call
+  var this_0 = get_json();
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_1 = this_0.get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_2 = serializer_0(this_1, createKType(getKClass(CoordinatorState), arrayOf([]), false));
+  var tmp$ret$1 = isInterface(this_2, KSerializer) ? this_2 : THROW_CCE();
+  var tmp$ret$2 = this_0.encodeToString_k0apqx_k$(tmp$ret$1, _this__u8e3s4);
+  var tmp_0 = await_1(tmp.put('state', tmp$ret$2), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  return _this__u8e3s4;
+}
+function persist($this, _this__u8e3s4, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_persist__vdoyxs.bind(VOID, $this, _this__u8e3s4), $completion);
+}
+function upsert($this, _this__u8e3s4, participant) {
+  // Inline function 'kotlin.collections.filterNot' call
+  var tmp0 = _this__u8e3s4.participants_1;
+  // Inline function 'kotlin.collections.filterNotTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var _iterator__ex2g4s = tmp0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var element = _iterator__ex2g4s.next_20eer_k$();
+    if (!(element.id_1 === participant.id_1)) {
+      destination.add_utx5q5_k$(element);
+    }
+  }
+  // Inline function 'kotlin.collections.sortedBy' call
+  var this_0 = plus_2(destination, participant);
+  // Inline function 'kotlin.comparisons.compareBy' call
+  var tmp = ChatRoomDurableObject$upsert$lambda;
+  var tmp$ret$3 = new sam$kotlin_Comparator$0_3(tmp);
+  var tmp$ret$4 = sortedWith(this_0, tmp$ret$3);
+  return _this__u8e3s4.copy$default_g00jk6_k$(tmp$ret$4);
+}
+function remove($this, _this__u8e3s4, participantId) {
+  // Inline function 'kotlin.collections.filterNot' call
+  var tmp0 = _this__u8e3s4.participants_1;
+  // Inline function 'kotlin.collections.filterNotTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var _iterator__ex2g4s = tmp0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var element = _iterator__ex2g4s.next_20eer_k$();
+    if (!(element.id_1 === participantId)) {
+      destination.add_utx5q5_k$(element);
+    }
+  }
+  return _this__u8e3s4.copy$default_g00jk6_k$(destination);
+}
+function increment($this, _this__u8e3s4) {
+  return _this__u8e3s4.copy$default_g00jk6_k$(VOID, _this__u8e3s4.latestSequence_1 + 1 | 0);
+}
+function touch($this, _this__u8e3s4) {
+  return _this__u8e3s4.copy$default_g00jk6_k$(VOID, VOID, nowIsoString());
+}
+function toPresence($this, _this__u8e3s4, roomId) {
+  return new ChatPresence(roomId, _this__u8e3s4.participants_1, _this__u8e3s4.participants_1.get_size_woubt6_k$(), _this__u8e3s4.latestSequence_1, _this__u8e3s4.updatedAt_1);
+}
+function ChatRoomDurableObject$fetch$slambda_0($request, this$0) {
+  var i = new ChatRoomDurableObject$fetch$slambda($request, this$0);
+  var l = ($this$promise, $completion) => i.invoke_ri3sjx_k$($this$promise, $completion);
+  l.$arity = 1;
+  return l;
+}
+function ChatRoomDurableObject$upsert$lambda(a, b) {
+  // Inline function 'kotlin.comparisons.compareValuesBy' call
+  var tmp = a.displayName_1;
+  var tmp$ret$1 = b.displayName_1;
+  return compareValues(tmp, tmp$ret$1);
 }
 var Companion_instance_86;
 function Companion_getInstance_86() {
-  if (Companion_instance_86 === VOID)
-    new Companion_86();
   return Companion_instance_86;
 }
 var $serializer_instance_4;
@@ -85802,13 +89261,8 @@ function $serializer_getInstance_4() {
     new $serializer_4();
   return $serializer_instance_4;
 }
-function HelloResponse$Companion$$childSerializers$_anonymous__q4t7t5() {
-  return new ArrayListSerializer(StringSerializer_getInstance());
-}
 var Companion_instance_87;
 function Companion_getInstance_87() {
-  if (Companion_instance_87 === VOID)
-    new Companion_87();
   return Companion_instance_87;
 }
 var $serializer_instance_5;
@@ -85817,63 +89271,1039 @@ function $serializer_getInstance_5() {
     new $serializer_5();
   return $serializer_instance_5;
 }
-function *_generator_invoke__zhh2q8_75($this, $this$GetHandler, request, $completion) {
-  var tmp = string(get_3(get_context(request), HelloBindings_getInstance().db_1), "select 'hello world from d1' as message", 'message', $completion);
-  if (tmp === get_COROUTINE_SUSPENDED())
-    tmp = yield tmp;
-  var tmp0_elvis_lhs = tmp;
-  var message = tmp0_elvis_lhs == null ? 'hello world from d1' : tmp0_elvis_lhs;
-  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$(message, HelloBindings_getInstance().db_1.name_1, 'Executed a literal D1 query from Kotlin');
+var Companion_instance_88;
+function Companion_getInstance_88() {
+  return Companion_instance_88;
 }
-function *_generator_invoke__zhh2q8_76($this, $this$GetHandler, request, $completion) {
-  var bucket = get_3(get_context(request), HelloBindings_getInstance().bucket_1);
-  var tmp = putText(bucket, 'hello/world.txt', 'hello world from r2', $completion);
+var $serializer_instance_6;
+function $serializer_getInstance_6() {
+  if ($serializer_instance_6 === VOID)
+    new $serializer_6();
+  return $serializer_instance_6;
+}
+var Companion_instance_89;
+function Companion_getInstance_89() {
+  return Companion_instance_89;
+}
+var $serializer_instance_7;
+function $serializer_getInstance_7() {
+  if ($serializer_instance_7 === VOID)
+    new $serializer_7();
+  return $serializer_instance_7;
+}
+function CoordinatorState$Companion$$childSerializers$_anonymous__i6obo7() {
+  return new ArrayListSerializer($serializer_getInstance_9());
+}
+var Companion_instance_90;
+function Companion_getInstance_90() {
+  if (Companion_instance_90 === VOID)
+    new Companion_90();
+  return Companion_instance_90;
+}
+var $serializer_instance_8;
+function $serializer_getInstance_8() {
+  if ($serializer_instance_8 === VOID)
+    new $serializer_8();
+  return $serializer_instance_8;
+}
+function *_generator_snapshot__vo99oc($this, roomId, $completion) {
+  var tmp0 = named_0($this.namespace_1, roomId);
+  // Inline function 'dev.shibasis.reaktor.cloudflare.getJson' call
+  var url = 'https://chat.invalid/snapshot?roomId=' + roomId;
+  var tmp0_0 = get_json();
+  var tmp = await_1(tmp0.fetch(url), $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
-  var tmp_0 = getText(bucket, 'hello/world.txt', $completion);
+  var tmp_0 = await_1(tmp.text(), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
     tmp_0 = yield tmp_0;
-  var tmp0_elvis_lhs = tmp_0;
+  // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+  var string = tmp_0;
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_0 = tmp0_0.get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_1 = serializer_0(this_0, createKType(getKClass(ChatPresence), arrayOf([]), false));
+  var tmp$ret$1 = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+  return tmp0_0.decodeFromString_jwu9sq_k$(tmp$ret$1, string);
+}
+function *_generator_join__qmovdu($this, roomId, participant, $completion) {
+  var tmp0 = named_0($this.namespace_1, roomId);
+  var tmp2 = 'https://chat.invalid/join';
+  // Inline function 'dev.shibasis.reaktor.cloudflare.postJson' call
+  var body = new JoinRoomCommand(roomId, participant);
+  var tmp = get_json();
+  // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_0 = get_json().get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_1 = serializer_0(this_0, createKType(getKClass(JoinRoomCommand), arrayOf([]), false));
+  var tmp$ret$2 = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+  var payload = tmp.encodeToString_k0apqx_k$(tmp$ret$2, body);
+  var tmp0_0 = get_json();
+  var tmp_0 = await_1(tmp0.fetch(tmp2, jsonRequestInit('POST', payload)), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = await_1(tmp_0.text(), $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+  var string = tmp_1;
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_2 = tmp0_0.get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_3 = serializer_0(this_2, createKType(getKClass(ChatPresence), arrayOf([]), false));
+  var tmp$ret$4 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+  return tmp0_0.decodeFromString_jwu9sq_k$(tmp$ret$4, string);
+}
+function *_generator_leave__rme0nx($this, roomId, participantId, $completion) {
+  var tmp0 = named_0($this.namespace_1, roomId);
+  var tmp2 = 'https://chat.invalid/leave';
+  // Inline function 'dev.shibasis.reaktor.cloudflare.postJson' call
+  var body = new LeaveRoomCommand(roomId, participantId);
+  var tmp = get_json();
+  // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_0 = get_json().get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_1 = serializer_0(this_0, createKType(getKClass(LeaveRoomCommand), arrayOf([]), false));
+  var tmp$ret$2 = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+  var payload = tmp.encodeToString_k0apqx_k$(tmp$ret$2, body);
+  var tmp0_0 = get_json();
+  var tmp_0 = await_1(tmp0.fetch(tmp2, jsonRequestInit('POST', payload)), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = await_1(tmp_0.text(), $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+  var string = tmp_1;
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_2 = tmp0_0.get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_3 = serializer_0(this_2, createKType(getKClass(ChatPresence), arrayOf([]), false));
+  var tmp$ret$4 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+  return tmp0_0.decodeFromString_jwu9sq_k$(tmp$ret$4, string);
+}
+function *_generator_reserveSequence__y7rnpl($this, roomId, participant, $completion) {
+  var tmp0 = named_0($this.namespace_1, roomId);
+  var tmp2 = 'https://chat.invalid/publish';
+  // Inline function 'dev.shibasis.reaktor.cloudflare.postJson' call
+  var body = new PublishMessageCommand(roomId, participant);
+  var tmp = get_json();
+  // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_0 = get_json().get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_1 = serializer_0(this_0, createKType(getKClass(PublishMessageCommand), arrayOf([]), false));
+  var tmp$ret$2 = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+  var payload = tmp.encodeToString_k0apqx_k$(tmp$ret$2, body);
+  var tmp0_0 = get_json();
+  var tmp_0 = await_1(tmp0.fetch(tmp2, jsonRequestInit('POST', payload)), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = await_1(tmp_0.text(), $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+  var string = tmp_1;
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_2 = tmp0_0.get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_3 = serializer_0(this_2, createKType(getKClass(ReservedMessageSequence), arrayOf([]), false));
+  var tmp$ret$4 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+  return tmp0_0.decodeFromString_jwu9sq_k$(tmp$ret$4, string);
+}
+function requestPath(request) {
+  var tmp = (new URL(request.url)).pathname;
+  return (!(tmp == null) ? typeof tmp === 'string' : false) ? tmp : THROW_CCE();
+}
+function requestRoomId(request) {
+  var tmp = (new URL(request.url)).searchParams.get('roomId');
+  var tmp0_elvis_lhs = (tmp == null ? true : typeof tmp === 'string') ? tmp : THROW_CCE();
+  var tmp_0;
+  if (tmp0_elvis_lhs == null) {
+    var message = 'roomId query parameter is required';
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp_0 = tmp0_elvis_lhs;
+  }
+  return tmp_0;
+}
+var Companion_instance_91;
+function Companion_getInstance_91() {
+  return Companion_instance_91;
+}
+var $serializer_instance_9;
+function $serializer_getInstance_9() {
+  if ($serializer_instance_9 === VOID)
+    new $serializer_9();
+  return $serializer_instance_9;
+}
+var Companion_instance_92;
+function Companion_getInstance_92() {
+  return Companion_instance_92;
+}
+var $serializer_instance_10;
+function $serializer_getInstance_10() {
+  if ($serializer_instance_10 === VOID)
+    new $serializer_10();
+  return $serializer_instance_10;
+}
+var Companion_instance_93;
+function Companion_getInstance_93() {
+  return Companion_instance_93;
+}
+var $serializer_instance_11;
+function $serializer_getInstance_11() {
+  if ($serializer_instance_11 === VOID)
+    new $serializer_11();
+  return $serializer_instance_11;
+}
+function ChatPresence$Companion$$childSerializers$_anonymous__fesj7t() {
+  return new ArrayListSerializer($serializer_getInstance_9());
+}
+var Companion_instance_94;
+function Companion_getInstance_94() {
+  if (Companion_instance_94 === VOID)
+    new Companion_94();
+  return Companion_instance_94;
+}
+var $serializer_instance_12;
+function $serializer_getInstance_12() {
+  if ($serializer_instance_12 === VOID)
+    new $serializer_12();
+  return $serializer_instance_12;
+}
+var Companion_instance_95;
+function Companion_getInstance_95() {
+  return Companion_instance_95;
+}
+var $serializer_instance_13;
+function $serializer_getInstance_13() {
+  if ($serializer_instance_13 === VOID)
+    new $serializer_13();
+  return $serializer_instance_13;
+}
+function ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_96;
+function Companion_getInstance_96() {
+  if (Companion_instance_96 === VOID)
+    new Companion_96();
+  return Companion_instance_96;
+}
+var $serializer_instance_14;
+function $serializer_getInstance_14() {
+  if ($serializer_instance_14 === VOID)
+    new $serializer_14();
+  return $serializer_instance_14;
+}
+function ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs() {
+  return new ArrayListSerializer(StringSerializer_getInstance());
+}
+function ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs_0() {
+  return new ArrayListSerializer(StringSerializer_getInstance());
+}
+var Companion_instance_97;
+function Companion_getInstance_97() {
+  if (Companion_instance_97 === VOID)
+    new Companion_97();
+  return Companion_instance_97;
+}
+var $serializer_instance_15;
+function $serializer_getInstance_15() {
+  if ($serializer_instance_15 === VOID)
+    new $serializer_15();
+  return $serializer_instance_15;
+}
+function ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_98;
+function Companion_getInstance_98() {
+  if (Companion_instance_98 === VOID)
+    new Companion_98();
+  return Companion_instance_98;
+}
+var $serializer_instance_16;
+function $serializer_getInstance_16() {
+  if ($serializer_instance_16 === VOID)
+    new $serializer_16();
+  return $serializer_instance_16;
+}
+function ChatRoomsResponse$Companion$$childSerializers$_anonymous__fpgg3b() {
+  return new ArrayListSerializer($serializer_getInstance_13());
+}
+var Companion_instance_99;
+function Companion_getInstance_99() {
+  if (Companion_instance_99 === VOID)
+    new Companion_99();
+  return Companion_instance_99;
+}
+var $serializer_instance_17;
+function $serializer_getInstance_17() {
+  if ($serializer_instance_17 === VOID)
+    new $serializer_17();
+  return $serializer_instance_17;
+}
+function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_3() {
+  return new ArrayListSerializer($serializer_getInstance_9());
+}
+var Companion_instance_100;
+function Companion_getInstance_100() {
+  if (Companion_instance_100 === VOID)
+    new Companion_100();
+  return Companion_instance_100;
+}
+var $serializer_instance_18;
+function $serializer_getInstance_18() {
+  if ($serializer_instance_18 === VOID)
+    new $serializer_18();
+  return $serializer_instance_18;
+}
+function RoomRequest$Companion$$childSerializers$_anonymous__8cox56() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomRequest$Companion$$childSerializers$_anonymous__8cox56_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomRequest$Companion$$childSerializers$_anonymous__8cox56_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomRequest$Companion$$childSerializers$_anonymous__8cox56_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_101;
+function Companion_getInstance_101() {
+  if (Companion_instance_101 === VOID)
+    new Companion_101();
+  return Companion_instance_101;
+}
+var $serializer_instance_19;
+function $serializer_getInstance_19() {
+  if ($serializer_instance_19 === VOID)
+    new $serializer_19();
+  return $serializer_instance_19;
+}
+function RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_102;
+function Companion_getInstance_102() {
+  if (Companion_instance_102 === VOID)
+    new Companion_102();
+  return Companion_instance_102;
+}
+var $serializer_instance_20;
+function $serializer_getInstance_20() {
+  if ($serializer_instance_20 === VOID)
+    new $serializer_20();
+  return $serializer_instance_20;
+}
+function SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_103;
+function Companion_getInstance_103() {
+  if (Companion_instance_103 === VOID)
+    new Companion_103();
+  return Companion_instance_103;
+}
+var $serializer_instance_21;
+function $serializer_getInstance_21() {
+  if ($serializer_instance_21 === VOID)
+    new $serializer_21();
+  return $serializer_instance_21;
+}
+function RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_104;
+function Companion_getInstance_104() {
+  if (Companion_instance_104 === VOID)
+    new Companion_104();
+  return Companion_instance_104;
+}
+var $serializer_instance_22;
+function $serializer_getInstance_22() {
+  if ($serializer_instance_22 === VOID)
+    new $serializer_22();
+  return $serializer_instance_22;
+}
+function UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_105;
+function Companion_getInstance_105() {
+  if (Companion_instance_105 === VOID)
+    new Companion_105();
+  return Companion_instance_105;
+}
+var $serializer_instance_23;
+function $serializer_getInstance_23() {
+  if ($serializer_instance_23 === VOID)
+    new $serializer_23();
+  return $serializer_instance_23;
+}
+function MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_106;
+function Companion_getInstance_106() {
+  if (Companion_instance_106 === VOID)
+    new Companion_106();
+  return Companion_instance_106;
+}
+var $serializer_instance_24;
+function $serializer_getInstance_24() {
+  if ($serializer_instance_24 === VOID)
+    new $serializer_24();
+  return $serializer_instance_24;
+}
+function ChatRoomStateResponse$Companion$$childSerializers$_anonymous__cp3qx7() {
+  return new ArrayListSerializer($serializer_getInstance_11());
+}
+var Companion_instance_107;
+function Companion_getInstance_107() {
+  if (Companion_instance_107 === VOID)
+    new Companion_107();
+  return Companion_instance_107;
+}
+var $serializer_instance_25;
+function $serializer_getInstance_25() {
+  if ($serializer_instance_25 === VOID)
+    new $serializer_25();
+  return $serializer_instance_25;
+}
+var Companion_instance_108;
+function Companion_getInstance_108() {
+  return Companion_instance_108;
+}
+var $serializer_instance_26;
+function $serializer_getInstance_26() {
+  if ($serializer_instance_26 === VOID)
+    new $serializer_26();
+  return $serializer_instance_26;
+}
+var Companion_instance_109;
+function Companion_getInstance_109() {
+  return Companion_instance_109;
+}
+var $serializer_instance_27;
+function $serializer_getInstance_27() {
+  if ($serializer_instance_27 === VOID)
+    new $serializer_27();
+  return $serializer_instance_27;
+}
+var Companion_instance_110;
+function Companion_getInstance_110() {
+  return Companion_instance_110;
+}
+var $serializer_instance_28;
+function $serializer_getInstance_28() {
+  if ($serializer_instance_28 === VOID)
+    new $serializer_28();
+  return $serializer_instance_28;
+}
+var schemaReady;
+var Companion_instance_111;
+function Companion_getInstance_111() {
+  return Companion_instance_111;
+}
+var $serializer_instance_29;
+function $serializer_getInstance_29() {
+  if ($serializer_instance_29 === VOID)
+    new $serializer_29();
+  return $serializer_instance_29;
+}
+function *_generator_createRoom__s56z5d($this, request, $completion) {
+  var tmp = ensureSchema($this, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0 = nextId('room');
+  // Inline function 'kotlin.text.trim' call
+  var this_0 = request.name_1;
+  var tmp_1 = toString_1(trim(isCharSequence(this_0) ? this_0 : THROW_CCE()));
+  // Inline function 'kotlin.text.trim' call
+  var this_1 = request.topic_1;
+  var tmp$ret$1 = toString_1(trim(isCharSequence(this_1) ? this_1 : THROW_CCE()));
+  var room = new ChatRoomSummary(tmp_0, tmp_1, tmp$ret$1, request.createdBy_1, nowIsoString());
+  var tmp_2 = execute_0($this.database_1.prepare('INSERT INTO experiment_chat_rooms (\n    id,\n    name,\n    topic,\n    created_by_id,\n    created_by_name,\n    created_at\n) VALUES (?, ?, ?, ?, ?, ?)').bind(room.id_1, room.name_1, room.topic_1, room.createdBy_1.id_1, room.createdBy_1.displayName_1, room.createdAt_1), $completion);
+  if (tmp_2 === get_COROUTINE_SUSPENDED())
+    tmp_2 = yield tmp_2;
+  return room;
+}
+function *_generator_listRooms__ykwpae($this, limit, $completion) {
+  var tmp = ensureSchema($this, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0 = rows($this.database_1.prepare('SELECT\n    id,\n    name,\n    topic,\n    created_by_id,\n    created_by_name,\n    created_at\nFROM experiment_chat_rooms\nORDER BY created_at DESC\nLIMIT ?').bind(limit), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var rows_0 = tmp_0;
+  // Inline function 'kotlin.collections.map' call
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(rows_0.length);
+  var inductionVariable = 0;
+  var last = rows_0.length;
+  while (inductionVariable < last) {
+    var item = rows_0[inductionVariable];
+    inductionVariable = inductionVariable + 1 | 0;
+    var tmp$ret$0 = roomFromRow($this, item);
+    destination.add_utx5q5_k$(tmp$ret$0);
+  }
+  return destination;
+}
+function *_generator_requireRoom__vxyrak($this, roomId, $completion) {
+  var tmp = ensureSchema($this, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0 = rows($this.database_1.prepare('SELECT\n    id,\n    name,\n    topic,\n    created_by_id,\n    created_by_name,\n    created_at\nFROM experiment_chat_rooms\nWHERE id = ?\nLIMIT 1').bind(roomId), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp0_elvis_lhs = firstOrNull(tmp_0);
   var tmp_1;
   if (tmp0_elvis_lhs == null) {
-    var message = "R2 did not return 'hello/world.txt' after put";
+    var message = "Room '" + roomId + "' was not found";
     throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
   } else {
     tmp_1 = tmp0_elvis_lhs;
   }
-  var stored = tmp_1;
-  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from r2', HelloBindings_getInstance().bucket_1.name_1, "Stored and read back 'hello/world.txt': " + stored);
+  var row = tmp_1;
+  return roomFromRow($this, row);
 }
-function *_generator_invoke__zhh2q8_77($this, $this$GetHandler, request, $completion) {
-  var tmp = text(named_0(get_3(get_context(request), HelloBindings_getInstance().stateful_1), 'hello-singleton'), 'https://hello.invalid/', VOID, $completion);
+function *_generator_saveMessage__dgbr6e($this, roomId, sequence, author, body, media, $completion) {
+  var tmp = ensureSchema($this, $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
-  var detail = tmp;
-  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from durable object', HelloBindings_getInstance().stateful_1.name_1, detail);
+  var tmp_0 = nextId('msg');
+  // Inline function 'kotlin.text.trim' call
+  var tmp$ret$0 = toString_1(trim(isCharSequence(body) ? body : THROW_CCE()));
+  var message = new ChatMessage(tmp_0, roomId, sequence, author, tmp$ret$0, media, nowIsoString());
+  var tmp_1 = $this.database_1.prepare('INSERT INTO experiment_chat_messages (\n    id,\n    room_id,\n    sequence,\n    author_id,\n    author_name,\n    body,\n    media_id,\n    media_key,\n    media_file_name,\n    media_content_type,\n    media_uploaded_by_id,\n    media_uploaded_by_name,\n    media_uploaded_at,\n    created_at\n) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  var tmp0_safe_receiver = message.media_1;
+  var tmp_2 = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.id_1;
+  var tmp1_safe_receiver = message.media_1;
+  var tmp_3 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.key_1;
+  var tmp2_safe_receiver = message.media_1;
+  var tmp_4 = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.fileName_1;
+  var tmp3_safe_receiver = message.media_1;
+  var tmp_5 = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.contentType_1;
+  var tmp4_safe_receiver = message.media_1;
+  var tmp5_safe_receiver = tmp4_safe_receiver == null ? null : tmp4_safe_receiver.uploadedBy_1;
+  var tmp_6 = tmp5_safe_receiver == null ? null : tmp5_safe_receiver.id_1;
+  var tmp6_safe_receiver = message.media_1;
+  var tmp7_safe_receiver = tmp6_safe_receiver == null ? null : tmp6_safe_receiver.uploadedBy_1;
+  var tmp_7 = tmp7_safe_receiver == null ? null : tmp7_safe_receiver.displayName_1;
+  var tmp8_safe_receiver = message.media_1;
+  var tmp_8 = execute_0(tmp_1.bind(message.id_1, message.roomId_1, message.sequence_1, message.author_1.id_1, message.author_1.displayName_1, message.body_1, tmp_2, tmp_3, tmp_4, tmp_5, tmp_6, tmp_7, tmp8_safe_receiver == null ? null : tmp8_safe_receiver.uploadedAt_1, message.createdAt_1), $completion);
+  if (tmp_8 === get_COROUTINE_SUSPENDED())
+    tmp_8 = yield tmp_8;
+  return message;
 }
-function HelloService$slambda_3() {
-  var i = new HelloService$slambda();
-  var l = ($this$GetHandler, request, $completion) => i.invoke_59nui_k$($this$GetHandler, request, $completion);
+function *_generator_listMessages__tjn5tq($this, roomId, limit, beforeSequence, $completion) {
+  var tmp = ensureSchema($this, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0;
+  if (beforeSequence == null) {
+    var tmp_1 = rows($this.database_1.prepare('SELECT *\nFROM experiment_chat_messages\nWHERE room_id = ?\nORDER BY sequence DESC\nLIMIT ?').bind(roomId, limit), $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    tmp_0 = tmp_1;
+  } else {
+    var tmp_2 = rows($this.database_1.prepare('SELECT *\nFROM experiment_chat_messages\nWHERE room_id = ?\n  AND sequence < ?\nORDER BY sequence DESC\nLIMIT ?').bind(roomId, beforeSequence, limit), $completion);
+    if (tmp_2 === get_COROUTINE_SUSPENDED())
+      tmp_2 = yield tmp_2;
+    tmp_0 = tmp_2;
+  }
+  var rows_0 = tmp_0;
+  // Inline function 'kotlin.collections.map' call
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(rows_0.length);
+  var inductionVariable = 0;
+  var last = rows_0.length;
+  while (inductionVariable < last) {
+    var item = rows_0[inductionVariable];
+    inductionVariable = inductionVariable + 1 | 0;
+    var tmp$ret$0 = messageFromRow($this, item);
+    destination.add_utx5q5_k$(tmp$ret$0);
+  }
+  return reversed(destination);
+}
+function *_generator_storeMedia__36yjqd($this, request, $completion) {
+  var tmp = ensureSchema($this, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var mediaId = nextId('media');
+  var tmp_0 = 'chat/media/' + mediaId + '.json';
+  // Inline function 'kotlin.text.trim' call
+  var this_0 = request.fileName_1;
+  var tmp_1 = toString_1(trim(isCharSequence(this_0) ? this_0 : THROW_CCE()));
+  // Inline function 'kotlin.text.trim' call
+  var this_1 = request.contentType_1;
+  var tmp$ret$1 = toString_1(trim(isCharSequence(this_1) ? this_1 : THROW_CCE()));
+  var media = new ChatMediaRef(mediaId, tmp_0, tmp_1, tmp$ret$1, request.uploadedBy_1, nowIsoString());
+  var tmp0 = $this.mediaBucket_1;
+  var tmp2 = media.key_1;
+  // Inline function 'dev.shibasis.reaktor.cloudflare.putJson' call
+  var value = new StoredMediaEnvelope(media, request.base64Data_1);
+  var tmp_2 = get_json();
+  // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+  // Inline function 'kotlinx.serialization.serializer' call
+  var this_2 = get_json().get_serializersModule_piitvg_k$();
+  // Inline function 'kotlinx.serialization.internal.cast' call
+  var this_3 = serializer_0(this_2, createKType(getKClass(StoredMediaEnvelope), arrayOf([]), false));
+  var tmp$ret$4 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+  var tmp_3 = putText(tmp0, tmp2, tmp_2.encodeToString_k0apqx_k$(tmp$ret$4, value), $completion);
+  if (tmp_3 === get_COROUTINE_SUSPENDED())
+    tmp_3 = yield tmp_3;
+  return media;
+}
+function *_generator_loadMedia__obhot2($this, mediaId, $completion) {
+  var tmp = ensureSchema($this, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0 = $this.mediaBucket_1;
+  // Inline function 'dev.shibasis.reaktor.cloudflare.getJson' call
+  var key = 'chat/media/' + mediaId + '.json';
+  var tmp_0 = getText(tmp0, key, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp0_safe_receiver = tmp_0;
+  var tmp_1;
+  if (tmp0_safe_receiver == null) {
+    tmp_1 = null;
+  } else {
+    // Inline function 'kotlin.let' call
+    // Inline function 'kotlinx.serialization.json.Json.decodeFromString' call
+    var this_0 = get_json();
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_1 = this_0.get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_2 = serializer_0(this_1, createKType(getKClass(StoredMediaEnvelope), arrayOf([]), true));
+    var tmp$ret$1 = isInterface(this_2, KSerializer) ? this_2 : THROW_CCE();
+    tmp_1 = this_0.decodeFromString_jwu9sq_k$(tmp$ret$1, tmp0_safe_receiver);
+  }
+  var tmp0_elvis_lhs = tmp_1;
+  var tmp_2;
+  if (tmp0_elvis_lhs == null) {
+    var message = "Media '" + mediaId + "' was not found in R2";
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp_2 = tmp0_elvis_lhs;
+  }
+  var envelope = tmp_2;
+  return ChatMediaDownloadResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaDownloadResponse_fc7l5_k$(envelope.media_1, envelope.base64Data_1);
+}
+function *_generator_requireMedia__1nq4q1($this, mediaId, $completion) {
+  var tmp = $this.loadMedia_q36lah_k$(mediaId, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return tmp.media_1;
+}
+function *_generator_ensureSchema__kko3o7($this, $completion) {
+  if (schemaReady)
+    return Unit_instance;
+  var tmp = execute_0($this.database_1.prepare('CREATE TABLE IF NOT EXISTS experiment_chat_rooms (id TEXT PRIMARY KEY, name TEXT NOT NULL, topic TEXT NOT NULL, created_by_id TEXT NOT NULL, created_by_name TEXT NOT NULL, created_at TEXT NOT NULL);'), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0 = execute_0($this.database_1.prepare('CREATE TABLE IF NOT EXISTS experiment_chat_messages (id TEXT PRIMARY KEY, room_id TEXT NOT NULL, sequence INTEGER NOT NULL, author_id TEXT NOT NULL, author_name TEXT NOT NULL, body TEXT NOT NULL, media_id TEXT, media_key TEXT, media_file_name TEXT, media_content_type TEXT, media_uploaded_by_id TEXT, media_uploaded_by_name TEXT, media_uploaded_at TEXT, created_at TEXT NOT NULL, FOREIGN KEY(room_id) REFERENCES experiment_chat_rooms(id));'), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = execute_0($this.database_1.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_experiment_chat_room_sequence ON experiment_chat_messages(room_id, sequence);'), $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  schemaReady = true;
+  return Unit_instance;
+}
+function ensureSchema($this, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_ensureSchema__kko3o7.bind(VOID, $this), $completion);
+}
+function roomFromRow($this, row) {
+  return new ChatRoomSummary(field(row, 'id'), field(row, 'name'), field(row, 'topic'), new ChatParticipant(field(row, 'created_by_id'), field(row, 'created_by_name')), field(row, 'created_at'));
+}
+function messageFromRow($this, row) {
+  var mediaId = fieldOrNull(row, 'media_id');
+  var tmp;
+  if (mediaId == null) {
+    tmp = null;
+  } else {
+    tmp = new ChatMediaRef(mediaId, field(row, 'media_key'), field(row, 'media_file_name'), field(row, 'media_content_type'), new ChatParticipant(field(row, 'media_uploaded_by_id'), field(row, 'media_uploaded_by_name')), field(row, 'media_uploaded_at'));
+  }
+  var media = tmp;
+  return new ChatMessage(field(row, 'id'), field(row, 'room_id'), intField(row, 'sequence'), new ChatParticipant(field(row, 'author_id'), field(row, 'author_name')), field(row, 'body'), media, field(row, 'created_at'));
+}
+function field(row, name) {
+  // Inline function 'kotlin.js.asDynamic' call
+  var tmp0_safe_receiver = row[name];
+  var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
+  var tmp;
+  if (tmp1_elvis_lhs == null) {
+    var message = "Missing field '" + name + "' in D1 row";
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp = tmp1_elvis_lhs;
+  }
+  return tmp;
+}
+function fieldOrNull(row, name) {
+  // Inline function 'kotlin.js.asDynamic' call
+  var tmp0_safe_receiver = row[name];
+  return tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
+}
+function intField(row, name) {
+  // Inline function 'kotlin.js.asDynamic' call
+  var tmp0_elvis_lhs = row[name];
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    var message = "Missing field '" + name + "' in D1 row";
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  var value = tmp;
+  var tmp_0;
+  if (isNumber(value)) {
+    tmp_0 = numberToInt(value);
+  } else {
+    tmp_0 = toInt_0(toString_1(value));
+  }
+  return tmp_0;
+}
+function *_generator_invoke__zhh2q8_76($this, $this$GetHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var tmp = repository_0.listRooms_hoycxl_k$(limit(request, 10), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  // Inline function 'kotlin.collections.map' call
+  var this_0 = tmp;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
+  var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var item = _iterator__ex2g4s.next_20eer_k$();
+    var tmp_0 = coordinator_0.snapshot_uk25g1_k$(item.id_1, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    var tmp$ret$0 = withPresence(item, tmp_0);
+    destination.add_utx5q5_k$(tmp$ret$0);
+  }
+  var rooms = destination;
+  return ChatRoomsResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomsResponse_nlklp7_k$(rooms);
+}
+function *_generator_invoke__zhh2q8_77($this, $this$PostHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var tmp = repository_0.createRoom_il5ksf_k$(request, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var room = tmp;
+  var tmp_0 = coordinator_0.join_t4iu6y_k$(room.id_1, request.createdBy_1, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var presence = tmp_0;
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s = request.seedMembers_1.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var element = _iterator__ex2g4s.next_20eer_k$();
+    var tmp_1 = coordinator_0.join_t4iu6y_k$(room.id_1, element, $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    presence = tmp_1;
+  }
+  return ChatRoomStateResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(withPresence(room, presence), presence, emptyList());
+}
+function *_generator_invoke__zhh2q8_78($this, $this$GetHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var roomId_0 = roomId(request);
+  var tmp = coordinator_0.snapshot_uk25g1_k$(roomId_0, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var presence = tmp;
+  var tmp_0 = repository_0.listMessages_o4h6ug_k$(roomId_0, limit(request), beforeSequence(request), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var messages = tmp_0;
+  var tmp_1 = repository_0.requireRoom_79lp1n_k$(roomId_0, $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  return ChatRoomStateResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(withPresence(tmp_1, presence), presence, messages);
+}
+function *_generator_invoke__zhh2q8_79($this, $this$PostHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var roomId_0 = roomId(request);
+  var tmp = coordinator_0.join_t4iu6y_k$(roomId_0, request.participant_1, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var presence = tmp;
+  var tmp_0 = repository_0.requireRoom_79lp1n_k$(roomId_0, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = withPresence(tmp_0, presence);
+  var tmp_2 = repository_0.listMessages_o4h6ug_k$(roomId_0, limit(request), beforeSequence(request), $completion);
+  if (tmp_2 === get_COROUTINE_SUSPENDED())
+    tmp_2 = yield tmp_2;
+  return ChatRoomStateResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(tmp_1, presence, tmp_2);
+}
+function *_generator_invoke__zhh2q8_80($this, $this$PostHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var roomId_0 = roomId(request);
+  var tmp = coordinator_0.leave_dwdfle_k$(roomId_0, request.participant_1.id_1, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var presence = tmp;
+  var tmp_0 = repository_0.requireRoom_79lp1n_k$(roomId_0, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = withPresence(tmp_0, presence);
+  var tmp_2 = repository_0.listMessages_o4h6ug_k$(roomId_0, limit(request), beforeSequence(request), $completion);
+  if (tmp_2 === get_COROUTINE_SUSPENDED())
+    tmp_2 = yield tmp_2;
+  return ChatRoomStateResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(tmp_1, presence, tmp_2);
+}
+function *_generator_invoke__zhh2q8_81($this, $this$PostHandler, request, $completion) {
+  var tmp = repository(request).storeMedia_l2rmnb_k$(request, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var media = tmp;
+  return ChatMediaResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMediaResponse_ac01id_k$(media);
+}
+function *_generator_invoke__zhh2q8_82($this, $this$PostHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var roomId_0 = roomId(request);
+  var tmp = repository_0.requireRoom_79lp1n_k$(roomId_0, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = request.mediaId_1;
+  var tmp_0;
+  if (tmp0_safe_receiver == null) {
+    tmp_0 = null;
+  } else {
+    // Inline function 'kotlin.let' call
+    var tmp_1 = repository_0.requireMedia_uzggm_k$(tmp0_safe_receiver, $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    tmp_0 = tmp_1;
+  }
+  var media = tmp_0;
+  var tmp_2 = coordinator_0.reserveSequence_5oqgcz_k$(roomId_0, request.author_1, $completion);
+  if (tmp_2 === get_COROUTINE_SUSPENDED())
+    tmp_2 = yield tmp_2;
+  var reservation = tmp_2;
+  var tmp_3 = repository_0.saveMessage_y97t2_k$(roomId_0, reservation.sequence_1, request.author_1, request.body_1, media, $completion);
+  if (tmp_3 === get_COROUTINE_SUSPENDED())
+    tmp_3 = yield tmp_3;
+  var persisted = tmp_3;
+  return ChatMessageResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatMessageResponse_sg8uij_k$(persisted, reservation.presence_1);
+}
+function *_generator_invoke__zhh2q8_83($this, $this$GetHandler, request, $completion) {
+  var repository_0 = repository(request);
+  var coordinator_0 = coordinator(request);
+  var roomId_0 = roomId(request);
+  var tmp = coordinator_0.snapshot_uk25g1_k$(roomId_0, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var presence = tmp;
+  var tmp_0 = repository_0.requireRoom_79lp1n_k$(roomId_0, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = withPresence(tmp_0, presence);
+  var tmp_2 = repository_0.listMessages_o4h6ug_k$(roomId_0, limit(request), beforeSequence(request), $completion);
+  if (tmp_2 === get_COROUTINE_SUSPENDED())
+    tmp_2 = yield tmp_2;
+  return ChatRoomStateResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(tmp_1, presence, tmp_2);
+}
+function ChatService$slambda_9() {
+  var i = new ChatService$slambda();
+  var l = ($this$GetHandler, it, $completion) => i.invoke_xyxs4w_k$($this$GetHandler, it, $completion);
   l.$arity = 2;
   return l;
 }
-function HelloService$slambda_4() {
-  var i = new HelloService$slambda_0();
-  var l = ($this$GetHandler, request, $completion) => i.invoke_59nui_k$($this$GetHandler, request, $completion);
+function ChatService$slambda_10() {
+  var i = new ChatService$slambda_0();
+  var l = ($this$GetHandler, request, $completion) => i.invoke_7kgcbt_k$($this$GetHandler, request, $completion);
   l.$arity = 2;
   return l;
 }
-function HelloService$slambda_5() {
-  var i = new HelloService$slambda_1();
-  var l = ($this$GetHandler, request, $completion) => i.invoke_59nui_k$($this$GetHandler, request, $completion);
+function ChatService$slambda_11() {
+  var i = new ChatService$slambda_1();
+  var l = ($this$PostHandler, request, $completion) => i.invoke_q1jdy3_k$($this$PostHandler, request, $completion);
   l.$arity = 2;
   return l;
 }
-function HelloService$slambda_6() {
-  var i = new HelloService$slambda_2();
-  var l = ($this$GetHandler, request, $completion) => i.invoke_59nui_k$($this$GetHandler, request, $completion);
+function ChatService$slambda_12() {
+  var i = new ChatService$slambda_2();
+  var l = ($this$GetHandler, request, $completion) => i.invoke_jykvh_k$($this$GetHandler, request, $completion);
   l.$arity = 2;
   return l;
+}
+function ChatService$slambda_13() {
+  var i = new ChatService$slambda_3();
+  var l = ($this$PostHandler, request, $completion) => i.invoke_ebfc61_k$($this$PostHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+function ChatService$slambda_14() {
+  var i = new ChatService$slambda_4();
+  var l = ($this$PostHandler, request, $completion) => i.invoke_ebfc61_k$($this$PostHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+function ChatService$slambda_15() {
+  var i = new ChatService$slambda_5();
+  var l = ($this$PostHandler, request, $completion) => i.invoke_fnezrf_k$($this$PostHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+function ChatService$slambda_16() {
+  var i = new ChatService$slambda_6();
+  var l = ($this$GetHandler, request, $completion) => i.invoke_2lbq6b_k$($this$GetHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+function ChatService$slambda_17() {
+  var i = new ChatService$slambda_7();
+  var l = ($this$PostHandler, request, $completion) => i.invoke_gfwd4_k$($this$PostHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+function ChatService$slambda_18() {
+  var i = new ChatService$slambda_8();
+  var l = ($this$GetHandler, request, $completion) => i.invoke_zictfp_k$($this$GetHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+function withPresence(_this__u8e3s4, presence) {
+  return _this__u8e3s4.copy$default_b2qtis_k$(VOID, VOID, VOID, VOID, VOID, presence.activeParticipants_1, presence.latestSequence_1);
+}
+function repository(_this__u8e3s4) {
+  return new ChatRepository(get_3(get_context(_this__u8e3s4), ChatBindings_getInstance().database_1), get_3(get_context(_this__u8e3s4), ChatBindings_getInstance().media_1));
+}
+function coordinator(_this__u8e3s4) {
+  return new ChatRoomCoordinator(get_3(get_context(_this__u8e3s4), ChatBindings_getInstance().coordinator_1));
+}
+function roomId(_this__u8e3s4) {
+  var tmp0_elvis_lhs = _this__u8e3s4.pathParams.get_wei43m_k$('roomId');
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    var message = 'roomId path parameter is required';
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  return tmp;
+}
+function mediaId(_this__u8e3s4) {
+  var tmp0_elvis_lhs = _this__u8e3s4.pathParams.get_wei43m_k$('mediaId');
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    var message = 'mediaId path parameter is required';
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  return tmp;
+}
+function limit(_this__u8e3s4, defaultValue) {
+  defaultValue = defaultValue === VOID ? 20 : defaultValue;
+  var tmp0_safe_receiver = _this__u8e3s4.queryParams.get_wei43m_k$('limit');
+  var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : toIntOrNull(tmp0_safe_receiver);
+  var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : coerceIn(tmp1_safe_receiver, 1, 50);
+  return tmp2_elvis_lhs == null ? defaultValue : tmp2_elvis_lhs;
+}
+function beforeSequence(_this__u8e3s4) {
+  var tmp0_safe_receiver = _this__u8e3s4.queryParams.get_wei43m_k$('beforeSequence');
+  return tmp0_safe_receiver == null ? null : toIntOrNull(tmp0_safe_receiver);
+}
+function nextId(prefix) {
+  var tmp = globalThis.crypto.randomUUID();
+  return prefix + '-' + ((!(tmp == null) ? typeof tmp === 'string' : false) ? tmp : THROW_CCE());
+}
+function nowIsoString() {
+  var tmp = (new Date()).toISOString();
+  return (!(tmp == null) ? typeof tmp === 'string' : false) ? tmp : THROW_CCE();
 }
 //region block: post-declaration
 initMetadataForInterface(CharSequence, 'CharSequence');
@@ -85897,14 +90327,14 @@ initMetadataForInterface(Collection, 'Collection');
 initMetadataForInterface(KtList, 'List', VOID, VOID, [Collection]);
 initMetadataForInterface(KtSet, 'Set', VOID, VOID, [Collection]);
 initMetadataForInterface(MutableIterable, 'MutableIterable');
-initMetadataForInterface(KtMutableSet, 'MutableSet', VOID, VOID, [KtSet, Collection, MutableIterable]);
+initMetadataForInterface(KtMutableSet, 'MutableSet', VOID, VOID, [KtSet, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_1);
 initMetadataForInterface(KtMap, 'Map');
 initMetadataForInterface(KtMutableMap, 'MutableMap', VOID, VOID, [KtMap]);
 initMetadataForInterface(Entry, 'Entry');
 initMetadataForCompanion(Companion_2);
 initMetadataForCompanion(Companion_3);
-initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, Collection, MutableIterable]);
+initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_4);
 initMetadataForClass(Enum, 'Enum', VOID, VOID, [Comparable]);
 initMetadataForCompanion(Companion_5);
@@ -85924,7 +90354,7 @@ initMetadataForInterface(AutoCloseable, 'AutoCloseable');
 initMetadataForInterface(Comparator, 'Comparator');
 initMetadataForObject(Unit, 'Unit');
 initMetadataForClass(AbstractCollection, 'AbstractCollection', VOID, VOID, [Collection]);
-initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, VOID, [AbstractCollection, Collection, MutableIterable]);
+initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, VOID, [AbstractCollection, MutableIterable, Collection]);
 initMetadataForClass(IteratorImpl, 'IteratorImpl');
 initMetadataForClass(ListIteratorImpl, 'ListIteratorImpl');
 protoOf(AbstractMutableList).asJsArrayView = asJsArrayView;
@@ -85941,7 +90371,7 @@ initMetadataForCompanion(Companion_6);
 initMetadataForClass(ArrayList, 'ArrayList', ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$, VOID, [AbstractMutableList, KtMutableList, RandomAccess]);
 initMetadataForClass(HashMap, 'HashMap', HashMap.new_kotlin_collections_HashMap_2a5kxx_k$, VOID, [AbstractMutableMap, KtMutableMap]);
 initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, VOID, [KtMutableSet, AbstractMutableSet]);
-initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [Collection, MutableIterable, AbstractMutableCollection]);
+initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [MutableIterable, Collection, AbstractMutableCollection]);
 initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, VOID, [KtMutableSet, AbstractMutableSet]);
 initMetadataForClass(HashMapEntrySet, 'HashMapEntrySet');
 initMetadataForClass(HashMapKeysDefault$iterator$1);
@@ -86000,6 +90430,9 @@ initMetadataForCompanion(Companion_8);
 initMetadataForClass(Regex, 'Regex');
 initMetadataForClass(MatchGroup, 'MatchGroup');
 initMetadataForClass(findNext$1$groups$1, VOID, VOID, VOID, [Collection, AbstractCollection]);
+protoOf(AbstractList).asJsReadonlyArrayView = asJsReadonlyArrayView;
+initMetadataForClass(AbstractList, 'AbstractList', VOID, VOID, [AbstractCollection, KtList]);
+initMetadataForClass(findNext$1$groupValues$1);
 initMetadataForClass(findNext$1);
 initMetadataForClass(sam$kotlin_Comparator$0, 'sam$kotlin_Comparator$0', VOID, VOID, [Comparator, FunctionAdapter]);
 initMetadataForClass(ExceptionTraceBuilder, 'ExceptionTraceBuilder', ExceptionTraceBuilder);
@@ -86009,8 +90442,6 @@ initMetadataForClass(Reading, 'Reading');
 initMetadataForClass(HrTimeSource, 'HrTimeSource');
 initMetadataForClass(PerformanceTimeSource, 'PerformanceTimeSource');
 initMetadataForObject(DateNowTimeSource, 'DateNowTimeSource');
-protoOf(AbstractList).asJsReadonlyArrayView = asJsReadonlyArrayView;
-initMetadataForClass(AbstractList, 'AbstractList', VOID, VOID, [AbstractCollection, KtList]);
 initMetadataForClass(SubList_0, 'SubList', VOID, VOID, [AbstractList, RandomAccess]);
 initMetadataForClass(IteratorImpl_0, 'IteratorImpl');
 initMetadataForClass(ListIteratorImpl_0, 'ListIteratorImpl');
@@ -87044,7 +91475,7 @@ initMetadataForClass(RoutePattern, 'RoutePattern', RoutePattern);
 initMetadataForObject(RegexCommon, 'RegexCommon');
 initMetadataForClass(middleware$4$1);
 initMetadataForClass(TextSerializer, 'TextSerializer', TextSerializer);
-initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [Collection, MutableIterable]);
+initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [MutableIterable, Collection]);
 initMetadataForClass(ConcurrentMutableIterator, 'ConcurrentMutableIterator');
 protoOf(ConcurrentMutableMap).asJsMapView = asJsMapView;
 protoOf(ConcurrentMutableMap).asJsReadonlyMapView = asJsReadonlyMapView;
@@ -87206,12 +91637,12 @@ initMetadataForClass(sam$kotlinx_coroutines_flow_FlowCollector$0_3, 'sam$kotlinx
 initMetadataForLambda(toReactState$slambda$slambda, VOID, VOID, [1]);
 initMetadataForLambda(toReactState$slambda, VOID, VOID, [1]);
 initMetadataForClass(CloudflareContext, 'CloudflareContext');
-initMetadataForClass(CloudflareDurableObject, 'CloudflareDurableObject');
-initMetadataForClass(Binding, 'Binding');
-initMetadataForClass(DurableObjectBinding, 'DurableObjectBinding');
+initMetadataForClass(CloudflareDurableObject, 'CloudflareDurableObject', VOID, VOID, VOID, [1]);
 initMetadataForClass(CloudflareWorker, 'CloudflareWorker');
+initMetadataForClass(Binding, 'Binding');
 initMetadataForClass(D1Binding, 'D1Binding');
 initMetadataForClass(R2Binding, 'R2Binding');
+initMetadataForClass(DurableObjectBinding, 'DurableObjectBinding');
 initMetadataForCompanion(Companion_85);
 protoOf($serializer_3).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_3, '$serializer', VOID, VOID, [GeneratedSerializer]);
@@ -87290,23 +91721,132 @@ initMetadataForClass(DeleteBuilder, 'DeleteBuilder');
 initMetadataForObject(ServiceLoaderComponentRegistry, 'ServiceLoaderComponentRegistry');
 initMetadataForClass(KtorNetworkFetcherServiceLoaderTarget, 'KtorNetworkFetcherServiceLoaderTarget', KtorNetworkFetcherServiceLoaderTarget);
 initMetadataForClass(SvgDecoderServiceLoaderTarget, 'SvgDecoderServiceLoaderTarget', SvgDecoderServiceLoaderTarget);
+initMetadataForLambda(ExperimentRootService$slambda, VOID, VOID, [2]);
+initMetadataForClass(ExperimentRootService, 'ExperimentRootService', ExperimentRootService);
 initMetadataForLambda(HelloCounterDurableObject$fetch$slambda, VOID, VOID, [1]);
-initMetadataForClass(HelloCounterDurableObject, 'HelloCounterDurableObject');
+initMetadataForClass(HelloCounterDurableObject, 'HelloCounterDurableObject', VOID, VOID, VOID, [1]);
 initMetadataForObject(HelloWorker_0, 'HelloWorker');
-initMetadataForObject(HelloBindings, 'HelloBindings');
+initMetadataForObject(ChatBindings, 'ChatBindings');
+initMetadataForClass(sam$kotlin_Comparator$0_3, 'sam$kotlin_Comparator$0', VOID, VOID, [Comparator, FunctionAdapter]);
+initMetadataForLambda(ChatRoomDurableObject$fetch$slambda, VOID, VOID, [1]);
+initMetadataForClass(ChatRoomDurableObject, 'ChatRoomDurableObject', VOID, VOID, VOID, [0, 1]);
 initMetadataForCompanion(Companion_86);
 protoOf($serializer_4).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_4, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(HelloRequest, 'HelloRequest', HelloRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloRequest_nhcxul_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_4});
+initMetadataForClass(ReservedMessageSequence, 'ReservedMessageSequence', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_4});
 initMetadataForCompanion(Companion_87);
 protoOf($serializer_5).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_5, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(HelloResponse, 'HelloResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_5});
-initMetadataForLambda(HelloService$slambda, VOID, VOID, [2]);
-initMetadataForLambda(HelloService$slambda_0, VOID, VOID, [2]);
-initMetadataForLambda(HelloService$slambda_1, VOID, VOID, [2]);
-initMetadataForLambda(HelloService$slambda_2, VOID, VOID, [2]);
-initMetadataForClass(HelloService, 'HelloService', HelloService);
+initMetadataForClass(JoinRoomCommand, 'JoinRoomCommand', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_5});
+initMetadataForCompanion(Companion_88);
+protoOf($serializer_6).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_6, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(LeaveRoomCommand, 'LeaveRoomCommand', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_6});
+initMetadataForCompanion(Companion_89);
+protoOf($serializer_7).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_7, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(PublishMessageCommand, 'PublishMessageCommand', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_7});
+initMetadataForCompanion(Companion_90);
+protoOf($serializer_8).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_8, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(CoordinatorState, 'CoordinatorState', CoordinatorState, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_8});
+initMetadataForClass(ChatRoomCoordinator, 'ChatRoomCoordinator', VOID, VOID, VOID, [1, 2]);
+initMetadataForCompanion(Companion_91);
+protoOf($serializer_9).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_9, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatParticipant, 'ChatParticipant', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_9});
+initMetadataForCompanion(Companion_92);
+protoOf($serializer_10).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_10, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatMediaRef, 'ChatMediaRef', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_10});
+initMetadataForCompanion(Companion_93);
+protoOf($serializer_11).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_11, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatMessage, 'ChatMessage', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_11});
+initMetadataForCompanion(Companion_94);
+protoOf($serializer_12).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_12, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatPresence, 'ChatPresence', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_12});
+initMetadataForCompanion(Companion_95);
+protoOf($serializer_13).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_13, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatRoomSummary, 'ChatRoomSummary', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_13});
+initMetadataForCompanion(Companion_96);
+protoOf($serializer_14).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_14, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatOverviewRequest, 'ChatOverviewRequest', ChatOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_2hr453_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_14});
+initMetadataForCompanion(Companion_97);
+protoOf($serializer_15).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_15, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatOverviewResponse, 'ChatOverviewResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_15});
+initMetadataForCompanion(Companion_98);
+protoOf($serializer_16).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_16, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ListRoomsRequest, 'ListRoomsRequest', ListRoomsRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_awg7t0_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_16});
+initMetadataForCompanion(Companion_99);
+protoOf($serializer_17).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_17, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatRoomsResponse, 'ChatRoomsResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_17});
+initMetadataForCompanion(Companion_100);
+protoOf($serializer_18).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_18, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(CreateRoomRequest, 'CreateRoomRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_18});
+initMetadataForCompanion(Companion_101);
+protoOf($serializer_19).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_19, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(RoomRequest, 'RoomRequest', RoomRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_nl1bbh_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_19});
+initMetadataForCompanion(Companion_102);
+protoOf($serializer_20).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_20, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(RoomMembershipRequest, 'RoomMembershipRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_20});
+initMetadataForCompanion(Companion_103);
+protoOf($serializer_21).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_21, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(SendMessageRequest, 'SendMessageRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_21});
+initMetadataForCompanion(Companion_104);
+protoOf($serializer_22).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_22, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(RoomMessagesRequest, 'RoomMessagesRequest', RoomMessagesRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_nj9zmp_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_22});
+initMetadataForCompanion(Companion_105);
+protoOf($serializer_23).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_23, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(UploadMediaRequest, 'UploadMediaRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_23});
+initMetadataForCompanion(Companion_106);
+protoOf($serializer_24).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_24, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(MediaRequest, 'MediaRequest', MediaRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_swvzn2_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_24});
+initMetadataForCompanion(Companion_107);
+protoOf($serializer_25).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_25, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatRoomStateResponse, 'ChatRoomStateResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_25});
+initMetadataForCompanion(Companion_108);
+protoOf($serializer_26).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_26, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatMessageResponse, 'ChatMessageResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_26});
+initMetadataForCompanion(Companion_109);
+protoOf($serializer_27).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_27, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatMediaResponse, 'ChatMediaResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_27});
+initMetadataForCompanion(Companion_110);
+protoOf($serializer_28).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_28, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(ChatMediaDownloadResponse, 'ChatMediaDownloadResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_28});
+initMetadataForCompanion(Companion_111);
+protoOf($serializer_29).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_29, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(StoredMediaEnvelope, 'StoredMediaEnvelope', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_29});
+initMetadataForClass(ChatRepository, 'ChatRepository', VOID, VOID, VOID, [1, 5, 3, 0]);
+initMetadataForLambda(ChatService$slambda, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_0, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_1, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_2, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_3, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_4, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_5, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_6, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_7, VOID, VOID, [2]);
+initMetadataForLambda(ChatService$slambda_8, VOID, VOID, [2]);
+initMetadataForClass(ChatService, 'ChatService', ChatService);
 //endregion
 //region block: init
 Companion_instance_0 = new Companion_0();
@@ -99955,6 +104495,19 @@ _warning_3 = null;
 androidx_lifecycle_compose_LifecycleStartStopEffectScope$stable = 8;
 androidx_lifecycle_compose_LifecycleResumePauseEffectScope$stable = 8;
 strictMemoryModel = false;
+Companion_instance_86 = new Companion_86();
+Companion_instance_87 = new Companion_87();
+Companion_instance_88 = new Companion_88();
+Companion_instance_89 = new Companion_89();
+Companion_instance_91 = new Companion_91();
+Companion_instance_92 = new Companion_92();
+Companion_instance_93 = new Companion_93();
+Companion_instance_95 = new Companion_95();
+Companion_instance_108 = new Companion_108();
+Companion_instance_109 = new Companion_109();
+Companion_instance_110 = new Companion_110();
+schemaReady = false;
+Companion_instance_111 = new Companion_111();
 //endregion
 //region block: eager init
 initHook_0 = initHook$init$();
@@ -100262,6 +104815,7 @@ export {
   DeleteBuilder as DeleteBuilder,
   HelloCounterDurableObject as HelloCounterDurableObject,
   HelloWorker as HelloWorker,
+  ChatRoomDurableObject as ChatRoomDurableObject,
 };
 //endregion
 

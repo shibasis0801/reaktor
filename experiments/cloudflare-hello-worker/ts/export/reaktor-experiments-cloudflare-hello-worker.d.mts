@@ -2425,3 +2425,13 @@ export declare namespace HelloWorker {
         }
     }
 }
+export declare class ChatRoomDurableObject /* extends CloudflareDurableObject */ {
+    constructor(state: any, env: any);
+    fetch(request: any): Promise<any>;
+}
+export declare namespace ChatRoomDurableObject {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ChatRoomDurableObject;
+    }
+}
