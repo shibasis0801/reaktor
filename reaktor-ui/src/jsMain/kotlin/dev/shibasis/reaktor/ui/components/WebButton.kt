@@ -102,8 +102,8 @@ val RButton = FC<RButtonProps> { props ->
             cursor = if (isDisabled || isLoading) Cursor.notAllowed else Cursor.pointer
             opacity = if (isLoading) number(0.7) else number(1.0)
             fontWeight = integer(500)
-            fontSize = FontSize.inherit
-            fontFamily = FontFamily.inherit
+            fontSize = "inherit".unsafeCast<FontSize>()
+            fontFamily = "inherit".unsafeCast<FontFamily>()
             textTransform = None.none
             width = if (fullWidth) 100.pct else Auto.auto
             boxShadow = if (variant == ComponentVariant.Elevated) tokens.elevation.sm.unsafeCast<BoxShadow>() else None.none
@@ -113,7 +113,7 @@ val RButton = FC<RButtonProps> { props ->
             span {
                 style = jso {
                     width = iconSize.unsafeCast<Width>()
-                    height = iconSize.unsafeCast<Height>()
+                    this.height = iconSize.unsafeCast<Height>()
                     border = Border(2.px, LineStyle.solid, textColor.unsafeCast<Color>())
                     borderTopColor = NamedColor.transparent
                     borderRadius = 50.pct
@@ -125,7 +125,7 @@ val RButton = FC<RButtonProps> { props ->
                 span {
                     style = jso {
                         width = iconSize.unsafeCast<Width>()
-                        height = iconSize.unsafeCast<Height>()
+                        this.height = iconSize.unsafeCast<Height>()
                         display = Display.flex
                         alignItems = AlignItems.center
                         justifyContent = JustifyContent.center

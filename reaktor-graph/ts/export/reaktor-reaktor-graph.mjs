@@ -78,7 +78,9 @@ if (typeof String.prototype.endsWith === 'undefined') {
 }
 //endregion
 import {
+  createElement as createElement,
   useEffect as useEffect,
+  Fragment as Fragment,
   useState as useState,
   useMemo as useMemo,
 } from 'react';
@@ -2718,6 +2720,7 @@ class SimpleKClassImpl extends KClassImpl {
 class KProperty1 {}
 class KMutableProperty1 {}
 class KProperty0 {}
+class KMutableProperty0 {}
 class KTypeParameterImpl extends KTypeParameterBase {
   constructor(name, upperBounds, variance, isReified, containerFqName) {
     super();
@@ -10956,17 +10959,6 @@ class asFlow$$inlined$unsafeFlow$1 {
   }
 }
 class FlowCollector {}
-class Emitter {
-  constructor(flow, index, value, cont) {
-    this.flow_1 = flow;
-    this.index_1 = index;
-    this.value_1 = value;
-    this.cont_1 = cont;
-  }
-  dispose_3nnxhr_k$() {
-    return cancelEmitter(this.flow_1, this);
-  }
-}
 class AbstractSharedFlow extends SynchronizedObject {
   constructor() {
     super();
@@ -11058,213 +11050,6 @@ class AbstractSharedFlow extends SynchronizedObject {
       subscriptionCount.increment_rp2k21_k$(-1);
   }
 }
-class SharedFlowImpl extends AbstractSharedFlow {
-  constructor(replay, bufferCapacity, onBufferOverflow) {
-    super();
-    this.replay_1 = replay;
-    this.bufferCapacity_1 = bufferCapacity;
-    this.onBufferOverflow_1 = onBufferOverflow;
-    this.buffer_1 = null;
-    this.replayIndex_1 = 0n;
-    this.minCollectorIndex_1 = 0n;
-    this.bufferSize_1 = 0;
-    this.queueSize_1 = 0;
-  }
-  get_lastReplayedLocked_pnaey7_k$() {
-    var tmp = ensureNotNull(this.buffer_1);
-    var tmp0 = this.replayIndex_1;
-    // Inline function 'kotlin.Long.plus' call
-    var other = _get_replaySize__dxgnb1(this);
-    // Inline function 'kotlin.Long.minus' call
-    var this_0 = add_0(tmp0, fromInt_0(other));
-    var tmp$ret$1 = subtract_0(this_0, fromInt_0(1));
-    var tmp_0 = getBufferAt(tmp, tmp$ret$1);
-    return (tmp_0 == null ? true : !(tmp_0 == null)) ? tmp_0 : THROW_CCE();
-  }
-  collect_otghi5_k$(collector, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_0.bind(VOID, this, collector), $completion);
-  }
-  tryEmit_ru0jrz_k$(value) {
-    var resumes = get_EMPTY_RESUMES();
-    // Inline function 'kotlinx.coroutines.internal.synchronized' call
-    // Inline function 'kotlinx.coroutines.internal.synchronizedImpl' call
-    var tmp;
-    if (tryEmitLocked(this, value)) {
-      resumes = findSlotsToResumeLocked(this, resumes);
-      tmp = true;
-    } else {
-      tmp = false;
-    }
-    var emitted = tmp;
-    var indexedObject = resumes;
-    var inductionVariable = 0;
-    var last = indexedObject.length;
-    while (inductionVariable < last) {
-      var cont = indexedObject[inductionVariable];
-      inductionVariable = inductionVariable + 1 | 0;
-      if (cont == null)
-        null;
-      else {
-        // Inline function 'kotlin.coroutines.resume' call
-        // Inline function 'kotlin.Companion.success' call
-        var tmp$ret$3 = _Result___init__impl__xyqfz8(Unit_instance);
-        cont.resumeWith_rk9gbt_k$(tmp$ret$3);
-      }
-    }
-    return emitted;
-  }
-  emit_f0f141_k$(value, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_emit__qph46j.bind(VOID, this, value), $completion);
-  }
-  updateNewCollectorIndexLocked_8rfw0p_k$() {
-    var index = this.replayIndex_1;
-    if (index < this.minCollectorIndex_1)
-      this.minCollectorIndex_1 = index;
-    return index;
-  }
-  updateCollectorIndexLocked_r0wcdj_k$(oldIndex) {
-    // Inline function 'kotlinx.coroutines.assert' call
-    if (oldIndex > this.minCollectorIndex_1)
-      return get_EMPTY_RESUMES();
-    var head = _get_head__d7jo8b(this);
-    // Inline function 'kotlin.Long.plus' call
-    var other = this.bufferSize_1;
-    var newMinCollectorIndex = add_0(head, fromInt_0(other));
-    if (this.bufferCapacity_1 === 0 && this.queueSize_1 > 0) {
-      var _unary__edvuaz = newMinCollectorIndex;
-      newMinCollectorIndex = add_0(_unary__edvuaz, get_ONE());
-    }
-    $l$block: {
-      // Inline function 'kotlinx.coroutines.flow.internal.AbstractSharedFlow.forEachSlotLocked' call
-      if (this.nCollectors_1 === 0) {
-        break $l$block;
-      }
-      var tmp0_safe_receiver = this.slots_1;
-      if (tmp0_safe_receiver == null)
-        null;
-      else {
-        // Inline function 'kotlin.collections.forEach' call
-        var inductionVariable = 0;
-        var last = tmp0_safe_receiver.length;
-        while (inductionVariable < last) {
-          var element = tmp0_safe_receiver[inductionVariable];
-          inductionVariable = inductionVariable + 1 | 0;
-          if (!(element == null)) {
-            if (element.index_1 >= 0n && element.index_1 < newMinCollectorIndex)
-              newMinCollectorIndex = element.index_1;
-          }
-        }
-      }
-    }
-    // Inline function 'kotlinx.coroutines.assert' call
-    if (newMinCollectorIndex <= this.minCollectorIndex_1)
-      return get_EMPTY_RESUMES();
-    var newBufferEndIndex = _get_bufferEndIndex__d2rk18(this);
-    var tmp;
-    if (this.nCollectors_1 > 0) {
-      var newBufferSize0 = convertToInt(subtract_0(newBufferEndIndex, newMinCollectorIndex));
-      var tmp0 = this.queueSize_1;
-      // Inline function 'kotlin.comparisons.minOf' call
-      var b = this.bufferCapacity_1 - newBufferSize0 | 0;
-      tmp = Math.min(tmp0, b);
-    } else {
-      tmp = this.queueSize_1;
-    }
-    var maxResumeCount = tmp;
-    var resumes = get_EMPTY_RESUMES();
-    var tmp0_0 = newBufferEndIndex;
-    // Inline function 'kotlin.Long.plus' call
-    var other_0 = this.queueSize_1;
-    var newQueueEndIndex = add_0(tmp0_0, fromInt_0(other_0));
-    if (maxResumeCount > 0) {
-      // Inline function 'kotlin.arrayOfNulls' call
-      resumes = Array(maxResumeCount);
-      var resumeCount = 0;
-      var buffer = ensureNotNull(this.buffer_1);
-      var inductionVariable_0 = newBufferEndIndex;
-      if (inductionVariable_0 < newQueueEndIndex)
-        $l$loop: do {
-          var curEmitterIndex = inductionVariable_0;
-          inductionVariable_0 = add_0(inductionVariable_0, 1n);
-          var emitter = getBufferAt(buffer, curEmitterIndex);
-          if (!(emitter === get_NO_VALUE())) {
-            if (!(emitter instanceof Emitter))
-              THROW_CCE();
-            var tmp_0 = resumes;
-            var _unary__edvuaz_0 = resumeCount;
-            resumeCount = _unary__edvuaz_0 + 1 | 0;
-            tmp_0[_unary__edvuaz_0] = emitter.cont_1;
-            setBufferAt(buffer, curEmitterIndex, get_NO_VALUE());
-            setBufferAt(buffer, newBufferEndIndex, emitter.value_1);
-            var _unary__edvuaz_1 = newBufferEndIndex;
-            newBufferEndIndex = add_0(_unary__edvuaz_1, get_ONE());
-            if (resumeCount >= maxResumeCount)
-              break $l$loop;
-          }
-        }
-         while (inductionVariable_0 < newQueueEndIndex);
-    }
-    var newBufferSize1 = convertToInt(subtract_0(newBufferEndIndex, head));
-    if (this.nCollectors_1 === 0)
-      newMinCollectorIndex = newBufferEndIndex;
-    var tmp0_1 = this.replayIndex_1;
-    var tmp0_2 = newBufferEndIndex;
-    // Inline function 'kotlin.comparisons.minOf' call
-    var a = this.replay_1;
-    // Inline function 'kotlin.Long.minus' call
-    var other_1 = Math.min(a, newBufferSize1);
-    // Inline function 'kotlin.comparisons.maxOf' call
-    var b_0 = subtract_0(tmp0_2, fromInt_0(other_1));
-    var newReplayIndex = tmp0_1 >= b_0 ? tmp0_1 : b_0;
-    if (this.bufferCapacity_1 === 0 && newReplayIndex < newQueueEndIndex && equals(getBufferAt(ensureNotNull(this.buffer_1), newReplayIndex), get_NO_VALUE())) {
-      var _unary__edvuaz_2 = newBufferEndIndex;
-      newBufferEndIndex = add_0(_unary__edvuaz_2, get_ONE());
-      var _unary__edvuaz_3 = newReplayIndex;
-      newReplayIndex = add_0(_unary__edvuaz_3, get_ONE());
-    }
-    updateBufferLocked(this, newReplayIndex, newMinCollectorIndex, newBufferEndIndex, newQueueEndIndex);
-    cleanupTailLocked(this);
-    // Inline function 'kotlin.collections.isNotEmpty' call
-    // Inline function 'kotlin.collections.isEmpty' call
-    if (!(resumes.length === 0))
-      resumes = findSlotsToResumeLocked(this, resumes);
-    return resumes;
-  }
-  createSlot_mn6f4q_k$() {
-    return new SharedFlowSlot();
-  }
-  createSlotArray_10rtp5_k$(size) {
-    // Inline function 'kotlin.arrayOfNulls' call
-    return Array(size);
-  }
-}
-class AbstractSharedFlowSlot {}
-class SharedFlowSlot extends AbstractSharedFlowSlot {
-  constructor() {
-    super();
-    this.index_1 = -1n;
-    this.cont_1 = null;
-  }
-  allocateLocked_bwvuzr_k$(flow) {
-    if (this.index_1 >= 0n)
-      return false;
-    this.index_1 = flow.updateNewCollectorIndexLocked_8rfw0p_k$();
-    return true;
-  }
-  allocateLocked_z5itrq_k$(flow) {
-    return this.allocateLocked_bwvuzr_k$(flow instanceof SharedFlowImpl ? flow : THROW_CCE());
-  }
-  freeLocked_hpo05y_k$(flow) {
-    // Inline function 'kotlinx.coroutines.assert' call
-    var oldIndex = this.index_1;
-    this.index_1 = -1n;
-    this.cont_1 = null;
-    return flow.updateCollectorIndexLocked_r0wcdj_k$(oldIndex);
-  }
-  freeLocked_1gezd3_k$(flow) {
-    return this.freeLocked_hpo05y_k$(flow instanceof SharedFlowImpl ? flow : THROW_CCE());
-  }
-}
 class StateFlowImpl extends AbstractSharedFlow {
   constructor(initialState) {
     super();
@@ -11295,7 +11080,7 @@ class StateFlowImpl extends AbstractSharedFlow {
     return Unit_instance;
   }
   collect_otghi5_k$(collector, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_1.bind(VOID, this, collector), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_0.bind(VOID, this, collector), $completion);
   }
   createSlot_mn6f4q_k$() {
     return new StateFlowSlot();
@@ -11305,6 +11090,7 @@ class StateFlowImpl extends AbstractSharedFlow {
     return Array(size);
   }
 }
+class AbstractSharedFlowSlot {}
 class StateFlowSlot extends AbstractSharedFlowSlot {
   constructor() {
     super();
@@ -11383,7 +11169,7 @@ class firstOrNull$$inlined$collectWhile$1 {
     this.$result_1 = $result;
   }
   emit_jc5gq7_k$(value, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_emit__qph46j_0.bind(VOID, this, value), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_emit__qph46j.bind(VOID, this, value), $completion);
   }
   emit_f0f141_k$(value, $completion) {
     return this.emit_jc5gq7_k$((value == null ? true : !(value == null)) ? value : THROW_CCE(), $completion);
@@ -11990,7 +11776,7 @@ class SafeCollector {
     this.lastEmissionContext_1 = null;
   }
   emit_f0f141_k$(value, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_emit__qph46j_1.bind(VOID, this, value), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_emit__qph46j_0.bind(VOID, this, value), $completion);
   }
   releaseIntercepted_5cyqh6_k$() {
   }
@@ -18548,7 +18334,7 @@ class JsonTreeListDecoder extends AbstractJsonTreeDecoder {
     return index.toString();
   }
   currentElement_4dg47r_k$(tag) {
-    return this.value_2.get_c1px32_k$(toInt(tag));
+    return this.value_2.get_c1px32_k$(toInt_0(tag));
   }
   decodeElementIndex_bstkhp_k$(descriptor) {
     while (this.currentIndex_1 < (this.size_1 - 1 | 0)) {
@@ -19648,6 +19434,48 @@ class AtomicInt_0 {
     return result;
   }
 }
+class ReactHTML {}
+class ThemeOption extends Enum {}
+class ComponentSize extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class ComponentVariant extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class ComponentState extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class TextRole extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class TextSize extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
 class PromiseState extends Enum {
   get name() {
     return this.get_name_woqyms_k$();
@@ -19735,6 +19563,1614 @@ class usePromise$slambda {
   }
   invoke_ja922n_k$(p1, $completion) {
     return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
+  }
+}
+class WebColorScheme {
+  constructor(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary) {
+    this.background = background;
+    this.surface = surface;
+    this.surfaceVariant = surfaceVariant;
+    this.surfaceContainer = surfaceContainer;
+    this.surfaceContainerHigh = surfaceContainerHigh;
+    this.surfaceContainerLow = surfaceContainerLow;
+    this.onBackground = onBackground;
+    this.onSurface = onSurface;
+    this.onSurfaceVariant = onSurfaceVariant;
+    this.primary = primary;
+    this.primaryContainer = primaryContainer;
+    this.onPrimary = onPrimary;
+    this.onPrimaryContainer = onPrimaryContainer;
+    this.secondary = secondary;
+    this.secondaryContainer = secondaryContainer;
+    this.onSecondary = onSecondary;
+    this.onSecondaryContainer = onSecondaryContainer;
+    this.tertiary = tertiary;
+    this.tertiaryContainer = tertiaryContainer;
+    this.onTertiary = onTertiary;
+    this.onTertiaryContainer = onTertiaryContainer;
+    this.error = error;
+    this.errorContainer = errorContainer;
+    this.onError = onError;
+    this.onErrorContainer = onErrorContainer;
+    this.success = success;
+    this.onSuccess = onSuccess;
+    this.warning = warning;
+    this.onWarning = onWarning;
+    this.info = info;
+    this.onInfo = onInfo;
+    this.outline = outline;
+    this.outlineVariant = outlineVariant;
+    this.scrim = scrim;
+    this.shadow = shadow;
+    this.inverseSurface = inverseSurface;
+    this.inverseOnSurface = inverseOnSurface;
+    this.inversePrimary = inversePrimary;
+  }
+  get_background_stpfw7_k$() {
+    return this.background;
+  }
+  get_surface_tdt8vw_k$() {
+    return this.surface;
+  }
+  get_surfaceVariant_18d89t_k$() {
+    return this.surfaceVariant;
+  }
+  get_surfaceContainer_sljb37_k$() {
+    return this.surfaceContainer;
+  }
+  get_surfaceContainerHigh_ho6n5_k$() {
+    return this.surfaceContainerHigh;
+  }
+  get_surfaceContainerLow_p7xhjd_k$() {
+    return this.surfaceContainerLow;
+  }
+  get_onBackground_x9sua2_k$() {
+    return this.onBackground;
+  }
+  get_onSurface_199zv_k$() {
+    return this.onSurface;
+  }
+  get_onSurfaceVariant_54o3og_k$() {
+    return this.onSurfaceVariant;
+  }
+  get_primary_3xuktj_k$() {
+    return this.primary;
+  }
+  get_primaryContainer_kovyw8_k$() {
+    return this.primaryContainer;
+  }
+  get_onPrimary_pepe2i_k$() {
+    return this.onPrimary;
+  }
+  get_onPrimaryContainer_1c5fzb_k$() {
+    return this.onPrimaryContainer;
+  }
+  get_secondary_5095it_k$() {
+    return this.secondary;
+  }
+  get_secondaryContainer_26tt6y_k$() {
+    return this.secondaryContainer;
+  }
+  get_onSecondary_4wkr8_k$() {
+    return this.onSecondary;
+  }
+  get_onSecondaryContainer_8wlnn9_k$() {
+    return this.onSecondaryContainer;
+  }
+  get_tertiary_jsqcrf_k$() {
+    return this.tertiary;
+  }
+  get_tertiaryContainer_qx2ht2_k$() {
+    return this.tertiaryContainer;
+  }
+  get_onTertiary_67gonu_k$() {
+    return this.onTertiary;
+  }
+  get_onTertiaryContainer_4svcqh_k$() {
+    return this.onTertiaryContainer;
+  }
+  get_error_iqzvfj_k$() {
+    return this.error;
+  }
+  get_errorContainer_4pqefy_k$() {
+    return this.errorContainer;
+  }
+  get_onError_l24eio_k$() {
+    return this.onError;
+  }
+  get_onErrorContainer_tfj1b_k$() {
+    return this.onErrorContainer;
+  }
+  get_success_tm3zdy_k$() {
+    return this.success;
+  }
+  get_onSuccess_9k0hx_k$() {
+    return this.onSuccess;
+  }
+  get_warning_jv0q7n_k$() {
+    return this.warning;
+  }
+  get_onWarning_ltjcvg_k$() {
+    return this.onWarning;
+  }
+  get_info_woo16f_k$() {
+    return this.info;
+  }
+  get_onInfo_hnigqe_k$() {
+    return this.onInfo;
+  }
+  get_outline_h12qhz_k$() {
+    return this.outline;
+  }
+  get_outlineVariant_31h3os_k$() {
+    return this.outlineVariant;
+  }
+  get_scrim_iyfesd_k$() {
+    return this.scrim;
+  }
+  get_shadow_jgtb8p_k$() {
+    return this.shadow;
+  }
+  get_inverseSurface_f5ydt2_k$() {
+    return this.inverseSurface;
+  }
+  get_inverseOnSurface_jzll89_k$() {
+    return this.inverseOnSurface;
+  }
+  get_inversePrimary_uf703p_k$() {
+    return this.inversePrimary;
+  }
+  component1_7eebsc_k$() {
+    return this.background;
+  }
+  component2_7eebsb_k$() {
+    return this.surface;
+  }
+  component3_7eebsa_k$() {
+    return this.surfaceVariant;
+  }
+  component4_7eebs9_k$() {
+    return this.surfaceContainer;
+  }
+  component5_7eebs8_k$() {
+    return this.surfaceContainerHigh;
+  }
+  component6_7eebs7_k$() {
+    return this.surfaceContainerLow;
+  }
+  component7_7eebs6_k$() {
+    return this.onBackground;
+  }
+  component8_7eebs5_k$() {
+    return this.onSurface;
+  }
+  component9_7eebs4_k$() {
+    return this.onSurfaceVariant;
+  }
+  component10_gazzfo_k$() {
+    return this.primary;
+  }
+  component11_gazzfn_k$() {
+    return this.primaryContainer;
+  }
+  component12_gazzfm_k$() {
+    return this.onPrimary;
+  }
+  component13_gazzfl_k$() {
+    return this.onPrimaryContainer;
+  }
+  component14_gazzfk_k$() {
+    return this.secondary;
+  }
+  component15_gazzfj_k$() {
+    return this.secondaryContainer;
+  }
+  component16_gazzfi_k$() {
+    return this.onSecondary;
+  }
+  component17_gazzfh_k$() {
+    return this.onSecondaryContainer;
+  }
+  component18_gazzfg_k$() {
+    return this.tertiary;
+  }
+  component19_gazzff_k$() {
+    return this.tertiaryContainer;
+  }
+  component20_gazzet_k$() {
+    return this.onTertiary;
+  }
+  component21_gazzes_k$() {
+    return this.onTertiaryContainer;
+  }
+  component22_gazzer_k$() {
+    return this.error;
+  }
+  component23_gazzeq_k$() {
+    return this.errorContainer;
+  }
+  component24_gazzep_k$() {
+    return this.onError;
+  }
+  component25_gazzeo_k$() {
+    return this.onErrorContainer;
+  }
+  component26_gazzen_k$() {
+    return this.success;
+  }
+  component27_gazzem_k$() {
+    return this.onSuccess;
+  }
+  component28_gazzel_k$() {
+    return this.warning;
+  }
+  component29_gazzek_k$() {
+    return this.onWarning;
+  }
+  component30_gazzdy_k$() {
+    return this.info;
+  }
+  component31_gazzdx_k$() {
+    return this.onInfo;
+  }
+  component32_gazzdw_k$() {
+    return this.outline;
+  }
+  component33_gazzdv_k$() {
+    return this.outlineVariant;
+  }
+  component34_gazzdu_k$() {
+    return this.scrim;
+  }
+  component35_gazzdt_k$() {
+    return this.shadow;
+  }
+  component36_gazzds_k$() {
+    return this.inverseSurface;
+  }
+  component37_gazzdr_k$() {
+    return this.inverseOnSurface;
+  }
+  component38_gazzdq_k$() {
+    return this.inversePrimary;
+  }
+  copy_17f53f_k$(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary) {
+    return new WebColorScheme(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary);
+  }
+  copy(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary, $super) {
+    background = background === VOID ? this.background : background;
+    surface = surface === VOID ? this.surface : surface;
+    surfaceVariant = surfaceVariant === VOID ? this.surfaceVariant : surfaceVariant;
+    surfaceContainer = surfaceContainer === VOID ? this.surfaceContainer : surfaceContainer;
+    surfaceContainerHigh = surfaceContainerHigh === VOID ? this.surfaceContainerHigh : surfaceContainerHigh;
+    surfaceContainerLow = surfaceContainerLow === VOID ? this.surfaceContainerLow : surfaceContainerLow;
+    onBackground = onBackground === VOID ? this.onBackground : onBackground;
+    onSurface = onSurface === VOID ? this.onSurface : onSurface;
+    onSurfaceVariant = onSurfaceVariant === VOID ? this.onSurfaceVariant : onSurfaceVariant;
+    primary = primary === VOID ? this.primary : primary;
+    primaryContainer = primaryContainer === VOID ? this.primaryContainer : primaryContainer;
+    onPrimary = onPrimary === VOID ? this.onPrimary : onPrimary;
+    onPrimaryContainer = onPrimaryContainer === VOID ? this.onPrimaryContainer : onPrimaryContainer;
+    secondary = secondary === VOID ? this.secondary : secondary;
+    secondaryContainer = secondaryContainer === VOID ? this.secondaryContainer : secondaryContainer;
+    onSecondary = onSecondary === VOID ? this.onSecondary : onSecondary;
+    onSecondaryContainer = onSecondaryContainer === VOID ? this.onSecondaryContainer : onSecondaryContainer;
+    tertiary = tertiary === VOID ? this.tertiary : tertiary;
+    tertiaryContainer = tertiaryContainer === VOID ? this.tertiaryContainer : tertiaryContainer;
+    onTertiary = onTertiary === VOID ? this.onTertiary : onTertiary;
+    onTertiaryContainer = onTertiaryContainer === VOID ? this.onTertiaryContainer : onTertiaryContainer;
+    error = error === VOID ? this.error : error;
+    errorContainer = errorContainer === VOID ? this.errorContainer : errorContainer;
+    onError = onError === VOID ? this.onError : onError;
+    onErrorContainer = onErrorContainer === VOID ? this.onErrorContainer : onErrorContainer;
+    success = success === VOID ? this.success : success;
+    onSuccess = onSuccess === VOID ? this.onSuccess : onSuccess;
+    warning = warning === VOID ? this.warning : warning;
+    onWarning = onWarning === VOID ? this.onWarning : onWarning;
+    info = info === VOID ? this.info : info;
+    onInfo = onInfo === VOID ? this.onInfo : onInfo;
+    outline = outline === VOID ? this.outline : outline;
+    outlineVariant = outlineVariant === VOID ? this.outlineVariant : outlineVariant;
+    scrim = scrim === VOID ? this.scrim : scrim;
+    shadow = shadow === VOID ? this.shadow : shadow;
+    inverseSurface = inverseSurface === VOID ? this.inverseSurface : inverseSurface;
+    inverseOnSurface = inverseOnSurface === VOID ? this.inverseOnSurface : inverseOnSurface;
+    inversePrimary = inversePrimary === VOID ? this.inversePrimary : inversePrimary;
+    return $super === VOID ? this.copy_17f53f_k$(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary) : $super.copy_17f53f_k$.call(this, background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary);
+  }
+  toString() {
+    return 'WebColorScheme(background=' + this.background + ', surface=' + this.surface + ', surfaceVariant=' + this.surfaceVariant + ', surfaceContainer=' + this.surfaceContainer + ', surfaceContainerHigh=' + this.surfaceContainerHigh + ', surfaceContainerLow=' + this.surfaceContainerLow + ', onBackground=' + this.onBackground + ', onSurface=' + this.onSurface + ', onSurfaceVariant=' + this.onSurfaceVariant + ', primary=' + this.primary + ', primaryContainer=' + this.primaryContainer + ', onPrimary=' + this.onPrimary + ', onPrimaryContainer=' + this.onPrimaryContainer + ', secondary=' + this.secondary + ', secondaryContainer=' + this.secondaryContainer + ', onSecondary=' + this.onSecondary + ', onSecondaryContainer=' + this.onSecondaryContainer + ', tertiary=' + this.tertiary + ', tertiaryContainer=' + this.tertiaryContainer + ', onTertiary=' + this.onTertiary + ', onTertiaryContainer=' + this.onTertiaryContainer + ', error=' + this.error + ', errorContainer=' + this.errorContainer + ', onError=' + this.onError + ', onErrorContainer=' + this.onErrorContainer + ', success=' + this.success + ', onSuccess=' + this.onSuccess + ', warning=' + this.warning + ', onWarning=' + this.onWarning + ', info=' + this.info + ', onInfo=' + this.onInfo + ', outline=' + this.outline + ', outlineVariant=' + this.outlineVariant + ', scrim=' + this.scrim + ', shadow=' + this.shadow + ', inverseSurface=' + this.inverseSurface + ', inverseOnSurface=' + this.inverseOnSurface + ', inversePrimary=' + this.inversePrimary + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.background);
+    result = imul_0(result, 31) + getStringHashCode(this.surface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceVariant) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceContainerHigh) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceContainerLow) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onBackground) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSurface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSurfaceVariant) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.primary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.primaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onPrimary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onPrimaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.secondary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.secondaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSecondary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSecondaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.tertiary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.tertiaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onTertiary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onTertiaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.error) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.errorContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onError) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onErrorContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.success) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSuccess) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.warning) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onWarning) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.info) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onInfo) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.outline) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.outlineVariant) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.scrim) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.shadow) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inverseSurface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inverseOnSurface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inversePrimary) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebColorScheme))
+      return false;
+    if (!(this.background === other.background))
+      return false;
+    if (!(this.surface === other.surface))
+      return false;
+    if (!(this.surfaceVariant === other.surfaceVariant))
+      return false;
+    if (!(this.surfaceContainer === other.surfaceContainer))
+      return false;
+    if (!(this.surfaceContainerHigh === other.surfaceContainerHigh))
+      return false;
+    if (!(this.surfaceContainerLow === other.surfaceContainerLow))
+      return false;
+    if (!(this.onBackground === other.onBackground))
+      return false;
+    if (!(this.onSurface === other.onSurface))
+      return false;
+    if (!(this.onSurfaceVariant === other.onSurfaceVariant))
+      return false;
+    if (!(this.primary === other.primary))
+      return false;
+    if (!(this.primaryContainer === other.primaryContainer))
+      return false;
+    if (!(this.onPrimary === other.onPrimary))
+      return false;
+    if (!(this.onPrimaryContainer === other.onPrimaryContainer))
+      return false;
+    if (!(this.secondary === other.secondary))
+      return false;
+    if (!(this.secondaryContainer === other.secondaryContainer))
+      return false;
+    if (!(this.onSecondary === other.onSecondary))
+      return false;
+    if (!(this.onSecondaryContainer === other.onSecondaryContainer))
+      return false;
+    if (!(this.tertiary === other.tertiary))
+      return false;
+    if (!(this.tertiaryContainer === other.tertiaryContainer))
+      return false;
+    if (!(this.onTertiary === other.onTertiary))
+      return false;
+    if (!(this.onTertiaryContainer === other.onTertiaryContainer))
+      return false;
+    if (!(this.error === other.error))
+      return false;
+    if (!(this.errorContainer === other.errorContainer))
+      return false;
+    if (!(this.onError === other.onError))
+      return false;
+    if (!(this.onErrorContainer === other.onErrorContainer))
+      return false;
+    if (!(this.success === other.success))
+      return false;
+    if (!(this.onSuccess === other.onSuccess))
+      return false;
+    if (!(this.warning === other.warning))
+      return false;
+    if (!(this.onWarning === other.onWarning))
+      return false;
+    if (!(this.info === other.info))
+      return false;
+    if (!(this.onInfo === other.onInfo))
+      return false;
+    if (!(this.outline === other.outline))
+      return false;
+    if (!(this.outlineVariant === other.outlineVariant))
+      return false;
+    if (!(this.scrim === other.scrim))
+      return false;
+    if (!(this.shadow === other.shadow))
+      return false;
+    if (!(this.inverseSurface === other.inverseSurface))
+      return false;
+    if (!(this.inverseOnSurface === other.inverseOnSurface))
+      return false;
+    if (!(this.inversePrimary === other.inversePrimary))
+      return false;
+    return true;
+  }
+}
+class WebTextStyle {
+  constructor(fontSize, lineHeight, fontWeight, letterSpacing) {
+    this.fontSize = fontSize;
+    this.lineHeight = lineHeight;
+    this.fontWeight = fontWeight;
+    this.letterSpacing = letterSpacing;
+  }
+  get_fontSize_pr9n47_k$() {
+    return this.fontSize;
+  }
+  get_lineHeight_spcmd8_k$() {
+    return this.lineHeight;
+  }
+  get_fontWeight_wbif2o_k$() {
+    return this.fontWeight;
+  }
+  get_letterSpacing_xp4v84_k$() {
+    return this.letterSpacing;
+  }
+  component1_7eebsc_k$() {
+    return this.fontSize;
+  }
+  component2_7eebsb_k$() {
+    return this.lineHeight;
+  }
+  component3_7eebsa_k$() {
+    return this.fontWeight;
+  }
+  component4_7eebs9_k$() {
+    return this.letterSpacing;
+  }
+  copy_hmmiyd_k$(fontSize, lineHeight, fontWeight, letterSpacing) {
+    return new WebTextStyle(fontSize, lineHeight, fontWeight, letterSpacing);
+  }
+  copy(fontSize, lineHeight, fontWeight, letterSpacing, $super) {
+    fontSize = fontSize === VOID ? this.fontSize : fontSize;
+    lineHeight = lineHeight === VOID ? this.lineHeight : lineHeight;
+    fontWeight = fontWeight === VOID ? this.fontWeight : fontWeight;
+    letterSpacing = letterSpacing === VOID ? this.letterSpacing : letterSpacing;
+    return $super === VOID ? this.copy_hmmiyd_k$(fontSize, lineHeight, fontWeight, letterSpacing) : $super.copy_hmmiyd_k$.call(this, fontSize, lineHeight, fontWeight, letterSpacing);
+  }
+  toString() {
+    return 'WebTextStyle(fontSize=' + this.fontSize + ', lineHeight=' + this.lineHeight + ', fontWeight=' + this.fontWeight + ', letterSpacing=' + this.letterSpacing + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.fontSize);
+    result = imul_0(result, 31) + getStringHashCode(this.lineHeight) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.fontWeight) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.letterSpacing) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebTextStyle))
+      return false;
+    if (!(this.fontSize === other.fontSize))
+      return false;
+    if (!(this.lineHeight === other.lineHeight))
+      return false;
+    if (!(this.fontWeight === other.fontWeight))
+      return false;
+    if (!(this.letterSpacing === other.letterSpacing))
+      return false;
+    return true;
+  }
+}
+class WebTypography {
+  constructor(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall) {
+    this.displayLarge = displayLarge;
+    this.displayMedium = displayMedium;
+    this.displaySmall = displaySmall;
+    this.headlineLarge = headlineLarge;
+    this.headlineMedium = headlineMedium;
+    this.headlineSmall = headlineSmall;
+    this.titleLarge = titleLarge;
+    this.titleMedium = titleMedium;
+    this.titleSmall = titleSmall;
+    this.bodyLarge = bodyLarge;
+    this.bodyMedium = bodyMedium;
+    this.bodySmall = bodySmall;
+    this.labelLarge = labelLarge;
+    this.labelMedium = labelMedium;
+    this.labelSmall = labelSmall;
+  }
+  get_displayLarge_uyh5uq_k$() {
+    return this.displayLarge;
+  }
+  get_displayMedium_y7staq_k$() {
+    return this.displayMedium;
+  }
+  get_displaySmall_v2j1da_k$() {
+    return this.displaySmall;
+  }
+  get_headlineLarge_nmi9we_k$() {
+    return this.headlineLarge;
+  }
+  get_headlineMedium_mllw1e_k$() {
+    return this.headlineMedium;
+  }
+  get_headlineSmall_nqk5ey_k$() {
+    return this.headlineSmall;
+  }
+  get_titleLarge_l89m4s_k$() {
+    return this.titleLarge;
+  }
+  get_titleMedium_jd9h8k_k$() {
+    return this.titleMedium;
+  }
+  get_titleSmall_lcbhnc_k$() {
+    return this.titleSmall;
+  }
+  get_bodyLarge_sxra4w_k$() {
+    return this.bodyLarge;
+  }
+  get_bodyMedium_psz2kg_k$() {
+    return this.bodyMedium;
+  }
+  get_bodySmall_t1t5ng_k$() {
+    return this.bodySmall;
+  }
+  get_labelLarge_na0mr4_k$() {
+    return this.labelLarge;
+  }
+  get_labelMedium_bueyhs_k$() {
+    return this.labelMedium;
+  }
+  get_labelSmall_ne2i9o_k$() {
+    return this.labelSmall;
+  }
+  component1_7eebsc_k$() {
+    return this.displayLarge;
+  }
+  component2_7eebsb_k$() {
+    return this.displayMedium;
+  }
+  component3_7eebsa_k$() {
+    return this.displaySmall;
+  }
+  component4_7eebs9_k$() {
+    return this.headlineLarge;
+  }
+  component5_7eebs8_k$() {
+    return this.headlineMedium;
+  }
+  component6_7eebs7_k$() {
+    return this.headlineSmall;
+  }
+  component7_7eebs6_k$() {
+    return this.titleLarge;
+  }
+  component8_7eebs5_k$() {
+    return this.titleMedium;
+  }
+  component9_7eebs4_k$() {
+    return this.titleSmall;
+  }
+  component10_gazzfo_k$() {
+    return this.bodyLarge;
+  }
+  component11_gazzfn_k$() {
+    return this.bodyMedium;
+  }
+  component12_gazzfm_k$() {
+    return this.bodySmall;
+  }
+  component13_gazzfl_k$() {
+    return this.labelLarge;
+  }
+  component14_gazzfk_k$() {
+    return this.labelMedium;
+  }
+  component15_gazzfj_k$() {
+    return this.labelSmall;
+  }
+  copy_ic529v_k$(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall) {
+    return new WebTypography(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall);
+  }
+  copy(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall, $super) {
+    displayLarge = displayLarge === VOID ? this.displayLarge : displayLarge;
+    displayMedium = displayMedium === VOID ? this.displayMedium : displayMedium;
+    displaySmall = displaySmall === VOID ? this.displaySmall : displaySmall;
+    headlineLarge = headlineLarge === VOID ? this.headlineLarge : headlineLarge;
+    headlineMedium = headlineMedium === VOID ? this.headlineMedium : headlineMedium;
+    headlineSmall = headlineSmall === VOID ? this.headlineSmall : headlineSmall;
+    titleLarge = titleLarge === VOID ? this.titleLarge : titleLarge;
+    titleMedium = titleMedium === VOID ? this.titleMedium : titleMedium;
+    titleSmall = titleSmall === VOID ? this.titleSmall : titleSmall;
+    bodyLarge = bodyLarge === VOID ? this.bodyLarge : bodyLarge;
+    bodyMedium = bodyMedium === VOID ? this.bodyMedium : bodyMedium;
+    bodySmall = bodySmall === VOID ? this.bodySmall : bodySmall;
+    labelLarge = labelLarge === VOID ? this.labelLarge : labelLarge;
+    labelMedium = labelMedium === VOID ? this.labelMedium : labelMedium;
+    labelSmall = labelSmall === VOID ? this.labelSmall : labelSmall;
+    return $super === VOID ? this.copy_ic529v_k$(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall) : $super.copy_ic529v_k$.call(this, displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall);
+  }
+  toString() {
+    return 'WebTypography(displayLarge=' + this.displayLarge.toString() + ', displayMedium=' + this.displayMedium.toString() + ', displaySmall=' + this.displaySmall.toString() + ', headlineLarge=' + this.headlineLarge.toString() + ', headlineMedium=' + this.headlineMedium.toString() + ', headlineSmall=' + this.headlineSmall.toString() + ', titleLarge=' + this.titleLarge.toString() + ', titleMedium=' + this.titleMedium.toString() + ', titleSmall=' + this.titleSmall.toString() + ', bodyLarge=' + this.bodyLarge.toString() + ', bodyMedium=' + this.bodyMedium.toString() + ', bodySmall=' + this.bodySmall.toString() + ', labelLarge=' + this.labelLarge.toString() + ', labelMedium=' + this.labelMedium.toString() + ', labelSmall=' + this.labelSmall.toString() + ')';
+  }
+  hashCode() {
+    var result = this.displayLarge.hashCode();
+    result = imul_0(result, 31) + this.displayMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.displaySmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.headlineLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.headlineMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.headlineSmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.titleLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.titleMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.titleSmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.bodyLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.bodyMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.bodySmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.labelLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.labelMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.labelSmall.hashCode() | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebTypography))
+      return false;
+    if (!this.displayLarge.equals(other.displayLarge))
+      return false;
+    if (!this.displayMedium.equals(other.displayMedium))
+      return false;
+    if (!this.displaySmall.equals(other.displaySmall))
+      return false;
+    if (!this.headlineLarge.equals(other.headlineLarge))
+      return false;
+    if (!this.headlineMedium.equals(other.headlineMedium))
+      return false;
+    if (!this.headlineSmall.equals(other.headlineSmall))
+      return false;
+    if (!this.titleLarge.equals(other.titleLarge))
+      return false;
+    if (!this.titleMedium.equals(other.titleMedium))
+      return false;
+    if (!this.titleSmall.equals(other.titleSmall))
+      return false;
+    if (!this.bodyLarge.equals(other.bodyLarge))
+      return false;
+    if (!this.bodyMedium.equals(other.bodyMedium))
+      return false;
+    if (!this.bodySmall.equals(other.bodySmall))
+      return false;
+    if (!this.labelLarge.equals(other.labelLarge))
+      return false;
+    if (!this.labelMedium.equals(other.labelMedium))
+      return false;
+    if (!this.labelSmall.equals(other.labelSmall))
+      return false;
+    return true;
+  }
+}
+class WebSpacing {
+  constructor(none, xxs, xs, sm, md, lg, xl, xxl, xxxl) {
+    none = none === VOID ? '0' : none;
+    xxs = xxs === VOID ? '2px' : xxs;
+    xs = xs === VOID ? '4px' : xs;
+    sm = sm === VOID ? '8px' : sm;
+    md = md === VOID ? '16px' : md;
+    lg = lg === VOID ? '24px' : lg;
+    xl = xl === VOID ? '32px' : xl;
+    xxl = xxl === VOID ? '48px' : xxl;
+    xxxl = xxxl === VOID ? '64px' : xxxl;
+    this.none = none;
+    this.xxs = xxs;
+    this.xs = xs;
+    this.sm = sm;
+    this.md = md;
+    this.lg = lg;
+    this.xl = xl;
+    this.xxl = xxl;
+    this.xxxl = xxxl;
+  }
+  get_none_wor91d_k$() {
+    return this.none;
+  }
+  get_xxs_18is52_k$() {
+    return this.xxs;
+  }
+  get_xs_kntnjw_k$() {
+    return this.xs;
+  }
+  get_sm_kntnod_k$() {
+    return this.sm;
+  }
+  get_md_kntnts_k$() {
+    return this.md;
+  }
+  get_lg_kntnuk_k$() {
+    return this.lg;
+  }
+  get_xl_kntnk3_k$() {
+    return this.xl;
+  }
+  get_xxl_18is59_k$() {
+    return this.xxl;
+  }
+  get_xxxl_woxttp_k$() {
+    return this.xxxl;
+  }
+  component1_7eebsc_k$() {
+    return this.none;
+  }
+  component2_7eebsb_k$() {
+    return this.xxs;
+  }
+  component3_7eebsa_k$() {
+    return this.xs;
+  }
+  component4_7eebs9_k$() {
+    return this.sm;
+  }
+  component5_7eebs8_k$() {
+    return this.md;
+  }
+  component6_7eebs7_k$() {
+    return this.lg;
+  }
+  component7_7eebs6_k$() {
+    return this.xl;
+  }
+  component8_7eebs5_k$() {
+    return this.xxl;
+  }
+  component9_7eebs4_k$() {
+    return this.xxxl;
+  }
+  copy_jihvqd_k$(none, xxs, xs, sm, md, lg, xl, xxl, xxxl) {
+    return new WebSpacing(none, xxs, xs, sm, md, lg, xl, xxl, xxxl);
+  }
+  copy(none, xxs, xs, sm, md, lg, xl, xxl, xxxl, $super) {
+    none = none === VOID ? this.none : none;
+    xxs = xxs === VOID ? this.xxs : xxs;
+    xs = xs === VOID ? this.xs : xs;
+    sm = sm === VOID ? this.sm : sm;
+    md = md === VOID ? this.md : md;
+    lg = lg === VOID ? this.lg : lg;
+    xl = xl === VOID ? this.xl : xl;
+    xxl = xxl === VOID ? this.xxl : xxl;
+    xxxl = xxxl === VOID ? this.xxxl : xxxl;
+    return $super === VOID ? this.copy_jihvqd_k$(none, xxs, xs, sm, md, lg, xl, xxl, xxxl) : $super.copy_jihvqd_k$.call(this, none, xxs, xs, sm, md, lg, xl, xxl, xxxl);
+  }
+  toString() {
+    return 'WebSpacing(none=' + this.none + ', xxs=' + this.xxs + ', xs=' + this.xs + ', sm=' + this.sm + ', md=' + this.md + ', lg=' + this.lg + ', xl=' + this.xl + ', xxl=' + this.xxl + ', xxxl=' + this.xxxl + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.none);
+    result = imul_0(result, 31) + getStringHashCode(this.xxs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.sm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.md) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.lg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xxl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xxxl) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebSpacing))
+      return false;
+    if (!(this.none === other.none))
+      return false;
+    if (!(this.xxs === other.xxs))
+      return false;
+    if (!(this.xs === other.xs))
+      return false;
+    if (!(this.sm === other.sm))
+      return false;
+    if (!(this.md === other.md))
+      return false;
+    if (!(this.lg === other.lg))
+      return false;
+    if (!(this.xl === other.xl))
+      return false;
+    if (!(this.xxl === other.xxl))
+      return false;
+    if (!(this.xxxl === other.xxxl))
+      return false;
+    return true;
+  }
+}
+class WebShapes {
+  constructor(none, xs, sm, md, lg, xl, full) {
+    none = none === VOID ? '0' : none;
+    xs = xs === VOID ? '4px' : xs;
+    sm = sm === VOID ? '8px' : sm;
+    md = md === VOID ? '12px' : md;
+    lg = lg === VOID ? '16px' : lg;
+    xl = xl === VOID ? '24px' : xl;
+    full = full === VOID ? '9999px' : full;
+    this.none = none;
+    this.xs = xs;
+    this.sm = sm;
+    this.md = md;
+    this.lg = lg;
+    this.xl = xl;
+    this.full = full;
+  }
+  get_none_wor91d_k$() {
+    return this.none;
+  }
+  get_xs_kntnjw_k$() {
+    return this.xs;
+  }
+  get_sm_kntnod_k$() {
+    return this.sm;
+  }
+  get_md_kntnts_k$() {
+    return this.md;
+  }
+  get_lg_kntnuk_k$() {
+    return this.lg;
+  }
+  get_xl_kntnk3_k$() {
+    return this.xl;
+  }
+  get_full_wom9js_k$() {
+    return this.full;
+  }
+  component1_7eebsc_k$() {
+    return this.none;
+  }
+  component2_7eebsb_k$() {
+    return this.xs;
+  }
+  component3_7eebsa_k$() {
+    return this.sm;
+  }
+  component4_7eebs9_k$() {
+    return this.md;
+  }
+  component5_7eebs8_k$() {
+    return this.lg;
+  }
+  component6_7eebs7_k$() {
+    return this.xl;
+  }
+  component7_7eebs6_k$() {
+    return this.full;
+  }
+  copy_ytms63_k$(none, xs, sm, md, lg, xl, full) {
+    return new WebShapes(none, xs, sm, md, lg, xl, full);
+  }
+  copy(none, xs, sm, md, lg, xl, full, $super) {
+    none = none === VOID ? this.none : none;
+    xs = xs === VOID ? this.xs : xs;
+    sm = sm === VOID ? this.sm : sm;
+    md = md === VOID ? this.md : md;
+    lg = lg === VOID ? this.lg : lg;
+    xl = xl === VOID ? this.xl : xl;
+    full = full === VOID ? this.full : full;
+    return $super === VOID ? this.copy_ytms63_k$(none, xs, sm, md, lg, xl, full) : $super.copy_ytms63_k$.call(this, none, xs, sm, md, lg, xl, full);
+  }
+  toString() {
+    return 'WebShapes(none=' + this.none + ', xs=' + this.xs + ', sm=' + this.sm + ', md=' + this.md + ', lg=' + this.lg + ', xl=' + this.xl + ', full=' + this.full + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.none);
+    result = imul_0(result, 31) + getStringHashCode(this.xs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.sm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.md) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.lg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.full) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebShapes))
+      return false;
+    if (!(this.none === other.none))
+      return false;
+    if (!(this.xs === other.xs))
+      return false;
+    if (!(this.sm === other.sm))
+      return false;
+    if (!(this.md === other.md))
+      return false;
+    if (!(this.lg === other.lg))
+      return false;
+    if (!(this.xl === other.xl))
+      return false;
+    if (!(this.full === other.full))
+      return false;
+    return true;
+  }
+}
+class WebElevation {
+  constructor(none, xs, sm, md, lg, xl) {
+    none = none === VOID ? 'none' : none;
+    xs = xs === VOID ? '0 1px 2px rgba(0,0,0,0.05)' : xs;
+    sm = sm === VOID ? '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)' : sm;
+    md = md === VOID ? '0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)' : md;
+    lg = lg === VOID ? '0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)' : lg;
+    xl = xl === VOID ? '0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04)' : xl;
+    this.none = none;
+    this.xs = xs;
+    this.sm = sm;
+    this.md = md;
+    this.lg = lg;
+    this.xl = xl;
+  }
+  get_none_wor91d_k$() {
+    return this.none;
+  }
+  get_xs_kntnjw_k$() {
+    return this.xs;
+  }
+  get_sm_kntnod_k$() {
+    return this.sm;
+  }
+  get_md_kntnts_k$() {
+    return this.md;
+  }
+  get_lg_kntnuk_k$() {
+    return this.lg;
+  }
+  get_xl_kntnk3_k$() {
+    return this.xl;
+  }
+  component1_7eebsc_k$() {
+    return this.none;
+  }
+  component2_7eebsb_k$() {
+    return this.xs;
+  }
+  component3_7eebsa_k$() {
+    return this.sm;
+  }
+  component4_7eebs9_k$() {
+    return this.md;
+  }
+  component5_7eebs8_k$() {
+    return this.lg;
+  }
+  component6_7eebs7_k$() {
+    return this.xl;
+  }
+  copy_sq36gl_k$(none, xs, sm, md, lg, xl) {
+    return new WebElevation(none, xs, sm, md, lg, xl);
+  }
+  copy(none, xs, sm, md, lg, xl, $super) {
+    none = none === VOID ? this.none : none;
+    xs = xs === VOID ? this.xs : xs;
+    sm = sm === VOID ? this.sm : sm;
+    md = md === VOID ? this.md : md;
+    lg = lg === VOID ? this.lg : lg;
+    xl = xl === VOID ? this.xl : xl;
+    return $super === VOID ? this.copy_sq36gl_k$(none, xs, sm, md, lg, xl) : $super.copy_sq36gl_k$.call(this, none, xs, sm, md, lg, xl);
+  }
+  toString() {
+    return 'WebElevation(none=' + this.none + ', xs=' + this.xs + ', sm=' + this.sm + ', md=' + this.md + ', lg=' + this.lg + ', xl=' + this.xl + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.none);
+    result = imul_0(result, 31) + getStringHashCode(this.xs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.sm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.md) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.lg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xl) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebElevation))
+      return false;
+    if (!(this.none === other.none))
+      return false;
+    if (!(this.xs === other.xs))
+      return false;
+    if (!(this.sm === other.sm))
+      return false;
+    if (!(this.md === other.md))
+      return false;
+    if (!(this.lg === other.lg))
+      return false;
+    if (!(this.xl === other.xl))
+      return false;
+    return true;
+  }
+}
+class WebSizing {
+  constructor(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl) {
+    touchTargetMin = touchTargetMin === VOID ? '48px' : touchTargetMin;
+    iconXs = iconXs === VOID ? '16px' : iconXs;
+    iconSm = iconSm === VOID ? '20px' : iconSm;
+    iconMd = iconMd === VOID ? '24px' : iconMd;
+    iconLg = iconLg === VOID ? '32px' : iconLg;
+    iconXl = iconXl === VOID ? '48px' : iconXl;
+    buttonSm = buttonSm === VOID ? '32px' : buttonSm;
+    buttonMd = buttonMd === VOID ? '40px' : buttonMd;
+    buttonLg = buttonLg === VOID ? '48px' : buttonLg;
+    inputSm = inputSm === VOID ? '32px' : inputSm;
+    inputMd = inputMd === VOID ? '40px' : inputMd;
+    inputLg = inputLg === VOID ? '56px' : inputLg;
+    avatarSm = avatarSm === VOID ? '32px' : avatarSm;
+    avatarMd = avatarMd === VOID ? '40px' : avatarMd;
+    avatarLg = avatarLg === VOID ? '56px' : avatarLg;
+    avatarXl = avatarXl === VOID ? '80px' : avatarXl;
+    this.touchTargetMin = touchTargetMin;
+    this.iconXs = iconXs;
+    this.iconSm = iconSm;
+    this.iconMd = iconMd;
+    this.iconLg = iconLg;
+    this.iconXl = iconXl;
+    this.buttonSm = buttonSm;
+    this.buttonMd = buttonMd;
+    this.buttonLg = buttonLg;
+    this.inputSm = inputSm;
+    this.inputMd = inputMd;
+    this.inputLg = inputLg;
+    this.avatarSm = avatarSm;
+    this.avatarMd = avatarMd;
+    this.avatarLg = avatarLg;
+    this.avatarXl = avatarXl;
+  }
+  get_touchTargetMin_av50mt_k$() {
+    return this.touchTargetMin;
+  }
+  get_iconXs_env90d_k$() {
+    return this.iconXs;
+  }
+  get_iconSm_env8vw_k$() {
+    return this.iconSm;
+  }
+  get_iconMd_env8qh_k$() {
+    return this.iconMd;
+  }
+  get_iconLg_env8pp_k$() {
+    return this.iconLg;
+  }
+  get_iconXl_env906_k$() {
+    return this.iconXl;
+  }
+  get_buttonSm_kwhwqd_k$() {
+    return this.buttonSm;
+  }
+  get_buttonMd_kwhwky_k$() {
+    return this.buttonMd;
+  }
+  get_buttonLg_kwhwk6_k$() {
+    return this.buttonLg;
+  }
+  get_inputSm_xlf3dn_k$() {
+    return this.inputSm;
+  }
+  get_inputMd_xlf388_k$() {
+    return this.inputMd;
+  }
+  get_inputLg_xlf37g_k$() {
+    return this.inputLg;
+  }
+  get_avatarSm_28tyg4_k$() {
+    return this.avatarSm;
+  }
+  get_avatarMd_28tylj_k$() {
+    return this.avatarMd;
+  }
+  get_avatarLg_28tymb_k$() {
+    return this.avatarLg;
+  }
+  get_avatarXl_28tybu_k$() {
+    return this.avatarXl;
+  }
+  component1_7eebsc_k$() {
+    return this.touchTargetMin;
+  }
+  component2_7eebsb_k$() {
+    return this.iconXs;
+  }
+  component3_7eebsa_k$() {
+    return this.iconSm;
+  }
+  component4_7eebs9_k$() {
+    return this.iconMd;
+  }
+  component5_7eebs8_k$() {
+    return this.iconLg;
+  }
+  component6_7eebs7_k$() {
+    return this.iconXl;
+  }
+  component7_7eebs6_k$() {
+    return this.buttonSm;
+  }
+  component8_7eebs5_k$() {
+    return this.buttonMd;
+  }
+  component9_7eebs4_k$() {
+    return this.buttonLg;
+  }
+  component10_gazzfo_k$() {
+    return this.inputSm;
+  }
+  component11_gazzfn_k$() {
+    return this.inputMd;
+  }
+  component12_gazzfm_k$() {
+    return this.inputLg;
+  }
+  component13_gazzfl_k$() {
+    return this.avatarSm;
+  }
+  component14_gazzfk_k$() {
+    return this.avatarMd;
+  }
+  component15_gazzfj_k$() {
+    return this.avatarLg;
+  }
+  component16_gazzfi_k$() {
+    return this.avatarXl;
+  }
+  copy_cb4rrf_k$(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl) {
+    return new WebSizing(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl);
+  }
+  copy(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl, $super) {
+    touchTargetMin = touchTargetMin === VOID ? this.touchTargetMin : touchTargetMin;
+    iconXs = iconXs === VOID ? this.iconXs : iconXs;
+    iconSm = iconSm === VOID ? this.iconSm : iconSm;
+    iconMd = iconMd === VOID ? this.iconMd : iconMd;
+    iconLg = iconLg === VOID ? this.iconLg : iconLg;
+    iconXl = iconXl === VOID ? this.iconXl : iconXl;
+    buttonSm = buttonSm === VOID ? this.buttonSm : buttonSm;
+    buttonMd = buttonMd === VOID ? this.buttonMd : buttonMd;
+    buttonLg = buttonLg === VOID ? this.buttonLg : buttonLg;
+    inputSm = inputSm === VOID ? this.inputSm : inputSm;
+    inputMd = inputMd === VOID ? this.inputMd : inputMd;
+    inputLg = inputLg === VOID ? this.inputLg : inputLg;
+    avatarSm = avatarSm === VOID ? this.avatarSm : avatarSm;
+    avatarMd = avatarMd === VOID ? this.avatarMd : avatarMd;
+    avatarLg = avatarLg === VOID ? this.avatarLg : avatarLg;
+    avatarXl = avatarXl === VOID ? this.avatarXl : avatarXl;
+    return $super === VOID ? this.copy_cb4rrf_k$(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl) : $super.copy_cb4rrf_k$.call(this, touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl);
+  }
+  toString() {
+    return 'WebSizing(touchTargetMin=' + this.touchTargetMin + ', iconXs=' + this.iconXs + ', iconSm=' + this.iconSm + ', iconMd=' + this.iconMd + ', iconLg=' + this.iconLg + ', iconXl=' + this.iconXl + ', buttonSm=' + this.buttonSm + ', buttonMd=' + this.buttonMd + ', buttonLg=' + this.buttonLg + ', inputSm=' + this.inputSm + ', inputMd=' + this.inputMd + ', inputLg=' + this.inputLg + ', avatarSm=' + this.avatarSm + ', avatarMd=' + this.avatarMd + ', avatarLg=' + this.avatarLg + ', avatarXl=' + this.avatarXl + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.touchTargetMin);
+    result = imul_0(result, 31) + getStringHashCode(this.iconXs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconXl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.buttonSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.buttonMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.buttonLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inputSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inputMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inputLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarXl) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebSizing))
+      return false;
+    if (!(this.touchTargetMin === other.touchTargetMin))
+      return false;
+    if (!(this.iconXs === other.iconXs))
+      return false;
+    if (!(this.iconSm === other.iconSm))
+      return false;
+    if (!(this.iconMd === other.iconMd))
+      return false;
+    if (!(this.iconLg === other.iconLg))
+      return false;
+    if (!(this.iconXl === other.iconXl))
+      return false;
+    if (!(this.buttonSm === other.buttonSm))
+      return false;
+    if (!(this.buttonMd === other.buttonMd))
+      return false;
+    if (!(this.buttonLg === other.buttonLg))
+      return false;
+    if (!(this.inputSm === other.inputSm))
+      return false;
+    if (!(this.inputMd === other.inputMd))
+      return false;
+    if (!(this.inputLg === other.inputLg))
+      return false;
+    if (!(this.avatarSm === other.avatarSm))
+      return false;
+    if (!(this.avatarMd === other.avatarMd))
+      return false;
+    if (!(this.avatarLg === other.avatarLg))
+      return false;
+    if (!(this.avatarXl === other.avatarXl))
+      return false;
+    return true;
+  }
+}
+class WebBreakpoints {
+  constructor(mobile, tablet, desktop, largeDesktop) {
+    mobile = mobile === VOID ? 0 : mobile;
+    tablet = tablet === VOID ? 600 : tablet;
+    desktop = desktop === VOID ? 840 : desktop;
+    largeDesktop = largeDesktop === VOID ? 1200 : largeDesktop;
+    this.mobile = mobile;
+    this.tablet = tablet;
+    this.desktop = desktop;
+    this.largeDesktop = largeDesktop;
+  }
+  get_mobile_gqevmz_k$() {
+    return this.mobile;
+  }
+  get_tablet_ju165r_k$() {
+    return this.tablet;
+  }
+  get_desktop_r0m59v_k$() {
+    return this.desktop;
+  }
+  get_largeDesktop_76vg46_k$() {
+    return this.largeDesktop;
+  }
+  component1_7eebsc_k$() {
+    return this.mobile;
+  }
+  component2_7eebsb_k$() {
+    return this.tablet;
+  }
+  component3_7eebsa_k$() {
+    return this.desktop;
+  }
+  component4_7eebs9_k$() {
+    return this.largeDesktop;
+  }
+  copy_my5h57_k$(mobile, tablet, desktop, largeDesktop) {
+    return new WebBreakpoints(mobile, tablet, desktop, largeDesktop);
+  }
+  copy(mobile, tablet, desktop, largeDesktop, $super) {
+    mobile = mobile === VOID ? this.mobile : mobile;
+    tablet = tablet === VOID ? this.tablet : tablet;
+    desktop = desktop === VOID ? this.desktop : desktop;
+    largeDesktop = largeDesktop === VOID ? this.largeDesktop : largeDesktop;
+    return $super === VOID ? this.copy_my5h57_k$(mobile, tablet, desktop, largeDesktop) : $super.copy_my5h57_k$.call(this, mobile, tablet, desktop, largeDesktop);
+  }
+  toString() {
+    return 'WebBreakpoints(mobile=' + this.mobile + ', tablet=' + this.tablet + ', desktop=' + this.desktop + ', largeDesktop=' + this.largeDesktop + ')';
+  }
+  hashCode() {
+    var result = this.mobile;
+    result = imul_0(result, 31) + this.tablet | 0;
+    result = imul_0(result, 31) + this.desktop | 0;
+    result = imul_0(result, 31) + this.largeDesktop | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebBreakpoints))
+      return false;
+    if (!(this.mobile === other.mobile))
+      return false;
+    if (!(this.tablet === other.tablet))
+      return false;
+    if (!(this.desktop === other.desktop))
+      return false;
+    if (!(this.largeDesktop === other.largeDesktop))
+      return false;
+    return true;
+  }
+}
+class WebMotion {
+  constructor(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest) {
+    durationInstant = durationInstant === VOID ? 0 : durationInstant;
+    durationFast = durationFast === VOID ? 150 : durationFast;
+    durationNormal = durationNormal === VOID ? 300 : durationNormal;
+    durationSlow = durationSlow === VOID ? 500 : durationSlow;
+    durationSlowest = durationSlowest === VOID ? 700 : durationSlowest;
+    this.durationInstant = durationInstant;
+    this.durationFast = durationFast;
+    this.durationNormal = durationNormal;
+    this.durationSlow = durationSlow;
+    this.durationSlowest = durationSlowest;
+  }
+  get_durationInstant_vmx22s_k$() {
+    return this.durationInstant;
+  }
+  get_durationFast_rh0iav_k$() {
+    return this.durationFast;
+  }
+  get_durationNormal_qbd8kk_k$() {
+    return this.durationNormal;
+  }
+  get_durationSlow_rgrzeq_k$() {
+    return this.durationSlow;
+  }
+  get_durationSlowest_zcfd8o_k$() {
+    return this.durationSlowest;
+  }
+  component1_7eebsc_k$() {
+    return this.durationInstant;
+  }
+  component2_7eebsb_k$() {
+    return this.durationFast;
+  }
+  component3_7eebsa_k$() {
+    return this.durationNormal;
+  }
+  component4_7eebs9_k$() {
+    return this.durationSlow;
+  }
+  component5_7eebs8_k$() {
+    return this.durationSlowest;
+  }
+  copy_lxzq2r_k$(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest) {
+    return new WebMotion(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest);
+  }
+  copy(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest, $super) {
+    durationInstant = durationInstant === VOID ? this.durationInstant : durationInstant;
+    durationFast = durationFast === VOID ? this.durationFast : durationFast;
+    durationNormal = durationNormal === VOID ? this.durationNormal : durationNormal;
+    durationSlow = durationSlow === VOID ? this.durationSlow : durationSlow;
+    durationSlowest = durationSlowest === VOID ? this.durationSlowest : durationSlowest;
+    return $super === VOID ? this.copy_lxzq2r_k$(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest) : $super.copy_lxzq2r_k$.call(this, durationInstant, durationFast, durationNormal, durationSlow, durationSlowest);
+  }
+  toString() {
+    return 'WebMotion(durationInstant=' + this.durationInstant + ', durationFast=' + this.durationFast + ', durationNormal=' + this.durationNormal + ', durationSlow=' + this.durationSlow + ', durationSlowest=' + this.durationSlowest + ')';
+  }
+  hashCode() {
+    var result = this.durationInstant;
+    result = imul_0(result, 31) + this.durationFast | 0;
+    result = imul_0(result, 31) + this.durationNormal | 0;
+    result = imul_0(result, 31) + this.durationSlow | 0;
+    result = imul_0(result, 31) + this.durationSlowest | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebMotion))
+      return false;
+    if (!(this.durationInstant === other.durationInstant))
+      return false;
+    if (!(this.durationFast === other.durationFast))
+      return false;
+    if (!(this.durationNormal === other.durationNormal))
+      return false;
+    if (!(this.durationSlow === other.durationSlow))
+      return false;
+    if (!(this.durationSlowest === other.durationSlowest))
+      return false;
+    return true;
+  }
+}
+class WebDesignTokens {
+  constructor(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion) {
+    typography = typography === VOID ? defaultWebTypography() : typography;
+    spacing = spacing === VOID ? new WebSpacing() : spacing;
+    shapes = shapes === VOID ? new WebShapes() : shapes;
+    elevation = elevation === VOID ? new WebElevation() : elevation;
+    sizing = sizing === VOID ? new WebSizing() : sizing;
+    breakpoints = breakpoints === VOID ? new WebBreakpoints() : breakpoints;
+    motion = motion === VOID ? new WebMotion() : motion;
+    this.colors = colors;
+    this.typography = typography;
+    this.spacing = spacing;
+    this.shapes = shapes;
+    this.elevation = elevation;
+    this.sizing = sizing;
+    this.breakpoints = breakpoints;
+    this.motion = motion;
+  }
+  get_colors_c05661_k$() {
+    return this.colors;
+  }
+  get_typography_tk20co_k$() {
+    return this.typography;
+  }
+  get_spacing_w0flpi_k$() {
+    return this.spacing;
+  }
+  get_shapes_jgtjwb_k$() {
+    return this.shapes;
+  }
+  get_elevation_8fwyb8_k$() {
+    return this.elevation;
+  }
+  get_sizing_jht66f_k$() {
+    return this.sizing;
+  }
+  get_breakpoints_k65pzb_k$() {
+    return this.breakpoints;
+  }
+  get_motion_gqqdhb_k$() {
+    return this.motion;
+  }
+  component1_7eebsc_k$() {
+    return this.colors;
+  }
+  component2_7eebsb_k$() {
+    return this.typography;
+  }
+  component3_7eebsa_k$() {
+    return this.spacing;
+  }
+  component4_7eebs9_k$() {
+    return this.shapes;
+  }
+  component5_7eebs8_k$() {
+    return this.elevation;
+  }
+  component6_7eebs7_k$() {
+    return this.sizing;
+  }
+  component7_7eebs6_k$() {
+    return this.breakpoints;
+  }
+  component8_7eebs5_k$() {
+    return this.motion;
+  }
+  copy_t1gkl6_k$(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion) {
+    return new WebDesignTokens(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion);
+  }
+  copy(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion, $super) {
+    colors = colors === VOID ? this.colors : colors;
+    typography = typography === VOID ? this.typography : typography;
+    spacing = spacing === VOID ? this.spacing : spacing;
+    shapes = shapes === VOID ? this.shapes : shapes;
+    elevation = elevation === VOID ? this.elevation : elevation;
+    sizing = sizing === VOID ? this.sizing : sizing;
+    breakpoints = breakpoints === VOID ? this.breakpoints : breakpoints;
+    motion = motion === VOID ? this.motion : motion;
+    return $super === VOID ? this.copy_t1gkl6_k$(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion) : $super.copy_t1gkl6_k$.call(this, colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion);
+  }
+  toString() {
+    return 'WebDesignTokens(colors=' + this.colors.toString() + ', typography=' + this.typography.toString() + ', spacing=' + this.spacing.toString() + ', shapes=' + this.shapes.toString() + ', elevation=' + this.elevation.toString() + ', sizing=' + this.sizing.toString() + ', breakpoints=' + this.breakpoints.toString() + ', motion=' + this.motion.toString() + ')';
+  }
+  hashCode() {
+    var result = this.colors.hashCode();
+    result = imul_0(result, 31) + this.typography.hashCode() | 0;
+    result = imul_0(result, 31) + this.spacing.hashCode() | 0;
+    result = imul_0(result, 31) + this.shapes.hashCode() | 0;
+    result = imul_0(result, 31) + this.elevation.hashCode() | 0;
+    result = imul_0(result, 31) + this.sizing.hashCode() | 0;
+    result = imul_0(result, 31) + this.breakpoints.hashCode() | 0;
+    result = imul_0(result, 31) + this.motion.hashCode() | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebDesignTokens))
+      return false;
+    if (!this.colors.equals(other.colors))
+      return false;
+    if (!this.typography.equals(other.typography))
+      return false;
+    if (!this.spacing.equals(other.spacing))
+      return false;
+    if (!this.shapes.equals(other.shapes))
+      return false;
+    if (!this.elevation.equals(other.elevation))
+      return false;
+    if (!this.sizing.equals(other.sizing))
+      return false;
+    if (!this.breakpoints.equals(other.breakpoints))
+      return false;
+    if (!this.motion.equals(other.motion))
+      return false;
+    return true;
+  }
+}
+class WebMaterialTokens_0 {
+  get_defaultLight_6i7zoi_k$() {
+    return createWebTokens('#6750A4', '#625B71', '#7D5260', false);
+  }
+  get_defaultDark_6nrdv2_k$() {
+    return createWebTokens('#6750A4', '#625B71', '#7D5260', true);
+  }
+  get_blueLight_ukh1al_k$() {
+    return createWebTokens('#1976D2', '#455A64', '#00796B', false);
+  }
+  get_blueDark_v36gu1_k$() {
+    return createWebTokens('#1976D2', '#455A64', '#00796B', true);
+  }
+  get_greenLight_q28338_k$() {
+    return createWebTokens('#388E3C', '#5D4037', '#00796B', false);
+  }
+  get_greenDark_sc9f2o_k$() {
+    return createWebTokens('#388E3C', '#5D4037', '#00796B', true);
+  }
+  get_reaktorLight_vxlesb_k$() {
+    // Inline function 'kotlin.let' call
+    var it = createLightColorScheme('#702632', '#008080', '#008080', '#E0F7FA');
+    return createWebDesignTokens(it);
+  }
+  get_reaktorDark_f06klj_k$() {
+    // Inline function 'kotlin.let' call
+    var it = createDarkColorScheme('#702632', '#008080', '#008080');
+    return createWebDesignTokens(it);
+  }
+  get defaultLight() {
+    return this.get_defaultLight_6i7zoi_k$();
+  }
+  get defaultDark() {
+    return this.get_defaultDark_6nrdv2_k$();
+  }
+  get blueLight() {
+    return this.get_blueLight_ukh1al_k$();
+  }
+  get blueDark() {
+    return this.get_blueDark_v36gu1_k$();
+  }
+  get greenLight() {
+    return this.get_greenLight_q28338_k$();
+  }
+  get greenDark() {
+    return this.get_greenDark_sc9f2o_k$();
+  }
+  get reaktorLight() {
+    return this.get_reaktorLight_vxlesb_k$();
+  }
+  get reaktorDark() {
+    return this.get_reaktorDark_f06klj_k$();
+  }
+}
+class RGB {
+  constructor(r, g, b) {
+    this.r_1 = r;
+    this.g_1 = g;
+    this.b_1 = b;
+  }
+  component1_7eebsc_k$() {
+    return this.r_1;
+  }
+  component2_7eebsb_k$() {
+    return this.g_1;
+  }
+  component3_7eebsa_k$() {
+    return this.b_1;
+  }
+  toString() {
+    return 'RGB(r=' + this.r_1 + ', g=' + this.g_1 + ', b=' + this.b_1 + ')';
+  }
+  hashCode() {
+    var result = getNumberHashCode(this.r_1);
+    result = imul_0(result, 31) + getNumberHashCode(this.g_1) | 0;
+    result = imul_0(result, 31) + getNumberHashCode(this.b_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof RGB))
+      return false;
+    if (!equals(this.r_1, other.r_1))
+      return false;
+    if (!equals(this.g_1, other.g_1))
+      return false;
+    if (!equals(this.b_1, other.b_1))
+      return false;
+    return true;
   }
 }
 class Companion_41 {
@@ -22813,7 +24249,7 @@ class Companion_46 {
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    tmp.$childSerializers_1 = [null, null, null, createSimpleEnumSerializer('io.ktor.util.date.WeekDay', values_2()), null, null, createSimpleEnumSerializer('io.ktor.util.date.Month', values_3()), null, null];
+    tmp.$childSerializers_1 = [null, null, null, createSimpleEnumSerializer('io.ktor.util.date.WeekDay', values_8()), null, null, createSimpleEnumSerializer('io.ktor.util.date.Month', values_9()), null, null];
     this.START_1 = GMTDate_0(0n);
   }
 }
@@ -23026,7 +24462,7 @@ class GMTDate {
 }
 class Companion_47 {
   from_1ixx1u_k$(ordinal) {
-    return get_entries_1().get_c1px32_k$(ordinal);
+    return get_entries_2().get_c1px32_k$(ordinal);
   }
 }
 class WeekDay extends Enum {
@@ -23037,7 +24473,7 @@ class WeekDay extends Enum {
 }
 class Companion_48 {
   from_1ixx1u_k$(ordinal) {
-    return get_entries_2().get_c1px32_k$(ordinal);
+    return get_entries_3().get_c1px32_k$(ordinal);
   }
 }
 class Month extends Enum {
@@ -23122,7 +24558,7 @@ class Companion_49 {
   }
 }
 class PhaseContent {
-  static new_io_ktor_util_pipeline_PhaseContent_6d9x0e_k$(phase, relation, interceptors) {
+  static new_io_ktor_util_pipeline_PhaseContent_3kwv0m_k$(phase, relation, interceptors) {
     Companion_getInstance_49();
     var $this = createThis(this);
     $this.phase_1 = phase;
@@ -23134,7 +24570,7 @@ class PhaseContent {
   static new_io_ktor_util_pipeline_PhaseContent_24bg4y_k$(phase, relation) {
     Companion_getInstance_49();
     var tmp = Companion_getInstance_49().SharedArrayList_1;
-    var $this = this.new_io_ktor_util_pipeline_PhaseContent_6d9x0e_k$(phase, relation, isInterface(tmp, KtMutableList) ? tmp : THROW_CCE());
+    var $this = this.new_io_ktor_util_pipeline_PhaseContent_3kwv0m_k$(phase, relation, isInterface(tmp, KtMutableList) ? tmp : THROW_CCE());
     // Inline function 'kotlin.check' call
     if (!Companion_getInstance_49().SharedArrayList_1.isEmpty_y1axqb_k$()) {
       var message = 'The shared empty array list has been modified';
@@ -23154,7 +24590,7 @@ class PhaseContent {
     }
     this.interceptors_1.add_utx5q5_k$(interceptor);
   }
-  addTo_h97ksk_k$(destination) {
+  addTo_219g88_k$(destination) {
     var interceptors = this.interceptors_1;
     if (destination instanceof ArrayList) {
       destination.ensureCapacity_wr7980_k$(destination.get_size_woubt6_k$() + interceptors.get_size_woubt6_k$() | 0);
@@ -23531,7 +24967,7 @@ class KtorSimpleLogger$1 {
           tmp_5 = null;
         } else {
           // Inline function 'kotlin.let' call
-          var tmp0 = get_entries_3();
+          var tmp0 = get_entries_4();
           var tmp$ret$6;
           $l$block: {
             // Inline function 'kotlin.collections.firstOrNull' call
@@ -25520,7 +26956,7 @@ class Companion_61 {
     Companion_instance_61 = this;
     var tmp = this;
     // Inline function 'kotlin.collections.associateBy' call
-    var this_0 = get_entries_4();
+    var this_0 = get_entries_5();
     var capacity = coerceAtLeast(mapCapacity(collectionSizeOrDefault(this_0, 10)), 16);
     // Inline function 'kotlin.collections.associateByTo' call
     var destination = LinkedHashMap.new_kotlin_collections_LinkedHashMap_31p40q_k$(capacity);
@@ -25725,7 +27161,7 @@ class Companion_63 {
   constructor() {
     Companion_instance_63 = this;
     var tmp = this;
-    var tmp0 = get_entries_5();
+    var tmp0 = get_entries_6();
     var tmp$ret$0;
     $l$block_0: {
       // Inline function 'kotlin.collections.maxByOrNull' call
@@ -25759,7 +27195,7 @@ class Companion_63 {
     var tmp_3 = Array(tmp_2);
     while (tmp_1 < tmp_2) {
       var tmp_4 = tmp_1;
-      var tmp0_0 = get_entries_5();
+      var tmp0_0 = get_entries_6();
       var tmp$ret$5;
       $l$block_2: {
         // Inline function 'kotlin.collections.singleOrNull' call
@@ -26072,7 +27508,7 @@ class deserialize$$inlined$map$1 {
     this.$body_1 = $body;
   }
   collect_afw1br_k$(collector, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_2.bind(VOID, this, collector), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_1.bind(VOID, this, collector), $completion);
   }
   collect_otghi5_k$(collector, $completion) {
     return this.collect_afw1br_k$(collector, $completion);
@@ -28925,7 +30361,7 @@ class KotlinxSerializationConverter$serialize$$inlined$map$1 {
     this.$value_1 = $value;
   }
   collect_afw1br_k$(collector, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_3.bind(VOID, this, collector), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_2.bind(VOID, this, collector), $completion);
   }
   collect_otghi5_k$(collector, $completion) {
     return this.collect_afw1br_k$(collector, $completion);
@@ -28947,7 +30383,7 @@ class KotlinxSerializationConverter$deserialize$$inlined$map$1 {
     this.$content_1 = $content;
   }
   collect_afw1br_k$(collector, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_4.bind(VOID, this, collector), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_collect__dlomyy_3.bind(VOID, this, collector), $completion);
   }
   collect_otghi5_k$(collector, $completion) {
     return this.collect_afw1br_k$(collector, $completion);
@@ -31146,7 +32582,7 @@ class ConcurrentMutableMap {
   }
 }
 class ConcurrentMutableSet extends ConcurrentMutableCollection {
-  static new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(rootArg, del) {
+  static new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(rootArg, del) {
     var $this = this.new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(rootArg, del);
     $this.del_2 = del;
     return $this;
@@ -31154,7 +32590,7 @@ class ConcurrentMutableSet extends ConcurrentMutableCollection {
   static new_co_touchlab_stately_collections_ConcurrentMutableSet_t534k6_k$() {
     // Inline function 'kotlin.collections.mutableSetOf' call
     var tmp$ret$0 = LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$();
-    return this.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(null, tmp$ret$0);
+    return this.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(null, tmp$ret$0);
   }
 }
 class Koin {
@@ -31798,7 +33234,7 @@ class Destroying extends Lifecycle {
 }
 class LifecycleCapability {}
 function get_validTransitions() {
-  return setOf_0([to(Created_getInstance(), Restoring_getInstance()), to(Restoring_getInstance(), Attaching_getInstance()), to(Attaching_getInstance(), Saving_getInstance()), to(Saving_getInstance(), Destroying_getInstance()), to(Created_getInstance(), Destroying_getInstance()), to(Attaching_getInstance(), Destroying_getInstance()), to(Restoring_getInstance(), Destroying_getInstance())]);
+  return setOf_0([to(Created_getInstance(), Restoring_getInstance()), to(Restoring_getInstance(), Attaching_getInstance()), to(Attaching_getInstance(), Saving_getInstance()), to(Saving_getInstance(), Restoring_getInstance()), to(Saving_getInstance(), Destroying_getInstance()), to(Created_getInstance(), Destroying_getInstance()), to(Attaching_getInstance(), Destroying_getInstance()), to(Restoring_getInstance(), Destroying_getInstance())]);
 }
 function transition(next) {
   var previous = null;
@@ -31892,12 +33328,16 @@ class Graph extends PortGraph {
     var tmp_6 = this;
     var tmp1_safe_receiver = parentGraph == null ? null : parentGraph.get_coroutineScope_5k7h45_k$();
     tmp_6.$$delegate_2__1 = new ConcurrencyCapabilityImpl(tmp1_safe_receiver == null ? null : tmp1_safe_receiver.get_coroutineContext_115oqo_k$(), dispatcher);
+    this.parentGraph = parentGraph;
     this.id_2 = id;
     this.label_2 = label;
     this.dependencies = dependencies;
     this.sentinel = Companion_instance_74.invoke(this, '');
     this.navigationImpl_1 = new NavigationCapabilityImpl();
     builder(this);
+  }
+  get_parentGraph_ube7a3_k$() {
+    return this.parentGraph;
   }
   get_id_kntnx8_k$() {
     return this.id_2;
@@ -31911,8 +33351,8 @@ class Graph extends PortGraph {
   get_sentinel_ax2ck3_k$() {
     return this.sentinel;
   }
-  get_activeStack_3oc2mf_k$() {
-    return this.navigationImpl_1.get_activeStack_3oc2mf_k$();
+  get_backStack_ueublk_k$() {
+    return this.navigationImpl_1.get_backStack_ueublk_k$();
   }
   dispatch_ad1g38_k$(navCommand) {
     if (isInterface(navCommand, Forward)) {
@@ -31964,7 +33404,7 @@ class Graph extends PortGraph {
     return this.close();
   }
   toString() {
-    return "[Graph] label='" + this.label + "' id='" + this.id.toString() + "' nodes=" + this.nodes.get_size_woubt6_k$() + ' stackDepth=' + this.get_activeStack_3oc2mf_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$() + ', sentinel=' + this.sentinel.toString();
+    return "[Graph] label='" + this.label + "' id='" + this.id.toString() + "' nodes=" + this.nodes.get_size_woubt6_k$() + ' stackDepth=' + this.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$() + ', sentinel=' + this.sentinel.toString();
   }
   get_lifecycle_3iiym9_k$() {
     return this.$$delegate_0__1.lifecycle_1;
@@ -32005,12 +33445,12 @@ class Graph extends PortGraph {
 }
 class NavigationEdge extends Edge {
   constructor(start, end) {
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.registerConsumer' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.registerConsumer' call
     var key = end.id.toString();
     var tmp = new Key_0(key);
     // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
     var tmp$ret$0 = Companion_instance_32.create(getKClass(NavBinding));
-    super(start, registerConsumer_1(start, tmp, tmp$ret$0), end, end.navBinding);
+    super(start, registerConsumer_0(start, tmp, tmp$ret$0), end, end.navBinding);
     this.start = start;
     this.end = end;
   }
@@ -32044,13 +33484,13 @@ class NavigationEdge extends Edge {
 }
 class Node_1 extends PortNode {
   constructor(graph, dispatcher, id, label, portCapability) {
-    return new.target.new_dev_shibasis_reaktor_graph_core_node_Node_vlnn3f_k$(graph, dispatcher, id, label, portCapability);
+    return new.target.new_dev_shibasis_reaktor_graph_core_node_Node_o4ua9m_k$(graph, dispatcher, id, label, portCapability);
   }
-  static new_dev_shibasis_reaktor_graph_core_node_Node_vlnn3f_k$(graph, dispatcher, id, label, portCapability) {
+  static new_dev_shibasis_reaktor_graph_core_node_Node_o4ua9m_k$(graph, dispatcher, id, label, portCapability) {
     dispatcher = dispatcher === VOID ? graph.get_coroutineDispatcher_vpa8ju_k$() : dispatcher;
     id = id === VOID ? Companion_getInstance_27().random_fimq0t_k$() : id;
     label = label === VOID ? '' : label;
-    portCapability = portCapability === VOID ? new PortCapabilityImpl_0(graph.get_coroutineScope_5k7h45_k$().get_coroutineContext_115oqo_k$()) : portCapability;
+    portCapability = portCapability === VOID ? new PortCapabilityImpl() : portCapability;
     var $this = this.new_dev_shibasis_reaktor_portgraph_node_PortNode_h71tx4_k$(graph, id, label, portCapability);
     $this.$$delegate_0__2 = new LifecycleCapabilityImpl();
     $this.$$delegate_1__1 = new ConcurrencyCapabilityImpl(graph.get_coroutineScope_5k7h45_k$().get_coroutineContext_115oqo_k$(), dispatcher);
@@ -32069,7 +33509,7 @@ class Node_1 extends PortNode {
     return this.label_2;
   }
   close() {
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.flattenedValues' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.flattenedValues' call
     // Inline function 'kotlin.collections.flatMap' call
     var tmp0 = this.consumerPorts.get_values_ksazhn_k$();
     // Inline function 'kotlin.collections.flatMapTo' call
@@ -32086,7 +33526,7 @@ class Node_1 extends PortNode {
       var element_0 = _iterator__ex2g4s_0.next_20eer_k$();
       element_0.close_yn9xrc_k$();
     }
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.flattenedValues' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.flattenedValues' call
     // Inline function 'kotlin.collections.flatMap' call
     var tmp0_0 = this.providerPorts.get_values_ksazhn_k$();
     // Inline function 'kotlin.collections.flatMapTo' call
@@ -32115,7 +33555,7 @@ class Node_1 extends PortNode {
     var tmp = getKClassFromExpression(this).get_simpleName_r6f8py_k$();
     var tmp_0 = this.label;
     var tmp_1 = this.id.toString();
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.flattenedValues' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.flattenedValues' call
     // Inline function 'kotlin.collections.flatMap' call
     var tmp0 = this.consumerPorts.get_values_ksazhn_k$();
     // Inline function 'kotlin.collections.flatMapTo' call
@@ -32127,7 +33567,7 @@ class Node_1 extends PortNode {
       addAll(destination, list);
     }
     var tmp_2 = destination.get_size_woubt6_k$();
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.flattenedValues' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.flattenedValues' call
     // Inline function 'kotlin.collections.flatMap' call
     var tmp0_0 = this.providerPorts.get_values_ksazhn_k$();
     // Inline function 'kotlin.collections.flatMapTo' call
@@ -32179,7 +33619,7 @@ class BasicNode extends Node_1 {
     return new.target.new_dev_shibasis_reaktor_graph_core_node_BasicNode_bnee5w_k$(graph);
   }
   static new_dev_shibasis_reaktor_graph_core_node_BasicNode_bnee5w_k$(graph) {
-    return this.new_dev_shibasis_reaktor_graph_core_node_Node_vlnn3f_k$(graph);
+    return this.new_dev_shibasis_reaktor_graph_core_node_Node_o4ua9m_k$(graph);
   }
   static build(graph, build) {
     var $this = this.new_dev_shibasis_reaktor_graph_core_node_BasicNode_bnee5w_k$(graph);
@@ -32250,10 +33690,11 @@ class sam$kotlin_properties_PropertyDelegateProvider$0 {
 }
 class Routable {}
 class ContainerNode extends Node_1 {
-  constructor(parent, graphs, pattern) {
-    return new.target.new_dev_shibasis_reaktor_graph_core_node_ContainerNode_6794rl_k$(parent, graphs, pattern);
+  constructor(parent, pattern, graphs) {
+    return new.target.new_dev_shibasis_reaktor_graph_core_node_ContainerNode_makwax_k$(parent, pattern, graphs);
   }
-  static new_dev_shibasis_reaktor_graph_core_node_ContainerNode_6794rl_k$(parent, graphs, pattern) {
+  static new_dev_shibasis_reaktor_graph_core_node_ContainerNode_makwax_k$(parent, pattern, graphs) {
+    pattern = pattern === VOID ? '' : pattern;
     var tmp;
     if (graphs === VOID) {
       // Inline function 'kotlin.collections.arrayListOf' call
@@ -32262,11 +33703,10 @@ class ContainerNode extends Node_1 {
       tmp = graphs;
     }
     graphs = tmp;
-    pattern = pattern === VOID ? '' : pattern;
-    var $this = this.new_dev_shibasis_reaktor_graph_core_node_Node_vlnn3f_k$(parent);
+    var $this = this.new_dev_shibasis_reaktor_graph_core_node_Node_o4ua9m_k$(parent);
     $this.graphs = graphs;
     var tmp_0 = $this;
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.consumes' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.consumes' call
     var tmp_1 = ContainerNode$routeBinding$delegate$lambda;
     var tmp_2 = new sam$kotlin_properties_PropertyDelegateProvider$0(tmp_1);
     var tmp_3 = KProperty1;
@@ -32274,7 +33714,7 @@ class ContainerNode extends Node_1 {
     var tmp_4 = $this;
     tmp_4.route = RouteNode.construct(parent, pattern, ContainerNode$route$lambda);
     $this.activeGraphIndex = MutableStateFlow(0);
-    connect_0($this.routeBinding, $this.route.routeBinding);
+    connect($this.routeBinding, $this.route.routeBinding);
     return $this;
   }
   get_graphs_dxs166_k$() {
@@ -32356,7 +33796,7 @@ class ControllerNode extends Node_1 {
     return new.target.new_dev_shibasis_reaktor_graph_core_node_ControllerNode_1kgdh7_k$(graph);
   }
   static new_dev_shibasis_reaktor_graph_core_node_ControllerNode_1kgdh7_k$(graph) {
-    return this.new_dev_shibasis_reaktor_graph_core_node_Node_vlnn3f_k$(graph);
+    return this.new_dev_shibasis_reaktor_graph_core_node_Node_o4ua9m_k$(graph);
   }
   toString() {
     return super.toString() + ' [Controller]';
@@ -32475,7 +33915,7 @@ class RouteNode extends Node_1 {
     return new.target.new_dev_shibasis_reaktor_graph_core_node_RouteNode_452ocy_k$(graph, pattern, portName, binder);
   }
   static new_dev_shibasis_reaktor_graph_core_node_RouteNode_452ocy_k$(graph, pattern, portName, binder) {
-    var $this = this.new_dev_shibasis_reaktor_graph_core_node_Node_vlnn3f_k$(graph);
+    var $this = this.new_dev_shibasis_reaktor_graph_core_node_Node_o4ua9m_k$(graph);
     $this.pattern = pattern;
     var tmp = $this;
     // Inline function 'kotlin.apply' call
@@ -32485,7 +33925,7 @@ class RouteNode extends Node_1 {
     tmp.binding_1 = this_0;
     $this.routeBinding = $this.registerProvider(new KeyType(new Key_0(portName), Companion_instance_32.Type_4artt7_k$($this.binding_1)), $this.binding_1);
     var tmp_1 = $this;
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.provides' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.provides' call
     var impl = new RouteNode$navBinding$2($this);
     var tmp_2 = RouteNode$navBinding$delegate$lambda(impl);
     var tmp_3 = new sam$kotlin_properties_PropertyDelegateProvider$0_0(tmp_2);
@@ -32531,99 +33971,6 @@ class RouteNode extends Node_1 {
   }
   get navBinding() {
     return this.get_navBinding_7l4223_k$();
-  }
-}
-class PortCapability_0 {}
-class PortCapabilityImpl$emit$slambda {
-  constructor(this$0, $event) {
-    this.this$0__1 = this$0;
-    this.$event_1 = $event;
-  }
-  invoke_ri3sjx_k$($this$launch, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_70.bind(VOID, this, $this$launch), $completion);
-  }
-  invoke_ja922n_k$(p1, $completion) {
-    return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
-  }
-}
-class PortCapabilityImpl_0 {
-  constructor(context, consumerPorts, providerPorts, portEvents, baseImpl) {
-    context = context === VOID ? null : context;
-    var tmp;
-    if (consumerPorts === VOID) {
-      // Inline function 'kotlin.collections.hashMapOf' call
-      tmp = HashMap.new_kotlin_collections_HashMap_2a5kxx_k$();
-    } else {
-      tmp = consumerPorts;
-    }
-    consumerPorts = tmp;
-    var tmp_0;
-    if (providerPorts === VOID) {
-      // Inline function 'kotlin.collections.hashMapOf' call
-      tmp_0 = HashMap.new_kotlin_collections_HashMap_2a5kxx_k$();
-    } else {
-      tmp_0 = providerPorts;
-    }
-    providerPorts = tmp_0;
-    portEvents = portEvents === VOID ? MutableSharedFlow() : portEvents;
-    baseImpl = baseImpl === VOID ? new PortCapabilityImpl(consumerPorts, providerPorts) : baseImpl;
-    this.$$delegate_0__1 = new ConcurrencyCapabilityImpl(context);
-    this.consumerPorts_1 = consumerPorts;
-    this.providerPorts_1 = providerPorts;
-    this.portEvents_1 = portEvents;
-    this.baseImpl_1 = baseImpl;
-  }
-  get_consumerPorts_66pzsd_k$() {
-    return this.consumerPorts_1;
-  }
-  get_providerPorts_3173wo_k$() {
-    return this.providerPorts_1;
-  }
-  get_portEvents_stnc71_k$() {
-    return this.portEvents_1;
-  }
-  addPortEventListener(listener) {
-    return this.baseImpl_1.addPortEventListener(listener);
-  }
-  removePortEventListener(listener) {
-    return this.baseImpl_1.removePortEventListener(listener);
-  }
-  emit(event) {
-    this.baseImpl_1.emit(event);
-    this.launch_mszxja_k$(PortCapabilityImpl$emit$slambda_0(this, event));
-  }
-  cancel_2l89ey_k$() {
-    this.$$delegate_0__1.cancel_2l89ey_k$();
-  }
-  async_6waj05_k$(fn) {
-    return this.$$delegate_0__1.async_6waj05_k$(fn);
-  }
-  launch_mszxja_k$(fn) {
-    return this.$$delegate_0__1.launch_mszxja_k$(fn);
-  }
-  execute_oyot5a_k$(fn, $completion) {
-    return this.$$delegate_0__1.execute_oyot5a_k$(fn, $completion);
-  }
-  withContext_zaavh_k$(fn, $completion) {
-    return this.$$delegate_0__1.withContext_zaavh_k$(fn, $completion);
-  }
-  get_coroutineScope_5k7h45_k$() {
-    return this.$$delegate_0__1.coroutineScope_1;
-  }
-  get_coroutineDispatcher_vpa8ju_k$() {
-    return this.$$delegate_0__1.coroutineDispatcher_1;
-  }
-  close_yn9xrc_k$() {
-    this.$$delegate_0__1.close_yn9xrc_k$();
-  }
-  get consumerPorts() {
-    return this.get_consumerPorts_66pzsd_k$();
-  }
-  get providerPorts() {
-    return this.get_providerPorts_3173wo_k$();
-  }
-  get portEvents() {
-    return this.get_portEvents_stnc71_k$();
   }
 }
 class DependencyAdapter extends Adapter {}
@@ -32780,10 +34127,10 @@ class AutoClosed extends Exception {
 }
 class NavigationCapabilityImpl {
   constructor() {
-    this.activeStack_1 = new ObservableStack();
+    this.backStack_1 = new ObservableStack();
   }
-  get_activeStack_3oc2mf_k$() {
-    return this.activeStack_1;
+  get_backStack_ueublk_k$() {
+    return this.backStack_1;
   }
   onPush_sems7p_k$(navCommand) {
     var _destruct__k2r9zo = navCommand.entry_1;
@@ -32791,7 +34138,7 @@ class NavigationCapabilityImpl {
     var payload = _destruct__k2r9zo.component2_7eebsb_k$();
     // Inline function 'dev.shibasis.reaktor.portgraph.port.ProviderPort.invoke' call
     edge.end.navBinding.impl.update(payload);
-    this.get_activeStack_3oc2mf_k$().push_rwg0cl_k$(navCommand.entry_1);
+    this.get_backStack_ueublk_k$().push_rwg0cl_k$(navCommand.entry_1);
   }
   onReplace_w8c3xn_k$(navCommand) {
     var _destruct__k2r9zo = navCommand.entry_1;
@@ -32799,10 +34146,10 @@ class NavigationCapabilityImpl {
     var payload = _destruct__k2r9zo.component2_7eebsb_k$();
     // Inline function 'dev.shibasis.reaktor.portgraph.port.ProviderPort.invoke' call
     edge.end.navBinding.impl.update(payload);
-    this.get_activeStack_3oc2mf_k$().replace_n2j3qj_k$(navCommand.entry_1);
+    this.get_backStack_ueublk_k$().replace_n2j3qj_k$(navCommand.entry_1);
   }
   onReturn_8s8te1_k$(navCommand) {
-    var tmp0_elvis_lhs = this.get_activeStack_3oc2mf_k$().pop_2dsh_k$();
+    var tmp0_elvis_lhs = this.get_backStack_ueublk_k$().pop_2dsh_k$();
     var tmp;
     if (tmp0_elvis_lhs == null) {
       return Unit_instance;
@@ -32814,7 +34161,7 @@ class NavigationCapabilityImpl {
     popped.complete(!(tmp_0 == null) ? tmp_0 : THROW_CCE());
   }
   onPop_fovtkt_k$(navCommand) {
-    this.get_activeStack_3oc2mf_k$().pop_2dsh_k$();
+    this.get_backStack_ueublk_k$().pop_2dsh_k$();
   }
   dispatch_ad1g38_k$(navCommand) {
     if (isInterface(navCommand, Forward)) {
@@ -32845,7 +34192,7 @@ class NavigationCapabilityImpl {
   }
   close_yn9xrc_k$() {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = this.get_activeStack_3oc2mf_k$().entries_1.get_value_j01efc_k$().iterator_jk1svi_k$();
+    var _iterator__ex2g4s = this.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().iterator_jk1svi_k$();
     while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
       var element = _iterator__ex2g4s.next_20eer_k$();
       element.result.completeExceptionally_xyzekf_k$(AutoClosed.new_dev_shibasis_reaktor_graph_navigation_NavigationCapabilityImpl_AutoClosed_ckjda3_k$());
@@ -33357,7 +34704,7 @@ class Service$client$slambda {
     this.$responseSerializer_1 = $responseSerializer;
   }
   invoke_jb4z1k_k$($this$factory, request, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_71.bind(VOID, this, $this$factory, request), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_70.bind(VOID, this, $this$factory, request), $completion);
   }
   invoke_x3sdos_k$(p1, p2, $completion) {
     var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
@@ -33466,28 +34813,35 @@ class ObservableStack {
     this.stack_1 = ArrayDeque.new_kotlin_collections_ArrayDeque_sf0swv_k$();
     this._entries_1 = MutableStateFlow(emptyList());
     this.entries_1 = this._entries_1;
+    this.version_1 = 0;
     if (initialTop == null)
       null;
     else {
-      // Inline function 'kotlin.apply' call
+      // Inline function 'kotlin.let' call
       this.stack_1.add_utx5q5_k$(initialTop);
+      this._entries_1.set_value_v1vabv_k$(listOf(initialTop));
     }
   }
   push_rwg0cl_k$(value) {
     this.stack_1.add_utx5q5_k$(value);
     this.top_1.set_value_v1vabv_k$(value);
-    this._entries_1.set_value_v1vabv_k$(toList_0(this.stack_1));
+    emitSnapshot(this);
   }
   replace_n2j3qj_k$(value) {
-    this.pop_2dsh_k$();
-    this.push_rwg0cl_k$(value);
+    // Inline function 'kotlin.collections.isNotEmpty' call
+    if (!this.stack_1.isEmpty_y1axqb_k$()) {
+      this.stack_1.removeLast_i5wx8a_k$();
+    }
+    this.stack_1.add_utx5q5_k$(value);
+    this.top_1.set_value_v1vabv_k$(value);
+    emitSnapshot(this);
   }
   pop_2dsh_k$() {
     if (this.stack_1.isEmpty_y1axqb_k$())
       return null;
     var removed = this.stack_1.removeLast_i5wx8a_k$();
     this.top_1.set_value_v1vabv_k$(this.stack_1.lastOrNull_u4yjpc_k$());
-    this._entries_1.set_value_v1vabv_k$(toList_0(this.stack_1));
+    emitSnapshot(this);
     return removed;
   }
 }
@@ -33550,7 +34904,7 @@ class WindowSize$Companion$startListening$slambda {
     this.$source_1 = $source;
   }
   invoke_ri3sjx_k$($this$launch, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_72.bind(VOID, this, $this$launch), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_71.bind(VOID, this, $this$launch), $completion);
   }
   invoke_ja922n_k$(p1, $completion) {
     return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
@@ -33708,7 +35062,7 @@ class ReactNode extends ControllerNode {
     $this.render = render;
     $this.state_1 = MutableStateFlow($this.build($this));
     var tmp = $this;
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.consumes' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.consumes' call
     var tmp_0 = ReactNode$routeBinding$delegate$lambda;
     var tmp_1 = new sam$kotlin_properties_PropertyDelegateProvider$0_1(tmp_0);
     var tmp_2 = KProperty1;
@@ -33881,7 +35235,7 @@ class toReactState$slambda {
     this.$setState_1 = $setState;
   }
   invoke_ri3sjx_k$($this$useEffect, $completion) {
-    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_73.bind(VOID, this, $this$useEffect), $completion);
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_72.bind(VOID, this, $this$useEffect), $completion);
   }
   invoke_ja922n_k$(p1, $completion) {
     return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
@@ -33893,6 +35247,9 @@ function init_kotlin_coroutines_cancellation_CancellationException(_this__u8e3s4
 }
 function throwIrLinkageError(message) {
   throw IrLinkageError.new_kotlin_internal_IrLinkageError_ncs8uw_k$(message);
+}
+function throwUnsupportedOperationException(message) {
+  throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_chzcdl_k$(message);
 }
 function throwUninitializedPropertyAccessException(name) {
   throw UninitializedPropertyAccessException.new_kotlin_UninitializedPropertyAccessException_egi92l_k$('lateinit property ' + name + ' has not been initialized');
@@ -34645,12 +36002,6 @@ function until(_this__u8e3s4, to) {
     return Companion_getInstance_15().EMPTY_1;
   return numberRangeToNumber(_this__u8e3s4, to - 1 | 0);
 }
-function coerceAtLeast(_this__u8e3s4, minimumValue) {
-  return _this__u8e3s4 < minimumValue ? minimumValue : _this__u8e3s4;
-}
-function coerceAtMost(_this__u8e3s4, maximumValue) {
-  return _this__u8e3s4 > maximumValue ? maximumValue : _this__u8e3s4;
-}
 function coerceIn(_this__u8e3s4, minimumValue, maximumValue) {
   if (minimumValue > maximumValue)
     throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Cannot coerce value to an empty range: maximum ' + maximumValue + ' is less than minimum ' + minimumValue + '.');
@@ -34659,6 +36010,12 @@ function coerceIn(_this__u8e3s4, minimumValue, maximumValue) {
   if (_this__u8e3s4 > maximumValue)
     return maximumValue;
   return _this__u8e3s4;
+}
+function coerceAtLeast(_this__u8e3s4, minimumValue) {
+  return _this__u8e3s4 < minimumValue ? minimumValue : _this__u8e3s4;
+}
+function coerceAtMost(_this__u8e3s4, maximumValue) {
+  return _this__u8e3s4 > maximumValue ? maximumValue : _this__u8e3s4;
 }
 function downTo(_this__u8e3s4, to) {
   return Companion_instance_18.fromClosedRange_y6bqsv_k$(_this__u8e3s4, to, -1);
@@ -36670,9 +38027,19 @@ function getInterfaceMaskFor(obj, superType) {
   }
   return tmp;
 }
+function getLocalDelegateReference(name, superType, mutable) {
+  _init_properties_reflectRuntime_kt__5r4uu3();
+  var lambda = getLocalDelegateReference$lambda();
+  return getPropertyCallableRef(name, 0, superType, lambda, mutable ? lambda : null, VOID);
+}
 function throwLinkageErrorInCallableName$lambda($linkageError) {
   return () => {
     throwIrLinkageError($linkageError);
+  };
+}
+function getLocalDelegateReference$lambda() {
+  return () => {
+    throwUnsupportedOperationException('Not supported for local property reference.');
   };
 }
 var properties_initialized_reflectRuntime_kt_inkhwd;
@@ -36987,6 +38354,13 @@ function reverse(_this__u8e3s4) {
     }
      while (!(index === midPoint));
 }
+function digitToIntImpl(_this__u8e3s4) {
+  // Inline function 'kotlin.code' call
+  var ch = Char__toInt_impl_vasixd(_this__u8e3s4);
+  var index = binarySearchRange(Digit_getInstance().rangeStart_1, ch);
+  var diff = ch - Digit_getInstance().rangeStart_1[index] | 0;
+  return diff < 10 ? diff : -1;
+}
 function binarySearchRange(array, needle) {
   var bottom = 0;
   var top = array.length - 1 | 0;
@@ -37003,13 +38377,6 @@ function binarySearchRange(array, needle) {
       top = middle - 1 | 0;
   }
   return middle - (needle < value ? 1 : 0) | 0;
-}
-function digitToIntImpl(_this__u8e3s4) {
-  // Inline function 'kotlin.code' call
-  var ch = Char__toInt_impl_vasixd(_this__u8e3s4);
-  var index = binarySearchRange(Digit_getInstance().rangeStart_1, ch);
-  var diff = ch - Digit_getInstance().rangeStart_1[index] | 0;
-  return diff < 10 ? diff : -1;
 }
 var Digit_instance;
 function Digit_getInstance() {
@@ -38397,11 +39764,21 @@ function checkRadix(radix) {
   }
   return radix;
 }
+function toInt(_this__u8e3s4, radix) {
+  var tmp0_elvis_lhs = toIntOrNull_0(_this__u8e3s4, radix);
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    numberFormatError(_this__u8e3s4);
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  return tmp;
+}
 function toString_3(_this__u8e3s4, radix) {
   // Inline function 'kotlin.js.asDynamic' call
   return _this__u8e3s4.toString(checkRadix(radix));
 }
-function toInt(_this__u8e3s4) {
+function toInt_0(_this__u8e3s4) {
   var tmp0_elvis_lhs = toIntOrNull(_this__u8e3s4);
   var tmp;
   if (tmp0_elvis_lhs == null) {
@@ -38444,6 +39821,11 @@ function toLong(_this__u8e3s4) {
   }
   return tmp;
 }
+function digitOf(char, radix) {
+  // Inline function 'kotlin.let' call
+  var it = Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(48)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(57)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(48)) : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(90)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(97)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(122)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(97)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(128)) < 0 ? -1 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65313)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65338)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65313)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65345)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65370)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65345)) + 10 | 0 : digitToIntImpl(char);
+  return it >= radix ? -1 : it;
+}
 function isNaN_2(_this__u8e3s4) {
   // Inline function 'kotlin.text.lowercase' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -38455,11 +39837,6 @@ function isNaN_2(_this__u8e3s4) {
     default:
       return false;
   }
-}
-function digitOf(char, radix) {
-  // Inline function 'kotlin.let' call
-  var it = Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(48)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(57)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(48)) : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(90)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(97)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(122)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(97)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(128)) < 0 ? -1 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65313)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65338)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65313)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65345)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65370)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65345)) + 10 | 0 : digitToIntImpl(char);
-  return it >= radix ? -1 : it;
 }
 var Companion_instance_9;
 function Companion_getInstance_9() {
@@ -40634,9 +42011,6 @@ function toIntOrNull(_this__u8e3s4) {
 function toLongOrNull(_this__u8e3s4) {
   return toLongOrNull_0(_this__u8e3s4, 10);
 }
-function numberFormatError(input) {
-  throw NumberFormatException.new_kotlin_NumberFormatException_hv2a95_k$("Invalid number format: '" + input + "'");
-}
 function toIntOrNull_0(_this__u8e3s4, radix) {
   checkRadix(radix);
   var length = _this__u8e3s4.length;
@@ -40757,6 +42131,15 @@ function toLongOrNull_0(_this__u8e3s4, radix) {
     }
      while (inductionVariable < length);
   return isNegative ? result : negate_0(result);
+}
+function numberFormatError(input) {
+  throw NumberFormatException.new_kotlin_NumberFormatException_hv2a95_k$("Invalid number format: '" + input + "'");
+}
+function removePrefix(_this__u8e3s4, prefix) {
+  if (startsWith_3(_this__u8e3s4, prefix)) {
+    return substring_0(_this__u8e3s4, charSequenceLength(prefix));
+  }
+  return _this__u8e3s4;
 }
 function split(_this__u8e3s4, delimiters, ignoreCase, limit) {
   ignoreCase = ignoreCase === VOID ? false : ignoreCase;
@@ -48034,35 +49417,7 @@ function *_generator_collect__dlomyy($this, collector, $completion) {
   }
   return Unit_instance;
 }
-function get_NO_VALUE() {
-  _init_properties_SharedFlow_kt__umasnn();
-  return NO_VALUE;
-}
 var NO_VALUE;
-function MutableSharedFlow(replay, extraBufferCapacity, onBufferOverflow) {
-  replay = replay === VOID ? 0 : replay;
-  extraBufferCapacity = extraBufferCapacity === VOID ? 0 : extraBufferCapacity;
-  onBufferOverflow = onBufferOverflow === VOID ? BufferOverflow_SUSPEND_getInstance() : onBufferOverflow;
-  _init_properties_SharedFlow_kt__umasnn();
-  // Inline function 'kotlin.require' call
-  if (!(replay >= 0)) {
-    var message = 'replay cannot be negative, but was ' + replay;
-    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
-  }
-  // Inline function 'kotlin.require' call
-  if (!(extraBufferCapacity >= 0)) {
-    var message_0 = 'extraBufferCapacity cannot be negative, but was ' + extraBufferCapacity;
-    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message_0));
-  }
-  // Inline function 'kotlin.require' call
-  if (!(replay > 0 || extraBufferCapacity > 0 || onBufferOverflow.equals(BufferOverflow_SUSPEND_getInstance()))) {
-    var message_1 = 'replay or extraBufferCapacity must be positive with non-default onBufferOverflow strategy ' + onBufferOverflow.toString();
-    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message_1));
-  }
-  var bufferCapacity0 = replay + extraBufferCapacity | 0;
-  var bufferCapacity = bufferCapacity0 < 0 ? 2147483647 : bufferCapacity0;
-  return new SharedFlowImpl(replay, bufferCapacity, onBufferOverflow);
-}
 function _get_head__d7jo8b($this) {
   var tmp0 = $this.minCollectorIndex_1;
   // Inline function 'kotlin.comparisons.minOf' call
@@ -48093,48 +49448,6 @@ function _get_queueEndIndex__4m025l($this) {
   // Inline function 'kotlin.Long.plus' call
   var other_0 = $this.queueSize_1;
   return add_0(tmp0_0, fromInt_0(other_0));
-}
-function *_generator_collect__dlomyy_0($this, collector, $completion) {
-  var slot = $this.allocateSlot_67zie3_k$();
-  try {
-    if (collector instanceof SubscribedFlowCollector) {
-      var tmp = collector.onSubscription_bz2y89_k$($completion);
-      if (tmp === get_COROUTINE_SUSPENDED())
-        tmp = yield tmp;
-    }
-    // Inline function 'kotlinx.coroutines.currentCoroutineContext' call
-    // Inline function 'kotlin.js.getCoroutineContext' call
-    var collectorJob = $completion.get_context_h02k06_k$().get_y2st91_k$(Key_instance_3);
-    while (true) {
-      var newValue;
-      $l$loop: while (true) {
-        newValue = tryTakeValue($this, slot);
-        if (!(newValue === get_NO_VALUE()))
-          break $l$loop;
-        var tmp_0 = awaitValue($this, slot, $completion);
-        if (tmp_0 === get_COROUTINE_SUSPENDED())
-          tmp_0 = yield tmp_0;
-      }
-      if (collectorJob == null)
-        null;
-      else {
-        ensureActive_0(collectorJob);
-      }
-      var tmp_1 = collector.emit_f0f141_k$((newValue == null ? true : !(newValue == null)) ? newValue : THROW_CCE(), $completion);
-      if (tmp_1 === get_COROUTINE_SUSPENDED())
-        tmp_1 = yield tmp_1;
-    }
-  }finally {
-    $this.freeSlot_95hriy_k$(slot);
-  }
-}
-function *_generator_emit__qph46j($this, value, $completion) {
-  if ($this.tryEmit_ru0jrz_k$(value))
-    return Unit_instance;
-  var tmp = emitSuspend($this, value, $completion);
-  if (tmp === get_COROUTINE_SUSPENDED())
-    tmp = yield tmp;
-  return Unit_instance;
 }
 function tryEmitLocked($this, value) {
   if ($this.nCollectors_1 === 0)
@@ -48257,71 +49570,6 @@ function growBuffer($this, curBuffer, curSize, newSize) {
      while (inductionVariable < curSize);
   return newBuffer;
 }
-function emitSuspend($this, value, $completion) {
-  var cancellable = new CancellableContinuationImpl(intercepted($completion), 1);
-  cancellable.initCancellability_shqc60_k$();
-  var resumes = get_EMPTY_RESUMES();
-  // Inline function 'kotlinx.coroutines.internal.synchronized' call
-  // Inline function 'kotlinx.coroutines.internal.synchronizedImpl' call
-  var tmp$ret$2;
-  $l$block: {
-    if (tryEmitLocked($this, value)) {
-      // Inline function 'kotlin.coroutines.resume' call
-      // Inline function 'kotlin.Companion.success' call
-      var tmp$ret$0 = _Result___init__impl__xyqfz8(Unit_instance);
-      cancellable.resumeWith_rk9gbt_k$(tmp$ret$0);
-      resumes = findSlotsToResumeLocked($this, resumes);
-      tmp$ret$2 = null;
-      break $l$block;
-    }
-    var tmp0 = _get_head__d7jo8b($this);
-    // Inline function 'kotlin.Long.plus' call
-    var other = _get_totalSize__xhdb3o($this);
-    var tmp$ret$3 = add_0(tmp0, fromInt_0(other));
-    // Inline function 'kotlin.also' call
-    var this_0 = new Emitter($this, tmp$ret$3, value, cancellable);
-    enqueueLocked($this, this_0);
-    $this.queueSize_1 = $this.queueSize_1 + 1 | 0;
-    if ($this.bufferCapacity_1 === 0)
-      resumes = findSlotsToResumeLocked($this, resumes);
-    tmp$ret$2 = this_0;
-  }
-  var emitter = tmp$ret$2;
-  if (emitter == null)
-    null;
-  else {
-    // Inline function 'kotlin.let' call
-    disposeOnCancellation(cancellable, emitter);
-  }
-  var indexedObject = resumes;
-  var inductionVariable = 0;
-  var last = indexedObject.length;
-  while (inductionVariable < last) {
-    var r = indexedObject[inductionVariable];
-    inductionVariable = inductionVariable + 1 | 0;
-    if (r == null)
-      null;
-    else {
-      // Inline function 'kotlin.coroutines.resume' call
-      // Inline function 'kotlin.Companion.success' call
-      var tmp$ret$10 = _Result___init__impl__xyqfz8(Unit_instance);
-      r.resumeWith_rk9gbt_k$(tmp$ret$10);
-    }
-  }
-  return cancellable.getResult_fck196_k$();
-}
-function cancelEmitter($this, emitter) {
-  // Inline function 'kotlinx.coroutines.internal.synchronized' call
-  // Inline function 'kotlinx.coroutines.internal.synchronizedImpl' call
-  if (emitter.index_1 < _get_head__d7jo8b($this))
-    return Unit_instance;
-  var buffer = ensureNotNull($this.buffer_1);
-  if (!(getBufferAt(buffer, emitter.index_1) === emitter))
-    return Unit_instance;
-  setBufferAt(buffer, emitter.index_1, get_NO_VALUE());
-  cleanupTailLocked($this);
-  return Unit_instance;
-}
 function updateBufferLocked($this, newReplayIndex, newMinCollectorIndex, newBufferEndIndex, newQueueEndIndex) {
   // Inline function 'kotlin.comparisons.minOf' call
   var newHead = newMinCollectorIndex <= newReplayIndex ? newMinCollectorIndex : newReplayIndex;
@@ -48342,69 +49590,6 @@ function updateBufferLocked($this, newReplayIndex, newMinCollectorIndex, newBuff
   // Inline function 'kotlinx.coroutines.assert' call
   // Inline function 'kotlinx.coroutines.assert' call
 }
-function cleanupTailLocked($this) {
-  if ($this.bufferCapacity_1 === 0 && $this.queueSize_1 <= 1)
-    return Unit_instance;
-  var buffer = ensureNotNull($this.buffer_1);
-  $l$loop: while (true) {
-    var tmp;
-    if ($this.queueSize_1 > 0) {
-      var tmp0 = _get_head__d7jo8b($this);
-      // Inline function 'kotlin.Long.plus' call
-      var other = _get_totalSize__xhdb3o($this);
-      // Inline function 'kotlin.Long.minus' call
-      var this_0 = add_0(tmp0, fromInt_0(other));
-      var tmp$ret$1 = subtract_0(this_0, fromInt_0(1));
-      tmp = getBufferAt(buffer, tmp$ret$1) === get_NO_VALUE();
-    } else {
-      tmp = false;
-    }
-    if (!tmp) {
-      break $l$loop;
-    }
-    $this.queueSize_1 = $this.queueSize_1 - 1 | 0;
-    var tmp0_0 = _get_head__d7jo8b($this);
-    // Inline function 'kotlin.Long.plus' call
-    var other_0 = _get_totalSize__xhdb3o($this);
-    var tmp$ret$2 = add_0(tmp0_0, fromInt_0(other_0));
-    setBufferAt(buffer, tmp$ret$2, null);
-  }
-}
-function tryTakeValue($this, slot) {
-  var resumes = get_EMPTY_RESUMES();
-  // Inline function 'kotlinx.coroutines.internal.synchronized' call
-  // Inline function 'kotlinx.coroutines.internal.synchronizedImpl' call
-  var index = tryPeekLocked($this, slot);
-  var tmp;
-  if (index < 0n) {
-    tmp = get_NO_VALUE();
-  } else {
-    var oldIndex = slot.index_1;
-    var newValue = getPeekedValueLockedAt($this, index);
-    var tmp_0 = slot;
-    // Inline function 'kotlin.Long.plus' call
-    tmp_0.index_1 = add_0(index, fromInt_0(1));
-    resumes = $this.updateCollectorIndexLocked_r0wcdj_k$(oldIndex);
-    tmp = newValue;
-  }
-  var value = tmp;
-  var indexedObject = resumes;
-  var inductionVariable = 0;
-  var last = indexedObject.length;
-  while (inductionVariable < last) {
-    var resume = indexedObject[inductionVariable];
-    inductionVariable = inductionVariable + 1 | 0;
-    if (resume == null)
-      null;
-    else {
-      // Inline function 'kotlin.coroutines.resume' call
-      // Inline function 'kotlin.Companion.success' call
-      var tmp$ret$4 = _Result___init__impl__xyqfz8(Unit_instance);
-      resume.resumeWith_rk9gbt_k$(tmp$ret$4);
-    }
-  }
-  return value;
-}
 function tryPeekLocked($this, slot) {
   var index = slot.index_1;
   if (index < _get_bufferEndIndex__d2rk18($this))
@@ -48416,36 +49601,6 @@ function tryPeekLocked($this, slot) {
   if ($this.queueSize_1 === 0)
     return -1n;
   return index;
-}
-function getPeekedValueLockedAt($this, index) {
-  var item = getBufferAt(ensureNotNull($this.buffer_1), index);
-  var tmp;
-  if (item instanceof Emitter) {
-    tmp = item.value_1;
-  } else {
-    tmp = item;
-  }
-  return tmp;
-}
-function awaitValue($this, slot, $completion) {
-  var cancellable = new CancellableContinuationImpl(intercepted($completion), 1);
-  cancellable.initCancellability_shqc60_k$();
-  // Inline function 'kotlinx.coroutines.internal.synchronized' call
-  // Inline function 'kotlinx.coroutines.internal.synchronizedImpl' call
-  $l$block: {
-    var index = tryPeekLocked($this, slot);
-    if (index < 0n) {
-      slot.cont_1 = cancellable;
-    } else {
-      // Inline function 'kotlin.coroutines.resume' call
-      // Inline function 'kotlin.Companion.success' call
-      var tmp$ret$0 = _Result___init__impl__xyqfz8(Unit_instance);
-      cancellable.resumeWith_rk9gbt_k$(tmp$ret$0);
-      break $l$block;
-    }
-    slot.cont_1 = cancellable;
-  }
-  return cancellable.getResult_fck196_k$();
 }
 function findSlotsToResumeLocked($this, resumesIn) {
   var resumes = resumesIn;
@@ -48574,7 +49729,7 @@ function updateState($this, expectedState, newState) {
     curSlots = $this.slots_1;
   }
 }
-function *_generator_collect__dlomyy_1($this, collector, $completion) {
+function *_generator_collect__dlomyy_0($this, collector, $completion) {
   var slot = $this.allocateSlot_67zie3_k$();
   try {
     if (collector instanceof SubscribedFlowCollector) {
@@ -48749,7 +49904,7 @@ function *_generator_firstOrNull__qcheue(_this__u8e3s4, predicate, $completion) 
 function firstOrNull_2(_this__u8e3s4, predicate, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_firstOrNull__qcheue.bind(VOID, _this__u8e3s4, predicate), $completion);
 }
-function *_generator_emit__qph46j_0($this, value, $completion) {
+function *_generator_emit__qph46j($this, value, $completion) {
   var tmp;
   var tmp_0 = $this.$predicate_1(value, $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
@@ -49796,7 +50951,7 @@ function Dispatchers_getInstance() {
 function CancellationException_0(message, cause) {
   return CancellationException.new_kotlin_coroutines_cancellation_CancellationException_cpsifs_k$(message, cause);
 }
-function *_generator_emit__qph46j_1($this, value, $completion) {
+function *_generator_emit__qph46j_0($this, value, $completion) {
   // Inline function 'kotlinx.coroutines.currentCoroutineContext' call
   // Inline function 'kotlin.js.getCoroutineContext' call
   var currentContext = $completion.get_context_h02k06_k$();
@@ -54491,6 +55646,109 @@ var androidx_compose_material3_internal_PlatformDateFormat$stable;
 function IsolatedCoroutineScope() {
   return CoroutineScope_0(EmptyCoroutineContext_instance);
 }
+function get_CHILD_ARRAY() {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  return CHILD_ARRAY;
+}
+var CHILD_ARRAY;
+function get_DEFAULT_KEY() {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  return DEFAULT_KEY;
+}
+var DEFAULT_KEY;
+function getChildArray(_this__u8e3s4) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'kotlin.js.asDynamic' call
+  return _this__u8e3s4[get_CHILD_ARRAY()];
+}
+function addChildNode(_this__u8e3s4, node) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'react.childArray' call
+  // Inline function 'kotlin.js.asDynamic' call
+  if (!(_this__u8e3s4[get_CHILD_ARRAY()] == null)) {
+    // Inline function 'react.childArray' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'kotlin.js.asDynamic' call
+    _this__u8e3s4[get_CHILD_ARRAY()].push(node);
+  } else {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.childArray' call
+    var value = [node];
+    // Inline function 'kotlin.js.asDynamic' call
+    _this__u8e3s4[get_CHILD_ARRAY()] = value;
+  }
+}
+function addChild(_this__u8e3s4, type, block) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  var defaultKey = getDefaultKey(_this__u8e3s4);
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'kotlin.apply' call
+  var this_0 = {};
+  block(this_0);
+  var props = this_0;
+  addChildElement(_this__u8e3s4, type, props, getChildArray_0(props), defaultKey);
+}
+function addChildElement(_this__u8e3s4, type, props, children, defaultKey) {
+  props = props === VOID ? null : props;
+  children = children === VOID ? null : children;
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  var childProps_0 = childProps(props, defaultKey);
+  var tmp;
+  if (!(children == null)) {
+    tmp = createElement.apply(null, [type, childProps_0].concat([].slice.call(children.slice())));
+  } else {
+    tmp = createElement(type, childProps_0);
+  }
+  var element = tmp;
+  addChildNode(_this__u8e3s4, element);
+}
+function getDefaultKey(_this__u8e3s4) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'kotlin.js.asDynamic' call
+  var key = _this__u8e3s4[get_DEFAULT_KEY()];
+  Reflect;
+  get_DEFAULT_KEY();
+  throwIrLinkageError("Function 'deleteProperty' can not be called: No function found for symbol 'js.reflect/Reflect.deleteProperty|deleteProperty(kotlin.Any;kotlin.Any){}[0]'");
+}
+function getChildArray_0(_this__u8e3s4) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'kotlin.js.asDynamic' call
+  return _this__u8e3s4[get_CHILD_ARRAY()];
+}
+function childProps(props, defaultKey) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  if (defaultKey == null)
+    return props;
+  if (props == null) {
+    // Inline function 'js.objects.unsafeJso' call
+    // Inline function 'js.objects.unsafeJso' call
+    // Inline function 'kotlin.apply' call
+    var this_0 = {};
+    this_0.key = defaultKey;
+    return this_0;
+  }
+  if (!(props.key == null))
+    return props;
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'kotlin.apply' call
+  var this_1 = {};
+  // Inline function 'react.Props.unaryPlus' call
+  Object.assign(this_1, props);
+  this_1.key = defaultKey;
+  return this_1;
+}
+var properties_initialized_ChildrenBuilder_kt_gby2z0;
+function _init_properties_ChildrenBuilder_kt__gexuom() {
+  if (!properties_initialized_ChildrenBuilder_kt_gby2z0) {
+    properties_initialized_ChildrenBuilder_kt_gby2z0 = true;
+    CHILD_ARRAY = Symbol('@@child-array');
+    DEFAULT_KEY = Symbol('@@default-key');
+  }
+}
 function createCleanupCallback(block) {
   return createCleanupCallback$lambda(block);
 }
@@ -54513,17 +55771,2935 @@ function useEffect_0(dependencies, effect) {
   var callback = createCleanupCallback(effect);
   useEffect(callback, dependencies);
 }
+function FC(block) {
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  return FC$lambda(block);
+}
+function FC$lambda$lambda($block, $props) {
+  return ($this$createElementOrNull) => {
+    $block($this$createElementOrNull, $props);
+    return Unit_instance;
+  };
+}
+function FC$lambda($block) {
+  return (props) => createElementOrNull(FC$lambda$lambda($block, props));
+}
+function createElementOrNull(block) {
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'kotlin.apply' call
+  var this_0 = {};
+  block(this_0);
+  var tmp0_elvis_lhs = getChildArray(this_0);
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    return null;
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  var children = tmp;
+  return createElement.apply(null, [Fragment, VOID].concat([].slice.call(children.slice())));
+}
+var ReactHTML_instance;
+function ReactHTML_getInstance() {
+  return ReactHTML_instance;
+}
+var dev_shibasis_reaktor_ui_core_components_ButtonSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_TextSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_InputSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_IconSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_CardSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_AvatarSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_BadgeSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_ChipSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_DividerSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_ProgressSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_SwitchSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_CheckboxSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_RadioSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_SliderSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_TooltipSpec$stable;
+var dev_shibasis_reaktor_ui_core_tokens_TokenFactory$stable;
+var ThemeOption_Default_instance;
+var ThemeOption_Blue_instance;
+var ThemeOption_Green_instance;
+var ThemeOption_Reaktor_instance;
+function values_1() {
+  return [ThemeOption_Default_getInstance(), ThemeOption_Blue_getInstance(), ThemeOption_Green_getInstance(), ThemeOption_Reaktor_getInstance()];
+}
+function get_entries_1() {
+  if ($ENTRIES_1 == null)
+    $ENTRIES_1 = enumEntries(values_1());
+  return $ENTRIES_1;
+}
+var ThemeOption_entriesInitialized;
+function ThemeOption_initEntries() {
+  if (ThemeOption_entriesInitialized)
+    return Unit_instance;
+  ThemeOption_entriesInitialized = true;
+  ThemeOption_Default_instance = new ThemeOption('Default', 0);
+  ThemeOption_Blue_instance = new ThemeOption('Blue', 1);
+  ThemeOption_Green_instance = new ThemeOption('Green', 2);
+  ThemeOption_Reaktor_instance = new ThemeOption('Reaktor', 3);
+}
+var $ENTRIES_1;
+function ThemeOption_Default_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Default_instance;
+}
+function ThemeOption_Blue_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Blue_instance;
+}
+function ThemeOption_Green_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Green_instance;
+}
+function ThemeOption_Reaktor_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Reaktor_instance;
+}
+var dev_shibasis_reaktor_ui_material_MaterialTokens$stable;
 var dev_shibasis_reaktor_ui_material_ReaktorColor$stable;
 var dev_shibasis_reaktor_ui_material_ReaktorTheme$stable;
+function get_RButton() {
+  _init_properties_WebButton_kt__4eotak();
+  return RButton;
+}
+var RButton;
+var ComponentSize_Small_instance;
+var ComponentSize_Medium_instance;
+var ComponentSize_Large_instance;
+function values_2() {
+  return [ComponentSize_Small_getInstance(), ComponentSize_Medium_getInstance(), ComponentSize_Large_getInstance()];
+}
+function valueOf_0(value) {
+  switch (value) {
+    case 'Small':
+      return ComponentSize_Small_getInstance();
+    case 'Medium':
+      return ComponentSize_Medium_getInstance();
+    case 'Large':
+      return ComponentSize_Large_getInstance();
+    default:
+      ComponentSize_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.ComponentSize.' + value);
+      break;
+  }
+}
+var ComponentSize_entriesInitialized;
+function ComponentSize_initEntries() {
+  if (ComponentSize_entriesInitialized)
+    return Unit_instance;
+  ComponentSize_entriesInitialized = true;
+  ComponentSize_Small_instance = new ComponentSize('Small', 0);
+  ComponentSize_Medium_instance = new ComponentSize('Medium', 1);
+  ComponentSize_Large_instance = new ComponentSize('Large', 2);
+}
+var ComponentVariant_Filled_instance;
+var ComponentVariant_Outlined_instance;
+var ComponentVariant_Text_instance;
+var ComponentVariant_Tonal_instance;
+var ComponentVariant_Elevated_instance;
+function values_3() {
+  return [ComponentVariant_Filled_getInstance(), ComponentVariant_Outlined_getInstance(), ComponentVariant_Text_getInstance(), ComponentVariant_Tonal_getInstance(), ComponentVariant_Elevated_getInstance()];
+}
+function valueOf_1(value) {
+  switch (value) {
+    case 'Filled':
+      return ComponentVariant_Filled_getInstance();
+    case 'Outlined':
+      return ComponentVariant_Outlined_getInstance();
+    case 'Text':
+      return ComponentVariant_Text_getInstance();
+    case 'Tonal':
+      return ComponentVariant_Tonal_getInstance();
+    case 'Elevated':
+      return ComponentVariant_Elevated_getInstance();
+    default:
+      ComponentVariant_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.ComponentVariant.' + value);
+      break;
+  }
+}
+var ComponentVariant_entriesInitialized;
+function ComponentVariant_initEntries() {
+  if (ComponentVariant_entriesInitialized)
+    return Unit_instance;
+  ComponentVariant_entriesInitialized = true;
+  ComponentVariant_Filled_instance = new ComponentVariant('Filled', 0);
+  ComponentVariant_Outlined_instance = new ComponentVariant('Outlined', 1);
+  ComponentVariant_Text_instance = new ComponentVariant('Text', 2);
+  ComponentVariant_Tonal_instance = new ComponentVariant('Tonal', 3);
+  ComponentVariant_Elevated_instance = new ComponentVariant('Elevated', 4);
+}
+var ComponentState_Enabled_instance;
+var ComponentState_Disabled_instance;
+var ComponentState_Loading_instance;
+function values_4() {
+  return [ComponentState_Enabled_getInstance(), ComponentState_Disabled_getInstance(), ComponentState_Loading_getInstance()];
+}
+function valueOf_2(value) {
+  switch (value) {
+    case 'Enabled':
+      return ComponentState_Enabled_getInstance();
+    case 'Disabled':
+      return ComponentState_Disabled_getInstance();
+    case 'Loading':
+      return ComponentState_Loading_getInstance();
+    default:
+      ComponentState_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.ComponentState.' + value);
+      break;
+  }
+}
+var ComponentState_entriesInitialized;
+function ComponentState_initEntries() {
+  if (ComponentState_entriesInitialized)
+    return Unit_instance;
+  ComponentState_entriesInitialized = true;
+  ComponentState_Enabled_instance = new ComponentState('Enabled', 0);
+  ComponentState_Disabled_instance = new ComponentState('Disabled', 1);
+  ComponentState_Loading_instance = new ComponentState('Loading', 2);
+}
+function RButton$lambda($this$FC, props) {
+  _init_properties_WebButton_kt__4eotak();
+  var tokens = props.tokens;
+  var colors = tokens.colors;
+  var spacing = tokens.spacing;
+  var shapes = tokens.shapes;
+  var sizing = tokens.sizing;
+  var tmp0_elvis_lhs = props.size;
+  var size = tmp0_elvis_lhs == null ? ComponentSize_Medium_getInstance() : tmp0_elvis_lhs;
+  var tmp1_elvis_lhs = props.variant;
+  var variant = tmp1_elvis_lhs == null ? ComponentVariant_Filled_getInstance() : tmp1_elvis_lhs;
+  var tmp2_elvis_lhs = props.state;
+  var state = tmp2_elvis_lhs == null ? ComponentState_Enabled_getInstance() : tmp2_elvis_lhs;
+  var tmp3_elvis_lhs = props.fullWidth;
+  var fullWidth = tmp3_elvis_lhs == null ? false : tmp3_elvis_lhs;
+  var isDisabled = state.equals(ComponentState_Disabled_getInstance());
+  var isLoading = state.equals(ComponentState_Loading_getInstance());
+  var tmp;
+  switch (size.ordinal_1) {
+    case 0:
+      tmp = sizing.buttonSm;
+      break;
+    case 1:
+      tmp = sizing.buttonMd;
+      break;
+    case 2:
+      tmp = sizing.buttonLg;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var height = tmp;
+  var tmp_0;
+  switch (size.ordinal_1) {
+    case 0:
+      tmp_0 = spacing.sm;
+      break;
+    case 1:
+      tmp_0 = spacing.md;
+      break;
+    case 2:
+      tmp_0 = spacing.lg;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var padding = tmp_0;
+  var tmp_1;
+  switch (size.ordinal_1) {
+    case 0:
+      tmp_1 = sizing.iconXs;
+      break;
+    case 1:
+      tmp_1 = sizing.iconSm;
+      break;
+    case 2:
+      tmp_1 = sizing.iconMd;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var iconSize = tmp_1;
+  var tmp_2;
+  if (isDisabled) {
+    tmp_2 = new Triple('rgba(0,0,0,0.12)', 'rgba(0,0,0,0.38)', 'transparent');
+  } else {
+    var tmp_3;
+    switch (variant.ordinal_1) {
+      case 0:
+        tmp_3 = new Triple(colors.primary, colors.onPrimary, 'transparent');
+        break;
+      case 3:
+        tmp_3 = new Triple(colors.secondaryContainer, colors.onSecondaryContainer, 'transparent');
+        break;
+      case 4:
+        tmp_3 = new Triple(colors.surface, colors.primary, 'transparent');
+        break;
+      case 1:
+        tmp_3 = new Triple('transparent', colors.primary, colors.outline);
+        break;
+      case 2:
+        tmp_3 = new Triple('transparent', colors.primary, 'transparent');
+        break;
+      default:
+        noWhenBranchMatchedException();
+        break;
+    }
+    tmp_2 = tmp_3;
+  }
+  var _destruct__k2r9zo = tmp_2;
+  var bgColor = _destruct__k2r9zo.component1_7eebsc_k$();
+  var textColor = _destruct__k2r9zo.component2_7eebsb_k$();
+  var borderColor = _destruct__k2r9zo.component3_7eebsa_k$();
+  // Inline function 'react.dom.html.ReactHTML.button' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RButton$lambda$lambda(isDisabled, isLoading, spacing, height, padding, bgColor, textColor, borderColor, shapes, fullWidth, variant, tokens, props, iconSize);
+  addChild($this$FC, 'button', block);
+  return Unit_instance;
+}
+function RButton$lambda$lambda$lambda($props) {
+  return (it) => {
+    var tmp0_safe_receiver = $props.onClick;
+    if (tmp0_safe_receiver == null)
+      null;
+    else
+      tmp0_safe_receiver();
+    return Unit_instance;
+  };
+}
+function RButton$lambda$lambda$lambda_0($iconSize, $textColor) {
+  return ($this$span) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.width = $iconSize;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $iconSize;
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0 = toString_1(2) + 'px';
+    // Inline function 'web.cssom.LineStyle.Companion.solid' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'web.cssom.Border' call
+    var color = $textColor;
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.border = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    // Inline function 'web.cssom.NamedColor.Companion.transparent' call
+    this_0.borderTopColor = 'rgba(0,0,0,0)';
+    // Inline function 'web.cssom.pct' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = toString_1(50) + '%';
+    $this$span.style = this_0;
+    return Unit_instance;
+  };
+}
+function RButton$lambda$lambda$lambda_1($iconSize, $icon) {
+  return ($this$span) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.width = $iconSize;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $iconSize;
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'web.cssom.JustifyContent.Companion.center' call
+    this_0.justifyContent = 'center';
+    $this$span.style = this_0;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    var this_1 = $icon;
+    addChildNode($this$span, this_1);
+    return Unit_instance;
+  };
+}
+function RButton$lambda$lambda($isDisabled, $isLoading, $spacing, $height, $padding, $bgColor, $textColor, $borderColor, $shapes, $fullWidth, $variant, $tokens, $props, $iconSize) {
+  return ($this$button) => {
+    $this$button.disabled = $isDisabled || $isLoading;
+    $this$button.onClick = RButton$lambda$lambda$lambda($props);
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.inlineFlex' call
+    this_0.display = 'inline-flex';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'web.cssom.JustifyContent.Companion.center' call
+    this_0.justifyContent = 'center';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.xs;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $height;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingLeft = $padding;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingRight = $padding;
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingTop = toString_1(0) + 'px';
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingBottom = toString_1(0) + 'px';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $bgColor;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.color = $textColor;
+    var tmp_0;
+    if ($borderColor === 'transparent') {
+      // Inline function 'web.cssom.None.Companion.none' call
+      tmp_0 = 'none';
+    } else {
+      // Inline function 'web.cssom.px' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      var tmp0 = toString_1(1) + 'px';
+      // Inline function 'web.cssom.LineStyle.Companion.solid' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      // Inline function 'web.cssom.Border' call
+      var color = $borderColor;
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_0 = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    }
+    this_0.border = tmp_0;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = $shapes.md;
+    var tmp_1;
+    if ($isDisabled || $isLoading) {
+      // Inline function 'web.cssom.Cursor.Companion.notAllowed' call
+      tmp_1 = 'not-allowed';
+    } else {
+      // Inline function 'web.cssom.Cursor.Companion.pointer' call
+      tmp_1 = 'pointer';
+    }
+    this_0.cursor = tmp_1;
+    var tmp_2;
+    if ($isLoading) {
+      // Inline function 'web.cssom.number' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_2 = 0.7;
+    } else {
+      // Inline function 'web.cssom.number' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_2 = 1.0;
+    }
+    this_0.opacity = tmp_2;
+    // Inline function 'web.cssom.integer' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.fontWeight = 500;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.fontSize = 'inherit';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.fontFamily = 'inherit';
+    // Inline function 'web.cssom.None.Companion.none' call
+    this_0.textTransform = 'none';
+    var tmp_3;
+    if ($fullWidth) {
+      // Inline function 'web.cssom.pct' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_3 = toString_1(100) + '%';
+    } else {
+      // Inline function 'web.cssom.Auto.Companion.auto' call
+      tmp_3 = 'auto';
+    }
+    this_0.width = tmp_3;
+    var tmp_4;
+    if ($variant.equals(ComponentVariant_Elevated_getInstance())) {
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_4 = $tokens.elevation.sm;
+    } else {
+      // Inline function 'web.cssom.None.Companion.none' call
+      tmp_4 = 'none';
+    }
+    this_0.boxShadow = tmp_4;
+    $this$button.style = this_0;
+    if ($isLoading) {
+      // Inline function 'react.dom.html.ReactHTML.span' call
+      // Inline function 'react.IntrinsicType' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      // Inline function 'react.ChildrenBuilder.invoke' call
+      var block = RButton$lambda$lambda$lambda_0($iconSize, $textColor);
+      addChild($this$button, 'span', block);
+    } else {
+      var tmp0_safe_receiver = $props.icon;
+      if (tmp0_safe_receiver == null)
+        null;
+      else {
+        // Inline function 'kotlin.let' call
+        // Inline function 'react.dom.html.ReactHTML.span' call
+        // Inline function 'react.IntrinsicType' call
+        // Inline function 'js.reflect.unsafeCast' call
+        // Inline function 'kotlin.js.unsafeCast' call
+        // Inline function 'kotlin.js.asDynamic' call
+        // Inline function 'react.ChildrenBuilder.invoke' call
+        var block_0 = RButton$lambda$lambda$lambda_1($iconSize, tmp0_safe_receiver);
+        addChild($this$button, 'span', block_0);
+      }
+      var tmp1_safe_receiver = $props.label;
+      if (tmp1_safe_receiver == null)
+        null;
+      else {
+        // Inline function 'kotlin.let' call
+        // Inline function 'react.ChildrenBuilder.unaryPlus' call
+        // Inline function 'react.ReactNode' call
+        // Inline function 'js.reflect.unsafeCast' call
+        // Inline function 'kotlin.js.unsafeCast' call
+        // Inline function 'kotlin.js.asDynamic' call
+        addChildNode($this$button, tmp1_safe_receiver);
+      }
+    }
+    return Unit_instance;
+  };
+}
+function ComponentSize_Small_getInstance() {
+  ComponentSize_initEntries();
+  return ComponentSize_Small_instance;
+}
+function ComponentSize_Medium_getInstance() {
+  ComponentSize_initEntries();
+  return ComponentSize_Medium_instance;
+}
+function ComponentSize_Large_getInstance() {
+  ComponentSize_initEntries();
+  return ComponentSize_Large_instance;
+}
+function ComponentVariant_Filled_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Filled_instance;
+}
+function ComponentVariant_Outlined_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Outlined_instance;
+}
+function ComponentVariant_Text_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Text_instance;
+}
+function ComponentVariant_Tonal_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Tonal_instance;
+}
+function ComponentVariant_Elevated_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Elevated_instance;
+}
+function ComponentState_Enabled_getInstance() {
+  ComponentState_initEntries();
+  return ComponentState_Enabled_instance;
+}
+function ComponentState_Disabled_getInstance() {
+  ComponentState_initEntries();
+  return ComponentState_Disabled_instance;
+}
+function ComponentState_Loading_getInstance() {
+  ComponentState_initEntries();
+  return ComponentState_Loading_instance;
+}
+var properties_initialized_WebButton_kt_frwkk6;
+function _init_properties_WebButton_kt__4eotak() {
+  if (!properties_initialized_WebButton_kt_frwkk6) {
+    properties_initialized_WebButton_kt_frwkk6 = true;
+    RButton = FC(RButton$lambda);
+  }
+}
+function get_RCard() {
+  _init_properties_WebCard_kt__de9k8e();
+  return RCard;
+}
+var RCard;
+var RElevatedCard;
+var ROutlinedCard;
+var RFilledCard;
+function RCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tokens = props.tokens;
+  var colors = tokens.colors;
+  var shapes = tokens.shapes;
+  var elevation = tokens.elevation;
+  var spacing = tokens.spacing;
+  var tmp0_elvis_lhs = props.variant;
+  var variant = tmp0_elvis_lhs == null ? ComponentVariant_Filled_getInstance() : tmp0_elvis_lhs;
+  var isClickable = !(props.onClick == null);
+  var tmp1_elvis_lhs = props.containerColor;
+  var tmp;
+  if (tmp1_elvis_lhs == null) {
+    var tmp_0;
+    switch (variant.ordinal_1) {
+      case 0:
+        tmp_0 = colors.surfaceContainer;
+        break;
+      case 4:
+        tmp_0 = colors.surface;
+        break;
+      case 1:
+        tmp_0 = colors.surface;
+        break;
+      case 3:
+        tmp_0 = colors.secondaryContainer;
+        break;
+      case 2:
+        tmp_0 = 'transparent';
+        break;
+      default:
+        noWhenBranchMatchedException();
+        break;
+    }
+    tmp = tmp_0;
+  } else {
+    tmp = tmp1_elvis_lhs;
+  }
+  var containerColor = tmp;
+  var tmp3_elvis_lhs = props.contentColor;
+  var tmp_1;
+  if (tmp3_elvis_lhs == null) {
+    tmp_1 = variant.ordinal_1 === 3 ? colors.onSecondaryContainer : colors.onSurface;
+  } else {
+    tmp_1 = tmp3_elvis_lhs;
+  }
+  var contentColor = tmp_1;
+  var shadow = variant.ordinal_1 === 4 ? elevation.sm : 'none';
+  var border = variant.ordinal_1 === 1 ? '1px solid ' + colors.outlineVariant : 'none';
+  // Inline function 'react.dom.html.ReactHTML.div' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RCard$lambda$lambda(containerColor, contentColor, shapes, shadow, border, isClickable, props, spacing);
+  addChild($this$FC, 'div', block);
+  return Unit_instance;
+}
+function RCard$lambda$lambda$lambda($props) {
+  return (it) => {
+    var tmp0_safe_receiver = $props.onClick;
+    if (tmp0_safe_receiver == null)
+      null;
+    else
+      tmp0_safe_receiver();
+    return Unit_instance;
+  };
+}
+function RCard$lambda$lambda($containerColor, $contentColor, $shapes, $shadow, $border, $isClickable, $props, $spacing) {
+  return ($this$div) => {
+    $this$div.onClick = RCard$lambda$lambda$lambda($props);
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $containerColor;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.color = $contentColor;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = $shapes.md;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.boxShadow = $shadow;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.border = $border;
+    // Inline function 'web.cssom.Overflow.Companion.hidden' call
+    this_0.overflow = 'hidden';
+    var tmp_0;
+    if ($isClickable) {
+      // Inline function 'web.cssom.Cursor.Companion.pointer' call
+      tmp_0 = 'pointer';
+    } else {
+      // Inline function 'web.cssom.Cursor.Companion.default' call
+      tmp_0 = 'default';
+    }
+    this_0.cursor = tmp_0;
+    var tmp0_elvis_lhs = $props.padding;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.padding = tmp0_elvis_lhs == null ? $spacing.md : tmp0_elvis_lhs;
+    $this$div.style = this_0;
+    var tmp_1;
+    if ($isClickable) {
+      // Inline function 'react.dom.aria.AriaRole.Companion.button' call
+      $this$div.role = 'button';
+      $this$div.tabIndex = 0;
+      tmp_1 = Unit_instance;
+    }
+    var tmp0_safe_receiver = $props.children;
+    if (tmp0_safe_receiver == null)
+      null;
+    else {
+      // Inline function 'kotlin.let' call
+      // Inline function 'react.ChildrenBuilder.unaryPlus' call
+      addChildNode($this$div, tmp0_safe_receiver);
+    }
+    return Unit_instance;
+  };
+}
+function RElevatedCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RElevatedCard$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RElevatedCard$lambda$lambda($props) {
+  return ($this$RCard) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RCard, this_0);
+    $this$RCard.variant = ComponentVariant_Elevated_getInstance();
+    return Unit_instance;
+  };
+}
+function ROutlinedCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = ROutlinedCard$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function ROutlinedCard$lambda$lambda($props) {
+  return ($this$RCard) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RCard, this_0);
+    $this$RCard.variant = ComponentVariant_Outlined_getInstance();
+    return Unit_instance;
+  };
+}
+function RFilledCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RFilledCard$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RFilledCard$lambda$lambda($props) {
+  return ($this$RCard) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RCard, this_0);
+    $this$RCard.variant = ComponentVariant_Filled_getInstance();
+    return Unit_instance;
+  };
+}
+var properties_initialized_WebCard_kt_7vxq4s;
+function _init_properties_WebCard_kt__de9k8e() {
+  if (!properties_initialized_WebCard_kt_7vxq4s) {
+    properties_initialized_WebCard_kt_7vxq4s = true;
+    RCard = FC(RCard$lambda);
+    RElevatedCard = FC(RElevatedCard$lambda);
+    ROutlinedCard = FC(ROutlinedCard$lambda);
+    RFilledCard = FC(RFilledCard$lambda);
+  }
+}
+function get_RText() {
+  _init_properties_WebText_kt__tuwd8x();
+  return RText;
+}
+var RText;
+var RDisplayText;
+var RHeadline;
+var RTitle;
+var RBody;
+var RLabel;
+var RCaption;
+var TextRole_Display_instance;
+var TextRole_Headline_instance;
+var TextRole_Title_instance;
+var TextRole_Body_instance;
+var TextRole_Label_instance;
+var TextRole_Caption_instance;
+function values_5() {
+  return [TextRole_Display_getInstance(), TextRole_Headline_getInstance(), TextRole_Title_getInstance(), TextRole_Body_getInstance(), TextRole_Label_getInstance(), TextRole_Caption_getInstance()];
+}
+function valueOf_3(value) {
+  switch (value) {
+    case 'Display':
+      return TextRole_Display_getInstance();
+    case 'Headline':
+      return TextRole_Headline_getInstance();
+    case 'Title':
+      return TextRole_Title_getInstance();
+    case 'Body':
+      return TextRole_Body_getInstance();
+    case 'Label':
+      return TextRole_Label_getInstance();
+    case 'Caption':
+      return TextRole_Caption_getInstance();
+    default:
+      TextRole_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.TextRole.' + value);
+      break;
+  }
+}
+var TextRole_entriesInitialized;
+function TextRole_initEntries() {
+  if (TextRole_entriesInitialized)
+    return Unit_instance;
+  TextRole_entriesInitialized = true;
+  TextRole_Display_instance = new TextRole('Display', 0);
+  TextRole_Headline_instance = new TextRole('Headline', 1);
+  TextRole_Title_instance = new TextRole('Title', 2);
+  TextRole_Body_instance = new TextRole('Body', 3);
+  TextRole_Label_instance = new TextRole('Label', 4);
+  TextRole_Caption_instance = new TextRole('Caption', 5);
+}
+var TextSize_Small_instance;
+var TextSize_Medium_instance;
+var TextSize_Large_instance;
+function values_6() {
+  return [TextSize_Small_getInstance(), TextSize_Medium_getInstance(), TextSize_Large_getInstance()];
+}
+function valueOf_4(value) {
+  switch (value) {
+    case 'Small':
+      return TextSize_Small_getInstance();
+    case 'Medium':
+      return TextSize_Medium_getInstance();
+    case 'Large':
+      return TextSize_Large_getInstance();
+    default:
+      TextSize_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.TextSize.' + value);
+      break;
+  }
+}
+var TextSize_entriesInitialized;
+function TextSize_initEntries() {
+  if (TextSize_entriesInitialized)
+    return Unit_instance;
+  TextSize_entriesInitialized = true;
+  TextSize_Small_instance = new TextSize('Small', 0);
+  TextSize_Medium_instance = new TextSize('Medium', 1);
+  TextSize_Large_instance = new TextSize('Large', 2);
+}
+function RText$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tokens = props.tokens;
+  var colors = tokens.colors;
+  var typography = tokens.typography;
+  var tmp0_elvis_lhs = props.role;
+  var role = tmp0_elvis_lhs == null ? TextRole_Body_getInstance() : tmp0_elvis_lhs;
+  var tmp1_elvis_lhs = props.size;
+  var size = tmp1_elvis_lhs == null ? TextSize_Medium_getInstance() : tmp1_elvis_lhs;
+  var tmp;
+  switch (role.ordinal_1) {
+    case 0:
+      var tmp_0;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_0 = typography.displaySmall;
+          break;
+        case 2:
+          tmp_0 = typography.displayLarge;
+          break;
+        case 1:
+          tmp_0 = typography.displayMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_0;
+      break;
+    case 1:
+      var tmp_1;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_1 = typography.headlineSmall;
+          break;
+        case 2:
+          tmp_1 = typography.headlineLarge;
+          break;
+        case 1:
+          tmp_1 = typography.headlineMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_1;
+      break;
+    case 2:
+      var tmp_2;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_2 = typography.titleSmall;
+          break;
+        case 2:
+          tmp_2 = typography.titleLarge;
+          break;
+        case 1:
+          tmp_2 = typography.titleMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_2;
+      break;
+    case 3:
+      var tmp_3;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_3 = typography.bodySmall;
+          break;
+        case 2:
+          tmp_3 = typography.bodyLarge;
+          break;
+        case 1:
+          tmp_3 = typography.bodyMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_3;
+      break;
+    case 4:
+      var tmp_4;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_4 = typography.labelSmall;
+          break;
+        case 2:
+          tmp_4 = typography.labelLarge;
+          break;
+        case 1:
+          tmp_4 = typography.labelMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_4;
+      break;
+    case 5:
+      tmp = typography.bodySmall;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var styleTokens = tmp;
+  var tmp_5;
+  switch (role.ordinal_1) {
+    case 0:
+    case 1:
+      tmp_5 = colors.onBackground;
+      break;
+    case 2:
+    case 3:
+      tmp_5 = colors.onSurface;
+      break;
+    case 4:
+    case 5:
+      tmp_5 = colors.onSurfaceVariant;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var defaultColor = tmp_5;
+  var tmp9_elvis_lhs = props.color;
+  var resolvedColor = tmp9_elvis_lhs == null ? defaultColor : tmp9_elvis_lhs;
+  // Inline function 'js.objects.jso' call
+  var tmp_6 = {};
+  // Inline function 'kotlin.apply' call
+  var this_0 = !(tmp_6 == null) ? tmp_6 : THROW_CCE();
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.color = resolvedColor;
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.fontSize = styleTokens.fontSize;
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.lineHeight = styleTokens.lineHeight;
+  var tmp0_safe_receiver = toIntOrNull(styleTokens.fontWeight);
+  var tmp_7;
+  if (tmp0_safe_receiver == null) {
+    tmp_7 = null;
+  } else {
+    // Inline function 'kotlin.let' call
+    // Inline function 'web.cssom.integer' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp_7 = tmp0_safe_receiver;
+  }
+  var tmp1_elvis_lhs_0 = tmp_7;
+  var tmp_8;
+  if (tmp1_elvis_lhs_0 == null) {
+    // Inline function 'web.cssom.FontWeight.Companion.normal' call
+    tmp_8 = 'normal';
+  } else {
+    tmp_8 = tmp1_elvis_lhs_0;
+  }
+  this_0.fontWeight = tmp_8;
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.letterSpacing = styleTokens.letterSpacing;
+  // Inline function 'web.cssom.px' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.margin = toString_1(0) + 'px';
+  var tmp2_safe_receiver = props.textAlign;
+  if (tmp2_safe_receiver == null)
+    null;
+  else {
+    // Inline function 'kotlin.let' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.textAlign = tmp2_safe_receiver;
+  }
+  var tmp3_safe_receiver = props.maxLines;
+  if (tmp3_safe_receiver == null)
+    null;
+  else {
+    // Inline function 'kotlin.let' call
+    if (tmp3_safe_receiver > 0) {
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      this_0.display = 'webkit-box';
+      // Inline function 'kotlin.js.asDynamic' call
+      this_0.WebkitLineClamp = tmp3_safe_receiver;
+      // Inline function 'kotlin.js.asDynamic' call
+      this_0.WebkitBoxOrient = 'vertical';
+      // Inline function 'web.cssom.Overflow.Companion.hidden' call
+      this_0.overflow = 'hidden';
+      // Inline function 'web.cssom.TextOverflow.Companion.ellipsis' call
+      this_0.textOverflow = 'ellipsis';
+    }
+  }
+  var textStyle = this_0;
+  var tmp10_elvis_lhs = props.text;
+  var content = tmp10_elvis_lhs == null ? props.children : tmp10_elvis_lhs;
+  switch (role.ordinal_1) {
+    case 0:
+      switch (size.ordinal_1) {
+        case 2:
+          // Inline function 'react.dom.html.ReactHTML.h1' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block = RText$lambda$lambda(textStyle, content);
+          addChild($this$FC, 'h1', block);
+          break;
+        case 1:
+          // Inline function 'react.dom.html.ReactHTML.h2' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_0 = RText$lambda$lambda_0(textStyle, content);
+          addChild($this$FC, 'h2', block_0);
+          break;
+        case 0:
+          // Inline function 'react.dom.html.ReactHTML.h3' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_1 = RText$lambda$lambda_1(textStyle, content);
+          addChild($this$FC, 'h3', block_1);
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      break;
+    case 1:
+      switch (size.ordinal_1) {
+        case 2:
+          // Inline function 'react.dom.html.ReactHTML.h2' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_2 = RText$lambda$lambda_2(textStyle, content);
+          addChild($this$FC, 'h2', block_2);
+          break;
+        case 1:
+          // Inline function 'react.dom.html.ReactHTML.h3' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_3 = RText$lambda$lambda_3(textStyle, content);
+          addChild($this$FC, 'h3', block_3);
+          break;
+        case 0:
+          // Inline function 'react.dom.html.ReactHTML.h4' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_4 = RText$lambda$lambda_4(textStyle, content);
+          addChild($this$FC, 'h4', block_4);
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      break;
+    case 2:
+      switch (size.ordinal_1) {
+        case 2:
+          // Inline function 'react.dom.html.ReactHTML.h4' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_5 = RText$lambda$lambda_5(textStyle, content);
+          addChild($this$FC, 'h4', block_5);
+          break;
+        case 1:
+          // Inline function 'react.dom.html.ReactHTML.h5' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_6 = RText$lambda$lambda_6(textStyle, content);
+          addChild($this$FC, 'h5', block_6);
+          break;
+        case 0:
+          // Inline function 'react.dom.html.ReactHTML.h6' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_7 = RText$lambda$lambda_7(textStyle, content);
+          addChild($this$FC, 'h6', block_7);
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      break;
+    case 3:
+      // Inline function 'react.dom.html.ReactHTML.p' call
+
+      // Inline function 'react.IntrinsicType' call
+
+      // Inline function 'js.reflect.unsafeCast' call
+
+      // Inline function 'kotlin.js.unsafeCast' call
+
+      // Inline function 'kotlin.js.asDynamic' call
+
+      // Inline function 'react.ChildrenBuilder.invoke' call
+
+      var block_8 = RText$lambda$lambda_8(textStyle, content);
+      addChild($this$FC, 'p', block_8);
+      break;
+    case 4:
+    case 5:
+      // Inline function 'react.dom.html.ReactHTML.span' call
+
+      // Inline function 'react.IntrinsicType' call
+
+      // Inline function 'js.reflect.unsafeCast' call
+
+      // Inline function 'kotlin.js.unsafeCast' call
+
+      // Inline function 'kotlin.js.asDynamic' call
+
+      // Inline function 'react.ChildrenBuilder.invoke' call
+
+      var block_9 = RText$lambda$lambda_9(textStyle, content);
+      addChild($this$FC, 'span', block_9);
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  return Unit_instance;
+}
+function RText$lambda$lambda($textStyle, $content) {
+  return ($this$h1) => {
+    $this$h1.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h1, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_0($textStyle, $content) {
+  return ($this$h2) => {
+    $this$h2.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h2, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_1($textStyle, $content) {
+  return ($this$h3) => {
+    $this$h3.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h3, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_2($textStyle, $content) {
+  return ($this$h2) => {
+    $this$h2.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h2, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_3($textStyle, $content) {
+  return ($this$h3) => {
+    $this$h3.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h3, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_4($textStyle, $content) {
+  return ($this$h4) => {
+    $this$h4.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h4, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_5($textStyle, $content) {
+  return ($this$h4) => {
+    $this$h4.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h4, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_6($textStyle, $content) {
+  return ($this$h5) => {
+    $this$h5.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h5, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_7($textStyle, $content) {
+  return ($this$h6) => {
+    $this$h6.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h6, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_8($textStyle, $content) {
+  return ($this$p) => {
+    $this$p.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$p, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_9($textStyle, $content) {
+  return ($this$span) => {
+    $this$span.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$span, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RDisplayText$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RDisplayText$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RDisplayText$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Display_getInstance();
+    return Unit_instance;
+  };
+}
+function RHeadline$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RHeadline$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RHeadline$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Headline_getInstance();
+    return Unit_instance;
+  };
+}
+function RTitle$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RTitle$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RTitle$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Title_getInstance();
+    return Unit_instance;
+  };
+}
+function RBody$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RBody$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RBody$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Body_getInstance();
+    return Unit_instance;
+  };
+}
+function RLabel$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RLabel$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RLabel$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function RCaption$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RCaption$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RCaption$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Caption_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function TextRole_Display_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Display_instance;
+}
+function TextRole_Headline_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Headline_instance;
+}
+function TextRole_Title_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Title_instance;
+}
+function TextRole_Body_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Body_instance;
+}
+function TextRole_Label_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Label_instance;
+}
+function TextRole_Caption_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Caption_instance;
+}
+function TextSize_Small_getInstance() {
+  TextSize_initEntries();
+  return TextSize_Small_instance;
+}
+function TextSize_Medium_getInstance() {
+  TextSize_initEntries();
+  return TextSize_Medium_instance;
+}
+function TextSize_Large_getInstance() {
+  TextSize_initEntries();
+  return TextSize_Large_instance;
+}
+var properties_initialized_WebText_kt_oq071t;
+function _init_properties_WebText_kt__tuwd8x() {
+  if (!properties_initialized_WebText_kt_oq071t) {
+    properties_initialized_WebText_kt_oq071t = true;
+    RText = FC(RText$lambda);
+    RDisplayText = FC(RDisplayText$lambda);
+    RHeadline = FC(RHeadline$lambda);
+    RTitle = FC(RTitle$lambda);
+    RBody = FC(RBody$lambda);
+    RLabel = FC(RLabel$lambda);
+    RCaption = FC(RCaption$lambda);
+  }
+}
+function get_ReaktorUIDemo() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return ReaktorUIDemo_0;
+}
+var ReaktorUIDemo_0;
+function get_DemoSection() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return DemoSection;
+}
+var DemoSection;
+function get_ColorSwatch() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return ColorSwatch;
+}
+var ColorSwatch;
+function ReaktorUIDemo$lambda($this$FC, props) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  var tmp0_elvis_lhs = props.initialDarkMode;
+  var darkMode$delegate = useState(tmp0_elvis_lhs == null ? false : tmp0_elvis_lhs);
+  var selectedTheme$delegate = useState(ThemeOption_Reaktor_getInstance());
+  var tmp0 = [invoke$lambda(darkMode$delegate), invoke$lambda_1(selectedTheme$delegate)];
+  // Inline function 'react.useMemo' call
+  var callback = ReaktorUIDemo$lambda$lambda(selectedTheme$delegate, darkMode$delegate);
+  var tokens = useMemo(callback, tmp0);
+  var colors = tokens.colors;
+  var spacing = tokens.spacing;
+  var shapes = tokens.shapes;
+  // Inline function 'react.dom.html.ReactHTML.div' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = ReaktorUIDemo$lambda$lambda_0(colors, spacing, tokens, darkMode$delegate, selectedTheme$delegate);
+  addChild($this$FC, 'div', block);
+  return Unit_instance;
+}
+function invoke$lambda($darkMode$delegate) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.getValue' call
+  getLocalDelegateReference('darkMode', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  return $darkMode$delegate[0];
+}
+function invoke$lambda_0($darkMode$delegate, _set____db54di) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.setValue' call
+  getLocalDelegateReference('darkMode', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  $darkMode$delegate[1](_set____db54di);
+  return Unit_instance;
+}
+function invoke$lambda_1($selectedTheme$delegate) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.getValue' call
+  getLocalDelegateReference('selectedTheme', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  return $selectedTheme$delegate[0];
+}
+function invoke$lambda_2($selectedTheme$delegate, _set____db54di) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.setValue' call
+  getLocalDelegateReference('selectedTheme', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  $selectedTheme$delegate[1](_set____db54di);
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda($selectedTheme$delegate, $darkMode$delegate) {
+  return () => {
+    var tmp;
+    switch (invoke$lambda_1($selectedTheme$delegate).ordinal_1) {
+      case 0:
+        tmp = invoke$lambda($darkMode$delegate) ? createWebTokens('#6750A4', '#625B71', '#7D5260', true) : createWebTokens('#6750A4', '#625B71', '#7D5260', false);
+        break;
+      case 1:
+        tmp = invoke$lambda($darkMode$delegate) ? createWebTokens('#1976D2', '#455A64', '#00796B', true) : createWebTokens('#1976D2', '#455A64', '#00796B', false);
+        break;
+      case 2:
+        tmp = invoke$lambda($darkMode$delegate) ? createWebTokens('#388E3C', '#5D4037', '#00796B', true) : createWebTokens('#388E3C', '#5D4037', '#00796B', false);
+        break;
+      case 3:
+        tmp = invoke$lambda($darkMode$delegate) ? WebMaterialTokens_instance.reaktorDark : WebMaterialTokens_instance.reaktorLight;
+        break;
+      default:
+        noWhenBranchMatchedException();
+        break;
+    }
+    return tmp;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Reaktor UI';
+    $this$RText.role = TextRole_Display_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_0($tokens, $colors) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Cross-platform UI components for Compose & React';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.color = $colors.onSurfaceVariant;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda($spacing, $tokens, $colors) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginBottom = $spacing.xl;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda_0($tokens, $colors);
+    addChild($this$div, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Theme Controls';
+    $this$RText.role = TextRole_Title_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Dark Mode:';
+    $this$RText.role = TextRole_Body_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda($darkMode$delegate) {
+  return () => {
+    invoke$lambda_0($darkMode$delegate, !invoke$lambda($darkMode$delegate));
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_0($tokens, $darkMode$delegate) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = invoke$lambda($darkMode$delegate) ? 'ON' : 'OFF';
+    $this$RButton.variant = invoke$lambda($darkMode$delegate) ? ComponentVariant_Filled_getInstance() : ComponentVariant_Outlined_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda($darkMode$delegate);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_0($spacing, $tokens, $darkMode$delegate) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.md;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginTop = $spacing.md;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginBottom = $spacing.md;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_0($tokens, $darkMode$delegate);
+    addChild($this$div, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0($theme, $selectedTheme$delegate) {
+  return () => {
+    invoke$lambda_2($selectedTheme$delegate, $theme);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens, $theme, $selectedTheme$delegate) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = $theme.name_1;
+    $this$RButton.variant = invoke$lambda_1($selectedTheme$delegate).equals($theme) ? ComponentVariant_Filled_getInstance() : ComponentVariant_Outlined_getInstance();
+    $this$RButton.size = ComponentSize_Small_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0($theme, $selectedTheme$delegate);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_1($spacing, $tokens, $selectedTheme$delegate) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    // Inline function 'web.cssom.FlexWrap.Companion.wrap' call
+    this_0.flexWrap = 'wrap';
+    $this$div.style = this_0;
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s = get_entries_1().iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var element = _iterator__ex2g4s.next_20eer_k$();
+      var tmp2 = get_RButton();
+      // Inline function 'react.ChildrenBuilder.invoke' call
+      var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens, element, $selectedTheme$delegate);
+      addChild($this$div, tmp2, block);
+    }
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_1($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate) {
+  return ($this$div) => {
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda($tokens);
+    addChild($this$div, tmp2, block);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_0($spacing, $tokens, $darkMode$delegate);
+    addChild($this$div, 'div', block_0);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_1($spacing, $tokens, $selectedTheme$delegate);
+    addChild($this$div, 'div', block_1);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_0($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Elevated_getInstance();
+    $this$RCard.padding = $spacing.md;
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda_1($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate);
+    addChild($this$RCard, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_1($spacing) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $spacing.xl;
+    $this$div.style = this_0;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Variants';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Primary';
+    $this$RButton.variant = ComponentVariant_Filled_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Secondary';
+    $this$RButton.variant = ComponentVariant_Tonal_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Outlined';
+    $this$RButton.variant = ComponentVariant_Outlined_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Text';
+    $this$RButton.variant = ComponentVariant_Text_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    // Inline function 'web.cssom.FlexWrap.Companion.wrap' call
+    this_0.flexWrap = 'wrap';
+    $this$div.style = this_0;
+    var tmp2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens);
+    addChild($this$div, tmp2_2, block_2);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Sizes';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Small';
+    $this$RButton.size = ComponentSize_Small_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Medium';
+    $this$RButton.size = ComponentSize_Medium_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Large';
+    $this$RButton.size = ComponentSize_Large_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    $this$div.style = this_0;
+    var tmp2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'States';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Enabled';
+    $this$RButton.state = ComponentState_Enabled_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Disabled';
+    $this$RButton.state = ComponentState_Disabled_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Loading';
+    $this$RButton.state = ComponentState_Loading_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_7($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    $this$div.style = this_0;
+    var tmp2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_2($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.md;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens);
+    addChild($this$div, tmp2, block);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens);
+    addChild($this$div, 'div', block_0);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens);
+    addChild($this$div, tmp2_0, block_1);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens);
+    addChild($this$div, 'div', block_2);
+    var tmp2_1 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens);
+    addChild($this$div, tmp2_1, block_3);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_7($spacing, $tokens);
+    addChild($this$div, 'div', block_4);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_2($tokens, $spacing) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Buttons';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_2($spacing, $tokens);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Display';
+    $this$RText.role = TextRole_Display_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Headline';
+    $this$RText.role = TextRole_Headline_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Title';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Body text for main content. This demonstrates the body style used for paragraphs.';
+    $this$RText.role = TextRole_Body_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Label';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Caption text for metadata';
+    $this$RText.role = TextRole_Caption_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens);
+    addChild($this$div, tmp2_2, block_2);
+    var tmp2_3 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens);
+    addChild($this$div, tmp2_3, block_3);
+    var tmp2_4 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens);
+    addChild($this$div, tmp2_4, block_4);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_3($tokens, $spacing) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Typography';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Elevated';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Elevated Card';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'With shadow elevation';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Elevated_getInstance();
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens);
+    addChild($this$RCard, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens);
+    addChild($this$RCard, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Outlined';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Outlined Card';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'With border';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_17($tokens) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Outlined_getInstance();
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens);
+    addChild($this$RCard, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens);
+    addChild($this$RCard, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_18($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Filled';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Filled Card';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'With container color';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_19($tokens) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Filled_getInstance();
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens);
+    addChild($this$RCard, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens);
+    addChild($this$RCard, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_4($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.md;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_17($tokens);
+    addChild($this$div, tmp2_2, block_2);
+    var tmp2_3 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_18($tokens);
+    addChild($this$div, tmp2_3, block_3);
+    var tmp2_4 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_19($tokens);
+    addChild($this$div, tmp2_4, block_4);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_4($tokens, $spacing) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Cards';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_4($spacing, $tokens);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_20($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.primary;
+    $this$ColorSwatch.name = 'Primary';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_21($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.secondary;
+    $this$ColorSwatch.name = 'Secondary';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_22($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.tertiary;
+    $this$ColorSwatch.name = 'Tertiary';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_23($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.error;
+    $this$ColorSwatch.name = 'Error';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_24($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.success;
+    $this$ColorSwatch.name = 'Success';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_25($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.warning;
+    $this$ColorSwatch.name = 'Warning';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_26($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.info;
+    $this$ColorSwatch.name = 'Info';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_27($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.surface;
+    $this$ColorSwatch.name = 'Surface';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens, $colors) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.grid' call
+    this_0.display = 'grid';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gridTemplateColumns = 'repeat(4, 1fr)';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.xs;
+    $this$div.style = this_0;
+    var tmp2 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_20($tokens, $colors);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_21($tokens, $colors);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_22($tokens, $colors);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_23($tokens, $colors);
+    addChild($this$div, tmp2_2, block_2);
+    var tmp2_3 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_24($tokens, $colors);
+    addChild($this$div, tmp2_3, block_3);
+    var tmp2_4 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_25($tokens, $colors);
+    addChild($this$div, tmp2_4, block_4);
+    var tmp2_5 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_5 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_26($tokens, $colors);
+    addChild($this$div, tmp2_5, block_5);
+    var tmp2_6 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_6 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_27($tokens, $colors);
+    addChild($this$div, tmp2_6, block_6);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_5($tokens, $spacing, $colors) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Color Palette';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens, $colors);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_2($spacing, $tokens, $colors) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.grid' call
+    this_0.display = 'grid';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gridTemplateColumns = 'repeat(auto-fit, minmax(320px, 1fr))';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.lg;
+    $this$div.style = this_0;
+    var tmp2 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda_2($tokens, $spacing);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda_3($tokens, $spacing);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda_4($tokens, $spacing);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda_5($tokens, $spacing, $colors);
+    addChild($this$div, tmp2_2, block_2);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_6($colors, $spacing) {
+  return ($this$hr) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.None.Companion.none' call
+    this_0.border = 'none';
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0 = toString_1(1) + 'px';
+    // Inline function 'web.cssom.LineStyle.Companion.solid' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'web.cssom.Border' call
+    var color = $colors.outlineVariant;
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderTop = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginBottom = $spacing.md;
+    $this$hr.style = this_0;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_7($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Reaktor UI Demo - Kotlin/JS React Components';
+    $this$RText.role = TextRole_Caption_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_3($spacing, $colors, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginTop = $spacing.xxl;
+    // Inline function 'web.cssom.TextAlign.Companion.center' call
+    this_0.textAlign = 'center';
+    $this$div.style = this_0;
+    // Inline function 'react.dom.html.ReactHTML.hr' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda_6($colors, $spacing);
+    addChild($this$div, 'hr', block);
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda_7($tokens);
+    addChild($this$div, tmp2, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda_0($colors, $spacing, $tokens, $darkMode$delegate, $selectedTheme$delegate) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.vh' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.minHeight = toString_1(100) + 'vh';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $colors.background;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.color = $colors.onBackground;
+    // Inline function 'web.cssom.FontFamily.Companion.sansSerif' call
+    this_0.fontFamily = 'sans-serif';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.padding = $spacing.lg;
+    $this$div.style = this_0;
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda($spacing, $tokens, $colors);
+    addChild($this$div, 'div', block);
+    var tmp2 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda_0($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate);
+    addChild($this$div, tmp2, block_0);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda_1($spacing);
+    addChild($this$div, 'div', block_1);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda_2($spacing, $tokens, $colors);
+    addChild($this$div, 'div', block_2);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda_3($spacing, $colors, $tokens);
+    addChild($this$div, 'div', block_3);
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda($this$FC, props) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = DemoSection$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function DemoSection$lambda$lambda$lambda$lambda($props) {
+  return ($this$RText) => {
+    $this$RText.tokens = $props.tokens;
+    $this$RText.text = $props.title;
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda$lambda$lambda$lambda_0($props) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginTop = $props.tokens.spacing.md;
+    $this$div.style = this_0;
+    var tmp0_safe_receiver = $props.children;
+    if (tmp0_safe_receiver == null)
+      null;
+    else {
+      // Inline function 'kotlin.let' call
+      // Inline function 'react.ChildrenBuilder.unaryPlus' call
+      addChildNode($this$div, tmp0_safe_receiver);
+    }
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda$lambda$lambda($props) {
+  return ($this$div) => {
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = DemoSection$lambda$lambda$lambda$lambda($props);
+    addChild($this$div, tmp2, block);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = DemoSection$lambda$lambda$lambda$lambda_0($props);
+    addChild($this$div, 'div', block_0);
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda$lambda($props) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $props.tokens;
+    $this$RCard.variant = ComponentVariant_Outlined_getInstance();
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = DemoSection$lambda$lambda$lambda($props);
+    addChild($this$RCard, 'div', block);
+    return Unit_instance;
+  };
+}
+function ColorSwatch$lambda($this$FC, props) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  var tokens = props.tokens;
+  var spacing = tokens.spacing;
+  var shapes = tokens.shapes;
+  // Inline function 'react.dom.html.ReactHTML.div' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = ColorSwatch$lambda$lambda(spacing, shapes, props, tokens);
+  addChild($this$FC, 'div', block);
+  return Unit_instance;
+}
+function ColorSwatch$lambda$lambda$lambda($shapes, $props, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.width = toString_1(40) + 'px';
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = toString_1(40) + 'px';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = $shapes.sm;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $props.color;
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0 = toString_1(1) + 'px';
+    // Inline function 'web.cssom.LineStyle.Companion.solid' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'web.cssom.Border' call
+    var color = $tokens.colors.outlineVariant;
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.border = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    $this$div.style = this_0;
+    return Unit_instance;
+  };
+}
+function ColorSwatch$lambda$lambda$lambda_0($tokens, $props) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = $props.name;
+    $this$RText.role = TextRole_Caption_getInstance();
+    return Unit_instance;
+  };
+}
+function ColorSwatch$lambda$lambda($spacing, $shapes, $props, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.xxs;
+    $this$div.style = this_0;
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ColorSwatch$lambda$lambda$lambda($shapes, $props, $tokens);
+    addChild($this$div, 'div', block);
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ColorSwatch$lambda$lambda$lambda_0($tokens, $props);
+    addChild($this$div, tmp2, block_0);
+    return Unit_instance;
+  };
+}
+var properties_initialized_WebReaktorUIDemo_kt_vlxfz3;
+function _init_properties_WebReaktorUIDemo_kt__nulf() {
+  if (!properties_initialized_WebReaktorUIDemo_kt_vlxfz3) {
+    properties_initialized_WebReaktorUIDemo_kt_vlxfz3 = true;
+    ReaktorUIDemo_0 = FC(ReaktorUIDemo$lambda);
+    DemoSection = FC(DemoSection$lambda);
+    ColorSwatch = FC(ColorSwatch$lambda);
+  }
+}
 var dev_shibasis_reaktor_ui_material_PromiseResult$stable;
 var PromiseState_Initial_instance;
 var PromiseState_Pending_instance;
 var PromiseState_Resolved_instance;
 var PromiseState_Rejected_instance;
-function values_1() {
+function values_7() {
   return [PromiseState_Initial_getInstance(), PromiseState_Pending_getInstance(), PromiseState_Resolved_getInstance(), PromiseState_Rejected_getInstance()];
 }
-function valueOf_0(value) {
+function valueOf_5(value) {
   switch (value) {
     case 'Initial':
       return PromiseState_Initial_getInstance();
@@ -54593,6 +58769,154 @@ function PromiseState_Resolved_getInstance() {
 function PromiseState_Rejected_getInstance() {
   PromiseState_initEntries();
   return PromiseState_Rejected_instance;
+}
+var dev_shibasis_reaktor_ui_tokens_WebColorScheme$stable;
+var dev_shibasis_reaktor_ui_tokens_WebTextStyle$stable;
+var dev_shibasis_reaktor_ui_tokens_WebTypography$stable;
+var dev_shibasis_reaktor_ui_tokens_WebSpacing$stable;
+var dev_shibasis_reaktor_ui_tokens_WebShapes$stable;
+var dev_shibasis_reaktor_ui_tokens_WebElevation$stable;
+var dev_shibasis_reaktor_ui_tokens_WebSizing$stable;
+var dev_shibasis_reaktor_ui_tokens_WebBreakpoints$stable;
+var dev_shibasis_reaktor_ui_tokens_WebMotion$stable;
+var dev_shibasis_reaktor_ui_tokens_WebDesignTokens$stable;
+function defaultWebTypography() {
+  return new WebTypography(new WebTextStyle('57px', '64px', '400', '0'), new WebTextStyle('45px', '52px', '400', '0'), new WebTextStyle('36px', '44px', '400', '0'), new WebTextStyle('32px', '40px', '400', '0'), new WebTextStyle('28px', '36px', '400', '0'), new WebTextStyle('24px', '32px', '400', '0'), new WebTextStyle('22px', '28px', '500', '0'), new WebTextStyle('16px', '24px', '500', '0.15px'), new WebTextStyle('14px', '20px', '500', '0.1px'), new WebTextStyle('16px', '24px', '400', '0.5px'), new WebTextStyle('14px', '20px', '400', '0.25px'), new WebTextStyle('12px', '16px', '400', '0.4px'), new WebTextStyle('14px', '20px', '500', '0.1px'), new WebTextStyle('12px', '16px', '500', '0.5px'), new WebTextStyle('11px', '16px', '500', '0.5px'));
+}
+var dev_shibasis_reaktor_ui_tokens_WebMaterialTokens$stable;
+function lighten(hex, fraction) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  return rgbToHex(r + (1.0 - r) * fraction, g + (1.0 - g) * fraction, b + (1.0 - b) * fraction);
+}
+function darken(hex, fraction) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  return rgbToHex(r * (1.0 - fraction), g * (1.0 - fraction), b * (1.0 - fraction));
+}
+function autoContentColor(background, lightContent, darkContent) {
+  lightContent = lightContent === VOID ? '#FFFFFF' : lightContent;
+  darkContent = darkContent === VOID ? '#1C1B1F' : darkContent;
+  return luminance(background) < 0.5 ? lightContent : darkContent;
+}
+function withAlpha(hex, alpha) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_0 = r * 255;
+  var tmp = roundToInt(this_0);
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_1 = g * 255;
+  var tmp_0 = roundToInt(this_1);
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_2 = b * 255;
+  return 'rgba(' + tmp + ', ' + tmp_0 + ', ' + roundToInt(this_2) + ', ' + alpha + ')';
+}
+function createLightColorScheme(primary, secondary, tertiary, background, surface, error, success, warning, info) {
+  tertiary = tertiary === VOID ? secondary : tertiary;
+  background = background === VOID ? '#FFFFFF' : background;
+  surface = surface === VOID ? '#FFFFFF' : surface;
+  error = error === VOID ? '#B00020' : error;
+  success = success === VOID ? '#4CAF50' : success;
+  warning = warning === VOID ? '#FFC107' : warning;
+  info = info === VOID ? '#2196F3' : info;
+  var darkContent = '#1C1B1F';
+  return new WebColorScheme(background, surface, lighten(surface, 0.05), darken(surface, 0.04), darken(surface, 0.08), darken(surface, 0.02), autoContentColor(background, VOID, darkContent), autoContentColor(surface, VOID, darkContent), withAlpha(darkContent, 0.7), primary, containerColor(primary, true), autoContentColor(primary), darken(primary, 0.4), secondary, containerColor(secondary, true), autoContentColor(secondary), darken(secondary, 0.4), tertiary, containerColor(tertiary, true), autoContentColor(tertiary), darken(tertiary, 0.4), error, containerColor(error, true), autoContentColor(error), darken(error, 0.4), success, autoContentColor(success), warning, autoContentColor(warning), info, autoContentColor(info), withAlpha(darkContent, 0.3), withAlpha(darkContent, 0.15), withAlpha('#000000', 0.32), '#000000', '#313033', '#F4EFF4', lighten(primary, 0.4));
+}
+function createDarkColorScheme(primary, secondary, tertiary, background, surface, error, success, warning, info) {
+  tertiary = tertiary === VOID ? secondary : tertiary;
+  background = background === VOID ? '#1C1B1F' : background;
+  surface = surface === VOID ? '#1C1B1F' : surface;
+  error = error === VOID ? '#CF6679' : error;
+  success = success === VOID ? '#81C784' : success;
+  warning = warning === VOID ? '#FFD54F' : warning;
+  info = info === VOID ? '#64B5F6' : info;
+  var lightContent = '#E6E1E5';
+  return new WebColorScheme(background, surface, lighten(surface, 0.1), lighten(surface, 0.08), lighten(surface, 0.12), lighten(surface, 0.04), autoContentColor(background, lightContent), autoContentColor(surface, lightContent), withAlpha(lightContent, 0.7), lighten(primary, 0.3), darken(primary, 0.2), '#1C1B1F', lighten(primary, 0.6), lighten(secondary, 0.3), darken(secondary, 0.2), '#1C1B1F', lighten(secondary, 0.6), lighten(tertiary, 0.3), darken(tertiary, 0.2), '#1C1B1F', lighten(tertiary, 0.6), error, darken(error, 0.3), '#1C1B1F', lighten(error, 0.4), success, '#1C1B1F', warning, '#1C1B1F', info, '#1C1B1F', withAlpha(lightContent, 0.4), withAlpha(lightContent, 0.2), withAlpha('#000000', 0.6), '#000000', '#E6E1E5', '#313033', primary);
+}
+function createWebDesignTokens(colors) {
+  return new WebDesignTokens(colors);
+}
+function createWebTokens(primary, secondary, tertiary, darkMode) {
+  tertiary = tertiary === VOID ? null : tertiary;
+  darkMode = darkMode === VOID ? false : darkMode;
+  var actualTertiary = tertiary == null ? secondary : tertiary;
+  var tmp;
+  if (darkMode) {
+    tmp = createDarkColorScheme(primary, secondary, actualTertiary);
+  } else {
+    tmp = createLightColorScheme(primary, secondary, actualTertiary);
+  }
+  var colors = tmp;
+  return createWebDesignTokens(colors);
+}
+var WebMaterialTokens_instance;
+function WebMaterialTokens_getInstance() {
+  return WebMaterialTokens_instance;
+}
+function hexToRgb(hex) {
+  var cleanHex = removePrefix(hex, '#');
+  if (!(cleanHex.length === 6))
+    return new RGB(0.0, 0.0, 0.0);
+  var tmp;
+  try {
+    tmp = new RGB(toInt(substring(cleanHex, 0, 2), 16) / 255.0, toInt(substring(cleanHex, 2, 4), 16) / 255.0, toInt(substring(cleanHex, 4, 6), 16) / 255.0);
+  } catch ($p) {
+    var tmp_0;
+    if ($p instanceof Exception) {
+      var e = $p;
+      tmp_0 = new RGB(0.0, 0.0, 0.0);
+    } else {
+      throw $p;
+    }
+    tmp = tmp_0;
+  }
+  return tmp;
+}
+function rgbToHex(r, g, b) {
+  return '#' + rgbToHex$toHex(r) + rgbToHex$toHex(g) + rgbToHex$toHex(b);
+}
+function luminance(hex) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  // Inline function 'kotlin.collections.map' call
+  var this_0 = listOf_0([r, g, b]);
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
+  var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var item = _iterator__ex2g4s.next_20eer_k$();
+    var tmp;
+    if (item <= 0.03928) {
+      tmp = item / 12.92;
+    } else {
+      // Inline function 'kotlin.math.pow' call
+      var this_1 = (item + 0.055) / 1.055;
+      tmp = Math.pow(this_1, 2.4);
+    }
+    var tmp$ret$1 = tmp;
+    destination.add_utx5q5_k$(tmp$ret$1);
+  }
+  var components = destination;
+  return components.get_c1px32_k$(0) * 0.2126 + components.get_c1px32_k$(1) * 0.7152 + components.get_c1px32_k$(2) * 0.0722;
+}
+function containerColor(source, lightMode) {
+  return lightMode ? lighten(source, 0.85) : darken(source, 0.3);
+}
+function rgbToHex$toHex(c) {
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_0 = c * 255;
+  var tmp$ret$0 = roundToInt(this_0);
+  var hex = toString_3(coerceIn(tmp$ret$0, 0, 255), 16);
+  return hex.length === 1 ? '0' + hex : hex;
 }
 var Companion_instance_41;
 function Companion_getInstance_41() {
@@ -57328,13 +61652,13 @@ var Companion_instance_47;
 function Companion_getInstance_47() {
   return Companion_instance_47;
 }
-function values_2() {
+function values_8() {
   return [WeekDay_MONDAY_getInstance(), WeekDay_TUESDAY_getInstance(), WeekDay_WEDNESDAY_getInstance(), WeekDay_THURSDAY_getInstance(), WeekDay_FRIDAY_getInstance(), WeekDay_SATURDAY_getInstance(), WeekDay_SUNDAY_getInstance()];
 }
-function get_entries_1() {
-  if ($ENTRIES_1 == null)
-    $ENTRIES_1 = enumEntries(values_2());
-  return $ENTRIES_1;
+function get_entries_2() {
+  if ($ENTRIES_2 == null)
+    $ENTRIES_2 = enumEntries(values_8());
+  return $ENTRIES_2;
 }
 var WeekDay_entriesInitialized;
 function WeekDay_initEntries() {
@@ -57349,7 +61673,7 @@ function WeekDay_initEntries() {
   WeekDay_SATURDAY_instance = new WeekDay('SATURDAY', 5, 'Sat');
   WeekDay_SUNDAY_instance = new WeekDay('SUNDAY', 6, 'Sun');
 }
-var $ENTRIES_1;
+var $ENTRIES_2;
 var Month_JANUARY_instance;
 var Month_FEBRUARY_instance;
 var Month_MARCH_instance;
@@ -57366,13 +61690,13 @@ var Companion_instance_48;
 function Companion_getInstance_48() {
   return Companion_instance_48;
 }
-function values_3() {
+function values_9() {
   return [Month_JANUARY_getInstance(), Month_FEBRUARY_getInstance(), Month_MARCH_getInstance(), Month_APRIL_getInstance(), Month_MAY_getInstance(), Month_JUNE_getInstance(), Month_JULY_getInstance(), Month_AUGUST_getInstance(), Month_SEPTEMBER_getInstance(), Month_OCTOBER_getInstance(), Month_NOVEMBER_getInstance(), Month_DECEMBER_getInstance()];
 }
-function get_entries_2() {
-  if ($ENTRIES_2 == null)
-    $ENTRIES_2 = enumEntries(values_3());
-  return $ENTRIES_2;
+function get_entries_3() {
+  if ($ENTRIES_3 == null)
+    $ENTRIES_3 = enumEntries(values_9());
+  return $ENTRIES_3;
 }
 var Month_entriesInitialized;
 function Month_initEntries() {
@@ -57392,7 +61716,7 @@ function Month_initEntries() {
   Month_NOVEMBER_instance = new Month('NOVEMBER', 10, 'Nov');
   Month_DECEMBER_instance = new Month('DECEMBER', 11, 'Dec');
 }
-var $ENTRIES_2;
+var $ENTRIES_3;
 function WeekDay_MONDAY_getInstance() {
   WeekDay_initEntries();
   return WeekDay_MONDAY_instance;
@@ -57684,7 +62008,7 @@ function cacheInterceptors($this) {
         tmp_2 = tmp1_elvis_lhs;
       }
       var phase = tmp_2;
-      phase.addTo_h97ksk_k$(destination);
+      phase.addTo_219g88_k$(destination);
     }
      while (!(phaseIndex_0 === last_0));
   notSharedInterceptorsList($this, destination);
@@ -57959,13 +62283,13 @@ var LogLevel_INFO_instance;
 var LogLevel_WARN_instance;
 var LogLevel_ERROR_instance;
 var LogLevel_NONE_instance;
-function values_4() {
+function values_10() {
   return [LogLevel_TRACE_getInstance(), LogLevel_DEBUG_getInstance(), LogLevel_INFO_getInstance(), LogLevel_WARN_getInstance(), LogLevel_ERROR_getInstance(), LogLevel_NONE_getInstance()];
 }
-function get_entries_3() {
-  if ($ENTRIES_3 == null)
-    $ENTRIES_3 = enumEntries(values_4());
-  return $ENTRIES_3;
+function get_entries_4() {
+  if ($ENTRIES_4 == null)
+    $ENTRIES_4 = enumEntries(values_10());
+  return $ENTRIES_4;
 }
 var LogLevel_entriesInitialized;
 function LogLevel_initEntries() {
@@ -57979,7 +62303,7 @@ function LogLevel_initEntries() {
   LogLevel_ERROR_instance = new LogLevel('ERROR', 4);
   LogLevel_NONE_instance = new LogLevel('NONE', 5);
 }
-var $ENTRIES_3;
+var $ENTRIES_4;
 function LogLevel_TRACE_getInstance() {
   LogLevel_initEntries();
   return LogLevel_TRACE_instance;
@@ -59228,7 +63552,7 @@ function fillHost(_this__u8e3s4, urlString, startIndex, endIndex) {
   _this__u8e3s4.host_1 = substring(urlString, startIndex, colonIndex);
   var tmp_0;
   if ((colonIndex + 1 | 0) < endIndex) {
-    tmp_0 = toInt(substring(urlString, colonIndex + 1 | 0, endIndex));
+    tmp_0 = toInt_0(substring(urlString, colonIndex + 1 | 0, endIndex));
   } else {
     tmp_0 = 0;
   }
@@ -60646,13 +64970,13 @@ function Companion_getInstance_61() {
     new Companion_61();
   return Companion_instance_61;
 }
-function values_5() {
+function values_11() {
   return [Codes_NORMAL_getInstance(), Codes_GOING_AWAY_getInstance(), Codes_PROTOCOL_ERROR_getInstance(), Codes_CANNOT_ACCEPT_getInstance(), Codes_CLOSED_ABNORMALLY_getInstance(), Codes_NOT_CONSISTENT_getInstance(), Codes_VIOLATED_POLICY_getInstance(), Codes_TOO_BIG_getInstance(), Codes_NO_EXTENSION_getInstance(), Codes_INTERNAL_ERROR_getInstance(), Codes_SERVICE_RESTART_getInstance(), Codes_TRY_AGAIN_LATER_getInstance()];
 }
-function get_entries_4() {
-  if ($ENTRIES_4 == null)
-    $ENTRIES_4 = enumEntries(values_5());
-  return $ENTRIES_4;
+function get_entries_5() {
+  if ($ENTRIES_5 == null)
+    $ENTRIES_5 = enumEntries(values_11());
+  return $ENTRIES_5;
 }
 var Codes_entriesInitialized;
 function Codes_initEntries() {
@@ -60673,7 +64997,7 @@ function Codes_initEntries() {
   Codes_TRY_AGAIN_LATER_instance = new Codes('TRY_AGAIN_LATER', 11, 1013);
   Companion_getInstance_61();
 }
-var $ENTRIES_4;
+var $ENTRIES_5;
 function Codes_NORMAL_getInstance() {
   Codes_initEntries();
   return Codes_NORMAL_instance;
@@ -61157,13 +65481,13 @@ function Companion_getInstance_63() {
     new Companion_63();
   return Companion_instance_63;
 }
-function values_6() {
+function values_12() {
   return [FrameType_TEXT_getInstance(), FrameType_BINARY_getInstance(), FrameType_CLOSE_getInstance(), FrameType_PING_getInstance(), FrameType_PONG_getInstance()];
 }
-function get_entries_5() {
-  if ($ENTRIES_5 == null)
-    $ENTRIES_5 = enumEntries(values_6());
-  return $ENTRIES_5;
+function get_entries_6() {
+  if ($ENTRIES_6 == null)
+    $ENTRIES_6 = enumEntries(values_12());
+  return $ENTRIES_6;
 }
 var FrameType_entriesInitialized;
 function FrameType_initEntries() {
@@ -61177,7 +65501,7 @@ function FrameType_initEntries() {
   FrameType_PONG_instance = new FrameType('PONG', 4, true, 10);
   Companion_getInstance_63();
 }
-var $ENTRIES_5;
+var $ENTRIES_6;
 function FrameType_TEXT_getInstance() {
   FrameType_initEntries();
   return FrameType_TEXT_instance;
@@ -61523,7 +65847,7 @@ function *_generator_invoke__zhh2q8_15($this, value, $completion) {
     tmp_0 = yield tmp_0;
   return Unit_instance;
 }
-function *_generator_collect__dlomyy_2($this, collector, $completion) {
+function *_generator_collect__dlomyy_1($this, collector, $completion) {
   var tmp = deserialize$o$collect$slambda_0(collector, $this.$charset_1, $this.$typeInfo_1, $this.$body_1);
   var tmp_0 = $this.$this_1.collect_otghi5_k$(new sam$kotlinx_coroutines_flow_FlowCollector$0(tmp), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
@@ -62574,7 +66898,7 @@ function *_generator_invoke__zhh2q8_25($this, $this$intercept, _destruct__k2r9zo
     var tmp_1 = readRemaining_0(body, $completion);
     if (tmp_1 === get_COROUTINE_SUSPENDED())
       tmp_1 = yield tmp_1;
-    var tmp_2 = $this$intercept.proceedWith_9a1lq3_k$(new HttpResponseContainer(info, toInt(readText(tmp_1))), $completion);
+    var tmp_2 = $this$intercept.proceedWith_9a1lq3_k$(new HttpResponseContainer(info, toInt_0(readText(tmp_1))), $completion);
     if (tmp_2 === get_COROUTINE_SUSPENDED())
       tmp_2 = yield tmp_2;
     tmp = tmp_2;
@@ -65622,7 +69946,7 @@ function *_generator_invoke__zhh2q8_55($this, value, $completion) {
     tmp_0 = yield tmp_0;
   return Unit_instance;
 }
-function *_generator_collect__dlomyy_3($this, collector, $completion) {
+function *_generator_collect__dlomyy_2($this, collector, $completion) {
   var tmp = KotlinxSerializationConverter$serialize$o$collect$slambda_0(collector, $this.$contentType_1, $this.$charset_1, $this.$typeInfo_1, $this.$value_1);
   var tmp_0 = $this.$this_1.collect_otghi5_k$(new sam$kotlinx_coroutines_flow_FlowCollector$0_0(tmp), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
@@ -65646,7 +69970,7 @@ function *_generator_invoke__zhh2q8_56($this, value, $completion) {
     tmp_0 = yield tmp_0;
   return Unit_instance;
 }
-function *_generator_collect__dlomyy_4($this, collector, $completion) {
+function *_generator_collect__dlomyy_3($this, collector, $completion) {
   var tmp = KotlinxSerializationConverter$deserialize$o$collect$slambda_0(collector, $this.$charset_1, $this.$typeInfo_1, $this.$content_1);
   var tmp_0 = $this.$this_1.collect_otghi5_k$(new sam$kotlinx_coroutines_flow_FlowCollector$0_1(tmp), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
@@ -67353,6 +71677,10 @@ function Severity_Info_getInstance() {
   Severity_initEntries();
   return Severity_Info_instance;
 }
+function Severity_Warn_getInstance() {
+  Severity_initEntries();
+  return Severity_Warn_instance;
+}
 function Severity_Error_getInstance() {
   Severity_initEntries();
   return Severity_Error_instance;
@@ -67950,10 +72278,10 @@ function ConcurrentMutableMap$_get_size_$lambda_nuyc4q(this$0) {
   return () => this$0.del_1.get_size_woubt6_k$();
 }
 function ConcurrentMutableMap$_get_entries_$lambda_dp7xtt(this$0) {
-  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(this$0, this$0.del_1.get_entries_p20ztl_k$());
+  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(this$0, this$0.del_1.get_entries_p20ztl_k$());
 }
 function ConcurrentMutableMap$_get_keys_$lambda_5gjoyr(this$0) {
-  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(this$0, this$0.del_1.get_keys_wop4xp_k$());
+  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(this$0, this$0.del_1.get_keys_wop4xp_k$());
 }
 function ConcurrentMutableMap$_get_values_$lambda_tyvlyt(this$0) {
   return () => ConcurrentMutableCollection.new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(this$0, this$0.del_1.get_values_ksazhn_k$());
@@ -68245,286 +72573,6 @@ var coil3_compose_internal_SubcomposeContentPainterElement$stable;
 var coil3_compose_internal_SubcomposeContentPainterNode$stable;
 var coil3_compose_internal_AbstractContentPainterNode$stable;
 var coil3_compose_internal_ForwardingCoroutineContext$stable;
-var _arrowBack;
-var _arrowForward;
-var _exitToApp;
-var _keyboardArrowLeft;
-var _keyboardArrowRight;
-var _list;
-var _send;
-var _arrowBack_0;
-var _arrowForward_0;
-var _exitToApp_0;
-var _keyboardArrowLeft_0;
-var _keyboardArrowRight_0;
-var _list_0;
-var _send_0;
-var _arrowBack_1;
-var _arrowForward_1;
-var _exitToApp_1;
-var _keyboardArrowLeft_1;
-var _keyboardArrowRight_1;
-var _list_1;
-var _send_1;
-var _arrowBack_2;
-var _arrowForward_2;
-var _exitToApp_2;
-var _keyboardArrowLeft_2;
-var _keyboardArrowRight_2;
-var _list_2;
-var _send_2;
-var _arrowBack_3;
-var _arrowForward_3;
-var _exitToApp_3;
-var _keyboardArrowLeft_3;
-var _keyboardArrowRight_3;
-var _list_3;
-var _send_3;
-var _accountBox;
-var _accountCircle;
-var _add;
-var _addCircle;
-var _arrowBack_4;
-var _arrowDropDown;
-var _arrowForward_4;
-var _build;
-var _call;
-var _check;
-var _checkCircle;
-var _clear;
-var _close;
-var _create;
-var _dateRange;
-var _delete;
-var _done;
-var _edit;
-var _email;
-var _exitToApp_4;
-var _face;
-var _favorite;
-var _favoriteBorder;
-var _home;
-var _info;
-var _keyboardArrowDown;
-var _keyboardArrowLeft_4;
-var _keyboardArrowRight_4;
-var _keyboardArrowUp;
-var _list_4;
-var _locationOn;
-var _lock;
-var _mailOutline;
-var _menu;
-var _moreVert;
-var _notifications;
-var _person;
-var _phone;
-var _place;
-var _playArrow;
-var _refresh;
-var _search;
-var _send_4;
-var _settings;
-var _share;
-var _shoppingCart;
-var _star;
-var _thumbUp;
-var _warning;
-var _accountBox_0;
-var _accountCircle_0;
-var _add_0;
-var _addCircle_0;
-var _arrowBack_5;
-var _arrowDropDown_0;
-var _arrowForward_5;
-var _build_0;
-var _call_0;
-var _check_0;
-var _checkCircle_0;
-var _clear_0;
-var _close_0;
-var _create_0;
-var _dateRange_0;
-var _delete_0;
-var _done_0;
-var _edit_0;
-var _email_0;
-var _exitToApp_5;
-var _face_0;
-var _favorite_0;
-var _favoriteBorder_0;
-var _home_0;
-var _info_0;
-var _keyboardArrowDown_0;
-var _keyboardArrowLeft_5;
-var _keyboardArrowRight_5;
-var _keyboardArrowUp_0;
-var _list_5;
-var _locationOn_0;
-var _lock_0;
-var _mailOutline_0;
-var _menu_0;
-var _moreVert_0;
-var _notifications_0;
-var _person_0;
-var _phone_0;
-var _place_0;
-var _playArrow_0;
-var _refresh_0;
-var _search_0;
-var _send_5;
-var _settings_0;
-var _share_0;
-var _shoppingCart_0;
-var _star_0;
-var _thumbUp_0;
-var _warning_0;
-var _accountBox_1;
-var _accountCircle_1;
-var _add_1;
-var _addCircle_1;
-var _arrowBack_6;
-var _arrowDropDown_1;
-var _arrowForward_6;
-var _build_1;
-var _call_1;
-var _check_1;
-var _checkCircle_1;
-var _clear_1;
-var _close_1;
-var _create_1;
-var _dateRange_1;
-var _delete_1;
-var _done_1;
-var _edit_1;
-var _email_1;
-var _exitToApp_6;
-var _face_1;
-var _favorite_1;
-var _favoriteBorder_1;
-var _home_1;
-var _info_1;
-var _keyboardArrowDown_1;
-var _keyboardArrowLeft_6;
-var _keyboardArrowRight_6;
-var _keyboardArrowUp_1;
-var _list_6;
-var _locationOn_1;
-var _lock_1;
-var _mailOutline_1;
-var _menu_1;
-var _moreVert_1;
-var _notifications_1;
-var _person_1;
-var _phone_1;
-var _place_1;
-var _playArrow_1;
-var _refresh_1;
-var _search_1;
-var _send_6;
-var _settings_1;
-var _share_1;
-var _shoppingCart_1;
-var _star_1;
-var _thumbUp_1;
-var _warning_1;
-var _accountBox_2;
-var _accountCircle_2;
-var _add_2;
-var _addCircle_2;
-var _arrowBack_7;
-var _arrowDropDown_2;
-var _arrowForward_7;
-var _build_2;
-var _call_2;
-var _check_2;
-var _checkCircle_2;
-var _clear_2;
-var _close_2;
-var _create_2;
-var _dateRange_2;
-var _delete_2;
-var _done_2;
-var _edit_2;
-var _email_2;
-var _exitToApp_7;
-var _face_2;
-var _favorite_2;
-var _favoriteBorder_2;
-var _home_2;
-var _info_2;
-var _keyboardArrowDown_2;
-var _keyboardArrowLeft_7;
-var _keyboardArrowRight_7;
-var _keyboardArrowUp_2;
-var _list_7;
-var _locationOn_2;
-var _lock_2;
-var _mailOutline_2;
-var _menu_2;
-var _moreVert_2;
-var _notifications_2;
-var _person_2;
-var _phone_2;
-var _place_2;
-var _playArrow_2;
-var _refresh_2;
-var _search_2;
-var _send_7;
-var _settings_2;
-var _share_2;
-var _shoppingCart_2;
-var _star_2;
-var _thumbUp_2;
-var _warning_2;
-var _accountBox_3;
-var _accountCircle_3;
-var _add_3;
-var _addCircle_3;
-var _arrowBack_8;
-var _arrowDropDown_3;
-var _arrowForward_8;
-var _build_3;
-var _call_3;
-var _check_3;
-var _checkCircle_3;
-var _clear_3;
-var _close_3;
-var _create_3;
-var _dateRange_3;
-var _delete_3;
-var _done_3;
-var _edit_3;
-var _email_3;
-var _exitToApp_8;
-var _face_3;
-var _favorite_3;
-var _favoriteBorder_3;
-var _home_3;
-var _info_3;
-var _keyboardArrowDown_3;
-var _keyboardArrowLeft_8;
-var _keyboardArrowRight_8;
-var _keyboardArrowUp_3;
-var _list_8;
-var _locationOn_3;
-var _lock_3;
-var _mailOutline_3;
-var _menu_3;
-var _moreVert_3;
-var _notifications_3;
-var _person_3;
-var _phone_3;
-var _place_3;
-var _playArrow_3;
-var _refresh_3;
-var _search_3;
-var _send_8;
-var _settings_3;
-var _share_3;
-var _shoppingCart_3;
-var _star_3;
-var _thumbUp_3;
-var _warning_3;
 var _accessible;
 var _accessibleForward;
 var _addToHomeScreen;
@@ -79630,6 +83678,286 @@ var __8mp_3;
 var __9k_3;
 var __9kPlus_3;
 var __9mp_3;
+var _arrowBack;
+var _arrowForward;
+var _exitToApp;
+var _keyboardArrowLeft;
+var _keyboardArrowRight;
+var _list;
+var _send;
+var _arrowBack_0;
+var _arrowForward_0;
+var _exitToApp_0;
+var _keyboardArrowLeft_0;
+var _keyboardArrowRight_0;
+var _list_0;
+var _send_0;
+var _arrowBack_1;
+var _arrowForward_1;
+var _exitToApp_1;
+var _keyboardArrowLeft_1;
+var _keyboardArrowRight_1;
+var _list_1;
+var _send_1;
+var _arrowBack_2;
+var _arrowForward_2;
+var _exitToApp_2;
+var _keyboardArrowLeft_2;
+var _keyboardArrowRight_2;
+var _list_2;
+var _send_2;
+var _arrowBack_3;
+var _arrowForward_3;
+var _exitToApp_3;
+var _keyboardArrowLeft_3;
+var _keyboardArrowRight_3;
+var _list_3;
+var _send_3;
+var _accountBox;
+var _accountCircle;
+var _add;
+var _addCircle;
+var _arrowBack_4;
+var _arrowDropDown;
+var _arrowForward_4;
+var _build;
+var _call;
+var _check;
+var _checkCircle;
+var _clear;
+var _close;
+var _create;
+var _dateRange;
+var _delete;
+var _done;
+var _edit;
+var _email;
+var _exitToApp_4;
+var _face;
+var _favorite;
+var _favoriteBorder;
+var _home;
+var _info;
+var _keyboardArrowDown;
+var _keyboardArrowLeft_4;
+var _keyboardArrowRight_4;
+var _keyboardArrowUp;
+var _list_4;
+var _locationOn;
+var _lock;
+var _mailOutline;
+var _menu;
+var _moreVert;
+var _notifications;
+var _person;
+var _phone;
+var _place;
+var _playArrow;
+var _refresh;
+var _search;
+var _send_4;
+var _settings;
+var _share;
+var _shoppingCart;
+var _star;
+var _thumbUp;
+var _warning;
+var _accountBox_0;
+var _accountCircle_0;
+var _add_0;
+var _addCircle_0;
+var _arrowBack_5;
+var _arrowDropDown_0;
+var _arrowForward_5;
+var _build_0;
+var _call_0;
+var _check_0;
+var _checkCircle_0;
+var _clear_0;
+var _close_0;
+var _create_0;
+var _dateRange_0;
+var _delete_0;
+var _done_0;
+var _edit_0;
+var _email_0;
+var _exitToApp_5;
+var _face_0;
+var _favorite_0;
+var _favoriteBorder_0;
+var _home_0;
+var _info_0;
+var _keyboardArrowDown_0;
+var _keyboardArrowLeft_5;
+var _keyboardArrowRight_5;
+var _keyboardArrowUp_0;
+var _list_5;
+var _locationOn_0;
+var _lock_0;
+var _mailOutline_0;
+var _menu_0;
+var _moreVert_0;
+var _notifications_0;
+var _person_0;
+var _phone_0;
+var _place_0;
+var _playArrow_0;
+var _refresh_0;
+var _search_0;
+var _send_5;
+var _settings_0;
+var _share_0;
+var _shoppingCart_0;
+var _star_0;
+var _thumbUp_0;
+var _warning_0;
+var _accountBox_1;
+var _accountCircle_1;
+var _add_1;
+var _addCircle_1;
+var _arrowBack_6;
+var _arrowDropDown_1;
+var _arrowForward_6;
+var _build_1;
+var _call_1;
+var _check_1;
+var _checkCircle_1;
+var _clear_1;
+var _close_1;
+var _create_1;
+var _dateRange_1;
+var _delete_1;
+var _done_1;
+var _edit_1;
+var _email_1;
+var _exitToApp_6;
+var _face_1;
+var _favorite_1;
+var _favoriteBorder_1;
+var _home_1;
+var _info_1;
+var _keyboardArrowDown_1;
+var _keyboardArrowLeft_6;
+var _keyboardArrowRight_6;
+var _keyboardArrowUp_1;
+var _list_6;
+var _locationOn_1;
+var _lock_1;
+var _mailOutline_1;
+var _menu_1;
+var _moreVert_1;
+var _notifications_1;
+var _person_1;
+var _phone_1;
+var _place_1;
+var _playArrow_1;
+var _refresh_1;
+var _search_1;
+var _send_6;
+var _settings_1;
+var _share_1;
+var _shoppingCart_1;
+var _star_1;
+var _thumbUp_1;
+var _warning_1;
+var _accountBox_2;
+var _accountCircle_2;
+var _add_2;
+var _addCircle_2;
+var _arrowBack_7;
+var _arrowDropDown_2;
+var _arrowForward_7;
+var _build_2;
+var _call_2;
+var _check_2;
+var _checkCircle_2;
+var _clear_2;
+var _close_2;
+var _create_2;
+var _dateRange_2;
+var _delete_2;
+var _done_2;
+var _edit_2;
+var _email_2;
+var _exitToApp_7;
+var _face_2;
+var _favorite_2;
+var _favoriteBorder_2;
+var _home_2;
+var _info_2;
+var _keyboardArrowDown_2;
+var _keyboardArrowLeft_7;
+var _keyboardArrowRight_7;
+var _keyboardArrowUp_2;
+var _list_7;
+var _locationOn_2;
+var _lock_2;
+var _mailOutline_2;
+var _menu_2;
+var _moreVert_2;
+var _notifications_2;
+var _person_2;
+var _phone_2;
+var _place_2;
+var _playArrow_2;
+var _refresh_2;
+var _search_2;
+var _send_7;
+var _settings_2;
+var _share_2;
+var _shoppingCart_2;
+var _star_2;
+var _thumbUp_2;
+var _warning_2;
+var _accountBox_3;
+var _accountCircle_3;
+var _add_3;
+var _addCircle_3;
+var _arrowBack_8;
+var _arrowDropDown_3;
+var _arrowForward_8;
+var _build_3;
+var _call_3;
+var _check_3;
+var _checkCircle_3;
+var _clear_3;
+var _close_3;
+var _create_3;
+var _dateRange_3;
+var _delete_3;
+var _done_3;
+var _edit_3;
+var _email_3;
+var _exitToApp_8;
+var _face_3;
+var _favorite_3;
+var _favoriteBorder_3;
+var _home_3;
+var _info_3;
+var _keyboardArrowDown_3;
+var _keyboardArrowLeft_8;
+var _keyboardArrowRight_8;
+var _keyboardArrowUp_3;
+var _list_8;
+var _locationOn_3;
+var _lock_3;
+var _mailOutline_3;
+var _menu_3;
+var _moreVert_3;
+var _notifications_3;
+var _person_3;
+var _phone_3;
+var _place_3;
+var _playArrow_3;
+var _refresh_3;
+var _search_3;
+var _send_8;
+var _settings_3;
+var _share_3;
+var _shoppingCart_3;
+var _star_3;
+var _thumbUp_3;
+var _warning_3;
 var androidx_lifecycle_compose_LifecycleStartStopEffectScope$stable;
 var androidx_lifecycle_compose_LifecycleResumePauseEffectScope$stable;
 function get_initHook_0() {
@@ -79699,25 +84027,26 @@ function Destroying_getInstance() {
 }
 var dev_shibasis_reaktor_graph_core_Graph$stable;
 function handleCrossGraphForward($this, navCommand) {
+  if (!($this.parentGraph == null)) {
+    $this.parentGraph.dispatch_ad1g38_k$(isInterface(navCommand, NavCommand) ? navCommand : THROW_CCE());
+    return Unit_instance;
+  }
   var edge = navCommand.entry.edge;
   var destGraph = edge.destinationGraph;
   var container = findContainerForGraph($this, destGraph);
   if (!(container == null)) {
     container.activateGraphForRoute(edge.end);
-    var containerEdge = edge.start.edge(container.route);
-    var containerEntry = new BackStackEntry(containerEdge, new Payload());
-    if (navCommand instanceof Push) {
-      $this.navigationImpl_1.dispatch_ad1g38_k$(new Push(containerEntry));
-    } else {
-      if (navCommand instanceof Replace) {
-        $this.navigationImpl_1.dispatch_ad1g38_k$(new Replace(containerEntry));
-      } else {
-        noWhenBranchMatchedException();
-      }
-    }
-    destGraph.dispatch_ad1g38_k$(isInterface(navCommand, NavCommand) ? navCommand : THROW_CCE());
+    destGraph.navigationImpl_1.dispatch_ad1g38_k$(navCommand);
   } else {
-    $this.navigationImpl_1.dispatch_ad1g38_k$(isInterface(navCommand, NavCommand) ? navCommand : THROW_CCE());
+    var tmp0 = Companion_getInstance_70();
+    // Inline function 'co.touchlab.kermit.Logger.w' call
+    var messageString = "Cross-graph navigation failed: no container found for graph '" + destGraph.label + "' (" + destGraph.id.toString() + ').';
+    var tag = tmp0.get_tag_18ivnz_k$();
+    // Inline function 'co.touchlab.kermit.BaseLogger.log' call
+    var severity = Severity_Warn_getInstance();
+    if (tmp0.get_config_c0698r_k$().get_minSeverity_aa48vu_k$().compareTo_30rs7w_k$(severity) <= 0) {
+      tmp0.processLog_hppq2g_k$(severity, tag, null, messageString);
+    }
   }
 }
 function Graph$_init_$lambda_az56f1(_this__u8e3s4) {
@@ -79737,7 +84066,17 @@ function Graph$onTransition$lambda(this$0, $next) {
     return Unit_instance;
   };
 }
-function findContainerForGraph(_this__u8e3s4, targetGraph) {
+function findContainerForGraph(_this__u8e3s4, targetGraph, visited) {
+  var tmp;
+  if (visited === VOID) {
+    // Inline function 'kotlin.collections.mutableSetOf' call
+    tmp = LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$();
+  } else {
+    tmp = visited;
+  }
+  visited = tmp;
+  if (!visited.add_utx5q5_k$(_this__u8e3s4))
+    return null;
   // Inline function 'kotlin.collections.filterIsInstance' call
   var tmp0 = _this__u8e3s4.nodes;
   // Inline function 'kotlin.collections.filterIsInstanceTo' call
@@ -79758,70 +84097,12 @@ function findContainerForGraph(_this__u8e3s4, targetGraph) {
     var _iterator__ex2g4s_1 = container.graphs.iterator_jk1svi_k$();
     while (_iterator__ex2g4s_1.hasNext_bitz1p_k$()) {
       var childGraph = _iterator__ex2g4s_1.next_20eer_k$();
-      var found = findContainerForGraph(childGraph, targetGraph);
+      var found = findContainerForGraph(childGraph, targetGraph, visited);
       if (!(found == null))
         return found;
     }
   }
   return null;
-}
-function connectPort_0(consumerPort, providerPort) {
-  return connect_0(consumerPort, providerPort);
-}
-function connectNode_0(node1, node2) {
-  connectConsumerProvider_0(node1, node2);
-  connectConsumerProvider_0(node2, node1);
-}
-function connect_0(consumerPort, providerPort) {
-  var result = connect(consumerPort, providerPort);
-  // Inline function 'kotlin.onFailure' call
-  var tmp0_safe_receiver = Result__exceptionOrNull_impl_p6xea9(result);
-  if (tmp0_safe_receiver == null)
-    null;
-  else {
-    // Inline function 'kotlin.let' call
-    // Inline function 'co.touchlab.kermit.Logger.e' call
-    var this_0 = Companion_getInstance_70();
-    var tag = this_0.get_tag_18ivnz_k$();
-    // Inline function 'co.touchlab.kermit.BaseLogger.logBlock' call
-    var severity = Severity_Error_getInstance();
-    if (this_0.get_config_c0698r_k$().get_minSeverity_aa48vu_k$().compareTo_30rs7w_k$(severity) <= 0) {
-      var tmp0_elvis_lhs = tmp0_safe_receiver.message;
-      var tmp$ret$0 = tmp0_elvis_lhs == null ? 'Connection failed' : tmp0_elvis_lhs;
-      this_0.processLog_hppq2g_k$(severity, tag, null, tmp$ret$0);
-    }
-  }
-  return result;
-}
-function connectPorts_0(consumers, providers) {
-  return connectPorts(consumers, providers);
-}
-function connectConsumerProvider_0(consumerNode, providerNode) {
-  var consumerTypes = consumerNode.consumerPorts.get_keys_wop4xp_k$();
-  var providerTypes = providerNode.providerPorts.get_keys_wop4xp_k$();
-  // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s = intersect(consumerTypes, providerTypes).iterator_jk1svi_k$();
-  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
-    var element = _iterator__ex2g4s.next_20eer_k$();
-    var tmp0_elvis_lhs = consumerNode.consumerPorts.get_wei43m_k$(element);
-    var tmp;
-    if (tmp0_elvis_lhs == null) {
-      // Inline function 'kotlin.collections.mapOf' call
-      tmp = emptyMap();
-    } else {
-      tmp = tmp0_elvis_lhs;
-    }
-    var tmp_0 = tmp;
-    var tmp1_elvis_lhs = providerNode.providerPorts.get_wei43m_k$(element);
-    var tmp_1;
-    if (tmp1_elvis_lhs == null) {
-      // Inline function 'kotlin.collections.mapOf' call
-      tmp_1 = emptyMap();
-    } else {
-      tmp_1 = tmp1_elvis_lhs;
-    }
-    connectPorts_0(tmp_0, tmp_1);
-  }
 }
 var dev_shibasis_reaktor_graph_core_edge_NavigationEdge$stable;
 var dev_shibasis_reaktor_graph_core_node_ActorNode$stable;
@@ -79829,12 +84110,12 @@ var dev_shibasis_reaktor_graph_core_node_BasicNode$stable;
 var dev_shibasis_reaktor_graph_core_node_ContainerNode$stable;
 var dev_shibasis_reaktor_graph_core_node_ComposeContainerNode$stable;
 function ContainerNode$routeBinding$delegate$lambda(thisRef, property) {
-  // Inline function 'dev.shibasis.reaktor.graph.core.port.registerConsumer' call
+  // Inline function 'dev.shibasis.reaktor.portgraph.port.registerConsumer' call
   var key = property.callableName;
   var tmp = new Key_0(key);
   // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
   var tmp$ret$0 = Companion_instance_32.create(getKClass(RouteBinding));
-  var port = registerConsumer_1(thisRef, tmp, tmp$ret$0);
+  var port = registerConsumer_0(thisRef, tmp, tmp$ret$0);
   var tmp_0 = ContainerNode$routeBinding$delegate$lambda$lambda(port);
   return new sam$kotlin_properties_ReadOnlyProperty$0(tmp_0);
 }
@@ -79881,12 +84162,12 @@ function RouteNode$navBinding$delegate$lambda$lambda($port) {
 function RouteNode$navBinding$delegate$lambda($impl) {
   return (thisRef, property) => {
     var tmp2 = property.callableName;
-    // Inline function 'dev.shibasis.reaktor.graph.core.port.registerProvider' call
+    // Inline function 'dev.shibasis.reaktor.portgraph.port.registerProvider' call
     var impl = $impl;
     var tmp = new Key_0(tmp2);
     // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
     var tmp$ret$0 = Companion_instance_32.create(getKClass(NavBinding));
-    var port = registerProvider_1(thisRef, tmp, tmp$ret$0, impl);
+    var port = registerProvider_0(thisRef, tmp, tmp$ret$0, impl);
     var tmp_0 = RouteNode$navBinding$delegate$lambda$lambda(port);
     return new sam$kotlin_properties_ReadOnlyProperty$0_0(tmp_0);
   };
@@ -79896,73 +84177,6 @@ function RouteNode$_get_navBinding_$ref_bbaf0x() {
 }
 function RouteNode$_get_navBinding_$ref_bbaf0x_0() {
   return (p0) => p0.navBinding;
-}
-function registerConsumer_1(_this__u8e3s4, key, type) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.consumerPorts;
-  var value = this_0.get_wei43m_k$(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
-    this_0.put_4fpzoq_k$(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_1 = tmp;
-  var value_0 = this_1.get_wei43m_k$(key);
-  var tmp_0;
-  if (value_0 == null) {
-    var answer_0 = ConsumerPort.new_dev_shibasis_reaktor_portgraph_port_ConsumerPort_931x6c_k$(_this__u8e3s4, key, type);
-    this_1.put_4fpzoq_k$(key, answer_0);
-    tmp_0 = answer_0;
-  } else {
-    tmp_0 = value_0;
-  }
-  var tmp_1 = tmp_0;
-  return tmp_1 instanceof ConsumerPort ? tmp_1 : THROW_CCE();
-}
-var dev_shibasis_reaktor_graph_core_port_PortCapabilityImpl$stable;
-function *_generator_invoke__zhh2q8_70($this, $this$launch, $completion) {
-  var tmp = $this.this$0__1.portEvents_1.emit_f0f141_k$($this.$event_1, $completion);
-  if (tmp === get_COROUTINE_SUSPENDED())
-    tmp = yield tmp;
-  return Unit_instance;
-}
-function PortCapabilityImpl$emit$slambda_0(this$0, $event) {
-  var i = new PortCapabilityImpl$emit$slambda(this$0, $event);
-  var l = ($this$launch, $completion) => i.invoke_ri3sjx_k$($this$launch, $completion);
-  l.$arity = 1;
-  return l;
-}
-function registerProvider_1(_this__u8e3s4, key, type, impl) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.providerPorts;
-  var value = this_0.get_wei43m_k$(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
-    this_0.put_4fpzoq_k$(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_1 = tmp;
-  var value_0 = this_1.get_wei43m_k$(key);
-  var tmp_0;
-  if (value_0 == null) {
-    var answer_0 = ProviderPort.new_dev_shibasis_reaktor_portgraph_port_ProviderPort_l7jdif_k$(_this__u8e3s4, key, type, impl);
-    this_1.put_4fpzoq_k$(key, answer_0);
-    tmp_0 = answer_0;
-  } else {
-    tmp_0 = value_0;
-  }
-  var tmp_1 = tmp_0;
-  return tmp_1 instanceof ProviderPort ? tmp_1 : THROW_CCE();
 }
 function set_Dependency(_this__u8e3s4, _set____db54di) {
   _init_properties_DependencyAdapter_kt__ezqpv2();
@@ -80118,7 +84332,7 @@ function $serializer_getInstance_2() {
   return $serializer_instance_2;
 }
 var dev_shibasis_reaktor_graph_service_Service$stable;
-function *_generator_invoke__zhh2q8_71($this, $this$factory, request, $completion) {
+function *_generator_invoke__zhh2q8_70($this, $this$factory, request, $completion) {
   // Inline function 'dev.shibasis.reaktor.graph.service.RequestHandler.url' call
   var extraPathParams = [];
   var tmp$ret$0 = $this$factory.routePattern.fill_bqui2x_k$(plus_5(request.pathParams, extraPathParams));
@@ -80232,10 +84446,10 @@ var HttpMethod_DELETE_instance;
 var HttpMethod_PATCH_instance;
 var HttpMethod_OPTIONS_instance;
 var HttpMethod_HEAD_instance;
-function values_7() {
+function values_13() {
   return [HttpMethod_GET_getInstance(), HttpMethod_POST_getInstance(), HttpMethod_PUT_getInstance(), HttpMethod_DELETE_getInstance(), HttpMethod_PATCH_getInstance(), HttpMethod_OPTIONS_getInstance(), HttpMethod_HEAD_getInstance()];
 }
-function valueOf_1(value) {
+function valueOf_6(value) {
   switch (value) {
     case 'GET':
       return HttpMethod_GET_getInstance();
@@ -80276,10 +84490,10 @@ var Companion_instance_84;
 function Companion_getInstance_84() {
   return Companion_instance_84;
 }
-function values_8() {
+function values_14() {
   return [Environment_STAGE_getInstance(), Environment_PROD_getInstance()];
 }
-function valueOf_2(value) {
+function valueOf_7(value) {
   switch (value) {
     case 'STAGE':
       return Environment_STAGE_getInstance();
@@ -80340,16 +84554,21 @@ var dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable;
 var dev_shibasis_reaktor_graph_ui_ComposeNode$stable;
 var dev_shibasis_reaktor_graph_ui_StatelessComposeNode$stable;
 var dev_shibasis_reaktor_graph_ui_ObservableStack$stable;
+function emitSnapshot($this) {
+  $this.version_1 = $this.version_1 + 1 | 0;
+  $this._entries_1.set_value_v1vabv_k$(ArrayList.new_kotlin_collections_ArrayList_nk3udn_k$($this.stack_1));
+}
+var dev_shibasis_reaktor_graph_ui_TabbedContainer$stable;
 var dev_shibasis_reaktor_graph_ui_WindowSize$stable;
 var WindowWidthClass_COMPACT_instance;
 var WindowWidthClass_MEDIUM_instance;
 var WindowWidthClass_EXPANDED_instance;
 var WindowWidthClass_LARGE_instance;
 var WindowWidthClass_EXTRA_LARGE_instance;
-function values_9() {
+function values_15() {
   return [WindowWidthClass_COMPACT_getInstance(), WindowWidthClass_MEDIUM_getInstance(), WindowWidthClass_EXPANDED_getInstance(), WindowWidthClass_LARGE_getInstance(), WindowWidthClass_EXTRA_LARGE_getInstance()];
 }
-function valueOf_3(value) {
+function valueOf_8(value) {
   switch (value) {
     case 'COMPACT':
       return WindowWidthClass_COMPACT_getInstance();
@@ -80381,10 +84600,10 @@ function WindowWidthClass_initEntries() {
 var WindowHeightClass_COMPACT_instance;
 var WindowHeightClass_MEDIUM_instance;
 var WindowHeightClass_EXPANDED_instance;
-function values_10() {
+function values_16() {
   return [WindowHeightClass_COMPACT_getInstance(), WindowHeightClass_MEDIUM_getInstance(), WindowHeightClass_EXPANDED_getInstance()];
 }
-function valueOf_4(value) {
+function valueOf_9(value) {
   switch (value) {
     case 'COMPACT':
       return WindowHeightClass_COMPACT_getInstance();
@@ -80407,7 +84626,7 @@ function WindowHeightClass_initEntries() {
   WindowHeightClass_MEDIUM_instance = new WindowHeightClass('MEDIUM', 1);
   WindowHeightClass_EXPANDED_instance = new WindowHeightClass('EXPANDED', 2);
 }
-function *_generator_invoke__zhh2q8_72($this, $this$launch, $completion) {
+function *_generator_invoke__zhh2q8_71($this, $this$launch, $completion) {
   var tmp = WindowSize$Companion$startListening$slambda$slambda_0();
   var tmp_0 = $this.$source_1.collect_otghi5_k$(new sam$kotlinx_coroutines_flow_FlowCollector$0_2(tmp), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
@@ -80475,8 +84694,6 @@ var dev_shibasis_reaktor_graph_utilities_RepositoryNode$stable;
 var dev_shibasis_reaktor_graph_visitor_StructuralSelector$stable;
 var dev_shibasis_reaktor_graph_visitor_RoutingSelector$stable;
 var dev_shibasis_reaktor_graph_visitor_ConnectivitySelector$stable;
-var dev_shibasis_reaktor_graph_visitor_DepthFirstTraverser$stable;
-var dev_shibasis_reaktor_graph_visitor_BreadthFirstTraverser$stable;
 var dev_shibasis_reaktor_graph_visitor_Visitor$stable;
 var dev_shibasis_reaktor_graph_visitor_HierarchyVisitor$stable;
 function get_PersonViewDataKey() {
@@ -80488,12 +84705,12 @@ var dev_shibasis_reaktor_graph_ui_ReactNode$stable;
 var dev_shibasis_reaktor_graph_ui_Person$stable;
 var dev_shibasis_reaktor_graph_ui_TestBasic$stable;
 function ReactNode$routeBinding$delegate$lambda(thisRef, property) {
-  // Inline function 'dev.shibasis.reaktor.graph.core.port.registerConsumer' call
+  // Inline function 'dev.shibasis.reaktor.portgraph.port.registerConsumer' call
   var key = property.callableName;
   var tmp = new Key_0(key);
   // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
   var tmp$ret$0 = Companion_instance_32.create(getKClass(RouteBinding));
-  var port = registerConsumer_1(thisRef, tmp, tmp$ret$0);
+  var port = registerConsumer_0(thisRef, tmp, tmp$ret$0);
   var tmp_0 = ReactNode$routeBinding$delegate$lambda$lambda(port);
   return new sam$kotlin_properties_ReadOnlyProperty$0_1(tmp_0);
 }
@@ -80581,7 +84798,7 @@ function getWindowSizeFlow() {
 function toReactState$slambda$slambda$lambda($value) {
   return (state) => equals(state, $value) ? state : $value;
 }
-function *_generator_invoke__zhh2q8_73($this, $this$useEffect, $completion) {
+function *_generator_invoke__zhh2q8_72($this, $this$useEffect, $completion) {
   var tmp = toReactState$slambda$slambda_0($this.$setState_1);
   var tmp_0 = $this.$this_toReactState_1.collect_otghi5_k$(new sam$kotlinx_coroutines_flow_FlowCollector$0_3(tmp), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
@@ -80667,14 +84884,14 @@ initMetadataForInterface(KtList, 'List', VOID, VOID, [Collection]);
 initMetadataForCompanion(Companion_1);
 initMetadataForInterface(KtSet, 'Set', VOID, VOID, [Collection]);
 initMetadataForInterface(MutableIterable, 'MutableIterable');
-initMetadataForInterface(KtMutableSet, 'MutableSet', VOID, VOID, [KtSet, Collection, MutableIterable]);
+initMetadataForInterface(KtMutableSet, 'MutableSet', VOID, VOID, [KtSet, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_2);
 initMetadataForInterface(KtMap, 'Map');
 initMetadataForInterface(KtMutableMap, 'MutableMap', VOID, VOID, [KtMap]);
 initMetadataForInterface(Entry, 'Entry');
 initMetadataForCompanion(Companion_3);
 initMetadataForCompanion(Companion_4);
-initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, Collection, MutableIterable]);
+initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_5);
 initMetadataForClass(Enum, 'Enum', VOID, VOID, [Comparable]);
 initMetadataForCompanion(Companion_6);
@@ -80695,7 +84912,7 @@ initMetadataForInterface(AutoCloseable, 'AutoCloseable');
 initMetadataForInterface(Comparator, 'Comparator');
 initMetadataForObject(Unit, 'Unit');
 initMetadataForClass(AbstractCollection, 'AbstractCollection', VOID, VOID, [Collection]);
-initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, VOID, [AbstractCollection, Collection, MutableIterable]);
+initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, VOID, [AbstractCollection, MutableIterable, Collection]);
 initMetadataForClass(IteratorImpl, 'IteratorImpl');
 initMetadataForClass(ListIteratorImpl, 'ListIteratorImpl');
 protoOf(AbstractMutableList).asJsArrayView = asJsArrayView;
@@ -80714,7 +84931,7 @@ initMetadataForCompanion(Companion_7);
 initMetadataForClass(ArrayList, 'ArrayList', ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$, VOID, [AbstractMutableList, KtMutableList, RandomAccess]);
 initMetadataForClass(HashMap, 'HashMap', HashMap.new_kotlin_collections_HashMap_2a5kxx_k$, VOID, [AbstractMutableMap, KtMutableMap]);
 initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, VOID, [KtMutableSet, AbstractMutableSet]);
-initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [Collection, MutableIterable, AbstractMutableCollection]);
+initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [MutableIterable, Collection, AbstractMutableCollection]);
 initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, VOID, [KtMutableSet, AbstractMutableSet]);
 initMetadataForClass(HashMapEntrySet, 'HashMapEntrySet');
 initMetadataForClass(HashMapKeysDefault$iterator$1);
@@ -80764,6 +84981,7 @@ initMetadataForClass(SimpleKClassImpl, 'SimpleKClassImpl');
 initMetadataForInterface(KProperty1, 'KProperty1');
 initMetadataForInterface(KMutableProperty1, 'KMutableProperty1', VOID, VOID, [KProperty1]);
 initMetadataForInterface(KProperty0, 'KProperty0');
+initMetadataForInterface(KMutableProperty0, 'KMutableProperty0', VOID, VOID, [KProperty0]);
 initMetadataForClass(KTypeParameterImpl, 'KTypeParameterImpl');
 initMetadataForObject(PrimitiveClasses, 'PrimitiveClasses');
 initMetadataForClass(CharacterCodingException, 'CharacterCodingException', CharacterCodingException.new_kotlin_text_CharacterCodingException_el5v5_k$);
@@ -81051,12 +85269,9 @@ initMetadataForInterface(ProducerScope, 'ProducerScope', VOID, VOID, [CoroutineS
 initMetadataForClass(ProducerCoroutine, 'ProducerCoroutine', VOID, VOID, [ChannelCoroutine, ProducerScope], [1, 0]);
 initMetadataForClass(asFlow$$inlined$unsafeFlow$1, VOID, VOID, VOID, VOID, [1]);
 initMetadataForInterface(FlowCollector, 'FlowCollector', VOID, VOID, VOID, [1]);
-initMetadataForClass(Emitter, 'Emitter');
 initMetadataForClass(AbstractSharedFlow, 'AbstractSharedFlow');
-initMetadataForClass(SharedFlowImpl, 'SharedFlowImpl', VOID, VOID, [AbstractSharedFlow, FlowCollector], [1]);
-initMetadataForClass(AbstractSharedFlowSlot, 'AbstractSharedFlowSlot');
-initMetadataForClass(SharedFlowSlot, 'SharedFlowSlot', SharedFlowSlot);
 initMetadataForClass(StateFlowImpl, 'StateFlowImpl', VOID, VOID, [AbstractSharedFlow, FlowCollector], [1]);
+initMetadataForClass(AbstractSharedFlowSlot, 'AbstractSharedFlowSlot');
 initMetadataForClass(StateFlowSlot, 'StateFlowSlot', StateFlowSlot, VOID, VOID, [0]);
 initMetadataForClass(SubscribedFlowCollector, 'SubscribedFlowCollector', VOID, VOID, [FlowCollector], [0, 1]);
 initMetadataForClass(firstOrNull$$inlined$collectWhile$1, VOID, VOID, VOID, [FlowCollector], [1]);
@@ -81069,7 +85284,7 @@ initMetadataForClass(ContextScope, 'ContextScope', VOID, VOID, [CoroutineScope])
 initMetadataForClass(Symbol_0, 'Symbol');
 initMetadataForInterface(SelectInstance, 'SelectInstance');
 initMetadataForClass(ClauseData, 'ClauseData', VOID, VOID, VOID, [1]);
-initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, SelectInstance, Waiter], [0, 2]);
+initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, Waiter, SelectInstance], [0, 2]);
 initMetadataForClass(TrySelectDetailedResult, 'TrySelectDetailedResult');
 initMetadataForClass(SetTimeoutBasedDispatcher, 'SetTimeoutBasedDispatcher', VOID, VOID, [CoroutineDispatcher, Delay], [1]);
 initMetadataForObject(NodeDispatcher, 'NodeDispatcher', VOID, VOID, VOID, [1]);
@@ -81347,9 +85562,28 @@ initMetadataForClass(JsSuccessResult, 'JsSuccessResult');
 initMetadataForClass(JsFailureResult, 'JsFailureResult');
 initMetadataForClass(WeakRef, 'WeakRef');
 initMetadataForClass(AtomicInt_0, 'AtomicInt');
+initMetadataForObject(ReactHTML, 'ReactHTML');
+initMetadataForClass(ThemeOption, 'ThemeOption');
+initMetadataForClass(ComponentSize, 'ComponentSize');
+initMetadataForClass(ComponentVariant, 'ComponentVariant');
+initMetadataForClass(ComponentState, 'ComponentState');
+initMetadataForClass(TextRole, 'TextRole');
+initMetadataForClass(TextSize, 'TextSize');
 initMetadataForClass(PromiseState, 'PromiseState');
 initMetadataForClass(PromiseResult, 'PromiseResult');
 initMetadataForLambda(usePromise$slambda, VOID, VOID, [1]);
+initMetadataForClass(WebColorScheme, 'WebColorScheme');
+initMetadataForClass(WebTextStyle, 'WebTextStyle');
+initMetadataForClass(WebTypography, 'WebTypography');
+initMetadataForClass(WebSpacing, 'WebSpacing', WebSpacing);
+initMetadataForClass(WebShapes, 'WebShapes', WebShapes);
+initMetadataForClass(WebElevation, 'WebElevation', WebElevation);
+initMetadataForClass(WebSizing, 'WebSizing', WebSizing);
+initMetadataForClass(WebBreakpoints, 'WebBreakpoints', WebBreakpoints);
+initMetadataForClass(WebMotion, 'WebMotion', WebMotion);
+initMetadataForClass(WebDesignTokens, 'WebDesignTokens');
+initMetadataForObject(WebMaterialTokens_0, 'WebMaterialTokens');
+initMetadataForClass(RGB, 'RGB');
 initMetadataForCompanion(Companion_41);
 initMetadataForClass(ByteString, 'ByteString', VOID, VOID, [Comparable]);
 initMetadataForObject(UnsafeByteStringOperations, 'UnsafeByteStringOperations');
@@ -81901,7 +86135,7 @@ initMetadataForClass(SelectFromBuilder, 'SelectFromBuilder');
 initMetadataForClass(InsertBuilder, 'InsertBuilder');
 initMetadataForClass(UpdateBuilder, 'UpdateBuilder');
 initMetadataForClass(DeleteBuilder, 'DeleteBuilder');
-initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [Collection, MutableIterable]);
+initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [MutableIterable, Collection]);
 initMetadataForClass(ConcurrentMutableIterator, 'ConcurrentMutableIterator');
 protoOf(ConcurrentMutableMap).asJsMapView = asJsMapView;
 protoOf(ConcurrentMutableMap).asJsReadonlyMapView = asJsReadonlyMapView;
@@ -81971,13 +86205,6 @@ initMetadataForClass(sam$kotlin_properties_PropertyDelegateProvider$0_0, 'sam$ko
 protoOf(RouteNode$navBinding$2).update = update;
 initMetadataForClass(RouteNode$navBinding$2, VOID, VOID, VOID, [NavBinding]);
 initMetadataForClass(RouteNode, 'RouteNode', VOID, VOID, VOID, [1]);
-initMetadataForInterface(PortCapability_0, 'PortCapability', VOID, VOID, [PortCapability]);
-initMetadataForLambda(PortCapabilityImpl$emit$slambda, VOID, VOID, [1]);
-protoOf(PortCapabilityImpl_0).registerProvider = registerProvider;
-protoOf(PortCapabilityImpl_0).getProvider = getProvider;
-protoOf(PortCapabilityImpl_0).registerConsumer = registerConsumer;
-protoOf(PortCapabilityImpl_0).getConsumer = getConsumer;
-initMetadataForClass(PortCapabilityImpl_0, 'PortCapabilityImpl', PortCapabilityImpl_0, VOID, [PortCapability_0, ConcurrencyCapability], [1]);
 initMetadataForClass(DependencyAdapter, 'DependencyAdapter', VOID, VOID, VOID, [1]);
 initMetadataForClass(DependencyCapabilityImpl, 'DependencyCapabilityImpl', VOID, VOID, [DependencyCapability]);
 initMetadataForClass(KoinScopeCapability, 'KoinScopeCapability', VOID, VOID, [AutoCloseable]);
@@ -83129,9 +87356,39 @@ androidx_compose_material3_ModalWideNavigationRailProperties$stable = 0;
 androidx_compose_material3_internal_BackEventCompat$stable = 0;
 androidx_compose_material3_internal_BasicTooltipStrings$stable = 0;
 androidx_compose_material3_internal_PlatformDateFormat$stable = 8;
+ReactHTML_instance = new ReactHTML();
+dev_shibasis_reaktor_ui_core_components_ButtonSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_TextSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_InputSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_IconSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_CardSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_AvatarSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_BadgeSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_ChipSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_DividerSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_ProgressSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_SwitchSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_CheckboxSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_RadioSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_SliderSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_TooltipSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_tokens_TokenFactory$stable = 0;
+dev_shibasis_reaktor_ui_material_MaterialTokens$stable = 0;
 dev_shibasis_reaktor_ui_material_ReaktorColor$stable = 0;
 dev_shibasis_reaktor_ui_material_ReaktorTheme$stable = 0;
 dev_shibasis_reaktor_ui_material_PromiseResult$stable = 8;
+dev_shibasis_reaktor_ui_tokens_WebColorScheme$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebTextStyle$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebTypography$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebSpacing$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebShapes$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebElevation$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebSizing$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebBreakpoints$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebMotion$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebDesignTokens$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebMaterialTokens$stable = 0;
+WebMaterialTokens_instance = new WebMaterialTokens_0();
 UnsafeByteStringOperations_instance = new UnsafeByteStringOperations();
 Companion_instance_42 = new Companion_42();
 UnsafeBufferOperations_instance = new UnsafeBufferOperations();
@@ -83208,286 +87465,6 @@ coil3_compose_internal_SubcomposeContentPainterElement$stable = 0;
 coil3_compose_internal_SubcomposeContentPainterNode$stable = 8;
 coil3_compose_internal_AbstractContentPainterNode$stable = 8;
 coil3_compose_internal_ForwardingCoroutineContext$stable = 8;
-_arrowBack = null;
-_arrowForward = null;
-_exitToApp = null;
-_keyboardArrowLeft = null;
-_keyboardArrowRight = null;
-_list = null;
-_send = null;
-_arrowBack_0 = null;
-_arrowForward_0 = null;
-_exitToApp_0 = null;
-_keyboardArrowLeft_0 = null;
-_keyboardArrowRight_0 = null;
-_list_0 = null;
-_send_0 = null;
-_arrowBack_1 = null;
-_arrowForward_1 = null;
-_exitToApp_1 = null;
-_keyboardArrowLeft_1 = null;
-_keyboardArrowRight_1 = null;
-_list_1 = null;
-_send_1 = null;
-_arrowBack_2 = null;
-_arrowForward_2 = null;
-_exitToApp_2 = null;
-_keyboardArrowLeft_2 = null;
-_keyboardArrowRight_2 = null;
-_list_2 = null;
-_send_2 = null;
-_arrowBack_3 = null;
-_arrowForward_3 = null;
-_exitToApp_3 = null;
-_keyboardArrowLeft_3 = null;
-_keyboardArrowRight_3 = null;
-_list_3 = null;
-_send_3 = null;
-_accountBox = null;
-_accountCircle = null;
-_add = null;
-_addCircle = null;
-_arrowBack_4 = null;
-_arrowDropDown = null;
-_arrowForward_4 = null;
-_build = null;
-_call = null;
-_check = null;
-_checkCircle = null;
-_clear = null;
-_close = null;
-_create = null;
-_dateRange = null;
-_delete = null;
-_done = null;
-_edit = null;
-_email = null;
-_exitToApp_4 = null;
-_face = null;
-_favorite = null;
-_favoriteBorder = null;
-_home = null;
-_info = null;
-_keyboardArrowDown = null;
-_keyboardArrowLeft_4 = null;
-_keyboardArrowRight_4 = null;
-_keyboardArrowUp = null;
-_list_4 = null;
-_locationOn = null;
-_lock = null;
-_mailOutline = null;
-_menu = null;
-_moreVert = null;
-_notifications = null;
-_person = null;
-_phone = null;
-_place = null;
-_playArrow = null;
-_refresh = null;
-_search = null;
-_send_4 = null;
-_settings = null;
-_share = null;
-_shoppingCart = null;
-_star = null;
-_thumbUp = null;
-_warning = null;
-_accountBox_0 = null;
-_accountCircle_0 = null;
-_add_0 = null;
-_addCircle_0 = null;
-_arrowBack_5 = null;
-_arrowDropDown_0 = null;
-_arrowForward_5 = null;
-_build_0 = null;
-_call_0 = null;
-_check_0 = null;
-_checkCircle_0 = null;
-_clear_0 = null;
-_close_0 = null;
-_create_0 = null;
-_dateRange_0 = null;
-_delete_0 = null;
-_done_0 = null;
-_edit_0 = null;
-_email_0 = null;
-_exitToApp_5 = null;
-_face_0 = null;
-_favorite_0 = null;
-_favoriteBorder_0 = null;
-_home_0 = null;
-_info_0 = null;
-_keyboardArrowDown_0 = null;
-_keyboardArrowLeft_5 = null;
-_keyboardArrowRight_5 = null;
-_keyboardArrowUp_0 = null;
-_list_5 = null;
-_locationOn_0 = null;
-_lock_0 = null;
-_mailOutline_0 = null;
-_menu_0 = null;
-_moreVert_0 = null;
-_notifications_0 = null;
-_person_0 = null;
-_phone_0 = null;
-_place_0 = null;
-_playArrow_0 = null;
-_refresh_0 = null;
-_search_0 = null;
-_send_5 = null;
-_settings_0 = null;
-_share_0 = null;
-_shoppingCart_0 = null;
-_star_0 = null;
-_thumbUp_0 = null;
-_warning_0 = null;
-_accountBox_1 = null;
-_accountCircle_1 = null;
-_add_1 = null;
-_addCircle_1 = null;
-_arrowBack_6 = null;
-_arrowDropDown_1 = null;
-_arrowForward_6 = null;
-_build_1 = null;
-_call_1 = null;
-_check_1 = null;
-_checkCircle_1 = null;
-_clear_1 = null;
-_close_1 = null;
-_create_1 = null;
-_dateRange_1 = null;
-_delete_1 = null;
-_done_1 = null;
-_edit_1 = null;
-_email_1 = null;
-_exitToApp_6 = null;
-_face_1 = null;
-_favorite_1 = null;
-_favoriteBorder_1 = null;
-_home_1 = null;
-_info_1 = null;
-_keyboardArrowDown_1 = null;
-_keyboardArrowLeft_6 = null;
-_keyboardArrowRight_6 = null;
-_keyboardArrowUp_1 = null;
-_list_6 = null;
-_locationOn_1 = null;
-_lock_1 = null;
-_mailOutline_1 = null;
-_menu_1 = null;
-_moreVert_1 = null;
-_notifications_1 = null;
-_person_1 = null;
-_phone_1 = null;
-_place_1 = null;
-_playArrow_1 = null;
-_refresh_1 = null;
-_search_1 = null;
-_send_6 = null;
-_settings_1 = null;
-_share_1 = null;
-_shoppingCart_1 = null;
-_star_1 = null;
-_thumbUp_1 = null;
-_warning_1 = null;
-_accountBox_2 = null;
-_accountCircle_2 = null;
-_add_2 = null;
-_addCircle_2 = null;
-_arrowBack_7 = null;
-_arrowDropDown_2 = null;
-_arrowForward_7 = null;
-_build_2 = null;
-_call_2 = null;
-_check_2 = null;
-_checkCircle_2 = null;
-_clear_2 = null;
-_close_2 = null;
-_create_2 = null;
-_dateRange_2 = null;
-_delete_2 = null;
-_done_2 = null;
-_edit_2 = null;
-_email_2 = null;
-_exitToApp_7 = null;
-_face_2 = null;
-_favorite_2 = null;
-_favoriteBorder_2 = null;
-_home_2 = null;
-_info_2 = null;
-_keyboardArrowDown_2 = null;
-_keyboardArrowLeft_7 = null;
-_keyboardArrowRight_7 = null;
-_keyboardArrowUp_2 = null;
-_list_7 = null;
-_locationOn_2 = null;
-_lock_2 = null;
-_mailOutline_2 = null;
-_menu_2 = null;
-_moreVert_2 = null;
-_notifications_2 = null;
-_person_2 = null;
-_phone_2 = null;
-_place_2 = null;
-_playArrow_2 = null;
-_refresh_2 = null;
-_search_2 = null;
-_send_7 = null;
-_settings_2 = null;
-_share_2 = null;
-_shoppingCart_2 = null;
-_star_2 = null;
-_thumbUp_2 = null;
-_warning_2 = null;
-_accountBox_3 = null;
-_accountCircle_3 = null;
-_add_3 = null;
-_addCircle_3 = null;
-_arrowBack_8 = null;
-_arrowDropDown_3 = null;
-_arrowForward_8 = null;
-_build_3 = null;
-_call_3 = null;
-_check_3 = null;
-_checkCircle_3 = null;
-_clear_3 = null;
-_close_3 = null;
-_create_3 = null;
-_dateRange_3 = null;
-_delete_3 = null;
-_done_3 = null;
-_edit_3 = null;
-_email_3 = null;
-_exitToApp_8 = null;
-_face_3 = null;
-_favorite_3 = null;
-_favoriteBorder_3 = null;
-_home_3 = null;
-_info_3 = null;
-_keyboardArrowDown_3 = null;
-_keyboardArrowLeft_8 = null;
-_keyboardArrowRight_8 = null;
-_keyboardArrowUp_3 = null;
-_list_8 = null;
-_locationOn_3 = null;
-_lock_3 = null;
-_mailOutline_3 = null;
-_menu_3 = null;
-_moreVert_3 = null;
-_notifications_3 = null;
-_person_3 = null;
-_phone_3 = null;
-_place_3 = null;
-_playArrow_3 = null;
-_refresh_3 = null;
-_search_3 = null;
-_send_8 = null;
-_settings_3 = null;
-_share_3 = null;
-_shoppingCart_3 = null;
-_star_3 = null;
-_thumbUp_3 = null;
-_warning_3 = null;
 _accessible = null;
 _accessibleForward = null;
 _addToHomeScreen = null;
@@ -94593,6 +98570,286 @@ __8mp_3 = null;
 __9k_3 = null;
 __9kPlus_3 = null;
 __9mp_3 = null;
+_arrowBack = null;
+_arrowForward = null;
+_exitToApp = null;
+_keyboardArrowLeft = null;
+_keyboardArrowRight = null;
+_list = null;
+_send = null;
+_arrowBack_0 = null;
+_arrowForward_0 = null;
+_exitToApp_0 = null;
+_keyboardArrowLeft_0 = null;
+_keyboardArrowRight_0 = null;
+_list_0 = null;
+_send_0 = null;
+_arrowBack_1 = null;
+_arrowForward_1 = null;
+_exitToApp_1 = null;
+_keyboardArrowLeft_1 = null;
+_keyboardArrowRight_1 = null;
+_list_1 = null;
+_send_1 = null;
+_arrowBack_2 = null;
+_arrowForward_2 = null;
+_exitToApp_2 = null;
+_keyboardArrowLeft_2 = null;
+_keyboardArrowRight_2 = null;
+_list_2 = null;
+_send_2 = null;
+_arrowBack_3 = null;
+_arrowForward_3 = null;
+_exitToApp_3 = null;
+_keyboardArrowLeft_3 = null;
+_keyboardArrowRight_3 = null;
+_list_3 = null;
+_send_3 = null;
+_accountBox = null;
+_accountCircle = null;
+_add = null;
+_addCircle = null;
+_arrowBack_4 = null;
+_arrowDropDown = null;
+_arrowForward_4 = null;
+_build = null;
+_call = null;
+_check = null;
+_checkCircle = null;
+_clear = null;
+_close = null;
+_create = null;
+_dateRange = null;
+_delete = null;
+_done = null;
+_edit = null;
+_email = null;
+_exitToApp_4 = null;
+_face = null;
+_favorite = null;
+_favoriteBorder = null;
+_home = null;
+_info = null;
+_keyboardArrowDown = null;
+_keyboardArrowLeft_4 = null;
+_keyboardArrowRight_4 = null;
+_keyboardArrowUp = null;
+_list_4 = null;
+_locationOn = null;
+_lock = null;
+_mailOutline = null;
+_menu = null;
+_moreVert = null;
+_notifications = null;
+_person = null;
+_phone = null;
+_place = null;
+_playArrow = null;
+_refresh = null;
+_search = null;
+_send_4 = null;
+_settings = null;
+_share = null;
+_shoppingCart = null;
+_star = null;
+_thumbUp = null;
+_warning = null;
+_accountBox_0 = null;
+_accountCircle_0 = null;
+_add_0 = null;
+_addCircle_0 = null;
+_arrowBack_5 = null;
+_arrowDropDown_0 = null;
+_arrowForward_5 = null;
+_build_0 = null;
+_call_0 = null;
+_check_0 = null;
+_checkCircle_0 = null;
+_clear_0 = null;
+_close_0 = null;
+_create_0 = null;
+_dateRange_0 = null;
+_delete_0 = null;
+_done_0 = null;
+_edit_0 = null;
+_email_0 = null;
+_exitToApp_5 = null;
+_face_0 = null;
+_favorite_0 = null;
+_favoriteBorder_0 = null;
+_home_0 = null;
+_info_0 = null;
+_keyboardArrowDown_0 = null;
+_keyboardArrowLeft_5 = null;
+_keyboardArrowRight_5 = null;
+_keyboardArrowUp_0 = null;
+_list_5 = null;
+_locationOn_0 = null;
+_lock_0 = null;
+_mailOutline_0 = null;
+_menu_0 = null;
+_moreVert_0 = null;
+_notifications_0 = null;
+_person_0 = null;
+_phone_0 = null;
+_place_0 = null;
+_playArrow_0 = null;
+_refresh_0 = null;
+_search_0 = null;
+_send_5 = null;
+_settings_0 = null;
+_share_0 = null;
+_shoppingCart_0 = null;
+_star_0 = null;
+_thumbUp_0 = null;
+_warning_0 = null;
+_accountBox_1 = null;
+_accountCircle_1 = null;
+_add_1 = null;
+_addCircle_1 = null;
+_arrowBack_6 = null;
+_arrowDropDown_1 = null;
+_arrowForward_6 = null;
+_build_1 = null;
+_call_1 = null;
+_check_1 = null;
+_checkCircle_1 = null;
+_clear_1 = null;
+_close_1 = null;
+_create_1 = null;
+_dateRange_1 = null;
+_delete_1 = null;
+_done_1 = null;
+_edit_1 = null;
+_email_1 = null;
+_exitToApp_6 = null;
+_face_1 = null;
+_favorite_1 = null;
+_favoriteBorder_1 = null;
+_home_1 = null;
+_info_1 = null;
+_keyboardArrowDown_1 = null;
+_keyboardArrowLeft_6 = null;
+_keyboardArrowRight_6 = null;
+_keyboardArrowUp_1 = null;
+_list_6 = null;
+_locationOn_1 = null;
+_lock_1 = null;
+_mailOutline_1 = null;
+_menu_1 = null;
+_moreVert_1 = null;
+_notifications_1 = null;
+_person_1 = null;
+_phone_1 = null;
+_place_1 = null;
+_playArrow_1 = null;
+_refresh_1 = null;
+_search_1 = null;
+_send_6 = null;
+_settings_1 = null;
+_share_1 = null;
+_shoppingCart_1 = null;
+_star_1 = null;
+_thumbUp_1 = null;
+_warning_1 = null;
+_accountBox_2 = null;
+_accountCircle_2 = null;
+_add_2 = null;
+_addCircle_2 = null;
+_arrowBack_7 = null;
+_arrowDropDown_2 = null;
+_arrowForward_7 = null;
+_build_2 = null;
+_call_2 = null;
+_check_2 = null;
+_checkCircle_2 = null;
+_clear_2 = null;
+_close_2 = null;
+_create_2 = null;
+_dateRange_2 = null;
+_delete_2 = null;
+_done_2 = null;
+_edit_2 = null;
+_email_2 = null;
+_exitToApp_7 = null;
+_face_2 = null;
+_favorite_2 = null;
+_favoriteBorder_2 = null;
+_home_2 = null;
+_info_2 = null;
+_keyboardArrowDown_2 = null;
+_keyboardArrowLeft_7 = null;
+_keyboardArrowRight_7 = null;
+_keyboardArrowUp_2 = null;
+_list_7 = null;
+_locationOn_2 = null;
+_lock_2 = null;
+_mailOutline_2 = null;
+_menu_2 = null;
+_moreVert_2 = null;
+_notifications_2 = null;
+_person_2 = null;
+_phone_2 = null;
+_place_2 = null;
+_playArrow_2 = null;
+_refresh_2 = null;
+_search_2 = null;
+_send_7 = null;
+_settings_2 = null;
+_share_2 = null;
+_shoppingCart_2 = null;
+_star_2 = null;
+_thumbUp_2 = null;
+_warning_2 = null;
+_accountBox_3 = null;
+_accountCircle_3 = null;
+_add_3 = null;
+_addCircle_3 = null;
+_arrowBack_8 = null;
+_arrowDropDown_3 = null;
+_arrowForward_8 = null;
+_build_3 = null;
+_call_3 = null;
+_check_3 = null;
+_checkCircle_3 = null;
+_clear_3 = null;
+_close_3 = null;
+_create_3 = null;
+_dateRange_3 = null;
+_delete_3 = null;
+_done_3 = null;
+_edit_3 = null;
+_email_3 = null;
+_exitToApp_8 = null;
+_face_3 = null;
+_favorite_3 = null;
+_favoriteBorder_3 = null;
+_home_3 = null;
+_info_3 = null;
+_keyboardArrowDown_3 = null;
+_keyboardArrowLeft_8 = null;
+_keyboardArrowRight_8 = null;
+_keyboardArrowUp_3 = null;
+_list_8 = null;
+_locationOn_3 = null;
+_lock_3 = null;
+_mailOutline_3 = null;
+_menu_3 = null;
+_moreVert_3 = null;
+_notifications_3 = null;
+_person_3 = null;
+_phone_3 = null;
+_place_3 = null;
+_playArrow_3 = null;
+_refresh_3 = null;
+_search_3 = null;
+_send_8 = null;
+_settings_3 = null;
+_share_3 = null;
+_shoppingCart_3 = null;
+_star_3 = null;
+_thumbUp_3 = null;
+_warning_3 = null;
 androidx_lifecycle_compose_LifecycleStartStopEffectScope$stable = 8;
 androidx_lifecycle_compose_LifecycleResumePauseEffectScope$stable = 8;
 strictMemoryModel = false;
@@ -94616,7 +98873,6 @@ dev_shibasis_reaktor_graph_core_node_Node$stable = 8;
 dev_shibasis_reaktor_graph_core_node_RouteBinding$stable = 8;
 dev_shibasis_reaktor_graph_core_node_RouteNode$stable = 8;
 Companion_instance_74 = new Companion_74();
-dev_shibasis_reaktor_graph_core_port_PortCapabilityImpl$stable = 8;
 dev_shibasis_reaktor_graph_di_DependencyCapabilityImpl$stable = 8;
 dev_shibasis_reaktor_graph_di_KoinDependencyAdapter$stable = 8;
 dev_shibasis_reaktor_graph_navigation_Push$stable = 8;
@@ -94652,14 +98908,13 @@ dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable = 8;
 dev_shibasis_reaktor_graph_ui_ComposeNode$stable = 8;
 dev_shibasis_reaktor_graph_ui_StatelessComposeNode$stable = 8;
 dev_shibasis_reaktor_graph_ui_ObservableStack$stable = 8;
+dev_shibasis_reaktor_graph_ui_TabbedContainer$stable = 8;
 dev_shibasis_reaktor_graph_ui_WindowSize$stable = 0;
 dev_shibasis_reaktor_graph_utilities_RepositoryNode_CacheResult$stable = 8;
 dev_shibasis_reaktor_graph_utilities_RepositoryNode$stable = 8;
 dev_shibasis_reaktor_graph_visitor_StructuralSelector$stable = 0;
 dev_shibasis_reaktor_graph_visitor_RoutingSelector$stable = 0;
 dev_shibasis_reaktor_graph_visitor_ConnectivitySelector$stable = 0;
-dev_shibasis_reaktor_graph_visitor_DepthFirstTraverser$stable = 0;
-dev_shibasis_reaktor_graph_visitor_BreadthFirstTraverser$stable = 0;
 dev_shibasis_reaktor_graph_visitor_Visitor$stable = 8;
 dev_shibasis_reaktor_graph_visitor_HierarchyVisitor$stable = 8;
 dev_shibasis_reaktor_graph_karakum_Greeter$stable = 0;
@@ -94754,12 +99009,44 @@ defineProp(StatusCode, 'LOOP_DETECTED', StatusCode_LOOP_DETECTED_getInstance, VO
 defineProp(StatusCode, 'NOT_EXTENDED', StatusCode_NOT_EXTENDED_getInstance, VOID, true);
 defineProp(StatusCode, 'NETWORK_AUTHENTICATION_REQUIRED', StatusCode_NETWORK_AUTHENTICATION_REQUIRED_getInstance, VOID, true);
 defineProp(StatusCode, 'Companion', Companion_getInstance_40, VOID, true);
-PromiseState.values = values_1;
-PromiseState.valueOf = valueOf_0;
+ComponentSize.values = values_2;
+ComponentSize.valueOf = valueOf_0;
+defineProp(ComponentSize, 'Small', ComponentSize_Small_getInstance, VOID, true);
+defineProp(ComponentSize, 'Medium', ComponentSize_Medium_getInstance, VOID, true);
+defineProp(ComponentSize, 'Large', ComponentSize_Large_getInstance, VOID, true);
+ComponentVariant.values = values_3;
+ComponentVariant.valueOf = valueOf_1;
+defineProp(ComponentVariant, 'Filled', ComponentVariant_Filled_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Outlined', ComponentVariant_Outlined_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Text', ComponentVariant_Text_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Tonal', ComponentVariant_Tonal_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Elevated', ComponentVariant_Elevated_getInstance, VOID, true);
+ComponentState.values = values_4;
+ComponentState.valueOf = valueOf_2;
+defineProp(ComponentState, 'Enabled', ComponentState_Enabled_getInstance, VOID, true);
+defineProp(ComponentState, 'Disabled', ComponentState_Disabled_getInstance, VOID, true);
+defineProp(ComponentState, 'Loading', ComponentState_Loading_getInstance, VOID, true);
+TextRole.values = values_5;
+TextRole.valueOf = valueOf_3;
+defineProp(TextRole, 'Display', TextRole_Display_getInstance, VOID, true);
+defineProp(TextRole, 'Headline', TextRole_Headline_getInstance, VOID, true);
+defineProp(TextRole, 'Title', TextRole_Title_getInstance, VOID, true);
+defineProp(TextRole, 'Body', TextRole_Body_getInstance, VOID, true);
+defineProp(TextRole, 'Label', TextRole_Label_getInstance, VOID, true);
+defineProp(TextRole, 'Caption', TextRole_Caption_getInstance, VOID, true);
+TextSize.values = values_6;
+TextSize.valueOf = valueOf_4;
+defineProp(TextSize, 'Small', TextSize_Small_getInstance, VOID, true);
+defineProp(TextSize, 'Medium', TextSize_Medium_getInstance, VOID, true);
+defineProp(TextSize, 'Large', TextSize_Large_getInstance, VOID, true);
+var ReaktorUIDemo = {get: get_ReaktorUIDemo};
+PromiseState.values = values_7;
+PromiseState.valueOf = valueOf_5;
 defineProp(PromiseState, 'Initial', PromiseState_Initial_getInstance, VOID, true);
 defineProp(PromiseState, 'Pending', PromiseState_Pending_getInstance, VOID, true);
 defineProp(PromiseState, 'Resolved', PromiseState_Resolved_getInstance, VOID, true);
 defineProp(PromiseState, 'Rejected', PromiseState_Rejected_getInstance, VOID, true);
+var WebMaterialTokens = {getInstance: WebMaterialTokens_getInstance};
 var initHook = {get: get_initHook};
 var IntegerType = {getInstance: IntegerType_getInstance};
 var TextType = {getInstance: TextType_getInstance};
@@ -94788,8 +99075,8 @@ defineProp(DeleteHandler, 'Companion', Companion_getInstance_78, VOID, true);
 defineProp(GetHandler, 'Companion', Companion_getInstance_79, VOID, true);
 defineProp(PostHandler, 'Companion', Companion_getInstance_80, VOID, true);
 defineProp(PutHandler, 'Companion', Companion_getInstance_81, VOID, true);
-HttpMethod_0.values = values_7;
-HttpMethod_0.valueOf = valueOf_1;
+HttpMethod_0.values = values_13;
+HttpMethod_0.valueOf = valueOf_6;
 defineProp(HttpMethod_0, 'GET', HttpMethod_GET_getInstance, VOID, true);
 defineProp(HttpMethod_0, 'POST', HttpMethod_POST_getInstance, VOID, true);
 defineProp(HttpMethod_0, 'PUT', HttpMethod_PUT_getInstance, VOID, true);
@@ -94797,20 +99084,20 @@ defineProp(HttpMethod_0, 'DELETE', HttpMethod_DELETE_getInstance, VOID, true);
 defineProp(HttpMethod_0, 'PATCH', HttpMethod_PATCH_getInstance, VOID, true);
 defineProp(HttpMethod_0, 'OPTIONS', HttpMethod_OPTIONS_getInstance, VOID, true);
 defineProp(HttpMethod_0, 'HEAD', HttpMethod_HEAD_getInstance, VOID, true);
-Environment.values = values_8;
-Environment.valueOf = valueOf_2;
+Environment.values = values_14;
+Environment.valueOf = valueOf_7;
 defineProp(Environment, 'STAGE', Environment_STAGE_getInstance, VOID, true);
 defineProp(Environment, 'PROD', Environment_PROD_getInstance, VOID, true);
 defineProp(Environment, 'Companion', Companion_getInstance_84, VOID, true);
-WindowWidthClass.values = values_9;
-WindowWidthClass.valueOf = valueOf_3;
+WindowWidthClass.values = values_15;
+WindowWidthClass.valueOf = valueOf_8;
 defineProp(WindowWidthClass, 'COMPACT', WindowWidthClass_COMPACT_getInstance, VOID, true);
 defineProp(WindowWidthClass, 'MEDIUM', WindowWidthClass_MEDIUM_getInstance, VOID, true);
 defineProp(WindowWidthClass, 'EXPANDED', WindowWidthClass_EXPANDED_getInstance, VOID, true);
 defineProp(WindowWidthClass, 'LARGE', WindowWidthClass_LARGE_getInstance, VOID, true);
 defineProp(WindowWidthClass, 'EXTRA_LARGE', WindowWidthClass_EXTRA_LARGE_getInstance, VOID, true);
-WindowHeightClass.values = values_10;
-WindowHeightClass.valueOf = valueOf_4;
+WindowHeightClass.values = values_16;
+WindowHeightClass.valueOf = valueOf_9;
 defineProp(WindowHeightClass, 'COMPACT', WindowHeightClass_COMPACT_getInstance, VOID, true);
 defineProp(WindowHeightClass, 'MEDIUM', WindowHeightClass_MEDIUM_getInstance, VOID, true);
 defineProp(WindowHeightClass, 'EXPANDED', WindowHeightClass_EXPANDED_getInstance, VOID, true);
@@ -94848,9 +99135,35 @@ export {
   JsSuccessResult as JsSuccessResult,
   JsFailureResult as JsFailureResult,
   getPatnaikUserAgent as getPatnaikUserAgent,
+  ComponentSize as ComponentSize,
+  ComponentVariant as ComponentVariant,
+  ComponentState as ComponentState,
+  TextRole as TextRole,
+  TextSize as TextSize,
+  ReaktorUIDemo as ReaktorUIDemo,
   PromiseState as PromiseState,
   PromiseResult as PromiseResult,
   usePromise as usePromise,
+  WebColorScheme as WebColorScheme,
+  WebTextStyle as WebTextStyle,
+  WebTypography as WebTypography,
+  WebSpacing as WebSpacing,
+  WebShapes as WebShapes,
+  WebElevation as WebElevation,
+  WebSizing as WebSizing,
+  WebBreakpoints as WebBreakpoints,
+  WebMotion as WebMotion,
+  WebDesignTokens as WebDesignTokens,
+  defaultWebTypography as defaultWebTypography,
+  lighten as lighten,
+  darken as darken,
+  autoContentColor as autoContentColor,
+  withAlpha as withAlpha,
+  createLightColorScheme as createLightColorScheme,
+  createDarkColorScheme as createDarkColorScheme,
+  createWebDesignTokens as createWebDesignTokens,
+  createWebTokens as createWebTokens,
+  WebMaterialTokens as WebMaterialTokens,
   initHook as initHook,
   FileAdapter as FileAdapter,
   SqlAdapter as SqlAdapter,

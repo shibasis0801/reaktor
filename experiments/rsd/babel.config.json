@@ -1,0 +1,8 @@
+{
+  "plugins": [
+    ["@stylexjs/babel-plugin", {
+      "importSources": [{"from": "react-strict-dom", "as": "css"}],
+      "runtimeInjection": false
+    }]
+  ]
+}

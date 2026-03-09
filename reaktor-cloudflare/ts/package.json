@@ -1,0 +1,18 @@
+{
+  "name": "dev-shibasis-reaktor-cloudflare-karakum",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "prebuild": "node scripts/link-self.mjs",
+    "postbuild": "karakum --config karakum.config.json",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "reaktor-reaktor-cloudflare": "file://./export"
+  },
+  "devDependencies": {
+    "karakum": "^1.0.0-alpha.78",
+    "typescript": "^5.9.3"
+  }
+}

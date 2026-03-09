@@ -1,0 +1,15 @@
+{
+  "name": "cloudflare-hello-worker-experiment",
+  "private": true,
+  "scripts": {
+    "build:kotlin": "cd ../.. && GRADLE_USER_HOME=/tmp/.gradle-flatinvoker ./gradlew :experiments-cloudflare-hello-worker:compileKotlinJs --no-daemon --console=plain",
+    "deploy": "npm run build:kotlin && wrangler deploy"
+  },
+  "dependencies": {
+    "reaktor-hello-worker-kotlin": "file://./ts/export"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.54.0"
+  }
+}

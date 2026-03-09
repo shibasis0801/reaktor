@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.ui.components
 import dev.shibasis.reaktor.ui.tokens.WebDesignTokens
 import js.objects.jso
 import react.*
+import react.dom.aria.AriaRole
 import react.dom.html.ReactHTML.div
 import web.cssom.*
 import kotlin.js.JsExport
@@ -14,14 +15,13 @@ import kotlin.js.JsExport
  * Mirrors the Compose RCard API.
  */
 
-external interface RCardProps : Props {
+external interface RCardProps : PropsWithChildren {
     var tokens: WebDesignTokens
     var variant: ComponentVariant?
     var onClick: (() -> Unit)?
     var containerColor: String?
     var contentColor: String?
     var padding: String?
-    var children: ReactNode?
 }
 
 val RCard = FC<RCardProps> { props ->
@@ -73,7 +73,7 @@ val RCard = FC<RCardProps> { props ->
         }
 
         if (isClickable) {
-            role = "button"
+            role = AriaRole.button
             tabIndex = 0
         }
 

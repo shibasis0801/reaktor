@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reaktor-cloudflare-hello-experiment-20260309",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-09",
+  "d1_databases": [
+    {
+      "binding": "HELLO_DB",
+      "database_name": "manna",
+      "database_id": "e818bfd4-d0da-47bf-8e61-c91784ae1dee"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "HELLO_BUCKET",
+      "bucket_name": "reaktor-cloudflare-hello-experiment-20260309-r2"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HELLO_STATEFUL",
+        "class_name": "HelloCounterDurableObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "HelloCounterDurableObject"
+      ]
+    }
+  ]
+}

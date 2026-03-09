@@ -28,7 +28,7 @@ enum class TextRole { Display, Headline, Title, Body, Label, Caption }
 @JsExport
 enum class TextSize { Small, Medium, Large }
 
-external interface RTextProps : Props {
+external interface RTextProps : PropsWithChildren {
     var tokens: WebDesignTokens
     var text: String?
     var role: TextRole?
@@ -36,7 +36,6 @@ external interface RTextProps : Props {
     var color: String?
     var maxLines: Int?
     var textAlign: String?
-    var children: ReactNode?
 }
 
 val RText = FC<RTextProps> { props ->
@@ -100,7 +99,7 @@ val RText = FC<RTextProps> { props ->
 
         props.maxLines?.let { lines ->
             if (lines > 0) {
-                display = Display.webkitBox
+                display = "webkit-box".unsafeCast<Display>()
                 asDynamic().WebkitLineClamp = lines
                 asDynamic().WebkitBoxOrient = "vertical"
                 overflow = Overflow.hidden

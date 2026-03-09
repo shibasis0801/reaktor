@@ -56,8 +56,11 @@ if (typeof String.prototype.startsWith === 'undefined') {
 }
 //endregion
 import {
+  createElement as createElement,
   useEffect as useEffect,
+  Fragment as Fragment,
   useState as useState,
+  useMemo as useMemo,
 } from 'react';
 //region block: imports
 var imul_0 = Math.imul;
@@ -247,6 +250,14 @@ class arrayIterator$1 {
       throw NoSuchElementException.new_kotlin_NoSuchElementException_eborbh_k$('' + this.index_1);
     }
     return tmp;
+  }
+}
+class Digit {
+  constructor() {
+    Digit_instance = this;
+    var tmp = this;
+    // Inline function 'kotlin.intArrayOf' call
+    tmp.rangeStart_1 = new Int32Array([48, 1632, 1776, 1984, 2406, 2534, 2662, 2790, 2918, 3046, 3174, 3302, 3430, 3558, 3664, 3792, 3872, 4160, 4240, 6112, 6160, 6470, 6608, 6784, 6800, 6992, 7088, 7232, 7248, 42528, 43216, 43264, 43472, 43504, 43600, 44016, 65296]);
   }
 }
 class Comparator {}
@@ -1353,6 +1364,18 @@ class ArithmeticException extends RuntimeException {
     return $this;
   }
 }
+class NumberFormatException extends IllegalArgumentException {
+  static new_kotlin_NumberFormatException_rswu7k_k$() {
+    var $this = this.new_kotlin_IllegalArgumentException_pv5o3f_k$();
+    init_kotlin_NumberFormatException($this);
+    return $this;
+  }
+  static new_kotlin_NumberFormatException_hv2a95_k$(message) {
+    var $this = this.new_kotlin_IllegalArgumentException_sfqr8_k$(message);
+    init_kotlin_NumberFormatException($this);
+    return $this;
+  }
+}
 class NullPointerException extends RuntimeException {
   static new_kotlin_NullPointerException_q6jd54_k$() {
     var $this = this.new_kotlin_RuntimeException_29f9zq_k$();
@@ -1461,6 +1484,7 @@ class SimpleKClassImpl extends KClassImpl {
 }
 class KProperty0 {}
 class KProperty1 {}
+class KMutableProperty0 {}
 class PrimitiveClasses {
   constructor() {
     PrimitiveClasses_instance = this;
@@ -2736,6 +2760,44 @@ class Pair {
     if (!equals(this.first_1, other.first_1))
       return false;
     if (!equals(this.second_1, other.second_1))
+      return false;
+    return true;
+  }
+}
+class Triple {
+  constructor(first, second, third) {
+    this.first_1 = first;
+    this.second_1 = second;
+    this.third_1 = third;
+  }
+  toString() {
+    return '(' + toString_0(this.first_1) + ', ' + toString_0(this.second_1) + ', ' + toString_0(this.third_1) + ')';
+  }
+  component1_7eebsc_k$() {
+    return this.first_1;
+  }
+  component2_7eebsb_k$() {
+    return this.second_1;
+  }
+  component3_7eebsa_k$() {
+    return this.third_1;
+  }
+  hashCode() {
+    var result = this.first_1 == null ? 0 : hashCode(this.first_1);
+    result = imul_0(result, 31) + (this.second_1 == null ? 0 : hashCode(this.second_1)) | 0;
+    result = imul_0(result, 31) + (this.third_1 == null ? 0 : hashCode(this.third_1)) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof Triple))
+      return false;
+    if (!equals(this.first_1, other.first_1))
+      return false;
+    if (!equals(this.second_1, other.second_1))
+      return false;
+    if (!equals(this.third_1, other.third_1))
       return false;
     return true;
   }
@@ -5955,6 +6017,48 @@ class ServiceLoaderComponentRegistry {
 }
 class KtorNetworkFetcherServiceLoaderTarget {}
 class SvgDecoderServiceLoaderTarget {}
+class ReactHTML {}
+class ThemeOption extends Enum {}
+class ComponentSize extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class ComponentVariant extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class ComponentState extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class TextRole extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
+class TextSize extends Enum {
+  get name() {
+    return this.get_name_woqyms_k$();
+  }
+  get ordinal() {
+    return this.get_ordinal_ip24qg_k$();
+  }
+}
 class PromiseState extends Enum {
   get name() {
     return this.get_name_woqyms_k$();
@@ -6044,12 +6148,1623 @@ class usePromise$slambda {
     return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
   }
 }
+class WebColorScheme {
+  constructor(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary) {
+    this.background = background;
+    this.surface = surface;
+    this.surfaceVariant = surfaceVariant;
+    this.surfaceContainer = surfaceContainer;
+    this.surfaceContainerHigh = surfaceContainerHigh;
+    this.surfaceContainerLow = surfaceContainerLow;
+    this.onBackground = onBackground;
+    this.onSurface = onSurface;
+    this.onSurfaceVariant = onSurfaceVariant;
+    this.primary = primary;
+    this.primaryContainer = primaryContainer;
+    this.onPrimary = onPrimary;
+    this.onPrimaryContainer = onPrimaryContainer;
+    this.secondary = secondary;
+    this.secondaryContainer = secondaryContainer;
+    this.onSecondary = onSecondary;
+    this.onSecondaryContainer = onSecondaryContainer;
+    this.tertiary = tertiary;
+    this.tertiaryContainer = tertiaryContainer;
+    this.onTertiary = onTertiary;
+    this.onTertiaryContainer = onTertiaryContainer;
+    this.error = error;
+    this.errorContainer = errorContainer;
+    this.onError = onError;
+    this.onErrorContainer = onErrorContainer;
+    this.success = success;
+    this.onSuccess = onSuccess;
+    this.warning = warning;
+    this.onWarning = onWarning;
+    this.info = info;
+    this.onInfo = onInfo;
+    this.outline = outline;
+    this.outlineVariant = outlineVariant;
+    this.scrim = scrim;
+    this.shadow = shadow;
+    this.inverseSurface = inverseSurface;
+    this.inverseOnSurface = inverseOnSurface;
+    this.inversePrimary = inversePrimary;
+  }
+  get_background_stpfw7_k$() {
+    return this.background;
+  }
+  get_surface_tdt8vw_k$() {
+    return this.surface;
+  }
+  get_surfaceVariant_18d89t_k$() {
+    return this.surfaceVariant;
+  }
+  get_surfaceContainer_sljb37_k$() {
+    return this.surfaceContainer;
+  }
+  get_surfaceContainerHigh_ho6n5_k$() {
+    return this.surfaceContainerHigh;
+  }
+  get_surfaceContainerLow_p7xhjd_k$() {
+    return this.surfaceContainerLow;
+  }
+  get_onBackground_x9sua2_k$() {
+    return this.onBackground;
+  }
+  get_onSurface_199zv_k$() {
+    return this.onSurface;
+  }
+  get_onSurfaceVariant_54o3og_k$() {
+    return this.onSurfaceVariant;
+  }
+  get_primary_3xuktj_k$() {
+    return this.primary;
+  }
+  get_primaryContainer_kovyw8_k$() {
+    return this.primaryContainer;
+  }
+  get_onPrimary_pepe2i_k$() {
+    return this.onPrimary;
+  }
+  get_onPrimaryContainer_1c5fzb_k$() {
+    return this.onPrimaryContainer;
+  }
+  get_secondary_5095it_k$() {
+    return this.secondary;
+  }
+  get_secondaryContainer_26tt6y_k$() {
+    return this.secondaryContainer;
+  }
+  get_onSecondary_4wkr8_k$() {
+    return this.onSecondary;
+  }
+  get_onSecondaryContainer_8wlnn9_k$() {
+    return this.onSecondaryContainer;
+  }
+  get_tertiary_jsqcrf_k$() {
+    return this.tertiary;
+  }
+  get_tertiaryContainer_qx2ht2_k$() {
+    return this.tertiaryContainer;
+  }
+  get_onTertiary_67gonu_k$() {
+    return this.onTertiary;
+  }
+  get_onTertiaryContainer_4svcqh_k$() {
+    return this.onTertiaryContainer;
+  }
+  get_error_iqzvfj_k$() {
+    return this.error;
+  }
+  get_errorContainer_4pqefy_k$() {
+    return this.errorContainer;
+  }
+  get_onError_l24eio_k$() {
+    return this.onError;
+  }
+  get_onErrorContainer_tfj1b_k$() {
+    return this.onErrorContainer;
+  }
+  get_success_tm3zdy_k$() {
+    return this.success;
+  }
+  get_onSuccess_9k0hx_k$() {
+    return this.onSuccess;
+  }
+  get_warning_jv0q7n_k$() {
+    return this.warning;
+  }
+  get_onWarning_ltjcvg_k$() {
+    return this.onWarning;
+  }
+  get_info_woo16f_k$() {
+    return this.info;
+  }
+  get_onInfo_hnigqe_k$() {
+    return this.onInfo;
+  }
+  get_outline_h12qhz_k$() {
+    return this.outline;
+  }
+  get_outlineVariant_31h3os_k$() {
+    return this.outlineVariant;
+  }
+  get_scrim_iyfesd_k$() {
+    return this.scrim;
+  }
+  get_shadow_jgtb8p_k$() {
+    return this.shadow;
+  }
+  get_inverseSurface_f5ydt2_k$() {
+    return this.inverseSurface;
+  }
+  get_inverseOnSurface_jzll89_k$() {
+    return this.inverseOnSurface;
+  }
+  get_inversePrimary_uf703p_k$() {
+    return this.inversePrimary;
+  }
+  component1_7eebsc_k$() {
+    return this.background;
+  }
+  component2_7eebsb_k$() {
+    return this.surface;
+  }
+  component3_7eebsa_k$() {
+    return this.surfaceVariant;
+  }
+  component4_7eebs9_k$() {
+    return this.surfaceContainer;
+  }
+  component5_7eebs8_k$() {
+    return this.surfaceContainerHigh;
+  }
+  component6_7eebs7_k$() {
+    return this.surfaceContainerLow;
+  }
+  component7_7eebs6_k$() {
+    return this.onBackground;
+  }
+  component8_7eebs5_k$() {
+    return this.onSurface;
+  }
+  component9_7eebs4_k$() {
+    return this.onSurfaceVariant;
+  }
+  component10_gazzfo_k$() {
+    return this.primary;
+  }
+  component11_gazzfn_k$() {
+    return this.primaryContainer;
+  }
+  component12_gazzfm_k$() {
+    return this.onPrimary;
+  }
+  component13_gazzfl_k$() {
+    return this.onPrimaryContainer;
+  }
+  component14_gazzfk_k$() {
+    return this.secondary;
+  }
+  component15_gazzfj_k$() {
+    return this.secondaryContainer;
+  }
+  component16_gazzfi_k$() {
+    return this.onSecondary;
+  }
+  component17_gazzfh_k$() {
+    return this.onSecondaryContainer;
+  }
+  component18_gazzfg_k$() {
+    return this.tertiary;
+  }
+  component19_gazzff_k$() {
+    return this.tertiaryContainer;
+  }
+  component20_gazzet_k$() {
+    return this.onTertiary;
+  }
+  component21_gazzes_k$() {
+    return this.onTertiaryContainer;
+  }
+  component22_gazzer_k$() {
+    return this.error;
+  }
+  component23_gazzeq_k$() {
+    return this.errorContainer;
+  }
+  component24_gazzep_k$() {
+    return this.onError;
+  }
+  component25_gazzeo_k$() {
+    return this.onErrorContainer;
+  }
+  component26_gazzen_k$() {
+    return this.success;
+  }
+  component27_gazzem_k$() {
+    return this.onSuccess;
+  }
+  component28_gazzel_k$() {
+    return this.warning;
+  }
+  component29_gazzek_k$() {
+    return this.onWarning;
+  }
+  component30_gazzdy_k$() {
+    return this.info;
+  }
+  component31_gazzdx_k$() {
+    return this.onInfo;
+  }
+  component32_gazzdw_k$() {
+    return this.outline;
+  }
+  component33_gazzdv_k$() {
+    return this.outlineVariant;
+  }
+  component34_gazzdu_k$() {
+    return this.scrim;
+  }
+  component35_gazzdt_k$() {
+    return this.shadow;
+  }
+  component36_gazzds_k$() {
+    return this.inverseSurface;
+  }
+  component37_gazzdr_k$() {
+    return this.inverseOnSurface;
+  }
+  component38_gazzdq_k$() {
+    return this.inversePrimary;
+  }
+  copy_17f53f_k$(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary) {
+    return new WebColorScheme(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary);
+  }
+  copy(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary, $super) {
+    background = background === VOID ? this.background : background;
+    surface = surface === VOID ? this.surface : surface;
+    surfaceVariant = surfaceVariant === VOID ? this.surfaceVariant : surfaceVariant;
+    surfaceContainer = surfaceContainer === VOID ? this.surfaceContainer : surfaceContainer;
+    surfaceContainerHigh = surfaceContainerHigh === VOID ? this.surfaceContainerHigh : surfaceContainerHigh;
+    surfaceContainerLow = surfaceContainerLow === VOID ? this.surfaceContainerLow : surfaceContainerLow;
+    onBackground = onBackground === VOID ? this.onBackground : onBackground;
+    onSurface = onSurface === VOID ? this.onSurface : onSurface;
+    onSurfaceVariant = onSurfaceVariant === VOID ? this.onSurfaceVariant : onSurfaceVariant;
+    primary = primary === VOID ? this.primary : primary;
+    primaryContainer = primaryContainer === VOID ? this.primaryContainer : primaryContainer;
+    onPrimary = onPrimary === VOID ? this.onPrimary : onPrimary;
+    onPrimaryContainer = onPrimaryContainer === VOID ? this.onPrimaryContainer : onPrimaryContainer;
+    secondary = secondary === VOID ? this.secondary : secondary;
+    secondaryContainer = secondaryContainer === VOID ? this.secondaryContainer : secondaryContainer;
+    onSecondary = onSecondary === VOID ? this.onSecondary : onSecondary;
+    onSecondaryContainer = onSecondaryContainer === VOID ? this.onSecondaryContainer : onSecondaryContainer;
+    tertiary = tertiary === VOID ? this.tertiary : tertiary;
+    tertiaryContainer = tertiaryContainer === VOID ? this.tertiaryContainer : tertiaryContainer;
+    onTertiary = onTertiary === VOID ? this.onTertiary : onTertiary;
+    onTertiaryContainer = onTertiaryContainer === VOID ? this.onTertiaryContainer : onTertiaryContainer;
+    error = error === VOID ? this.error : error;
+    errorContainer = errorContainer === VOID ? this.errorContainer : errorContainer;
+    onError = onError === VOID ? this.onError : onError;
+    onErrorContainer = onErrorContainer === VOID ? this.onErrorContainer : onErrorContainer;
+    success = success === VOID ? this.success : success;
+    onSuccess = onSuccess === VOID ? this.onSuccess : onSuccess;
+    warning = warning === VOID ? this.warning : warning;
+    onWarning = onWarning === VOID ? this.onWarning : onWarning;
+    info = info === VOID ? this.info : info;
+    onInfo = onInfo === VOID ? this.onInfo : onInfo;
+    outline = outline === VOID ? this.outline : outline;
+    outlineVariant = outlineVariant === VOID ? this.outlineVariant : outlineVariant;
+    scrim = scrim === VOID ? this.scrim : scrim;
+    shadow = shadow === VOID ? this.shadow : shadow;
+    inverseSurface = inverseSurface === VOID ? this.inverseSurface : inverseSurface;
+    inverseOnSurface = inverseOnSurface === VOID ? this.inverseOnSurface : inverseOnSurface;
+    inversePrimary = inversePrimary === VOID ? this.inversePrimary : inversePrimary;
+    return $super === VOID ? this.copy_17f53f_k$(background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary) : $super.copy_17f53f_k$.call(this, background, surface, surfaceVariant, surfaceContainer, surfaceContainerHigh, surfaceContainerLow, onBackground, onSurface, onSurfaceVariant, primary, primaryContainer, onPrimary, onPrimaryContainer, secondary, secondaryContainer, onSecondary, onSecondaryContainer, tertiary, tertiaryContainer, onTertiary, onTertiaryContainer, error, errorContainer, onError, onErrorContainer, success, onSuccess, warning, onWarning, info, onInfo, outline, outlineVariant, scrim, shadow, inverseSurface, inverseOnSurface, inversePrimary);
+  }
+  toString() {
+    return 'WebColorScheme(background=' + this.background + ', surface=' + this.surface + ', surfaceVariant=' + this.surfaceVariant + ', surfaceContainer=' + this.surfaceContainer + ', surfaceContainerHigh=' + this.surfaceContainerHigh + ', surfaceContainerLow=' + this.surfaceContainerLow + ', onBackground=' + this.onBackground + ', onSurface=' + this.onSurface + ', onSurfaceVariant=' + this.onSurfaceVariant + ', primary=' + this.primary + ', primaryContainer=' + this.primaryContainer + ', onPrimary=' + this.onPrimary + ', onPrimaryContainer=' + this.onPrimaryContainer + ', secondary=' + this.secondary + ', secondaryContainer=' + this.secondaryContainer + ', onSecondary=' + this.onSecondary + ', onSecondaryContainer=' + this.onSecondaryContainer + ', tertiary=' + this.tertiary + ', tertiaryContainer=' + this.tertiaryContainer + ', onTertiary=' + this.onTertiary + ', onTertiaryContainer=' + this.onTertiaryContainer + ', error=' + this.error + ', errorContainer=' + this.errorContainer + ', onError=' + this.onError + ', onErrorContainer=' + this.onErrorContainer + ', success=' + this.success + ', onSuccess=' + this.onSuccess + ', warning=' + this.warning + ', onWarning=' + this.onWarning + ', info=' + this.info + ', onInfo=' + this.onInfo + ', outline=' + this.outline + ', outlineVariant=' + this.outlineVariant + ', scrim=' + this.scrim + ', shadow=' + this.shadow + ', inverseSurface=' + this.inverseSurface + ', inverseOnSurface=' + this.inverseOnSurface + ', inversePrimary=' + this.inversePrimary + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.background);
+    result = imul_0(result, 31) + getStringHashCode(this.surface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceVariant) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceContainerHigh) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.surfaceContainerLow) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onBackground) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSurface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSurfaceVariant) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.primary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.primaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onPrimary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onPrimaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.secondary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.secondaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSecondary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSecondaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.tertiary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.tertiaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onTertiary) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onTertiaryContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.error) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.errorContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onError) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onErrorContainer) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.success) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onSuccess) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.warning) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onWarning) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.info) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.onInfo) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.outline) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.outlineVariant) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.scrim) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.shadow) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inverseSurface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inverseOnSurface) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inversePrimary) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebColorScheme))
+      return false;
+    if (!(this.background === other.background))
+      return false;
+    if (!(this.surface === other.surface))
+      return false;
+    if (!(this.surfaceVariant === other.surfaceVariant))
+      return false;
+    if (!(this.surfaceContainer === other.surfaceContainer))
+      return false;
+    if (!(this.surfaceContainerHigh === other.surfaceContainerHigh))
+      return false;
+    if (!(this.surfaceContainerLow === other.surfaceContainerLow))
+      return false;
+    if (!(this.onBackground === other.onBackground))
+      return false;
+    if (!(this.onSurface === other.onSurface))
+      return false;
+    if (!(this.onSurfaceVariant === other.onSurfaceVariant))
+      return false;
+    if (!(this.primary === other.primary))
+      return false;
+    if (!(this.primaryContainer === other.primaryContainer))
+      return false;
+    if (!(this.onPrimary === other.onPrimary))
+      return false;
+    if (!(this.onPrimaryContainer === other.onPrimaryContainer))
+      return false;
+    if (!(this.secondary === other.secondary))
+      return false;
+    if (!(this.secondaryContainer === other.secondaryContainer))
+      return false;
+    if (!(this.onSecondary === other.onSecondary))
+      return false;
+    if (!(this.onSecondaryContainer === other.onSecondaryContainer))
+      return false;
+    if (!(this.tertiary === other.tertiary))
+      return false;
+    if (!(this.tertiaryContainer === other.tertiaryContainer))
+      return false;
+    if (!(this.onTertiary === other.onTertiary))
+      return false;
+    if (!(this.onTertiaryContainer === other.onTertiaryContainer))
+      return false;
+    if (!(this.error === other.error))
+      return false;
+    if (!(this.errorContainer === other.errorContainer))
+      return false;
+    if (!(this.onError === other.onError))
+      return false;
+    if (!(this.onErrorContainer === other.onErrorContainer))
+      return false;
+    if (!(this.success === other.success))
+      return false;
+    if (!(this.onSuccess === other.onSuccess))
+      return false;
+    if (!(this.warning === other.warning))
+      return false;
+    if (!(this.onWarning === other.onWarning))
+      return false;
+    if (!(this.info === other.info))
+      return false;
+    if (!(this.onInfo === other.onInfo))
+      return false;
+    if (!(this.outline === other.outline))
+      return false;
+    if (!(this.outlineVariant === other.outlineVariant))
+      return false;
+    if (!(this.scrim === other.scrim))
+      return false;
+    if (!(this.shadow === other.shadow))
+      return false;
+    if (!(this.inverseSurface === other.inverseSurface))
+      return false;
+    if (!(this.inverseOnSurface === other.inverseOnSurface))
+      return false;
+    if (!(this.inversePrimary === other.inversePrimary))
+      return false;
+    return true;
+  }
+}
+class WebTextStyle {
+  constructor(fontSize, lineHeight, fontWeight, letterSpacing) {
+    this.fontSize = fontSize;
+    this.lineHeight = lineHeight;
+    this.fontWeight = fontWeight;
+    this.letterSpacing = letterSpacing;
+  }
+  get_fontSize_pr9n47_k$() {
+    return this.fontSize;
+  }
+  get_lineHeight_spcmd8_k$() {
+    return this.lineHeight;
+  }
+  get_fontWeight_wbif2o_k$() {
+    return this.fontWeight;
+  }
+  get_letterSpacing_xp4v84_k$() {
+    return this.letterSpacing;
+  }
+  component1_7eebsc_k$() {
+    return this.fontSize;
+  }
+  component2_7eebsb_k$() {
+    return this.lineHeight;
+  }
+  component3_7eebsa_k$() {
+    return this.fontWeight;
+  }
+  component4_7eebs9_k$() {
+    return this.letterSpacing;
+  }
+  copy_hmmiyd_k$(fontSize, lineHeight, fontWeight, letterSpacing) {
+    return new WebTextStyle(fontSize, lineHeight, fontWeight, letterSpacing);
+  }
+  copy(fontSize, lineHeight, fontWeight, letterSpacing, $super) {
+    fontSize = fontSize === VOID ? this.fontSize : fontSize;
+    lineHeight = lineHeight === VOID ? this.lineHeight : lineHeight;
+    fontWeight = fontWeight === VOID ? this.fontWeight : fontWeight;
+    letterSpacing = letterSpacing === VOID ? this.letterSpacing : letterSpacing;
+    return $super === VOID ? this.copy_hmmiyd_k$(fontSize, lineHeight, fontWeight, letterSpacing) : $super.copy_hmmiyd_k$.call(this, fontSize, lineHeight, fontWeight, letterSpacing);
+  }
+  toString() {
+    return 'WebTextStyle(fontSize=' + this.fontSize + ', lineHeight=' + this.lineHeight + ', fontWeight=' + this.fontWeight + ', letterSpacing=' + this.letterSpacing + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.fontSize);
+    result = imul_0(result, 31) + getStringHashCode(this.lineHeight) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.fontWeight) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.letterSpacing) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebTextStyle))
+      return false;
+    if (!(this.fontSize === other.fontSize))
+      return false;
+    if (!(this.lineHeight === other.lineHeight))
+      return false;
+    if (!(this.fontWeight === other.fontWeight))
+      return false;
+    if (!(this.letterSpacing === other.letterSpacing))
+      return false;
+    return true;
+  }
+}
+class WebTypography {
+  constructor(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall) {
+    this.displayLarge = displayLarge;
+    this.displayMedium = displayMedium;
+    this.displaySmall = displaySmall;
+    this.headlineLarge = headlineLarge;
+    this.headlineMedium = headlineMedium;
+    this.headlineSmall = headlineSmall;
+    this.titleLarge = titleLarge;
+    this.titleMedium = titleMedium;
+    this.titleSmall = titleSmall;
+    this.bodyLarge = bodyLarge;
+    this.bodyMedium = bodyMedium;
+    this.bodySmall = bodySmall;
+    this.labelLarge = labelLarge;
+    this.labelMedium = labelMedium;
+    this.labelSmall = labelSmall;
+  }
+  get_displayLarge_uyh5uq_k$() {
+    return this.displayLarge;
+  }
+  get_displayMedium_y7staq_k$() {
+    return this.displayMedium;
+  }
+  get_displaySmall_v2j1da_k$() {
+    return this.displaySmall;
+  }
+  get_headlineLarge_nmi9we_k$() {
+    return this.headlineLarge;
+  }
+  get_headlineMedium_mllw1e_k$() {
+    return this.headlineMedium;
+  }
+  get_headlineSmall_nqk5ey_k$() {
+    return this.headlineSmall;
+  }
+  get_titleLarge_l89m4s_k$() {
+    return this.titleLarge;
+  }
+  get_titleMedium_jd9h8k_k$() {
+    return this.titleMedium;
+  }
+  get_titleSmall_lcbhnc_k$() {
+    return this.titleSmall;
+  }
+  get_bodyLarge_sxra4w_k$() {
+    return this.bodyLarge;
+  }
+  get_bodyMedium_psz2kg_k$() {
+    return this.bodyMedium;
+  }
+  get_bodySmall_t1t5ng_k$() {
+    return this.bodySmall;
+  }
+  get_labelLarge_na0mr4_k$() {
+    return this.labelLarge;
+  }
+  get_labelMedium_bueyhs_k$() {
+    return this.labelMedium;
+  }
+  get_labelSmall_ne2i9o_k$() {
+    return this.labelSmall;
+  }
+  component1_7eebsc_k$() {
+    return this.displayLarge;
+  }
+  component2_7eebsb_k$() {
+    return this.displayMedium;
+  }
+  component3_7eebsa_k$() {
+    return this.displaySmall;
+  }
+  component4_7eebs9_k$() {
+    return this.headlineLarge;
+  }
+  component5_7eebs8_k$() {
+    return this.headlineMedium;
+  }
+  component6_7eebs7_k$() {
+    return this.headlineSmall;
+  }
+  component7_7eebs6_k$() {
+    return this.titleLarge;
+  }
+  component8_7eebs5_k$() {
+    return this.titleMedium;
+  }
+  component9_7eebs4_k$() {
+    return this.titleSmall;
+  }
+  component10_gazzfo_k$() {
+    return this.bodyLarge;
+  }
+  component11_gazzfn_k$() {
+    return this.bodyMedium;
+  }
+  component12_gazzfm_k$() {
+    return this.bodySmall;
+  }
+  component13_gazzfl_k$() {
+    return this.labelLarge;
+  }
+  component14_gazzfk_k$() {
+    return this.labelMedium;
+  }
+  component15_gazzfj_k$() {
+    return this.labelSmall;
+  }
+  copy_ic529v_k$(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall) {
+    return new WebTypography(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall);
+  }
+  copy(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall, $super) {
+    displayLarge = displayLarge === VOID ? this.displayLarge : displayLarge;
+    displayMedium = displayMedium === VOID ? this.displayMedium : displayMedium;
+    displaySmall = displaySmall === VOID ? this.displaySmall : displaySmall;
+    headlineLarge = headlineLarge === VOID ? this.headlineLarge : headlineLarge;
+    headlineMedium = headlineMedium === VOID ? this.headlineMedium : headlineMedium;
+    headlineSmall = headlineSmall === VOID ? this.headlineSmall : headlineSmall;
+    titleLarge = titleLarge === VOID ? this.titleLarge : titleLarge;
+    titleMedium = titleMedium === VOID ? this.titleMedium : titleMedium;
+    titleSmall = titleSmall === VOID ? this.titleSmall : titleSmall;
+    bodyLarge = bodyLarge === VOID ? this.bodyLarge : bodyLarge;
+    bodyMedium = bodyMedium === VOID ? this.bodyMedium : bodyMedium;
+    bodySmall = bodySmall === VOID ? this.bodySmall : bodySmall;
+    labelLarge = labelLarge === VOID ? this.labelLarge : labelLarge;
+    labelMedium = labelMedium === VOID ? this.labelMedium : labelMedium;
+    labelSmall = labelSmall === VOID ? this.labelSmall : labelSmall;
+    return $super === VOID ? this.copy_ic529v_k$(displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall) : $super.copy_ic529v_k$.call(this, displayLarge, displayMedium, displaySmall, headlineLarge, headlineMedium, headlineSmall, titleLarge, titleMedium, titleSmall, bodyLarge, bodyMedium, bodySmall, labelLarge, labelMedium, labelSmall);
+  }
+  toString() {
+    return 'WebTypography(displayLarge=' + this.displayLarge.toString() + ', displayMedium=' + this.displayMedium.toString() + ', displaySmall=' + this.displaySmall.toString() + ', headlineLarge=' + this.headlineLarge.toString() + ', headlineMedium=' + this.headlineMedium.toString() + ', headlineSmall=' + this.headlineSmall.toString() + ', titleLarge=' + this.titleLarge.toString() + ', titleMedium=' + this.titleMedium.toString() + ', titleSmall=' + this.titleSmall.toString() + ', bodyLarge=' + this.bodyLarge.toString() + ', bodyMedium=' + this.bodyMedium.toString() + ', bodySmall=' + this.bodySmall.toString() + ', labelLarge=' + this.labelLarge.toString() + ', labelMedium=' + this.labelMedium.toString() + ', labelSmall=' + this.labelSmall.toString() + ')';
+  }
+  hashCode() {
+    var result = this.displayLarge.hashCode();
+    result = imul_0(result, 31) + this.displayMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.displaySmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.headlineLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.headlineMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.headlineSmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.titleLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.titleMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.titleSmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.bodyLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.bodyMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.bodySmall.hashCode() | 0;
+    result = imul_0(result, 31) + this.labelLarge.hashCode() | 0;
+    result = imul_0(result, 31) + this.labelMedium.hashCode() | 0;
+    result = imul_0(result, 31) + this.labelSmall.hashCode() | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebTypography))
+      return false;
+    if (!this.displayLarge.equals(other.displayLarge))
+      return false;
+    if (!this.displayMedium.equals(other.displayMedium))
+      return false;
+    if (!this.displaySmall.equals(other.displaySmall))
+      return false;
+    if (!this.headlineLarge.equals(other.headlineLarge))
+      return false;
+    if (!this.headlineMedium.equals(other.headlineMedium))
+      return false;
+    if (!this.headlineSmall.equals(other.headlineSmall))
+      return false;
+    if (!this.titleLarge.equals(other.titleLarge))
+      return false;
+    if (!this.titleMedium.equals(other.titleMedium))
+      return false;
+    if (!this.titleSmall.equals(other.titleSmall))
+      return false;
+    if (!this.bodyLarge.equals(other.bodyLarge))
+      return false;
+    if (!this.bodyMedium.equals(other.bodyMedium))
+      return false;
+    if (!this.bodySmall.equals(other.bodySmall))
+      return false;
+    if (!this.labelLarge.equals(other.labelLarge))
+      return false;
+    if (!this.labelMedium.equals(other.labelMedium))
+      return false;
+    if (!this.labelSmall.equals(other.labelSmall))
+      return false;
+    return true;
+  }
+}
+class WebSpacing {
+  constructor(none, xxs, xs, sm, md, lg, xl, xxl, xxxl) {
+    none = none === VOID ? '0' : none;
+    xxs = xxs === VOID ? '2px' : xxs;
+    xs = xs === VOID ? '4px' : xs;
+    sm = sm === VOID ? '8px' : sm;
+    md = md === VOID ? '16px' : md;
+    lg = lg === VOID ? '24px' : lg;
+    xl = xl === VOID ? '32px' : xl;
+    xxl = xxl === VOID ? '48px' : xxl;
+    xxxl = xxxl === VOID ? '64px' : xxxl;
+    this.none = none;
+    this.xxs = xxs;
+    this.xs = xs;
+    this.sm = sm;
+    this.md = md;
+    this.lg = lg;
+    this.xl = xl;
+    this.xxl = xxl;
+    this.xxxl = xxxl;
+  }
+  get_none_wor91d_k$() {
+    return this.none;
+  }
+  get_xxs_18is52_k$() {
+    return this.xxs;
+  }
+  get_xs_kntnjw_k$() {
+    return this.xs;
+  }
+  get_sm_kntnod_k$() {
+    return this.sm;
+  }
+  get_md_kntnts_k$() {
+    return this.md;
+  }
+  get_lg_kntnuk_k$() {
+    return this.lg;
+  }
+  get_xl_kntnk3_k$() {
+    return this.xl;
+  }
+  get_xxl_18is59_k$() {
+    return this.xxl;
+  }
+  get_xxxl_woxttp_k$() {
+    return this.xxxl;
+  }
+  component1_7eebsc_k$() {
+    return this.none;
+  }
+  component2_7eebsb_k$() {
+    return this.xxs;
+  }
+  component3_7eebsa_k$() {
+    return this.xs;
+  }
+  component4_7eebs9_k$() {
+    return this.sm;
+  }
+  component5_7eebs8_k$() {
+    return this.md;
+  }
+  component6_7eebs7_k$() {
+    return this.lg;
+  }
+  component7_7eebs6_k$() {
+    return this.xl;
+  }
+  component8_7eebs5_k$() {
+    return this.xxl;
+  }
+  component9_7eebs4_k$() {
+    return this.xxxl;
+  }
+  copy_jihvqd_k$(none, xxs, xs, sm, md, lg, xl, xxl, xxxl) {
+    return new WebSpacing(none, xxs, xs, sm, md, lg, xl, xxl, xxxl);
+  }
+  copy(none, xxs, xs, sm, md, lg, xl, xxl, xxxl, $super) {
+    none = none === VOID ? this.none : none;
+    xxs = xxs === VOID ? this.xxs : xxs;
+    xs = xs === VOID ? this.xs : xs;
+    sm = sm === VOID ? this.sm : sm;
+    md = md === VOID ? this.md : md;
+    lg = lg === VOID ? this.lg : lg;
+    xl = xl === VOID ? this.xl : xl;
+    xxl = xxl === VOID ? this.xxl : xxl;
+    xxxl = xxxl === VOID ? this.xxxl : xxxl;
+    return $super === VOID ? this.copy_jihvqd_k$(none, xxs, xs, sm, md, lg, xl, xxl, xxxl) : $super.copy_jihvqd_k$.call(this, none, xxs, xs, sm, md, lg, xl, xxl, xxxl);
+  }
+  toString() {
+    return 'WebSpacing(none=' + this.none + ', xxs=' + this.xxs + ', xs=' + this.xs + ', sm=' + this.sm + ', md=' + this.md + ', lg=' + this.lg + ', xl=' + this.xl + ', xxl=' + this.xxl + ', xxxl=' + this.xxxl + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.none);
+    result = imul_0(result, 31) + getStringHashCode(this.xxs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.sm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.md) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.lg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xxl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xxxl) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebSpacing))
+      return false;
+    if (!(this.none === other.none))
+      return false;
+    if (!(this.xxs === other.xxs))
+      return false;
+    if (!(this.xs === other.xs))
+      return false;
+    if (!(this.sm === other.sm))
+      return false;
+    if (!(this.md === other.md))
+      return false;
+    if (!(this.lg === other.lg))
+      return false;
+    if (!(this.xl === other.xl))
+      return false;
+    if (!(this.xxl === other.xxl))
+      return false;
+    if (!(this.xxxl === other.xxxl))
+      return false;
+    return true;
+  }
+}
+class WebShapes {
+  constructor(none, xs, sm, md, lg, xl, full) {
+    none = none === VOID ? '0' : none;
+    xs = xs === VOID ? '4px' : xs;
+    sm = sm === VOID ? '8px' : sm;
+    md = md === VOID ? '12px' : md;
+    lg = lg === VOID ? '16px' : lg;
+    xl = xl === VOID ? '24px' : xl;
+    full = full === VOID ? '9999px' : full;
+    this.none = none;
+    this.xs = xs;
+    this.sm = sm;
+    this.md = md;
+    this.lg = lg;
+    this.xl = xl;
+    this.full = full;
+  }
+  get_none_wor91d_k$() {
+    return this.none;
+  }
+  get_xs_kntnjw_k$() {
+    return this.xs;
+  }
+  get_sm_kntnod_k$() {
+    return this.sm;
+  }
+  get_md_kntnts_k$() {
+    return this.md;
+  }
+  get_lg_kntnuk_k$() {
+    return this.lg;
+  }
+  get_xl_kntnk3_k$() {
+    return this.xl;
+  }
+  get_full_wom9js_k$() {
+    return this.full;
+  }
+  component1_7eebsc_k$() {
+    return this.none;
+  }
+  component2_7eebsb_k$() {
+    return this.xs;
+  }
+  component3_7eebsa_k$() {
+    return this.sm;
+  }
+  component4_7eebs9_k$() {
+    return this.md;
+  }
+  component5_7eebs8_k$() {
+    return this.lg;
+  }
+  component6_7eebs7_k$() {
+    return this.xl;
+  }
+  component7_7eebs6_k$() {
+    return this.full;
+  }
+  copy_ytms63_k$(none, xs, sm, md, lg, xl, full) {
+    return new WebShapes(none, xs, sm, md, lg, xl, full);
+  }
+  copy(none, xs, sm, md, lg, xl, full, $super) {
+    none = none === VOID ? this.none : none;
+    xs = xs === VOID ? this.xs : xs;
+    sm = sm === VOID ? this.sm : sm;
+    md = md === VOID ? this.md : md;
+    lg = lg === VOID ? this.lg : lg;
+    xl = xl === VOID ? this.xl : xl;
+    full = full === VOID ? this.full : full;
+    return $super === VOID ? this.copy_ytms63_k$(none, xs, sm, md, lg, xl, full) : $super.copy_ytms63_k$.call(this, none, xs, sm, md, lg, xl, full);
+  }
+  toString() {
+    return 'WebShapes(none=' + this.none + ', xs=' + this.xs + ', sm=' + this.sm + ', md=' + this.md + ', lg=' + this.lg + ', xl=' + this.xl + ', full=' + this.full + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.none);
+    result = imul_0(result, 31) + getStringHashCode(this.xs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.sm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.md) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.lg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.full) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebShapes))
+      return false;
+    if (!(this.none === other.none))
+      return false;
+    if (!(this.xs === other.xs))
+      return false;
+    if (!(this.sm === other.sm))
+      return false;
+    if (!(this.md === other.md))
+      return false;
+    if (!(this.lg === other.lg))
+      return false;
+    if (!(this.xl === other.xl))
+      return false;
+    if (!(this.full === other.full))
+      return false;
+    return true;
+  }
+}
+class WebElevation {
+  constructor(none, xs, sm, md, lg, xl) {
+    none = none === VOID ? 'none' : none;
+    xs = xs === VOID ? '0 1px 2px rgba(0,0,0,0.05)' : xs;
+    sm = sm === VOID ? '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)' : sm;
+    md = md === VOID ? '0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)' : md;
+    lg = lg === VOID ? '0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)' : lg;
+    xl = xl === VOID ? '0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04)' : xl;
+    this.none = none;
+    this.xs = xs;
+    this.sm = sm;
+    this.md = md;
+    this.lg = lg;
+    this.xl = xl;
+  }
+  get_none_wor91d_k$() {
+    return this.none;
+  }
+  get_xs_kntnjw_k$() {
+    return this.xs;
+  }
+  get_sm_kntnod_k$() {
+    return this.sm;
+  }
+  get_md_kntnts_k$() {
+    return this.md;
+  }
+  get_lg_kntnuk_k$() {
+    return this.lg;
+  }
+  get_xl_kntnk3_k$() {
+    return this.xl;
+  }
+  component1_7eebsc_k$() {
+    return this.none;
+  }
+  component2_7eebsb_k$() {
+    return this.xs;
+  }
+  component3_7eebsa_k$() {
+    return this.sm;
+  }
+  component4_7eebs9_k$() {
+    return this.md;
+  }
+  component5_7eebs8_k$() {
+    return this.lg;
+  }
+  component6_7eebs7_k$() {
+    return this.xl;
+  }
+  copy_sq36gl_k$(none, xs, sm, md, lg, xl) {
+    return new WebElevation(none, xs, sm, md, lg, xl);
+  }
+  copy(none, xs, sm, md, lg, xl, $super) {
+    none = none === VOID ? this.none : none;
+    xs = xs === VOID ? this.xs : xs;
+    sm = sm === VOID ? this.sm : sm;
+    md = md === VOID ? this.md : md;
+    lg = lg === VOID ? this.lg : lg;
+    xl = xl === VOID ? this.xl : xl;
+    return $super === VOID ? this.copy_sq36gl_k$(none, xs, sm, md, lg, xl) : $super.copy_sq36gl_k$.call(this, none, xs, sm, md, lg, xl);
+  }
+  toString() {
+    return 'WebElevation(none=' + this.none + ', xs=' + this.xs + ', sm=' + this.sm + ', md=' + this.md + ', lg=' + this.lg + ', xl=' + this.xl + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.none);
+    result = imul_0(result, 31) + getStringHashCode(this.xs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.sm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.md) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.lg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.xl) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebElevation))
+      return false;
+    if (!(this.none === other.none))
+      return false;
+    if (!(this.xs === other.xs))
+      return false;
+    if (!(this.sm === other.sm))
+      return false;
+    if (!(this.md === other.md))
+      return false;
+    if (!(this.lg === other.lg))
+      return false;
+    if (!(this.xl === other.xl))
+      return false;
+    return true;
+  }
+}
+class WebSizing {
+  constructor(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl) {
+    touchTargetMin = touchTargetMin === VOID ? '48px' : touchTargetMin;
+    iconXs = iconXs === VOID ? '16px' : iconXs;
+    iconSm = iconSm === VOID ? '20px' : iconSm;
+    iconMd = iconMd === VOID ? '24px' : iconMd;
+    iconLg = iconLg === VOID ? '32px' : iconLg;
+    iconXl = iconXl === VOID ? '48px' : iconXl;
+    buttonSm = buttonSm === VOID ? '32px' : buttonSm;
+    buttonMd = buttonMd === VOID ? '40px' : buttonMd;
+    buttonLg = buttonLg === VOID ? '48px' : buttonLg;
+    inputSm = inputSm === VOID ? '32px' : inputSm;
+    inputMd = inputMd === VOID ? '40px' : inputMd;
+    inputLg = inputLg === VOID ? '56px' : inputLg;
+    avatarSm = avatarSm === VOID ? '32px' : avatarSm;
+    avatarMd = avatarMd === VOID ? '40px' : avatarMd;
+    avatarLg = avatarLg === VOID ? '56px' : avatarLg;
+    avatarXl = avatarXl === VOID ? '80px' : avatarXl;
+    this.touchTargetMin = touchTargetMin;
+    this.iconXs = iconXs;
+    this.iconSm = iconSm;
+    this.iconMd = iconMd;
+    this.iconLg = iconLg;
+    this.iconXl = iconXl;
+    this.buttonSm = buttonSm;
+    this.buttonMd = buttonMd;
+    this.buttonLg = buttonLg;
+    this.inputSm = inputSm;
+    this.inputMd = inputMd;
+    this.inputLg = inputLg;
+    this.avatarSm = avatarSm;
+    this.avatarMd = avatarMd;
+    this.avatarLg = avatarLg;
+    this.avatarXl = avatarXl;
+  }
+  get_touchTargetMin_av50mt_k$() {
+    return this.touchTargetMin;
+  }
+  get_iconXs_env90d_k$() {
+    return this.iconXs;
+  }
+  get_iconSm_env8vw_k$() {
+    return this.iconSm;
+  }
+  get_iconMd_env8qh_k$() {
+    return this.iconMd;
+  }
+  get_iconLg_env8pp_k$() {
+    return this.iconLg;
+  }
+  get_iconXl_env906_k$() {
+    return this.iconXl;
+  }
+  get_buttonSm_kwhwqd_k$() {
+    return this.buttonSm;
+  }
+  get_buttonMd_kwhwky_k$() {
+    return this.buttonMd;
+  }
+  get_buttonLg_kwhwk6_k$() {
+    return this.buttonLg;
+  }
+  get_inputSm_xlf3dn_k$() {
+    return this.inputSm;
+  }
+  get_inputMd_xlf388_k$() {
+    return this.inputMd;
+  }
+  get_inputLg_xlf37g_k$() {
+    return this.inputLg;
+  }
+  get_avatarSm_28tyg4_k$() {
+    return this.avatarSm;
+  }
+  get_avatarMd_28tylj_k$() {
+    return this.avatarMd;
+  }
+  get_avatarLg_28tymb_k$() {
+    return this.avatarLg;
+  }
+  get_avatarXl_28tybu_k$() {
+    return this.avatarXl;
+  }
+  component1_7eebsc_k$() {
+    return this.touchTargetMin;
+  }
+  component2_7eebsb_k$() {
+    return this.iconXs;
+  }
+  component3_7eebsa_k$() {
+    return this.iconSm;
+  }
+  component4_7eebs9_k$() {
+    return this.iconMd;
+  }
+  component5_7eebs8_k$() {
+    return this.iconLg;
+  }
+  component6_7eebs7_k$() {
+    return this.iconXl;
+  }
+  component7_7eebs6_k$() {
+    return this.buttonSm;
+  }
+  component8_7eebs5_k$() {
+    return this.buttonMd;
+  }
+  component9_7eebs4_k$() {
+    return this.buttonLg;
+  }
+  component10_gazzfo_k$() {
+    return this.inputSm;
+  }
+  component11_gazzfn_k$() {
+    return this.inputMd;
+  }
+  component12_gazzfm_k$() {
+    return this.inputLg;
+  }
+  component13_gazzfl_k$() {
+    return this.avatarSm;
+  }
+  component14_gazzfk_k$() {
+    return this.avatarMd;
+  }
+  component15_gazzfj_k$() {
+    return this.avatarLg;
+  }
+  component16_gazzfi_k$() {
+    return this.avatarXl;
+  }
+  copy_cb4rrf_k$(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl) {
+    return new WebSizing(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl);
+  }
+  copy(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl, $super) {
+    touchTargetMin = touchTargetMin === VOID ? this.touchTargetMin : touchTargetMin;
+    iconXs = iconXs === VOID ? this.iconXs : iconXs;
+    iconSm = iconSm === VOID ? this.iconSm : iconSm;
+    iconMd = iconMd === VOID ? this.iconMd : iconMd;
+    iconLg = iconLg === VOID ? this.iconLg : iconLg;
+    iconXl = iconXl === VOID ? this.iconXl : iconXl;
+    buttonSm = buttonSm === VOID ? this.buttonSm : buttonSm;
+    buttonMd = buttonMd === VOID ? this.buttonMd : buttonMd;
+    buttonLg = buttonLg === VOID ? this.buttonLg : buttonLg;
+    inputSm = inputSm === VOID ? this.inputSm : inputSm;
+    inputMd = inputMd === VOID ? this.inputMd : inputMd;
+    inputLg = inputLg === VOID ? this.inputLg : inputLg;
+    avatarSm = avatarSm === VOID ? this.avatarSm : avatarSm;
+    avatarMd = avatarMd === VOID ? this.avatarMd : avatarMd;
+    avatarLg = avatarLg === VOID ? this.avatarLg : avatarLg;
+    avatarXl = avatarXl === VOID ? this.avatarXl : avatarXl;
+    return $super === VOID ? this.copy_cb4rrf_k$(touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl) : $super.copy_cb4rrf_k$.call(this, touchTargetMin, iconXs, iconSm, iconMd, iconLg, iconXl, buttonSm, buttonMd, buttonLg, inputSm, inputMd, inputLg, avatarSm, avatarMd, avatarLg, avatarXl);
+  }
+  toString() {
+    return 'WebSizing(touchTargetMin=' + this.touchTargetMin + ', iconXs=' + this.iconXs + ', iconSm=' + this.iconSm + ', iconMd=' + this.iconMd + ', iconLg=' + this.iconLg + ', iconXl=' + this.iconXl + ', buttonSm=' + this.buttonSm + ', buttonMd=' + this.buttonMd + ', buttonLg=' + this.buttonLg + ', inputSm=' + this.inputSm + ', inputMd=' + this.inputMd + ', inputLg=' + this.inputLg + ', avatarSm=' + this.avatarSm + ', avatarMd=' + this.avatarMd + ', avatarLg=' + this.avatarLg + ', avatarXl=' + this.avatarXl + ')';
+  }
+  hashCode() {
+    var result = getStringHashCode(this.touchTargetMin);
+    result = imul_0(result, 31) + getStringHashCode(this.iconXs) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.iconXl) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.buttonSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.buttonMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.buttonLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inputSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inputMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.inputLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarSm) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarMd) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarLg) | 0;
+    result = imul_0(result, 31) + getStringHashCode(this.avatarXl) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebSizing))
+      return false;
+    if (!(this.touchTargetMin === other.touchTargetMin))
+      return false;
+    if (!(this.iconXs === other.iconXs))
+      return false;
+    if (!(this.iconSm === other.iconSm))
+      return false;
+    if (!(this.iconMd === other.iconMd))
+      return false;
+    if (!(this.iconLg === other.iconLg))
+      return false;
+    if (!(this.iconXl === other.iconXl))
+      return false;
+    if (!(this.buttonSm === other.buttonSm))
+      return false;
+    if (!(this.buttonMd === other.buttonMd))
+      return false;
+    if (!(this.buttonLg === other.buttonLg))
+      return false;
+    if (!(this.inputSm === other.inputSm))
+      return false;
+    if (!(this.inputMd === other.inputMd))
+      return false;
+    if (!(this.inputLg === other.inputLg))
+      return false;
+    if (!(this.avatarSm === other.avatarSm))
+      return false;
+    if (!(this.avatarMd === other.avatarMd))
+      return false;
+    if (!(this.avatarLg === other.avatarLg))
+      return false;
+    if (!(this.avatarXl === other.avatarXl))
+      return false;
+    return true;
+  }
+}
+class WebBreakpoints {
+  constructor(mobile, tablet, desktop, largeDesktop) {
+    mobile = mobile === VOID ? 0 : mobile;
+    tablet = tablet === VOID ? 600 : tablet;
+    desktop = desktop === VOID ? 840 : desktop;
+    largeDesktop = largeDesktop === VOID ? 1200 : largeDesktop;
+    this.mobile = mobile;
+    this.tablet = tablet;
+    this.desktop = desktop;
+    this.largeDesktop = largeDesktop;
+  }
+  get_mobile_gqevmz_k$() {
+    return this.mobile;
+  }
+  get_tablet_ju165r_k$() {
+    return this.tablet;
+  }
+  get_desktop_r0m59v_k$() {
+    return this.desktop;
+  }
+  get_largeDesktop_76vg46_k$() {
+    return this.largeDesktop;
+  }
+  component1_7eebsc_k$() {
+    return this.mobile;
+  }
+  component2_7eebsb_k$() {
+    return this.tablet;
+  }
+  component3_7eebsa_k$() {
+    return this.desktop;
+  }
+  component4_7eebs9_k$() {
+    return this.largeDesktop;
+  }
+  copy_my5h57_k$(mobile, tablet, desktop, largeDesktop) {
+    return new WebBreakpoints(mobile, tablet, desktop, largeDesktop);
+  }
+  copy(mobile, tablet, desktop, largeDesktop, $super) {
+    mobile = mobile === VOID ? this.mobile : mobile;
+    tablet = tablet === VOID ? this.tablet : tablet;
+    desktop = desktop === VOID ? this.desktop : desktop;
+    largeDesktop = largeDesktop === VOID ? this.largeDesktop : largeDesktop;
+    return $super === VOID ? this.copy_my5h57_k$(mobile, tablet, desktop, largeDesktop) : $super.copy_my5h57_k$.call(this, mobile, tablet, desktop, largeDesktop);
+  }
+  toString() {
+    return 'WebBreakpoints(mobile=' + this.mobile + ', tablet=' + this.tablet + ', desktop=' + this.desktop + ', largeDesktop=' + this.largeDesktop + ')';
+  }
+  hashCode() {
+    var result = this.mobile;
+    result = imul_0(result, 31) + this.tablet | 0;
+    result = imul_0(result, 31) + this.desktop | 0;
+    result = imul_0(result, 31) + this.largeDesktop | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebBreakpoints))
+      return false;
+    if (!(this.mobile === other.mobile))
+      return false;
+    if (!(this.tablet === other.tablet))
+      return false;
+    if (!(this.desktop === other.desktop))
+      return false;
+    if (!(this.largeDesktop === other.largeDesktop))
+      return false;
+    return true;
+  }
+}
+class WebMotion {
+  constructor(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest) {
+    durationInstant = durationInstant === VOID ? 0 : durationInstant;
+    durationFast = durationFast === VOID ? 150 : durationFast;
+    durationNormal = durationNormal === VOID ? 300 : durationNormal;
+    durationSlow = durationSlow === VOID ? 500 : durationSlow;
+    durationSlowest = durationSlowest === VOID ? 700 : durationSlowest;
+    this.durationInstant = durationInstant;
+    this.durationFast = durationFast;
+    this.durationNormal = durationNormal;
+    this.durationSlow = durationSlow;
+    this.durationSlowest = durationSlowest;
+  }
+  get_durationInstant_vmx22s_k$() {
+    return this.durationInstant;
+  }
+  get_durationFast_rh0iav_k$() {
+    return this.durationFast;
+  }
+  get_durationNormal_qbd8kk_k$() {
+    return this.durationNormal;
+  }
+  get_durationSlow_rgrzeq_k$() {
+    return this.durationSlow;
+  }
+  get_durationSlowest_zcfd8o_k$() {
+    return this.durationSlowest;
+  }
+  component1_7eebsc_k$() {
+    return this.durationInstant;
+  }
+  component2_7eebsb_k$() {
+    return this.durationFast;
+  }
+  component3_7eebsa_k$() {
+    return this.durationNormal;
+  }
+  component4_7eebs9_k$() {
+    return this.durationSlow;
+  }
+  component5_7eebs8_k$() {
+    return this.durationSlowest;
+  }
+  copy_lxzq2r_k$(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest) {
+    return new WebMotion(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest);
+  }
+  copy(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest, $super) {
+    durationInstant = durationInstant === VOID ? this.durationInstant : durationInstant;
+    durationFast = durationFast === VOID ? this.durationFast : durationFast;
+    durationNormal = durationNormal === VOID ? this.durationNormal : durationNormal;
+    durationSlow = durationSlow === VOID ? this.durationSlow : durationSlow;
+    durationSlowest = durationSlowest === VOID ? this.durationSlowest : durationSlowest;
+    return $super === VOID ? this.copy_lxzq2r_k$(durationInstant, durationFast, durationNormal, durationSlow, durationSlowest) : $super.copy_lxzq2r_k$.call(this, durationInstant, durationFast, durationNormal, durationSlow, durationSlowest);
+  }
+  toString() {
+    return 'WebMotion(durationInstant=' + this.durationInstant + ', durationFast=' + this.durationFast + ', durationNormal=' + this.durationNormal + ', durationSlow=' + this.durationSlow + ', durationSlowest=' + this.durationSlowest + ')';
+  }
+  hashCode() {
+    var result = this.durationInstant;
+    result = imul_0(result, 31) + this.durationFast | 0;
+    result = imul_0(result, 31) + this.durationNormal | 0;
+    result = imul_0(result, 31) + this.durationSlow | 0;
+    result = imul_0(result, 31) + this.durationSlowest | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebMotion))
+      return false;
+    if (!(this.durationInstant === other.durationInstant))
+      return false;
+    if (!(this.durationFast === other.durationFast))
+      return false;
+    if (!(this.durationNormal === other.durationNormal))
+      return false;
+    if (!(this.durationSlow === other.durationSlow))
+      return false;
+    if (!(this.durationSlowest === other.durationSlowest))
+      return false;
+    return true;
+  }
+}
+class WebDesignTokens {
+  constructor(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion) {
+    typography = typography === VOID ? defaultWebTypography() : typography;
+    spacing = spacing === VOID ? new WebSpacing() : spacing;
+    shapes = shapes === VOID ? new WebShapes() : shapes;
+    elevation = elevation === VOID ? new WebElevation() : elevation;
+    sizing = sizing === VOID ? new WebSizing() : sizing;
+    breakpoints = breakpoints === VOID ? new WebBreakpoints() : breakpoints;
+    motion = motion === VOID ? new WebMotion() : motion;
+    this.colors = colors;
+    this.typography = typography;
+    this.spacing = spacing;
+    this.shapes = shapes;
+    this.elevation = elevation;
+    this.sizing = sizing;
+    this.breakpoints = breakpoints;
+    this.motion = motion;
+  }
+  get_colors_c05661_k$() {
+    return this.colors;
+  }
+  get_typography_tk20co_k$() {
+    return this.typography;
+  }
+  get_spacing_w0flpi_k$() {
+    return this.spacing;
+  }
+  get_shapes_jgtjwb_k$() {
+    return this.shapes;
+  }
+  get_elevation_8fwyb8_k$() {
+    return this.elevation;
+  }
+  get_sizing_jht66f_k$() {
+    return this.sizing;
+  }
+  get_breakpoints_k65pzb_k$() {
+    return this.breakpoints;
+  }
+  get_motion_gqqdhb_k$() {
+    return this.motion;
+  }
+  component1_7eebsc_k$() {
+    return this.colors;
+  }
+  component2_7eebsb_k$() {
+    return this.typography;
+  }
+  component3_7eebsa_k$() {
+    return this.spacing;
+  }
+  component4_7eebs9_k$() {
+    return this.shapes;
+  }
+  component5_7eebs8_k$() {
+    return this.elevation;
+  }
+  component6_7eebs7_k$() {
+    return this.sizing;
+  }
+  component7_7eebs6_k$() {
+    return this.breakpoints;
+  }
+  component8_7eebs5_k$() {
+    return this.motion;
+  }
+  copy_t1gkl6_k$(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion) {
+    return new WebDesignTokens(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion);
+  }
+  copy(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion, $super) {
+    colors = colors === VOID ? this.colors : colors;
+    typography = typography === VOID ? this.typography : typography;
+    spacing = spacing === VOID ? this.spacing : spacing;
+    shapes = shapes === VOID ? this.shapes : shapes;
+    elevation = elevation === VOID ? this.elevation : elevation;
+    sizing = sizing === VOID ? this.sizing : sizing;
+    breakpoints = breakpoints === VOID ? this.breakpoints : breakpoints;
+    motion = motion === VOID ? this.motion : motion;
+    return $super === VOID ? this.copy_t1gkl6_k$(colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion) : $super.copy_t1gkl6_k$.call(this, colors, typography, spacing, shapes, elevation, sizing, breakpoints, motion);
+  }
+  toString() {
+    return 'WebDesignTokens(colors=' + this.colors.toString() + ', typography=' + this.typography.toString() + ', spacing=' + this.spacing.toString() + ', shapes=' + this.shapes.toString() + ', elevation=' + this.elevation.toString() + ', sizing=' + this.sizing.toString() + ', breakpoints=' + this.breakpoints.toString() + ', motion=' + this.motion.toString() + ')';
+  }
+  hashCode() {
+    var result = this.colors.hashCode();
+    result = imul_0(result, 31) + this.typography.hashCode() | 0;
+    result = imul_0(result, 31) + this.spacing.hashCode() | 0;
+    result = imul_0(result, 31) + this.shapes.hashCode() | 0;
+    result = imul_0(result, 31) + this.elevation.hashCode() | 0;
+    result = imul_0(result, 31) + this.sizing.hashCode() | 0;
+    result = imul_0(result, 31) + this.breakpoints.hashCode() | 0;
+    result = imul_0(result, 31) + this.motion.hashCode() | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof WebDesignTokens))
+      return false;
+    if (!this.colors.equals(other.colors))
+      return false;
+    if (!this.typography.equals(other.typography))
+      return false;
+    if (!this.spacing.equals(other.spacing))
+      return false;
+    if (!this.shapes.equals(other.shapes))
+      return false;
+    if (!this.elevation.equals(other.elevation))
+      return false;
+    if (!this.sizing.equals(other.sizing))
+      return false;
+    if (!this.breakpoints.equals(other.breakpoints))
+      return false;
+    if (!this.motion.equals(other.motion))
+      return false;
+    return true;
+  }
+}
+class WebMaterialTokens_0 {
+  get_defaultLight_6i7zoi_k$() {
+    return createWebTokens('#6750A4', '#625B71', '#7D5260', false);
+  }
+  get_defaultDark_6nrdv2_k$() {
+    return createWebTokens('#6750A4', '#625B71', '#7D5260', true);
+  }
+  get_blueLight_ukh1al_k$() {
+    return createWebTokens('#1976D2', '#455A64', '#00796B', false);
+  }
+  get_blueDark_v36gu1_k$() {
+    return createWebTokens('#1976D2', '#455A64', '#00796B', true);
+  }
+  get_greenLight_q28338_k$() {
+    return createWebTokens('#388E3C', '#5D4037', '#00796B', false);
+  }
+  get_greenDark_sc9f2o_k$() {
+    return createWebTokens('#388E3C', '#5D4037', '#00796B', true);
+  }
+  get_reaktorLight_vxlesb_k$() {
+    // Inline function 'kotlin.let' call
+    var it = createLightColorScheme('#702632', '#008080', '#008080', '#E0F7FA');
+    return createWebDesignTokens(it);
+  }
+  get_reaktorDark_f06klj_k$() {
+    // Inline function 'kotlin.let' call
+    var it = createDarkColorScheme('#702632', '#008080', '#008080');
+    return createWebDesignTokens(it);
+  }
+  get defaultLight() {
+    return this.get_defaultLight_6i7zoi_k$();
+  }
+  get defaultDark() {
+    return this.get_defaultDark_6nrdv2_k$();
+  }
+  get blueLight() {
+    return this.get_blueLight_ukh1al_k$();
+  }
+  get blueDark() {
+    return this.get_blueDark_v36gu1_k$();
+  }
+  get greenLight() {
+    return this.get_greenLight_q28338_k$();
+  }
+  get greenDark() {
+    return this.get_greenDark_sc9f2o_k$();
+  }
+  get reaktorLight() {
+    return this.get_reaktorLight_vxlesb_k$();
+  }
+  get reaktorDark() {
+    return this.get_reaktorDark_f06klj_k$();
+  }
+}
+class RGB {
+  constructor(r, g, b) {
+    this.r_1 = r;
+    this.g_1 = g;
+    this.b_1 = b;
+  }
+  component1_7eebsc_k$() {
+    return this.r_1;
+  }
+  component2_7eebsb_k$() {
+    return this.g_1;
+  }
+  component3_7eebsa_k$() {
+    return this.b_1;
+  }
+  toString() {
+    return 'RGB(r=' + this.r_1 + ', g=' + this.g_1 + ', b=' + this.b_1 + ')';
+  }
+  hashCode() {
+    var result = getNumberHashCode(this.r_1);
+    result = imul_0(result, 31) + getNumberHashCode(this.g_1) | 0;
+    result = imul_0(result, 31) + getNumberHashCode(this.b_1) | 0;
+    return result;
+  }
+  equals(other) {
+    if (this === other)
+      return true;
+    if (!(other instanceof RGB))
+      return false;
+    if (!equals(this.r_1, other.r_1))
+      return false;
+    if (!equals(this.g_1, other.g_1))
+      return false;
+    if (!equals(this.b_1, other.b_1))
+      return false;
+    return true;
+  }
+}
 //endregion
 function init_kotlin_coroutines_cancellation_CancellationException(_this__u8e3s4) {
   captureStack(_this__u8e3s4, _this__u8e3s4.$throwableCtor_4);
 }
 function throwIrLinkageError(message) {
   throw IrLinkageError.new_kotlin_internal_IrLinkageError_ncs8uw_k$(message);
+}
+function throwUnsupportedOperationException(message) {
+  throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_chzcdl_k$(message);
 }
 function throwUninitializedPropertyAccessException(name) {
   throw UninitializedPropertyAccessException.new_kotlin_UninitializedPropertyAccessException_egi92l_k$('lateinit property ' + name + ' has not been initialized');
@@ -6218,6 +7933,15 @@ function coerceAtLeast(_this__u8e3s4, minimumValue) {
 function coerceAtMost(_this__u8e3s4, maximumValue) {
   return _this__u8e3s4 > maximumValue ? maximumValue : _this__u8e3s4;
 }
+function coerceIn(_this__u8e3s4, minimumValue, maximumValue) {
+  if (minimumValue > maximumValue)
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Cannot coerce value to an empty range: maximum ' + maximumValue + ' is less than minimum ' + minimumValue + '.');
+  if (_this__u8e3s4 < minimumValue)
+    return minimumValue;
+  if (_this__u8e3s4 > maximumValue)
+    return maximumValue;
+  return _this__u8e3s4;
+}
 function _Char___init__impl__6a9atx(value) {
   return value;
 }
@@ -6234,6 +7958,9 @@ function Char__compareTo_impl_ypi4mb($this, other) {
 }
 function Char__compareTo_impl_ypi4mb_0($this, other) {
   return Char__compareTo_impl_ypi4mb($this.value_1, other instanceof Char ? other.value_1 : THROW_CCE());
+}
+function Char__minus_impl_a2frrh($this, other) {
+  return _get_value__a43j40($this) - _get_value__a43j40(other) | 0;
 }
 function Char__toInt_impl_vasixd($this) {
   return _get_value__a43j40($this);
@@ -7418,9 +9145,19 @@ function getInterfaceMaskFor(obj, superType) {
   }
   return tmp;
 }
+function getLocalDelegateReference(name, superType, mutable) {
+  _init_properties_reflectRuntime_kt__5r4uu3();
+  var lambda = getLocalDelegateReference$lambda();
+  return getPropertyCallableRef(name, 0, superType, lambda, mutable ? lambda : null, VOID);
+}
 function throwLinkageErrorInCallableName$lambda($linkageError) {
   return () => {
     throwIrLinkageError($linkageError);
+  };
+}
+function getLocalDelegateReference$lambda() {
+  return () => {
+    throwUnsupportedOperationException('Not supported for local property reference.');
   };
 }
 var properties_initialized_reflectRuntime_kt_inkhwd;
@@ -7554,6 +9291,41 @@ function contentEquals(_this__u8e3s4, other) {
 }
 function contentHashCode(_this__u8e3s4) {
   return contentHashCodeInternal(_this__u8e3s4);
+}
+function asList(_this__u8e3s4) {
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  return ArrayList.new_kotlin_collections_ArrayList_qfbsh5_k$(_this__u8e3s4);
+}
+function binarySearchRange(array, needle) {
+  var bottom = 0;
+  var top = array.length - 1 | 0;
+  var middle = -1;
+  var value = 0;
+  while (bottom <= top) {
+    middle = (bottom + top | 0) / 2 | 0;
+    value = array[middle];
+    if (needle > value)
+      bottom = middle + 1 | 0;
+    else if (needle === value)
+      return middle;
+    else
+      top = middle - 1 | 0;
+  }
+  return middle - (needle < value ? 1 : 0) | 0;
+}
+function digitToIntImpl(_this__u8e3s4) {
+  // Inline function 'kotlin.code' call
+  var ch = Char__toInt_impl_vasixd(_this__u8e3s4);
+  var index = binarySearchRange(Digit_getInstance().rangeStart_1, ch);
+  var diff = ch - Digit_getInstance().rangeStart_1[index] | 0;
+  return diff < 10 ? diff : -1;
+}
+var Digit_instance;
+function Digit_getInstance() {
+  if (Digit_instance === VOID)
+    new Digit();
+  return Digit_instance;
 }
 function isWhitespaceImpl(_this__u8e3s4) {
   // Inline function 'kotlin.code' call
@@ -8026,6 +9798,9 @@ function init_kotlin_ConcurrentModificationException(_this__u8e3s4) {
 function init_kotlin_ArithmeticException(_this__u8e3s4) {
   captureStack(_this__u8e3s4, _this__u8e3s4.$throwableCtor_3);
 }
+function init_kotlin_NumberFormatException(_this__u8e3s4) {
+  captureStack(_this__u8e3s4, _this__u8e3s4.$throwableCtor_4);
+}
 function init_kotlin_NullPointerException(_this__u8e3s4) {
   captureStack(_this__u8e3s4, _this__u8e3s4.$throwableCtor_3);
 }
@@ -8073,6 +9848,19 @@ function arrayCopyResize(source, newSize, defaultValue) {
     }
   }
   return result;
+}
+function roundToInt(_this__u8e3s4) {
+  var tmp;
+  if (isNaN_0(_this__u8e3s4)) {
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Cannot round NaN value.');
+  } else if (_this__u8e3s4 > 2147483647) {
+    tmp = 2147483647;
+  } else if (_this__u8e3s4 < -2147483648) {
+    tmp = -2147483648;
+  } else {
+    tmp = numberToInt(Math.round(_this__u8e3s4));
+  }
+  return tmp;
 }
 var NothingKClassImpl_instance;
 function NothingKClassImpl_getInstance() {
@@ -8292,11 +10080,41 @@ function uppercaseChar(_this__u8e3s4) {
 function isWhitespace(_this__u8e3s4) {
   return isWhitespaceImpl(_this__u8e3s4);
 }
+function checkRadix(radix) {
+  if (!(2 <= radix ? radix <= 36 : false)) {
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('radix ' + radix + ' was not in valid range 2..36');
+  }
+  return radix;
+}
+function toString_2(_this__u8e3s4, radix) {
+  // Inline function 'kotlin.js.asDynamic' call
+  return _this__u8e3s4.toString(checkRadix(radix));
+}
+function toInt(_this__u8e3s4, radix) {
+  var tmp0_elvis_lhs = toIntOrNull_0(_this__u8e3s4, radix);
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    numberFormatError(_this__u8e3s4);
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  return tmp;
+}
+function digitOf(char, radix) {
+  // Inline function 'kotlin.let' call
+  var it = Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(48)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(57)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(48)) : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(90)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(97)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(122)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(97)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(128)) < 0 ? -1 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65313)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65338)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65313)) + 10 | 0 : Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65345)) >= 0 && Char__compareTo_impl_ypi4mb(char, _Char___init__impl__6a9atx(65370)) <= 0 ? Char__minus_impl_a2frrh(char, _Char___init__impl__6a9atx(65345)) + 10 | 0 : digitToIntImpl(char);
+  return it >= radix ? -1 : it;
+}
 var STRING_CASE_INSENSITIVE_ORDER;
 function substring(_this__u8e3s4, startIndex, endIndex) {
   _init_properties_stringJs_kt__bg7zye();
   // Inline function 'kotlin.js.asDynamic' call
   return _this__u8e3s4.substring(startIndex, endIndex);
+}
+function substring_0(_this__u8e3s4, startIndex) {
+  _init_properties_stringJs_kt__bg7zye();
+  // Inline function 'kotlin.js.asDynamic' call
+  return _this__u8e3s4.substring(startIndex);
 }
 function compareTo_0(_this__u8e3s4, other, ignoreCase) {
   ignoreCase = ignoreCase === VOID ? false : ignoreCase;
@@ -8406,10 +10224,10 @@ var Companion_instance_3;
 function Companion_getInstance_3() {
   return Companion_instance_3;
 }
-function toString_2($this, entry) {
-  return toString_3($this, entry.get_key_18j28a_k$()) + '=' + toString_3($this, entry.get_value_j01efc_k$());
+function toString_3($this, entry) {
+  return toString_4($this, entry.get_key_18j28a_k$()) + '=' + toString_4($this, entry.get_value_j01efc_k$());
 }
-function toString_3($this, o) {
+function toString_4($this, o) {
   return o === $this ? '(this Map)' : toString_0(o);
 }
 function implFindEntry($this, key) {
@@ -8434,7 +10252,7 @@ function Companion_getInstance_4() {
   return Companion_instance_4;
 }
 function AbstractMap$toString$lambda(this$0) {
-  return (it) => toString_2(this$0, it);
+  return (it) => toString_3(this$0, it);
 }
 var Companion_instance_5;
 function Companion_getInstance_5() {
@@ -8510,6 +10328,9 @@ function collectionToArrayCommonImpl(collection) {
     destination[_unary__edvuaz] = iterator.next_20eer_k$();
   }
   return destination;
+}
+function listOf_0(elements) {
+  return elements.length > 0 ? asList(elements) : emptyList();
 }
 function emptyList() {
   return EmptyList_instance;
@@ -8808,6 +10629,73 @@ function equals_0(_this__u8e3s4, other, ignoreCase) {
   }
   return tmp;
 }
+function toIntOrNull(_this__u8e3s4) {
+  return toIntOrNull_0(_this__u8e3s4, 10);
+}
+function numberFormatError(input) {
+  throw NumberFormatException.new_kotlin_NumberFormatException_hv2a95_k$("Invalid number format: '" + input + "'");
+}
+function toIntOrNull_0(_this__u8e3s4, radix) {
+  checkRadix(radix);
+  var length = _this__u8e3s4.length;
+  if (length === 0)
+    return null;
+  var start;
+  var isNegative;
+  var limit;
+  var firstChar = charCodeAt(_this__u8e3s4, 0);
+  if (Char__compareTo_impl_ypi4mb(firstChar, _Char___init__impl__6a9atx(48)) < 0) {
+    if (length === 1)
+      return null;
+    start = 1;
+    if (firstChar === _Char___init__impl__6a9atx(45)) {
+      isNegative = true;
+      limit = -2147483648;
+    } else if (firstChar === _Char___init__impl__6a9atx(43)) {
+      isNegative = false;
+      limit = -2147483647;
+    } else
+      return null;
+  } else {
+    start = 0;
+    isNegative = false;
+    limit = -2147483647;
+  }
+  var limitForMaxRadix = -59652323;
+  var limitBeforeMul = limitForMaxRadix;
+  var result = 0;
+  var inductionVariable = start;
+  if (inductionVariable < length)
+    do {
+      var i = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      var digit = digitOf(charCodeAt(_this__u8e3s4, i), radix);
+      if (digit < 0)
+        return null;
+      if (result < limitBeforeMul) {
+        if (limitBeforeMul === limitForMaxRadix) {
+          limitBeforeMul = limit / radix | 0;
+          if (result < limitBeforeMul) {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      result = imul_0(result, radix);
+      if (result < (limit + digit | 0))
+        return null;
+      result = result - digit | 0;
+    }
+     while (inductionVariable < length);
+  return isNegative ? result : -result | 0;
+}
+function removePrefix(_this__u8e3s4, prefix) {
+  if (startsWith_0(_this__u8e3s4, prefix)) {
+    return substring_0(_this__u8e3s4, charSequenceLength(prefix));
+  }
+  return _this__u8e3s4;
+}
 function isBlank(_this__u8e3s4) {
   var tmp$ret$1;
   $l$block: {
@@ -8824,6 +10712,26 @@ function isBlank(_this__u8e3s4) {
     tmp$ret$1 = true;
   }
   return tmp$ret$1;
+}
+function startsWith_0(_this__u8e3s4, prefix, ignoreCase) {
+  ignoreCase = ignoreCase === VOID ? false : ignoreCase;
+  var tmp;
+  var tmp_0;
+  if (!ignoreCase) {
+    tmp_0 = typeof _this__u8e3s4 === 'string';
+  } else {
+    tmp_0 = false;
+  }
+  if (tmp_0) {
+    tmp = typeof prefix === 'string';
+  } else {
+    tmp = false;
+  }
+  if (tmp)
+    return startsWith(_this__u8e3s4, prefix);
+  else {
+    return regionMatchesImpl(_this__u8e3s4, 0, prefix, 0, charSequenceLength(prefix), ignoreCase);
+  }
 }
 function regionMatchesImpl(_this__u8e3s4, thisOffset, other, otherOffset, length, ignoreCase) {
   if (otherOffset < 0 || thisOffset < 0 || thisOffset > (charSequenceLength(_this__u8e3s4) - length | 0) || otherOffset > (charSequenceLength(other) - length | 0)) {
@@ -13137,6 +15045,286 @@ var coil3_compose_internal_SubcomposeContentPainterElement$stable;
 var coil3_compose_internal_SubcomposeContentPainterNode$stable;
 var coil3_compose_internal_AbstractContentPainterNode$stable;
 var coil3_compose_internal_ForwardingCoroutineContext$stable;
+var _arrowBack;
+var _arrowForward;
+var _exitToApp;
+var _keyboardArrowLeft;
+var _keyboardArrowRight;
+var _list;
+var _send;
+var _arrowBack_0;
+var _arrowForward_0;
+var _exitToApp_0;
+var _keyboardArrowLeft_0;
+var _keyboardArrowRight_0;
+var _list_0;
+var _send_0;
+var _arrowBack_1;
+var _arrowForward_1;
+var _exitToApp_1;
+var _keyboardArrowLeft_1;
+var _keyboardArrowRight_1;
+var _list_1;
+var _send_1;
+var _arrowBack_2;
+var _arrowForward_2;
+var _exitToApp_2;
+var _keyboardArrowLeft_2;
+var _keyboardArrowRight_2;
+var _list_2;
+var _send_2;
+var _arrowBack_3;
+var _arrowForward_3;
+var _exitToApp_3;
+var _keyboardArrowLeft_3;
+var _keyboardArrowRight_3;
+var _list_3;
+var _send_3;
+var _accountBox;
+var _accountCircle;
+var _add;
+var _addCircle;
+var _arrowBack_4;
+var _arrowDropDown;
+var _arrowForward_4;
+var _build;
+var _call;
+var _check;
+var _checkCircle;
+var _clear;
+var _close;
+var _create;
+var _dateRange;
+var _delete;
+var _done;
+var _edit;
+var _email;
+var _exitToApp_4;
+var _face;
+var _favorite;
+var _favoriteBorder;
+var _home;
+var _info;
+var _keyboardArrowDown;
+var _keyboardArrowLeft_4;
+var _keyboardArrowRight_4;
+var _keyboardArrowUp;
+var _list_4;
+var _locationOn;
+var _lock;
+var _mailOutline;
+var _menu;
+var _moreVert;
+var _notifications;
+var _person;
+var _phone;
+var _place;
+var _playArrow;
+var _refresh;
+var _search;
+var _send_4;
+var _settings;
+var _share;
+var _shoppingCart;
+var _star;
+var _thumbUp;
+var _warning;
+var _accountBox_0;
+var _accountCircle_0;
+var _add_0;
+var _addCircle_0;
+var _arrowBack_5;
+var _arrowDropDown_0;
+var _arrowForward_5;
+var _build_0;
+var _call_0;
+var _check_0;
+var _checkCircle_0;
+var _clear_0;
+var _close_0;
+var _create_0;
+var _dateRange_0;
+var _delete_0;
+var _done_0;
+var _edit_0;
+var _email_0;
+var _exitToApp_5;
+var _face_0;
+var _favorite_0;
+var _favoriteBorder_0;
+var _home_0;
+var _info_0;
+var _keyboardArrowDown_0;
+var _keyboardArrowLeft_5;
+var _keyboardArrowRight_5;
+var _keyboardArrowUp_0;
+var _list_5;
+var _locationOn_0;
+var _lock_0;
+var _mailOutline_0;
+var _menu_0;
+var _moreVert_0;
+var _notifications_0;
+var _person_0;
+var _phone_0;
+var _place_0;
+var _playArrow_0;
+var _refresh_0;
+var _search_0;
+var _send_5;
+var _settings_0;
+var _share_0;
+var _shoppingCart_0;
+var _star_0;
+var _thumbUp_0;
+var _warning_0;
+var _accountBox_1;
+var _accountCircle_1;
+var _add_1;
+var _addCircle_1;
+var _arrowBack_6;
+var _arrowDropDown_1;
+var _arrowForward_6;
+var _build_1;
+var _call_1;
+var _check_1;
+var _checkCircle_1;
+var _clear_1;
+var _close_1;
+var _create_1;
+var _dateRange_1;
+var _delete_1;
+var _done_1;
+var _edit_1;
+var _email_1;
+var _exitToApp_6;
+var _face_1;
+var _favorite_1;
+var _favoriteBorder_1;
+var _home_1;
+var _info_1;
+var _keyboardArrowDown_1;
+var _keyboardArrowLeft_6;
+var _keyboardArrowRight_6;
+var _keyboardArrowUp_1;
+var _list_6;
+var _locationOn_1;
+var _lock_1;
+var _mailOutline_1;
+var _menu_1;
+var _moreVert_1;
+var _notifications_1;
+var _person_1;
+var _phone_1;
+var _place_1;
+var _playArrow_1;
+var _refresh_1;
+var _search_1;
+var _send_6;
+var _settings_1;
+var _share_1;
+var _shoppingCart_1;
+var _star_1;
+var _thumbUp_1;
+var _warning_1;
+var _accountBox_2;
+var _accountCircle_2;
+var _add_2;
+var _addCircle_2;
+var _arrowBack_7;
+var _arrowDropDown_2;
+var _arrowForward_7;
+var _build_2;
+var _call_2;
+var _check_2;
+var _checkCircle_2;
+var _clear_2;
+var _close_2;
+var _create_2;
+var _dateRange_2;
+var _delete_2;
+var _done_2;
+var _edit_2;
+var _email_2;
+var _exitToApp_7;
+var _face_2;
+var _favorite_2;
+var _favoriteBorder_2;
+var _home_2;
+var _info_2;
+var _keyboardArrowDown_2;
+var _keyboardArrowLeft_7;
+var _keyboardArrowRight_7;
+var _keyboardArrowUp_2;
+var _list_7;
+var _locationOn_2;
+var _lock_2;
+var _mailOutline_2;
+var _menu_2;
+var _moreVert_2;
+var _notifications_2;
+var _person_2;
+var _phone_2;
+var _place_2;
+var _playArrow_2;
+var _refresh_2;
+var _search_2;
+var _send_7;
+var _settings_2;
+var _share_2;
+var _shoppingCart_2;
+var _star_2;
+var _thumbUp_2;
+var _warning_2;
+var _accountBox_3;
+var _accountCircle_3;
+var _add_3;
+var _addCircle_3;
+var _arrowBack_8;
+var _arrowDropDown_3;
+var _arrowForward_8;
+var _build_3;
+var _call_3;
+var _check_3;
+var _checkCircle_3;
+var _clear_3;
+var _close_3;
+var _create_3;
+var _dateRange_3;
+var _delete_3;
+var _done_3;
+var _edit_3;
+var _email_3;
+var _exitToApp_8;
+var _face_3;
+var _favorite_3;
+var _favoriteBorder_3;
+var _home_3;
+var _info_3;
+var _keyboardArrowDown_3;
+var _keyboardArrowLeft_8;
+var _keyboardArrowRight_8;
+var _keyboardArrowUp_3;
+var _list_8;
+var _locationOn_3;
+var _lock_3;
+var _mailOutline_3;
+var _menu_3;
+var _moreVert_3;
+var _notifications_3;
+var _person_3;
+var _phone_3;
+var _place_3;
+var _playArrow_3;
+var _refresh_3;
+var _search_3;
+var _send_8;
+var _settings_3;
+var _share_3;
+var _shoppingCart_3;
+var _star_3;
+var _thumbUp_3;
+var _warning_3;
 var _accessible;
 var _accessibleForward;
 var _addToHomeScreen;
@@ -24242,286 +26430,6 @@ var __8mp_3;
 var __9k_3;
 var __9kPlus_3;
 var __9mp_3;
-var _arrowBack;
-var _arrowForward;
-var _exitToApp;
-var _keyboardArrowLeft;
-var _keyboardArrowRight;
-var _list;
-var _send;
-var _arrowBack_0;
-var _arrowForward_0;
-var _exitToApp_0;
-var _keyboardArrowLeft_0;
-var _keyboardArrowRight_0;
-var _list_0;
-var _send_0;
-var _arrowBack_1;
-var _arrowForward_1;
-var _exitToApp_1;
-var _keyboardArrowLeft_1;
-var _keyboardArrowRight_1;
-var _list_1;
-var _send_1;
-var _arrowBack_2;
-var _arrowForward_2;
-var _exitToApp_2;
-var _keyboardArrowLeft_2;
-var _keyboardArrowRight_2;
-var _list_2;
-var _send_2;
-var _arrowBack_3;
-var _arrowForward_3;
-var _exitToApp_3;
-var _keyboardArrowLeft_3;
-var _keyboardArrowRight_3;
-var _list_3;
-var _send_3;
-var _accountBox;
-var _accountCircle;
-var _add;
-var _addCircle;
-var _arrowBack_4;
-var _arrowDropDown;
-var _arrowForward_4;
-var _build;
-var _call;
-var _check;
-var _checkCircle;
-var _clear;
-var _close;
-var _create;
-var _dateRange;
-var _delete;
-var _done;
-var _edit;
-var _email;
-var _exitToApp_4;
-var _face;
-var _favorite;
-var _favoriteBorder;
-var _home;
-var _info;
-var _keyboardArrowDown;
-var _keyboardArrowLeft_4;
-var _keyboardArrowRight_4;
-var _keyboardArrowUp;
-var _list_4;
-var _locationOn;
-var _lock;
-var _mailOutline;
-var _menu;
-var _moreVert;
-var _notifications;
-var _person;
-var _phone;
-var _place;
-var _playArrow;
-var _refresh;
-var _search;
-var _send_4;
-var _settings;
-var _share;
-var _shoppingCart;
-var _star;
-var _thumbUp;
-var _warning;
-var _accountBox_0;
-var _accountCircle_0;
-var _add_0;
-var _addCircle_0;
-var _arrowBack_5;
-var _arrowDropDown_0;
-var _arrowForward_5;
-var _build_0;
-var _call_0;
-var _check_0;
-var _checkCircle_0;
-var _clear_0;
-var _close_0;
-var _create_0;
-var _dateRange_0;
-var _delete_0;
-var _done_0;
-var _edit_0;
-var _email_0;
-var _exitToApp_5;
-var _face_0;
-var _favorite_0;
-var _favoriteBorder_0;
-var _home_0;
-var _info_0;
-var _keyboardArrowDown_0;
-var _keyboardArrowLeft_5;
-var _keyboardArrowRight_5;
-var _keyboardArrowUp_0;
-var _list_5;
-var _locationOn_0;
-var _lock_0;
-var _mailOutline_0;
-var _menu_0;
-var _moreVert_0;
-var _notifications_0;
-var _person_0;
-var _phone_0;
-var _place_0;
-var _playArrow_0;
-var _refresh_0;
-var _search_0;
-var _send_5;
-var _settings_0;
-var _share_0;
-var _shoppingCart_0;
-var _star_0;
-var _thumbUp_0;
-var _warning_0;
-var _accountBox_1;
-var _accountCircle_1;
-var _add_1;
-var _addCircle_1;
-var _arrowBack_6;
-var _arrowDropDown_1;
-var _arrowForward_6;
-var _build_1;
-var _call_1;
-var _check_1;
-var _checkCircle_1;
-var _clear_1;
-var _close_1;
-var _create_1;
-var _dateRange_1;
-var _delete_1;
-var _done_1;
-var _edit_1;
-var _email_1;
-var _exitToApp_6;
-var _face_1;
-var _favorite_1;
-var _favoriteBorder_1;
-var _home_1;
-var _info_1;
-var _keyboardArrowDown_1;
-var _keyboardArrowLeft_6;
-var _keyboardArrowRight_6;
-var _keyboardArrowUp_1;
-var _list_6;
-var _locationOn_1;
-var _lock_1;
-var _mailOutline_1;
-var _menu_1;
-var _moreVert_1;
-var _notifications_1;
-var _person_1;
-var _phone_1;
-var _place_1;
-var _playArrow_1;
-var _refresh_1;
-var _search_1;
-var _send_6;
-var _settings_1;
-var _share_1;
-var _shoppingCart_1;
-var _star_1;
-var _thumbUp_1;
-var _warning_1;
-var _accountBox_2;
-var _accountCircle_2;
-var _add_2;
-var _addCircle_2;
-var _arrowBack_7;
-var _arrowDropDown_2;
-var _arrowForward_7;
-var _build_2;
-var _call_2;
-var _check_2;
-var _checkCircle_2;
-var _clear_2;
-var _close_2;
-var _create_2;
-var _dateRange_2;
-var _delete_2;
-var _done_2;
-var _edit_2;
-var _email_2;
-var _exitToApp_7;
-var _face_2;
-var _favorite_2;
-var _favoriteBorder_2;
-var _home_2;
-var _info_2;
-var _keyboardArrowDown_2;
-var _keyboardArrowLeft_7;
-var _keyboardArrowRight_7;
-var _keyboardArrowUp_2;
-var _list_7;
-var _locationOn_2;
-var _lock_2;
-var _mailOutline_2;
-var _menu_2;
-var _moreVert_2;
-var _notifications_2;
-var _person_2;
-var _phone_2;
-var _place_2;
-var _playArrow_2;
-var _refresh_2;
-var _search_2;
-var _send_7;
-var _settings_2;
-var _share_2;
-var _shoppingCart_2;
-var _star_2;
-var _thumbUp_2;
-var _warning_2;
-var _accountBox_3;
-var _accountCircle_3;
-var _add_3;
-var _addCircle_3;
-var _arrowBack_8;
-var _arrowDropDown_3;
-var _arrowForward_8;
-var _build_3;
-var _call_3;
-var _check_3;
-var _checkCircle_3;
-var _clear_3;
-var _close_3;
-var _create_3;
-var _dateRange_3;
-var _delete_3;
-var _done_3;
-var _edit_3;
-var _email_3;
-var _exitToApp_8;
-var _face_3;
-var _favorite_3;
-var _favoriteBorder_3;
-var _home_3;
-var _info_3;
-var _keyboardArrowDown_3;
-var _keyboardArrowLeft_8;
-var _keyboardArrowRight_8;
-var _keyboardArrowUp_3;
-var _list_8;
-var _locationOn_3;
-var _lock_3;
-var _mailOutline_3;
-var _menu_3;
-var _moreVert_3;
-var _notifications_3;
-var _person_3;
-var _phone_3;
-var _place_3;
-var _playArrow_3;
-var _refresh_3;
-var _search_3;
-var _send_8;
-var _settings_3;
-var _share_3;
-var _shoppingCart_3;
-var _star_3;
-var _thumbUp_3;
-var _warning_3;
 var androidx_lifecycle_compose_LifecycleStartStopEffectScope$stable;
 var androidx_lifecycle_compose_LifecycleResumePauseEffectScope$stable;
 function get_initHook_0() {
@@ -24542,6 +26450,108 @@ function initHook$init$_1() {
 }
 function IsolatedCoroutineScope() {
   return CoroutineScope_0(EmptyCoroutineContext_instance);
+}
+function get_CHILD_ARRAY() {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  return CHILD_ARRAY;
+}
+var CHILD_ARRAY;
+function get_DEFAULT_KEY() {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  return DEFAULT_KEY;
+}
+var DEFAULT_KEY;
+function addChildNode(_this__u8e3s4, node) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'react.childArray' call
+  // Inline function 'kotlin.js.asDynamic' call
+  if (!(_this__u8e3s4[get_CHILD_ARRAY()] == null)) {
+    // Inline function 'react.childArray' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'kotlin.js.asDynamic' call
+    _this__u8e3s4[get_CHILD_ARRAY()].push(node);
+  } else {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.childArray' call
+    var value = [node];
+    // Inline function 'kotlin.js.asDynamic' call
+    _this__u8e3s4[get_CHILD_ARRAY()] = value;
+  }
+}
+function addChild(_this__u8e3s4, type, block) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  var defaultKey = getDefaultKey(_this__u8e3s4);
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'kotlin.apply' call
+  var this_0 = {};
+  block(this_0);
+  var props = this_0;
+  addChildElement(_this__u8e3s4, type, props, getChildArray(props), defaultKey);
+}
+function addChildElement(_this__u8e3s4, type, props, children, defaultKey) {
+  props = props === VOID ? null : props;
+  children = children === VOID ? null : children;
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  var childProps_0 = childProps(props, defaultKey);
+  var tmp;
+  if (!(children == null)) {
+    tmp = createElement.apply(null, [type, childProps_0].concat([].slice.call(children.slice())));
+  } else {
+    tmp = createElement(type, childProps_0);
+  }
+  var element = tmp;
+  addChildNode(_this__u8e3s4, element);
+}
+function getDefaultKey(_this__u8e3s4) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'kotlin.js.asDynamic' call
+  var key = _this__u8e3s4[get_DEFAULT_KEY()];
+  Reflect.deleteProperty(_this__u8e3s4, get_DEFAULT_KEY());
+  return key;
+}
+function getChildArray(_this__u8e3s4) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'kotlin.js.asDynamic' call
+  return _this__u8e3s4[get_CHILD_ARRAY()];
+}
+function childProps(props, defaultKey) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  if (defaultKey == null)
+    return props;
+  if (props == null) {
+    // Inline function 'js.objects.unsafeJso' call
+    // Inline function 'js.objects.unsafeJso' call
+    // Inline function 'kotlin.apply' call
+    var this_0 = {};
+    this_0.key = defaultKey;
+    return this_0;
+  }
+  if (!(props.key == null))
+    return props;
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'kotlin.apply' call
+  var this_1 = {};
+  // Inline function 'react.Props.unaryPlus' call
+  Object.assign(this_1, props);
+  this_1.key = defaultKey;
+  return this_1;
+}
+function getChildArray_0(_this__u8e3s4) {
+  _init_properties_ChildrenBuilder_kt__gexuom();
+  // Inline function 'kotlin.js.asDynamic' call
+  return _this__u8e3s4[get_CHILD_ARRAY()];
+}
+var properties_initialized_ChildrenBuilder_kt_gby2z0;
+function _init_properties_ChildrenBuilder_kt__gexuom() {
+  if (!properties_initialized_ChildrenBuilder_kt_gby2z0) {
+    properties_initialized_ChildrenBuilder_kt_gby2z0 = true;
+    CHILD_ARRAY = Symbol('@@child-array');
+    DEFAULT_KEY = Symbol('@@default-key');
+  }
 }
 function createCleanupCallback(block) {
   return createCleanupCallback$lambda(block);
@@ -24565,17 +26575,2935 @@ function useEffect_0(dependencies, effect) {
   var callback = createCleanupCallback(effect);
   useEffect(callback, dependencies);
 }
+var ReactHTML_instance;
+function ReactHTML_getInstance() {
+  return ReactHTML_instance;
+}
+function FC(block) {
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  return FC$lambda(block);
+}
+function FC$lambda$lambda($block, $props) {
+  return ($this$createElementOrNull) => {
+    $block($this$createElementOrNull, $props);
+    return Unit_instance;
+  };
+}
+function FC$lambda($block) {
+  return (props) => createElementOrNull(FC$lambda$lambda($block, props));
+}
+function createElementOrNull(block) {
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'js.objects.unsafeJso' call
+  // Inline function 'kotlin.apply' call
+  var this_0 = {};
+  block(this_0);
+  var tmp0_elvis_lhs = getChildArray_0(this_0);
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    return null;
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  var children = tmp;
+  return createElement.apply(null, [Fragment, VOID].concat([].slice.call(children.slice())));
+}
+var dev_shibasis_reaktor_ui_core_components_ButtonSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_TextSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_InputSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_IconSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_CardSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_AvatarSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_BadgeSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_ChipSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_DividerSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_ProgressSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_SwitchSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_CheckboxSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_RadioSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_SliderSpec$stable;
+var dev_shibasis_reaktor_ui_core_components_TooltipSpec$stable;
+var dev_shibasis_reaktor_ui_core_tokens_TokenFactory$stable;
+var ThemeOption_Default_instance;
+var ThemeOption_Blue_instance;
+var ThemeOption_Green_instance;
+var ThemeOption_Reaktor_instance;
+function values_0() {
+  return [ThemeOption_Default_getInstance(), ThemeOption_Blue_getInstance(), ThemeOption_Green_getInstance(), ThemeOption_Reaktor_getInstance()];
+}
+function get_entries_0() {
+  if ($ENTRIES_0 == null)
+    $ENTRIES_0 = enumEntries(values_0());
+  return $ENTRIES_0;
+}
+var ThemeOption_entriesInitialized;
+function ThemeOption_initEntries() {
+  if (ThemeOption_entriesInitialized)
+    return Unit_instance;
+  ThemeOption_entriesInitialized = true;
+  ThemeOption_Default_instance = new ThemeOption('Default', 0);
+  ThemeOption_Blue_instance = new ThemeOption('Blue', 1);
+  ThemeOption_Green_instance = new ThemeOption('Green', 2);
+  ThemeOption_Reaktor_instance = new ThemeOption('Reaktor', 3);
+}
+var $ENTRIES_0;
+function ThemeOption_Default_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Default_instance;
+}
+function ThemeOption_Blue_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Blue_instance;
+}
+function ThemeOption_Green_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Green_instance;
+}
+function ThemeOption_Reaktor_getInstance() {
+  ThemeOption_initEntries();
+  return ThemeOption_Reaktor_instance;
+}
+var dev_shibasis_reaktor_ui_material_MaterialTokens$stable;
 var dev_shibasis_reaktor_ui_material_ReaktorColor$stable;
 var dev_shibasis_reaktor_ui_material_ReaktorTheme$stable;
+function get_RButton() {
+  _init_properties_WebButton_kt__4eotak();
+  return RButton;
+}
+var RButton;
+var ComponentSize_Small_instance;
+var ComponentSize_Medium_instance;
+var ComponentSize_Large_instance;
+function values_1() {
+  return [ComponentSize_Small_getInstance(), ComponentSize_Medium_getInstance(), ComponentSize_Large_getInstance()];
+}
+function valueOf_0(value) {
+  switch (value) {
+    case 'Small':
+      return ComponentSize_Small_getInstance();
+    case 'Medium':
+      return ComponentSize_Medium_getInstance();
+    case 'Large':
+      return ComponentSize_Large_getInstance();
+    default:
+      ComponentSize_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.ComponentSize.' + value);
+      break;
+  }
+}
+var ComponentSize_entriesInitialized;
+function ComponentSize_initEntries() {
+  if (ComponentSize_entriesInitialized)
+    return Unit_instance;
+  ComponentSize_entriesInitialized = true;
+  ComponentSize_Small_instance = new ComponentSize('Small', 0);
+  ComponentSize_Medium_instance = new ComponentSize('Medium', 1);
+  ComponentSize_Large_instance = new ComponentSize('Large', 2);
+}
+var ComponentVariant_Filled_instance;
+var ComponentVariant_Outlined_instance;
+var ComponentVariant_Text_instance;
+var ComponentVariant_Tonal_instance;
+var ComponentVariant_Elevated_instance;
+function values_2() {
+  return [ComponentVariant_Filled_getInstance(), ComponentVariant_Outlined_getInstance(), ComponentVariant_Text_getInstance(), ComponentVariant_Tonal_getInstance(), ComponentVariant_Elevated_getInstance()];
+}
+function valueOf_1(value) {
+  switch (value) {
+    case 'Filled':
+      return ComponentVariant_Filled_getInstance();
+    case 'Outlined':
+      return ComponentVariant_Outlined_getInstance();
+    case 'Text':
+      return ComponentVariant_Text_getInstance();
+    case 'Tonal':
+      return ComponentVariant_Tonal_getInstance();
+    case 'Elevated':
+      return ComponentVariant_Elevated_getInstance();
+    default:
+      ComponentVariant_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.ComponentVariant.' + value);
+      break;
+  }
+}
+var ComponentVariant_entriesInitialized;
+function ComponentVariant_initEntries() {
+  if (ComponentVariant_entriesInitialized)
+    return Unit_instance;
+  ComponentVariant_entriesInitialized = true;
+  ComponentVariant_Filled_instance = new ComponentVariant('Filled', 0);
+  ComponentVariant_Outlined_instance = new ComponentVariant('Outlined', 1);
+  ComponentVariant_Text_instance = new ComponentVariant('Text', 2);
+  ComponentVariant_Tonal_instance = new ComponentVariant('Tonal', 3);
+  ComponentVariant_Elevated_instance = new ComponentVariant('Elevated', 4);
+}
+var ComponentState_Enabled_instance;
+var ComponentState_Disabled_instance;
+var ComponentState_Loading_instance;
+function values_3() {
+  return [ComponentState_Enabled_getInstance(), ComponentState_Disabled_getInstance(), ComponentState_Loading_getInstance()];
+}
+function valueOf_2(value) {
+  switch (value) {
+    case 'Enabled':
+      return ComponentState_Enabled_getInstance();
+    case 'Disabled':
+      return ComponentState_Disabled_getInstance();
+    case 'Loading':
+      return ComponentState_Loading_getInstance();
+    default:
+      ComponentState_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.ComponentState.' + value);
+      break;
+  }
+}
+var ComponentState_entriesInitialized;
+function ComponentState_initEntries() {
+  if (ComponentState_entriesInitialized)
+    return Unit_instance;
+  ComponentState_entriesInitialized = true;
+  ComponentState_Enabled_instance = new ComponentState('Enabled', 0);
+  ComponentState_Disabled_instance = new ComponentState('Disabled', 1);
+  ComponentState_Loading_instance = new ComponentState('Loading', 2);
+}
+function RButton$lambda($this$FC, props) {
+  _init_properties_WebButton_kt__4eotak();
+  var tokens = props.tokens;
+  var colors = tokens.colors;
+  var spacing = tokens.spacing;
+  var shapes = tokens.shapes;
+  var sizing = tokens.sizing;
+  var tmp0_elvis_lhs = props.size;
+  var size = tmp0_elvis_lhs == null ? ComponentSize_Medium_getInstance() : tmp0_elvis_lhs;
+  var tmp1_elvis_lhs = props.variant;
+  var variant = tmp1_elvis_lhs == null ? ComponentVariant_Filled_getInstance() : tmp1_elvis_lhs;
+  var tmp2_elvis_lhs = props.state;
+  var state = tmp2_elvis_lhs == null ? ComponentState_Enabled_getInstance() : tmp2_elvis_lhs;
+  var tmp3_elvis_lhs = props.fullWidth;
+  var fullWidth = tmp3_elvis_lhs == null ? false : tmp3_elvis_lhs;
+  var isDisabled = state.equals(ComponentState_Disabled_getInstance());
+  var isLoading = state.equals(ComponentState_Loading_getInstance());
+  var tmp;
+  switch (size.ordinal_1) {
+    case 0:
+      tmp = sizing.buttonSm;
+      break;
+    case 1:
+      tmp = sizing.buttonMd;
+      break;
+    case 2:
+      tmp = sizing.buttonLg;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var height = tmp;
+  var tmp_0;
+  switch (size.ordinal_1) {
+    case 0:
+      tmp_0 = spacing.sm;
+      break;
+    case 1:
+      tmp_0 = spacing.md;
+      break;
+    case 2:
+      tmp_0 = spacing.lg;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var padding = tmp_0;
+  var tmp_1;
+  switch (size.ordinal_1) {
+    case 0:
+      tmp_1 = sizing.iconXs;
+      break;
+    case 1:
+      tmp_1 = sizing.iconSm;
+      break;
+    case 2:
+      tmp_1 = sizing.iconMd;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var iconSize = tmp_1;
+  var tmp_2;
+  if (isDisabled) {
+    tmp_2 = new Triple('rgba(0,0,0,0.12)', 'rgba(0,0,0,0.38)', 'transparent');
+  } else {
+    var tmp_3;
+    switch (variant.ordinal_1) {
+      case 0:
+        tmp_3 = new Triple(colors.primary, colors.onPrimary, 'transparent');
+        break;
+      case 3:
+        tmp_3 = new Triple(colors.secondaryContainer, colors.onSecondaryContainer, 'transparent');
+        break;
+      case 4:
+        tmp_3 = new Triple(colors.surface, colors.primary, 'transparent');
+        break;
+      case 1:
+        tmp_3 = new Triple('transparent', colors.primary, colors.outline);
+        break;
+      case 2:
+        tmp_3 = new Triple('transparent', colors.primary, 'transparent');
+        break;
+      default:
+        noWhenBranchMatchedException();
+        break;
+    }
+    tmp_2 = tmp_3;
+  }
+  var _destruct__k2r9zo = tmp_2;
+  var bgColor = _destruct__k2r9zo.component1_7eebsc_k$();
+  var textColor = _destruct__k2r9zo.component2_7eebsb_k$();
+  var borderColor = _destruct__k2r9zo.component3_7eebsa_k$();
+  // Inline function 'react.dom.html.ReactHTML.button' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RButton$lambda$lambda(isDisabled, isLoading, spacing, height, padding, bgColor, textColor, borderColor, shapes, fullWidth, variant, tokens, props, iconSize);
+  addChild($this$FC, 'button', block);
+  return Unit_instance;
+}
+function RButton$lambda$lambda$lambda($props) {
+  return (it) => {
+    var tmp0_safe_receiver = $props.onClick;
+    if (tmp0_safe_receiver == null)
+      null;
+    else
+      tmp0_safe_receiver();
+    return Unit_instance;
+  };
+}
+function RButton$lambda$lambda$lambda_0($iconSize, $textColor) {
+  return ($this$span) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.width = $iconSize;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $iconSize;
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0 = toString_1(2) + 'px';
+    // Inline function 'web.cssom.LineStyle.Companion.solid' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'web.cssom.Border' call
+    var color = $textColor;
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.border = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    // Inline function 'web.cssom.NamedColor.Companion.transparent' call
+    this_0.borderTopColor = 'rgba(0,0,0,0)';
+    // Inline function 'web.cssom.pct' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = toString_1(50) + '%';
+    $this$span.style = this_0;
+    return Unit_instance;
+  };
+}
+function RButton$lambda$lambda$lambda_1($iconSize, $icon) {
+  return ($this$span) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.width = $iconSize;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $iconSize;
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'web.cssom.JustifyContent.Companion.center' call
+    this_0.justifyContent = 'center';
+    $this$span.style = this_0;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    var this_1 = $icon;
+    addChildNode($this$span, this_1);
+    return Unit_instance;
+  };
+}
+function RButton$lambda$lambda($isDisabled, $isLoading, $spacing, $height, $padding, $bgColor, $textColor, $borderColor, $shapes, $fullWidth, $variant, $tokens, $props, $iconSize) {
+  return ($this$button) => {
+    $this$button.disabled = $isDisabled || $isLoading;
+    $this$button.onClick = RButton$lambda$lambda$lambda($props);
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.inlineFlex' call
+    this_0.display = 'inline-flex';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'web.cssom.JustifyContent.Companion.center' call
+    this_0.justifyContent = 'center';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.xs;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $height;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingLeft = $padding;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingRight = $padding;
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingTop = toString_1(0) + 'px';
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.paddingBottom = toString_1(0) + 'px';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $bgColor;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.color = $textColor;
+    var tmp_0;
+    if ($borderColor === 'transparent') {
+      // Inline function 'web.cssom.None.Companion.none' call
+      tmp_0 = 'none';
+    } else {
+      // Inline function 'web.cssom.px' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      var tmp0 = toString_1(1) + 'px';
+      // Inline function 'web.cssom.LineStyle.Companion.solid' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      // Inline function 'web.cssom.Border' call
+      var color = $borderColor;
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_0 = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    }
+    this_0.border = tmp_0;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = $shapes.md;
+    var tmp_1;
+    if ($isDisabled || $isLoading) {
+      // Inline function 'web.cssom.Cursor.Companion.notAllowed' call
+      tmp_1 = 'not-allowed';
+    } else {
+      // Inline function 'web.cssom.Cursor.Companion.pointer' call
+      tmp_1 = 'pointer';
+    }
+    this_0.cursor = tmp_1;
+    var tmp_2;
+    if ($isLoading) {
+      // Inline function 'web.cssom.number' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_2 = 0.7;
+    } else {
+      // Inline function 'web.cssom.number' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_2 = 1.0;
+    }
+    this_0.opacity = tmp_2;
+    // Inline function 'web.cssom.integer' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.fontWeight = 500;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.fontSize = 'inherit';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.fontFamily = 'inherit';
+    // Inline function 'web.cssom.None.Companion.none' call
+    this_0.textTransform = 'none';
+    var tmp_3;
+    if ($fullWidth) {
+      // Inline function 'web.cssom.pct' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_3 = toString_1(100) + '%';
+    } else {
+      // Inline function 'web.cssom.Auto.Companion.auto' call
+      tmp_3 = 'auto';
+    }
+    this_0.width = tmp_3;
+    var tmp_4;
+    if ($variant.equals(ComponentVariant_Elevated_getInstance())) {
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      tmp_4 = $tokens.elevation.sm;
+    } else {
+      // Inline function 'web.cssom.None.Companion.none' call
+      tmp_4 = 'none';
+    }
+    this_0.boxShadow = tmp_4;
+    $this$button.style = this_0;
+    if ($isLoading) {
+      // Inline function 'react.dom.html.ReactHTML.span' call
+      // Inline function 'react.IntrinsicType' call
+      // Inline function 'js.reflect.unsafeCast' call
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      // Inline function 'react.ChildrenBuilder.invoke' call
+      var block = RButton$lambda$lambda$lambda_0($iconSize, $textColor);
+      addChild($this$button, 'span', block);
+    } else {
+      var tmp0_safe_receiver = $props.icon;
+      if (tmp0_safe_receiver == null)
+        null;
+      else {
+        // Inline function 'kotlin.let' call
+        // Inline function 'react.dom.html.ReactHTML.span' call
+        // Inline function 'react.IntrinsicType' call
+        // Inline function 'js.reflect.unsafeCast' call
+        // Inline function 'kotlin.js.unsafeCast' call
+        // Inline function 'kotlin.js.asDynamic' call
+        // Inline function 'react.ChildrenBuilder.invoke' call
+        var block_0 = RButton$lambda$lambda$lambda_1($iconSize, tmp0_safe_receiver);
+        addChild($this$button, 'span', block_0);
+      }
+      var tmp1_safe_receiver = $props.label;
+      if (tmp1_safe_receiver == null)
+        null;
+      else {
+        // Inline function 'kotlin.let' call
+        // Inline function 'react.ChildrenBuilder.unaryPlus' call
+        // Inline function 'react.ReactNode' call
+        // Inline function 'js.reflect.unsafeCast' call
+        // Inline function 'kotlin.js.unsafeCast' call
+        // Inline function 'kotlin.js.asDynamic' call
+        addChildNode($this$button, tmp1_safe_receiver);
+      }
+    }
+    return Unit_instance;
+  };
+}
+function ComponentSize_Small_getInstance() {
+  ComponentSize_initEntries();
+  return ComponentSize_Small_instance;
+}
+function ComponentSize_Medium_getInstance() {
+  ComponentSize_initEntries();
+  return ComponentSize_Medium_instance;
+}
+function ComponentSize_Large_getInstance() {
+  ComponentSize_initEntries();
+  return ComponentSize_Large_instance;
+}
+function ComponentVariant_Filled_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Filled_instance;
+}
+function ComponentVariant_Outlined_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Outlined_instance;
+}
+function ComponentVariant_Text_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Text_instance;
+}
+function ComponentVariant_Tonal_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Tonal_instance;
+}
+function ComponentVariant_Elevated_getInstance() {
+  ComponentVariant_initEntries();
+  return ComponentVariant_Elevated_instance;
+}
+function ComponentState_Enabled_getInstance() {
+  ComponentState_initEntries();
+  return ComponentState_Enabled_instance;
+}
+function ComponentState_Disabled_getInstance() {
+  ComponentState_initEntries();
+  return ComponentState_Disabled_instance;
+}
+function ComponentState_Loading_getInstance() {
+  ComponentState_initEntries();
+  return ComponentState_Loading_instance;
+}
+var properties_initialized_WebButton_kt_frwkk6;
+function _init_properties_WebButton_kt__4eotak() {
+  if (!properties_initialized_WebButton_kt_frwkk6) {
+    properties_initialized_WebButton_kt_frwkk6 = true;
+    RButton = FC(RButton$lambda);
+  }
+}
+function get_RCard() {
+  _init_properties_WebCard_kt__de9k8e();
+  return RCard;
+}
+var RCard;
+var RElevatedCard;
+var ROutlinedCard;
+var RFilledCard;
+function RCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tokens = props.tokens;
+  var colors = tokens.colors;
+  var shapes = tokens.shapes;
+  var elevation = tokens.elevation;
+  var spacing = tokens.spacing;
+  var tmp0_elvis_lhs = props.variant;
+  var variant = tmp0_elvis_lhs == null ? ComponentVariant_Filled_getInstance() : tmp0_elvis_lhs;
+  var isClickable = !(props.onClick == null);
+  var tmp1_elvis_lhs = props.containerColor;
+  var tmp;
+  if (tmp1_elvis_lhs == null) {
+    var tmp_0;
+    switch (variant.ordinal_1) {
+      case 0:
+        tmp_0 = colors.surfaceContainer;
+        break;
+      case 4:
+        tmp_0 = colors.surface;
+        break;
+      case 1:
+        tmp_0 = colors.surface;
+        break;
+      case 3:
+        tmp_0 = colors.secondaryContainer;
+        break;
+      case 2:
+        tmp_0 = 'transparent';
+        break;
+      default:
+        noWhenBranchMatchedException();
+        break;
+    }
+    tmp = tmp_0;
+  } else {
+    tmp = tmp1_elvis_lhs;
+  }
+  var containerColor = tmp;
+  var tmp3_elvis_lhs = props.contentColor;
+  var tmp_1;
+  if (tmp3_elvis_lhs == null) {
+    tmp_1 = variant.ordinal_1 === 3 ? colors.onSecondaryContainer : colors.onSurface;
+  } else {
+    tmp_1 = tmp3_elvis_lhs;
+  }
+  var contentColor = tmp_1;
+  var shadow = variant.ordinal_1 === 4 ? elevation.sm : 'none';
+  var border = variant.ordinal_1 === 1 ? '1px solid ' + colors.outlineVariant : 'none';
+  // Inline function 'react.dom.html.ReactHTML.div' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RCard$lambda$lambda(containerColor, contentColor, shapes, shadow, border, isClickable, props, spacing);
+  addChild($this$FC, 'div', block);
+  return Unit_instance;
+}
+function RCard$lambda$lambda$lambda($props) {
+  return (it) => {
+    var tmp0_safe_receiver = $props.onClick;
+    if (tmp0_safe_receiver == null)
+      null;
+    else
+      tmp0_safe_receiver();
+    return Unit_instance;
+  };
+}
+function RCard$lambda$lambda($containerColor, $contentColor, $shapes, $shadow, $border, $isClickable, $props, $spacing) {
+  return ($this$div) => {
+    $this$div.onClick = RCard$lambda$lambda$lambda($props);
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $containerColor;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.color = $contentColor;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = $shapes.md;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.boxShadow = $shadow;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.border = $border;
+    // Inline function 'web.cssom.Overflow.Companion.hidden' call
+    this_0.overflow = 'hidden';
+    var tmp_0;
+    if ($isClickable) {
+      // Inline function 'web.cssom.Cursor.Companion.pointer' call
+      tmp_0 = 'pointer';
+    } else {
+      // Inline function 'web.cssom.Cursor.Companion.default' call
+      tmp_0 = 'default';
+    }
+    this_0.cursor = tmp_0;
+    var tmp0_elvis_lhs = $props.padding;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.padding = tmp0_elvis_lhs == null ? $spacing.md : tmp0_elvis_lhs;
+    $this$div.style = this_0;
+    var tmp_1;
+    if ($isClickable) {
+      // Inline function 'react.dom.aria.AriaRole.Companion.button' call
+      $this$div.role = 'button';
+      $this$div.tabIndex = 0;
+      tmp_1 = Unit_instance;
+    }
+    var tmp0_safe_receiver = $props.children;
+    if (tmp0_safe_receiver == null)
+      null;
+    else {
+      // Inline function 'kotlin.let' call
+      // Inline function 'react.ChildrenBuilder.unaryPlus' call
+      addChildNode($this$div, tmp0_safe_receiver);
+    }
+    return Unit_instance;
+  };
+}
+function RElevatedCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RElevatedCard$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RElevatedCard$lambda$lambda($props) {
+  return ($this$RCard) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RCard, this_0);
+    $this$RCard.variant = ComponentVariant_Elevated_getInstance();
+    return Unit_instance;
+  };
+}
+function ROutlinedCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = ROutlinedCard$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function ROutlinedCard$lambda$lambda($props) {
+  return ($this$RCard) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RCard, this_0);
+    $this$RCard.variant = ComponentVariant_Outlined_getInstance();
+    return Unit_instance;
+  };
+}
+function RFilledCard$lambda($this$FC, props) {
+  _init_properties_WebCard_kt__de9k8e();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RFilledCard$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RFilledCard$lambda$lambda($props) {
+  return ($this$RCard) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RCard, this_0);
+    $this$RCard.variant = ComponentVariant_Filled_getInstance();
+    return Unit_instance;
+  };
+}
+var properties_initialized_WebCard_kt_7vxq4s;
+function _init_properties_WebCard_kt__de9k8e() {
+  if (!properties_initialized_WebCard_kt_7vxq4s) {
+    properties_initialized_WebCard_kt_7vxq4s = true;
+    RCard = FC(RCard$lambda);
+    RElevatedCard = FC(RElevatedCard$lambda);
+    ROutlinedCard = FC(ROutlinedCard$lambda);
+    RFilledCard = FC(RFilledCard$lambda);
+  }
+}
+function get_RText() {
+  _init_properties_WebText_kt__tuwd8x();
+  return RText;
+}
+var RText;
+var RDisplayText;
+var RHeadline;
+var RTitle;
+var RBody;
+var RLabel;
+var RCaption;
+var TextRole_Display_instance;
+var TextRole_Headline_instance;
+var TextRole_Title_instance;
+var TextRole_Body_instance;
+var TextRole_Label_instance;
+var TextRole_Caption_instance;
+function values_4() {
+  return [TextRole_Display_getInstance(), TextRole_Headline_getInstance(), TextRole_Title_getInstance(), TextRole_Body_getInstance(), TextRole_Label_getInstance(), TextRole_Caption_getInstance()];
+}
+function valueOf_3(value) {
+  switch (value) {
+    case 'Display':
+      return TextRole_Display_getInstance();
+    case 'Headline':
+      return TextRole_Headline_getInstance();
+    case 'Title':
+      return TextRole_Title_getInstance();
+    case 'Body':
+      return TextRole_Body_getInstance();
+    case 'Label':
+      return TextRole_Label_getInstance();
+    case 'Caption':
+      return TextRole_Caption_getInstance();
+    default:
+      TextRole_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.TextRole.' + value);
+      break;
+  }
+}
+var TextRole_entriesInitialized;
+function TextRole_initEntries() {
+  if (TextRole_entriesInitialized)
+    return Unit_instance;
+  TextRole_entriesInitialized = true;
+  TextRole_Display_instance = new TextRole('Display', 0);
+  TextRole_Headline_instance = new TextRole('Headline', 1);
+  TextRole_Title_instance = new TextRole('Title', 2);
+  TextRole_Body_instance = new TextRole('Body', 3);
+  TextRole_Label_instance = new TextRole('Label', 4);
+  TextRole_Caption_instance = new TextRole('Caption', 5);
+}
+var TextSize_Small_instance;
+var TextSize_Medium_instance;
+var TextSize_Large_instance;
+function values_5() {
+  return [TextSize_Small_getInstance(), TextSize_Medium_getInstance(), TextSize_Large_getInstance()];
+}
+function valueOf_4(value) {
+  switch (value) {
+    case 'Small':
+      return TextSize_Small_getInstance();
+    case 'Medium':
+      return TextSize_Medium_getInstance();
+    case 'Large':
+      return TextSize_Large_getInstance();
+    default:
+      TextSize_initEntries();
+      THROW_IAE('No enum constant dev.shibasis.reaktor.ui.components.TextSize.' + value);
+      break;
+  }
+}
+var TextSize_entriesInitialized;
+function TextSize_initEntries() {
+  if (TextSize_entriesInitialized)
+    return Unit_instance;
+  TextSize_entriesInitialized = true;
+  TextSize_Small_instance = new TextSize('Small', 0);
+  TextSize_Medium_instance = new TextSize('Medium', 1);
+  TextSize_Large_instance = new TextSize('Large', 2);
+}
+function RText$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tokens = props.tokens;
+  var colors = tokens.colors;
+  var typography = tokens.typography;
+  var tmp0_elvis_lhs = props.role;
+  var role = tmp0_elvis_lhs == null ? TextRole_Body_getInstance() : tmp0_elvis_lhs;
+  var tmp1_elvis_lhs = props.size;
+  var size = tmp1_elvis_lhs == null ? TextSize_Medium_getInstance() : tmp1_elvis_lhs;
+  var tmp;
+  switch (role.ordinal_1) {
+    case 0:
+      var tmp_0;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_0 = typography.displaySmall;
+          break;
+        case 2:
+          tmp_0 = typography.displayLarge;
+          break;
+        case 1:
+          tmp_0 = typography.displayMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_0;
+      break;
+    case 1:
+      var tmp_1;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_1 = typography.headlineSmall;
+          break;
+        case 2:
+          tmp_1 = typography.headlineLarge;
+          break;
+        case 1:
+          tmp_1 = typography.headlineMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_1;
+      break;
+    case 2:
+      var tmp_2;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_2 = typography.titleSmall;
+          break;
+        case 2:
+          tmp_2 = typography.titleLarge;
+          break;
+        case 1:
+          tmp_2 = typography.titleMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_2;
+      break;
+    case 3:
+      var tmp_3;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_3 = typography.bodySmall;
+          break;
+        case 2:
+          tmp_3 = typography.bodyLarge;
+          break;
+        case 1:
+          tmp_3 = typography.bodyMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_3;
+      break;
+    case 4:
+      var tmp_4;
+      switch (size.ordinal_1) {
+        case 0:
+          tmp_4 = typography.labelSmall;
+          break;
+        case 2:
+          tmp_4 = typography.labelLarge;
+          break;
+        case 1:
+          tmp_4 = typography.labelMedium;
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      tmp = tmp_4;
+      break;
+    case 5:
+      tmp = typography.bodySmall;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var styleTokens = tmp;
+  var tmp_5;
+  switch (role.ordinal_1) {
+    case 0:
+    case 1:
+      tmp_5 = colors.onBackground;
+      break;
+    case 2:
+    case 3:
+      tmp_5 = colors.onSurface;
+      break;
+    case 4:
+    case 5:
+      tmp_5 = colors.onSurfaceVariant;
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  var defaultColor = tmp_5;
+  var tmp9_elvis_lhs = props.color;
+  var resolvedColor = tmp9_elvis_lhs == null ? defaultColor : tmp9_elvis_lhs;
+  // Inline function 'js.objects.jso' call
+  var tmp_6 = {};
+  // Inline function 'kotlin.apply' call
+  var this_0 = !(tmp_6 == null) ? tmp_6 : THROW_CCE();
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.color = resolvedColor;
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.fontSize = styleTokens.fontSize;
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.lineHeight = styleTokens.lineHeight;
+  var tmp0_safe_receiver = toIntOrNull(styleTokens.fontWeight);
+  var tmp_7;
+  if (tmp0_safe_receiver == null) {
+    tmp_7 = null;
+  } else {
+    // Inline function 'kotlin.let' call
+    // Inline function 'web.cssom.integer' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp_7 = tmp0_safe_receiver;
+  }
+  var tmp1_elvis_lhs_0 = tmp_7;
+  var tmp_8;
+  if (tmp1_elvis_lhs_0 == null) {
+    // Inline function 'web.cssom.FontWeight.Companion.normal' call
+    tmp_8 = 'normal';
+  } else {
+    tmp_8 = tmp1_elvis_lhs_0;
+  }
+  this_0.fontWeight = tmp_8;
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.letterSpacing = styleTokens.letterSpacing;
+  // Inline function 'web.cssom.px' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  this_0.margin = toString_1(0) + 'px';
+  var tmp2_safe_receiver = props.textAlign;
+  if (tmp2_safe_receiver == null)
+    null;
+  else {
+    // Inline function 'kotlin.let' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.textAlign = tmp2_safe_receiver;
+  }
+  var tmp3_safe_receiver = props.maxLines;
+  if (tmp3_safe_receiver == null)
+    null;
+  else {
+    // Inline function 'kotlin.let' call
+    if (tmp3_safe_receiver > 0) {
+      // Inline function 'kotlin.js.unsafeCast' call
+      // Inline function 'kotlin.js.asDynamic' call
+      this_0.display = 'webkit-box';
+      // Inline function 'kotlin.js.asDynamic' call
+      this_0.WebkitLineClamp = tmp3_safe_receiver;
+      // Inline function 'kotlin.js.asDynamic' call
+      this_0.WebkitBoxOrient = 'vertical';
+      // Inline function 'web.cssom.Overflow.Companion.hidden' call
+      this_0.overflow = 'hidden';
+      // Inline function 'web.cssom.TextOverflow.Companion.ellipsis' call
+      this_0.textOverflow = 'ellipsis';
+    }
+  }
+  var textStyle = this_0;
+  var tmp10_elvis_lhs = props.text;
+  var content = tmp10_elvis_lhs == null ? props.children : tmp10_elvis_lhs;
+  switch (role.ordinal_1) {
+    case 0:
+      switch (size.ordinal_1) {
+        case 2:
+          // Inline function 'react.dom.html.ReactHTML.h1' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block = RText$lambda$lambda(textStyle, content);
+          addChild($this$FC, 'h1', block);
+          break;
+        case 1:
+          // Inline function 'react.dom.html.ReactHTML.h2' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_0 = RText$lambda$lambda_0(textStyle, content);
+          addChild($this$FC, 'h2', block_0);
+          break;
+        case 0:
+          // Inline function 'react.dom.html.ReactHTML.h3' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_1 = RText$lambda$lambda_1(textStyle, content);
+          addChild($this$FC, 'h3', block_1);
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      break;
+    case 1:
+      switch (size.ordinal_1) {
+        case 2:
+          // Inline function 'react.dom.html.ReactHTML.h2' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_2 = RText$lambda$lambda_2(textStyle, content);
+          addChild($this$FC, 'h2', block_2);
+          break;
+        case 1:
+          // Inline function 'react.dom.html.ReactHTML.h3' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_3 = RText$lambda$lambda_3(textStyle, content);
+          addChild($this$FC, 'h3', block_3);
+          break;
+        case 0:
+          // Inline function 'react.dom.html.ReactHTML.h4' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_4 = RText$lambda$lambda_4(textStyle, content);
+          addChild($this$FC, 'h4', block_4);
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      break;
+    case 2:
+      switch (size.ordinal_1) {
+        case 2:
+          // Inline function 'react.dom.html.ReactHTML.h4' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_5 = RText$lambda$lambda_5(textStyle, content);
+          addChild($this$FC, 'h4', block_5);
+          break;
+        case 1:
+          // Inline function 'react.dom.html.ReactHTML.h5' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_6 = RText$lambda$lambda_6(textStyle, content);
+          addChild($this$FC, 'h5', block_6);
+          break;
+        case 0:
+          // Inline function 'react.dom.html.ReactHTML.h6' call
+
+          // Inline function 'react.IntrinsicType' call
+
+          // Inline function 'js.reflect.unsafeCast' call
+
+          // Inline function 'kotlin.js.unsafeCast' call
+
+          // Inline function 'kotlin.js.asDynamic' call
+
+          // Inline function 'react.ChildrenBuilder.invoke' call
+
+          var block_7 = RText$lambda$lambda_7(textStyle, content);
+          addChild($this$FC, 'h6', block_7);
+          break;
+        default:
+          noWhenBranchMatchedException();
+          break;
+      }
+
+      break;
+    case 3:
+      // Inline function 'react.dom.html.ReactHTML.p' call
+
+      // Inline function 'react.IntrinsicType' call
+
+      // Inline function 'js.reflect.unsafeCast' call
+
+      // Inline function 'kotlin.js.unsafeCast' call
+
+      // Inline function 'kotlin.js.asDynamic' call
+
+      // Inline function 'react.ChildrenBuilder.invoke' call
+
+      var block_8 = RText$lambda$lambda_8(textStyle, content);
+      addChild($this$FC, 'p', block_8);
+      break;
+    case 4:
+    case 5:
+      // Inline function 'react.dom.html.ReactHTML.span' call
+
+      // Inline function 'react.IntrinsicType' call
+
+      // Inline function 'js.reflect.unsafeCast' call
+
+      // Inline function 'kotlin.js.unsafeCast' call
+
+      // Inline function 'kotlin.js.asDynamic' call
+
+      // Inline function 'react.ChildrenBuilder.invoke' call
+
+      var block_9 = RText$lambda$lambda_9(textStyle, content);
+      addChild($this$FC, 'span', block_9);
+      break;
+    default:
+      noWhenBranchMatchedException();
+      break;
+  }
+  return Unit_instance;
+}
+function RText$lambda$lambda($textStyle, $content) {
+  return ($this$h1) => {
+    $this$h1.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h1, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_0($textStyle, $content) {
+  return ($this$h2) => {
+    $this$h2.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h2, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_1($textStyle, $content) {
+  return ($this$h3) => {
+    $this$h3.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h3, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_2($textStyle, $content) {
+  return ($this$h2) => {
+    $this$h2.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h2, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_3($textStyle, $content) {
+  return ($this$h3) => {
+    $this$h3.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h3, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_4($textStyle, $content) {
+  return ($this$h4) => {
+    $this$h4.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h4, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_5($textStyle, $content) {
+  return ($this$h4) => {
+    $this$h4.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h4, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_6($textStyle, $content) {
+  return ($this$h5) => {
+    $this$h5.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h5, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_7($textStyle, $content) {
+  return ($this$h6) => {
+    $this$h6.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$h6, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_8($textStyle, $content) {
+  return ($this$p) => {
+    $this$p.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$p, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RText$lambda$lambda_9($textStyle, $content) {
+  return ($this$span) => {
+    $this$span.style = $textStyle;
+    // Inline function 'react.ChildrenBuilder.unaryPlus' call
+    // Inline function 'react.ReactNode' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$3 = toString_0($content);
+    addChildNode($this$span, tmp$ret$3);
+    return Unit_instance;
+  };
+}
+function RDisplayText$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RDisplayText$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RDisplayText$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Display_getInstance();
+    return Unit_instance;
+  };
+}
+function RHeadline$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RHeadline$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RHeadline$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Headline_getInstance();
+    return Unit_instance;
+  };
+}
+function RTitle$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RTitle$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RTitle$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Title_getInstance();
+    return Unit_instance;
+  };
+}
+function RBody$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RBody$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RBody$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Body_getInstance();
+    return Unit_instance;
+  };
+}
+function RLabel$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RLabel$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RLabel$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function RCaption$lambda($this$FC, props) {
+  _init_properties_WebText_kt__tuwd8x();
+  var tmp2 = get_RText();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = RCaption$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function RCaption$lambda$lambda($props) {
+  return ($this$RText) => {
+    // Inline function 'react.Props.unaryPlus' call
+    var this_0 = $props;
+    Object.assign($this$RText, this_0);
+    $this$RText.role = TextRole_Caption_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function TextRole_Display_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Display_instance;
+}
+function TextRole_Headline_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Headline_instance;
+}
+function TextRole_Title_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Title_instance;
+}
+function TextRole_Body_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Body_instance;
+}
+function TextRole_Label_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Label_instance;
+}
+function TextRole_Caption_getInstance() {
+  TextRole_initEntries();
+  return TextRole_Caption_instance;
+}
+function TextSize_Small_getInstance() {
+  TextSize_initEntries();
+  return TextSize_Small_instance;
+}
+function TextSize_Medium_getInstance() {
+  TextSize_initEntries();
+  return TextSize_Medium_instance;
+}
+function TextSize_Large_getInstance() {
+  TextSize_initEntries();
+  return TextSize_Large_instance;
+}
+var properties_initialized_WebText_kt_oq071t;
+function _init_properties_WebText_kt__tuwd8x() {
+  if (!properties_initialized_WebText_kt_oq071t) {
+    properties_initialized_WebText_kt_oq071t = true;
+    RText = FC(RText$lambda);
+    RDisplayText = FC(RDisplayText$lambda);
+    RHeadline = FC(RHeadline$lambda);
+    RTitle = FC(RTitle$lambda);
+    RBody = FC(RBody$lambda);
+    RLabel = FC(RLabel$lambda);
+    RCaption = FC(RCaption$lambda);
+  }
+}
+function get_ReaktorUIDemo() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return ReaktorUIDemo_0;
+}
+var ReaktorUIDemo_0;
+function get_DemoSection() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return DemoSection;
+}
+var DemoSection;
+function get_ColorSwatch() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return ColorSwatch;
+}
+var ColorSwatch;
+function ReaktorUIDemo$lambda($this$FC, props) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  var tmp0_elvis_lhs = props.initialDarkMode;
+  var darkMode$delegate = useState(tmp0_elvis_lhs == null ? false : tmp0_elvis_lhs);
+  var selectedTheme$delegate = useState(ThemeOption_Reaktor_getInstance());
+  var tmp0 = [invoke$lambda(darkMode$delegate), invoke$lambda_1(selectedTheme$delegate)];
+  // Inline function 'react.useMemo' call
+  var callback = ReaktorUIDemo$lambda$lambda(selectedTheme$delegate, darkMode$delegate);
+  var tokens = useMemo(callback, tmp0);
+  var colors = tokens.colors;
+  var spacing = tokens.spacing;
+  var shapes = tokens.shapes;
+  // Inline function 'react.dom.html.ReactHTML.div' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = ReaktorUIDemo$lambda$lambda_0(colors, spacing, tokens, darkMode$delegate, selectedTheme$delegate);
+  addChild($this$FC, 'div', block);
+  return Unit_instance;
+}
+function invoke$lambda($darkMode$delegate) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.getValue' call
+  getLocalDelegateReference('darkMode', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  return $darkMode$delegate[0];
+}
+function invoke$lambda_0($darkMode$delegate, _set____db54di) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.setValue' call
+  getLocalDelegateReference('darkMode', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  $darkMode$delegate[1](_set____db54di);
+  return Unit_instance;
+}
+function invoke$lambda_1($selectedTheme$delegate) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.getValue' call
+  getLocalDelegateReference('selectedTheme', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  return $selectedTheme$delegate[0];
+}
+function invoke$lambda_2($selectedTheme$delegate, _set____db54di) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  // Inline function 'react.StateInstance.setValue' call
+  getLocalDelegateReference('selectedTheme', KMutableProperty0, true);
+  // Inline function 'kotlin.js.asDynamic' call
+  $selectedTheme$delegate[1](_set____db54di);
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda($selectedTheme$delegate, $darkMode$delegate) {
+  return () => {
+    var tmp;
+    switch (invoke$lambda_1($selectedTheme$delegate).ordinal_1) {
+      case 0:
+        tmp = invoke$lambda($darkMode$delegate) ? createWebTokens('#6750A4', '#625B71', '#7D5260', true) : createWebTokens('#6750A4', '#625B71', '#7D5260', false);
+        break;
+      case 1:
+        tmp = invoke$lambda($darkMode$delegate) ? createWebTokens('#1976D2', '#455A64', '#00796B', true) : createWebTokens('#1976D2', '#455A64', '#00796B', false);
+        break;
+      case 2:
+        tmp = invoke$lambda($darkMode$delegate) ? createWebTokens('#388E3C', '#5D4037', '#00796B', true) : createWebTokens('#388E3C', '#5D4037', '#00796B', false);
+        break;
+      case 3:
+        tmp = invoke$lambda($darkMode$delegate) ? WebMaterialTokens_instance.reaktorDark : WebMaterialTokens_instance.reaktorLight;
+        break;
+      default:
+        noWhenBranchMatchedException();
+        break;
+    }
+    return tmp;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Reaktor UI';
+    $this$RText.role = TextRole_Display_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_0($tokens, $colors) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Cross-platform UI components for Compose & React';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.color = $colors.onSurfaceVariant;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda($spacing, $tokens, $colors) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginBottom = $spacing.xl;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda_0($tokens, $colors);
+    addChild($this$div, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Theme Controls';
+    $this$RText.role = TextRole_Title_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Dark Mode:';
+    $this$RText.role = TextRole_Body_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda($darkMode$delegate) {
+  return () => {
+    invoke$lambda_0($darkMode$delegate, !invoke$lambda($darkMode$delegate));
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_0($tokens, $darkMode$delegate) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = invoke$lambda($darkMode$delegate) ? 'ON' : 'OFF';
+    $this$RButton.variant = invoke$lambda($darkMode$delegate) ? ComponentVariant_Filled_getInstance() : ComponentVariant_Outlined_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda($darkMode$delegate);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_0($spacing, $tokens, $darkMode$delegate) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.md;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginTop = $spacing.md;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginBottom = $spacing.md;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_0($tokens, $darkMode$delegate);
+    addChild($this$div, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0($theme, $selectedTheme$delegate) {
+  return () => {
+    invoke$lambda_2($selectedTheme$delegate, $theme);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens, $theme, $selectedTheme$delegate) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = $theme.name_1;
+    $this$RButton.variant = invoke$lambda_1($selectedTheme$delegate).equals($theme) ? ComponentVariant_Filled_getInstance() : ComponentVariant_Outlined_getInstance();
+    $this$RButton.size = ComponentSize_Small_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0($theme, $selectedTheme$delegate);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_1($spacing, $tokens, $selectedTheme$delegate) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    // Inline function 'web.cssom.FlexWrap.Companion.wrap' call
+    this_0.flexWrap = 'wrap';
+    $this$div.style = this_0;
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s = get_entries_0().iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var element = _iterator__ex2g4s.next_20eer_k$();
+      var tmp2 = get_RButton();
+      // Inline function 'react.ChildrenBuilder.invoke' call
+      var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens, element, $selectedTheme$delegate);
+      addChild($this$div, tmp2, block);
+    }
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_1($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate) {
+  return ($this$div) => {
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda($tokens);
+    addChild($this$div, tmp2, block);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_0($spacing, $tokens, $darkMode$delegate);
+    addChild($this$div, 'div', block_0);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_1($spacing, $tokens, $selectedTheme$delegate);
+    addChild($this$div, 'div', block_1);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_0($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Elevated_getInstance();
+    $this$RCard.padding = $spacing.md;
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda_1($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate);
+    addChild($this$RCard, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_1($spacing) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = $spacing.xl;
+    $this$div.style = this_0;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Variants';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Primary';
+    $this$RButton.variant = ComponentVariant_Filled_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Secondary';
+    $this$RButton.variant = ComponentVariant_Tonal_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Outlined';
+    $this$RButton.variant = ComponentVariant_Outlined_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Text';
+    $this$RButton.variant = ComponentVariant_Text_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    // Inline function 'web.cssom.FlexWrap.Companion.wrap' call
+    this_0.flexWrap = 'wrap';
+    $this$div.style = this_0;
+    var tmp2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens);
+    addChild($this$div, tmp2_2, block_2);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Sizes';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Small';
+    $this$RButton.size = ComponentSize_Small_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_3;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Medium';
+    $this$RButton.size = ComponentSize_Medium_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_4;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Large';
+    $this$RButton.size = ComponentSize_Large_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    $this$div.style = this_0;
+    var tmp2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_5($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'States';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Enabled';
+    $this$RButton.state = ComponentState_Enabled_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_6;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Disabled';
+    $this$RButton.state = ComponentState_Disabled_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_7;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8() {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  return Unit_instance;
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens) {
+  return ($this$RButton) => {
+    $this$RButton.tokens = $tokens;
+    $this$RButton.label = 'Loading';
+    $this$RButton.state = ComponentState_Loading_getInstance();
+    $this$RButton.onClick = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_7($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    $this$div.style = this_0;
+    var tmp2 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RButton();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_2($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.md;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_2($tokens);
+    addChild($this$div, tmp2, block);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens);
+    addChild($this$div, 'div', block_0);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_4($tokens);
+    addChild($this$div, tmp2_0, block_1);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens);
+    addChild($this$div, 'div', block_2);
+    var tmp2_1 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_6($tokens);
+    addChild($this$div, tmp2_1, block_3);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_7($spacing, $tokens);
+    addChild($this$div, 'div', block_4);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_2($tokens, $spacing) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Buttons';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_2($spacing, $tokens);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Display';
+    $this$RText.role = TextRole_Display_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Headline';
+    $this$RText.role = TextRole_Headline_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Title';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Body text for main content. This demonstrates the body style used for paragraphs.';
+    $this$RText.role = TextRole_Body_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Label';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Caption text for metadata';
+    $this$RText.role = TextRole_Caption_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.sm;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_8($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_9($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_10($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens);
+    addChild($this$div, tmp2_2, block_2);
+    var tmp2_3 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens);
+    addChild($this$div, tmp2_3, block_3);
+    var tmp2_4 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens);
+    addChild($this$div, tmp2_4, block_4);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_3($tokens, $spacing) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Typography';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_3($spacing, $tokens);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Elevated';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Elevated Card';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'With shadow elevation';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Elevated_getInstance();
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_11($tokens);
+    addChild($this$RCard, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_12($tokens);
+    addChild($this$RCard, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Outlined';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Outlined Card';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'With border';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_17($tokens) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Outlined_getInstance();
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_13($tokens);
+    addChild($this$RCard, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens);
+    addChild($this$RCard, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_18($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Filled';
+    $this$RText.role = TextRole_Label_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Filled Card';
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'With container color';
+    $this$RText.role = TextRole_Body_getInstance();
+    $this$RText.size = TextSize_Small_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_19($tokens) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $tokens;
+    $this$RCard.variant = ComponentVariant_Filled_getInstance();
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens);
+    addChild($this$RCard, tmp2, block);
+    var tmp2_0 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens);
+    addChild($this$RCard, tmp2_0, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_4($spacing, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.md;
+    $this$div.style = this_0;
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_14($tokens);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_15($tokens);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_16($tokens);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_17($tokens);
+    addChild($this$div, tmp2_2, block_2);
+    var tmp2_3 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_18($tokens);
+    addChild($this$div, tmp2_3, block_3);
+    var tmp2_4 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_19($tokens);
+    addChild($this$div, tmp2_4, block_4);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_4($tokens, $spacing) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Cards';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_4($spacing, $tokens);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_20($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.primary;
+    $this$ColorSwatch.name = 'Primary';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_21($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.secondary;
+    $this$ColorSwatch.name = 'Secondary';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_22($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.tertiary;
+    $this$ColorSwatch.name = 'Tertiary';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_23($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.error;
+    $this$ColorSwatch.name = 'Error';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_24($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.success;
+    $this$ColorSwatch.name = 'Success';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_25($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.warning;
+    $this$ColorSwatch.name = 'Warning';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_26($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.info;
+    $this$ColorSwatch.name = 'Info';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_27($tokens, $colors) {
+  return ($this$ColorSwatch) => {
+    $this$ColorSwatch.tokens = $tokens;
+    $this$ColorSwatch.color = $colors.surface;
+    $this$ColorSwatch.name = 'Surface';
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens, $colors) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.grid' call
+    this_0.display = 'grid';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gridTemplateColumns = 'repeat(4, 1fr)';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.xs;
+    $this$div.style = this_0;
+    var tmp2 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_20($tokens, $colors);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_21($tokens, $colors);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_22($tokens, $colors);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_23($tokens, $colors);
+    addChild($this$div, tmp2_2, block_2);
+    var tmp2_3 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_24($tokens, $colors);
+    addChild($this$div, tmp2_3, block_3);
+    var tmp2_4 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_4 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_25($tokens, $colors);
+    addChild($this$div, tmp2_4, block_4);
+    var tmp2_5 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_5 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_26($tokens, $colors);
+    addChild($this$div, tmp2_5, block_5);
+    var tmp2_6 = get_ColorSwatch();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_6 = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda$lambda_27($tokens, $colors);
+    addChild($this$div, tmp2_6, block_6);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_5($tokens, $spacing, $colors) {
+  return ($this$DemoSection) => {
+    $this$DemoSection.tokens = $tokens;
+    $this$DemoSection.title = 'Color Palette';
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda$lambda_5($spacing, $tokens, $colors);
+    addChild($this$DemoSection, 'div', block);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_2($spacing, $tokens, $colors) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.grid' call
+    this_0.display = 'grid';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gridTemplateColumns = 'repeat(auto-fit, minmax(320px, 1fr))';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.lg;
+    $this$div.style = this_0;
+    var tmp2 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda_2($tokens, $spacing);
+    addChild($this$div, tmp2, block);
+    var tmp2_0 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda_3($tokens, $spacing);
+    addChild($this$div, tmp2_0, block_0);
+    var tmp2_1 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda$lambda_4($tokens, $spacing);
+    addChild($this$div, tmp2_1, block_1);
+    var tmp2_2 = get_DemoSection();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda$lambda_5($tokens, $spacing, $colors);
+    addChild($this$div, tmp2_2, block_2);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_6($colors, $spacing) {
+  return ($this$hr) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.None.Companion.none' call
+    this_0.border = 'none';
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0 = toString_1(1) + 'px';
+    // Inline function 'web.cssom.LineStyle.Companion.solid' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'web.cssom.Border' call
+    var color = $colors.outlineVariant;
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderTop = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginBottom = $spacing.md;
+    $this$hr.style = this_0;
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda$lambda_7($tokens) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = 'Reaktor UI Demo - Kotlin/JS React Components';
+    $this$RText.role = TextRole_Caption_getInstance();
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda$lambda_3($spacing, $colors, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginTop = $spacing.xxl;
+    // Inline function 'web.cssom.TextAlign.Companion.center' call
+    this_0.textAlign = 'center';
+    $this$div.style = this_0;
+    // Inline function 'react.dom.html.ReactHTML.hr' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda$lambda_6($colors, $spacing);
+    addChild($this$div, 'hr', block);
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda$lambda_7($tokens);
+    addChild($this$div, tmp2, block_0);
+    return Unit_instance;
+  };
+}
+function ReaktorUIDemo$lambda$lambda_0($colors, $spacing, $tokens, $darkMode$delegate, $selectedTheme$delegate) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.vh' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.minHeight = toString_1(100) + 'vh';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $colors.background;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.color = $colors.onBackground;
+    // Inline function 'web.cssom.FontFamily.Companion.sansSerif' call
+    this_0.fontFamily = 'sans-serif';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.padding = $spacing.lg;
+    $this$div.style = this_0;
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ReaktorUIDemo$lambda$lambda$lambda($spacing, $tokens, $colors);
+    addChild($this$div, 'div', block);
+    var tmp2 = get_RCard();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ReaktorUIDemo$lambda$lambda$lambda_0($tokens, $spacing, $darkMode$delegate, $selectedTheme$delegate);
+    addChild($this$div, tmp2, block_0);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_1 = ReaktorUIDemo$lambda$lambda$lambda_1($spacing);
+    addChild($this$div, 'div', block_1);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_2 = ReaktorUIDemo$lambda$lambda$lambda_2($spacing, $tokens, $colors);
+    addChild($this$div, 'div', block_2);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_3 = ReaktorUIDemo$lambda$lambda$lambda_3($spacing, $colors, $tokens);
+    addChild($this$div, 'div', block_3);
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda($this$FC, props) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  var tmp2 = get_RCard();
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = DemoSection$lambda$lambda(props);
+  addChild($this$FC, tmp2, block);
+  return Unit_instance;
+}
+function DemoSection$lambda$lambda$lambda$lambda($props) {
+  return ($this$RText) => {
+    $this$RText.tokens = $props.tokens;
+    $this$RText.text = $props.title;
+    $this$RText.role = TextRole_Title_getInstance();
+    $this$RText.size = TextSize_Medium_getInstance();
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda$lambda$lambda$lambda_0($props) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.marginTop = $props.tokens.spacing.md;
+    $this$div.style = this_0;
+    var tmp0_safe_receiver = $props.children;
+    if (tmp0_safe_receiver == null)
+      null;
+    else {
+      // Inline function 'kotlin.let' call
+      // Inline function 'react.ChildrenBuilder.unaryPlus' call
+      addChildNode($this$div, tmp0_safe_receiver);
+    }
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda$lambda$lambda($props) {
+  return ($this$div) => {
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = DemoSection$lambda$lambda$lambda$lambda($props);
+    addChild($this$div, tmp2, block);
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = DemoSection$lambda$lambda$lambda$lambda_0($props);
+    addChild($this$div, 'div', block_0);
+    return Unit_instance;
+  };
+}
+function DemoSection$lambda$lambda($props) {
+  return ($this$RCard) => {
+    $this$RCard.tokens = $props.tokens;
+    $this$RCard.variant = ComponentVariant_Outlined_getInstance();
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = DemoSection$lambda$lambda$lambda($props);
+    addChild($this$RCard, 'div', block);
+    return Unit_instance;
+  };
+}
+function ColorSwatch$lambda($this$FC, props) {
+  _init_properties_WebReaktorUIDemo_kt__nulf();
+  var tokens = props.tokens;
+  var spacing = tokens.spacing;
+  var shapes = tokens.shapes;
+  // Inline function 'react.dom.html.ReactHTML.div' call
+  // Inline function 'react.IntrinsicType' call
+  // Inline function 'js.reflect.unsafeCast' call
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  // Inline function 'react.ChildrenBuilder.invoke' call
+  var block = ColorSwatch$lambda$lambda(spacing, shapes, props, tokens);
+  addChild($this$FC, 'div', block);
+  return Unit_instance;
+}
+function ColorSwatch$lambda$lambda$lambda($shapes, $props, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.width = toString_1(40) + 'px';
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.height = toString_1(40) + 'px';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.borderRadius = $shapes.sm;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.backgroundColor = $props.color;
+    // Inline function 'web.cssom.px' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0 = toString_1(1) + 'px';
+    // Inline function 'web.cssom.LineStyle.Companion.solid' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'web.cssom.Border' call
+    var color = $tokens.colors.outlineVariant;
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.border = toString_1(tmp0) + ' ' + toString_1('solid') + ' ' + toString_1(color);
+    $this$div.style = this_0;
+    return Unit_instance;
+  };
+}
+function ColorSwatch$lambda$lambda$lambda_0($tokens, $props) {
+  return ($this$RText) => {
+    $this$RText.tokens = $tokens;
+    $this$RText.text = $props.name;
+    $this$RText.role = TextRole_Caption_getInstance();
+    return Unit_instance;
+  };
+}
+function ColorSwatch$lambda$lambda($spacing, $shapes, $props, $tokens) {
+  return ($this$div) => {
+    // Inline function 'js.objects.jso' call
+    var tmp = {};
+    // Inline function 'kotlin.apply' call
+    var this_0 = !(tmp == null) ? tmp : THROW_CCE();
+    // Inline function 'web.cssom.Display.Companion.flex' call
+    this_0.display = 'flex';
+    // Inline function 'web.cssom.FlexDirection.Companion.column' call
+    this_0.flexDirection = 'column';
+    // Inline function 'web.cssom.AlignItems.Companion.center' call
+    this_0.alignItems = 'center';
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    this_0.gap = $spacing.xxs;
+    $this$div.style = this_0;
+    // Inline function 'react.dom.html.ReactHTML.div' call
+    // Inline function 'react.IntrinsicType' call
+    // Inline function 'js.reflect.unsafeCast' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block = ColorSwatch$lambda$lambda$lambda($shapes, $props, $tokens);
+    addChild($this$div, 'div', block);
+    var tmp2 = get_RText();
+    // Inline function 'react.ChildrenBuilder.invoke' call
+    var block_0 = ColorSwatch$lambda$lambda$lambda_0($tokens, $props);
+    addChild($this$div, tmp2, block_0);
+    return Unit_instance;
+  };
+}
+var properties_initialized_WebReaktorUIDemo_kt_vlxfz3;
+function _init_properties_WebReaktorUIDemo_kt__nulf() {
+  if (!properties_initialized_WebReaktorUIDemo_kt_vlxfz3) {
+    properties_initialized_WebReaktorUIDemo_kt_vlxfz3 = true;
+    ReaktorUIDemo_0 = FC(ReaktorUIDemo$lambda);
+    DemoSection = FC(DemoSection$lambda);
+    ColorSwatch = FC(ColorSwatch$lambda);
+  }
+}
 var dev_shibasis_reaktor_ui_material_PromiseResult$stable;
 var PromiseState_Initial_instance;
 var PromiseState_Pending_instance;
 var PromiseState_Resolved_instance;
 var PromiseState_Rejected_instance;
-function values_0() {
+function values_6() {
   return [PromiseState_Initial_getInstance(), PromiseState_Pending_getInstance(), PromiseState_Resolved_getInstance(), PromiseState_Rejected_getInstance()];
 }
-function valueOf_0(value) {
+function valueOf_5(value) {
   switch (value) {
     case 'Initial':
       return PromiseState_Initial_getInstance();
@@ -24646,6 +29574,154 @@ function PromiseState_Rejected_getInstance() {
   PromiseState_initEntries();
   return PromiseState_Rejected_instance;
 }
+var dev_shibasis_reaktor_ui_tokens_WebColorScheme$stable;
+var dev_shibasis_reaktor_ui_tokens_WebTextStyle$stable;
+var dev_shibasis_reaktor_ui_tokens_WebTypography$stable;
+var dev_shibasis_reaktor_ui_tokens_WebSpacing$stable;
+var dev_shibasis_reaktor_ui_tokens_WebShapes$stable;
+var dev_shibasis_reaktor_ui_tokens_WebElevation$stable;
+var dev_shibasis_reaktor_ui_tokens_WebSizing$stable;
+var dev_shibasis_reaktor_ui_tokens_WebBreakpoints$stable;
+var dev_shibasis_reaktor_ui_tokens_WebMotion$stable;
+var dev_shibasis_reaktor_ui_tokens_WebDesignTokens$stable;
+function defaultWebTypography() {
+  return new WebTypography(new WebTextStyle('57px', '64px', '400', '0'), new WebTextStyle('45px', '52px', '400', '0'), new WebTextStyle('36px', '44px', '400', '0'), new WebTextStyle('32px', '40px', '400', '0'), new WebTextStyle('28px', '36px', '400', '0'), new WebTextStyle('24px', '32px', '400', '0'), new WebTextStyle('22px', '28px', '500', '0'), new WebTextStyle('16px', '24px', '500', '0.15px'), new WebTextStyle('14px', '20px', '500', '0.1px'), new WebTextStyle('16px', '24px', '400', '0.5px'), new WebTextStyle('14px', '20px', '400', '0.25px'), new WebTextStyle('12px', '16px', '400', '0.4px'), new WebTextStyle('14px', '20px', '500', '0.1px'), new WebTextStyle('12px', '16px', '500', '0.5px'), new WebTextStyle('11px', '16px', '500', '0.5px'));
+}
+var dev_shibasis_reaktor_ui_tokens_WebMaterialTokens$stable;
+function lighten(hex, fraction) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  return rgbToHex(r + (1.0 - r) * fraction, g + (1.0 - g) * fraction, b + (1.0 - b) * fraction);
+}
+function darken(hex, fraction) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  return rgbToHex(r * (1.0 - fraction), g * (1.0 - fraction), b * (1.0 - fraction));
+}
+function autoContentColor(background, lightContent, darkContent) {
+  lightContent = lightContent === VOID ? '#FFFFFF' : lightContent;
+  darkContent = darkContent === VOID ? '#1C1B1F' : darkContent;
+  return luminance(background) < 0.5 ? lightContent : darkContent;
+}
+function withAlpha(hex, alpha) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_0 = r * 255;
+  var tmp = roundToInt(this_0);
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_1 = g * 255;
+  var tmp_0 = roundToInt(this_1);
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_2 = b * 255;
+  return 'rgba(' + tmp + ', ' + tmp_0 + ', ' + roundToInt(this_2) + ', ' + alpha + ')';
+}
+function createLightColorScheme(primary, secondary, tertiary, background, surface, error, success, warning, info) {
+  tertiary = tertiary === VOID ? secondary : tertiary;
+  background = background === VOID ? '#FFFFFF' : background;
+  surface = surface === VOID ? '#FFFFFF' : surface;
+  error = error === VOID ? '#B00020' : error;
+  success = success === VOID ? '#4CAF50' : success;
+  warning = warning === VOID ? '#FFC107' : warning;
+  info = info === VOID ? '#2196F3' : info;
+  var darkContent = '#1C1B1F';
+  return new WebColorScheme(background, surface, lighten(surface, 0.05), darken(surface, 0.04), darken(surface, 0.08), darken(surface, 0.02), autoContentColor(background, VOID, darkContent), autoContentColor(surface, VOID, darkContent), withAlpha(darkContent, 0.7), primary, containerColor(primary, true), autoContentColor(primary), darken(primary, 0.4), secondary, containerColor(secondary, true), autoContentColor(secondary), darken(secondary, 0.4), tertiary, containerColor(tertiary, true), autoContentColor(tertiary), darken(tertiary, 0.4), error, containerColor(error, true), autoContentColor(error), darken(error, 0.4), success, autoContentColor(success), warning, autoContentColor(warning), info, autoContentColor(info), withAlpha(darkContent, 0.3), withAlpha(darkContent, 0.15), withAlpha('#000000', 0.32), '#000000', '#313033', '#F4EFF4', lighten(primary, 0.4));
+}
+function createDarkColorScheme(primary, secondary, tertiary, background, surface, error, success, warning, info) {
+  tertiary = tertiary === VOID ? secondary : tertiary;
+  background = background === VOID ? '#1C1B1F' : background;
+  surface = surface === VOID ? '#1C1B1F' : surface;
+  error = error === VOID ? '#CF6679' : error;
+  success = success === VOID ? '#81C784' : success;
+  warning = warning === VOID ? '#FFD54F' : warning;
+  info = info === VOID ? '#64B5F6' : info;
+  var lightContent = '#E6E1E5';
+  return new WebColorScheme(background, surface, lighten(surface, 0.1), lighten(surface, 0.08), lighten(surface, 0.12), lighten(surface, 0.04), autoContentColor(background, lightContent), autoContentColor(surface, lightContent), withAlpha(lightContent, 0.7), lighten(primary, 0.3), darken(primary, 0.2), '#1C1B1F', lighten(primary, 0.6), lighten(secondary, 0.3), darken(secondary, 0.2), '#1C1B1F', lighten(secondary, 0.6), lighten(tertiary, 0.3), darken(tertiary, 0.2), '#1C1B1F', lighten(tertiary, 0.6), error, darken(error, 0.3), '#1C1B1F', lighten(error, 0.4), success, '#1C1B1F', warning, '#1C1B1F', info, '#1C1B1F', withAlpha(lightContent, 0.4), withAlpha(lightContent, 0.2), withAlpha('#000000', 0.6), '#000000', '#E6E1E5', '#313033', primary);
+}
+function createWebDesignTokens(colors) {
+  return new WebDesignTokens(colors);
+}
+function createWebTokens(primary, secondary, tertiary, darkMode) {
+  tertiary = tertiary === VOID ? null : tertiary;
+  darkMode = darkMode === VOID ? false : darkMode;
+  var actualTertiary = tertiary == null ? secondary : tertiary;
+  var tmp;
+  if (darkMode) {
+    tmp = createDarkColorScheme(primary, secondary, actualTertiary);
+  } else {
+    tmp = createLightColorScheme(primary, secondary, actualTertiary);
+  }
+  var colors = tmp;
+  return createWebDesignTokens(colors);
+}
+var WebMaterialTokens_instance;
+function WebMaterialTokens_getInstance() {
+  return WebMaterialTokens_instance;
+}
+function hexToRgb(hex) {
+  var cleanHex = removePrefix(hex, '#');
+  if (!(cleanHex.length === 6))
+    return new RGB(0.0, 0.0, 0.0);
+  var tmp;
+  try {
+    tmp = new RGB(toInt(substring(cleanHex, 0, 2), 16) / 255.0, toInt(substring(cleanHex, 2, 4), 16) / 255.0, toInt(substring(cleanHex, 4, 6), 16) / 255.0);
+  } catch ($p) {
+    var tmp_0;
+    if ($p instanceof Exception) {
+      var e = $p;
+      tmp_0 = new RGB(0.0, 0.0, 0.0);
+    } else {
+      throw $p;
+    }
+    tmp = tmp_0;
+  }
+  return tmp;
+}
+function rgbToHex(r, g, b) {
+  return '#' + rgbToHex$toHex(r) + rgbToHex$toHex(g) + rgbToHex$toHex(b);
+}
+function luminance(hex) {
+  var _destruct__k2r9zo = hexToRgb(hex);
+  var r = _destruct__k2r9zo.component1_7eebsc_k$();
+  var g = _destruct__k2r9zo.component2_7eebsb_k$();
+  var b = _destruct__k2r9zo.component3_7eebsa_k$();
+  // Inline function 'kotlin.collections.map' call
+  var this_0 = listOf_0([r, g, b]);
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
+  var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var item = _iterator__ex2g4s.next_20eer_k$();
+    var tmp;
+    if (item <= 0.03928) {
+      tmp = item / 12.92;
+    } else {
+      // Inline function 'kotlin.math.pow' call
+      var this_1 = (item + 0.055) / 1.055;
+      tmp = Math.pow(this_1, 2.4);
+    }
+    var tmp$ret$1 = tmp;
+    destination.add_utx5q5_k$(tmp$ret$1);
+  }
+  var components = destination;
+  return components.get_c1px32_k$(0) * 0.2126 + components.get_c1px32_k$(1) * 0.7152 + components.get_c1px32_k$(2) * 0.0722;
+}
+function containerColor(source, lightMode) {
+  return lightMode ? lighten(source, 0.85) : darken(source, 0.3);
+}
+function rgbToHex$toHex(c) {
+  // Inline function 'kotlin.math.roundToInt' call
+  var this_0 = c * 255;
+  var tmp$ret$0 = roundToInt(this_0);
+  var hex = toString_2(coerceIn(tmp$ret$0, 0, 255), 16);
+  return hex.length === 1 ? '0' + hex : hex;
+}
 //region block: post-declaration
 initMetadataForInterface(CharSequence, 'CharSequence');
 initMetadataForClass(Exception, 'Exception', Exception.new_kotlin_Exception_f32mds_k$);
@@ -24665,6 +29741,7 @@ initMetadataForCompanion(Companion_0);
 initMetadataForClass(Enum, 'Enum');
 initMetadataForInterface(FunctionAdapter, 'FunctionAdapter');
 initMetadataForClass(arrayIterator$1);
+initMetadataForObject(Digit, 'Digit');
 initMetadataForInterface(Comparator, 'Comparator');
 initMetadataForObject(Unit, 'Unit');
 initMetadataForClass(AbstractCollection, 'AbstractCollection', VOID, VOID, [Collection]);
@@ -24703,6 +29780,7 @@ initMetadataForClass(IndexOutOfBoundsException, 'IndexOutOfBoundsException', Ind
 initMetadataForClass(ClassCastException, 'ClassCastException', ClassCastException.new_kotlin_ClassCastException_zhuhe1_k$);
 initMetadataForClass(ConcurrentModificationException, 'ConcurrentModificationException', ConcurrentModificationException.new_kotlin_ConcurrentModificationException_fy07nh_k$);
 initMetadataForClass(ArithmeticException, 'ArithmeticException', ArithmeticException.new_kotlin_ArithmeticException_t7nj4q_k$);
+initMetadataForClass(NumberFormatException, 'NumberFormatException', NumberFormatException.new_kotlin_NumberFormatException_rswu7k_k$);
 initMetadataForClass(NullPointerException, 'NullPointerException', NullPointerException.new_kotlin_NullPointerException_q6jd54_k$);
 initMetadataForClass(UninitializedPropertyAccessException, 'UninitializedPropertyAccessException', UninitializedPropertyAccessException.new_kotlin_UninitializedPropertyAccessException_l975ei_k$);
 initMetadataForClass(NoWhenBranchMatchedException, 'NoWhenBranchMatchedException', NoWhenBranchMatchedException.new_kotlin_NoWhenBranchMatchedException_9ooqm1_k$);
@@ -24713,6 +29791,7 @@ initMetadataForObject(NothingKClassImpl, 'NothingKClassImpl');
 initMetadataForClass(SimpleKClassImpl, 'SimpleKClassImpl');
 initMetadataForInterface(KProperty0, 'KProperty0');
 initMetadataForInterface(KProperty1, 'KProperty1');
+initMetadataForInterface(KMutableProperty0, 'KMutableProperty0', VOID, VOID, [KProperty0]);
 initMetadataForObject(PrimitiveClasses, 'PrimitiveClasses');
 initMetadataForClass(StringBuilder, 'StringBuilder', StringBuilder.new_kotlin_text_StringBuilder_u46mrb_k$, VOID, [CharSequence]);
 initMetadataForClass(sam$kotlin_Comparator$0, 'sam$kotlin_Comparator$0', VOID, VOID, [Comparator, FunctionAdapter]);
@@ -24763,6 +29842,7 @@ initMetadataForClass(Failure, 'Failure');
 initMetadataForClass(Result, 'Result');
 initMetadataForClass(NotImplementedError, 'NotImplementedError', NotImplementedError.new_kotlin_NotImplementedError_8rzvsv_k$);
 initMetadataForClass(Pair, 'Pair');
+initMetadataForClass(Triple, 'Triple');
 initMetadataForInterface(SerialDescriptor, 'SerialDescriptor');
 initMetadataForClass(elementNames$1);
 initMetadataForClass(elementNames$$inlined$Iterable$1);
@@ -24895,9 +29975,28 @@ initMetadataForClass(FileAdapter, 'FileAdapter', VOID, VOID, VOID, [1]);
 initMetadataForObject(ServiceLoaderComponentRegistry, 'ServiceLoaderComponentRegistry');
 initMetadataForClass(KtorNetworkFetcherServiceLoaderTarget, 'KtorNetworkFetcherServiceLoaderTarget', KtorNetworkFetcherServiceLoaderTarget);
 initMetadataForClass(SvgDecoderServiceLoaderTarget, 'SvgDecoderServiceLoaderTarget', SvgDecoderServiceLoaderTarget);
+initMetadataForObject(ReactHTML, 'ReactHTML');
+initMetadataForClass(ThemeOption, 'ThemeOption');
+initMetadataForClass(ComponentSize, 'ComponentSize');
+initMetadataForClass(ComponentVariant, 'ComponentVariant');
+initMetadataForClass(ComponentState, 'ComponentState');
+initMetadataForClass(TextRole, 'TextRole');
+initMetadataForClass(TextSize, 'TextSize');
 initMetadataForClass(PromiseState, 'PromiseState');
 initMetadataForClass(PromiseResult, 'PromiseResult');
 initMetadataForLambda(usePromise$slambda, VOID, VOID, [1]);
+initMetadataForClass(WebColorScheme, 'WebColorScheme');
+initMetadataForClass(WebTextStyle, 'WebTextStyle');
+initMetadataForClass(WebTypography, 'WebTypography');
+initMetadataForClass(WebSpacing, 'WebSpacing', WebSpacing);
+initMetadataForClass(WebShapes, 'WebShapes', WebShapes);
+initMetadataForClass(WebElevation, 'WebElevation', WebElevation);
+initMetadataForClass(WebSizing, 'WebSizing', WebSizing);
+initMetadataForClass(WebBreakpoints, 'WebBreakpoints', WebBreakpoints);
+initMetadataForClass(WebMotion, 'WebMotion', WebMotion);
+initMetadataForClass(WebDesignTokens, 'WebDesignTokens');
+initMetadataForObject(WebMaterialTokens_0, 'WebMaterialTokens');
+initMetadataForClass(RGB, 'RGB');
 //endregion
 //region block: init
 Companion_instance_0 = new Companion_0();
@@ -25971,6 +31070,286 @@ coil3_compose_internal_SubcomposeContentPainterElement$stable = 0;
 coil3_compose_internal_SubcomposeContentPainterNode$stable = 8;
 coil3_compose_internal_AbstractContentPainterNode$stable = 8;
 coil3_compose_internal_ForwardingCoroutineContext$stable = 8;
+_arrowBack = null;
+_arrowForward = null;
+_exitToApp = null;
+_keyboardArrowLeft = null;
+_keyboardArrowRight = null;
+_list = null;
+_send = null;
+_arrowBack_0 = null;
+_arrowForward_0 = null;
+_exitToApp_0 = null;
+_keyboardArrowLeft_0 = null;
+_keyboardArrowRight_0 = null;
+_list_0 = null;
+_send_0 = null;
+_arrowBack_1 = null;
+_arrowForward_1 = null;
+_exitToApp_1 = null;
+_keyboardArrowLeft_1 = null;
+_keyboardArrowRight_1 = null;
+_list_1 = null;
+_send_1 = null;
+_arrowBack_2 = null;
+_arrowForward_2 = null;
+_exitToApp_2 = null;
+_keyboardArrowLeft_2 = null;
+_keyboardArrowRight_2 = null;
+_list_2 = null;
+_send_2 = null;
+_arrowBack_3 = null;
+_arrowForward_3 = null;
+_exitToApp_3 = null;
+_keyboardArrowLeft_3 = null;
+_keyboardArrowRight_3 = null;
+_list_3 = null;
+_send_3 = null;
+_accountBox = null;
+_accountCircle = null;
+_add = null;
+_addCircle = null;
+_arrowBack_4 = null;
+_arrowDropDown = null;
+_arrowForward_4 = null;
+_build = null;
+_call = null;
+_check = null;
+_checkCircle = null;
+_clear = null;
+_close = null;
+_create = null;
+_dateRange = null;
+_delete = null;
+_done = null;
+_edit = null;
+_email = null;
+_exitToApp_4 = null;
+_face = null;
+_favorite = null;
+_favoriteBorder = null;
+_home = null;
+_info = null;
+_keyboardArrowDown = null;
+_keyboardArrowLeft_4 = null;
+_keyboardArrowRight_4 = null;
+_keyboardArrowUp = null;
+_list_4 = null;
+_locationOn = null;
+_lock = null;
+_mailOutline = null;
+_menu = null;
+_moreVert = null;
+_notifications = null;
+_person = null;
+_phone = null;
+_place = null;
+_playArrow = null;
+_refresh = null;
+_search = null;
+_send_4 = null;
+_settings = null;
+_share = null;
+_shoppingCart = null;
+_star = null;
+_thumbUp = null;
+_warning = null;
+_accountBox_0 = null;
+_accountCircle_0 = null;
+_add_0 = null;
+_addCircle_0 = null;
+_arrowBack_5 = null;
+_arrowDropDown_0 = null;
+_arrowForward_5 = null;
+_build_0 = null;
+_call_0 = null;
+_check_0 = null;
+_checkCircle_0 = null;
+_clear_0 = null;
+_close_0 = null;
+_create_0 = null;
+_dateRange_0 = null;
+_delete_0 = null;
+_done_0 = null;
+_edit_0 = null;
+_email_0 = null;
+_exitToApp_5 = null;
+_face_0 = null;
+_favorite_0 = null;
+_favoriteBorder_0 = null;
+_home_0 = null;
+_info_0 = null;
+_keyboardArrowDown_0 = null;
+_keyboardArrowLeft_5 = null;
+_keyboardArrowRight_5 = null;
+_keyboardArrowUp_0 = null;
+_list_5 = null;
+_locationOn_0 = null;
+_lock_0 = null;
+_mailOutline_0 = null;
+_menu_0 = null;
+_moreVert_0 = null;
+_notifications_0 = null;
+_person_0 = null;
+_phone_0 = null;
+_place_0 = null;
+_playArrow_0 = null;
+_refresh_0 = null;
+_search_0 = null;
+_send_5 = null;
+_settings_0 = null;
+_share_0 = null;
+_shoppingCart_0 = null;
+_star_0 = null;
+_thumbUp_0 = null;
+_warning_0 = null;
+_accountBox_1 = null;
+_accountCircle_1 = null;
+_add_1 = null;
+_addCircle_1 = null;
+_arrowBack_6 = null;
+_arrowDropDown_1 = null;
+_arrowForward_6 = null;
+_build_1 = null;
+_call_1 = null;
+_check_1 = null;
+_checkCircle_1 = null;
+_clear_1 = null;
+_close_1 = null;
+_create_1 = null;
+_dateRange_1 = null;
+_delete_1 = null;
+_done_1 = null;
+_edit_1 = null;
+_email_1 = null;
+_exitToApp_6 = null;
+_face_1 = null;
+_favorite_1 = null;
+_favoriteBorder_1 = null;
+_home_1 = null;
+_info_1 = null;
+_keyboardArrowDown_1 = null;
+_keyboardArrowLeft_6 = null;
+_keyboardArrowRight_6 = null;
+_keyboardArrowUp_1 = null;
+_list_6 = null;
+_locationOn_1 = null;
+_lock_1 = null;
+_mailOutline_1 = null;
+_menu_1 = null;
+_moreVert_1 = null;
+_notifications_1 = null;
+_person_1 = null;
+_phone_1 = null;
+_place_1 = null;
+_playArrow_1 = null;
+_refresh_1 = null;
+_search_1 = null;
+_send_6 = null;
+_settings_1 = null;
+_share_1 = null;
+_shoppingCart_1 = null;
+_star_1 = null;
+_thumbUp_1 = null;
+_warning_1 = null;
+_accountBox_2 = null;
+_accountCircle_2 = null;
+_add_2 = null;
+_addCircle_2 = null;
+_arrowBack_7 = null;
+_arrowDropDown_2 = null;
+_arrowForward_7 = null;
+_build_2 = null;
+_call_2 = null;
+_check_2 = null;
+_checkCircle_2 = null;
+_clear_2 = null;
+_close_2 = null;
+_create_2 = null;
+_dateRange_2 = null;
+_delete_2 = null;
+_done_2 = null;
+_edit_2 = null;
+_email_2 = null;
+_exitToApp_7 = null;
+_face_2 = null;
+_favorite_2 = null;
+_favoriteBorder_2 = null;
+_home_2 = null;
+_info_2 = null;
+_keyboardArrowDown_2 = null;
+_keyboardArrowLeft_7 = null;
+_keyboardArrowRight_7 = null;
+_keyboardArrowUp_2 = null;
+_list_7 = null;
+_locationOn_2 = null;
+_lock_2 = null;
+_mailOutline_2 = null;
+_menu_2 = null;
+_moreVert_2 = null;
+_notifications_2 = null;
+_person_2 = null;
+_phone_2 = null;
+_place_2 = null;
+_playArrow_2 = null;
+_refresh_2 = null;
+_search_2 = null;
+_send_7 = null;
+_settings_2 = null;
+_share_2 = null;
+_shoppingCart_2 = null;
+_star_2 = null;
+_thumbUp_2 = null;
+_warning_2 = null;
+_accountBox_3 = null;
+_accountCircle_3 = null;
+_add_3 = null;
+_addCircle_3 = null;
+_arrowBack_8 = null;
+_arrowDropDown_3 = null;
+_arrowForward_8 = null;
+_build_3 = null;
+_call_3 = null;
+_check_3 = null;
+_checkCircle_3 = null;
+_clear_3 = null;
+_close_3 = null;
+_create_3 = null;
+_dateRange_3 = null;
+_delete_3 = null;
+_done_3 = null;
+_edit_3 = null;
+_email_3 = null;
+_exitToApp_8 = null;
+_face_3 = null;
+_favorite_3 = null;
+_favoriteBorder_3 = null;
+_home_3 = null;
+_info_3 = null;
+_keyboardArrowDown_3 = null;
+_keyboardArrowLeft_8 = null;
+_keyboardArrowRight_8 = null;
+_keyboardArrowUp_3 = null;
+_list_8 = null;
+_locationOn_3 = null;
+_lock_3 = null;
+_mailOutline_3 = null;
+_menu_3 = null;
+_moreVert_3 = null;
+_notifications_3 = null;
+_person_3 = null;
+_phone_3 = null;
+_place_3 = null;
+_playArrow_3 = null;
+_refresh_3 = null;
+_search_3 = null;
+_send_8 = null;
+_settings_3 = null;
+_share_3 = null;
+_shoppingCart_3 = null;
+_star_3 = null;
+_thumbUp_3 = null;
+_warning_3 = null;
 _accessible = null;
 _accessibleForward = null;
 _addToHomeScreen = null;
@@ -37076,291 +42455,41 @@ __8mp_3 = null;
 __9k_3 = null;
 __9kPlus_3 = null;
 __9mp_3 = null;
-_arrowBack = null;
-_arrowForward = null;
-_exitToApp = null;
-_keyboardArrowLeft = null;
-_keyboardArrowRight = null;
-_list = null;
-_send = null;
-_arrowBack_0 = null;
-_arrowForward_0 = null;
-_exitToApp_0 = null;
-_keyboardArrowLeft_0 = null;
-_keyboardArrowRight_0 = null;
-_list_0 = null;
-_send_0 = null;
-_arrowBack_1 = null;
-_arrowForward_1 = null;
-_exitToApp_1 = null;
-_keyboardArrowLeft_1 = null;
-_keyboardArrowRight_1 = null;
-_list_1 = null;
-_send_1 = null;
-_arrowBack_2 = null;
-_arrowForward_2 = null;
-_exitToApp_2 = null;
-_keyboardArrowLeft_2 = null;
-_keyboardArrowRight_2 = null;
-_list_2 = null;
-_send_2 = null;
-_arrowBack_3 = null;
-_arrowForward_3 = null;
-_exitToApp_3 = null;
-_keyboardArrowLeft_3 = null;
-_keyboardArrowRight_3 = null;
-_list_3 = null;
-_send_3 = null;
-_accountBox = null;
-_accountCircle = null;
-_add = null;
-_addCircle = null;
-_arrowBack_4 = null;
-_arrowDropDown = null;
-_arrowForward_4 = null;
-_build = null;
-_call = null;
-_check = null;
-_checkCircle = null;
-_clear = null;
-_close = null;
-_create = null;
-_dateRange = null;
-_delete = null;
-_done = null;
-_edit = null;
-_email = null;
-_exitToApp_4 = null;
-_face = null;
-_favorite = null;
-_favoriteBorder = null;
-_home = null;
-_info = null;
-_keyboardArrowDown = null;
-_keyboardArrowLeft_4 = null;
-_keyboardArrowRight_4 = null;
-_keyboardArrowUp = null;
-_list_4 = null;
-_locationOn = null;
-_lock = null;
-_mailOutline = null;
-_menu = null;
-_moreVert = null;
-_notifications = null;
-_person = null;
-_phone = null;
-_place = null;
-_playArrow = null;
-_refresh = null;
-_search = null;
-_send_4 = null;
-_settings = null;
-_share = null;
-_shoppingCart = null;
-_star = null;
-_thumbUp = null;
-_warning = null;
-_accountBox_0 = null;
-_accountCircle_0 = null;
-_add_0 = null;
-_addCircle_0 = null;
-_arrowBack_5 = null;
-_arrowDropDown_0 = null;
-_arrowForward_5 = null;
-_build_0 = null;
-_call_0 = null;
-_check_0 = null;
-_checkCircle_0 = null;
-_clear_0 = null;
-_close_0 = null;
-_create_0 = null;
-_dateRange_0 = null;
-_delete_0 = null;
-_done_0 = null;
-_edit_0 = null;
-_email_0 = null;
-_exitToApp_5 = null;
-_face_0 = null;
-_favorite_0 = null;
-_favoriteBorder_0 = null;
-_home_0 = null;
-_info_0 = null;
-_keyboardArrowDown_0 = null;
-_keyboardArrowLeft_5 = null;
-_keyboardArrowRight_5 = null;
-_keyboardArrowUp_0 = null;
-_list_5 = null;
-_locationOn_0 = null;
-_lock_0 = null;
-_mailOutline_0 = null;
-_menu_0 = null;
-_moreVert_0 = null;
-_notifications_0 = null;
-_person_0 = null;
-_phone_0 = null;
-_place_0 = null;
-_playArrow_0 = null;
-_refresh_0 = null;
-_search_0 = null;
-_send_5 = null;
-_settings_0 = null;
-_share_0 = null;
-_shoppingCart_0 = null;
-_star_0 = null;
-_thumbUp_0 = null;
-_warning_0 = null;
-_accountBox_1 = null;
-_accountCircle_1 = null;
-_add_1 = null;
-_addCircle_1 = null;
-_arrowBack_6 = null;
-_arrowDropDown_1 = null;
-_arrowForward_6 = null;
-_build_1 = null;
-_call_1 = null;
-_check_1 = null;
-_checkCircle_1 = null;
-_clear_1 = null;
-_close_1 = null;
-_create_1 = null;
-_dateRange_1 = null;
-_delete_1 = null;
-_done_1 = null;
-_edit_1 = null;
-_email_1 = null;
-_exitToApp_6 = null;
-_face_1 = null;
-_favorite_1 = null;
-_favoriteBorder_1 = null;
-_home_1 = null;
-_info_1 = null;
-_keyboardArrowDown_1 = null;
-_keyboardArrowLeft_6 = null;
-_keyboardArrowRight_6 = null;
-_keyboardArrowUp_1 = null;
-_list_6 = null;
-_locationOn_1 = null;
-_lock_1 = null;
-_mailOutline_1 = null;
-_menu_1 = null;
-_moreVert_1 = null;
-_notifications_1 = null;
-_person_1 = null;
-_phone_1 = null;
-_place_1 = null;
-_playArrow_1 = null;
-_refresh_1 = null;
-_search_1 = null;
-_send_6 = null;
-_settings_1 = null;
-_share_1 = null;
-_shoppingCart_1 = null;
-_star_1 = null;
-_thumbUp_1 = null;
-_warning_1 = null;
-_accountBox_2 = null;
-_accountCircle_2 = null;
-_add_2 = null;
-_addCircle_2 = null;
-_arrowBack_7 = null;
-_arrowDropDown_2 = null;
-_arrowForward_7 = null;
-_build_2 = null;
-_call_2 = null;
-_check_2 = null;
-_checkCircle_2 = null;
-_clear_2 = null;
-_close_2 = null;
-_create_2 = null;
-_dateRange_2 = null;
-_delete_2 = null;
-_done_2 = null;
-_edit_2 = null;
-_email_2 = null;
-_exitToApp_7 = null;
-_face_2 = null;
-_favorite_2 = null;
-_favoriteBorder_2 = null;
-_home_2 = null;
-_info_2 = null;
-_keyboardArrowDown_2 = null;
-_keyboardArrowLeft_7 = null;
-_keyboardArrowRight_7 = null;
-_keyboardArrowUp_2 = null;
-_list_7 = null;
-_locationOn_2 = null;
-_lock_2 = null;
-_mailOutline_2 = null;
-_menu_2 = null;
-_moreVert_2 = null;
-_notifications_2 = null;
-_person_2 = null;
-_phone_2 = null;
-_place_2 = null;
-_playArrow_2 = null;
-_refresh_2 = null;
-_search_2 = null;
-_send_7 = null;
-_settings_2 = null;
-_share_2 = null;
-_shoppingCart_2 = null;
-_star_2 = null;
-_thumbUp_2 = null;
-_warning_2 = null;
-_accountBox_3 = null;
-_accountCircle_3 = null;
-_add_3 = null;
-_addCircle_3 = null;
-_arrowBack_8 = null;
-_arrowDropDown_3 = null;
-_arrowForward_8 = null;
-_build_3 = null;
-_call_3 = null;
-_check_3 = null;
-_checkCircle_3 = null;
-_clear_3 = null;
-_close_3 = null;
-_create_3 = null;
-_dateRange_3 = null;
-_delete_3 = null;
-_done_3 = null;
-_edit_3 = null;
-_email_3 = null;
-_exitToApp_8 = null;
-_face_3 = null;
-_favorite_3 = null;
-_favoriteBorder_3 = null;
-_home_3 = null;
-_info_3 = null;
-_keyboardArrowDown_3 = null;
-_keyboardArrowLeft_8 = null;
-_keyboardArrowRight_8 = null;
-_keyboardArrowUp_3 = null;
-_list_8 = null;
-_locationOn_3 = null;
-_lock_3 = null;
-_mailOutline_3 = null;
-_menu_3 = null;
-_moreVert_3 = null;
-_notifications_3 = null;
-_person_3 = null;
-_phone_3 = null;
-_place_3 = null;
-_playArrow_3 = null;
-_refresh_3 = null;
-_search_3 = null;
-_send_8 = null;
-_settings_3 = null;
-_share_3 = null;
-_shoppingCart_3 = null;
-_star_3 = null;
-_thumbUp_3 = null;
-_warning_3 = null;
 androidx_lifecycle_compose_LifecycleStartStopEffectScope$stable = 8;
 androidx_lifecycle_compose_LifecycleResumePauseEffectScope$stable = 8;
+ReactHTML_instance = new ReactHTML();
+dev_shibasis_reaktor_ui_core_components_ButtonSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_TextSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_InputSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_IconSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_CardSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_AvatarSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_BadgeSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_ChipSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_DividerSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_ProgressSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_SwitchSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_CheckboxSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_RadioSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_SliderSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_components_TooltipSpec$stable = 0;
+dev_shibasis_reaktor_ui_core_tokens_TokenFactory$stable = 0;
+dev_shibasis_reaktor_ui_material_MaterialTokens$stable = 0;
 dev_shibasis_reaktor_ui_material_ReaktorColor$stable = 0;
 dev_shibasis_reaktor_ui_material_ReaktorTheme$stable = 0;
 dev_shibasis_reaktor_ui_material_PromiseResult$stable = 8;
+dev_shibasis_reaktor_ui_tokens_WebColorScheme$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebTextStyle$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebTypography$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebSpacing$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebShapes$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebElevation$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebSizing$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebBreakpoints$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebMotion$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebDesignTokens$stable = 0;
+dev_shibasis_reaktor_ui_tokens_WebMaterialTokens$stable = 0;
+WebMaterialTokens_instance = new WebMaterialTokens_0();
 //endregion
 //region block: eager init
 initHook_0 = initHook$init$();
@@ -37435,12 +42564,44 @@ defineProp(StatusCode, 'Companion', Companion_getInstance_10, VOID, true);
 var initHook = {get: get_initHook};
 var initHook = {get: get_initHook_0};
 var initHook = {get: get_initHook_1};
-PromiseState.values = values_0;
-PromiseState.valueOf = valueOf_0;
+ComponentSize.values = values_1;
+ComponentSize.valueOf = valueOf_0;
+defineProp(ComponentSize, 'Small', ComponentSize_Small_getInstance, VOID, true);
+defineProp(ComponentSize, 'Medium', ComponentSize_Medium_getInstance, VOID, true);
+defineProp(ComponentSize, 'Large', ComponentSize_Large_getInstance, VOID, true);
+ComponentVariant.values = values_2;
+ComponentVariant.valueOf = valueOf_1;
+defineProp(ComponentVariant, 'Filled', ComponentVariant_Filled_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Outlined', ComponentVariant_Outlined_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Text', ComponentVariant_Text_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Tonal', ComponentVariant_Tonal_getInstance, VOID, true);
+defineProp(ComponentVariant, 'Elevated', ComponentVariant_Elevated_getInstance, VOID, true);
+ComponentState.values = values_3;
+ComponentState.valueOf = valueOf_2;
+defineProp(ComponentState, 'Enabled', ComponentState_Enabled_getInstance, VOID, true);
+defineProp(ComponentState, 'Disabled', ComponentState_Disabled_getInstance, VOID, true);
+defineProp(ComponentState, 'Loading', ComponentState_Loading_getInstance, VOID, true);
+TextRole.values = values_4;
+TextRole.valueOf = valueOf_3;
+defineProp(TextRole, 'Display', TextRole_Display_getInstance, VOID, true);
+defineProp(TextRole, 'Headline', TextRole_Headline_getInstance, VOID, true);
+defineProp(TextRole, 'Title', TextRole_Title_getInstance, VOID, true);
+defineProp(TextRole, 'Body', TextRole_Body_getInstance, VOID, true);
+defineProp(TextRole, 'Label', TextRole_Label_getInstance, VOID, true);
+defineProp(TextRole, 'Caption', TextRole_Caption_getInstance, VOID, true);
+TextSize.values = values_5;
+TextSize.valueOf = valueOf_4;
+defineProp(TextSize, 'Small', TextSize_Small_getInstance, VOID, true);
+defineProp(TextSize, 'Medium', TextSize_Medium_getInstance, VOID, true);
+defineProp(TextSize, 'Large', TextSize_Large_getInstance, VOID, true);
+var ReaktorUIDemo = {get: get_ReaktorUIDemo};
+PromiseState.values = values_6;
+PromiseState.valueOf = valueOf_5;
 defineProp(PromiseState, 'Initial', PromiseState_Initial_getInstance, VOID, true);
 defineProp(PromiseState, 'Pending', PromiseState_Pending_getInstance, VOID, true);
 defineProp(PromiseState, 'Resolved', PromiseState_Resolved_getInstance, VOID, true);
 defineProp(PromiseState, 'Rejected', PromiseState_Rejected_getInstance, VOID, true);
+var WebMaterialTokens = {getInstance: WebMaterialTokens_getInstance};
 export {
   StatusCode as StatusCode,
   JsResult as JsResult,
@@ -37449,9 +42610,35 @@ export {
   getPatnaikUserAgent as getPatnaikUserAgent,
   initHook as initHook,
   FileAdapter as FileAdapter,
+  ComponentSize as ComponentSize,
+  ComponentVariant as ComponentVariant,
+  ComponentState as ComponentState,
+  TextRole as TextRole,
+  TextSize as TextSize,
+  ReaktorUIDemo as ReaktorUIDemo,
   PromiseState as PromiseState,
   PromiseResult as PromiseResult,
   usePromise as usePromise,
+  WebColorScheme as WebColorScheme,
+  WebTextStyle as WebTextStyle,
+  WebTypography as WebTypography,
+  WebSpacing as WebSpacing,
+  WebShapes as WebShapes,
+  WebElevation as WebElevation,
+  WebSizing as WebSizing,
+  WebBreakpoints as WebBreakpoints,
+  WebMotion as WebMotion,
+  WebDesignTokens as WebDesignTokens,
+  defaultWebTypography as defaultWebTypography,
+  lighten as lighten,
+  darken as darken,
+  autoContentColor as autoContentColor,
+  withAlpha as withAlpha,
+  createLightColorScheme as createLightColorScheme,
+  createDarkColorScheme as createDarkColorScheme,
+  createWebDesignTokens as createWebDesignTokens,
+  createWebTokens as createWebTokens,
+  WebMaterialTokens as WebMaterialTokens,
 };
 //endregion
 

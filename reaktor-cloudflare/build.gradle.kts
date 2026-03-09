@@ -11,6 +11,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-core"))
+            api(project(":reaktor-graph"))
         }
     }
     droid {}

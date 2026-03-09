@@ -757,6 +757,152 @@ export declare namespace JsFailureResult {
     }
 }
 export declare function getPatnaikUserAgent(): string;
+export declare abstract class ComponentSize {
+    private constructor();
+    static get Small(): ComponentSize & {
+        get name(): "Small";
+        get ordinal(): 0;
+    };
+    static get Medium(): ComponentSize & {
+        get name(): "Medium";
+        get ordinal(): 1;
+    };
+    static get Large(): ComponentSize & {
+        get name(): "Large";
+        get ordinal(): 2;
+    };
+    get name(): "Small" | "Medium" | "Large";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<ComponentSize>;
+    static valueOf(value: string): ComponentSize;
+}
+export declare namespace ComponentSize {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentSize;
+    }
+}
+export declare abstract class ComponentVariant {
+    private constructor();
+    static get Filled(): ComponentVariant & {
+        get name(): "Filled";
+        get ordinal(): 0;
+    };
+    static get Outlined(): ComponentVariant & {
+        get name(): "Outlined";
+        get ordinal(): 1;
+    };
+    static get Text(): ComponentVariant & {
+        get name(): "Text";
+        get ordinal(): 2;
+    };
+    static get Tonal(): ComponentVariant & {
+        get name(): "Tonal";
+        get ordinal(): 3;
+    };
+    static get Elevated(): ComponentVariant & {
+        get name(): "Elevated";
+        get ordinal(): 4;
+    };
+    get name(): "Filled" | "Outlined" | "Text" | "Tonal" | "Elevated";
+    get ordinal(): 0 | 1 | 2 | 3 | 4;
+    static values(): Array<ComponentVariant>;
+    static valueOf(value: string): ComponentVariant;
+}
+export declare namespace ComponentVariant {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentVariant;
+    }
+}
+export declare abstract class ComponentState {
+    private constructor();
+    static get Enabled(): ComponentState & {
+        get name(): "Enabled";
+        get ordinal(): 0;
+    };
+    static get Disabled(): ComponentState & {
+        get name(): "Disabled";
+        get ordinal(): 1;
+    };
+    static get Loading(): ComponentState & {
+        get name(): "Loading";
+        get ordinal(): 2;
+    };
+    get name(): "Enabled" | "Disabled" | "Loading";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<ComponentState>;
+    static valueOf(value: string): ComponentState;
+}
+export declare namespace ComponentState {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentState;
+    }
+}
+export declare abstract class TextRole {
+    private constructor();
+    static get Display(): TextRole & {
+        get name(): "Display";
+        get ordinal(): 0;
+    };
+    static get Headline(): TextRole & {
+        get name(): "Headline";
+        get ordinal(): 1;
+    };
+    static get Title(): TextRole & {
+        get name(): "Title";
+        get ordinal(): 2;
+    };
+    static get Body(): TextRole & {
+        get name(): "Body";
+        get ordinal(): 3;
+    };
+    static get Label(): TextRole & {
+        get name(): "Label";
+        get ordinal(): 4;
+    };
+    static get Caption(): TextRole & {
+        get name(): "Caption";
+        get ordinal(): 5;
+    };
+    get name(): "Display" | "Headline" | "Title" | "Body" | "Label" | "Caption";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<TextRole>;
+    static valueOf(value: string): TextRole;
+}
+export declare namespace TextRole {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TextRole;
+    }
+}
+export declare abstract class TextSize {
+    private constructor();
+    static get Small(): TextSize & {
+        get name(): "Small";
+        get ordinal(): 0;
+    };
+    static get Medium(): TextSize & {
+        get name(): "Medium";
+        get ordinal(): 1;
+    };
+    static get Large(): TextSize & {
+        get name(): "Large";
+        get ordinal(): 2;
+    };
+    get name(): "Small" | "Medium" | "Large";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<TextSize>;
+    static valueOf(value: string): TextSize;
+}
+export declare namespace TextSize {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TextSize;
+    }
+}
+export declare const ReaktorUIDemo: { get(): FC<ReaktorUIDemoProps>; };
 export declare abstract class PromiseState {
     private constructor();
     static get Initial(): PromiseState & {
@@ -803,6 +949,280 @@ export declare namespace PromiseResult {
     }
 }
 export declare function usePromise<T>(dependencies: Array<Nullable<any>>, promiseFactory: () => Nullable<Promise<T>>): PromiseResult<T>;
+export declare class WebColorScheme {
+    constructor(background: string, surface: string, surfaceVariant: string, surfaceContainer: string, surfaceContainerHigh: string, surfaceContainerLow: string, onBackground: string, onSurface: string, onSurfaceVariant: string, primary: string, primaryContainer: string, onPrimary: string, onPrimaryContainer: string, secondary: string, secondaryContainer: string, onSecondary: string, onSecondaryContainer: string, tertiary: string, tertiaryContainer: string, onTertiary: string, onTertiaryContainer: string, error: string, errorContainer: string, onError: string, onErrorContainer: string, success: string, onSuccess: string, warning: string, onWarning: string, info: string, onInfo: string, outline: string, outlineVariant: string, scrim: string, shadow: string, inverseSurface: string, inverseOnSurface: string, inversePrimary: string);
+    get background(): string;
+    get surface(): string;
+    get surfaceVariant(): string;
+    get surfaceContainer(): string;
+    get surfaceContainerHigh(): string;
+    get surfaceContainerLow(): string;
+    get onBackground(): string;
+    get onSurface(): string;
+    get onSurfaceVariant(): string;
+    get primary(): string;
+    get primaryContainer(): string;
+    get onPrimary(): string;
+    get onPrimaryContainer(): string;
+    get secondary(): string;
+    get secondaryContainer(): string;
+    get onSecondary(): string;
+    get onSecondaryContainer(): string;
+    get tertiary(): string;
+    get tertiaryContainer(): string;
+    get onTertiary(): string;
+    get onTertiaryContainer(): string;
+    get error(): string;
+    get errorContainer(): string;
+    get onError(): string;
+    get onErrorContainer(): string;
+    get success(): string;
+    get onSuccess(): string;
+    get warning(): string;
+    get onWarning(): string;
+    get info(): string;
+    get onInfo(): string;
+    get outline(): string;
+    get outlineVariant(): string;
+    get scrim(): string;
+    get shadow(): string;
+    get inverseSurface(): string;
+    get inverseOnSurface(): string;
+    get inversePrimary(): string;
+    copy(background?: string, surface?: string, surfaceVariant?: string, surfaceContainer?: string, surfaceContainerHigh?: string, surfaceContainerLow?: string, onBackground?: string, onSurface?: string, onSurfaceVariant?: string, primary?: string, primaryContainer?: string, onPrimary?: string, onPrimaryContainer?: string, secondary?: string, secondaryContainer?: string, onSecondary?: string, onSecondaryContainer?: string, tertiary?: string, tertiaryContainer?: string, onTertiary?: string, onTertiaryContainer?: string, error?: string, errorContainer?: string, onError?: string, onErrorContainer?: string, success?: string, onSuccess?: string, warning?: string, onWarning?: string, info?: string, onInfo?: string, outline?: string, outlineVariant?: string, scrim?: string, shadow?: string, inverseSurface?: string, inverseOnSurface?: string, inversePrimary?: string): WebColorScheme;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebColorScheme {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebColorScheme;
+    }
+}
+export declare class WebTextStyle {
+    constructor(fontSize: string, lineHeight: string, fontWeight: string, letterSpacing: string);
+    get fontSize(): string;
+    get lineHeight(): string;
+    get fontWeight(): string;
+    get letterSpacing(): string;
+    copy(fontSize?: string, lineHeight?: string, fontWeight?: string, letterSpacing?: string): WebTextStyle;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebTextStyle {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTextStyle;
+    }
+}
+export declare class WebTypography {
+    constructor(displayLarge: WebTextStyle, displayMedium: WebTextStyle, displaySmall: WebTextStyle, headlineLarge: WebTextStyle, headlineMedium: WebTextStyle, headlineSmall: WebTextStyle, titleLarge: WebTextStyle, titleMedium: WebTextStyle, titleSmall: WebTextStyle, bodyLarge: WebTextStyle, bodyMedium: WebTextStyle, bodySmall: WebTextStyle, labelLarge: WebTextStyle, labelMedium: WebTextStyle, labelSmall: WebTextStyle);
+    get displayLarge(): WebTextStyle;
+    get displayMedium(): WebTextStyle;
+    get displaySmall(): WebTextStyle;
+    get headlineLarge(): WebTextStyle;
+    get headlineMedium(): WebTextStyle;
+    get headlineSmall(): WebTextStyle;
+    get titleLarge(): WebTextStyle;
+    get titleMedium(): WebTextStyle;
+    get titleSmall(): WebTextStyle;
+    get bodyLarge(): WebTextStyle;
+    get bodyMedium(): WebTextStyle;
+    get bodySmall(): WebTextStyle;
+    get labelLarge(): WebTextStyle;
+    get labelMedium(): WebTextStyle;
+    get labelSmall(): WebTextStyle;
+    copy(displayLarge?: WebTextStyle, displayMedium?: WebTextStyle, displaySmall?: WebTextStyle, headlineLarge?: WebTextStyle, headlineMedium?: WebTextStyle, headlineSmall?: WebTextStyle, titleLarge?: WebTextStyle, titleMedium?: WebTextStyle, titleSmall?: WebTextStyle, bodyLarge?: WebTextStyle, bodyMedium?: WebTextStyle, bodySmall?: WebTextStyle, labelLarge?: WebTextStyle, labelMedium?: WebTextStyle, labelSmall?: WebTextStyle): WebTypography;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebTypography {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTypography;
+    }
+}
+export declare class WebSpacing {
+    constructor(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string);
+    get none(): string;
+    get xxs(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    get xxl(): string;
+    get xxxl(): string;
+    copy(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string): WebSpacing;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebSpacing {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebSpacing;
+    }
+}
+export declare class WebShapes {
+    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string);
+    get none(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    get full(): string;
+    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string): WebShapes;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebShapes {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebShapes;
+    }
+}
+export declare class WebElevation {
+    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string);
+    get none(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string): WebElevation;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebElevation {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebElevation;
+    }
+}
+export declare class WebSizing {
+    constructor(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string);
+    get touchTargetMin(): string;
+    get iconXs(): string;
+    get iconSm(): string;
+    get iconMd(): string;
+    get iconLg(): string;
+    get iconXl(): string;
+    get buttonSm(): string;
+    get buttonMd(): string;
+    get buttonLg(): string;
+    get inputSm(): string;
+    get inputMd(): string;
+    get inputLg(): string;
+    get avatarSm(): string;
+    get avatarMd(): string;
+    get avatarLg(): string;
+    get avatarXl(): string;
+    copy(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string): WebSizing;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebSizing {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebSizing;
+    }
+}
+export declare class WebBreakpoints {
+    constructor(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number);
+    get mobile(): number;
+    get tablet(): number;
+    get desktop(): number;
+    get largeDesktop(): number;
+    copy(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number): WebBreakpoints;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebBreakpoints {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebBreakpoints;
+    }
+}
+export declare class WebMotion {
+    constructor(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number);
+    get durationInstant(): number;
+    get durationFast(): number;
+    get durationNormal(): number;
+    get durationSlow(): number;
+    get durationSlowest(): number;
+    copy(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number): WebMotion;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebMotion {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebMotion;
+    }
+}
+export declare class WebDesignTokens {
+    constructor(colors: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion);
+    get colors(): WebColorScheme;
+    get typography(): WebTypography;
+    get spacing(): WebSpacing;
+    get shapes(): WebShapes;
+    get elevation(): WebElevation;
+    get sizing(): WebSizing;
+    get breakpoints(): WebBreakpoints;
+    get motion(): WebMotion;
+    copy(colors?: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion): WebDesignTokens;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebDesignTokens {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebDesignTokens;
+    }
+}
+export declare function defaultWebTypography(): WebTypography;
+export declare function lighten(hex: string, fraction: number): string;
+export declare function darken(hex: string, fraction: number): string;
+export declare function autoContentColor(background: string, lightContent?: string, darkContent?: string): string;
+export declare function withAlpha(hex: string, alpha: number): string;
+export declare function createLightColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
+export declare function createDarkColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
+export declare function createWebDesignTokens(colors: WebColorScheme): WebDesignTokens;
+export declare function createWebTokens(primary: string, secondary: string, tertiary?: Nullable<string>, darkMode?: boolean): WebDesignTokens;
+export declare abstract class WebMaterialTokens {
+    static readonly getInstance: () => typeof WebMaterialTokens.$metadata$.type;
+    private constructor();
+}
+export declare namespace WebMaterialTokens {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            get defaultLight(): WebDesignTokens;
+            get defaultDark(): WebDesignTokens;
+            get blueLight(): WebDesignTokens;
+            get blueDark(): WebDesignTokens;
+            get greenLight(): WebDesignTokens;
+            get greenDark(): WebDesignTokens;
+            get reaktorLight(): WebDesignTokens;
+            get reaktorDark(): WebDesignTokens;
+            private constructor();
+        }
+    }
+}
 /** @deprecated  */
 export declare const initHook: { get(): any; };
 export declare abstract class FileAdapter<Controller> /* extends Adapter<Controller> */ {
@@ -1345,6 +1765,7 @@ export declare namespace Reaktor {
 }
 export declare class Graph extends PortGraph.$metadata$.constructor<Graph, Node> /* implements LifecycleCapability, DependencyCapability, ConcurrencyCapability, NavigationCapability */ {
     constructor(parentGraph?: Nullable<Graph>, dispatcher?: any/* CoroutineDispatcher */, dependencyAdapter?: any/* DependencyAdapter<UnknownType *> */, id?: any/* Uuid */, label?: string, dependencies?: (p0: any/* DependencyAdapter.ScopeBuilder */) => void, builder?: (p0: Graph) => void);
+    get parentGraph(): Nullable<Graph>;
     get id(): any/* Uuid */;
     get label(): string;
     get dependencies(): (p0: any/* DependencyAdapter.ScopeBuilder */) => void;
@@ -1359,8 +1780,6 @@ export declare namespace Graph {
         const constructor: abstract new () => Graph;
     }
 }
-export declare function connectPort(consumerPort: ConsumerPort<any>, providerPort: ProviderPort<any>): any/* Result<Edge<any>> */;
-export declare function connectNode(node1: PortCapability, node2: PortCapability): void;
 export declare class NavigationEdge<P extends Payload> extends Edge.$metadata$.constructor<NavBinding<P>> {
     constructor(start: RouteNode<any /*UnknownType **/, any /*UnknownType **/>, end: RouteNode<P, any /*UnknownType **/>);
     get start(): RouteNode<any /*UnknownType **/, any /*UnknownType **/>;
@@ -1388,7 +1807,7 @@ export declare namespace BasicNode {
     }
 }
 export declare class ContainerNode extends Node.$metadata$.constructor implements Node.Routable {
-    constructor(parent: Graph, graphs?: KtMutableList<Graph>/* ArrayList<Graph> */, pattern?: string);
+    constructor(parent: Graph, pattern?: string, graphs?: KtMutableList<Graph>/* ArrayList<Graph> */);
     get graphs(): KtMutableList<Graph>/* ArrayList<Graph> */;
     get routeBinding(): ConsumerPort<RouteBinding<Payload>>;
     get route(): RouteNode<Payload, RouteBinding<Payload>>;
@@ -1489,32 +1908,6 @@ export declare namespace RouteNode {
                 private constructor();
             }
         }
-    }
-}
-export declare interface PortCapability extends PortCapability {
-    readonly portEvents: any/* SharedFlow<PortEvent> */;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.core.port.PortCapability": unique symbol;
-    } & PortCapability["__doNotUseOrImplementIt"];
-}
-export declare class PortCapabilityImpl implements PortCapability/*, ConcurrencyCapability */ {
-    constructor(context?: Nullable<any>/* Nullable<CoroutineContext> */, consumerPorts?: KtMutableMap<Type, KtMutableMap<Key, ConsumerPort<any>>>, providerPorts?: KtMutableMap<Type, KtMutableMap<Key, ProviderPort<any>>>, portEvents?: any/* MutableSharedFlow<PortEvent> */, baseImpl?: PortCapabilityImpl);
-    get consumerPorts(): KtMutableMap<Type, KtMutableMap<Key, ConsumerPort<any>>>;
-    get providerPorts(): KtMutableMap<Type, KtMutableMap<Key, ProviderPort<any>>>;
-    get portEvents(): any/* MutableSharedFlow<PortEvent> */;
-    addPortEventListener(listener: (p0: PortEvent) => void): void;
-    removePortEventListener(listener: (p0: PortEvent) => void): void;
-    emit(event: PortEvent): void;
-    registerProvider<Functionality extends any>(keyType: KeyType, impl: Functionality): ProviderPort<Functionality>;
-    getProvider<Functionality extends any>(keyType: KeyType): Nullable<ProviderPort<Functionality>>;
-    registerConsumer<Functionality extends any>(keyType: KeyType): ConsumerPort<Functionality>;
-    getConsumer<Functionality extends any>(keyType: KeyType): Nullable<ConsumerPort<Functionality>>;
-    readonly __doNotUseOrImplementIt: PortCapability["__doNotUseOrImplementIt"];
-}
-export declare namespace PortCapabilityImpl {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => PortCapabilityImpl;
     }
 }
 export declare interface NavCommand {

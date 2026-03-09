@@ -5,8 +5,6 @@ import styleX from 'vite-plugin-stylex';
 export default defineConfig({
   plugins: [
     react(),
-    styleX({
-      importSources: [{ from: 'react-strict-dom', as: 'css' }],
-    }),
+    styleX(),
   ],
 });

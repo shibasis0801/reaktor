@@ -152,10 +152,7 @@ val ReaktorUIDemo = FC<ReaktorUIDemoProps> { props ->
         div {
             style = jso {
                 display = Display.grid
-                gridTemplateColumns = GridTemplateColumns.repeat(
-                    count = GridAutoRepeat.autoFit,
-                    minmax = minmax(320.px, 1.fr)
-                )
+                gridTemplateColumns = "repeat(auto-fit, minmax(320px, 1fr))".unsafeCast<GridTemplateColumns>()
                 gap = spacing.lg.unsafeCast<Gap>()
             }
 
@@ -458,10 +455,9 @@ val ReaktorUIDemo = FC<ReaktorUIDemoProps> { props ->
 
 // Helper Components
 
-external interface DemoSectionProps : Props {
+external interface DemoSectionProps : PropsWithChildren {
     var tokens: WebDesignTokens
     var title: String
-    var children: ReactNode?
 }
 
 val DemoSection = FC<DemoSectionProps> { props ->

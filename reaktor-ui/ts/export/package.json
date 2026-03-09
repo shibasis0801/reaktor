@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-ui",
-  "version": "2026.1.15-SNAPSHOT",
+  "version": "2026.3.7-SNAPSHOT",
   "main": "reaktor-reaktor-ui.mjs",
   "types": "reaktor-reaktor-ui.d.mts",
   "devDependencies": {
