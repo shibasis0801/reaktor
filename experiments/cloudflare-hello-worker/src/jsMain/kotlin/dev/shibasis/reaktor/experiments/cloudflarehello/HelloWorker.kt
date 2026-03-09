@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.cloudflare.nest
 import dev.shibasis.reaktor.cloudflare.putInt
 import dev.shibasis.reaktor.cloudflare.toWorker
 import dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatService
+import dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseService
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.promise
@@ -34,6 +35,7 @@ object HelloWorker {
         Hono()
             .mount(ExperimentRootService())
             .nest("/chat", ChatService())
+            .nest("/supabase", SupabaseService())
             .toWorker()
 
     fun fetch(request: Any, env: Any, executionContext: Any): Any =

@@ -3,6 +3,9 @@
   "name": "reaktor-cloudflare-hello-experiment-20260309",
   "main": "src/index.ts",
   "compatibility_date": "2026-03-09",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "d1_databases": [
     {
       "binding": "CHAT_DB",
@@ -14,6 +17,13 @@
     {
       "binding": "CHAT_MEDIA",
       "bucket_name": "reaktor-cloudflare-hello-experiment-20260309-r2"
+    }
+  ],
+  "hyperdrive": [
+    {
+      "binding": "SUPABASE",
+      "id": "e39187f3236f4cbeafe8737f58a2b566",
+      "localConnectionString": "postgres://postgres.fedkrdguhjxxsmexbwmr:cTtK0oUqGQKTH83f@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
     }
   ],
   "durable_objects": {

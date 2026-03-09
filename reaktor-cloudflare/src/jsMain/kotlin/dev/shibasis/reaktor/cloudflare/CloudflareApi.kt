@@ -32,6 +32,10 @@ class VectorBinding internal constructor(name: String) : Binding<VectorizeIndex>
     override fun resolve(context: CloudflareContext): VectorizeIndex? = context.vectorOrNull(name)
 }
 
+class HyperdriveBinding internal constructor(name: String) : Binding<Hyperdrive>(name, "Hyperdrive") {
+    override fun resolve(context: CloudflareContext): Hyperdrive? = context.hyperdriveOrNull(name)
+}
+
 fun d1(name: String): D1Binding = D1Binding(name)
 
 fun r2(name: String): R2Binding = R2Binding(name)
@@ -39,6 +43,8 @@ fun r2(name: String): R2Binding = R2Binding(name)
 fun durableObject(name: String): DurableObjectBinding = DurableObjectBinding(name)
 
 fun vector(name: String): VectorBinding = VectorBinding(name)
+
+fun hyperdrive(name: String): HyperdriveBinding = HyperdriveBinding(name)
 
 operator fun <T : Any> CloudflareContext.get(binding: Binding<T>): T = binding.require(this)
 

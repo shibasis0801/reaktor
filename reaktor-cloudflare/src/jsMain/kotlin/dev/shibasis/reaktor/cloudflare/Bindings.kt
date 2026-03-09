@@ -5,6 +5,10 @@ import kotlin.js.Promise
 
 external interface CloudflareEnv
 
+external interface Hyperdrive {
+    val connectionString: String
+}
+
 external interface WorkerExecutionContext {
     fun waitUntil(promise: Promise<Any?>)
     fun passThroughOnException()
@@ -174,11 +178,13 @@ class CloudflareContext internal constructor(
     fun r2OrNull(name: String): R2Bucket? = bindingOrNull(name)
     fun durableObjectOrNull(name: String): DurableObjectNamespace? = bindingOrNull(name)
     fun vectorOrNull(name: String): VectorizeIndex? = bindingOrNull(name)
+    fun hyperdriveOrNull(name: String): Hyperdrive? = bindingOrNull(name)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
     fun requireR2(name: String): R2Bucket = r2OrNull(name) ?: missingBinding(name, "R2Bucket")
     fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjectOrNull(name) ?: missingBinding(name, "DurableObjectNamespace")
     fun requireVector(name: String): VectorizeIndex = vectorOrNull(name) ?: missingBinding(name, "VectorizeIndex")
+    fun requireHyperdrive(name: String): Hyperdrive = hyperdriveOrNull(name) ?: missingBinding(name, "Hyperdrive")
 
     @Deprecated("Use d1OrNull(name)", ReplaceWith("d1OrNull(name)"))
     fun d1(name: String): D1Database? = d1OrNull(name)
@@ -191,6 +197,9 @@ class CloudflareContext internal constructor(
 
     @Deprecated("Use vectorOrNull(name)", ReplaceWith("vectorOrNull(name)"))
     fun vector(name: String): VectorizeIndex? = vectorOrNull(name)
+
+    @Deprecated("Use hyperdriveOrNull(name)", ReplaceWith("hyperdriveOrNull(name)"))
+    fun hyperdrive(name: String): Hyperdrive? = hyperdriveOrNull(name)
 
     fun waitUntil(promise: Promise<Any?>) {
         (executionContextOrNull ?: error("Execution context is only available on request-bound CloudflareContext")).waitUntil(promise)

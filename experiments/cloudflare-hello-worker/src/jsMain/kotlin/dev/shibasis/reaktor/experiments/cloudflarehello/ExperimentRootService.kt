@@ -12,11 +12,14 @@ class ExperimentRootService : Service() {
                 message = "Cloudflare chat experiment powered by Kotlin services",
                 routes = listOf(
                     "/chat",
+                    "/supabase",
+                    "/supabase/status",
                     "/chat/rooms",
                     "/chat/media",
                     "/chat/rooms/{roomId}/messages",
                 ),
                 flow = listOf(
+                    "GET /supabase/status to query bestbuds-backed Supabase metadata through Hyperdrive and postgres.js",
                     "POST /chat/rooms to create a room",
                     "POST /chat/rooms/{roomId}/members to coordinate presence via Durable Objects",
                     "POST /chat/media to store attachments in R2",
