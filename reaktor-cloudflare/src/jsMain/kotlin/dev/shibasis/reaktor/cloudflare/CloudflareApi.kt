@@ -2,9 +2,7 @@ package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
-import dev.shibasis.reaktor.core.cloudflare.R2Bucket
 import dev.shibasis.reaktor.graph.service.Service
-import kotlinx.coroutines.await
 
 sealed class Binding<T : Any>(
     val name: String,
@@ -28,12 +26,8 @@ class DurableObjectBinding internal constructor(name: String) : Binding<DurableO
     override fun resolve(context: CloudflareContext): DurableObjectNamespace? = context.durableObjectOrNull(name)
 }
 
-class VectorBinding internal constructor(name: String) : Binding<VectorizeIndex>(name, "VectorizeIndex") {
-    override fun resolve(context: CloudflareContext): VectorizeIndex? = context.vectorOrNull(name)
-}
-
-class HyperdriveBinding internal constructor(name: String) : Binding<Hyperdrive>(name, "Hyperdrive") {
-    override fun resolve(context: CloudflareContext): Hyperdrive? = context.hyperdriveOrNull(name)
+class VectorBinding internal constructor(name: String) : Binding<VectorIndex>(name, "VectorIndex") {
+    override fun resolve(context: CloudflareContext): VectorIndex? = context.vectorOrNull(name)
 }
 
 fun d1(name: String): D1Binding = D1Binding(name)
@@ -44,28 +38,9 @@ fun durableObject(name: String): DurableObjectBinding = DurableObjectBinding(nam
 
 fun vector(name: String): VectorBinding = VectorBinding(name)
 
-fun hyperdrive(name: String): HyperdriveBinding = HyperdriveBinding(name)
-
 operator fun <T : Any> CloudflareContext.get(binding: Binding<T>): T = binding.require(this)
 
 fun <T : Any> CloudflareContext.find(binding: Binding<T>): T? = binding.resolve(this)
-
-external interface WorkerRequestInit {
-    var method: String?
-    var headers: dynamic
-    var body: dynamic
-}
-
-fun jsonRequestInit(
-    method: String,
-    body: String? = null,
-): WorkerRequestInit {
-    val init = js("({})").unsafeCast<WorkerRequestInit>()
-    init.method = method
-    init.headers = js("({ 'Content-Type': 'application/json' })")
-    init.body = body
-    return init
-}
 
 class CloudflareWorker internal constructor(
     private val app: Hono,
@@ -86,73 +61,25 @@ open class CloudflareDurableObject(
     state: Any,
     env: Any,
 ) {
-    protected val state: DurableObjectState = state.unsafeCast<DurableObjectState>()
+    private val rawState: RawDurableObjectState = state.unsafeCast<RawDurableObjectState>()
+
     protected val context: CloudflareContext = CloudflareContext(env.unsafeCast<CloudflareEnv>())
     protected val storage: DurableObjectStorage
-        get() = state.storage
+        get() = DurableObjectStorage(rawState.storage)
     protected val id: DurableObjectId
-        get() = state.id
+        get() = DurableObjectId(rawState.id)
+
+    protected fun incomingRequest(request: Any): CloudflareWorkerRequest =
+        CloudflareWorkerRequest(request.unsafeCast<RawWorkerRequest>())
 
     protected fun text(body: String): dynamic = workerTextResponse(body)
-    protected inline fun <reified T> json(value: T): dynamic = workerJsonResponse(json.encodeToString(kSerializer<T>(), value))
-    protected suspend fun requestBody(request: Any): String = request.unsafeCast<WorkerRequest>().text().await()
-    protected suspend inline fun <reified T> decode(request: Any): T = json.decodeFromString(requestBody(request))
+
+    protected inline fun <reified T> json(value: T): dynamic =
+        workerJsonResponse(json.encodeToString(kSerializer<T>(), value))
+
+    protected suspend inline fun <reified T> decode(request: Any): T =
+        incomingRequest(request).decode()
 }
-
-suspend fun D1PreparedStatement.string(columnName: String): String? = first(columnName).await()?.toString()
-
-suspend fun D1Database.string(query: String, columnName: String): String? =
-    prepare(query).string(columnName)
-
-suspend fun D1Database.execute(query: String) {
-    exec(query).await()
-}
-
-suspend fun D1PreparedStatement.execute(): D1Result = run().await()
-
-suspend fun D1PreparedStatement.rows(): Array<dynamic> = all().await().results ?: emptyArray()
-
-fun DurableObjectNamespace.named(name: String): DurableObjectStub = getByName(name)
-
-suspend fun DurableObjectStub.text(input: dynamic, init: dynamic = null): String =
-    fetch(input, init).await().text().await()
-
-suspend inline fun <reified T> DurableObjectStub.getJson(url: String): T =
-    json.decodeFromString(fetch(url).await().text().await())
-
-suspend inline fun <reified In, reified Out> DurableObjectStub.postJson(
-    url: String,
-    body: In,
-): Out {
-    val payload = json.encodeToString(kSerializer<In>(), body)
-    return json.decodeFromString(fetch(url, jsonRequestInit("POST", payload)).await().text().await())
-}
-
-suspend fun DurableObjectStorage.int(key: String): Int? =
-    get(key).await()?.toString()?.toIntOrNull()
-
-suspend fun DurableObjectStorage.putInt(key: String, value: Int) {
-    put(key, value).await()
-}
-
-suspend fun R2Bucket.putText(key: String, value: String) {
-    put(key, value).await()
-}
-
-suspend fun R2Bucket.getText(key: String): String? {
-    val body = get(key).await() ?: return null
-    return body.text().await()
-}
-
-suspend inline fun <reified T> R2Bucket.putJson(
-    key: String,
-    value: T,
-) {
-    putText(key, json.encodeToString(kSerializer<T>(), value))
-}
-
-suspend inline fun <reified T> R2Bucket.getJson(key: String): T? =
-    getText(key)?.let(json::decodeFromString)
 
 @PublishedApi
 internal fun workerTextResponse(body: String): dynamic {

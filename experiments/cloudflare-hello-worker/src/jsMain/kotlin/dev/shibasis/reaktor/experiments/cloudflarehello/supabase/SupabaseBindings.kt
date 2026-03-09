@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.experiments.cloudflarehello.supabase
 
-import dev.shibasis.reaktor.cloudflare.hyperdrive
+import dev.shibasis.reaktor.cloudflare.postgres
 
 object SupabaseBindings {
-    val database = hyperdrive("SUPABASE")
+    val database = postgres("SUPABASE")
 }

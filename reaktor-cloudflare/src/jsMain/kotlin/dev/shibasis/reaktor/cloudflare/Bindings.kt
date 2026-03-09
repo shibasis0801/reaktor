@@ -1,11 +1,11 @@
 package dev.shibasis.reaktor.cloudflare
 
-import dev.shibasis.reaktor.core.cloudflare.R2Bucket
+import dev.shibasis.reaktor.core.cloudflare.R2Bucket as RawR2Bucket
 import kotlin.js.Promise
 
 external interface CloudflareEnv
 
-external interface Hyperdrive {
+internal external interface RawHyperdrive {
     val connectionString: String
 }
 
@@ -14,14 +14,14 @@ external interface WorkerExecutionContext {
     fun passThroughOnException()
 }
 
-external interface WorkerResponse {
+internal external interface RawWorkerResponse {
     val ok: Boolean
     val status: Number
     fun text(): Promise<String>
     fun json(): Promise<dynamic>
 }
 
-external interface WorkerRequest {
+internal external interface RawWorkerRequest {
     val method: String?
     val url: String
     fun text(): Promise<String>
@@ -52,103 +52,83 @@ external interface Hono {
 
 fun Hono(): Hono = js("new HonoFactory()")
 
-external interface D1RawOptions {
-    var columnNames: Boolean?
-}
-
-external interface D1ExecResult {
-    val count: Number?
-    val duration: Number?
-}
-
-external interface D1Result {
+internal external interface RawD1Result {
     val success: Boolean?
     val results: Array<dynamic>?
     val meta: dynamic
 }
 
-external interface D1PreparedStatement {
-    fun bind(vararg values: Any?): D1PreparedStatement
+internal external interface RawD1PreparedStatement {
+    fun bind(vararg values: Any?): RawD1PreparedStatement
     fun first(columnName: String = definedExternally): Promise<Any?>
-    fun run(): Promise<D1Result>
-    fun all(): Promise<D1Result>
-    fun raw(options: D1RawOptions = definedExternally): Promise<Array<dynamic>>
+    fun run(): Promise<RawD1Result>
+    fun all(): Promise<RawD1Result>
 }
 
-external interface D1Database {
-    fun prepare(query: String): D1PreparedStatement
-    fun batch(statements: Array<D1PreparedStatement>): Promise<Array<D1Result>>
-    fun exec(query: String): Promise<D1ExecResult>
+internal external interface RawD1Database {
+    fun prepare(query: String): RawD1PreparedStatement
 }
 
-external interface DurableObjectId {
+internal external interface RawDurableObjectId {
     override fun toString(): String
 }
 
-external interface DurableObjectGetOptions {
+internal external interface RawDurableObjectGetOptions {
     var locationHint: String?
 }
 
-external interface DurableObjectNamespace {
-    fun newUniqueId(options: dynamic = definedExternally): DurableObjectId
-    fun idFromName(name: String): DurableObjectId
-    fun idFromString(id: String): DurableObjectId
-    fun get(id: DurableObjectId, options: DurableObjectGetOptions = definedExternally): DurableObjectStub
-    fun getByName(name: String): DurableObjectStub
+internal external interface RawDurableObjectNamespace {
+    fun newUniqueId(options: dynamic = definedExternally): RawDurableObjectId
+    fun idFromName(name: String): RawDurableObjectId
+    fun idFromString(id: String): RawDurableObjectId
+    fun get(id: RawDurableObjectId, options: RawDurableObjectGetOptions = definedExternally): RawDurableObjectStub
+    fun getByName(name: String): RawDurableObjectStub
 }
 
-external interface DurableObjectStub {
-    fun fetch(input: dynamic, init: dynamic = definedExternally): Promise<WorkerResponse>
+internal external interface RawDurableObjectStub {
+    fun fetch(input: dynamic, init: dynamic = definedExternally): Promise<RawWorkerResponse>
 }
 
-external interface DurableObjectListOptions {
-    var start: String?
-    var end: String?
-    var prefix: String?
-    var reverse: Boolean?
-    var limit: Number?
-}
-
-external interface DurableObjectStorage {
+internal external interface RawDurableObjectStorage {
     fun get(key: String): Promise<Any?>
     fun put(key: String, value: Any?): Promise<Unit>
     fun delete(key: String): Promise<Boolean>
     fun deleteAll(): Promise<Unit>
-    fun list(options: DurableObjectListOptions = definedExternally): Promise<dynamic>
+    fun list(options: dynamic = definedExternally): Promise<dynamic>
 }
 
-external interface DurableObjectState {
-    val id: DurableObjectId
-    val storage: DurableObjectStorage
+internal external interface RawDurableObjectState {
+    val id: RawDurableObjectId
+    val storage: RawDurableObjectStorage
     fun waitUntil(promise: Promise<Any?>)
     fun blockConcurrencyWhile(callback: () -> Promise<Any?>): Promise<Any?>
 }
 
-external interface VectorizeVector {
+internal external interface RawVectorizeVector {
     var id: String
     var values: Array<Number>
     var namespace: String?
     var metadata: dynamic
 }
 
-external interface VectorizeMatch {
+internal external interface RawVectorizeMatch {
     val id: String
     val score: Number
     val values: Array<Number>?
     val metadata: dynamic
 }
 
-external interface VectorizeMatches {
-    val matches: Array<VectorizeMatch>
+internal external interface RawVectorizeMatches {
+    val matches: Array<RawVectorizeMatch>
     val count: Number?
 }
 
-external interface VectorizeMutationResult {
+internal external interface RawVectorizeMutationResult {
     val ids: Array<String>?
     val count: Number?
 }
 
-external interface VectorizeQueryOptions {
+internal external interface RawVectorizeQueryOptions {
     var topK: Number?
     var namespace: String?
     var returnValues: Boolean?
@@ -156,13 +136,13 @@ external interface VectorizeQueryOptions {
     var filter: dynamic
 }
 
-external interface VectorizeIndex {
+internal external interface RawVectorizeIndex {
     fun describe(): Promise<dynamic>
-    fun insert(vectors: Array<VectorizeVector>): Promise<VectorizeMutationResult>
-    fun upsert(vectors: Array<VectorizeVector>): Promise<VectorizeMutationResult>
-    fun query(vector: Array<Number>, options: VectorizeQueryOptions = definedExternally): Promise<VectorizeMatches>
-    fun getByIds(ids: Array<String>): Promise<Array<VectorizeVector>>
-    fun deleteByIds(ids: Array<String>): Promise<VectorizeMutationResult>
+    fun insert(vectors: Array<RawVectorizeVector>): Promise<RawVectorizeMutationResult>
+    fun upsert(vectors: Array<RawVectorizeVector>): Promise<RawVectorizeMutationResult>
+    fun query(vector: Array<Number>, options: RawVectorizeQueryOptions = definedExternally): Promise<RawVectorizeMatches>
+    fun getByIds(ids: Array<String>): Promise<Array<RawVectorizeVector>>
+    fun deleteByIds(ids: Array<String>): Promise<RawVectorizeMutationResult>
 }
 
 class CloudflareContext internal constructor(
@@ -170,36 +150,21 @@ class CloudflareContext internal constructor(
     private val executionContextOrNull: WorkerExecutionContext? = null,
     internal val honoOrNull: HonoContext? = null,
 ) {
-    fun raw(name: String): Any? = env.asDynamic()[name] as Any?
+    internal fun raw(name: String): Any? = env.asDynamic()[name]
 
-    private fun <T> bindingOrNull(name: String): T? = raw(name).unsafeCast<T?>()
+    private fun <T> rawBindingOrNull(name: String): T? = raw(name).unsafeCast<T?>()
 
-    fun d1OrNull(name: String): D1Database? = bindingOrNull(name)
-    fun r2OrNull(name: String): R2Bucket? = bindingOrNull(name)
-    fun durableObjectOrNull(name: String): DurableObjectNamespace? = bindingOrNull(name)
-    fun vectorOrNull(name: String): VectorizeIndex? = bindingOrNull(name)
-    fun hyperdriveOrNull(name: String): Hyperdrive? = bindingOrNull(name)
+    fun d1OrNull(name: String): D1Database? = rawBindingOrNull<RawD1Database>(name)?.let(::D1Database)
+    fun r2OrNull(name: String): R2Bucket? = rawBindingOrNull<RawR2Bucket>(name)?.let(::R2Bucket)
+    fun durableObjectOrNull(name: String): DurableObjectNamespace? = rawBindingOrNull<RawDurableObjectNamespace>(name)?.let(::DurableObjectNamespace)
+    fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
+    internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
     fun requireR2(name: String): R2Bucket = r2OrNull(name) ?: missingBinding(name, "R2Bucket")
     fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjectOrNull(name) ?: missingBinding(name, "DurableObjectNamespace")
-    fun requireVector(name: String): VectorizeIndex = vectorOrNull(name) ?: missingBinding(name, "VectorizeIndex")
-    fun requireHyperdrive(name: String): Hyperdrive = hyperdriveOrNull(name) ?: missingBinding(name, "Hyperdrive")
-
-    @Deprecated("Use d1OrNull(name)", ReplaceWith("d1OrNull(name)"))
-    fun d1(name: String): D1Database? = d1OrNull(name)
-
-    @Deprecated("Use r2OrNull(name)", ReplaceWith("r2OrNull(name)"))
-    fun r2(name: String): R2Bucket? = r2OrNull(name)
-
-    @Deprecated("Use durableObjectOrNull(name)", ReplaceWith("durableObjectOrNull(name)"))
-    fun durableObjects(name: String): DurableObjectNamespace? = durableObjectOrNull(name)
-
-    @Deprecated("Use vectorOrNull(name)", ReplaceWith("vectorOrNull(name)"))
-    fun vector(name: String): VectorizeIndex? = vectorOrNull(name)
-
-    @Deprecated("Use hyperdriveOrNull(name)", ReplaceWith("hyperdriveOrNull(name)"))
-    fun hyperdrive(name: String): Hyperdrive? = hyperdriveOrNull(name)
+    fun requireVector(name: String): VectorIndex = vectorOrNull(name) ?: missingBinding(name, "VectorIndex")
+    internal fun requireHyperdrive(name: String): HyperdriveConfig = hyperdriveOrNull(name) ?: missingBinding(name, "Hyperdrive")
 
     fun waitUntil(promise: Promise<Any?>) {
         (executionContextOrNull ?: error("Execution context is only available on request-bound CloudflareContext")).waitUntil(promise)

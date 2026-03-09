@@ -2,14 +2,9 @@ package dev.shibasis.reaktor.experiments.cloudflarehello.chat
 
 import dev.shibasis.reaktor.cloudflare.CloudflareDurableObject
 import dev.shibasis.reaktor.cloudflare.DurableObjectNamespace
-import dev.shibasis.reaktor.cloudflare.WorkerRequest
-import dev.shibasis.reaktor.cloudflare.getJson
-import dev.shibasis.reaktor.cloudflare.named
-import dev.shibasis.reaktor.cloudflare.postJson
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.await
 import kotlinx.coroutines.promise
 import kotlinx.serialization.Serializable
 import kotlin.js.JsExport
@@ -80,11 +75,11 @@ class ChatRoomDurableObject(
     env: Any,
 ) : CloudflareDurableObject(state, env) {
     fun fetch(request: Any): Promise<dynamic> = GlobalScope.promise {
-        val workerRequest = request.unsafeCast<WorkerRequest>()
-        when (requestPath(workerRequest)) {
-            "/snapshot" -> json(loadState().toPresence(requestRoomId(workerRequest)))
+        val incoming = incomingRequest(request)
+        when (incoming.path) {
+            "/snapshot" -> json(loadState().toPresence(incoming.requireQuery("roomId")))
             "/join" -> {
-                val command = decode<JoinRoomCommand>(request)
+                val command = incoming.decode<JoinRoomCommand>()
                 val state = loadState()
                     .upsert(command.participant)
                     .touch()
@@ -94,7 +89,7 @@ class ChatRoomDurableObject(
             }
 
             "/leave" -> {
-                val command = decode<LeaveRoomCommand>(request)
+                val command = incoming.decode<LeaveRoomCommand>()
                 val state = loadState()
                     .remove(command.participantId)
                     .touch()
@@ -104,7 +99,7 @@ class ChatRoomDurableObject(
             }
 
             "/publish" -> {
-                val command = decode<PublishMessageCommand>(request)
+                val command = incoming.decode<PublishMessageCommand>()
                 val state = loadState()
                     .upsert(command.participant)
                     .increment()
@@ -121,15 +116,15 @@ class ChatRoomDurableObject(
                 )
             }
 
-            else -> text("Unknown coordinator route '${requestPath(workerRequest)}'")
+            else -> text("Unknown coordinator route '${incoming.path}'")
         }
     }
 
     private suspend fun loadState(): CoordinatorState =
-        storage.get("state").await()?.toString()?.let(json::decodeFromString) ?: CoordinatorState()
+        storage.text("state")?.let(json::decodeFromString) ?: CoordinatorState()
 
     private suspend fun CoordinatorState.persist(): CoordinatorState {
-        storage.put("state", json.encodeToString(this)).await()
+        storage.putText("state", json.encodeToString(this))
         return this
     }
 
@@ -162,8 +157,3 @@ class ChatRoomDurableObject(
             updatedAt = updatedAt,
         )
 }
-
-private fun requestPath(request: WorkerRequest): String = js("new URL(request.url).pathname") as String
-
-private fun requestRoomId(request: WorkerRequest): String =
-    (js("new URL(request.url).searchParams.get('roomId')") as String?) ?: error("roomId query parameter is required")

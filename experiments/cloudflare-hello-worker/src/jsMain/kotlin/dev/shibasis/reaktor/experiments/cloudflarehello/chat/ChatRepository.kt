@@ -1,11 +1,8 @@
 package dev.shibasis.reaktor.experiments.cloudflarehello.chat
 
 import dev.shibasis.reaktor.cloudflare.D1Database
-import dev.shibasis.reaktor.cloudflare.execute
-import dev.shibasis.reaktor.cloudflare.getJson
-import dev.shibasis.reaktor.cloudflare.putJson
-import dev.shibasis.reaktor.cloudflare.rows
-import dev.shibasis.reaktor.core.cloudflare.R2Bucket
+import dev.shibasis.reaktor.cloudflare.R2Bucket
+import dev.shibasis.reaktor.cloudflare.sqlValues
 import kotlinx.serialization.Serializable
 
 private const val roomsTable = "experiment_chat_rooms"
@@ -64,25 +61,27 @@ class ChatRepository(
             createdAt = nowIsoString(),
         )
 
-        database.prepare(
+        database.execute(
             """
-            INSERT INTO $roomsTable (
+            INSERT INTO %I (
                 id,
                 name,
                 topic,
                 created_by_id,
                 created_by_name,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (%L)
             """.trimIndent(),
-        ).bind(
-            room.id,
-            room.name,
-            room.topic,
-            room.createdBy.id,
-            room.createdBy.displayName,
-            room.createdAt,
-        ).execute()
+            roomsTable,
+            sqlValues(
+                room.id,
+                room.name,
+                room.topic,
+                room.createdBy.id,
+                room.createdBy.displayName,
+                room.createdAt,
+            ),
+        )
 
         return room
     }
@@ -90,45 +89,43 @@ class ChatRepository(
     suspend fun listRooms(limit: Int): List<ChatRoomSummary> {
         ensureSchema()
 
-        val rows = database.prepare(
+        return database.rows(
             """
             SELECT
                 id,
                 name,
                 topic,
-                created_by_id,
-                created_by_name,
-                created_at
-            FROM $roomsTable
+                created_by_id AS "createdBy.id",
+                created_by_name AS "createdBy.displayName",
+                created_at AS "createdAt"
+            FROM %I
             ORDER BY created_at DESC
-            LIMIT ?
+            LIMIT %V
             """.trimIndent(),
-        ).bind(limit).rows()
-
-        return rows.map(::roomFromRow)
+            roomsTable,
+            limit,
+        )
     }
 
     suspend fun requireRoom(roomId: String): ChatRoomSummary {
         ensureSchema()
 
-        val row =
-            database.prepare(
-                """
-                SELECT
-                    id,
-                    name,
-                    topic,
-                    created_by_id,
-                    created_by_name,
-                    created_at
-                FROM $roomsTable
-                WHERE id = ?
-                LIMIT 1
-                """.trimIndent(),
-            ).bind(roomId).rows().firstOrNull()
-                ?: error("Room '$roomId' was not found")
-
-        return roomFromRow(row)
+        return database.firstOrNull(
+            """
+            SELECT
+                id,
+                name,
+                topic,
+                created_by_id AS "createdBy.id",
+                created_by_name AS "createdBy.displayName",
+                created_at AS "createdAt"
+            FROM %I
+            WHERE id = %V
+            LIMIT 1
+            """.trimIndent(),
+            roomsTable,
+            roomId,
+        ) ?: error("Room '$roomId' was not found")
     }
 
     suspend fun saveMessage(
@@ -150,9 +147,9 @@ class ChatRepository(
             createdAt = nowIsoString(),
         )
 
-        database.prepare(
+        database.execute(
             """
-            INSERT INTO $messagesTable (
+            INSERT INTO %I (
                 id,
                 room_id,
                 sequence,
@@ -167,24 +164,26 @@ class ChatRepository(
                 media_uploaded_by_name,
                 media_uploaded_at,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%L)
             """.trimIndent(),
-        ).bind(
-            message.id,
-            message.roomId,
-            message.sequence,
-            message.author.id,
-            message.author.displayName,
-            message.body,
-            message.media?.id,
-            message.media?.key,
-            message.media?.fileName,
-            message.media?.contentType,
-            message.media?.uploadedBy?.id,
-            message.media?.uploadedBy?.displayName,
-            message.media?.uploadedAt,
-            message.createdAt,
-        ).execute()
+            messagesTable,
+            sqlValues(
+                message.id,
+                message.roomId,
+                message.sequence,
+                message.author.id,
+                message.author.displayName,
+                message.body,
+                message.media?.id,
+                message.media?.key,
+                message.media?.fileName,
+                message.media?.contentType,
+                message.media?.uploadedBy?.id,
+                message.media?.uploadedBy?.displayName,
+                message.media?.uploadedAt,
+                message.createdAt,
+            ),
+        )
 
         return message
     }
@@ -196,31 +195,66 @@ class ChatRepository(
     ): List<ChatMessage> {
         ensureSchema()
 
-        val rows =
+        val query =
             if (beforeSequence == null) {
-                database.prepare(
+                database.rows<ChatMessage>(
                     """
-                    SELECT *
-                    FROM $messagesTable
-                    WHERE room_id = ?
+                    SELECT
+                        id,
+                        room_id AS "roomId",
+                        sequence,
+                        author_id AS "author.id",
+                        author_name AS "author.displayName",
+                        body,
+                        media_id AS "media.id",
+                        media_key AS "media.key",
+                        media_file_name AS "media.fileName",
+                        media_content_type AS "media.contentType",
+                        media_uploaded_by_id AS "media.uploadedBy.id",
+                        media_uploaded_by_name AS "media.uploadedBy.displayName",
+                        media_uploaded_at AS "media.uploadedAt",
+                        created_at AS "createdAt"
+                    FROM %I
+                    WHERE room_id = %V
                     ORDER BY sequence DESC
-                    LIMIT ?
+                    LIMIT %V
                     """.trimIndent(),
-                ).bind(roomId, limit).rows()
+                    messagesTable,
+                    roomId,
+                    limit,
+                )
             } else {
-                database.prepare(
+                database.rows<ChatMessage>(
                     """
-                    SELECT *
-                    FROM $messagesTable
-                    WHERE room_id = ?
-                      AND sequence < ?
+                    SELECT
+                        id,
+                        room_id AS "roomId",
+                        sequence,
+                        author_id AS "author.id",
+                        author_name AS "author.displayName",
+                        body,
+                        media_id AS "media.id",
+                        media_key AS "media.key",
+                        media_file_name AS "media.fileName",
+                        media_content_type AS "media.contentType",
+                        media_uploaded_by_id AS "media.uploadedBy.id",
+                        media_uploaded_by_name AS "media.uploadedBy.displayName",
+                        media_uploaded_at AS "media.uploadedAt",
+                        created_at AS "createdAt"
+                    FROM %I
+                    WHERE room_id = %V
+                      AND sequence < %V
                     ORDER BY sequence DESC
-                    LIMIT ?
+                    LIMIT %V
                     """.trimIndent(),
-                ).bind(roomId, beforeSequence, limit).rows()
+                    messagesTable,
+                    roomId,
+                    beforeSequence,
+                    limit,
+                )
             }
 
-        return rows.map(::messageFromRow).reversed()
+        return query.reversed()
     }
 
     suspend fun storeMedia(request: UploadMediaRequest): ChatMediaRef {
@@ -265,59 +299,10 @@ class ChatRepository(
     private suspend fun ensureSchema() {
         if (schemaReady) return
 
-        database.prepare(createRoomsTableStatement).execute()
-        database.prepare(createMessagesTableStatement).execute()
-        database.prepare(createRoomSequenceIndexStatement).execute()
+        database.execute(createRoomsTableStatement)
+        database.execute(createMessagesTableStatement)
+        database.execute(createRoomSequenceIndexStatement)
 
         schemaReady = true
-    }
-
-    private fun roomFromRow(row: Any): ChatRoomSummary =
-        ChatRoomSummary(
-            id = field(row, "id"),
-            name = field(row, "name"),
-            topic = field(row, "topic"),
-            createdBy = ChatParticipant(field(row, "created_by_id"), field(row, "created_by_name")),
-            createdAt = field(row, "created_at"),
-        )
-
-    private fun messageFromRow(row: Any): ChatMessage {
-        val mediaId = fieldOrNull(row, "media_id")
-        val media =
-            if (mediaId == null) {
-                null
-            } else {
-                ChatMediaRef(
-                    id = mediaId,
-                    key = field(row, "media_key"),
-                    fileName = field(row, "media_file_name"),
-                    contentType = field(row, "media_content_type"),
-                    uploadedBy = ChatParticipant(field(row, "media_uploaded_by_id"), field(row, "media_uploaded_by_name")),
-                    uploadedAt = field(row, "media_uploaded_at"),
-                )
-            }
-
-        return ChatMessage(
-            id = field(row, "id"),
-            roomId = field(row, "room_id"),
-            sequence = intField(row, "sequence"),
-            author = ChatParticipant(field(row, "author_id"), field(row, "author_name")),
-            body = field(row, "body"),
-            media = media,
-            createdAt = field(row, "created_at"),
-        )
-    }
-}
-
-private fun field(row: Any, name: String): String =
-    row.asDynamic()[name]?.toString() ?: error("Missing field '$name' in D1 row")
-
-private fun fieldOrNull(row: Any, name: String): String? = row.asDynamic()[name]?.toString()
-
-private fun intField(row: Any, name: String): Int {
-    val value = row.asDynamic()[name] ?: error("Missing field '$name' in D1 row")
-    return when (value) {
-        is Number -> value.toInt()
-        else -> value.toString().toInt()
     }
 }

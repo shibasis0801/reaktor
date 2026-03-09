@@ -1,11 +1,10 @@
 package dev.shibasis.reaktor.experiments.cloudflarehello.supabase
 
-import dev.shibasis.reaktor.cloudflare.context
-import dev.shibasis.reaktor.cloudflare.withPostgres
+import dev.shibasis.reaktor.cloudflare.postgres
 import dev.shibasis.reaktor.graph.service.GetHandler
 import dev.shibasis.reaktor.graph.service.Service
 
-class SupabaseService : Service() {
+class SupabaseService: Service() {
     init {
         GetHandler<SupabaseOverviewRequest, SupabaseOverviewResponse>("/") {
             SupabaseOverviewResponse(
@@ -23,7 +22,7 @@ class SupabaseService : Service() {
         }
 
         GetHandler<SupabaseStatusRequest, SupabaseStatusResponse>("/status") { request ->
-            request.context.withPostgres(SupabaseBindings.database) {
+            request.postgres(SupabaseBindings.database) {
                 SupabaseRepository(this).inspectBestBudsSurface()
             }
         }

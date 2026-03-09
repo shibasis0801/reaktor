@@ -2,10 +2,8 @@ package dev.shibasis.reaktor.experiments.cloudflarehello
 
 import dev.shibasis.reaktor.cloudflare.CloudflareDurableObject
 import dev.shibasis.reaktor.cloudflare.Hono
-import dev.shibasis.reaktor.cloudflare.int
 import dev.shibasis.reaktor.cloudflare.mount
 import dev.shibasis.reaktor.cloudflare.nest
-import dev.shibasis.reaktor.cloudflare.putInt
 import dev.shibasis.reaktor.cloudflare.toWorker
 import dev.shibasis.reaktor.experiments.cloudflarehello.chat.ChatService
 import dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseService

@@ -1,8 +1,7 @@
 package dev.shibasis.reaktor.experiments.cloudflarehello.chat
 
-import dev.shibasis.reaktor.cloudflare.context
-import dev.shibasis.reaktor.cloudflare.get
 import dev.shibasis.reaktor.cloudflare.CloudflareRequest
+import dev.shibasis.reaktor.cloudflare.get
 import dev.shibasis.reaktor.graph.service.GetHandler
 import dev.shibasis.reaktor.graph.service.PostHandler
 import dev.shibasis.reaktor.graph.service.Service
@@ -157,12 +156,12 @@ private fun ChatRoomSummary.withPresence(presence: ChatPresence): ChatRoomSummar
 
 private fun CloudflareRequest.repository(): ChatRepository =
     ChatRepository(
-        database = context[ChatBindings.database],
-        mediaBucket = context[ChatBindings.media],
+        database = this[ChatBindings.database],
+        mediaBucket = this[ChatBindings.media],
     )
 
 private fun CloudflareRequest.coordinator(): ChatRoomCoordinator =
-    ChatRoomCoordinator(context[ChatBindings.coordinator])
+    ChatRoomCoordinator(this[ChatBindings.coordinator])
 
 private fun CloudflareRequest.roomId(): String =
     pathParams["roomId"] ?: error("roomId path parameter is required")

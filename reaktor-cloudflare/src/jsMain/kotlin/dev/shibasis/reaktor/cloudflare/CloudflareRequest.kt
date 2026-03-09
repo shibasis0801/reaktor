@@ -26,8 +26,4 @@ val Request.contextOrNull: CloudflareContext?
 val Request.context: CloudflareContext
     get() = contextOrNull ?: error("Cloudflare context is only available for CloudflareAwareRequest handlers mounted through Service.toHono()")
 
-@Deprecated("Use request.contextOrNull", ReplaceWith("contextOrNull"))
-fun Request.cloudflareOrNull(): CloudflareContext? = contextOrNull
-
-@Deprecated("Use request.context", ReplaceWith("context"))
-fun Request.requireCloudflare(): CloudflareContext = context
+operator fun <T : Any> CloudflareRequest.get(binding: Binding<T>): T = context[binding]
