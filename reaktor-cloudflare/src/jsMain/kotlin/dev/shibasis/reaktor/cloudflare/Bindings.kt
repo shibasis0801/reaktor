@@ -10,6 +10,13 @@ external interface WorkerExecutionContext {
     fun passThroughOnException()
 }
 
+external interface WorkerResponse {
+    val ok: Boolean
+    val status: Number
+    fun text(): Promise<String>
+    fun json(): Promise<dynamic>
+}
+
 external interface HonoRequest {
     fun text(): Promise<String>
     fun query(): dynamic
@@ -81,7 +88,7 @@ external interface DurableObjectNamespace {
 }
 
 external interface DurableObjectStub {
-    fun fetch(input: dynamic, init: dynamic = definedExternally): Promise<dynamic>
+    fun fetch(input: dynamic, init: dynamic = definedExternally): Promise<WorkerResponse>
 }
 
 external interface DurableObjectListOptions {
@@ -150,23 +157,37 @@ external interface VectorizeIndex {
 
 class CloudflareContext internal constructor(
     val env: CloudflareEnv,
-    val executionContext: WorkerExecutionContext,
-    internal val hono: HonoContext,
+    private val executionContextOrNull: WorkerExecutionContext? = null,
+    internal val honoOrNull: HonoContext? = null,
 ) {
     fun raw(name: String): Any? = env.asDynamic()[name] as Any?
 
-    fun d1(name: String): D1Database? = raw(name)?.unsafeCast<D1Database?>()
-    fun r2(name: String): R2Bucket? = raw(name)?.unsafeCast<R2Bucket?>()
-    fun durableObjects(name: String): DurableObjectNamespace? = raw(name)?.unsafeCast<DurableObjectNamespace?>()
-    fun vector(name: String): VectorizeIndex? = raw(name)?.unsafeCast<VectorizeIndex?>()
+    private fun <T> bindingOrNull(name: String): T? = raw(name).unsafeCast<T?>()
 
-    fun requireD1(name: String): D1Database = d1(name) ?: missingBinding(name, "D1Database")
-    fun requireR2(name: String): R2Bucket = r2(name) ?: missingBinding(name, "R2Bucket")
-    fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjects(name) ?: missingBinding(name, "DurableObjectNamespace")
-    fun requireVector(name: String): VectorizeIndex = vector(name) ?: missingBinding(name, "VectorizeIndex")
+    fun d1OrNull(name: String): D1Database? = bindingOrNull(name)
+    fun r2OrNull(name: String): R2Bucket? = bindingOrNull(name)
+    fun durableObjectOrNull(name: String): DurableObjectNamespace? = bindingOrNull(name)
+    fun vectorOrNull(name: String): VectorizeIndex? = bindingOrNull(name)
+
+    fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
+    fun requireR2(name: String): R2Bucket = r2OrNull(name) ?: missingBinding(name, "R2Bucket")
+    fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjectOrNull(name) ?: missingBinding(name, "DurableObjectNamespace")
+    fun requireVector(name: String): VectorizeIndex = vectorOrNull(name) ?: missingBinding(name, "VectorizeIndex")
+
+    @Deprecated("Use d1OrNull(name)", ReplaceWith("d1OrNull(name)"))
+    fun d1(name: String): D1Database? = d1OrNull(name)
+
+    @Deprecated("Use r2OrNull(name)", ReplaceWith("r2OrNull(name)"))
+    fun r2(name: String): R2Bucket? = r2OrNull(name)
+
+    @Deprecated("Use durableObjectOrNull(name)", ReplaceWith("durableObjectOrNull(name)"))
+    fun durableObjects(name: String): DurableObjectNamespace? = durableObjectOrNull(name)
+
+    @Deprecated("Use vectorOrNull(name)", ReplaceWith("vectorOrNull(name)"))
+    fun vector(name: String): VectorizeIndex? = vectorOrNull(name)
 
     fun waitUntil(promise: Promise<Any?>) {
-        executionContext.waitUntil(promise)
+        (executionContextOrNull ?: error("Execution context is only available on request-bound CloudflareContext")).waitUntil(promise)
     }
 
     private fun <T> missingBinding(name: String, type: String): T {

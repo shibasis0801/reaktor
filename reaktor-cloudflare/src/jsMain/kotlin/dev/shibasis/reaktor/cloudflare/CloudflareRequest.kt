@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 interface CloudflareAwareRequest {
-    var cloudflare: CloudflareContext?
+    var cloudflareContext: CloudflareContext?
 }
 
 @Serializable
@@ -17,10 +17,17 @@ open class CloudflareRequest(
     override var environment: Environment = Environment.STAGE,
 ) : Request(headers, queryParams, pathParams, environment), CloudflareAwareRequest {
     @Transient
-    override var cloudflare: CloudflareContext? = null
+    override var cloudflareContext: CloudflareContext? = null
 }
 
-fun Request.cloudflareOrNull(): CloudflareContext? = (this as? CloudflareAwareRequest)?.cloudflare
+val Request.contextOrNull: CloudflareContext?
+    get() = (this as? CloudflareAwareRequest)?.cloudflareContext
 
-fun Request.requireCloudflare(): CloudflareContext =
-    cloudflareOrNull() ?: error("Cloudflare context is only available for CloudflareAwareRequest handlers mounted through Service.toHono()")
+val Request.context: CloudflareContext
+    get() = contextOrNull ?: error("Cloudflare context is only available for CloudflareAwareRequest handlers mounted through Service.toHono()")
+
+@Deprecated("Use request.contextOrNull", ReplaceWith("contextOrNull"))
+fun Request.cloudflareOrNull(): CloudflareContext? = contextOrNull
+
+@Deprecated("Use request.context", ReplaceWith("context"))
+fun Request.requireCloudflare(): CloudflareContext = context

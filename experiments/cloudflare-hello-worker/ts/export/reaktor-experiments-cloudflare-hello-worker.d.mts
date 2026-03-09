@@ -2399,7 +2399,7 @@ export declare namespace DeleteBuilder {
 export declare const initHook: { get(): any; };
 /** @deprecated  */
 export declare const initHook: { get(): any; };
-export declare class HelloCounterDurableObject {
+export declare class HelloCounterDurableObject /* extends CloudflareDurableObject */ {
     constructor(state: any, env: any);
     fetch(request: any): Promise<any>;
 }

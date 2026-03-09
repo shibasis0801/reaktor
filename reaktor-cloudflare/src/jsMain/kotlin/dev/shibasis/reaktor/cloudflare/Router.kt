@@ -45,7 +45,7 @@ private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext
         request.headers[key] = value
     }
 
-    (request as? CloudflareAwareRequest)?.cloudflare = CloudflareContext(context.env, context.executionCtx, context)
+    (request as? CloudflareAwareRequest)?.cloudflareContext = CloudflareContext(context.env, context.executionCtx, context)
 
     val response = invoke(request)
     response.toWorkerResponse(textSerializer.serialize(responseSerializer, response))

@@ -9151,6 +9151,11 @@ class BufferedChannelIterator {
     }
   }
 }
+class SendChannel {}
+function close$default(cause, $super) {
+  cause = cause === VOID ? null : cause;
+  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
+}
 class ReceiveChannel {}
 function cancel$default_0(cause, $super) {
   cause = cause === VOID ? null : cause;
@@ -9162,11 +9167,6 @@ function cancel$default_0(cause, $super) {
     tmp = $super.cancel_hkmm2i_k$.call(this, cause);
   }
   return tmp;
-}
-class SendChannel {}
-function close$default(cause, $super) {
-  cause = cause === VOID ? null : cause;
-  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
 }
 class BufferedChannel {
   constructor(capacity, onUndeliveredElement) {
@@ -32198,63 +32198,107 @@ class toReactState$slambda {
   }
 }
 class CloudflareContext {
-  constructor(env, executionContext, hono) {
+  constructor(env, executionContextOrNull, honoOrNull) {
+    executionContextOrNull = executionContextOrNull === VOID ? null : executionContextOrNull;
+    honoOrNull = honoOrNull === VOID ? null : honoOrNull;
     this.env_1 = env;
-    this.executionContext_1 = executionContext;
-    this.hono_1 = hono;
+    this.executionContextOrNull_1 = executionContextOrNull;
+    this.honoOrNull_1 = honoOrNull;
   }
   raw_sqci3y_k$(name) {
     // Inline function 'kotlin.js.asDynamic' call
     var tmp = this.env_1[name];
     return (tmp == null ? true : !(tmp == null)) ? tmp : THROW_CCE();
   }
-  d1_mv6u4t_k$(name) {
-    var tmp0_safe_receiver = this.raw_sqci3y_k$(name);
+  d1OrNull_cts2al_k$(name) {
+    return bindingOrNull(this, name);
+  }
+  r2OrNull_htwyk0_k$(name) {
+    return bindingOrNull(this, name);
+  }
+  durableObjectOrNull_owhb56_k$(name) {
+    return bindingOrNull(this, name);
+  }
+}
+class CloudflareDurableObject {
+  constructor(state, env) {
+    var tmp = this;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.state_1 = state;
+    var tmp_0 = this;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp_0.context_1 = new CloudflareContext(env);
+  }
+  get_state_iypx7s_k$() {
+    return this.state_1;
+  }
+  get_context_h02k06_k$() {
+    return this.context_1;
+  }
+  get_storage_twal4e_k$() {
+    return this.state_1.storage;
+  }
+  get_id_kntnx8_k$() {
+    return this.state_1.id;
+  }
+  text_yxj031_k$(body) {
+    return workerTextResponse(body);
+  }
+}
+class Binding {
+  constructor(name, typeName) {
+    this.name_1 = name;
+    this.typeName_1 = typeName;
+  }
+  require_rt1k4n_k$(context) {
+    var tmp0_elvis_lhs = this.resolve_akzwmm_k$(context);
     var tmp;
-    if (tmp0_safe_receiver == null) {
-      tmp = null;
+    if (tmp0_elvis_lhs == null) {
+      var message = "Missing Cloudflare binding '" + this.name_1 + "' for " + this.typeName_1;
+      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
     } else {
-      // Inline function 'kotlin.js.unsafeCast' call
-      // Inline function 'kotlin.js.asDynamic' call
-      tmp = tmp0_safe_receiver;
+      tmp = tmp0_elvis_lhs;
     }
     return tmp;
   }
-  r2_98n62i_k$(name) {
-    var tmp0_safe_receiver = this.raw_sqci3y_k$(name);
-    var tmp;
-    if (tmp0_safe_receiver == null) {
-      tmp = null;
-    } else {
-      // Inline function 'kotlin.js.unsafeCast' call
-      // Inline function 'kotlin.js.asDynamic' call
-      tmp = tmp0_safe_receiver;
-    }
-    return tmp;
+}
+class DurableObjectBinding extends Binding {
+  constructor(name) {
+    super(name, 'DurableObjectNamespace');
   }
-  durableObjects_1z1yjl_k$(name) {
-    var tmp0_safe_receiver = this.raw_sqci3y_k$(name);
-    var tmp;
-    if (tmp0_safe_receiver == null) {
-      tmp = null;
-    } else {
-      // Inline function 'kotlin.js.unsafeCast' call
-      // Inline function 'kotlin.js.asDynamic' call
-      tmp = tmp0_safe_receiver;
-    }
-    return tmp;
+  resolve_akzwmm_k$(context) {
+    return context.durableObjectOrNull_owhb56_k$(this.name_1);
   }
-  requireD1_o36afs_k$(name) {
-    var tmp0_elvis_lhs = this.d1_mv6u4t_k$(name);
-    return tmp0_elvis_lhs == null ? missingBinding(this, name, 'D1Database') : tmp0_elvis_lhs;
+}
+class CloudflareWorker {
+  constructor(app) {
+    this.app_1 = app;
   }
-  requireR2_xbe3h1_k$(name) {
-    var tmp0_elvis_lhs = this.r2_98n62i_k$(name);
-    return tmp0_elvis_lhs == null ? missingBinding(this, name, 'R2Bucket') : tmp0_elvis_lhs;
+  fetch_bfzgk_k$(request, env, executionContext) {
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp = env;
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return this.app_1.fetch(request, tmp, executionContext);
   }
-  requireDurableObjects_l3wtz8_k$(name) {
-    var tmp0_elvis_lhs = this.durableObjects_1z1yjl_k$(name);
-    return tmp0_elvis_lhs == null ? missingBinding(this, name, 'DurableObjectNamespace') : tmp0_elvis_lhs;
+}
+class D1Binding extends Binding {
+  constructor(name) {
+    super(name, 'D1Database');
+  }
+  resolve_akzwmm_k$(context) {
+    return context.d1OrNull_cts2al_k$(this.name_1);
+  }
+}
+class R2Binding extends Binding {
+  constructor(name) {
+    super(name, 'R2Bucket');
+  }
+  resolve_akzwmm_k$(context) {
+    return context.r2OrNull_htwyk0_k$(this.name_1);
   }
 }
 class Companion_85 {
@@ -32427,7 +32471,7 @@ class CloudflareRequest extends Request {
     $this.queryParams_2 = queryParams;
     $this.pathParams_2 = pathParams;
     $this.environment_2 = environment;
-    $this.cloudflare_1 = null;
+    $this.cloudflareContext_1 = null;
     return $this;
   }
   get_headers_ef25jx_k$() {
@@ -32445,11 +32489,11 @@ class CloudflareRequest extends Request {
   get_environment_ch208a_k$() {
     return this.environment_2;
   }
-  set_cloudflare_kzuzt7_k$(_set____db54di) {
-    this.cloudflare_1 = _set____db54di;
+  set_cloudflareContext_yu9p8y_k$(_set____db54di) {
+    this.cloudflareContext_1 = _set____db54di;
   }
-  get_cloudflare_pa74ji_k$() {
-    return this.cloudflare_1;
+  get_cloudflareContext_q2s1e5_k$() {
+    return this.cloudflareContext_1;
   }
   static new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
     Companion_getInstance_85();
@@ -32479,7 +32523,7 @@ class CloudflareRequest extends Request {
       $this.environment_2 = Environment_STAGE_getInstance();
     else
       $this.environment_2 = environment;
-    $this.cloudflare_1 = null;
+    $this.cloudflareContext_1 = null;
     return $this;
   }
 }
@@ -35490,17 +35534,7 @@ class HelloCounterDurableObject$fetch$slambda {
     return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
   }
 }
-class HelloCounterDurableObject {
-  constructor(state, env) {
-    var tmp = this;
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    tmp.durableState_1 = state;
-    var tmp_0 = this;
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    tmp_0.workerEnv_1 = env;
-  }
+class HelloCounterDurableObject extends CloudflareDurableObject {
   fetch(request) {
     var tmp = GlobalScope_instance;
     return promise(tmp, VOID, VOID, HelloCounterDurableObject$fetch$slambda_0(this));
@@ -35509,15 +35543,20 @@ class HelloCounterDurableObject {
 class HelloWorker_0 {
   constructor() {
     HelloWorker_instance = this;
-    this.app_1 = toHono(new HelloService());
+    this.worker_1 = toWorker(new HelloService());
   }
   fetch(request, env, executionContext) {
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    var tmp = env;
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    return this.app_1.fetch(request, tmp, executionContext);
+    return this.worker_1.fetch_bfzgk_k$(request, env, executionContext);
+  }
+}
+class HelloBindings {
+  constructor() {
+    HelloBindings_instance = this;
+    this.db_1 = d1('HELLO_DB');
+    this.bucket_1 = r2('HELLO_BUCKET');
+    this.stateful_1 = durableObject('HELLO_STATEFUL');
+    this.durableObjectName_1 = 'hello-singleton';
+    this.r2Key_1 = 'hello/world.txt';
   }
 }
 class Companion_86 {
@@ -35772,7 +35811,7 @@ class HelloResponse extends Response_0 {
 }
 class HelloService$slambda {
   invoke_59nui_k$($this$GetHandler, request, $completion) {
-    requireCloudflare(request);
+    get_context(request);
     return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from kotlin service on cloudflare', VOID, VOID, listOf_0(['/', '/d1', '/r2', '/do']));
   }
   invoke_x3sdos_k$(p1, p2, $completion) {
@@ -69556,13 +69595,116 @@ function getWindowSizeFlow$lambda_1($callback) {
   };
 }
 var dev_shibasis_reaktor_graph_karakum_Greeter$stable;
-function missingBinding($this, name, type) {
-  // Inline function 'kotlin.error' call
-  var message = "Missing Cloudflare binding '" + name + "' for " + type;
-  throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+function bindingOrNull($this, name) {
+  // Inline function 'kotlin.js.unsafeCast' call
+  // Inline function 'kotlin.js.asDynamic' call
+  return $this.raw_sqci3y_k$(name);
 }
 function Hono() {
   return new HonoFactory();
+}
+function *_generator_int__cbdpzv(_this__u8e3s4, key, $completion) {
+  var tmp = await_1(_this__u8e3s4.get(key), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = tmp;
+  var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
+  return tmp1_safe_receiver == null ? null : toIntOrNull(tmp1_safe_receiver);
+}
+function int(_this__u8e3s4, key, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_int__cbdpzv.bind(VOID, _this__u8e3s4, key), $completion);
+}
+function *_generator_putInt__kfh08(_this__u8e3s4, key, value, $completion) {
+  var tmp = await_1(_this__u8e3s4.put(key, value), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function putInt(_this__u8e3s4, key, value, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_putInt__kfh08.bind(VOID, _this__u8e3s4, key, value), $completion);
+}
+function find(_this__u8e3s4, binding) {
+  return binding.resolve_akzwmm_k$(_this__u8e3s4);
+}
+function toWorker(_this__u8e3s4) {
+  return toWorker_0(toHono(_this__u8e3s4));
+}
+function d1(name) {
+  return new D1Binding(name);
+}
+function r2(name) {
+  return new R2Binding(name);
+}
+function durableObject(name) {
+  return new DurableObjectBinding(name);
+}
+function string(_this__u8e3s4, query, columnName, $completion) {
+  return string_0(_this__u8e3s4.prepare(query), columnName, $completion);
+}
+function get_3(_this__u8e3s4, binding) {
+  return binding.require_rt1k4n_k$(_this__u8e3s4);
+}
+function *_generator_putText__hffj8o(_this__u8e3s4, key, value, $completion) {
+  var tmp = await_1(_this__u8e3s4.put(key, value), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function putText(_this__u8e3s4, key, value, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_putText__hffj8o.bind(VOID, _this__u8e3s4, key, value), $completion);
+}
+function *_generator_getText__eglyj3(_this__u8e3s4, key, $completion) {
+  var tmp = await_1(_this__u8e3s4.get(key), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_elvis_lhs = tmp;
+  var tmp_0;
+  if (tmp0_elvis_lhs == null) {
+    return null;
+  } else {
+    tmp_0 = tmp0_elvis_lhs;
+  }
+  var body = tmp_0;
+  var tmp_1 = await_1(body.text(), $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  return tmp_1;
+}
+function getText(_this__u8e3s4, key, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_getText__eglyj3.bind(VOID, _this__u8e3s4, key), $completion);
+}
+function *_generator_text__qhd01x(_this__u8e3s4, input, init, $completion) {
+  var tmp = await_1(_this__u8e3s4.fetch(input, init), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0 = await_1(tmp.text(), $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  return tmp_0;
+}
+function text(_this__u8e3s4, input, init, $completion) {
+  init = init === VOID ? null : init;
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_text__qhd01x.bind(VOID, _this__u8e3s4, input, init), $completion);
+}
+function named_0(_this__u8e3s4, name) {
+  return _this__u8e3s4.getByName(name);
+}
+function workerTextResponse(body) {
+  var contentType = 'text/plain; charset=utf-8';
+  return new Response(body, {headers: {'Content-Type': contentType}});
+}
+function toWorker_0(_this__u8e3s4) {
+  return new CloudflareWorker(_this__u8e3s4);
+}
+function *_generator_string__s1xgmh(_this__u8e3s4, columnName, $completion) {
+  var tmp = await_1(_this__u8e3s4.first(columnName), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = tmp;
+  return tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
+}
+function string_0(_this__u8e3s4, columnName, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_string__s1xgmh.bind(VOID, _this__u8e3s4, columnName), $completion);
 }
 function CloudflareRequest$Companion$$childSerializers$_anonymous__tm7pp0() {
   return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
@@ -69588,8 +69730,8 @@ function $serializer_getInstance_3() {
     new $serializer_3();
   return $serializer_instance_3;
 }
-function requireCloudflare(_this__u8e3s4) {
-  var tmp0_elvis_lhs = cloudflareOrNull(_this__u8e3s4);
+function get_context(_this__u8e3s4) {
+  var tmp0_elvis_lhs = get_contextOrNull(_this__u8e3s4);
   var tmp;
   if (tmp0_elvis_lhs == null) {
     var message = 'Cloudflare context is only available for CloudflareAwareRequest handlers mounted through Service.toHono()';
@@ -69599,9 +69741,9 @@ function requireCloudflare(_this__u8e3s4) {
   }
   return tmp;
 }
-function cloudflareOrNull(_this__u8e3s4) {
+function get_contextOrNull(_this__u8e3s4) {
   var tmp0_safe_receiver = isInterface(_this__u8e3s4, CloudflareAwareRequest) ? _this__u8e3s4 : null;
-  return tmp0_safe_receiver == null ? null : tmp0_safe_receiver.get_cloudflare_pa74ji_k$();
+  return tmp0_safe_receiver == null ? null : tmp0_safe_receiver.get_cloudflareContext_q2s1e5_k$();
 }
 function get_textSerializer() {
   _init_properties_Router_kt__77pu09();
@@ -69753,7 +69895,7 @@ function *_generator_invoke__zhh2q8_73($this, $this$promise, $completion) {
   if (tmp0_safe_receiver == null)
     null;
   else {
-    tmp0_safe_receiver.set_cloudflare_kzuzt7_k$(new CloudflareContext($this.$context_1.env, $this.$context_1.executionCtx, $this.$context_1));
+    tmp0_safe_receiver.set_cloudflareContext_yu9p8y_k$(new CloudflareContext($this.$context_1.env, $this.$context_1.executionCtx, $this.$context_1));
   }
   var tmp_5 = $this.$this_asHonoHandler_1.invoke$suspendBridge_th2uq0_k$(request, $completion);
   if (tmp_5 === get_COROUTINE_SUSPENDED())
@@ -85600,27 +85742,23 @@ function initHook$init$_1() {
 }
 var strictMemoryModel;
 function *_generator_invoke__zhh2q8_74($this, $this$promise, $completion) {
-  var tmp = await_1($this.this$0__1.durableState_1.storage.get('count'), $completion);
+  var tmp = int($this.this$0__1.get_storage_twal4e_k$(), 'count', $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
-  var tmp0_safe_receiver = tmp;
-  var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
-  var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : toIntOrNull(tmp1_safe_receiver);
-  var current = tmp2_elvis_lhs == null ? 0 : tmp2_elvis_lhs;
+  var tmp0_elvis_lhs = tmp;
+  var current = tmp0_elvis_lhs == null ? 0 : tmp0_elvis_lhs;
   var next = current + 1 | 0;
-  var tmp_0 = await_1($this.this$0__1.durableState_1.storage.put('count', next), $completion);
+  var tmp_0 = putInt($this.this$0__1.get_storage_twal4e_k$(), 'count', next, $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
     tmp_0 = yield tmp_0;
   var tmp_1;
-  // Inline function 'kotlin.js.asDynamic' call
-  if ($this.this$0__1.workerEnv_1['HELLO_STATEFUL'] != null) {
-    tmp_1 = 'HELLO_STATEFUL';
+  if (!(find($this.this$0__1.context_1, HelloBindings_getInstance().stateful_1) == null)) {
+    tmp_1 = HelloBindings_getInstance().stateful_1.name_1;
   } else {
     tmp_1 = 'missing-binding';
   }
   var binding = tmp_1;
-  var detail = 'hello world from durable object count=' + next + ' id=' + $this.this$0__1.durableState_1.id.toString() + ' binding=' + binding;
-  return textResponse(detail);
+  return $this.this$0__1.text_yxj031_k$('hello world from durable object count=' + next + ' id=' + $this.this$0__1.get_id_kntnx8_k$().toString() + ' binding=' + binding);
 }
 function HelloCounterDurableObject$fetch$slambda_0(this$0) {
   var i = new HelloCounterDurableObject$fetch$slambda(this$0);
@@ -85633,6 +85771,12 @@ function HelloWorker_getInstance() {
   if (HelloWorker_instance === VOID)
     new HelloWorker_0();
   return HelloWorker_instance;
+}
+var HelloBindings_instance;
+function HelloBindings_getInstance() {
+  if (HelloBindings_instance === VOID)
+    new HelloBindings();
+  return HelloBindings_instance;
 }
 function HelloRequest$Companion$$childSerializers$_anonymous__ovooul() {
   return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
@@ -85674,23 +85818,19 @@ function $serializer_getInstance_5() {
   return $serializer_instance_5;
 }
 function *_generator_invoke__zhh2q8_75($this, $this$GetHandler, request, $completion) {
-  var cloudflare = requireCloudflare(request);
-  var database = cloudflare.requireD1_o36afs_k$('HELLO_DB');
-  var tmp = await_1(database.prepare("select 'hello world from d1' as message").first('message'), $completion);
+  var tmp = string(get_3(get_context(request), HelloBindings_getInstance().db_1), "select 'hello world from d1' as message", 'message', $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
-  var tmp0_safe_receiver = tmp;
-  var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
-  var message = tmp1_elvis_lhs == null ? 'hello world from d1' : tmp1_elvis_lhs;
-  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$(message, 'HELLO_DB', 'Executed a literal D1 query from Kotlin');
+  var tmp0_elvis_lhs = tmp;
+  var message = tmp0_elvis_lhs == null ? 'hello world from d1' : tmp0_elvis_lhs;
+  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$(message, HelloBindings_getInstance().db_1.name_1, 'Executed a literal D1 query from Kotlin');
 }
 function *_generator_invoke__zhh2q8_76($this, $this$GetHandler, request, $completion) {
-  var cloudflare = requireCloudflare(request);
-  var bucket = cloudflare.requireR2_xbe3h1_k$('HELLO_BUCKET');
-  var tmp = await_1(bucket.put('hello/world.txt', 'hello world from r2'), $completion);
+  var bucket = get_3(get_context(request), HelloBindings_getInstance().bucket_1);
+  var tmp = putText(bucket, 'hello/world.txt', 'hello world from r2', $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
-  var tmp_0 = await_1(bucket.get('hello/world.txt'), $completion);
+  var tmp_0 = getText(bucket, 'hello/world.txt', $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
     tmp_0 = yield tmp_0;
   var tmp0_elvis_lhs = tmp_0;
@@ -85701,28 +85841,15 @@ function *_generator_invoke__zhh2q8_76($this, $this$GetHandler, request, $comple
   } else {
     tmp_1 = tmp0_elvis_lhs;
   }
-  var storedObject = tmp_1;
-  var tmp_2 = await_1(storedObject.text(), $completion);
-  if (tmp_2 === get_COROUTINE_SUSPENDED())
-    tmp_2 = yield tmp_2;
-  var stored = tmp_2;
-  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from r2', 'HELLO_BUCKET', "Stored and read back 'hello/world.txt': " + stored);
+  var stored = tmp_1;
+  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from r2', HelloBindings_getInstance().bucket_1.name_1, "Stored and read back 'hello/world.txt': " + stored);
 }
 function *_generator_invoke__zhh2q8_77($this, $this$GetHandler, request, $completion) {
-  var cloudflare = requireCloudflare(request);
-  var durableObjects = cloudflare.requireDurableObjects_l3wtz8_k$('HELLO_STATEFUL');
-  var stub = durableObjects.getByName('hello-singleton');
-  var tmp = await_1(stub.fetch('https://hello.invalid/'), $completion);
+  var tmp = text(named_0(get_3(get_context(request), HelloBindings_getInstance().stateful_1), 'hello-singleton'), 'https://hello.invalid/', VOID, $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
-  var response = tmp;
-  // Inline function 'kotlin.js.unsafeCast' call
-  var tmp$ret$0 = response.text();
-  var tmp_0 = await_1(tmp$ret$0, $completion);
-  if (tmp_0 === get_COROUTINE_SUSPENDED())
-    tmp_0 = yield tmp_0;
-  var detail = tmp_0;
-  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from durable object', 'HELLO_STATEFUL', detail);
+  var detail = tmp;
+  return HelloResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_HelloResponse_j72d16_k$('hello world from durable object', HelloBindings_getInstance().stateful_1.name_1, detail);
 }
 function HelloService$slambda_3() {
   var i = new HelloService$slambda();
@@ -85747,10 +85874,6 @@ function HelloService$slambda_6() {
   var l = ($this$GetHandler, request, $completion) => i.invoke_59nui_k$($this$GetHandler, request, $completion);
   l.$arity = 2;
   return l;
-}
-function textResponse(body) {
-  var contentType = 'text/plain; charset=utf-8';
-  return new Response(body, {headers: {'Content-Type': contentType}});
 }
 //region block: post-declaration
 initMetadataForInterface(CharSequence, 'CharSequence');
@@ -86103,11 +86226,11 @@ initMetadataForClass(Segment, 'Segment', VOID, VOID, [ConcurrentLinkedListNode, 
 initMetadataForClass(ChannelSegment, 'ChannelSegment');
 initMetadataForClass(SendBroadcast, 'SendBroadcast', VOID, VOID, [Waiter]);
 initMetadataForClass(BufferedChannelIterator, 'BufferedChannelIterator', VOID, VOID, [Waiter], [0, 3]);
-initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
 initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
+initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
 protoOf(BufferedChannel).close$default_kcbl7u_k$ = close$default;
 protoOf(BufferedChannel).cancel$default_880p35_k$ = cancel$default_0;
-initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [ReceiveChannel, SendChannel], [1, 4, 0, 3]);
+initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [SendChannel, ReceiveChannel], [1, 4, 0, 3]);
 initMetadataForClass(WaiterEB, 'WaiterEB');
 initMetadataForClass(ReceiveCatching, 'ReceiveCatching', VOID, VOID, [Waiter]);
 initMetadataForObject(Factory, 'Factory');
@@ -86118,7 +86241,7 @@ initMetadataForClass(ChannelResult, 'ChannelResult');
 initMetadataForClass(ClosedReceiveChannelException, 'ClosedReceiveChannelException');
 initMetadataForClass(ClosedSendChannelException, 'ClosedSendChannelException');
 protoOf(ChannelCoroutine).close$default_kcbl7u_k$ = close$default;
-initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, ReceiveChannel, SendChannel], [1, 0]);
+initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, SendChannel, ReceiveChannel], [1, 0]);
 initMetadataForClass(ConflatedBufferedChannel, 'ConflatedBufferedChannel', VOID, VOID, VOID, [1, 0]);
 initMetadataForInterface(ProducerScope, 'ProducerScope', VOID, VOID, [CoroutineScope, SendChannel], [1]);
 initMetadataForClass(ProducerCoroutine, 'ProducerCoroutine', VOID, VOID, [ChannelCoroutine, ProducerScope], [1, 0]);
@@ -87083,6 +87206,12 @@ initMetadataForClass(sam$kotlinx_coroutines_flow_FlowCollector$0_3, 'sam$kotlinx
 initMetadataForLambda(toReactState$slambda$slambda, VOID, VOID, [1]);
 initMetadataForLambda(toReactState$slambda, VOID, VOID, [1]);
 initMetadataForClass(CloudflareContext, 'CloudflareContext');
+initMetadataForClass(CloudflareDurableObject, 'CloudflareDurableObject');
+initMetadataForClass(Binding, 'Binding');
+initMetadataForClass(DurableObjectBinding, 'DurableObjectBinding');
+initMetadataForClass(CloudflareWorker, 'CloudflareWorker');
+initMetadataForClass(D1Binding, 'D1Binding');
+initMetadataForClass(R2Binding, 'R2Binding');
 initMetadataForCompanion(Companion_85);
 protoOf($serializer_3).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_3, '$serializer', VOID, VOID, [GeneratedSerializer]);
@@ -87164,6 +87293,7 @@ initMetadataForClass(SvgDecoderServiceLoaderTarget, 'SvgDecoderServiceLoaderTarg
 initMetadataForLambda(HelloCounterDurableObject$fetch$slambda, VOID, VOID, [1]);
 initMetadataForClass(HelloCounterDurableObject, 'HelloCounterDurableObject');
 initMetadataForObject(HelloWorker_0, 'HelloWorker');
+initMetadataForObject(HelloBindings, 'HelloBindings');
 initMetadataForCompanion(Companion_86);
 protoOf($serializer_4).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_4, '$serializer', VOID, VOID, [GeneratedSerializer]);
