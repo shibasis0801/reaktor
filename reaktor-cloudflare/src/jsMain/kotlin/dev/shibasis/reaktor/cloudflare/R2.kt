@@ -32,6 +32,8 @@ class R2ObjectBody internal constructor(
     val objectInfo: R2Object
         get() = R2Object(raw)
 
+    suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
+
     suspend fun text(): String = raw.text().await()
 
     suspend inline fun <reified T> json(): T =
@@ -44,6 +46,9 @@ class R2Bucket internal constructor(
     suspend fun head(key: String): R2Object? = raw.head(key).await()?.let(::R2Object)
 
     suspend fun get(key: String): R2ObjectBody? = raw.get(key).await()?.let(::R2ObjectBody)
+
+    suspend fun put(key: String, value: ByteArray): R2Object =
+        R2Object(raw.put(key, value.toUint8Array()).await())
 
     suspend fun put(key: String, value: String): R2Object =
         R2Object(raw.put(key, value).await())
@@ -60,7 +65,13 @@ class R2Bucket internal constructor(
         put(key, value)
     }
 
+    suspend fun putBytes(key: String, value: ByteArray) {
+        put(key, value)
+    }
+
     suspend fun getText(key: String): String? = get(key)?.text()
+
+    suspend fun getBytes(key: String): ByteArray? = get(key)?.bytes()
 
     suspend inline fun <reified T> putJson(
         key: String,
@@ -71,4 +82,21 @@ class R2Bucket internal constructor(
 
     suspend inline fun <reified T> getJson(key: String): T? =
         getText(key)?.let(dev.shibasis.reaktor.core.framework.json::decodeFromString)
+}
+
+private fun ByteArray.toUint8Array(): dynamic {
+    val view = js("new Uint8Array(this.length)")
+    for (index in indices) {
+        view[index] = this[index].toInt() and 0xFF
+    }
+    return view
+}
+
+private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
+    val view = js("new Uint8Array(buffer)")
+    val bytes = ByteArray(view.length as Int)
+    for (index in bytes.indices) {
+        bytes[index] = (view[index] as Int).toByte()
+    }
+    return bytes
 }

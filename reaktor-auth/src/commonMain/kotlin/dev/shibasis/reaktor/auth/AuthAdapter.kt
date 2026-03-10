@@ -16,21 +16,10 @@ abstract class AuthAdapter<Controller>(
     private val authClient: AuthService
 ): Adapter<Controller>(controller) {
 
-
-
-
-
-
-
     protected val providers = hashMapOf<
             UserProvider,
             AuthProvider<AuthAdapter<*>, out AuthProviderUser>
     >()
-
-
-
-
-
 
     fun register(provider: UserProvider, authProvider: AuthProvider<AuthAdapter<*>, out AuthProviderUser>) {
         providers[provider] = authProvider

@@ -12,6 +12,7 @@ kotlin {
         dependencies {
             api(project(":reaktor-core"))
             api(project(":reaktor-graph"))
+            api(project(":reaktor-io"))
         }
     }
     droid {}

@@ -84,12 +84,8 @@ open class SqlRow internal constructor(
             columns = columnLookup(),
         ) ?: jsonObject()
 
-    private fun columnLookup(): Map<String, ColumnValue> =
-        buildMap {
-            columnNames().forEach { columnName ->
-                put(canonicalKey(columnName), ColumnValue(raw[columnName]))
-            }
-        }
+    private fun columnLookup(): ColumnLookup =
+        ColumnLookup.build(raw, columnNames())
 }
 
 class SqlRowDecoder internal constructor(
@@ -141,13 +137,54 @@ private fun dynamicKeys(value: dynamic): Array<String> =
     js("Object.keys(arguments[0])") as Array<String>
 
 private data class ColumnValue(
+    val rawName: String,
     val value: Any?,
 )
+
+private class ColumnLookup private constructor(
+    private val exact: Map<String, ColumnValue>,
+    private val fallback: Map<String, List<ColumnValue>>,
+) {
+    operator fun get(path: List<String>): ColumnValue? {
+        exact[canonicalKey(path.joinToString("."))]?.let { return it }
+        exact[canonicalKey(path.joinToString("_"))]?.let { return it }
+
+        val leaf = canonicalKey(path.lastOrNull().orEmpty())
+        return fallback[leaf]?.singleOrNull()
+    }
+
+    companion object {
+        fun build(
+            raw: dynamic,
+            columnNames: Array<String>,
+        ): ColumnLookup {
+            val exact = linkedMapOf<String, ColumnValue>()
+            val fallback = linkedMapOf<String, MutableList<ColumnValue>>()
+
+            columnNames.forEach { columnName ->
+                val column = ColumnValue(columnName, raw[columnName])
+                exact.putWhenMissing(canonicalKey(columnName), column)
+
+                val normalizedPath = columnName.split('.').map(::normalizeColumnSegment)
+                exact.putWhenMissing(canonicalKey(normalizedPath.joinToString(".")), column)
+                exact.putWhenMissing(canonicalKey(normalizedPath.joinToString("_")), column)
+
+                if (!columnName.contains('.')) {
+                    columnFallbackKeys(columnName).forEach { alias ->
+                        fallback.getOrPut(alias) { mutableListOf() }.add(column)
+                    }
+                }
+            }
+
+            return ColumnLookup(exact, fallback)
+        }
+    }
+}
 
 private fun projectDescriptor(
     descriptor: SerialDescriptor,
     path: List<String>,
-    columns: Map<String, ColumnValue>,
+    columns: ColumnLookup,
 ): JsonElement? {
     val kind = descriptor.kind
     if (kind == StructureKind.CLASS || kind == StructureKind.OBJECT) {
@@ -163,7 +200,7 @@ private fun projectDescriptor(
         return if (fields.isEmpty()) JsonObject(emptyMap()) else JsonObject(fields)
     }
 
-    val column = columns[canonicalKey(path.joinToString("."))] ?: return null
+    val column = columns[path] ?: return null
     val value = column.value
     return if (value == null) {
         if (path.size <= 1) JsonNull else null
@@ -174,6 +211,35 @@ private fun projectDescriptor(
 
 private fun canonicalKey(value: String): String =
     value.filter(Char::isLetterOrDigit).lowercase()
+
+private fun columnFallbackKeys(columnName: String): List<String> {
+    val words = splitColumnWords(columnName)
+    if (words.size < 2) {
+        return emptyList()
+    }
+
+    return buildList {
+        for (index in 1 until words.size) {
+            add(canonicalKey(words.drop(index).joinToString("")))
+        }
+    }
+}
+
+private fun splitColumnWords(columnName: String): List<String> =
+    columnName
+        .replace(Regex("([a-z0-9])([A-Z])"), "$1_$2")
+        .split(Regex("[^A-Za-z0-9]+"))
+        .filter(String::isNotBlank)
+        .map(String::lowercase)
+
+private fun MutableMap<String, ColumnValue>.putWhenMissing(
+    key: String,
+    value: ColumnValue,
+) {
+    if (key !in this) {
+        this[key] = value
+    }
+}
 
 @Suppress("UNCHECKED_CAST")
 private fun putPath(

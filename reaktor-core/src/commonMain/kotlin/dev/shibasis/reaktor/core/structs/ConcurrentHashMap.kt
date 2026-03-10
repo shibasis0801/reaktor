@@ -189,7 +189,7 @@ class ConcurrentHashMap<K : Any, V : Any>(
      * Returns the value associated with [key], or null.
      * Wait-free: no CAS, no blocking. Follows REDIRECT chains.
      */
-    fun get(key: K): V? {
+    operator fun get(key: K): V? {
         val hash = spread(key.hashCode())
         var t = currentTable()
 

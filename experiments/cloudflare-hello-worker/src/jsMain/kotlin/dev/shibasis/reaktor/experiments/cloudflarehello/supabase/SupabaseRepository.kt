@@ -20,20 +20,13 @@ class SupabaseRepository(
 ) {
     suspend fun inspectBestBudsSurface(): SupabaseStatusResponse {
         val connection =
-            database.firstOrNull(
+            database.firstOrNull<SupabaseConnectionInfo>(
                 """
                 SELECT
                     current_database()::text AS database,
                     current_user::text AS "currentUser",
                     now()::text AS "serverTime"
                 """.trimIndent(),
-                decode = {
-                    SupabaseConnectionInfo(
-                        database = string("database"),
-                        currentUser = stringOrNull("currentUser") ?: stringOrNull("currentuser") ?: string("current_user"),
-                        serverTime = stringOrNull("serverTime") ?: stringOrNull("servertime") ?: string("server_time"),
-                    )
-                },
             ) ?: error("Supabase connection metadata query returned no rows")
 
         val objects = loadCatalog()

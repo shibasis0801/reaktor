@@ -32,7 +32,7 @@ kotlin {
     server {
         dependencies {
             api("com.google.apis:google-api-services-sheets:v4-rev20250211-2.0.0")
-
+            api("com.google.cloud:google-cloud-pubsub:1.147.0")
         }
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "reaktor-hello-worker-kotlin",
-  "version": "2026.3.9-SNAPSHOT",
+  "version": "2026.3.10-SNAPSHOT",
   "main": "reaktor-experiments-cloudflare-hello-worker.mjs",
   "types": "reaktor-experiments-cloudflare-hello-worker.d.mts",
   "devDependencies": {

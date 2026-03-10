@@ -2140,6 +2140,67 @@ class LinkedHashSet extends HashSet {
     return this.internalMap_1.checkIsMutable_h5js84_k$();
   }
 }
+class AtomicReference {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  load_1zbae_k$() {
+    return this.value_1;
+  }
+  compareAndSet_l3595a_k$(expectedValue, newValue) {
+    if (!(this.value_1 === expectedValue))
+      return false;
+    this.value_1 = newValue;
+    return true;
+  }
+  toString() {
+    return toString_0(this.value_1);
+  }
+}
+class AtomicInt {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  load_1zbae_k$() {
+    return this.value_1;
+  }
+  addAndFetch_fpau44_k$(delta) {
+    this.value_1 = this.value_1 + delta | 0;
+    return this.value_1;
+  }
+  toString() {
+    return this.value_1.toString();
+  }
+}
+class AtomicBoolean {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  load_1zbae_k$() {
+    return this.value_1;
+  }
+  store_ah7bos_k$(newValue) {
+    this.value_1 = newValue;
+  }
+  toString() {
+    return this.value_1.toString();
+  }
+}
+class AtomicLong {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  load_1zbae_k$() {
+    return this.value_1;
+  }
+  addAndFetch_8ucuba_k$(delta) {
+    this.value_1 = add_0(this.value_1, delta);
+    return this.value_1;
+  }
+  toString() {
+    return this.value_1.toString();
+  }
+}
 class BaseOutput {
   println_uvj9r3_k$() {
     this.print_o1pwgy_k$('\n');
@@ -2449,11 +2510,6 @@ class UnsupportedOperationException extends RuntimeException {
     init_kotlin_UnsupportedOperationException($this);
     return $this;
   }
-  static new_kotlin_UnsupportedOperationException_pe5b41_k$(message, cause) {
-    var $this = this.new_kotlin_RuntimeException_iani9z_k$(message, cause);
-    init_kotlin_UnsupportedOperationException($this);
-    return $this;
-  }
 }
 class IllegalArgumentException extends RuntimeException {
   static new_kotlin_IllegalArgumentException_pv5o3f_k$() {
@@ -2677,7 +2733,6 @@ class SimpleKClassImpl extends KClassImpl {
 }
 class KProperty1 {}
 class KMutableProperty1 {}
-class KProperty0 {}
 class KMutableProperty0 {}
 class KTypeParameterImpl extends KTypeParameterBase {
   constructor(name, upperBounds, variance, isReified, containerFqName) {
@@ -3016,6 +3071,27 @@ class Regex {
     startIndex = startIndex === VOID ? 0 : startIndex;
     return $super === VOID ? this.find_jq9i5o_k$(input, startIndex) : $super.find_jq9i5o_k$.call(this, input, startIndex);
   }
+  findAll_98v6rh_k$(input, startIndex) {
+    if (startIndex < 0 || startIndex > charSequenceLength(input)) {
+      throw IndexOutOfBoundsException.new_kotlin_IndexOutOfBoundsException_ddr8db_k$('Start index out of bounds: ' + startIndex + ', input length: ' + charSequenceLength(input));
+    }
+    var tmp = Regex$findAll$lambda(this, input, startIndex);
+    return generateSequence(tmp, Regex$findAll$lambda_0);
+  }
+  findAll$default_xha0o9_k$(input, startIndex, $super) {
+    startIndex = startIndex === VOID ? 0 : startIndex;
+    return $super === VOID ? this.findAll_98v6rh_k$(input, startIndex) : $super.findAll_98v6rh_k$.call(this, input, startIndex);
+  }
+  replace_1ix0wf_k$(input, replacement) {
+    if (!contains_10(replacement, _Char___init__impl__6a9atx(92)) && !contains_10(replacement, _Char___init__impl__6a9atx(36))) {
+      var tmp0 = toString_1(input);
+      // Inline function 'kotlin.text.nativeReplace' call
+      var pattern = this.nativePattern_1;
+      // Inline function 'kotlin.js.asDynamic' call
+      return tmp0.replace(pattern, replacement);
+    }
+    return this.replace_dbivij_k$(input, Regex$replace$lambda(replacement));
+  }
   replace_dbivij_k$(input, transform) {
     var match = this.find$default_xakyli_k$(input);
     if (match == null)
@@ -3035,6 +3111,23 @@ class Regex {
       sb.append_xdc1zw_k$(input, lastStart, length);
     }
     return sb.toString();
+  }
+  split_p7ck23_k$(input, limit) {
+    requireNonNegativeLimit(limit);
+    // Inline function 'kotlin.let' call
+    var it = this.findAll$default_xha0o9_k$(input);
+    var matches = limit === 0 ? it : take_0(it, limit - 1 | 0);
+    // Inline function 'kotlin.collections.mutableListOf' call
+    var result = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+    var lastStart = 0;
+    var _iterator__ex2g4s = matches.iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var match = _iterator__ex2g4s.next_20eer_k$();
+      result.add_utx5q5_k$(toString_1(charSequenceSubSequence(input, lastStart, match.get_range_ixu978_k$().get_start_iypx6h_k$())));
+      lastStart = match.get_range_ixu978_k$().get_endInclusive_r07xpi_k$() + 1 | 0;
+    }
+    result.add_utx5q5_k$(toString_1(charSequenceSubSequence(input, lastStart, charSequenceLength(input))));
+    return result;
   }
   toString() {
     return this.nativePattern_1.toString();
@@ -3060,8 +3153,9 @@ class MatchGroup {
     return true;
   }
 }
+class MatchNamedGroupCollection {}
 class findNext$1$groups$1 extends AbstractCollection {
-  static new_kotlin_text__no_name_provided___no_name_provided__dtlfgt_k$($match, this$0, $box) {
+  static new_kotlin_text__no_name_provided___no_name_provided__ee22tr_k$($match, this$0, $box) {
     if ($box === VOID)
       $box = {};
     $box.$match_1 = $match;
@@ -3087,6 +3181,27 @@ class findNext$1$groups$1 extends AbstractCollection {
       tmp = new MatchGroup(tmp0_safe_receiver);
     }
     return tmp;
+  }
+  get_6bo4tg_k$(name) {
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp0_elvis_lhs = this.$match_1.groups;
+    var tmp;
+    if (tmp0_elvis_lhs == null) {
+      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Capturing group with name {' + name + '} does not exist. No named capturing group was defined in Regex');
+    } else {
+      tmp = tmp0_elvis_lhs;
+    }
+    var groups = tmp;
+    if (!hasOwnPrototypeProperty(this.this$0__1, groups, name))
+      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Capturing group with name {' + name + '} does not exist');
+    var value = groups[name];
+    var tmp_0;
+    if (value == undefined) {
+      tmp_0 = null;
+    } else {
+      tmp_0 = new MatchGroup((!(value == null) ? typeof value === 'string' : false) ? value : THROW_CCE());
+    }
+    return tmp_0;
   }
 }
 class AbstractList extends AbstractCollection {
@@ -3175,7 +3290,7 @@ class findNext$1 {
     this.$input_1 = $input;
     this.range_1 = $range;
     var tmp = this;
-    tmp.groups_1 = findNext$1$groups$1.new_kotlin_text__no_name_provided___no_name_provided__dtlfgt_k$($match, this);
+    tmp.groups_1 = findNext$1$groups$1.new_kotlin_text__no_name_provided___no_name_provided__ee22tr_k$($match, this);
     this.groupValues__1 = null;
   }
   get_range_ixu978_k$() {
@@ -4786,6 +4901,80 @@ class TransformingSequence {
     return new TransformingSequence$iterator$1(this);
   }
 }
+class DropTakeSequence {}
+class TakeSequence$iterator$1 {
+  constructor(this$0) {
+    this.left_1 = this$0.count_1;
+    this.iterator_1 = this$0.sequence_1.iterator_jk1svi_k$();
+  }
+  next_20eer_k$() {
+    if (this.left_1 === 0)
+      throw NoSuchElementException.new_kotlin_NoSuchElementException_wy3d4q_k$();
+    this.left_1 = this.left_1 - 1 | 0;
+    return this.iterator_1.next_20eer_k$();
+  }
+  hasNext_bitz1p_k$() {
+    return this.left_1 > 0 && this.iterator_1.hasNext_bitz1p_k$();
+  }
+}
+class TakeSequence {
+  constructor(sequence, count) {
+    this.sequence_1 = sequence;
+    this.count_1 = count;
+    // Inline function 'kotlin.require' call
+    if (!(this.count_1 >= 0)) {
+      var message = 'count must be non-negative, but was ' + this.count_1 + '.';
+      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+    }
+  }
+  take_6gva4v_k$(n) {
+    return n >= this.count_1 ? this : new TakeSequence(this.sequence_1, n);
+  }
+  iterator_jk1svi_k$() {
+    return new TakeSequence$iterator$1(this);
+  }
+}
+class EmptySequence {
+  iterator_jk1svi_k$() {
+    return EmptyIterator_instance;
+  }
+  take_6gva4v_k$(n) {
+    return EmptySequence_instance;
+  }
+}
+class GeneratorSequence$iterator$1 {
+  constructor(this$0) {
+    this.this$0__1 = this$0;
+    this.nextItem_1 = null;
+    this.nextState_1 = -2;
+  }
+  next_20eer_k$() {
+    if (this.nextState_1 < 0) {
+      calcNext(this);
+    }
+    if (this.nextState_1 === 0)
+      throw NoSuchElementException.new_kotlin_NoSuchElementException_wy3d4q_k$();
+    var tmp = this.nextItem_1;
+    var result = !(tmp == null) ? tmp : THROW_CCE();
+    this.nextState_1 = -1;
+    return result;
+  }
+  hasNext_bitz1p_k$() {
+    if (this.nextState_1 < 0) {
+      calcNext(this);
+    }
+    return this.nextState_1 === 1;
+  }
+}
+class GeneratorSequence {
+  constructor(getInitialValue, getNextValue) {
+    this.getInitialValue_1 = getInitialValue;
+    this.getNextValue_1 = getNextValue;
+  }
+  iterator_jk1svi_k$() {
+    return new GeneratorSequence$iterator$1(this);
+  }
+}
 class EmptySet {
   constructor() {
     this.serialVersionUID_1 = 3406603774387020532n;
@@ -5060,6 +5249,36 @@ class Random {
   nextInt_ujorgc_k$() {
     return this.nextBits_kty4bl_k$(32);
   }
+  nextInt_kn2qxo_k$(until) {
+    return this.nextInt_ak696k_k$(0, until);
+  }
+  nextInt_ak696k_k$(from, until) {
+    checkRangeBounds(from, until);
+    var n = until - from | 0;
+    if (n > 0 || n === -2147483648) {
+      var tmp;
+      if ((n & (-n | 0)) === n) {
+        var bitCount = fastLog2(n);
+        tmp = this.nextBits_kty4bl_k$(bitCount);
+      } else {
+        var v;
+        do {
+          var bits = this.nextInt_ujorgc_k$() >>> 1 | 0;
+          v = bits % n | 0;
+        }
+         while (((bits - v | 0) + (n - 1 | 0) | 0) < 0);
+        tmp = v;
+      }
+      var rnd = tmp;
+      return from + rnd | 0;
+    } else {
+      while (true) {
+        var rnd_0 = this.nextInt_ujorgc_k$();
+        if (from <= rnd_0 ? rnd_0 < until : false)
+          return rnd_0;
+      }
+    }
+  }
   nextBytes_ykc5js_k$(array, fromIndex, toIndex) {
     // Inline function 'kotlin.require' call
     if (!((0 <= fromIndex ? fromIndex <= array.length : false) && (0 <= toIndex ? toIndex <= array.length : false))) {
@@ -5116,6 +5335,12 @@ class Default extends Random {
   }
   nextInt_ujorgc_k$() {
     return this.defaultRandom_1.nextInt_ujorgc_k$();
+  }
+  nextInt_kn2qxo_k$(until) {
+    return this.defaultRandom_1.nextInt_kn2qxo_k$(until);
+  }
+  nextInt_ak696k_k$(from, until) {
+    return this.defaultRandom_1.nextInt_ak696k_k$(from, until);
   }
   nextBytes_ln07bs_k$(array) {
     return this.defaultRandom_1.nextBytes_ln07bs_k$(array);
@@ -5649,7 +5874,7 @@ class DelimitedRangesSequence$iterator$1 {
   }
   next_20eer_k$() {
     if (this.nextState_1 === -1) {
-      calcNext(this);
+      calcNext_0(this);
     }
     if (this.nextState_1 === 0)
       throw NoSuchElementException.new_kotlin_NoSuchElementException_wy3d4q_k$();
@@ -5661,7 +5886,7 @@ class DelimitedRangesSequence$iterator$1 {
   }
   hasNext_bitz1p_k$() {
     if (this.nextState_1 === -1) {
-      calcNext(this);
+      calcNext_0(this);
     }
     return this.nextState_1 === 1;
   }
@@ -6358,7 +6583,7 @@ class Uuid {
     var tmp$ret$3 = Char__toInt_impl_vasixd(this_3);
     bytes[23] = toByte(tmp$ret$3);
     formatBytesInto(this.leastSignificantBits_1, bytes, 24, 2, 8);
-    return decodeToString_0(bytes);
+    return decodeToString(bytes);
   }
   equals(other) {
     if (this === other)
@@ -6796,7 +7021,7 @@ class None extends atomicfu$TraceBase {
     None_instance = this;
   }
 }
-class AtomicInt {
+class AtomicInt_0 {
   constructor(value) {
     this.kotlinx$atomicfu$value = value;
   }
@@ -6873,7 +7098,7 @@ class AtomicRef {
     return toString_0(this.kotlinx$atomicfu$value);
   }
 }
-class AtomicBoolean {
+class AtomicBoolean_0 {
   constructor(value) {
     this.kotlinx$atomicfu$value = value;
   }
@@ -6898,7 +7123,7 @@ class AtomicBoolean {
     return this.kotlinx$atomicfu$value.toString();
   }
 }
-class AtomicLong {
+class AtomicLong_0 {
   constructor(value) {
     this.kotlinx$atomicfu$value = value;
   }
@@ -9221,11 +9446,6 @@ class BufferedChannelIterator {
     }
   }
 }
-class SendChannel {}
-function close$default(cause, $super) {
-  cause = cause === VOID ? null : cause;
-  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
-}
 class ReceiveChannel {}
 function cancel$default_0(cause, $super) {
   cause = cause === VOID ? null : cause;
@@ -9237,6 +9457,11 @@ function cancel$default_0(cause, $super) {
     tmp = $super.cancel_hkmm2i_k$.call(this, cause);
   }
   return tmp;
+}
+class SendChannel {}
+function close$default(cause, $super) {
+  cause = cause === VOID ? null : cause;
+  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
 }
 class BufferedChannel {
   constructor(capacity, onUndeliveredElement) {
@@ -18303,22 +18528,18 @@ class Dispatch {
 class Feature {
   constructor() {
     Feature_instance = this;
-    this.moduleIdx_1 = new AtomicInt_0(0);
-    var tmp = this;
-    // Inline function 'kotlin.collections.hashMapOf' call
-    tmp.moduleMap_1 = HashMap.new_kotlin_collections_HashMap_2a5kxx_k$();
+    this.moduleIdx_1 = new AtomicInt_1(0);
+    this.moduleMap_1 = new ConcurrentHashMap();
   }
   createId_u3tulz_k$() {
     return this.moduleIdx_1.getAndIncrement_alg4z6_k$();
   }
   storeDependency_1baj51_k$(id, dependency) {
-    var tmp0 = this.moduleMap_1;
-    // Inline function 'kotlin.collections.set' call
-    var value = !(dependency == null) ? dependency : THROW_CCE();
-    tmp0.put_4fpzoq_k$(id, value);
+    var tmp = this.moduleMap_1;
+    tmp.set_1tg0p3_k$(id, !(dependency == null) ? dependency : THROW_CCE());
   }
   fetchDependency_an3e77_k$(id) {
-    var tmp0_safe_receiver = this.moduleMap_1.get_wei43m_k$(id);
+    var tmp0_safe_receiver = this.moduleMap_1.get_h31hzz_k$(id);
     var tmp;
     if (tmp0_safe_receiver == null) {
       tmp = null;
@@ -18336,9 +18557,7 @@ class Feature {
     return tmp;
   }
   close_yn9xrc_k$() {
-    var tmp = this;
-    // Inline function 'kotlin.collections.hashMapOf' call
-    tmp.moduleMap_1 = HashMap.new_kotlin_collections_HashMap_2a5kxx_k$();
+    this.moduleMap_1 = new ConcurrentHashMap();
   }
 }
 class CreateSlot {
@@ -18409,6 +18628,230 @@ class StatusCode extends Enum {
   }
   get ordinal() {
     return this.get_ordinal_ip24qg_k$();
+  }
+}
+class ConcurrentHashMap$Companion$TOMBSTONE$1 {
+  toString() {
+    return 'TOMBSTONE';
+  }
+}
+class ConcurrentHashMap$Companion$REDIRECT$1 {
+  toString() {
+    return 'REDIRECT';
+  }
+}
+class Entry_0 {
+  constructor(key, value, hash) {
+    this.key_1 = key;
+    this.value_1 = value;
+    this.hash_1 = hash;
+  }
+}
+class Companion_38 {
+  constructor() {
+    Companion_instance_38 = this;
+    var tmp = this;
+    tmp.TOMBSTONE_1 = new ConcurrentHashMap$Companion$TOMBSTONE$1();
+    var tmp_0 = this;
+    tmp_0.REDIRECT_1 = new ConcurrentHashMap$Companion$REDIRECT$1();
+  }
+  nextPowerOf2_por227_k$(n) {
+    // Inline function 'kotlin.math.max' call
+    var v = Math.max(n, 16);
+    v = v - 1 | 0;
+    v = v | v >> 1;
+    v = v | v >> 2;
+    v = v | v >> 4;
+    v = v | v >> 8;
+    v = v | v >> 16;
+    return v + 1 | 0;
+  }
+  spread_72y3cr_k$(h) {
+    var x = imul_0(h, -1640531527);
+    return x ^ (x >>> 16 | 0);
+  }
+  maxProbeDistance_v7e647_k$(capacity) {
+    var bits = 0;
+    var c = capacity;
+    while (c > 1) {
+      c = c >> 1;
+      bits = bits + 1 | 0;
+    }
+    // Inline function 'kotlin.math.max' call
+    var a = imul_0(bits, 2);
+    return Math.max(a, 16);
+  }
+}
+class Table {
+  constructor(capacity) {
+    this.capacity_1 = capacity;
+    this.mask_1 = this.capacity_1 - 1 | 0;
+    var tmp = this;
+    var tmp_0 = 0;
+    var tmp_1 = this.capacity_1;
+    // Inline function 'kotlin.arrayOfNulls' call
+    var tmp_2 = Array(tmp_1);
+    while (tmp_0 < tmp_1) {
+      tmp_2[tmp_0] = new AtomicReference(null);
+      tmp_0 = tmp_0 + 1 | 0;
+    }
+    tmp.buckets_1 = tmp_2;
+    this.size_1 = new StripedCounter();
+    this.maxProbe_1 = Companion_getInstance_38().maxProbeDistance_v7e647_k$(this.capacity_1);
+    this.nextTable_1 = new AtomicReference(null);
+    this.migrationIndex_1 = new AtomicInt(0);
+    this.migrationComplete_1 = new AtomicBoolean(false);
+  }
+}
+class ConcurrentHashMap$NEEDS_RESIZE$1 {}
+class ConcurrentHashMap$RETRY_SENTINEL$1 {}
+class ConcurrentHashMap {
+  constructor(initialCapacity, loadFactor) {
+    Companion_getInstance_38();
+    initialCapacity = initialCapacity === VOID ? 64 : initialCapacity;
+    loadFactor = loadFactor === VOID ? 0.7 : loadFactor;
+    this.loadFactor_1 = loadFactor;
+    this.table_1 = new AtomicReference(new Table(Companion_getInstance_38().nextPowerOf2_por227_k$(initialCapacity)));
+    var tmp = this;
+    tmp.NEEDS_RESIZE_1 = new ConcurrentHashMap$NEEDS_RESIZE$1();
+    var tmp_0 = this;
+    tmp_0.RETRY_SENTINEL_1 = new ConcurrentHashMap$RETRY_SENTINEL$1();
+    this.MIGRATE_CHUNK_SIZE_1 = 16;
+  }
+  get_h31hzz_k$(key) {
+    var hash = Companion_getInstance_38().spread_72y3cr_k$(hashCode(key));
+    var t = currentTable(this);
+    while (true) {
+      var idx = hash & t.mask_1;
+      var probes = 0;
+      $l$loop: while (probes <= t.maxProbe_1) {
+        var slot = t.buckets_1[idx].load_1zbae_k$();
+        if (slot == null)
+          return null;
+        else if (!equals(slot, Companion_getInstance_38().TOMBSTONE_1))
+          if (equals(slot, Companion_getInstance_38().REDIRECT_1)) {
+            var tmp0_elvis_lhs = t.nextTable_1.load_1zbae_k$();
+            var tmp;
+            if (tmp0_elvis_lhs == null) {
+              return null;
+            } else {
+              tmp = tmp0_elvis_lhs;
+            }
+            t = tmp;
+            break $l$loop;
+          } else {
+            var entry = slot instanceof Entry_0 ? slot : THROW_CCE();
+            if (entry.hash_1 === hash && equals(entry.key_1, key)) {
+              return entry.value_1;
+            }
+          }
+        probes = probes + 1 | 0;
+        idx = (idx + 1 | 0) & t.mask_1;
+      }
+      if (probes > t.maxProbe_1)
+        return null;
+    }
+  }
+  put_fa630k_k$(key, value) {
+    return putImpl(this, key, value, false);
+  }
+  set_1tg0p3_k$(key, value) {
+    this.put_fa630k_k$(key, value);
+  }
+  forEach_fcz7g9_k$(action) {
+    var t = currentTable(this);
+    var inductionVariable = 0;
+    var last = t.capacity_1;
+    if (inductionVariable < last)
+      do {
+        var i = inductionVariable;
+        inductionVariable = inductionVariable + 1 | 0;
+        var slot = t.buckets_1[i].load_1zbae_k$();
+        if (!(slot == null) && !(slot === Companion_getInstance_38().TOMBSTONE_1) && !(slot === Companion_getInstance_38().REDIRECT_1)) {
+          var entry = slot instanceof Entry_0 ? slot : THROW_CCE();
+          action(entry.key_1, entry.value_1);
+        }
+      }
+       while (inductionVariable < last);
+  }
+  toString() {
+    var sb = StringBuilder.new_kotlin_text_StringBuilder_7at1nh_k$('{');
+    var first = {_v: true};
+    this.forEach_fcz7g9_k$(ConcurrentHashMap$toString$lambda(first, sb));
+    sb.append_22ad7x_k$('}');
+    return sb.toString();
+  }
+}
+class StripedCounter {
+  constructor(stripes) {
+    stripes = stripes === VOID ? 16 : stripes;
+    this.stripes_1 = stripes;
+    // Inline function 'kotlin.require' call
+    if (!(this.stripes_1 > 0 && (this.stripes_1 & (this.stripes_1 - 1 | 0)) === 0)) {
+      var message = 'Stripe count must be a power of 2';
+      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+    }
+    var tmp = this;
+    var tmp_0 = 0;
+    var tmp_1 = this.stripes_1;
+    // Inline function 'kotlin.arrayOfNulls' call
+    var tmp_2 = Array(tmp_1);
+    while (tmp_0 < tmp_1) {
+      tmp_2[tmp_0] = new AtomicLong(0n);
+      tmp_0 = tmp_0 + 1 | 0;
+    }
+    tmp.counts_1 = tmp_2;
+    this.mask_1 = this.stripes_1 - 1 | 0;
+    this.threadCounter_1 = new AtomicInt(0);
+  }
+  increment_vga7q7_k$() {
+    this.counts_1[stripeIndex(this) & this.mask_1].addAndFetch_8ucuba_k$(1n);
+  }
+  sum_2g5n_k$() {
+    var s = 0n;
+    var indexedObject = this.counts_1;
+    var inductionVariable = 0;
+    var last = indexedObject.length;
+    while (inductionVariable < last) {
+      var c = indexedObject[inductionVariable];
+      inductionVariable = inductionVariable + 1 | 0;
+      s = add_0(s, c.load_1zbae_k$());
+    }
+    return s;
+  }
+}
+class Companion_39 {
+  constructor() {
+    Companion_instance_39 = this;
+    this.spinSink_1 = new AtomicInt(0);
+  }
+}
+class Backoff {
+  constructor(minDelay, maxDelay) {
+    Companion_getInstance_39();
+    minDelay = minDelay === VOID ? 1 : minDelay;
+    maxDelay = maxDelay === VOID ? 512 : maxDelay;
+    this.minDelay_1 = minDelay;
+    this.maxDelay_1 = maxDelay;
+    this.limit_1 = this.minDelay_1;
+  }
+  backoff_kknoew_k$() {
+    var delay = Default_getInstance().nextInt_kn2qxo_k$(this.limit_1 + 1 | 0);
+    var tmp = this;
+    var tmp0 = this.maxDelay_1;
+    // Inline function 'kotlin.comparisons.minOf' call
+    var b = imul_0(this.limit_1, 2);
+    tmp.limit_1 = Math.min(tmp0, b);
+    // Inline function 'kotlin.repeat' call
+    var inductionVariable = 0;
+    if (inductionVariable < delay)
+      do {
+        var index = inductionVariable;
+        inductionVariable = inductionVariable + 1 | 0;
+        // Inline function 'dev.shibasis.reaktor.core.structs.Companion.spin' call
+        Companion_getInstance_39().spinSink_1.load_1zbae_k$();
+      }
+       while (inductionVariable < delay);
   }
 }
 class JsResult {
@@ -18495,7 +18938,7 @@ class WeakRef {
     return this.ref_1;
   }
 }
-class AtomicInt_0 {
+class AtomicInt_1 {
   constructor(value) {
     this.data_1 = value;
   }
@@ -18505,9 +18948,9 @@ class AtomicInt_0 {
     return result;
   }
 }
-class Companion_38 {
+class Companion_40 {
   constructor() {
-    Companion_instance_38 = this;
+    Companion_instance_40 = this;
     this.EMPTY_1 = ByteString.new_kotlinx_io_bytestring_ByteString_hfw4dq_k$(new Int8Array(0), null);
     this.HEX_DIGITS_1 = toCharArray('0123456789abcdef');
   }
@@ -18517,14 +18960,14 @@ class Companion_38 {
 }
 class ByteString {
   static new_kotlinx_io_bytestring_ByteString_hfw4dq_k$(data, dummy) {
-    Companion_getInstance_38();
+    Companion_getInstance_40();
     var $this = createThis(this);
     $this.data_1 = data;
     $this.hashCode_2 = 0;
     return $this;
   }
   static new_kotlinx_io_bytestring_ByteString_507kaj_k$(data, startIndex, endIndex) {
-    Companion_getInstance_38();
+    Companion_getInstance_40();
     startIndex = startIndex === VOID ? 0 : startIndex;
     endIndex = endIndex === VOID ? data.length : endIndex;
     return this.new_kotlinx_io_bytestring_ByteString_hfw4dq_k$(copyOfRange(data, startIndex, endIndex), null);
@@ -18561,7 +19004,7 @@ class ByteString {
   substring_d7lab3_k$(startIndex, endIndex) {
     var tmp;
     if (startIndex === endIndex) {
-      tmp = Companion_getInstance_38().EMPTY_1;
+      tmp = Companion_getInstance_40().EMPTY_1;
     } else {
       tmp = ByteString.new_kotlinx_io_bytestring_ByteString_507kaj_k$(this.data_1, startIndex, endIndex);
     }
@@ -18625,8 +19068,8 @@ class ByteString {
         var i = inductionVariable;
         inductionVariable = inductionVariable + 1 | 0;
         var b = localData[i];
-        $this$with.append_58al37_k$(Companion_getInstance_38().HEX_DIGITS_1[(b >>> 4 | 0) & 15]);
-        $this$with.append_58al37_k$(Companion_getInstance_38().HEX_DIGITS_1[b & 15]);
+        $this$with.append_58al37_k$(Companion_getInstance_40().HEX_DIGITS_1[(b >>> 4 | 0) & 15]);
+        $this$with.append_58al37_k$(Companion_getInstance_40().HEX_DIGITS_1[b & 15]);
       }
        while (inductionVariable < last);
     return $this$with.append_58al37_k$(_Char___init__impl__6a9atx(41)).toString();
@@ -18637,15 +19080,10 @@ class ByteString {
 }
 class UnsafeByteStringOperations {
   wrapUnsafe_3fobxs_k$(array) {
-    return Companion_getInstance_38().wrap_yhiemk_k$(array);
+    return Companion_getInstance_40().wrap_yhiemk_k$(array);
   }
 }
 class Source {}
-function readAtMostTo$default(sink, startIndex, endIndex, $super) {
-  startIndex = startIndex === VOID ? 0 : startIndex;
-  endIndex = endIndex === VOID ? sink.length : endIndex;
-  return $super === VOID ? this.readAtMostTo_kub29z_k$(sink, startIndex, endIndex) : $super.readAtMostTo_kub29z_k$.call(this, sink, startIndex, endIndex);
-}
 class Sink {}
 function write$default(source, startIndex, endIndex, $super) {
   startIndex = startIndex === VOID ? 0 : startIndex;
@@ -19190,150 +19628,6 @@ class PeekSource {
     this.closed_1 = true;
   }
 }
-class RealSink {
-  constructor(sink) {
-    this.sink_1 = sink;
-    this.closed_1 = false;
-    this.bufferField_1 = new Buffer();
-  }
-  get_buffer_bmaafd_k$() {
-    return this.bufferField_1;
-  }
-  write_yvqjfp_k$(source, byteCount) {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    // Inline function 'kotlin.require' call
-    if (!(byteCount >= 0n)) {
-      var message_0 = 'byteCount: ' + byteCount.toString();
-      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message_0));
-    }
-    this.bufferField_1.write_yvqjfp_k$(source, byteCount);
-    this.hintEmit_6b2e5m_k$();
-  }
-  write_ti570x_k$(source, startIndex, endIndex) {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    // Inline function 'kotlinx.io.checkBounds' call
-    var size = source.length;
-    checkBounds(fromInt_0(size), fromInt_0(startIndex), fromInt_0(endIndex));
-    this.bufferField_1.write_ti570x_k$(source, startIndex, endIndex);
-    this.hintEmit_6b2e5m_k$();
-  }
-  transferFrom_v29myr_k$(source) {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    var totalBytesRead = 0n;
-    $l$loop: while (true) {
-      var readCount = source.readAtMostTo_nyls31_k$(this.bufferField_1, 8192n);
-      if (readCount === -1n)
-        break $l$loop;
-      totalBytesRead = add_0(totalBytesRead, readCount);
-      this.hintEmit_6b2e5m_k$();
-    }
-    return totalBytesRead;
-  }
-  write_nimze1_k$(source, byteCount) {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    // Inline function 'kotlin.require' call
-    if (!(byteCount >= 0n)) {
-      var message_0 = 'byteCount: ' + byteCount.toString();
-      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message_0));
-    }
-    var remainingByteCount = byteCount;
-    while (remainingByteCount > 0n) {
-      var read = source.readAtMostTo_nyls31_k$(this.bufferField_1, remainingByteCount);
-      if (read === -1n) {
-        var bytesRead = subtract_0(byteCount, remainingByteCount);
-        throw EOFException.new_kotlinx_io_EOFException_1f8u0y_k$('Source exhausted before reading ' + byteCount.toString() + ' bytes from it (number of bytes read: ' + bytesRead.toString() + ').');
-      }
-      remainingByteCount = subtract_0(remainingByteCount, read);
-      this.hintEmit_6b2e5m_k$();
-    }
-  }
-  writeByte_9ih3z3_k$(byte) {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    this.bufferField_1.writeByte_9ih3z3_k$(byte);
-    this.hintEmit_6b2e5m_k$();
-  }
-  writeShort_vn2jsb_k$(short) {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    this.bufferField_1.writeShort_vn2jsb_k$(short);
-    this.hintEmit_6b2e5m_k$();
-  }
-  hintEmit_6b2e5m_k$() {
-    // Inline function 'kotlinx.io.RealSink.checkNotClosed' call
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    var byteCount = this.bufferField_1.completeSegmentByteCount_46ltjp_k$();
-    if (byteCount > 0n) {
-      this.sink_1.write_yvqjfp_k$(this.bufferField_1, byteCount);
-    }
-  }
-  close_yn9xrc_k$() {
-    if (this.closed_1)
-      return Unit_instance;
-    var thrown = null;
-    try {
-      if (this.bufferField_1.get_size_woubt6_k$() > 0n) {
-        this.sink_1.write_yvqjfp_k$(this.bufferField_1, this.bufferField_1.get_size_woubt6_k$());
-      }
-    } catch ($p) {
-      if ($p instanceof Error) {
-        var e = $p;
-        thrown = e;
-      } else {
-        throw $p;
-      }
-    }
-    try {
-      this.sink_1.close_yn9xrc_k$();
-    } catch ($p) {
-      if ($p instanceof Error) {
-        var e_0 = $p;
-        if (thrown == null)
-          thrown = e_0;
-      } else {
-        throw $p;
-      }
-    }
-    this.closed_1 = true;
-    if (!(thrown == null))
-      throw thrown;
-  }
-  toString() {
-    return 'buffered(' + toString_1(this.sink_1) + ')';
-  }
-}
 class RealSource {
   constructor(source) {
     this.source_1 = source;
@@ -19471,7 +19765,7 @@ class RealSource {
     return 'buffered(' + toString_1(this.source_1) + ')';
   }
 }
-class Companion_39 {
+class Companion_41 {
   constructor() {
     this.SIZE_1 = 8192;
     this.SHARE_MINIMUM_1 = 1024;
@@ -19751,12 +20045,6 @@ class AlwaysSharedCopyTracker extends SegmentCopyTracker {
     return Unit_instance;
   }
 }
-class FileSystem {}
-function sink$default(path, append, $super) {
-  append = append === VOID ? false : append;
-  return $super === VOID ? this.sink_ed8sos_k$(path, append) : $super.sink_ed8sos_k$.call(this, path, append);
-}
-class SystemFileSystemImpl {}
 class UnsafeBufferOperations {}
 class SegmentReadContextImpl$1 {
   getUnchecked_akrbjy_k$(segment, offset) {
@@ -19817,185 +20105,12 @@ class SegmentPool {
     this.byteCount_1 = 0;
   }
   take_2451j_k$() {
-    return Companion_instance_39.new_79u2a0_k$();
+    return Companion_instance_41.new_79u2a0_k$();
   }
   recycle_3mobff_k$(segment) {
   }
   tracker_hnhzgo_k$() {
     return AlwaysSharedCopyTracker_getInstance();
-  }
-}
-class FileNotFoundException extends IOException {
-  static new_kotlinx_io_files_FileNotFoundException_uhqhy5_k$(message) {
-    var $this = this.new_kotlinx_io_IOException_wvwdyo_k$(message);
-    captureStack($this, $this.$throwableCtor_3);
-    return $this;
-  }
-}
-class SystemFileSystem$1 extends SystemFileSystemImpl {
-  exists_hs0cko_k$(path) {
-    return get_fs().existsSync(path.path_1);
-  }
-  delete_wo7h84_k$(path, mustExist) {
-    if (!this.exists_hs0cko_k$(path)) {
-      if (mustExist) {
-        throw FileNotFoundException.new_kotlinx_io_files_FileNotFoundException_uhqhy5_k$('File does not exist: ' + path.toString());
-      }
-      return Unit_instance;
-    }
-    var tmp0_safe_receiver = withCaughtException(SystemFileSystem$o$delete$lambda(path));
-    if (tmp0_safe_receiver == null)
-      null;
-    else {
-      // Inline function 'kotlin.also' call
-      throw IOException.new_kotlinx_io_IOException_pmronu_k$('Delete failed for ' + path.toString(), tmp0_safe_receiver);
-    }
-  }
-  source_rb8tqf_k$(path) {
-    return new FileSource(path);
-  }
-  sink_ed8sos_k$(path, append) {
-    return new FileSink(path, append);
-  }
-}
-class Path {
-  constructor(rawPath, any) {
-    this.path_1 = removeTrailingSeparators(rawPath);
-  }
-  toString() {
-    return this.path_1;
-  }
-  equals(other) {
-    if (this === other)
-      return true;
-    if (!(other instanceof Path))
-      return false;
-    return this.path_1 === other.path_1;
-  }
-  hashCode() {
-    return getStringHashCode(this.path_1);
-  }
-}
-class FileSource {
-  constructor(path) {
-    this.path_1 = path;
-    this.buffer_1 = null;
-    this.closed_1 = false;
-    this.offset_1 = 0;
-    this.fd_1 = open(this, this.path_1);
-  }
-  readAtMostTo_nyls31_k$(sink, byteCount) {
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Source is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    if (byteCount === 0n) {
-      return 0n;
-    }
-    if (this.buffer_1 === null) {
-      var tmp4_safe_receiver = withCaughtException(FileSource$readAtMostTo$lambda(this));
-      if (tmp4_safe_receiver == null)
-        null;
-      else {
-        // Inline function 'kotlin.also' call
-        throw IOException.new_kotlinx_io_IOException_pmronu_k$('Failed to read data from ' + this.path_1.path_1, tmp4_safe_receiver);
-      }
-    }
-    var len = ensureNotNull(this.buffer_1).length;
-    if (this.offset_1 >= len) {
-      return -1n;
-    }
-    // Inline function 'kotlinx.io.minOf' call
-    var b = len - this.offset_1 | 0;
-    // Inline function 'kotlin.comparisons.minOf' call
-    var b_0 = fromInt_0(b);
-    var bytesToRead = byteCount <= b_0 ? byteCount : b_0;
-    var inductionVariable = 0n;
-    if (inductionVariable < bytesToRead)
-      do {
-        var i = inductionVariable;
-        inductionVariable = add_0(inductionVariable, 1n);
-        var tmp = ensureNotNull(this.buffer_1);
-        var _unary__edvuaz = this.offset_1;
-        this.offset_1 = _unary__edvuaz + 1 | 0;
-        sink.writeByte_9ih3z3_k$(tmp.readInt8(_unary__edvuaz));
-      }
-       while (inductionVariable < bytesToRead);
-    return bytesToRead;
-  }
-  close_yn9xrc_k$() {
-    if (!this.closed_1) {
-      this.closed_1 = true;
-      get_fs().closeSync(this.fd_1);
-    }
-  }
-}
-class FileSink {
-  constructor(path, append) {
-    this.closed_1 = false;
-    this.fd_1 = open_0(this, path, append);
-  }
-  write_yvqjfp_k$(source, byteCount) {
-    // Inline function 'kotlin.check' call
-    if (!!this.closed_1) {
-      var message = 'Sink is closed.';
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    if (byteCount === 0n) {
-      return Unit_instance;
-    }
-    // Inline function 'kotlin.comparisons.minOf' call
-    var b = source.get_size_woubt6_k$();
-    var remainingBytes = byteCount <= b ? byteCount : b;
-    while (remainingBytes > 0n) {
-      var segmentBytes = 0;
-      // Inline function 'kotlinx.io.unsafe.UnsafeBufferOperations.readFromHead' call
-      // Inline function 'kotlin.require' call
-      if (!!source.exhausted_p1jt55_k$()) {
-        var message_0 = 'Buffer is empty';
-        throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message_0));
-      }
-      var head = ensureNotNull(source.head_1);
-      var tmp0 = head.dataAsByteArray_g1m4im_k$(true);
-      var tmp2 = head.pos_1;
-      segmentBytes = head.limit_1 - tmp2 | 0;
-      var buf = get_buffer().Buffer.allocUnsafe(segmentBytes);
-      var inductionVariable = 0;
-      var last = segmentBytes;
-      if (inductionVariable < last)
-        do {
-          var offset = inductionVariable;
-          inductionVariable = inductionVariable + 1 | 0;
-          buf.writeInt8(tmp0[tmp2 + offset | 0], offset);
-        }
-         while (inductionVariable < last);
-      var tmp6_safe_receiver = withCaughtException(FileSink$write$lambda(this, buf));
-      if (tmp6_safe_receiver == null)
-        null;
-      else {
-        // Inline function 'kotlin.also' call
-        throw IOException.new_kotlinx_io_IOException_pmronu_k$('Write failed', tmp6_safe_receiver);
-      }
-      var bytesRead = segmentBytes;
-      if (!(bytesRead === 0)) {
-        if (bytesRead < 0)
-          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$('Returned negative read bytes count');
-        if (bytesRead > head.get_size_woubt6_k$())
-          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$('Returned too many bytes');
-        source.skip_bgd4sf_k$(fromInt_0(bytesRead));
-      }
-      var tmp0_0 = remainingBytes;
-      // Inline function 'kotlin.Long.minus' call
-      var other = segmentBytes;
-      remainingBytes = subtract_0(tmp0_0, fromInt_0(other));
-    }
-  }
-  close_yn9xrc_k$() {
-    if (!this.closed_1) {
-      this.closed_1 = true;
-      get_fs().closeSync(this.fd_1);
-    }
   }
 }
 class BaseLogger {
@@ -20144,7 +20259,7 @@ class ConsoleActual {
 }
 class Logger extends BaseLogger {
   constructor(config, tag) {
-    Companion_getInstance_40();
+    Companion_getInstance_42();
     tag = tag === VOID ? '' : tag;
     super(config);
     this.tag_1 = tag;
@@ -20153,11 +20268,11 @@ class Logger extends BaseLogger {
     return this.tag_1;
   }
 }
-class Companion_40 extends Logger {
+class Companion_42 extends Logger {
   constructor() {
-    Companion_instance_40 = null;
+    Companion_instance_42 = null;
     super(mutableLoggerConfigInit(listOf(platformLogWriter())), '');
-    Companion_instance_40 = this;
+    Companion_instance_42 = this;
   }
   get_tag_18ivnz_k$() {
     return get_defaultTag();
@@ -20184,9 +20299,9 @@ class Companion_40 extends Logger {
     return tmp;
   }
 }
-class Companion_41 {
+class Companion_43 {
   constructor() {
-    Companion_instance_41 = this;
+    Companion_instance_43 = this;
     this.CLOSED_1 = new Closed_0(null);
     var tmp = this;
     // Inline function 'kotlin.Companion.success' call
@@ -20232,7 +20347,7 @@ class Closed_0 {
 }
 class Task {}
 function resume() {
-  return this.get_continuation_7yron4_k$().resumeWith_rk9gbt_k$(Companion_getInstance_41().RESUME_1);
+  return this.get_continuation_7yron4_k$().resumeWith_rk9gbt_k$(Companion_getInstance_43().RESUME_1);
 }
 function resume_0(throwable) {
   var tmp = this.get_continuation_7yron4_k$();
@@ -20246,7 +20361,7 @@ function resume_0(throwable) {
     tmp_0 = new Result(tmp$ret$2);
   }
   var tmp1_elvis_lhs = tmp_0;
-  return tmp.resumeWith_rk9gbt_k$(tmp1_elvis_lhs == null ? Companion_getInstance_41().RESUME_1 : tmp1_elvis_lhs.value_1);
+  return tmp.resumeWith_rk9gbt_k$(tmp1_elvis_lhs == null ? Companion_getInstance_43().RESUME_1 : tmp1_elvis_lhs.value_1);
 }
 class Read {
   constructor(continuation) {
@@ -20420,9 +20535,9 @@ class ByteReadChannel$Companion$Empty$1 {
   cancel_9i2dv0_k$(cause) {
   }
 }
-class Companion_42 {
+class Companion_44 {
   constructor() {
-    Companion_instance_42 = this;
+    Companion_instance_44 = this;
     var tmp = this;
     tmp.Empty_1 = new ByteReadChannel$Companion$Empty$1();
   }
@@ -20705,7 +20820,7 @@ class NoPoolImpl {
     return Unit_instance;
   }
 }
-class Companion_43 {
+class Companion_45 {
   forName_etcah2_k$(name) {
     switch (name) {
       case 'UTF-8':
@@ -20937,7 +21052,7 @@ class TextDecoderFallback {
         builder.writeByte_9ih3z3_k$(toByte(point & 255));
       }
        while (inductionVariable < last);
-    return decodeToString_0(readByteArray(builder));
+    return decodeToString(readByteArray(builder));
   }
 }
 class AttributeKey {
@@ -21158,7 +21273,7 @@ class CaseInsensitiveMap {
     return hashCode(this.delegate_1);
   }
 }
-class Entry_0 {
+class Entry_1 {
   constructor(key, value) {
     this.key_1 = key;
     this.value_1 = value;
@@ -21740,9 +21855,9 @@ class CopyOnWriteHashMap {
     return this.current_1.kotlinx$atomicfu$value.get_wei43m_k$(key);
   }
 }
-class Companion_44 {
+class Companion_46 {
   constructor() {
-    Companion_instance_44 = this;
+    Companion_instance_46 = this;
     var tmp = this;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
@@ -21769,7 +21884,7 @@ class $serializer {
   serialize_gyl192_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_44().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_46().$childSerializers_1;
     tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 0, value.seconds_1);
     tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 1, value.minutes_1);
     tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 2, value.hours_1);
@@ -21799,7 +21914,7 @@ class $serializer {
     var tmp11_local7 = 0;
     var tmp12_local8 = 0n;
     var tmp13_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp14_cached = Companion_getInstance_44().$childSerializers_1;
+    var tmp14_cached = Companion_getInstance_46().$childSerializers_1;
     if (tmp13_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp13_input.decodeIntElement_941u6a_k$(tmp0_desc, 0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -21873,7 +21988,7 @@ class $serializer {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_44().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_46().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -21882,7 +21997,7 @@ class $serializer {
 }
 class GMTDate {
   constructor(seconds, minutes, hours, dayOfWeek, dayOfMonth, dayOfYear, month, year, timestamp) {
-    Companion_getInstance_44();
+    Companion_getInstance_46();
     this.seconds_1 = seconds;
     this.minutes_1 = minutes;
     this.hours_1 = hours;
@@ -21941,7 +22056,7 @@ class GMTDate {
     return true;
   }
   static new_io_ktor_util_date_GMTDate_kbcn1s_k$(seen0, seconds, minutes, hours, dayOfWeek, dayOfMonth, dayOfYear, month, year, timestamp, serializationConstructorMarker) {
-    Companion_getInstance_44();
+    Companion_getInstance_46();
     if (!(511 === (511 & seen0))) {
       throwMissingFieldException(seen0, 511, $serializer_getInstance().descriptor_1);
     }
@@ -21958,7 +22073,7 @@ class GMTDate {
     return $this;
   }
 }
-class Companion_45 {
+class Companion_47 {
   from_1ixx1u_k$(ordinal) {
     return get_entries_1().get_c1px32_k$(ordinal);
   }
@@ -21969,7 +22084,7 @@ class WeekDay extends Enum {
     this.value_1 = value;
   }
 }
-class Companion_46 {
+class Companion_48 {
   from_1ixx1u_k$(ordinal) {
     return get_entries_2().get_c1px32_k$(ordinal);
   }
@@ -22047,17 +22162,17 @@ class DebugPipelineContext extends PipelineContext {
     return this.proceed_ppgwaf_k$($completion);
   }
 }
-class Companion_47 {
+class Companion_49 {
   constructor() {
-    Companion_instance_47 = this;
+    Companion_instance_49 = this;
     var tmp = this;
     // Inline function 'kotlin.collections.mutableListOf' call
     tmp.SharedArrayList_1 = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
   }
 }
 class PhaseContent {
-  static new_io_ktor_util_pipeline_PhaseContent_3kwv0m_k$(phase, relation, interceptors) {
-    Companion_getInstance_47();
+  static new_io_ktor_util_pipeline_PhaseContent_6d9x0e_k$(phase, relation, interceptors) {
+    Companion_getInstance_49();
     var $this = createThis(this);
     $this.phase_1 = phase;
     $this.relation_1 = relation;
@@ -22066,11 +22181,11 @@ class PhaseContent {
     return $this;
   }
   static new_io_ktor_util_pipeline_PhaseContent_24bg4y_k$(phase, relation) {
-    Companion_getInstance_47();
-    var tmp = Companion_getInstance_47().SharedArrayList_1;
-    var $this = this.new_io_ktor_util_pipeline_PhaseContent_3kwv0m_k$(phase, relation, isInterface(tmp, KtMutableList) ? tmp : THROW_CCE());
+    Companion_getInstance_49();
+    var tmp = Companion_getInstance_49().SharedArrayList_1;
+    var $this = this.new_io_ktor_util_pipeline_PhaseContent_6d9x0e_k$(phase, relation, isInterface(tmp, KtMutableList) ? tmp : THROW_CCE());
     // Inline function 'kotlin.check' call
-    if (!Companion_getInstance_47().SharedArrayList_1.isEmpty_y1axqb_k$()) {
+    if (!Companion_getInstance_49().SharedArrayList_1.isEmpty_y1axqb_k$()) {
       var message = 'The shared empty array list has been modified';
       throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
     }
@@ -22088,7 +22203,7 @@ class PhaseContent {
     }
     this.interceptors_1.add_utx5q5_k$(interceptor);
   }
-  addTo_219g88_k$(destination) {
+  addTo_h97ksk_k$(destination) {
     var interceptors = this.interceptors_1;
     if (destination instanceof ArrayList) {
       destination.ensureCapacity_wr7980_k$(destination.get_size_woubt6_k$() + interceptors.get_size_woubt6_k$() | 0);
@@ -22561,9 +22676,9 @@ class URLDecodeException extends Exception {
     return $this;
   }
 }
-class Companion_48 {
+class Companion_50 {
   constructor() {
-    Companion_instance_48 = this;
+    Companion_instance_50 = this;
     this.Any_1 = ContentType.new_io_ktor_http_ContentType_8p6a24_k$('*', '*');
   }
   parse_pc1q8p_k$(value) {
@@ -22577,7 +22692,7 @@ class Companion_48 {
     if (slash === -1) {
       // Inline function 'kotlin.text.trim' call
       if (toString_1(trim(isCharSequence(tmp0) ? tmp0 : THROW_CCE())) === '*')
-        return Companion_getInstance_48().Any_1;
+        return Companion_getInstance_50().Any_1;
       throw BadContentTypeFormatException.new_io_ktor_http_BadContentTypeFormatException_pqz1qq_k$(value);
     }
     // Inline function 'kotlin.text.trim' call
@@ -22736,7 +22851,7 @@ class HeaderValueWithParameters {
 }
 class ContentType extends HeaderValueWithParameters {
   static new_io_ktor_http_ContentType_y810h0_k$(contentType, contentSubtype, existingContent, parameters) {
-    Companion_getInstance_48();
+    Companion_getInstance_50();
     parameters = parameters === VOID ? emptyList() : parameters;
     var $this = this.new_io_ktor_http_HeaderValueWithParameters_3vfckb_k$(existingContent, parameters);
     $this.contentType_1 = contentType;
@@ -22744,7 +22859,7 @@ class ContentType extends HeaderValueWithParameters {
     return $this;
   }
   static new_io_ktor_http_ContentType_8p6a24_k$(contentType, contentSubtype, parameters) {
-    Companion_getInstance_48();
+    Companion_getInstance_50();
     parameters = parameters === VOID ? emptyList() : parameters;
     return this.new_io_ktor_http_ContentType_y810h0_k$(contentType, contentSubtype, contentType + '/' + contentSubtype, parameters);
   }
@@ -22855,7 +22970,7 @@ class BadContentTypeFormatException extends Exception {
     return $this;
   }
 }
-class Companion_49 {}
+class Companion_51 {}
 class HeadersBuilder extends StringValuesBuilderImpl {
   constructor(size) {
     size = size === VOID ? 8 : size;
@@ -22873,9 +22988,9 @@ class HeadersBuilder extends StringValuesBuilderImpl {
     HttpHeaders_getInstance().checkHeaderValue_67110u_k$(value);
   }
 }
-class Companion_50 {
+class Companion_52 {
   constructor() {
-    Companion_instance_50 = this;
+    Companion_instance_52 = this;
     this.Empty_1 = EmptyHeaders_instance;
   }
 }
@@ -23230,9 +23345,9 @@ class IllegalHeaderValueException extends IllegalArgumentException {
     return $this;
   }
 }
-class Companion_51 {
+class Companion_53 {
   constructor() {
-    Companion_instance_51 = this;
+    Companion_instance_53 = this;
     this.Get_1 = new HttpMethod('GET');
     this.Post_1 = new HttpMethod('POST');
     this.Put_1 = new HttpMethod('PUT');
@@ -23245,7 +23360,7 @@ class Companion_51 {
 }
 class HttpMethod {
   constructor(value) {
-    Companion_getInstance_51();
+    Companion_getInstance_53();
     this.value_1 = value;
   }
   toString() {
@@ -23265,9 +23380,9 @@ class HttpMethod {
     return true;
   }
 }
-class Companion_52 {
+class Companion_54 {
   constructor() {
-    Companion_instance_52 = this;
+    Companion_instance_54 = this;
     this.HTTP_2_0__1 = new HttpProtocolVersion('HTTP', 2, 0);
     this.HTTP_1_1__1 = new HttpProtocolVersion('HTTP', 1, 1);
     this.HTTP_1_0__1 = new HttpProtocolVersion('HTTP', 1, 0);
@@ -23277,7 +23392,7 @@ class Companion_52 {
 }
 class HttpProtocolVersion {
   constructor(name, major, minor) {
-    Companion_getInstance_52();
+    Companion_getInstance_54();
     this.name_1 = name;
     this.major_1 = major;
     this.minor_1 = minor;
@@ -23306,9 +23421,9 @@ class HttpProtocolVersion {
     return true;
   }
 }
-class Companion_53 {
+class Companion_55 {
   constructor() {
-    Companion_instance_53 = this;
+    Companion_instance_55 = this;
     this.Continue_1 = new HttpStatusCode(100, 'Continue');
     this.SwitchingProtocols_1 = new HttpStatusCode(101, 'Switching Protocols');
     this.Processing_1 = new HttpStatusCode(102, 'Processing');
@@ -23380,7 +23495,7 @@ class Companion_53 {
 }
 class HttpStatusCode {
   constructor(value, description) {
-    Companion_getInstance_53();
+    Companion_getInstance_55();
     this.value_1 = value;
     this.description_1 = description;
   }
@@ -23406,9 +23521,9 @@ class HttpStatusCode {
     return this.compareTo_ro40fh_k$(other instanceof HttpStatusCode ? other : THROW_CCE());
   }
 }
-class Companion_54 {
+class Companion_56 {
   constructor() {
-    Companion_instance_54 = this;
+    Companion_instance_56 = this;
     this.Empty_1 = EmptyParameters_instance;
   }
 }
@@ -23460,23 +23575,23 @@ class ParametersImpl extends StringValuesImpl {
     return 'Parameters ' + toString_1(this.entries_qbkxv4_k$());
   }
 }
-class Companion_55 {
+class Companion_57 {
   constructor() {
-    Companion_instance_55 = this;
+    Companion_instance_57 = this;
     this.originUrl_1 = Url_1(get_origin(this));
     this.INITIAL_CAPACITY_1 = 256;
   }
 }
 class URLBuilder {
   constructor(protocol, host, port, user, password, pathSegments, parameters, fragment, trailingQuery) {
-    Companion_getInstance_55();
+    Companion_getInstance_57();
     protocol = protocol === VOID ? null : protocol;
     host = host === VOID ? '' : host;
     port = port === VOID ? 0 : port;
     user = user === VOID ? null : user;
     password = password === VOID ? null : password;
     pathSegments = pathSegments === VOID ? emptyList() : pathSegments;
-    parameters = parameters === VOID ? Companion_getInstance_54().Empty_1 : parameters;
+    parameters = parameters === VOID ? Companion_getInstance_56().Empty_1 : parameters;
     fragment = fragment === VOID ? '' : fragment;
     trailingQuery = trailingQuery === VOID ? false : trailingQuery;
     this.host_1 = host;
@@ -23515,7 +23630,7 @@ class URLBuilder {
   }
   get_protocol_mv93kx_k$() {
     var tmp0_elvis_lhs = this.protocolOrNull_1;
-    return tmp0_elvis_lhs == null ? Companion_getInstance_56().HTTP_1 : tmp0_elvis_lhs;
+    return tmp0_elvis_lhs == null ? Companion_getInstance_58().HTTP_1 : tmp0_elvis_lhs;
   }
   set_user_5x9835_k$(value) {
     var tmp = this;
@@ -23568,9 +23683,9 @@ class URLParserException extends IllegalStateException {
     return $this;
   }
 }
-class Companion_56 {
+class Companion_58 {
   constructor() {
-    Companion_instance_56 = this;
+    Companion_instance_58 = this;
     this.HTTP_1 = new URLProtocol('http', 80);
     this.HTTPS_1 = new URLProtocol('https', 443);
     this.WS_1 = new URLProtocol('ws', 80);
@@ -23593,13 +23708,13 @@ class Companion_56 {
   createOrDefault_lkipzc_k$(name) {
     // Inline function 'kotlin.let' call
     var it = toLowerCasePreservingASCIIRules(name);
-    var tmp0_elvis_lhs = Companion_getInstance_56().byName_1.get_wei43m_k$(it);
+    var tmp0_elvis_lhs = Companion_getInstance_58().byName_1.get_wei43m_k$(it);
     return tmp0_elvis_lhs == null ? new URLProtocol(it, 0) : tmp0_elvis_lhs;
   }
 }
 class URLProtocol {
   constructor(name, defaultPort) {
-    Companion_getInstance_56();
+    Companion_getInstance_58();
     this.name_1 = name;
     this.defaultPort_1 = defaultPort;
     var tmp0 = this.name_1;
@@ -23644,7 +23759,7 @@ class URLProtocol {
     return true;
   }
 }
-class Companion_57 {}
+class Companion_59 {}
 class Url {
   constructor(protocol, host, specifiedPort, pathSegments, parameters, fragment, user, password, trailingQuery, urlString) {
     this.host_1 = host;
@@ -23668,7 +23783,7 @@ class Url {
     this.protocolOrNull_1 = protocol;
     var tmp_0 = this;
     var tmp0_elvis_lhs = this.protocolOrNull_1;
-    tmp_0.protocol_1 = tmp0_elvis_lhs == null ? Companion_getInstance_56().HTTP_1 : tmp0_elvis_lhs;
+    tmp_0.protocol_1 = tmp0_elvis_lhs == null ? Companion_getInstance_58().HTTP_1 : tmp0_elvis_lhs;
     var tmp_1 = this;
     tmp_1.encodedPath$delegate_1 = lazy_0(Url$encodedPath$delegate$lambda(pathSegments, this));
     var tmp_2 = this;
@@ -23853,7 +23968,7 @@ class OutgoingContent {
     return null;
   }
   get_headers_ef25jx_k$() {
-    return Companion_getInstance_50().Empty_1;
+    return Companion_getInstance_52().Empty_1;
   }
 }
 class ByteArrayContent extends OutgoingContent {}
@@ -23917,7 +24032,7 @@ class TextContent extends ByteArrayContent {
     return this.bytes_1;
   }
   toString() {
-    return 'TextContent[' + this.contentType_1.toString() + '] "' + take_0(this.text_1, 30) + '"';
+    return 'TextContent[' + this.contentType_1.toString() + '] "' + take_1(this.text_1, 30) + '"';
   }
 }
 class CIOMultipartDataBase {
@@ -24129,7 +24244,7 @@ class Node {
     tmp.array_1 = tmp_1;
   }
 }
-class Companion_58 {
+class Companion_60 {
   build_qfjo4r_k$(from) {
     var tmp = AsciiCharTree$Companion$build$lambda;
     return this.build_su3zc2_k$(from, tmp, AsciiCharTree$Companion$build$lambda_0);
@@ -24449,9 +24564,9 @@ class MutableRange {
     return 'MutableRange(start=' + this.start_1 + ', end=' + this.end_1 + ')';
   }
 }
-class Companion_59 {
+class Companion_61 {
   constructor() {
-    Companion_instance_59 = this;
+    Companion_instance_61 = this;
     var tmp = this;
     // Inline function 'kotlin.collections.associateBy' call
     var this_0 = get_entries_4();
@@ -24488,7 +24603,7 @@ class CloseReason {
     return this.new_io_ktor_websocket_CloseReason_a5tz4j_k$(code.code_1, message);
   }
   get_knownReason_j6teda_k$() {
-    return Companion_getInstance_59().byCode_d9s8a4_k$(this.code_1);
+    return Companion_getInstance_61().byCode_d9s8a4_k$(this.code_1);
   }
   toString() {
     var tmp0_elvis_lhs = this.get_knownReason_j6teda_k$();
@@ -24517,9 +24632,9 @@ function send(frame, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_send__qhx0g0_1.bind(VOID, this, frame), $completion);
 }
 class DefaultWebSocketSession {}
-class Companion_60 {
+class Companion_62 {
   constructor() {
-    Companion_instance_60 = this;
+    Companion_instance_62 = this;
     this.EmptyPong_1 = Pong.new_io_ktor_websocket_Frame_Pong_hee4xw_k$(new Int8Array(0), NonDisposableHandle_instance_0);
   }
 }
@@ -24559,7 +24674,7 @@ class DefaultWebSocketSessionImpl$runOrCancelPinger$slambda {
 }
 class DefaultWebSocketSessionImpl {
   constructor(raw, pingIntervalMillis, timeoutMillis) {
-    Companion_getInstance_60();
+    Companion_getInstance_62();
     this.raw_1 = raw;
     this.pinger_1 = atomic$ref$1(null);
     this.closeReasonRef_1 = CompletableDeferred_0();
@@ -24655,9 +24770,9 @@ class FrameTooBigException extends Exception {
     return this.get_message_h23axq_k$();
   }
 }
-class Companion_61 {
+class Companion_63 {
   constructor() {
-    Companion_instance_61 = this;
+    Companion_instance_63 = this;
     var tmp = this;
     var tmp0 = get_entries_5();
     var tmp$ret$0;
@@ -24818,7 +24933,7 @@ class WebSocketExtensionHeader {
 }
 class Frame {
   static new_io_ktor_websocket_Frame_fjyusq_k$(fin, frameType, data, disposableHandle, rsv1, rsv2, rsv3) {
-    Companion_getInstance_62();
+    Companion_getInstance_64();
     disposableHandle = disposableHandle === VOID ? NonDisposableHandle_instance_0 : disposableHandle;
     rsv1 = rsv1 === VOID ? false : rsv1;
     rsv2 = rsv2 === VOID ? false : rsv2;
@@ -24877,7 +24992,7 @@ class Close extends Frame {
     return this.new_io_ktor_websocket_Frame_Close_1zir9_k$(readByteArray(packet));
   }
   static new_io_ktor_websocket_Frame_Close_ddsmnf_k$() {
-    return this.new_io_ktor_websocket_Frame_Close_1zir9_k$(Companion_getInstance_62().Empty_1);
+    return this.new_io_ktor_websocket_Frame_Close_1zir9_k$(Companion_getInstance_64().Empty_1);
   }
 }
 class Ping extends Frame {
@@ -24891,9 +25006,9 @@ class Pong extends Frame {
     return this.new_io_ktor_websocket_Frame_fjyusq_k$(true, FrameType_PONG_getInstance(), data, disposableHandle, false, false, false);
   }
 }
-class Companion_62 {
+class Companion_64 {
   constructor() {
-    Companion_instance_62 = this;
+    Companion_instance_64 = this;
     this.Empty_1 = new Int8Array(0);
   }
   byType_2g4m5x_k$(fin, frameType, data, rsv1, rsv2, rsv3) {
@@ -25216,9 +25331,9 @@ class HttpClientConfig {
     tmp0_1.putAll_wgg6cj_k$(map_1);
   }
 }
-class Companion_63 {
+class Companion_65 {
   constructor() {
-    Companion_instance_63 = this;
+    Companion_instance_65 = this;
     var tmp = this;
     // Inline function 'io.ktor.util.AttributeKey' call
     var name = 'CustomResponse';
@@ -25245,7 +25360,7 @@ class Companion_63 {
 }
 class HttpClientCall {
   static new_io_ktor_client_call_HttpClientCall_wula40_k$(client) {
-    Companion_getInstance_63();
+    Companion_getInstance_65();
     var $this = createThis(this);
     $this.client_1 = client;
     $this.received_1 = atomic$boolean$1(false);
@@ -25275,14 +25390,14 @@ class HttpClientCall {
     }
   }
   static new_io_ktor_client_call_HttpClientCall_naz07c_k$(client, requestData, responseData) {
-    Companion_getInstance_63();
+    Companion_getInstance_65();
     var $this = this.new_io_ktor_client_call_HttpClientCall_wula40_k$(client);
     $this.request_1 = new DefaultHttpRequest($this, requestData);
     $this.response_1 = new DefaultHttpResponse($this, responseData);
-    $this.get_attributes_dgqof4_k$().remove_2btyex_k$(Companion_getInstance_63().CustomResponse_1);
+    $this.get_attributes_dgqof4_k$().remove_2btyex_k$(Companion_getInstance_65().CustomResponse_1);
     var tmp = responseData.body_1;
     if (!isInterface(tmp, ByteReadChannel)) {
-      $this.get_attributes_dgqof4_k$().put_gkntno_k$(Companion_getInstance_63().CustomResponse_1, responseData.body_1);
+      $this.get_attributes_dgqof4_k$().put_gkntno_k$(Companion_getInstance_65().CustomResponse_1, responseData.body_1);
     }
     return $this;
   }
@@ -25564,13 +25679,13 @@ class HttpClientEngineConfig {
     this.proxy_1 = null;
   }
 }
-class Companion_64 {}
+class Companion_66 {}
 class KtorCallContextElement {
   constructor(callContext) {
     this.callContext_1 = callContext;
   }
   get_key_18j28a_k$() {
-    return Companion_instance_64;
+    return Companion_instance_66;
   }
 }
 class AfterRenderHook$install$slambda {
@@ -26328,9 +26443,9 @@ class SendCountExceedException extends IllegalStateException {
     return $this;
   }
 }
-class Companion_65 {
+class Companion_67 {
   constructor() {
-    Companion_instance_65 = this;
+    Companion_instance_67 = this;
     this.INFINITE_TIMEOUT_MS_1 = 9223372036854775807n;
     var tmp = this;
     // Inline function 'io.ktor.util.AttributeKey' call
@@ -26358,7 +26473,7 @@ class Companion_65 {
 }
 class HttpTimeoutConfig {
   static new_io_ktor_client_plugins_HttpTimeoutConfig_3wmaef_k$(requestTimeoutMillis, connectTimeoutMillis, socketTimeoutMillis) {
-    Companion_getInstance_65();
+    Companion_getInstance_67();
     requestTimeoutMillis = requestTimeoutMillis === VOID ? null : requestTimeoutMillis;
     connectTimeoutMillis = connectTimeoutMillis === VOID ? null : connectTimeoutMillis;
     socketTimeoutMillis = socketTimeoutMillis === VOID ? null : socketTimeoutMillis;
@@ -27186,11 +27301,11 @@ class DefaultHttpRequest {
     return this.attributes_1;
   }
 }
-class Companion_66 {}
+class Companion_68 {}
 class HttpRequestBuilder {
   constructor() {
     this.url_1 = new URLBuilder();
-    this.method_1 = Companion_getInstance_51().Get_1;
+    this.method_1 = Companion_getInstance_53().Get_1;
     this.headers_1 = new HeadersBuilder();
     this.body_1 = EmptyContent_getInstance();
     this.executionContext_1 = SupervisorJob();
@@ -27336,7 +27451,7 @@ class DefaultHttpResponse extends HttpResponse {
     var tmp = this;
     var tmp_0 = responseData.body_1;
     var tmp0_elvis_lhs = isInterface(tmp_0, ByteReadChannel) ? tmp_0 : null;
-    tmp.rawContent_1 = tmp0_elvis_lhs == null ? Companion_getInstance_42().Empty_1 : tmp0_elvis_lhs;
+    tmp.rawContent_1 = tmp0_elvis_lhs == null ? Companion_getInstance_44().Empty_1 : tmp0_elvis_lhs;
     this.headers_1 = responseData.headers_1;
   }
   get_call_wojxrb_k$() {
@@ -28025,7 +28140,7 @@ class LoggedContent extends ReadChannelContent {
     return this.channel_1;
   }
 }
-class Companion_67 {}
+class Companion_69 {}
 class SimpleLogger {
   log_bt7sva_k$(message) {
     println('HttpClient: ' + message);
@@ -28048,7 +28163,7 @@ class LoggingConfig {
   }
   get_logger_g9gejd_k$() {
     var tmp0_elvis_lhs = this._logger_1;
-    return tmp0_elvis_lhs == null ? get_DEFAULT(Companion_instance_67) : tmp0_elvis_lhs;
+    return tmp0_elvis_lhs == null ? get_DEFAULT(Companion_instance_69) : tmp0_elvis_lhs;
   }
   sanitizeHeader_b9nkag_k$(placeholder, predicate) {
     this.sanitizedHeaders_1.add_utx5q5_k$(new SanitizedHeader(placeholder, predicate));
@@ -28363,59 +28478,86 @@ class FileAdapter extends Adapter {
     directory = directory === VOID ? this.documentDirectory : directory;
     return $super === VOID ? this.resolvePath_4ljw7j_k$(fileName, directory) : $super.resolvePath_4ljw7j_k$.call(this, fileName, directory);
   }
+  bufferedSink(path, actions) {
+    return promisify(($completion) => this.bufferedSink$suspendBridge_g25lf9_k$(path, actions, $completion));
+  }
+  bufferedSink$suspendBridge_g25lf9_k$(path, actions, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_bufferedSink$suspendBridge__vnys4r.bind(VOID, this, path, actions), $completion);
+  }
+  bufferedSink_zi1kd0_k$(path, actions, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_bufferedSink__jzl5my.bind(VOID, this, path, actions), $completion);
+  }
+  bufferedSource(path, actions) {
+    return promisify(($completion) => this.bufferedSource$suspendBridge_60olxh_k$(path, actions, $completion));
+  }
+  bufferedSource$suspendBridge_60olxh_k$(path, actions, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_bufferedSource$suspendBridge__96t6ml.bind(VOID, this, path, actions), $completion);
+  }
+  bufferedSource_2wrsws_k$(path, actions, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_bufferedSource__rp32tu.bind(VOID, this, path, actions), $completion);
+  }
   exists(path) {
-    return get_SystemFileSystem().exists_hs0cko_k$(Path_0(path));
+    return promisify(($completion) => this.exists$suspendBridge_w8k2ns_k$(path, $completion));
+  }
+  exists$suspendBridge_w8k2ns_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_exists$suspendBridge__m7ec5n.bind(VOID, this, path), $completion);
+  }
+  exists_2vzl3b_k$(path, $completion) {
+    return platformFileExists(path, $completion);
   }
   delete(path) {
-    var p = Path_0(path);
-    if (get_SystemFileSystem().exists_hs0cko_k$(p)) {
-      get_SystemFileSystem().delete_wo7h84_k$(p, false);
-    }
+    return promisify(($completion) => this.delete$suspendBridge_796qeh_k$(path, $completion));
+  }
+  delete$suspendBridge_796qeh_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_delete$suspendBridge__s5hexo.bind(VOID, this, path), $completion);
+  }
+  delete_buf2mu_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_delete__spiywt.bind(VOID, this, path), $completion);
   }
   copy(sourcePath, destPath) {
-    var source = Path_0(sourcePath);
-    var dest = Path_0(destPath);
-    if (!get_SystemFileSystem().exists_hs0cko_k$(source))
-      return Unit_instance;
-    var sourceData = buffered(get_SystemFileSystem().source_rb8tqf_k$(source));
-    var sinkData = buffered_0(get_SystemFileSystem().sink$default_v7kfux_k$(dest));
-    var buffer = new Int8Array(8192);
-    $l$loop: while (true) {
-      var bytesRead = sourceData.readAtMostTo$default_u5qy9z_k$(buffer);
-      if (bytesRead <= 0)
-        break $l$loop;
-      sinkData.write_ti570x_k$(buffer, 0, bytesRead);
-    }
-    sourceData.close_yn9xrc_k$();
-    sinkData.close_yn9xrc_k$();
+    return promisify(($completion) => this.copy$suspendBridge_qy3bhr_k$(sourcePath, destPath, $completion));
+  }
+  copy$suspendBridge_qy3bhr_k$(sourcePath, destPath, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_copy$suspendBridge__gtbuxe.bind(VOID, this, sourcePath, destPath), $completion);
+  }
+  copy_av90wg_k$(sourcePath, destPath, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_copy__qqja31.bind(VOID, this, sourcePath, destPath), $completion);
   }
   readBinaryFile(path) {
-    var actualPath = Path_0(path);
-    if (!get_SystemFileSystem().exists_hs0cko_k$(actualPath))
-      return null;
-    var bufferedSource = buffered(get_SystemFileSystem().source_rb8tqf_k$(actualPath));
-    var data = readByteArray(bufferedSource);
-    bufferedSource.close_yn9xrc_k$();
-    return data;
+    return promisify(($completion) => this.readBinaryFile$suspendBridge_vf3zi7_k$(path, $completion));
+  }
+  readBinaryFile$suspendBridge_vf3zi7_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_readBinaryFile$suspendBridge__pzum2c.bind(VOID, this, path), $completion);
+  }
+  readBinaryFile_p0msam_k$(path, $completion) {
+    return platformReadBinary(path, $completion);
   }
   readTextFile(path) {
-    var actualPath = Path_0(path);
-    if (!get_SystemFileSystem().exists_hs0cko_k$(actualPath))
-      return null;
-    var bufferedSource = buffered(get_SystemFileSystem().source_rb8tqf_k$(actualPath));
-    var data = readString(bufferedSource);
-    bufferedSource.close_yn9xrc_k$();
-    return data;
+    return promisify(($completion) => this.readTextFile$suspendBridge_9gpsr9_k$(path, $completion));
+  }
+  readTextFile$suspendBridge_9gpsr9_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_readTextFile$suspendBridge__gtfvco.bind(VOID, this, path), $completion);
+  }
+  readTextFile_tnwmsq_k$(path, $completion) {
+    return platformReadText(path, $completion);
   }
   writeTextFile(path, data) {
-    var bufferedSink = buffered_0(get_SystemFileSystem().sink$default_v7kfux_k$(Path_0(path)));
-    writeString(bufferedSink, data);
-    bufferedSink.close_yn9xrc_k$();
+    return promisify(($completion) => this.writeTextFile$suspendBridge_mufrus_k$(path, data, $completion));
+  }
+  writeTextFile$suspendBridge_mufrus_k$(path, data, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_writeTextFile$suspendBridge__kt68cr.bind(VOID, this, path, data), $completion);
+  }
+  writeTextFile_939qsd_k$(path, data, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_writeTextFile__f2w0vg.bind(VOID, this, path, data), $completion);
   }
   writeBinaryFile(path, data) {
-    var bufferedSink = buffered_0(get_SystemFileSystem().sink$default_v7kfux_k$(Path_0(path)));
-    bufferedSink.write$default_fa5nq1_k$(data);
-    bufferedSink.close_yn9xrc_k$();
+    return promisify(($completion) => this.writeBinaryFile$suspendBridge_b1fkfc_k$(path, data, $completion));
+  }
+  writeBinaryFile$suspendBridge_b1fkfc_k$(path, data, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_writeBinaryFile$suspendBridge__vxjm47.bind(VOID, this, path, data), $completion);
+  }
+  writeBinaryFile_ulbrfr_k$(path, data, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_writeBinaryFile__4giv6g.bind(VOID, this, path, data), $completion);
   }
   get cacheDirectory() {
     return this.get_cacheDirectory_ji8b9w_k$();
@@ -28424,7 +28566,7 @@ class FileAdapter extends Adapter {
     return this.get_documentDirectory_rhbbah_k$();
   }
 }
-class Companion_68 {
+class Companion_70 {
   from_dvofps_k$(route) {
     var paramRegex = RegexCommon_getInstance().surroundedByBraces_1;
     // Inline function 'kotlin.collections.mutableListOf' call
@@ -28461,7 +28603,7 @@ class RoutePattern {
       var acc = accumulator;
       var value = params.get_wei43m_k$(element);
       if (value == null) {
-        var tmp0_0 = Companion_getInstance_40();
+        var tmp0_0 = Companion_getInstance_42();
         // Inline function 'co.touchlab.kermit.Logger.e' call
         var messageString = 'RoutePattern.fill: Missing parameter ' + element;
         var tag = tmp0_0.get_tag_18ivnz_k$();
@@ -28511,7 +28653,7 @@ class RegexCommon {
 }
 class middleware$4$1 {
   log_bt7sva_k$(message) {
-    var tmp = Companion_getInstance_40();
+    var tmp = Companion_getInstance_42();
     tmp.i$default_wkjr57_k$('Reaktor:HttpClient', VOID, middleware$lambda$o$log$lambda(message));
   }
 }
@@ -28674,7 +28816,7 @@ class ConcurrentMutableMap {
   }
 }
 class ConcurrentMutableSet extends ConcurrentMutableCollection {
-  static new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(rootArg, del) {
+  static new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(rootArg, del) {
     var $this = this.new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(rootArg, del);
     $this.del_2 = del;
     return $this;
@@ -28682,7 +28824,7 @@ class ConcurrentMutableSet extends ConcurrentMutableCollection {
   static new_co_touchlab_stately_collections_ConcurrentMutableSet_t534k6_k$() {
     // Inline function 'kotlin.collections.mutableSetOf' call
     var tmp$ret$0 = LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$();
-    return this.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(null, tmp$ret$0);
+    return this.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(null, tmp$ret$0);
   }
 }
 class Koin {
@@ -28737,7 +28879,7 @@ class Koin {
     this.logger_1.debug_fck32h_k$('Created eager instances in ' + get_inMs(duration) + ' ms');
   }
 }
-class Companion_69 {
+class Companion_71 {
   init_1xdsg_k$() {
     var app = new KoinApplication();
     return app;
@@ -28763,7 +28905,7 @@ class BeanDefinition {
       this_0.append_22ad7x_k$(',qualifier:');
       this_0.append_t8pm91_k$(this.qualifier_1);
     }
-    if (!equals(this.scopeQualifier_1, Companion_getInstance_70().rootScopeQualifier_1)) {
+    if (!equals(this.scopeQualifier_1, Companion_getInstance_72().rootScopeQualifier_1)) {
       this_0.append_22ad7x_k$(',scope:');
       this_0.append_t8pm91_k$(this.scopeQualifier_1);
     }
@@ -29102,20 +29244,20 @@ class PropertyRegistry {
     this._values_1 = KoinPlatformTools_instance.safeHashMap_vw883b_k$();
   }
 }
-class Companion_70 {
+class Companion_72 {
   constructor() {
-    Companion_instance_70 = this;
+    Companion_instance_72 = this;
     this.ROOT_SCOPE_ID_1 = '_root_';
     this.rootScopeQualifier_1 = _q('_root_');
   }
 }
 class ScopeRegistry {
   constructor(_koin) {
-    Companion_getInstance_70();
+    Companion_getInstance_72();
     this._koin_1 = _koin;
     this._scopeDefinitions_1 = KoinPlatformTools_instance.safeSet_3nxu5a_k$();
     this._scopes_1 = KoinPlatformTools_instance.safeHashMap_vw883b_k$();
-    this.rootScope_1 = new Scope(Companion_getInstance_70().rootScopeQualifier_1, '_root_', true, VOID, this._koin_1);
+    this.rootScope_1 = new Scope(Companion_getInstance_72().rootScopeQualifier_1, '_root_', true, VOID, this._koin_1);
     this._scopeDefinitions_1.add_utx5q5_k$(this.rootScope_1.scopeQualifier_1);
     var tmp0 = this._scopes_1;
     var tmp2 = this.rootScope_1.id_1;
@@ -29207,7 +29349,7 @@ class GlobalContext {
     this._koin_1 = null;
   }
   startKoin_5fxk64_k$(appDeclaration) {
-    var koinApplication = Companion_instance_69.init_1xdsg_k$();
+    var koinApplication = Companion_instance_71.init_1xdsg_k$();
     register(this, koinApplication);
     appDeclaration(koinApplication);
     return koinApplication;
@@ -29215,7 +29357,7 @@ class GlobalContext {
 }
 class KoinPlatformTools {
   getStackTrace_pop6za_k$(e) {
-    return e.toString() + toString_1(split_0(Exception.new_kotlin_Exception_f32mds_k$().toString(), ['\n']));
+    return e.toString() + toString_1(split(Exception.new_kotlin_Exception_f32mds_k$().toString(), ['\n']));
   }
   getClassName_24l9kl_k$(kClass) {
     var tmp0_elvis_lhs = kClass.get_simpleName_r6f8py_k$();
@@ -29702,7 +29844,7 @@ class Key_6 {
     return true;
   }
 }
-class Companion_71 {
+class Companion_73 {
   create(kClass) {
     return new Type(name(kClass), kClass);
   }
@@ -29756,7 +29898,7 @@ class Type {
     return true;
   }
 }
-class Companion_72 {
+class Companion_74 {
   invoke_h1q7yg_k$(key, type) {
     return new KeyType(new Key_6(key), new Type(type));
   }
@@ -29915,7 +30057,7 @@ class ProviderPort extends Port {
     return this.edges;
   }
   static create(owner, key, impl) {
-    return this.new_dev_shibasis_reaktor_portgraph_port_ProviderPort_l7jdif_k$(owner, new Key_6(key), Companion_instance_71.Type_4artt7_k$(impl), impl);
+    return this.new_dev_shibasis_reaktor_portgraph_port_ProviderPort_l7jdif_k$(owner, new Key_6(key), Companion_instance_73.Type_4artt7_k$(impl), impl);
   }
   isConnected() {
     // Inline function 'kotlin.collections.isNotEmpty' call
@@ -30361,7 +30503,7 @@ class Graph extends PortGraph {
     this.id_2 = id;
     this.label_2 = label;
     this.dependencies = dependencies;
-    this.sentinel = Companion_instance_73.invoke(this, '');
+    this.sentinel = Companion_instance_75.invoke(this, '');
     this.navigationImpl_1 = new NavigationCapabilityImpl();
     builder(this);
   }
@@ -30397,7 +30539,7 @@ class Graph extends PortGraph {
   }
   addRoot(routeNode, payload) {
     var edge = this.sentinel.edge(routeNode);
-    this.dispatch_ad1g38_k$(Companion_instance_74.construstUnit(edge, payload));
+    this.dispatch_ad1g38_k$(Companion_instance_76.construstUnit(edge, payload));
   }
   onTransition_prhm84_k$(previous, next) {
     var transitionNodes = Graph$onTransition$lambda(this, next);
@@ -30478,7 +30620,7 @@ class NavigationEdge extends Edge {
     var key = end.id.toString();
     var tmp = new Key_6(key);
     // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
-    var tmp$ret$0 = Companion_instance_71.create(getKClass(NavBinding));
+    var tmp$ret$0 = Companion_instance_73.create(getKClass(NavBinding));
     super(start, registerConsumer_0(start, tmp, tmp$ret$0), end, end.navBinding);
     this.start = start;
     this.end = end;
@@ -30858,7 +31000,7 @@ class NavBinding {}
 function update(payload) {
   return this.updateFn(NavBinding$update$lambda(payload));
 }
-class Companion_73 {
+class Companion_75 {
   invoke(graph, pattern) {
     return RouteNode.construct(graph, pattern, RouteNode$Companion$invoke$lambda);
   }
@@ -30952,7 +31094,7 @@ class RouteNode extends Node_1 {
     var tmp_0 = this_0;
     tmp_0.dispatch = Graph$dispatch$ref(graph);
     tmp.binding_1 = this_0;
-    $this.routeBinding = $this.registerProvider(new KeyType(new Key_6(portName), Companion_instance_71.Type_4artt7_k$($this.binding_1)), $this.binding_1);
+    $this.routeBinding = $this.registerProvider(new KeyType(new Key_6(portName), Companion_instance_73.Type_4artt7_k$($this.binding_1)), $this.binding_1);
     var tmp_1 = $this;
     // Inline function 'dev.shibasis.reaktor.portgraph.port.provides' call
     var impl = new RouteNode$navBinding$2($this);
@@ -30966,10 +31108,10 @@ class RouteNode extends Node_1 {
     return this.pattern;
   }
   static constructNamed(graph, pattern, portName, binder) {
-    return this.new_dev_shibasis_reaktor_graph_core_node_RouteNode_452ocy_k$(graph, Companion_instance_68.from_dvofps_k$(pattern), portName, binder);
+    return this.new_dev_shibasis_reaktor_graph_core_node_RouteNode_452ocy_k$(graph, Companion_instance_70.from_dvofps_k$(pattern), portName, binder);
   }
   static construct(graph, pattern, binder) {
-    return this.new_dev_shibasis_reaktor_graph_core_node_RouteNode_452ocy_k$(graph, Companion_instance_68.from_dvofps_k$(pattern), 'routeBinding', binder);
+    return this.new_dev_shibasis_reaktor_graph_core_node_RouteNode_452ocy_k$(graph, Companion_instance_70.from_dvofps_k$(pattern), 'routeBinding', binder);
   }
   get_routeBinding_g1mrlx_k$() {
     return this.routeBinding;
@@ -31082,7 +31224,7 @@ class KoinDependencyAdapter extends DependencyAdapter {
 class NavCommand {}
 class Forward {}
 class Back {}
-class Companion_74 {
+class Companion_76 {
   construct(edge, payload, result) {
     return new Push(new BackStackEntry(edge, payload, result));
   }
@@ -31101,7 +31243,7 @@ class Push {
     return this.get_entry_iqxd1l_k$();
   }
 }
-class Companion_75 {
+class Companion_77 {
   construct(edge, payload, result) {
     return new Replace(new BackStackEntry(edge, payload, result));
   }
@@ -31228,9 +31370,9 @@ class NavigationCapabilityImpl {
     }
   }
 }
-class Companion_76 {
+class Companion_78 {
   constructor() {
-    Companion_instance_76 = this;
+    Companion_instance_78 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
@@ -31249,7 +31391,7 @@ class $serializer_0 {
   serialize_afz09d_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_76().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_78().$childSerializers_1;
     var tmp;
     if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 0)) {
       tmp = true;
@@ -31273,7 +31415,7 @@ class $serializer_0 {
     var tmp3_bitMask0 = 0;
     var tmp4_local0 = null;
     var tmp5_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp6_cached = Companion_getInstance_76().$childSerializers_1;
+    var tmp6_cached = Companion_getInstance_78().$childSerializers_1;
     if (tmp5_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp5_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp6_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -31302,12 +31444,12 @@ class $serializer_0 {
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    return [Companion_getInstance_76().$childSerializers_1[0].get_value_j01efc_k$()];
+    return [Companion_getInstance_78().$childSerializers_1[0].get_value_j01efc_k$()];
   }
 }
 class Payload {
   constructor(routeParams) {
-    Companion_getInstance_76();
+    Companion_getInstance_78();
     var tmp;
     if (routeParams === VOID) {
       // Inline function 'kotlin.collections.hashMapOf' call
@@ -31322,7 +31464,7 @@ class Payload {
     return this.routeParams;
   }
   static new_dev_shibasis_reaktor_graph_navigation_Payload_69c17n_k$(seen0, routeParams, serializationConstructorMarker) {
-    Companion_getInstance_76();
+    Companion_getInstance_78();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_0().descriptor_1);
     }
@@ -31426,7 +31568,7 @@ class BackStackEntry {
   }
 }
 class Factory_0 {}
-class Companion_77 {
+class Companion_79 {
   invoke(route, requestSerializer, responseSerializer, block) {
     return new DeleteHandler(route, requestSerializer, responseSerializer, block);
   }
@@ -31438,7 +31580,7 @@ class RequestHandler {
     this.requestSerializer = requestSerializer;
     this.responseSerializer = responseSerializer;
     this.handler = handler;
-    this.routePattern = Companion_instance_68.from_dvofps_k$(this.route);
+    this.routePattern = Companion_instance_70.from_dvofps_k$(this.route);
   }
   get_method_gl8esq_k$() {
     return this.method;
@@ -31476,7 +31618,7 @@ class DeleteHandler extends RequestHandler {
     super(HttpMethod_DELETE_getInstance(), route, requestSerializer, responseSerializer, handler);
   }
 }
-class Companion_78 {
+class Companion_80 {
   invoke(route, requestSerializer, responseSerializer, block) {
     return new GetHandler(route, requestSerializer, responseSerializer, block);
   }
@@ -31486,7 +31628,7 @@ class GetHandler extends RequestHandler {
     super(HttpMethod_GET_getInstance(), route, requestSerializer, responseSerializer, handler);
   }
 }
-class Companion_79 {
+class Companion_81 {
   invoke(route, requestSerializer, responseSerializer, block) {
     return new PostHandler(route, requestSerializer, responseSerializer, block);
   }
@@ -31496,7 +31638,7 @@ class PostHandler extends RequestHandler {
     super(HttpMethod_POST_getInstance(), route, requestSerializer, responseSerializer, handler);
   }
 }
-class Companion_80 {
+class Companion_82 {
   invoke(route, requestSerializer, responseSerializer, block) {
     return new PutHandler(route, requestSerializer, responseSerializer, block);
   }
@@ -31506,7 +31648,7 @@ class PutHandler extends RequestHandler {
     super(HttpMethod_PUT_getInstance(), route, requestSerializer, responseSerializer, handler);
   }
 }
-class Companion_81 {}
+class Companion_83 {}
 class $serializer_1 {
   constructor() {
     $serializer_instance_1 = this;
@@ -31639,7 +31781,7 @@ class Request {
     this.set_environment_er9c07_k$(value);
   }
 }
-class Companion_82 {}
+class Companion_84 {}
 class $serializer_2 {
   constructor() {
     $serializer_instance_2 = this;
@@ -31774,25 +31916,25 @@ class HttpMethod_0 extends Enum {
     var tmp;
     switch (this.ordinal_1) {
       case 0:
-        tmp = Companion_getInstance_51().Get_1;
+        tmp = Companion_getInstance_53().Get_1;
         break;
       case 1:
-        tmp = Companion_getInstance_51().Post_1;
+        tmp = Companion_getInstance_53().Post_1;
         break;
       case 2:
-        tmp = Companion_getInstance_51().Put_1;
+        tmp = Companion_getInstance_53().Put_1;
         break;
       case 3:
-        tmp = Companion_getInstance_51().Delete_1;
+        tmp = Companion_getInstance_53().Delete_1;
         break;
       case 4:
-        tmp = Companion_getInstance_51().Patch_1;
+        tmp = Companion_getInstance_53().Patch_1;
         break;
       case 5:
-        tmp = Companion_getInstance_51().Options_1;
+        tmp = Companion_getInstance_53().Options_1;
         break;
       case 6:
-        tmp = Companion_getInstance_51().Head_1;
+        tmp = Companion_getInstance_53().Head_1;
         break;
       default:
         noWhenBranchMatchedException();
@@ -31807,7 +31949,7 @@ class HttpMethod_0 extends Enum {
     return this.get_ordinal_ip24qg_k$();
   }
 }
-class Companion_83 {
+class Companion_85 {
   constructor() {
     this.Header = 'X-Environment';
   }
@@ -31892,7 +32034,7 @@ class WindowHeightClass extends Enum {
 }
 class WindowSize$Companion$startListening$slambda$slambda {
   invoke_47rf3o_k$(it, $completion) {
-    Companion_getInstance_84().state.set_value_v1vabv_k$(it);
+    Companion_getInstance_86().state.set_value_v1vabv_k$(it);
     return Unit_instance;
   }
   invoke_ja922n_k$(p1, $completion) {
@@ -31939,9 +32081,9 @@ class WindowSize$Companion$startListening$slambda {
     return this.invoke_ri3sjx_k$((!(p1 == null) ? isInterface(p1, CoroutineScope) : false) ? p1 : THROW_CCE(), $completion);
   }
 }
-class Companion_84 {
+class Companion_86 {
   constructor() {
-    Companion_instance_84 = this;
+    Companion_instance_86 = this;
     this.state = MutableStateFlow(new WindowSize());
     var tmp = this;
     tmp.noop_1 = WindowSize$Companion$noop$lambda;
@@ -31976,7 +32118,7 @@ class Companion_84 {
 }
 class WindowSize {
   constructor(width, height) {
-    Companion_getInstance_84();
+    Companion_getInstance_86();
     width = width === VOID ? WindowWidthClass_COMPACT_getInstance() : width;
     height = height === VOID ? WindowHeightClass_MEDIUM_getInstance() : height;
     this.width = width;
@@ -32414,9 +32556,9 @@ class DurableObjectBinding extends Binding {
     return context.durableObjectOrNull_owhb56_k$(this.name_1);
   }
 }
-class Companion_85 {
+class Companion_87 {
   constructor() {
-    Companion_instance_85 = this;
+    Companion_instance_87 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, CloudflareRequest$Companion$$childSerializers$_anonymous__tm7pp0);
@@ -32444,7 +32586,7 @@ class $serializer_3 {
   serialize_ypj0q2_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_85().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_87().$childSerializers_1;
     var tmp;
     if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 0)) {
       tmp = true;
@@ -32499,7 +32641,7 @@ class $serializer_3 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp9_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp10_cached = Companion_getInstance_85().$childSerializers_1;
+    var tmp10_cached = Companion_getInstance_87().$childSerializers_1;
     if (tmp9_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp10_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -32543,7 +32685,7 @@ class $serializer_3 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_85().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_87().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -32553,7 +32695,7 @@ class $serializer_3 {
 class CloudflareAwareRequest {}
 class CloudflareRequest extends Request {
   static new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$(headers, queryParams, pathParams, environment) {
-    Companion_getInstance_85();
+    Companion_getInstance_87();
     var tmp;
     if (headers === VOID) {
       // Inline function 'kotlin.collections.mutableMapOf' call
@@ -32609,7 +32751,7 @@ class CloudflareRequest extends Request {
     return this.cloudflareContext_1;
   }
   static new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_85();
+    Companion_getInstance_87();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_3().descriptor_1);
     }
@@ -32854,35 +32996,9 @@ class SqlIdentifier {
     this.value_1 = value;
   }
 }
-class SqlRowDecoder {
-  constructor(row) {
-    this.row_1 = row;
-  }
-  string_m28nxz_k$(columnName) {
-    return this.row_1.requireString_ujuokk_k$(columnName);
-  }
-  stringOrNull_uh1d0f_k$(columnName) {
-    return this.row_1.string_m28nxz_k$(columnName);
-  }
-}
 class SqlRow {
   constructor(raw) {
     this.raw_1 = raw;
-  }
-  string_m28nxz_k$(columnName) {
-    var tmp0_safe_receiver = this.raw_1[columnName];
-    return tmp0_safe_receiver == null ? null : toString_1(tmp0_safe_receiver);
-  }
-  requireString_ujuokk_k$(columnName) {
-    var tmp0_elvis_lhs = this.string_m28nxz_k$(columnName);
-    var tmp;
-    if (tmp0_elvis_lhs == null) {
-      var message = "Missing column '" + columnName + "' in SQL row";
-      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    } else {
-      tmp = tmp0_elvis_lhs;
-    }
-    return tmp;
   }
   decode_uqmn82_k$(serializer) {
     return get_json().decodeFromJsonElement_tsogwj_k$(serializer, projectedJson(this, serializer.get_descriptor_wjt6a0_k$()));
@@ -32901,9 +33017,9 @@ class SqlRow {
       var element = indexedObject[inductionVariable];
       inductionVariable = inductionVariable + 1 | 0;
       var value = this.raw_1[element];
-      putPath(root, split(element, charArrayOf([_Char___init__impl__6a9atx(46)])), value);
+      putPath(root, split_0(element, charArrayOf([_Char___init__impl__6a9atx(46)])), value);
       // Inline function 'kotlin.collections.map' call
-      var this_0 = split(element, charArrayOf([_Char___init__impl__6a9atx(46)]));
+      var this_0 = split_0(element, charArrayOf([_Char___init__impl__6a9atx(46)]));
       // Inline function 'kotlin.collections.mapTo' call
       var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
       var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
@@ -32920,20 +33036,103 @@ class SqlRow {
     return toJsonObject(root);
   }
 }
+class Companion_88 {
+  build_8afo8s_k$(raw, columnNames) {
+    // Inline function 'kotlin.collections.linkedMapOf' call
+    var exact = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
+    // Inline function 'kotlin.collections.linkedMapOf' call
+    var fallback = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
+    // Inline function 'kotlin.collections.forEach' call
+    var inductionVariable = 0;
+    var last = columnNames.length;
+    while (inductionVariable < last) {
+      var element = columnNames[inductionVariable];
+      inductionVariable = inductionVariable + 1 | 0;
+      var column = new ColumnValue(element, raw[element]);
+      putWhenMissing(exact, canonicalKey(element), column);
+      // Inline function 'kotlin.collections.map' call
+      var this_0 = split_0(element, charArrayOf([_Char___init__impl__6a9atx(46)]));
+      // Inline function 'kotlin.collections.mapTo' call
+      var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
+      var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
+      while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+        var item = _iterator__ex2g4s.next_20eer_k$();
+        var tmp$ret$2 = normalizeColumnSegment(item);
+        destination.add_utx5q5_k$(tmp$ret$2);
+      }
+      var normalizedPath = destination;
+      putWhenMissing(exact, canonicalKey(joinToString_1(normalizedPath, '.')), column);
+      putWhenMissing(exact, canonicalKey(joinToString_1(normalizedPath, '_')), column);
+      if (!contains_10(element, _Char___init__impl__6a9atx(46))) {
+        // Inline function 'kotlin.collections.forEach' call
+        var _iterator__ex2g4s_0 = columnFallbackKeys(element).iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_0.hasNext_bitz1p_k$()) {
+          var element_0 = _iterator__ex2g4s_0.next_20eer_k$();
+          // Inline function 'kotlin.collections.getOrPut' call
+          var value = fallback.get_wei43m_k$(element_0);
+          var tmp;
+          if (value == null) {
+            // Inline function 'kotlin.collections.mutableListOf' call
+            var answer = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+            fallback.put_4fpzoq_k$(element_0, answer);
+            tmp = answer;
+          } else {
+            tmp = value;
+          }
+          tmp.add_utx5q5_k$(column);
+        }
+      }
+    }
+    return new ColumnLookup(exact, fallback);
+  }
+}
+class ColumnLookup {
+  constructor(exact, fallback) {
+    this.exact_1 = exact;
+    this.fallback_1 = fallback;
+  }
+  get_wshmss_k$(path) {
+    var tmp0_safe_receiver = this.exact_1.get_wei43m_k$(canonicalKey(joinToString_1(path, '.')));
+    if (tmp0_safe_receiver == null)
+      null;
+    else {
+      // Inline function 'kotlin.let' call
+      return tmp0_safe_receiver;
+    }
+    var tmp1_safe_receiver = this.exact_1.get_wei43m_k$(canonicalKey(joinToString_1(path, '_')));
+    if (tmp1_safe_receiver == null)
+      null;
+    else {
+      // Inline function 'kotlin.let' call
+      return tmp1_safe_receiver;
+    }
+    // Inline function 'kotlin.text.orEmpty' call
+    var tmp0_elvis_lhs = lastOrNull(path);
+    var tmp$ret$2 = tmp0_elvis_lhs == null ? '' : tmp0_elvis_lhs;
+    var leaf = canonicalKey(tmp$ret$2);
+    var tmp2_safe_receiver = this.fallback_1.get_wei43m_k$(leaf);
+    return tmp2_safe_receiver == null ? null : singleOrNull(tmp2_safe_receiver);
+  }
+}
 class ColumnValue {
-  constructor(value) {
+  constructor(rawName, value) {
+    this.rawName_1 = rawName;
     this.value_1 = value;
   }
   toString() {
-    return 'ColumnValue(value=' + toString_0(this.value_1) + ')';
+    return 'ColumnValue(rawName=' + this.rawName_1 + ', value=' + toString_0(this.value_1) + ')';
   }
   hashCode() {
-    return this.value_1 == null ? 0 : hashCode(this.value_1);
+    var result = getStringHashCode(this.rawName_1);
+    result = imul_0(result, 31) + (this.value_1 == null ? 0 : hashCode(this.value_1)) | 0;
+    return result;
   }
   equals(other) {
     if (this === other)
       return true;
     if (!(other instanceof ColumnValue))
+      return false;
+    if (!(this.rawName_1 === other.rawName_1))
       return false;
     if (!equals(this.value_1, other.value_1))
       return false;
@@ -34874,21 +35073,22 @@ class SqlAdapter extends Adapter {
     this.getDriver().execute$default_d22cns_k$(null, 'VACUUM', 0);
   }
   backup(backupName) {
-    var backupPath = this.fileAdapter.resolvePath(backupName);
-    this.fileAdapter.delete(backupPath);
-    var tmp = this.getDriver();
-    tmp.execute_umnm3_k$(null, 'VACUUM INTO ?', 1, SqlAdapter$backup$lambda(backupPath));
+    return promisify(($completion) => this.backup$suspendBridge_ibbcvi_k$(backupName, $completion));
+  }
+  backup$suspendBridge_ibbcvi_k$(backupName, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_backup$suspendBridge__4gtaed.bind(VOID, this, backupName), $completion);
+  }
+  backup_n15g2b_k$(backupName, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_backup__2oadiy.bind(VOID, this, backupName), $completion);
   }
   restore(backupName) {
-    this.closeDriver();
-    var backupPath = this.fileAdapter.resolvePath(backupName);
-    var dbPath = this.fileAdapter.resolvePath(this.dbName);
-    if (!this.fileAdapter.exists(backupPath)) {
-      throw Error_0.new_kotlin_Error_cvq542_k$('Backup file not found at ' + backupPath);
-    }
-    this.fileAdapter.delete(dbPath);
-    this.fileAdapter.copy(backupPath, dbPath);
-    this.getDriver();
+    return promisify(($completion) => this.restore$suspendBridge_wo6r0m_k$(backupName, $completion));
+  }
+  restore$suspendBridge_wo6r0m_k$(backupName, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_restore$suspendBridge__vefq9n.bind(VOID, this, backupName), $completion);
+  }
+  restore_py954p_k$(backupName, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_restore__ihj2w6.bind(VOID, this, backupName), $completion);
   }
 }
 class SyncAdapter {
@@ -35051,7 +35251,7 @@ class ColumnDefinition {
     return true;
   }
 }
-class Table {
+class Table_0 {
   constructor(tableName) {
     this.tableName = tableName;
     var tmp = this;
@@ -35951,7 +36151,7 @@ class ExperimentRootService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_3 = serializer_0(this_2, createKType(getKClass(ChatOverviewResponse), arrayOf([]), false));
     var tmp$ret$5 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
-    var tmp_0 = this.server(Companion_instance_78, '/', tmp, tmp$ret$5, block);
+    var tmp_0 = this.server(Companion_instance_80, '/', tmp, tmp$ret$5, block);
     tmp_0 instanceof GetHandler || THROW_CCE();
   }
 }
@@ -36040,7 +36240,7 @@ class ChatRoomDurableObject extends CloudflareDurableObject {
     return promise(tmp, VOID, VOID, ChatRoomDurableObject$fetch$slambda_0(this, request));
   }
 }
-class Companion_86 {}
+class Companion_89 {}
 class $serializer_4 {
   constructor() {
     $serializer_instance_4 = this;
@@ -36166,7 +36366,7 @@ class ReservedMessageSequence {
     return $this;
   }
 }
-class Companion_87 {}
+class Companion_90 {}
 class $serializer_5 {
   constructor() {
     $serializer_instance_5 = this;
@@ -36264,7 +36464,7 @@ class JoinRoomCommand {
     return $this;
   }
 }
-class Companion_88 {}
+class Companion_91 {}
 class $serializer_6 {
   constructor() {
     $serializer_instance_6 = this;
@@ -36362,7 +36562,7 @@ class LeaveRoomCommand {
     return $this;
   }
 }
-class Companion_89 {}
+class Companion_92 {}
 class $serializer_7 {
   constructor() {
     $serializer_instance_7 = this;
@@ -36460,9 +36660,9 @@ class PublishMessageCommand {
     return $this;
   }
 }
-class Companion_90 {
+class Companion_93 {
   constructor() {
-    Companion_instance_90 = this;
+    Companion_instance_93 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
@@ -36483,7 +36683,7 @@ class $serializer_8 {
   serialize_6m46mg_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_90().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_93().$childSerializers_1;
     if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 0) ? true : !equals(value.participants_1, emptyList())) {
       tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.participants_1);
     }
@@ -36507,7 +36707,7 @@ class $serializer_8 {
     var tmp5_local1 = 0;
     var tmp6_local2 = null;
     var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_90().$childSerializers_1;
+    var tmp8_cached = Companion_getInstance_93().$childSerializers_1;
     if (tmp7_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp8_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -36548,12 +36748,12 @@ class $serializer_8 {
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    return [Companion_getInstance_90().$childSerializers_1[0].get_value_j01efc_k$(), IntSerializer_getInstance(), StringSerializer_getInstance()];
+    return [Companion_getInstance_93().$childSerializers_1[0].get_value_j01efc_k$(), IntSerializer_getInstance(), StringSerializer_getInstance()];
   }
 }
 class CoordinatorState {
   constructor(participants, latestSequence, updatedAt) {
-    Companion_getInstance_90();
+    Companion_getInstance_93();
     participants = participants === VOID ? emptyList() : participants;
     latestSequence = latestSequence === VOID ? 0 : latestSequence;
     updatedAt = updatedAt === VOID ? nowIsoString() : updatedAt;
@@ -36593,7 +36793,7 @@ class CoordinatorState {
     return true;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_CoordinatorState_47z9rb_k$(seen0, participants, latestSequence, updatedAt, serializationConstructorMarker) {
-    Companion_getInstance_90();
+    Companion_getInstance_93();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_8().descriptor_1);
     }
@@ -36630,7 +36830,7 @@ class ChatRoomCoordinator {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_reserveSequence__y7rnpl.bind(VOID, this, roomId, participant), $completion);
   }
 }
-class Companion_91 {}
+class Companion_94 {}
 class $serializer_9 {
   constructor() {
     $serializer_instance_9 = this;
@@ -36724,7 +36924,7 @@ class ChatParticipant {
     return $this;
   }
 }
-class Companion_92 {}
+class Companion_95 {}
 class $serializer_10 {
   constructor() {
     $serializer_instance_10 = this;
@@ -36878,7 +37078,7 @@ class ChatMediaRef {
     return $this;
   }
 }
-class Companion_93 {}
+class Companion_96 {}
 class $serializer_11 {
   constructor() {
     $serializer_instance_11 = this;
@@ -37052,9 +37252,9 @@ class ChatMessage {
     return $this;
   }
 }
-class Companion_94 {
+class Companion_97 {
   constructor() {
-    Companion_instance_94 = this;
+    Companion_instance_97 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
@@ -37077,7 +37277,7 @@ class $serializer_12 {
   serialize_f8vshy_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_94().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_97().$childSerializers_1;
     tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.roomId_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.participants_1);
     tmp1_output.encodeIntElement_krhhce_k$(tmp0_desc, 2, value.activeParticipants_1);
@@ -37099,7 +37299,7 @@ class $serializer_12 {
     var tmp7_local3 = 0;
     var tmp8_local4 = null;
     var tmp9_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp10_cached = Companion_getInstance_94().$childSerializers_1;
+    var tmp10_cached = Companion_getInstance_97().$childSerializers_1;
     if (tmp9_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp9_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -37149,7 +37349,7 @@ class $serializer_12 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_94().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_97().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -37158,7 +37358,7 @@ class $serializer_12 {
 }
 class ChatPresence {
   constructor(roomId, participants, activeParticipants, latestSequence, updatedAt) {
-    Companion_getInstance_94();
+    Companion_getInstance_97();
     this.roomId_1 = roomId;
     this.participants_1 = participants;
     this.activeParticipants_1 = activeParticipants;
@@ -37194,7 +37394,7 @@ class ChatPresence {
     return true;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatPresence_wp1jng_k$(seen0, roomId, participants, activeParticipants, latestSequence, updatedAt, serializationConstructorMarker) {
-    Companion_getInstance_94();
+    Companion_getInstance_97();
     if (!(31 === (31 & seen0))) {
       throwMissingFieldException(seen0, 31, $serializer_getInstance_12().descriptor_1);
     }
@@ -37207,7 +37407,7 @@ class ChatPresence {
     return $this;
   }
 }
-class Companion_95 {}
+class Companion_98 {}
 class $serializer_13 {
   constructor() {
     $serializer_instance_13 = this;
@@ -37400,9 +37600,9 @@ class ChatRoomSummary {
     return $this;
   }
 }
-class Companion_96 {
+class Companion_99 {
   constructor() {
-    Companion_instance_96 = this;
+    Companion_instance_99 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik);
@@ -37430,7 +37630,7 @@ class $serializer_14 {
   serialize_ihgnw0_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_96().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_99().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -37450,7 +37650,7 @@ class $serializer_14 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_96().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_99().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -37494,7 +37694,7 @@ class $serializer_14 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_96().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_99().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -37503,20 +37703,20 @@ class $serializer_14 {
 }
 class ChatOverviewRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_2hr453_k$() {
-    Companion_getInstance_96();
+    Companion_getInstance_99();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_st0ioq_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_96();
+    Companion_getInstance_99();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_14().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_97 {
+class Companion_100 {
   constructor() {
-    Companion_instance_97 = this;
+    Companion_instance_100 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs);
@@ -37539,7 +37739,7 @@ class $serializer_15 {
   serialize_w29jjg_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_97().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_100().$childSerializers_1;
     tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.message_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.routes_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.flow_1);
@@ -37557,7 +37757,7 @@ class $serializer_15 {
     var tmp5_local1 = null;
     var tmp6_local2 = null;
     var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_97().$childSerializers_1;
+    var tmp8_cached = Companion_getInstance_100().$childSerializers_1;
     if (tmp7_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -37595,7 +37795,7 @@ class $serializer_15 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_97().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_100().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -37604,7 +37804,7 @@ class $serializer_15 {
 }
 class ChatOverviewResponse extends Response_0 {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_cgpcub_k$(message, routes, flow) {
-    Companion_getInstance_97();
+    Companion_getInstance_100();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
     $this.message_1 = message;
     $this.routes_1 = routes;
@@ -37612,7 +37812,7 @@ class ChatOverviewResponse extends Response_0 {
     return $this;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_umpzvi_k$(seen0, message, routes, flow, serializationConstructorMarker) {
-    Companion_getInstance_97();
+    Companion_getInstance_100();
     if (!(7 === (7 & seen0))) {
       throwMissingFieldException(seen0, 7, $serializer_getInstance_15().descriptor_1);
     }
@@ -37623,9 +37823,9 @@ class ChatOverviewResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_98 {
+class Companion_101 {
   constructor() {
-    Companion_instance_98 = this;
+    Companion_instance_101 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1);
@@ -37653,7 +37853,7 @@ class $serializer_16 {
   serialize_sv00vv_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_98().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_101().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -37673,7 +37873,7 @@ class $serializer_16 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_98().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_101().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -37717,7 +37917,7 @@ class $serializer_16 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_98().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_101().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -37726,20 +37926,20 @@ class $serializer_16 {
 }
 class ListRoomsRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_awg7t0_k$() {
-    Companion_getInstance_98();
+    Companion_getInstance_101();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_k98aqp_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_98();
+    Companion_getInstance_101();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_16().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_99 {
+class Companion_102 {
   constructor() {
-    Companion_instance_99 = this;
+    Companion_instance_102 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
@@ -37758,7 +37958,7 @@ class $serializer_17 {
   serialize_8l6olt_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_99().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_102().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.rooms_1);
     tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
   }
@@ -37772,7 +37972,7 @@ class $serializer_17 {
     var tmp3_bitMask0 = 0;
     var tmp4_local0 = null;
     var tmp5_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp6_cached = Companion_getInstance_99().$childSerializers_1;
+    var tmp6_cached = Companion_getInstance_102().$childSerializers_1;
     if (tmp5_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp5_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp6_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -37801,18 +38001,18 @@ class $serializer_17 {
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    return [Companion_getInstance_99().$childSerializers_1[0].get_value_j01efc_k$()];
+    return [Companion_getInstance_102().$childSerializers_1[0].get_value_j01efc_k$()];
   }
 }
 class ChatRoomsResponse extends Response_0 {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomsResponse_nlklp7_k$(rooms) {
-    Companion_getInstance_99();
+    Companion_getInstance_102();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
     $this.rooms_1 = rooms;
     return $this;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomsResponse_6uszwk_k$(seen0, rooms, serializationConstructorMarker) {
-    Companion_getInstance_99();
+    Companion_getInstance_102();
     if (!(1 === (1 & seen0))) {
       throwMissingFieldException(seen0, 1, $serializer_getInstance_17().descriptor_1);
     }
@@ -37821,9 +38021,9 @@ class ChatRoomsResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_100 {
+class Companion_103 {
   constructor() {
-    Companion_instance_100 = this;
+    Companion_instance_103 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i);
@@ -37857,7 +38057,7 @@ class $serializer_18 {
   serialize_fkz4tm_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_100().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_103().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -37887,7 +38087,7 @@ class $serializer_18 {
     var tmp10_local6 = null;
     var tmp11_local7 = null;
     var tmp12_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp13_cached = Companion_getInstance_100().$childSerializers_1;
+    var tmp13_cached = Companion_getInstance_103().$childSerializers_1;
     if (tmp12_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp13_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -37955,7 +38155,7 @@ class $serializer_18 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_100().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_103().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -37964,7 +38164,7 @@ class $serializer_18 {
 }
 class CreateRoomRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_CreateRoomRequest_241nfy_k$(seen0, headers, queryParams, pathParams, environment, name, topic, createdBy, seedMembers, serializationConstructorMarker) {
-    Companion_getInstance_100();
+    Companion_getInstance_103();
     if (!(112 === (112 & seen0))) {
       throwMissingFieldException(seen0, 112, $serializer_getInstance_18().descriptor_1);
     }
@@ -37979,9 +38179,9 @@ class CreateRoomRequest extends CloudflareRequest {
     return $this;
   }
 }
-class Companion_101 {
+class Companion_104 {
   constructor() {
-    Companion_instance_101 = this;
+    Companion_instance_104 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, RoomRequest$Companion$$childSerializers$_anonymous__8cox56);
@@ -38009,7 +38209,7 @@ class $serializer_19 {
   serialize_2257ie_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_101().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_104().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -38029,7 +38229,7 @@ class $serializer_19 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_101().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_104().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38073,7 +38273,7 @@ class $serializer_19 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_101().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_104().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38082,20 +38282,20 @@ class $serializer_19 {
 }
 class RoomRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_nl1bbh_k$() {
-    Companion_getInstance_101();
+    Companion_getInstance_104();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_aqfllc_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_101();
+    Companion_getInstance_104();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_19().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_102 {
+class Companion_105 {
   constructor() {
-    Companion_instance_102 = this;
+    Companion_instance_105 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg);
@@ -38124,7 +38324,7 @@ class $serializer_20 {
   serialize_hgn9zk_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_102().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_105().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -38146,7 +38346,7 @@ class $serializer_20 {
     var tmp7_local3 = null;
     var tmp8_local4 = null;
     var tmp9_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp10_cached = Companion_getInstance_102().$childSerializers_1;
+    var tmp10_cached = Companion_getInstance_105().$childSerializers_1;
     if (tmp9_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp9_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp10_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38196,7 +38396,7 @@ class $serializer_20 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_102().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_105().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38205,7 +38405,7 @@ class $serializer_20 {
 }
 class RoomMembershipRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMembershipRequest_q415wy_k$(seen0, headers, queryParams, pathParams, environment, participant, serializationConstructorMarker) {
-    Companion_getInstance_102();
+    Companion_getInstance_105();
     if (!(16 === (16 & seen0))) {
       throwMissingFieldException(seen0, 16, $serializer_getInstance_20().descriptor_1);
     }
@@ -38214,9 +38414,9 @@ class RoomMembershipRequest extends CloudflareRequest {
     return $this;
   }
 }
-class Companion_103 {
+class Companion_106 {
   constructor() {
-    Companion_instance_103 = this;
+    Companion_instance_106 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu);
@@ -38247,7 +38447,7 @@ class $serializer_21 {
   serialize_9i4jwq_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_103().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_106().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -38275,7 +38475,7 @@ class $serializer_21 {
     var tmp9_local5 = null;
     var tmp10_local6 = null;
     var tmp11_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp12_cached = Companion_getInstance_103().$childSerializers_1;
+    var tmp12_cached = Companion_getInstance_106().$childSerializers_1;
     if (tmp11_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp11_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp12_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38337,7 +38537,7 @@ class $serializer_21 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_103().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_106().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38346,7 +38546,7 @@ class $serializer_21 {
 }
 class SendMessageRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_SendMessageRequest_6o91to_k$(seen0, headers, queryParams, pathParams, environment, author, body, mediaId, serializationConstructorMarker) {
-    Companion_getInstance_103();
+    Companion_getInstance_106();
     if (!(48 === (48 & seen0))) {
       throwMissingFieldException(seen0, 48, $serializer_getInstance_21().descriptor_1);
     }
@@ -38360,9 +38560,9 @@ class SendMessageRequest extends CloudflareRequest {
     return $this;
   }
 }
-class Companion_104 {
+class Companion_107 {
   constructor() {
-    Companion_instance_104 = this;
+    Companion_instance_107 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y);
@@ -38390,7 +38590,7 @@ class $serializer_22 {
   serialize_7vfvdy_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_104().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_107().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -38410,7 +38610,7 @@ class $serializer_22 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_104().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_107().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38454,7 +38654,7 @@ class $serializer_22 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_104().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_107().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38463,20 +38663,20 @@ class $serializer_22 {
 }
 class RoomMessagesRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_nj9zmp_k$() {
-    Companion_getInstance_104();
+    Companion_getInstance_107();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_t4ezgk_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_104();
+    Companion_getInstance_107();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_22().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_105 {
+class Companion_108 {
   constructor() {
-    Companion_instance_105 = this;
+    Companion_instance_108 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by);
@@ -38508,7 +38708,7 @@ class $serializer_23 {
   serialize_g4mb3m_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_105().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_108().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -38536,7 +38736,7 @@ class $serializer_23 {
     var tmp10_local6 = null;
     var tmp11_local7 = null;
     var tmp12_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp13_cached = Companion_getInstance_105().$childSerializers_1;
+    var tmp13_cached = Companion_getInstance_108().$childSerializers_1;
     if (tmp12_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp12_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp13_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38604,7 +38804,7 @@ class $serializer_23 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_105().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_108().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38613,7 +38813,7 @@ class $serializer_23 {
 }
 class UploadMediaRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_UploadMediaRequest_71vn47_k$(seen0, headers, queryParams, pathParams, environment, uploadedBy, fileName, contentType, base64Data, serializationConstructorMarker) {
-    Companion_getInstance_105();
+    Companion_getInstance_108();
     if (!(240 === (240 & seen0))) {
       throwMissingFieldException(seen0, 240, $serializer_getInstance_23().descriptor_1);
     }
@@ -38625,9 +38825,9 @@ class UploadMediaRequest extends CloudflareRequest {
     return $this;
   }
 }
-class Companion_106 {
+class Companion_109 {
   constructor() {
-    Companion_instance_106 = this;
+    Companion_instance_109 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3);
@@ -38655,7 +38855,7 @@ class $serializer_24 {
   serialize_y4nfov_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_106().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_109().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -38675,7 +38875,7 @@ class $serializer_24 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_106().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_109().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38719,7 +38919,7 @@ class $serializer_24 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_106().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_109().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38728,20 +38928,20 @@ class $serializer_24 {
 }
 class MediaRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_swvzn2_k$() {
-    Companion_getInstance_106();
+    Companion_getInstance_109();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_7u43uz_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_106();
+    Companion_getInstance_109();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_24().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_107 {
+class Companion_110 {
   constructor() {
-    Companion_instance_107 = this;
+    Companion_instance_110 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
@@ -38762,7 +38962,7 @@ class $serializer_25 {
   serialize_ekd7kj_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_107().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_110().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_13(), value.room_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, $serializer_getInstance_12(), value.presence_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.messages_1);
@@ -38780,7 +38980,7 @@ class $serializer_25 {
     var tmp5_local1 = null;
     var tmp6_local2 = null;
     var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_107().$childSerializers_1;
+    var tmp8_cached = Companion_getInstance_110().$childSerializers_1;
     if (tmp7_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_13(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -38818,7 +39018,7 @@ class $serializer_25 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_107().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_110().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -38827,7 +39027,7 @@ class $serializer_25 {
 }
 class ChatRoomStateResponse extends Response_0 {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_5uun3l_k$(room, presence, messages) {
-    Companion_getInstance_107();
+    Companion_getInstance_110();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
     $this.room_1 = room;
     $this.presence_1 = presence;
@@ -38835,7 +39035,7 @@ class ChatRoomStateResponse extends Response_0 {
     return $this;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatRoomStateResponse_gbq7as_k$(seen0, room, presence, messages, serializationConstructorMarker) {
-    Companion_getInstance_107();
+    Companion_getInstance_110();
     if (!(7 === (7 & seen0))) {
       throwMissingFieldException(seen0, 7, $serializer_getInstance_25().descriptor_1);
     }
@@ -38846,7 +39046,7 @@ class ChatRoomStateResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_108 {}
+class Companion_111 {}
 class $serializer_26 {
   constructor() {
     $serializer_instance_26 = this;
@@ -38927,7 +39127,7 @@ class ChatMessageResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_109 {}
+class Companion_112 {}
 class $serializer_27 {
   constructor() {
     $serializer_instance_27 = this;
@@ -38997,7 +39197,7 @@ class ChatMediaResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_110 {}
+class Companion_113 {}
 class $serializer_28 {
   constructor() {
     $serializer_instance_28 = this;
@@ -39078,7 +39278,7 @@ class ChatMediaDownloadResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_111 {}
+class Companion_114 {}
 class $serializer_29 {
   constructor() {
     $serializer_instance_29 = this;
@@ -39314,7 +39514,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_3 = serializer_0(this_2, createKType(getKClass(ChatOverviewResponse), arrayOf([]), false));
     var tmp$ret$5 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
-    var tmp_0 = this.server(Companion_instance_78, '/', tmp, tmp$ret$5, block);
+    var tmp_0 = this.server(Companion_instance_80, '/', tmp, tmp$ret$5, block);
     tmp_0 instanceof GetHandler || THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
@@ -39331,7 +39531,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_7 = serializer_0(this_6, createKType(getKClass(ChatRoomsResponse), arrayOf([]), false));
     var tmp$ret$13 = isInterface(this_7, KSerializer) ? this_7 : THROW_CCE();
-    var tmp_2 = this.server(Companion_instance_78, '/rooms', tmp_1, tmp$ret$13, block_0);
+    var tmp_2 = this.server(Companion_instance_80, '/rooms', tmp_1, tmp$ret$13, block_0);
     tmp_2 instanceof GetHandler || THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
@@ -39348,7 +39548,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_11 = serializer_0(this_10, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$21 = isInterface(this_11, KSerializer) ? this_11 : THROW_CCE();
-    var tmp_4 = this.server(Companion_instance_79, '/rooms', tmp_3, tmp$ret$21, block_1);
+    var tmp_4 = this.server(Companion_instance_81, '/rooms', tmp_3, tmp$ret$21, block_1);
     tmp_4 instanceof PostHandler || THROW_CCE();
     var tmp2 = '/rooms/{roomId}';
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
@@ -39366,7 +39566,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_15 = serializer_0(this_14, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$29 = isInterface(this_15, KSerializer) ? this_15 : THROW_CCE();
-    var tmp_6 = this.server(Companion_instance_78, tmp2, tmp_5, tmp$ret$29, block_2);
+    var tmp_6 = this.server(Companion_instance_80, tmp2, tmp_5, tmp$ret$29, block_2);
     tmp_6 instanceof GetHandler || THROW_CCE();
     var tmp2_0 = '/rooms/{roomId}/members';
     // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
@@ -39384,7 +39584,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_19 = serializer_0(this_18, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$37 = isInterface(this_19, KSerializer) ? this_19 : THROW_CCE();
-    var tmp_8 = this.server(Companion_instance_79, tmp2_0, tmp_7, tmp$ret$37, block_3);
+    var tmp_8 = this.server(Companion_instance_81, tmp2_0, tmp_7, tmp$ret$37, block_3);
     tmp_8 instanceof PostHandler || THROW_CCE();
     var tmp2_1 = '/rooms/{roomId}/leave';
     // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
@@ -39402,7 +39602,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_23 = serializer_0(this_22, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$45 = isInterface(this_23, KSerializer) ? this_23 : THROW_CCE();
-    var tmp_10 = this.server(Companion_instance_79, tmp2_1, tmp_9, tmp$ret$45, block_4);
+    var tmp_10 = this.server(Companion_instance_81, tmp2_1, tmp_9, tmp$ret$45, block_4);
     tmp_10 instanceof PostHandler || THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
@@ -39419,7 +39619,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_27 = serializer_0(this_26, createKType(getKClass(ChatMediaResponse), arrayOf([]), false));
     var tmp$ret$53 = isInterface(this_27, KSerializer) ? this_27 : THROW_CCE();
-    var tmp_12 = this.server(Companion_instance_79, '/media', tmp_11, tmp$ret$53, block_5);
+    var tmp_12 = this.server(Companion_instance_81, '/media', tmp_11, tmp$ret$53, block_5);
     tmp_12 instanceof PostHandler || THROW_CCE();
     var tmp2_2 = '/media/{mediaId}';
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
@@ -39437,7 +39637,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_31 = serializer_0(this_30, createKType(getKClass(ChatMediaDownloadResponse), arrayOf([]), false));
     var tmp$ret$61 = isInterface(this_31, KSerializer) ? this_31 : THROW_CCE();
-    var tmp_14 = this.server(Companion_instance_78, tmp2_2, tmp_13, tmp$ret$61, block_6);
+    var tmp_14 = this.server(Companion_instance_80, tmp2_2, tmp_13, tmp$ret$61, block_6);
     tmp_14 instanceof GetHandler || THROW_CCE();
     var tmp2_3 = '/rooms/{roomId}/messages';
     // Inline function 'dev.shibasis.reaktor.graph.service.PostHandler' call
@@ -39455,7 +39655,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_35 = serializer_0(this_34, createKType(getKClass(ChatMessageResponse), arrayOf([]), false));
     var tmp$ret$69 = isInterface(this_35, KSerializer) ? this_35 : THROW_CCE();
-    var tmp_16 = this.server(Companion_instance_79, tmp2_3, tmp_15, tmp$ret$69, block_7);
+    var tmp_16 = this.server(Companion_instance_81, tmp2_3, tmp_15, tmp$ret$69, block_7);
     tmp_16 instanceof PostHandler || THROW_CCE();
     var tmp2_4 = '/rooms/{roomId}/messages';
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
@@ -39473,7 +39673,7 @@ class ChatService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_39 = serializer_0(this_38, createKType(getKClass(ChatRoomStateResponse), arrayOf([]), false));
     var tmp$ret$77 = isInterface(this_39, KSerializer) ? this_39 : THROW_CCE();
-    var tmp_18 = this.server(Companion_instance_78, tmp2_4, tmp_17, tmp$ret$77, block_8);
+    var tmp_18 = this.server(Companion_instance_80, tmp2_4, tmp_17, tmp$ret$77, block_8);
     tmp_18 instanceof GetHandler || THROW_CCE();
   }
 }
@@ -39483,7 +39683,7 @@ class SupabaseBindings {
     this.database_1 = postgres('SUPABASE');
   }
 }
-class Companion_112 {}
+class Companion_115 {}
 class $serializer_30 {
   constructor() {
     $serializer_instance_30 = this;
@@ -39590,7 +39790,7 @@ class SupabaseCatalogEntry {
     return $this;
   }
 }
-class Companion_113 {}
+class Companion_116 {}
 class $serializer_31 {
   constructor() {
     $serializer_instance_31 = this;
@@ -39697,7 +39897,7 @@ class SupabaseTableCount {
     return $this;
   }
 }
-class Companion_114 {}
+class Companion_117 {}
 class $serializer_32 {
   constructor() {
     $serializer_instance_32 = this;
@@ -39771,11 +39971,6 @@ class $serializer_32 {
   }
 }
 class SupabaseConnectionInfo {
-  constructor(database, currentUser, serverTime) {
-    this.database_1 = database;
-    this.currentUser_1 = currentUser;
-    this.serverTime_1 = serverTime;
-  }
   toString() {
     return 'SupabaseConnectionInfo(database=' + this.database_1 + ', currentUser=' + this.currentUser_1 + ', serverTime=' + this.serverTime_1 + ')';
   }
@@ -39809,9 +40004,9 @@ class SupabaseConnectionInfo {
     return $this;
   }
 }
-class Companion_115 {
+class Companion_118 {
   constructor() {
-    Companion_instance_115 = this;
+    Companion_instance_118 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60);
@@ -39839,7 +40034,7 @@ class $serializer_33 {
   serialize_u87i0g_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_115().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_118().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -39859,7 +40054,7 @@ class $serializer_33 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_115().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_118().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -39903,7 +40098,7 @@ class $serializer_33 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_115().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_118().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -39912,20 +40107,20 @@ class $serializer_33 {
 }
 class SupabaseOverviewRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_3330ax_k$() {
-    Companion_getInstance_115();
+    Companion_getInstance_118();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_fciana_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_115();
+    Companion_getInstance_118();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_33().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_116 {
+class Companion_119 {
   constructor() {
-    Companion_instance_116 = this;
+    Companion_instance_119 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g);
@@ -39948,7 +40143,7 @@ class $serializer_34 {
   serialize_sj20gk_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_116().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_119().$childSerializers_1;
     tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.message_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.routes_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.notes_1);
@@ -39966,7 +40161,7 @@ class $serializer_34 {
     var tmp5_local1 = null;
     var tmp6_local2 = null;
     var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_116().$childSerializers_1;
+    var tmp8_cached = Companion_getInstance_119().$childSerializers_1;
     if (tmp7_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -40004,7 +40199,7 @@ class $serializer_34 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_116().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_119().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -40013,7 +40208,7 @@ class $serializer_34 {
 }
 class SupabaseOverviewResponse extends Response_0 {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_73osj_k$(message, routes, notes) {
-    Companion_getInstance_116();
+    Companion_getInstance_119();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
     $this.message_1 = message;
     $this.routes_1 = routes;
@@ -40021,7 +40216,7 @@ class SupabaseOverviewResponse extends Response_0 {
     return $this;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_cc02qm_k$(seen0, message, routes, notes, serializationConstructorMarker) {
-    Companion_getInstance_116();
+    Companion_getInstance_119();
     if (!(7 === (7 & seen0))) {
       throwMissingFieldException(seen0, 7, $serializer_getInstance_34().descriptor_1);
     }
@@ -40032,9 +40227,9 @@ class SupabaseOverviewResponse extends Response_0 {
     return $this;
   }
 }
-class Companion_117 {
+class Companion_120 {
   constructor() {
-    Companion_instance_117 = this;
+    Companion_instance_120 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj);
@@ -40062,7 +40257,7 @@ class $serializer_35 {
   serialize_etgrb_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_117().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_120().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
@@ -40082,7 +40277,7 @@ class $serializer_35 {
     var tmp6_local2 = null;
     var tmp7_local3 = null;
     var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_117().$childSerializers_1;
+    var tmp9_cached = Companion_getInstance_120().$childSerializers_1;
     if (tmp8_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -40126,7 +40321,7 @@ class $serializer_35 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_117().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_120().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -40135,20 +40330,20 @@ class $serializer_35 {
 }
 class SupabaseStatusRequest extends CloudflareRequest {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_t1z0wu_k$() {
-    Companion_getInstance_117();
+    Companion_getInstance_120();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_kq11c1_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_117();
+    Companion_getInstance_120();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_35().descriptor_1);
     }
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
   }
 }
-class Companion_118 {
+class Companion_121 {
   constructor() {
-    Companion_instance_118 = this;
+    Companion_instance_121 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9);
@@ -40171,7 +40366,7 @@ class $serializer_36 {
   serialize_lj4q4t_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_118().$childSerializers_1;
+    var tmp2_cached = Companion_getInstance_121().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_32(), value.connection_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.objects_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.counts_1);
@@ -40189,7 +40384,7 @@ class $serializer_36 {
     var tmp5_local1 = null;
     var tmp6_local2 = null;
     var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_118().$childSerializers_1;
+    var tmp8_cached = Companion_getInstance_121().$childSerializers_1;
     if (tmp7_input.decodeSequentially_xlblqy_k$()) {
       tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_32(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -40227,7 +40422,7 @@ class $serializer_36 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_118().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_121().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
@@ -40236,7 +40431,7 @@ class $serializer_36 {
 }
 class SupabaseStatusResponse extends Response_0 {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusResponse_5vlham_k$(connection, objects, counts) {
-    Companion_getInstance_118();
+    Companion_getInstance_121();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
     $this.connection_1 = connection;
     $this.objects_1 = objects;
@@ -40244,7 +40439,7 @@ class SupabaseStatusResponse extends Response_0 {
     return $this;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusResponse_s3te37_k$(seen0, connection, objects, counts, serializationConstructorMarker) {
-    Companion_getInstance_118();
+    Companion_getInstance_121();
     if (!(7 === (7 & seen0))) {
       throwMissingFieldException(seen0, 7, $serializer_getInstance_36().descriptor_1);
     }
@@ -40328,7 +40523,7 @@ class SupabaseService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_3 = serializer_0(this_2, createKType(getKClass(SupabaseOverviewResponse), arrayOf([]), false));
     var tmp$ret$5 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
-    var tmp_0 = this.server(Companion_instance_78, '/', tmp, tmp$ret$5, block);
+    var tmp_0 = this.server(Companion_instance_80, '/', tmp, tmp$ret$5, block);
     tmp_0 instanceof GetHandler || THROW_CCE();
     // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
     // Inline function 'dev.shibasis.reaktor.graph.service.server' call
@@ -40345,7 +40540,7 @@ class SupabaseService extends Service {
     // Inline function 'kotlinx.serialization.internal.cast' call
     var this_7 = serializer_0(this_6, createKType(getKClass(SupabaseStatusResponse), arrayOf([]), false));
     var tmp$ret$13 = isInterface(this_7, KSerializer) ? this_7 : THROW_CCE();
-    var tmp_2 = this.server(Companion_instance_78, '/status', tmp_1, tmp$ret$13, block_0);
+    var tmp_2 = this.server(Companion_instance_80, '/status', tmp_1, tmp$ret$13, block_0);
     tmp_2 instanceof GetHandler || THROW_CCE();
   }
 }
@@ -40792,6 +40987,19 @@ function drop(_this__u8e3s4, n) {
   }
   return optimizeReadOnlyList(list);
 }
+function dropLast(_this__u8e3s4, n) {
+  // Inline function 'kotlin.require' call
+  if (!(n >= 0)) {
+    var message = 'Requested element count ' + n + ' is less than zero.';
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+  }
+  return take(_this__u8e3s4, coerceAtLeast(_this__u8e3s4.get_size_woubt6_k$() - n | 0, 0));
+}
+function last(_this__u8e3s4) {
+  if (_this__u8e3s4.isEmpty_y1axqb_k$())
+    throw NoSuchElementException.new_kotlin_NoSuchElementException_eborbh_k$('List is empty.');
+  return _this__u8e3s4.get_c1px32_k$(get_lastIndex_2(_this__u8e3s4));
+}
 function intersect(_this__u8e3s4, other) {
   var otherCollection = convertToListIfNotCollection(other);
   // Inline function 'kotlin.collections.mutableSetOf' call
@@ -40826,11 +41034,6 @@ function plus_0(_this__u8e3s4, elements) {
     addAll(result_0, elements);
     return result_0;
   }
-}
-function last(_this__u8e3s4) {
-  if (_this__u8e3s4.isEmpty_y1axqb_k$())
-    throw NoSuchElementException.new_kotlin_NoSuchElementException_eborbh_k$('List is empty.');
-  return _this__u8e3s4.get_c1px32_k$(get_lastIndex_2(_this__u8e3s4));
 }
 function singleOrNull(_this__u8e3s4) {
   return _this__u8e3s4.get_size_woubt6_k$() === 1 ? _this__u8e3s4.get_c1px32_k$(0) : null;
@@ -40979,14 +41182,6 @@ function plus_2(_this__u8e3s4, element) {
   result.addAll_4lah1e_k$(_this__u8e3s4);
   result.add_utx5q5_k$(element);
   return result;
-}
-function dropLast(_this__u8e3s4, n) {
-  // Inline function 'kotlin.require' call
-  if (!(n >= 0)) {
-    var message = 'Requested element count ' + n + ' is less than zero.';
-    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
-  }
-  return take(_this__u8e3s4, coerceAtLeast(_this__u8e3s4.get_size_woubt6_k$() - n | 0, 0));
 }
 function last_0(_this__u8e3s4) {
   if (isInterface(_this__u8e3s4, KtList))
@@ -41172,6 +41367,24 @@ function toList_2(_this__u8e3s4) {
   }
   return dst;
 }
+function take_0(_this__u8e3s4, n) {
+  // Inline function 'kotlin.require' call
+  if (!(n >= 0)) {
+    var message = 'Requested element count ' + n + ' is less than zero.';
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+  }
+  var tmp;
+  if (n === 0) {
+    tmp = emptySequence();
+  } else {
+    if (isInterface(_this__u8e3s4, DropTakeSequence)) {
+      tmp = _this__u8e3s4.take_6gva4v_k$(n);
+    } else {
+      tmp = new TakeSequence(_this__u8e3s4, n);
+    }
+  }
+  return tmp;
+}
 function asIterable(_this__u8e3s4) {
   // Inline function 'kotlin.collections.Iterable' call
   return new asIterable$$inlined$Iterable$1(_this__u8e3s4);
@@ -41191,7 +41404,7 @@ function plus_3(_this__u8e3s4, elements) {
   addAll(result, elements);
   return result;
 }
-function take_0(_this__u8e3s4, n) {
+function take_1(_this__u8e3s4, n) {
   // Inline function 'kotlin.require' call
   if (!(n >= 0)) {
     var message = 'Requested character count ' + n + ' is less than zero.';
@@ -41238,7 +41451,7 @@ function dropLast_0(_this__u8e3s4, n) {
     var message = 'Requested character count ' + n + ' is less than zero.';
     throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
   }
-  return take_0(_this__u8e3s4, coerceAtLeast(_this__u8e3s4.length - n | 0, 0));
+  return take_1(_this__u8e3s4, coerceAtLeast(_this__u8e3s4.length - n | 0, 0));
 }
 function init_kotlin_KotlinNothingValueException(_this__u8e3s4) {
   captureStack(_this__u8e3s4, _this__u8e3s4.$throwableCtor_3);
@@ -44895,6 +45108,15 @@ function Companion_getInstance_8() {
     new Companion_8();
   return Companion_instance_8;
 }
+function Regex$findAll$lambda(this$0, $input, $startIndex) {
+  return () => this$0.find_jq9i5o_k$($input, $startIndex);
+}
+function Regex$findAll$lambda_0(match) {
+  return match.next_20eer_k$();
+}
+function Regex$replace$lambda($replacement) {
+  return (it) => substituteGroupRefs(it, $replacement);
+}
 function toFlags(_this__u8e3s4, prepend) {
   return joinToString_1(_this__u8e3s4, '', prepend, VOID, VOID, VOID, toFlags$lambda);
 }
@@ -44906,11 +45128,109 @@ function findNext(_this__u8e3s4, input, from, nextPattern) {
   var range = numberRangeToNumber(match.index, _this__u8e3s4.lastIndex - 1 | 0);
   return new findNext$1(range, match, nextPattern, input);
 }
+function substituteGroupRefs(match, replacement) {
+  var index = 0;
+  var result = StringBuilder.new_kotlin_text_StringBuilder_u46mrb_k$();
+  while (index < replacement.length) {
+    var _unary__edvuaz = index;
+    index = _unary__edvuaz + 1 | 0;
+    var char = charCodeAt(replacement, _unary__edvuaz);
+    if (char === _Char___init__impl__6a9atx(92)) {
+      if (index === replacement.length)
+        throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('The Char to be escaped is missing');
+      var _unary__edvuaz_0 = index;
+      index = _unary__edvuaz_0 + 1 | 0;
+      result.append_58al37_k$(charCodeAt(replacement, _unary__edvuaz_0));
+    } else if (char === _Char___init__impl__6a9atx(36)) {
+      if (index === replacement.length)
+        throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Capturing group index is missing');
+      if (charCodeAt(replacement, index) === _Char___init__impl__6a9atx(123)) {
+        index = index + 1 | 0;
+        var endIndex = readGroupName(replacement, index);
+        if (index === endIndex)
+          throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Named capturing group reference should have a non-empty name');
+        if (endIndex === replacement.length || !(charCodeAt(replacement, endIndex) === _Char___init__impl__6a9atx(125)))
+          throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$("Named capturing group reference is missing trailing '}'");
+        var groupName = substring(replacement, index, endIndex);
+        var tmp0_safe_receiver = get_3(match.get_groups_dy12vx_k$(), groupName);
+        var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.value_1;
+        result.append_22ad7x_k$(tmp1_elvis_lhs == null ? '' : tmp1_elvis_lhs);
+        index = endIndex + 1 | 0;
+      } else {
+        var containsArg = charCodeAt(replacement, index);
+        if (!(_Char___init__impl__6a9atx(48) <= containsArg ? containsArg <= _Char___init__impl__6a9atx(57) : false))
+          throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$('Invalid capturing group reference');
+        var groups = match.get_groups_dy12vx_k$();
+        var endIndex_0 = readGroupIndex(replacement, index, groups.get_size_woubt6_k$());
+        var groupIndex = toInt_0(substring(replacement, index, endIndex_0));
+        if (groupIndex >= groups.get_size_woubt6_k$())
+          throw IndexOutOfBoundsException.new_kotlin_IndexOutOfBoundsException_ddr8db_k$('Group with index ' + groupIndex + ' does not exist');
+        var tmp2_safe_receiver = groups.get_c1px32_k$(groupIndex);
+        var tmp3_elvis_lhs = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.value_1;
+        result.append_22ad7x_k$(tmp3_elvis_lhs == null ? '' : tmp3_elvis_lhs);
+        index = endIndex_0;
+      }
+    } else {
+      result.append_58al37_k$(char);
+    }
+  }
+  return result.toString();
+}
+function readGroupName(_this__u8e3s4, startIndex) {
+  var index = startIndex;
+  $l$loop: while (index < _this__u8e3s4.length) {
+    if (charCodeAt(_this__u8e3s4, index) === _Char___init__impl__6a9atx(125)) {
+      break $l$loop;
+    } else {
+      index = index + 1 | 0;
+    }
+  }
+  return index;
+}
+function get_3(_this__u8e3s4, name) {
+  var tmp0_elvis_lhs = isInterface(_this__u8e3s4, MatchNamedGroupCollection) ? _this__u8e3s4 : null;
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_chzcdl_k$('Retrieving groups by name is not supported on this platform.');
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  var namedGroups = tmp;
+  return namedGroups.get_6bo4tg_k$(name);
+}
+function readGroupIndex(_this__u8e3s4, startIndex, groupCount) {
+  var index = startIndex + 1 | 0;
+  var groupIndex = Char__minus_impl_a2frrh(charCodeAt(_this__u8e3s4, startIndex), _Char___init__impl__6a9atx(48));
+  $l$loop_0: while (true) {
+    var tmp;
+    if (index < _this__u8e3s4.length) {
+      var containsArg = charCodeAt(_this__u8e3s4, index);
+      tmp = _Char___init__impl__6a9atx(48) <= containsArg ? containsArg <= _Char___init__impl__6a9atx(57) : false;
+    } else {
+      tmp = false;
+    }
+    if (!tmp) {
+      break $l$loop_0;
+    }
+    var newGroupIndex = imul_0(groupIndex, 10) + Char__minus_impl_a2frrh(charCodeAt(_this__u8e3s4, index), _Char___init__impl__6a9atx(48)) | 0;
+    if (0 <= newGroupIndex ? newGroupIndex < groupCount : false) {
+      groupIndex = newGroupIndex;
+      index = index + 1 | 0;
+    } else {
+      break $l$loop_0;
+    }
+  }
+  return index;
+}
 function toFlags$lambda(it) {
   return it.value_1;
 }
 function findNext$o$groups$o$iterator$lambda(this$0) {
   return (it) => this$0.get_c1px32_k$(it);
+}
+function hasOwnPrototypeProperty($this, o, name) {
+  // Inline function 'kotlin.js.unsafeCast' call
+  return Object.prototype.hasOwnProperty.call(o, name);
 }
 function advanceToNextCharacter($this, index) {
   if (index < get_lastIndex_3($this.$input_1)) {
@@ -45014,17 +45334,17 @@ function concatToString_0(_this__u8e3s4, startIndex, endIndex) {
      while (inductionVariable < endIndex);
   return result;
 }
-function decodeToString(_this__u8e3s4, startIndex, endIndex, throwOnInvalidSequence) {
+function decodeToString(_this__u8e3s4) {
+  _init_properties_stringJs_kt__bg7zye();
+  return decodeUtf8(_this__u8e3s4, 0, _this__u8e3s4.length, false);
+}
+function decodeToString_0(_this__u8e3s4, startIndex, endIndex, throwOnInvalidSequence) {
   startIndex = startIndex === VOID ? 0 : startIndex;
   endIndex = endIndex === VOID ? _this__u8e3s4.length : endIndex;
   throwOnInvalidSequence = throwOnInvalidSequence === VOID ? false : throwOnInvalidSequence;
   _init_properties_stringJs_kt__bg7zye();
   Companion_instance_9.checkBoundsIndexes_tsopv1_k$(startIndex, endIndex, _this__u8e3s4.length);
   return decodeUtf8(_this__u8e3s4, startIndex, endIndex, throwOnInvalidSequence);
-}
-function decodeToString_0(_this__u8e3s4) {
-  _init_properties_stringJs_kt__bg7zye();
-  return decodeUtf8(_this__u8e3s4, 0, _this__u8e3s4.length, false);
 }
 function encodeToByteArray(_this__u8e3s4, startIndex, endIndex, throwOnInvalidSequence) {
   startIndex = startIndex === VOID ? 0 : startIndex;
@@ -46447,6 +46767,20 @@ function reversePositionIndex(_this__u8e3s4, index) {
 function reverseIteratorIndex(_this__u8e3s4, index) {
   return get_lastIndex_2(_this__u8e3s4) - index | 0;
 }
+function emptySequence() {
+  return EmptySequence_instance;
+}
+function generateSequence(seedFunction, nextFunction) {
+  return new GeneratorSequence(seedFunction, nextFunction);
+}
+var EmptySequence_instance;
+function EmptySequence_getInstance() {
+  return EmptySequence_instance;
+}
+function calcNext($this) {
+  $this.nextItem_1 = $this.nextState_1 === -2 ? $this.this$0__1.getInitialValue_1() : $this.this$0__1.getNextValue_1(ensureNotNull($this.nextItem_1));
+  $this.nextState_1 = $this.nextItem_1 == null ? 0 : 1;
+}
 function setOf_0(elements) {
   return toSet(elements);
 }
@@ -46635,6 +46969,21 @@ function Default_getInstance() {
 }
 function Random_0(seed) {
   return XorWowRandom.new_kotlin_random_XorWowRandom_ms64yk_k$(convertToInt(seed), convertToInt(shiftRight(seed, 32)));
+}
+function checkRangeBounds(from, until) {
+  // Inline function 'kotlin.require' call
+  if (!(until > from)) {
+    var message = boundsErrorMessage(from, until);
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+  }
+  return Unit_instance;
+}
+function fastLog2(value) {
+  // Inline function 'kotlin.countLeadingZeroBits' call
+  return 31 - clz32(value) | 0;
+}
+function boundsErrorMessage(from, until) {
+  return 'Random range is empty: [' + toString_1(from) + ', ' + toString_1(until) + ').';
 }
 function Random_1(seed) {
   return XorWowRandom.new_kotlin_random_XorWowRandom_ms64yk_k$(seed, seed >> 31);
@@ -47211,6 +47560,28 @@ function removePrefix(_this__u8e3s4, prefix) {
   }
   return _this__u8e3s4;
 }
+function split(_this__u8e3s4, delimiters, ignoreCase, limit) {
+  ignoreCase = ignoreCase === VOID ? false : ignoreCase;
+  limit = limit === VOID ? 0 : limit;
+  if (delimiters.length === 1) {
+    var delimiter = delimiters[0];
+    // Inline function 'kotlin.text.isEmpty' call
+    if (!(charSequenceLength(delimiter) === 0)) {
+      return split_1(_this__u8e3s4, delimiter, ignoreCase, limit);
+    }
+  }
+  // Inline function 'kotlin.collections.map' call
+  var this_0 = asIterable(rangesDelimitedBy(_this__u8e3s4, delimiters, VOID, ignoreCase, limit));
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
+  var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var item = _iterator__ex2g4s.next_20eer_k$();
+    var tmp$ret$1 = substring_1(_this__u8e3s4, item);
+    destination.add_utx5q5_k$(tmp$ret$1);
+  }
+  return destination;
+}
 function toBooleanStrictOrNull(_this__u8e3s4) {
   switch (_this__u8e3s4) {
     case 'true':
@@ -47332,14 +47703,14 @@ function startsWith_1(_this__u8e3s4, prefix, startIndex, ignoreCase) {
     return regionMatchesImpl(_this__u8e3s4, startIndex, prefix, 0, charSequenceLength(prefix), ignoreCase);
   }
 }
-function split(_this__u8e3s4, delimiters, ignoreCase, limit) {
+function split_0(_this__u8e3s4, delimiters, ignoreCase, limit) {
   ignoreCase = ignoreCase === VOID ? false : ignoreCase;
   limit = limit === VOID ? 0 : limit;
   if (delimiters.length === 1) {
     return split_1(_this__u8e3s4, toString(delimiters[0]), ignoreCase, limit);
   }
   // Inline function 'kotlin.collections.map' call
-  var this_0 = asIterable(rangesDelimitedBy(_this__u8e3s4, delimiters, VOID, ignoreCase, limit));
+  var this_0 = asIterable(rangesDelimitedBy_0(_this__u8e3s4, delimiters, VOID, ignoreCase, limit));
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
@@ -47421,28 +47792,6 @@ function contains_10(_this__u8e3s4, char, ignoreCase) {
   ignoreCase = ignoreCase === VOID ? false : ignoreCase;
   return indexOf_5(_this__u8e3s4, char, VOID, ignoreCase) >= 0;
 }
-function split_0(_this__u8e3s4, delimiters, ignoreCase, limit) {
-  ignoreCase = ignoreCase === VOID ? false : ignoreCase;
-  limit = limit === VOID ? 0 : limit;
-  if (delimiters.length === 1) {
-    var delimiter = delimiters[0];
-    // Inline function 'kotlin.text.isEmpty' call
-    if (!(charSequenceLength(delimiter) === 0)) {
-      return split_1(_this__u8e3s4, delimiter, ignoreCase, limit);
-    }
-  }
-  // Inline function 'kotlin.collections.map' call
-  var this_0 = asIterable(rangesDelimitedBy_0(_this__u8e3s4, delimiters, VOID, ignoreCase, limit));
-  // Inline function 'kotlin.collections.mapTo' call
-  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
-  var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
-  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
-    var item = _iterator__ex2g4s.next_20eer_k$();
-    var tmp$ret$1 = substring_1(_this__u8e3s4, item);
-    destination.add_utx5q5_k$(tmp$ret$1);
-  }
-  return destination;
-}
 function startsWith_3(_this__u8e3s4, prefix, ignoreCase) {
   ignoreCase = ignoreCase === VOID ? false : ignoreCase;
   var tmp;
@@ -47520,6 +47869,45 @@ function requireNonNegativeLimit(limit) {
   }
   return Unit_instance;
 }
+function split_1(_this__u8e3s4, delimiter, ignoreCase, limit) {
+  requireNonNegativeLimit(limit);
+  var currentOffset = 0;
+  var nextIndex = indexOf_6(_this__u8e3s4, delimiter, currentOffset, ignoreCase);
+  if (nextIndex === -1 || limit === 1) {
+    return listOf(toString_1(_this__u8e3s4));
+  }
+  var isLimited = limit > 0;
+  var result = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(isLimited ? coerceAtMost(limit, 10) : 10);
+  $l$loop: do {
+    var tmp2 = currentOffset;
+    // Inline function 'kotlin.text.substring' call
+    var endIndex = nextIndex;
+    var tmp$ret$0 = toString_1(charSequenceSubSequence(_this__u8e3s4, tmp2, endIndex));
+    result.add_utx5q5_k$(tmp$ret$0);
+    currentOffset = nextIndex + delimiter.length | 0;
+    if (isLimited && result.get_size_woubt6_k$() === (limit - 1 | 0))
+      break $l$loop;
+    nextIndex = indexOf_6(_this__u8e3s4, delimiter, currentOffset, ignoreCase);
+  }
+   while (!(nextIndex === -1));
+  var tmp2_0 = currentOffset;
+  // Inline function 'kotlin.text.substring' call
+  var endIndex_0 = charSequenceLength(_this__u8e3s4);
+  var tmp$ret$1 = toString_1(charSequenceSubSequence(_this__u8e3s4, tmp2_0, endIndex_0));
+  result.add_utx5q5_k$(tmp$ret$1);
+  return result;
+}
+function rangesDelimitedBy(_this__u8e3s4, delimiters, startIndex, ignoreCase, limit) {
+  startIndex = startIndex === VOID ? 0 : startIndex;
+  ignoreCase = ignoreCase === VOID ? false : ignoreCase;
+  limit = limit === VOID ? 0 : limit;
+  requireNonNegativeLimit(limit);
+  var delimitersList = asList(delimiters);
+  return new DelimitedRangesSequence(_this__u8e3s4, startIndex, limit, rangesDelimitedBy$lambda(delimitersList, ignoreCase));
+}
+function substring_1(_this__u8e3s4, range) {
+  return toString_1(charSequenceSubSequence(_this__u8e3s4, range.get_start_iypx6h_k$(), range.get_endInclusive_r07xpi_k$() + 1 | 0));
+}
 function indexOf_7(_this__u8e3s4, other, startIndex, endIndex, ignoreCase, last) {
   last = last === VOID ? false : last;
   var indices = !last ? numberRangeToNumber(coerceAtLeast(startIndex, 0), coerceAtMost(endIndex, charSequenceLength(_this__u8e3s4))) : downTo(coerceAtMost(startIndex, get_lastIndex_3(_this__u8e3s4)), coerceAtLeast(endIndex, 0));
@@ -47590,57 +47978,18 @@ function regionMatchesImpl(_this__u8e3s4, thisOffset, other, otherOffset, length
      while (inductionVariable < length);
   return true;
 }
-function split_1(_this__u8e3s4, delimiter, ignoreCase, limit) {
-  requireNonNegativeLimit(limit);
-  var currentOffset = 0;
-  var nextIndex = indexOf_6(_this__u8e3s4, delimiter, currentOffset, ignoreCase);
-  if (nextIndex === -1 || limit === 1) {
-    return listOf(toString_1(_this__u8e3s4));
-  }
-  var isLimited = limit > 0;
-  var result = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(isLimited ? coerceAtMost(limit, 10) : 10);
-  $l$loop: do {
-    var tmp2 = currentOffset;
-    // Inline function 'kotlin.text.substring' call
-    var endIndex = nextIndex;
-    var tmp$ret$0 = toString_1(charSequenceSubSequence(_this__u8e3s4, tmp2, endIndex));
-    result.add_utx5q5_k$(tmp$ret$0);
-    currentOffset = nextIndex + delimiter.length | 0;
-    if (isLimited && result.get_size_woubt6_k$() === (limit - 1 | 0))
-      break $l$loop;
-    nextIndex = indexOf_6(_this__u8e3s4, delimiter, currentOffset, ignoreCase);
-  }
-   while (!(nextIndex === -1));
-  var tmp2_0 = currentOffset;
-  // Inline function 'kotlin.text.substring' call
-  var endIndex_0 = charSequenceLength(_this__u8e3s4);
-  var tmp$ret$1 = toString_1(charSequenceSubSequence(_this__u8e3s4, tmp2_0, endIndex_0));
-  result.add_utx5q5_k$(tmp$ret$1);
-  return result;
-}
-function rangesDelimitedBy(_this__u8e3s4, delimiters, startIndex, ignoreCase, limit) {
-  startIndex = startIndex === VOID ? 0 : startIndex;
-  ignoreCase = ignoreCase === VOID ? false : ignoreCase;
-  limit = limit === VOID ? 0 : limit;
-  requireNonNegativeLimit(limit);
-  return new DelimitedRangesSequence(_this__u8e3s4, startIndex, limit, rangesDelimitedBy$lambda(delimiters, ignoreCase));
-}
-function substring_1(_this__u8e3s4, range) {
-  return toString_1(charSequenceSubSequence(_this__u8e3s4, range.get_start_iypx6h_k$(), range.get_endInclusive_r07xpi_k$() + 1 | 0));
-}
 function rangesDelimitedBy_0(_this__u8e3s4, delimiters, startIndex, ignoreCase, limit) {
   startIndex = startIndex === VOID ? 0 : startIndex;
   ignoreCase = ignoreCase === VOID ? false : ignoreCase;
   limit = limit === VOID ? 0 : limit;
   requireNonNegativeLimit(limit);
-  var delimitersList = asList(delimiters);
-  return new DelimitedRangesSequence(_this__u8e3s4, startIndex, limit, rangesDelimitedBy$lambda_0(delimitersList, ignoreCase));
+  return new DelimitedRangesSequence(_this__u8e3s4, startIndex, limit, rangesDelimitedBy$lambda_0(delimiters, ignoreCase));
 }
 var State_instance;
 function State_getInstance() {
   return State_instance;
 }
-function calcNext($this) {
+function calcNext_0($this) {
   if ($this.nextSearchIndex_1 < 0) {
     $this.nextState_1 = 0;
     $this.nextItem_1 = null;
@@ -47742,14 +48091,7 @@ function findAnyOf(_this__u8e3s4, strings, startIndex, ignoreCase, last) {
 function lines(_this__u8e3s4) {
   return toList_2(lineSequence(_this__u8e3s4));
 }
-function rangesDelimitedBy$lambda($delimiters, $ignoreCase) {
-  return ($this$DelimitedRangesSequence, currentIndex) => {
-    // Inline function 'kotlin.let' call
-    var it = indexOfAny($this$DelimitedRangesSequence, $delimiters, currentIndex, $ignoreCase);
-    return it < 0 ? null : to(it, 1);
-  };
-}
-function rangesDelimitedBy$lambda_0($delimitersList, $ignoreCase) {
+function rangesDelimitedBy$lambda($delimitersList, $ignoreCase) {
   return ($this$DelimitedRangesSequence, currentIndex) => {
     var tmp0_safe_receiver = findAnyOf($this$DelimitedRangesSequence, $delimitersList, currentIndex, $ignoreCase, false);
     var tmp;
@@ -47760,6 +48102,13 @@ function rangesDelimitedBy$lambda_0($delimitersList, $ignoreCase) {
       tmp = to(tmp0_safe_receiver.first, tmp0_safe_receiver.second.length);
     }
     return tmp;
+  };
+}
+function rangesDelimitedBy$lambda_0($delimiters, $ignoreCase) {
+  return ($this$DelimitedRangesSequence, currentIndex) => {
+    // Inline function 'kotlin.let' call
+    var it = indexOfAny($this$DelimitedRangesSequence, $delimiters, currentIndex, $ignoreCase);
+    return it < 0 ? null : to(it, 1);
   };
 }
 function _Duration___init__impl__kdtzql(rawValue) {
@@ -50340,7 +50689,7 @@ function atomic$long$1(initial) {
 }
 function atomic$int$(initial, trace) {
   trace = trace === VOID ? None_getInstance() : trace;
-  return new AtomicInt(initial);
+  return new AtomicInt_0(initial);
 }
 function atomic$ref$(initial, trace) {
   trace = trace === VOID ? None_getInstance() : trace;
@@ -50348,11 +50697,11 @@ function atomic$ref$(initial, trace) {
 }
 function atomic$boolean$(initial, trace) {
   trace = trace === VOID ? None_getInstance() : trace;
-  return new AtomicBoolean(initial);
+  return new AtomicBoolean_0(initial);
 }
 function atomic$long$(initial, trace) {
   trace = trace === VOID ? None_getInstance() : trace;
-  return new AtomicLong(initial);
+  return new AtomicLong_0(initial);
 }
 var undefined_0;
 function *_generator_awaitAll__ivbqpv(_this__u8e3s4, $completion) {
@@ -59346,6 +59695,183 @@ function StatusCode_NETWORK_AUTHENTICATION_REQUIRED_getInstance() {
   StatusCode_initEntries();
   return StatusCode_NETWORK_AUTHENTICATION_REQUIRED_instance;
 }
+var Companion_instance_38;
+function Companion_getInstance_38() {
+  if (Companion_instance_38 === VOID)
+    new Companion_38();
+  return Companion_instance_38;
+}
+function putImpl($this, key, value, onlyIfAbsent) {
+  var hash = Companion_getInstance_38().spread_72y3cr_k$(hashCode(key));
+  var backoff = new Backoff();
+  $l$loop_0: while (true) {
+    var t = currentTable($this);
+    if (!(t.nextTable_1.load_1zbae_k$() == null)) {
+      helpMigrate($this, t);
+      continue $l$loop_0;
+    }
+    var result = tryInsert($this, t, hash, key, value, onlyIfAbsent, backoff);
+    if (result === $this.NEEDS_RESIZE_1) {
+      triggerResize($this, t);
+    } else if (result === $this.RETRY_SENTINEL_1) {
+      continue $l$loop_0;
+    } else {
+      return (result == null ? true : !(result == null)) ? result : THROW_CCE();
+    }
+  }
+}
+function tryInsert($this, t, hash, key, value, onlyIfAbsent, backoff) {
+  var idx = hash & t.mask_1;
+  var probes = 0;
+  while (probes <= t.maxProbe_1) {
+    var slot = t.buckets_1[idx].load_1zbae_k$();
+    if (slot == null || slot === Companion_getInstance_38().TOMBSTONE_1) {
+      var newEntry = new Entry_0(key, value, hash);
+      if (t.buckets_1[idx].compareAndSet_l3595a_k$(slot, newEntry)) {
+        if (!(slot === Companion_getInstance_38().TOMBSTONE_1)) {
+          t.size_1.increment_vga7q7_k$();
+        }
+        if (t.size_1.sum_2g5n_k$() > numberToLong(t.capacity_1 * $this.loadFactor_1)) {
+          return $this.NEEDS_RESIZE_1;
+        }
+        return null;
+      }
+      backoff.backoff_kknoew_k$();
+      return $this.RETRY_SENTINEL_1;
+    } else if (slot === Companion_getInstance_38().REDIRECT_1) {
+      return $this.RETRY_SENTINEL_1;
+    } else {
+      var entry = slot instanceof Entry_0 ? slot : THROW_CCE();
+      if (entry.hash_1 === hash && equals(entry.key_1, key)) {
+        if (onlyIfAbsent)
+          return entry.value_1;
+        var newEntry_0 = new Entry_0(key, value, hash);
+        if (t.buckets_1[idx].compareAndSet_l3595a_k$(slot, newEntry_0)) {
+          return entry.value_1;
+        }
+        backoff.backoff_kknoew_k$();
+        return $this.RETRY_SENTINEL_1;
+      }
+    }
+    probes = probes + 1 | 0;
+    idx = (idx + 1 | 0) & t.mask_1;
+  }
+  return $this.NEEDS_RESIZE_1;
+}
+function triggerResize($this, oldTable) {
+  if (oldTable.nextTable_1.load_1zbae_k$() == null) {
+    var newCapacity = imul_0(oldTable.capacity_1, 2);
+    var candidate = new Table(newCapacity);
+    oldTable.nextTable_1.compareAndSet_l3595a_k$(null, candidate);
+  }
+  helpMigrate($this, oldTable);
+}
+function helpMigrate($this, oldTable) {
+  var tmp0_elvis_lhs = oldTable.nextTable_1.load_1zbae_k$();
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    return Unit_instance;
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  var newTable = tmp;
+  if (oldTable.migrationComplete_1.load_1zbae_k$()) {
+    $this.table_1.compareAndSet_l3595a_k$(oldTable, newTable);
+    return Unit_instance;
+  }
+  // Inline function 'kotlin.repeat' call
+  var times = $this.MIGRATE_CHUNK_SIZE_1;
+  var inductionVariable = 0;
+  if (inductionVariable < times)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      var idx = oldTable.migrationIndex_1.addAndFetch_fpau44_k$(1) - 1 | 0;
+      if (idx >= oldTable.capacity_1) {
+        finalizeMigration($this, oldTable, newTable);
+        return Unit_instance;
+      }
+      migrateBucket($this, oldTable, newTable, idx);
+    }
+     while (inductionVariable < times);
+  if (oldTable.migrationIndex_1.load_1zbae_k$() >= oldTable.capacity_1) {
+    finalizeMigration($this, oldTable, newTable);
+  }
+}
+function migrateBucket($this, oldTable, newTable, idx) {
+  $l$loop_0: while (true) {
+    var slot = oldTable.buckets_1[idx].load_1zbae_k$();
+    if (slot === Companion_getInstance_38().REDIRECT_1)
+      return Unit_instance;
+    else if (slot == null || slot === Companion_getInstance_38().TOMBSTONE_1) {
+      if (oldTable.buckets_1[idx].compareAndSet_l3595a_k$(slot, Companion_getInstance_38().REDIRECT_1))
+        return Unit_instance;
+      continue $l$loop_0;
+    } else {
+      var entry = slot instanceof Entry_0 ? slot : THROW_CCE();
+      insertDuringMigration($this, newTable, entry);
+      if (oldTable.buckets_1[idx].compareAndSet_l3595a_k$(slot, Companion_getInstance_38().REDIRECT_1))
+        return Unit_instance;
+      continue $l$loop_0;
+    }
+  }
+}
+function insertDuringMigration($this, t, entry) {
+  var idx = entry.hash_1 & t.mask_1;
+  var probes = 0;
+  $l$loop: while (probes <= t.capacity_1) {
+    var slot = t.buckets_1[idx].load_1zbae_k$();
+    if (slot == null || slot === Companion_getInstance_38().TOMBSTONE_1) {
+      if (t.buckets_1[idx].compareAndSet_l3595a_k$(slot, entry)) {
+        t.size_1.increment_vga7q7_k$();
+        return Unit_instance;
+      }
+      continue $l$loop;
+    } else {
+      var existing = slot instanceof Entry_0 ? slot : THROW_CCE();
+      if (existing.hash_1 === entry.hash_1 && equals(existing.key_1, entry.key_1)) {
+        return Unit_instance;
+      }
+    }
+    probes = probes + 1 | 0;
+    idx = (idx + 1 | 0) & t.mask_1;
+  }
+}
+function finalizeMigration($this, oldTable, newTable) {
+  oldTable.migrationComplete_1.store_ah7bos_k$(true);
+  $this.table_1.compareAndSet_l3595a_k$(oldTable, newTable);
+}
+function currentTable($this) {
+  var t = $this.table_1.load_1zbae_k$();
+  while (true) {
+    var next = t.nextTable_1.load_1zbae_k$();
+    if (next == null || !t.migrationComplete_1.load_1zbae_k$())
+      return t;
+    $this.table_1.compareAndSet_l3595a_k$(t, next);
+    t = next;
+  }
+}
+function ConcurrentHashMap$toString$lambda($first, $sb) {
+  return (k, v) => {
+    var tmp;
+    if (!$first._v) {
+      $sb.append_22ad7x_k$(', ');
+      tmp = Unit_instance;
+    }
+    $sb.append_22ad7x_k$(toString_1(k) + '=' + toString_1(v));
+    $first._v = false;
+    return Unit_instance;
+  };
+}
+function stripeIndex($this) {
+  return $this.threadCounter_1.addAndFetch_fpau44_k$(1);
+}
+var Companion_instance_39;
+function Companion_getInstance_39() {
+  if (Companion_instance_39 === VOID)
+    new Companion_39();
+  return Companion_instance_39;
+}
 function fail(message) {
   // Inline function 'kotlin.Companion.failure' call
   var exception = newThrowable(message);
@@ -59361,24 +59887,24 @@ function get_Async(_this__u8e3s4) {
 function getPatnaikUserAgent() {
   return getShibasisUserAgent();
 }
-var Companion_instance_38;
-function Companion_getInstance_38() {
-  if (Companion_instance_38 === VOID)
-    new Companion_38();
-  return Companion_instance_38;
+var Companion_instance_40;
+function Companion_getInstance_40() {
+  if (Companion_instance_40 === VOID)
+    new Companion_40();
+  return Companion_instance_40;
 }
 function ByteString_0(bytes) {
   var tmp;
   // Inline function 'kotlin.collections.isEmpty' call
   if (bytes.length === 0) {
-    tmp = Companion_getInstance_38().EMPTY_1;
+    tmp = Companion_getInstance_40().EMPTY_1;
   } else {
-    tmp = Companion_getInstance_38().wrap_yhiemk_k$(bytes);
+    tmp = Companion_getInstance_40().wrap_yhiemk_k$(bytes);
   }
   return tmp;
 }
 function decodeToString_1(_this__u8e3s4) {
-  return decodeToString_0(_this__u8e3s4.getBackingArrayReference_x19ruh_k$());
+  return decodeToString(_this__u8e3s4.getBackingArrayReference_x19ruh_k$());
 }
 function isEmpty(_this__u8e3s4) {
   return _this__u8e3s4.get_size_woubt6_k$() === 0;
@@ -59424,12 +59950,9 @@ function readByteString(_this__u8e3s4, byteCount) {
 function buffered(_this__u8e3s4) {
   return new RealSource(_this__u8e3s4);
 }
-function buffered_0(_this__u8e3s4) {
-  return new RealSink(_this__u8e3s4);
-}
-var Companion_instance_39;
-function Companion_getInstance_39() {
-  return Companion_instance_39;
+var Companion_instance_41;
+function Companion_getInstance_41() {
+  return Companion_instance_41;
 }
 function init_kotlinx_io_Segment(_this__u8e3s4) {
   _this__u8e3s4.pos_1 = 0;
@@ -59499,8 +60022,15 @@ function readByteArrayImpl(_this__u8e3s4, size) {
   return array;
 }
 function readString(_this__u8e3s4) {
+  return commonReadUtf8(_this__u8e3s4, _this__u8e3s4.get_size_woubt6_k$());
+}
+function readString_0(_this__u8e3s4) {
   _this__u8e3s4.request_mpoy7z_k$(9223372036854775807n);
   return commonReadUtf8(_this__u8e3s4.get_buffer_bmaafd_k$(), _this__u8e3s4.get_buffer_bmaafd_k$().get_size_woubt6_k$());
+}
+function readString_1(_this__u8e3s4, byteCount) {
+  _this__u8e3s4.require_28r0pl_k$(byteCount);
+  return commonReadUtf8(_this__u8e3s4.get_buffer_bmaafd_k$(), byteCount);
 }
 function writeString(_this__u8e3s4, string, startIndex, endIndex) {
   startIndex = startIndex === VOID ? 0 : startIndex;
@@ -59685,13 +60215,6 @@ function writeString(_this__u8e3s4, string, startIndex, endIndex) {
   }
   _this__u8e3s4.hintEmit_6b2e5m_k$();
 }
-function readString_0(_this__u8e3s4) {
-  return commonReadUtf8(_this__u8e3s4, _this__u8e3s4.get_size_woubt6_k$());
-}
-function readString_1(_this__u8e3s4, byteCount) {
-  _this__u8e3s4.require_28r0pl_k$(byteCount);
-  return commonReadUtf8(_this__u8e3s4.get_buffer_bmaafd_k$(), byteCount);
-}
 function commonReadUtf8(_this__u8e3s4, byteCount) {
   if (byteCount === 0n)
     return '';
@@ -59717,60 +60240,6 @@ function commonReadUtf8(_this__u8e3s4, byteCount) {
   // Inline function 'kotlin.error' call
   var message = 'Unreacheable';
   throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-}
-function removeTrailingSeparators(path, isWindows_) {
-  isWindows_ = isWindows_ === VOID ? get_isWindows() : isWindows_;
-  if (isWindows_) {
-    var tmp;
-    if (path.length > 1) {
-      var tmp_0;
-      if (charCodeAt(path, 1) === _Char___init__impl__6a9atx(58)) {
-        tmp_0 = 3;
-      } else if (isUnc(path)) {
-        tmp_0 = 2;
-      } else {
-        tmp_0 = 1;
-      }
-      tmp = tmp_0;
-    } else {
-      tmp = 1;
-    }
-    var limit = tmp;
-    return removeTrailingSeparatorsWindows(limit, path);
-  }
-  return removeTrailingSeparatorsUnix(path);
-}
-function isUnc(path) {
-  if (path.length < 2)
-    return false;
-  if (startsWith(path, '\\\\'))
-    return true;
-  if (startsWith(path, '//'))
-    return true;
-  return false;
-}
-function removeTrailingSeparatorsWindows(suffixLength, path) {
-  // Inline function 'kotlin.require' call
-  // Inline function 'kotlin.require' call
-  if (!(suffixLength >= 1)) {
-    var message = 'Failed requirement.';
-    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
-  }
-  var idx = path.length;
-  $l$loop: while (idx > suffixLength) {
-    var c = charCodeAt(path, idx - 1 | 0);
-    if (!(c === _Char___init__impl__6a9atx(92)) && !(c === _Char___init__impl__6a9atx(47)))
-      break $l$loop;
-    idx = idx - 1 | 0;
-  }
-  return substring(path, 0, idx);
-}
-function removeTrailingSeparatorsUnix(path) {
-  var idx = path.length;
-  while (idx > 1 && charCodeAt(path, idx - 1 | 0) === _Char___init__impl__6a9atx(47)) {
-    idx = idx - 1 | 0;
-  }
-  return substring(path, 0, idx);
 }
 function commonToUtf8String(_this__u8e3s4, beginIndex, endIndex) {
   beginIndex = beginIndex === VOID ? 0 : beginIndex;
@@ -60145,258 +60614,9 @@ function init_kotlinx_io_IOException(_this__u8e3s4) {
 function init_kotlinx_io_EOFException(_this__u8e3s4) {
   captureStack(_this__u8e3s4, _this__u8e3s4.$throwableCtor_3);
 }
-function withCaughtException(block) {
-  try {
-    block();
-    return null;
-  } catch ($p) {
-    if ($p instanceof Error) {
-      var t = $p;
-      return t;
-    } else {
-      throw $p;
-    }
-  }
-}
 var SegmentPool_instance;
 function SegmentPool_getInstance() {
   return SegmentPool_instance;
-}
-function get_path() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp0 = path$delegate;
-  var tmp = KProperty0;
-  // Inline function 'kotlin.getValue' call
-  getPropertyCallableRef('path', 0, tmp, _get_path_$ref_hpvpv9(), null);
-  return tmp0.get_value_j01efc_k$();
-}
-var path$delegate;
-function get_fs() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp0 = fs$delegate;
-  var tmp = KProperty0;
-  // Inline function 'kotlin.getValue' call
-  getPropertyCallableRef('fs', 0, tmp, _get_fs_$ref_rnlob1(), null);
-  return tmp0.get_value_j01efc_k$();
-}
-var fs$delegate;
-function get_os() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp0 = os$delegate;
-  var tmp = KProperty0;
-  // Inline function 'kotlin.getValue' call
-  getPropertyCallableRef('os', 0, tmp, _get_os_$ref_hoy4d2(), null);
-  return tmp0.get_value_j01efc_k$();
-}
-var os$delegate;
-function get_buffer() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp0 = buffer$delegate;
-  var tmp = KProperty0;
-  // Inline function 'kotlin.getValue' call
-  getPropertyCallableRef('buffer', 0, tmp, _get_buffer_$ref_mc964a(), null);
-  return tmp0.get_value_j01efc_k$();
-}
-var buffer$delegate;
-function path$delegate$lambda() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp;
-  try {
-    tmp = eval('require')('path');
-  } catch ($p) {
-    var tmp_0;
-    if ($p instanceof Error) {
-      var e = $p;
-      throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_pe5b41_k$("Module 'path' could not be imported", e);
-    } else {
-      throw $p;
-    }
-  }
-  return tmp;
-}
-function _get_path_$ref_hpvpv9() {
-  return () => get_path();
-}
-function fs$delegate$lambda() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp;
-  try {
-    tmp = eval('require')('fs');
-  } catch ($p) {
-    var tmp_0;
-    if ($p instanceof Error) {
-      var e = $p;
-      throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_pe5b41_k$("Module 'fs' could not be imported", e);
-    } else {
-      throw $p;
-    }
-  }
-  return tmp;
-}
-function _get_fs_$ref_rnlob1() {
-  return () => get_fs();
-}
-function os$delegate$lambda() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp;
-  try {
-    tmp = eval('require')('os');
-  } catch ($p) {
-    var tmp_0;
-    if ($p instanceof Error) {
-      var e = $p;
-      throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_pe5b41_k$("Module 'os' could not be imported", e);
-    } else {
-      throw $p;
-    }
-  }
-  return tmp;
-}
-function _get_os_$ref_hoy4d2() {
-  return () => get_os();
-}
-function buffer$delegate$lambda() {
-  _init_properties_nodeModulesJs_kt__ngjjzw();
-  var tmp;
-  try {
-    tmp = eval('require')('buffer');
-  } catch ($p) {
-    var tmp_0;
-    if ($p instanceof Error) {
-      var e = $p;
-      throw UnsupportedOperationException.new_kotlin_UnsupportedOperationException_pe5b41_k$("Module 'buffer' could not be imported", e);
-    } else {
-      throw $p;
-    }
-  }
-  return tmp;
-}
-function _get_buffer_$ref_mc964a() {
-  return () => get_buffer();
-}
-var properties_initialized_nodeModulesJs_kt_oooz8e;
-function _init_properties_nodeModulesJs_kt__ngjjzw() {
-  if (!properties_initialized_nodeModulesJs_kt_oooz8e) {
-    properties_initialized_nodeModulesJs_kt_oooz8e = true;
-    path$delegate = lazy_0(path$delegate$lambda);
-    fs$delegate = lazy_0(fs$delegate$lambda);
-    os$delegate = lazy_0(os$delegate$lambda);
-    buffer$delegate = lazy_0(buffer$delegate$lambda);
-  }
-}
-function get_SystemFileSystem() {
-  _init_properties_FileSystemNodeJs_kt__m4c3u();
-  return SystemFileSystem;
-}
-var SystemFileSystem;
-function get_isWindows() {
-  _init_properties_FileSystemNodeJs_kt__m4c3u();
-  return isWindows;
-}
-var isWindows;
-function SystemFileSystem$o$delete$lambda($path) {
-  return () => {
-    var tmp0_elvis_lhs = get_fs().statSync($path.path_1);
-    var tmp;
-    if (tmp0_elvis_lhs == null) {
-      throw FileNotFoundException.new_kotlinx_io_files_FileNotFoundException_uhqhy5_k$('File does not exist: ' + $path.toString());
-    } else {
-      tmp = tmp0_elvis_lhs;
-    }
-    var stats = tmp;
-    var tmp_0;
-    if (stats.isDirectory()) {
-      get_fs().rmdirSync($path.path_1);
-      tmp_0 = Unit_instance;
-    } else {
-      get_fs().rmSync($path.path_1);
-      tmp_0 = Unit_instance;
-    }
-    return Unit_instance;
-  };
-}
-var properties_initialized_FileSystemNodeJs_kt_vmmd20;
-function _init_properties_FileSystemNodeJs_kt__m4c3u() {
-  if (!properties_initialized_FileSystemNodeJs_kt_vmmd20) {
-    properties_initialized_FileSystemNodeJs_kt_vmmd20 = true;
-    SystemFileSystem = new SystemFileSystem$1();
-    isWindows = get_os().platform() === 'win32';
-  }
-}
-var SystemPathSeparator$delegate;
-function Path_0(path) {
-  _init_properties_PathsNodeJs_kt__bvvvsp();
-  return new Path(path, null);
-}
-function open($this, path) {
-  if (!get_fs().existsSync(path.path_1)) {
-    throw FileNotFoundException.new_kotlinx_io_files_FileNotFoundException_uhqhy5_k$('File does not exist: ' + path.path_1);
-  }
-  var fd = {_v: -1};
-  var tmp3_safe_receiver = withCaughtException(FileSource$open$lambda(fd, path));
-  if (tmp3_safe_receiver == null)
-    null;
-  else {
-    // Inline function 'kotlin.also' call
-    throw IOException.new_kotlinx_io_IOException_pmronu_k$('Failed to open a file ' + path.path_1 + '.', tmp3_safe_receiver);
-  }
-  if (fd._v < 0)
-    throw IOException.new_kotlinx_io_IOException_wvwdyo_k$('Failed to open a file ' + path.path_1 + '.');
-  return fd._v;
-}
-function FileSource$open$lambda($fd, $path) {
-  return () => {
-    $fd._v = get_fs().openSync($path.path_1, 'r');
-    return Unit_instance;
-  };
-}
-function FileSource$readAtMostTo$lambda(this$0) {
-  return () => {
-    this$0.buffer_1 = get_fs().readFileSync(this$0.fd_1, null);
-    return Unit_instance;
-  };
-}
-function open_0($this, path, append) {
-  var flags = append ? 'a' : 'w';
-  var fd = {_v: -1};
-  var tmp5_safe_receiver = withCaughtException(FileSink$open$lambda(fd, path, flags));
-  if (tmp5_safe_receiver == null)
-    null;
-  else {
-    // Inline function 'kotlin.also' call
-    throw IOException.new_kotlinx_io_IOException_pmronu_k$('Failed to open a file ' + path.path_1 + '.', tmp5_safe_receiver);
-  }
-  if (fd._v < 0)
-    throw IOException.new_kotlinx_io_IOException_wvwdyo_k$('Failed to open a file ' + path.path_1 + '.');
-  return fd._v;
-}
-function FileSink$open$lambda($fd, $path, $flags) {
-  return () => {
-    $fd._v = get_fs().openSync($path.path_1, $flags);
-    return Unit_instance;
-  };
-}
-function FileSink$write$lambda(this$0, $buf) {
-  return () => {
-    get_fs().writeFileSync(this$0.fd_1, $buf);
-    return Unit_instance;
-  };
-}
-function SystemPathSeparator$delegate$lambda() {
-  _init_properties_PathsNodeJs_kt__bvvvsp();
-  var sep = get_path().sep;
-  // Inline function 'kotlin.check' call
-  if (!(sep.length === 1)) {
-    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$('Check failed.');
-  }
-  return new Char(charCodeAt(sep, 0));
-}
-var properties_initialized_PathsNodeJs_kt_2u5gc7;
-function _init_properties_PathsNodeJs_kt__bvvvsp() {
-  if (!properties_initialized_PathsNodeJs_kt_2u5gc7) {
-    properties_initialized_PathsNodeJs_kt_2u5gc7 = true;
-    SystemPathSeparator$delegate = lazy_0(SystemPathSeparator$delegate$lambda);
-  }
 }
 function get_DEFAULT_MIN_SEVERITY() {
   _init_properties_BaseLogger_kt__lobnq7();
@@ -60484,21 +60704,21 @@ var ConsoleActual_instance;
 function ConsoleActual_getInstance() {
   return ConsoleActual_instance;
 }
-var Companion_instance_40;
-function Companion_getInstance_40() {
-  if (Companion_instance_40 === VOID)
-    new Companion_40();
-  return Companion_instance_40;
+var Companion_instance_42;
+function Companion_getInstance_42() {
+  if (Companion_instance_42 === VOID)
+    new Companion_42();
+  return Companion_instance_42;
 }
 function get_defaultTag() {
   return defaultTag;
 }
 var defaultTag;
-var Companion_instance_41;
-function Companion_getInstance_41() {
-  if (Companion_instance_41 === VOID)
-    new Companion_41();
-  return Companion_instance_41;
+var Companion_instance_43;
+function Companion_getInstance_43() {
+  if (Companion_instance_43 === VOID)
+    new Companion_43();
+  return Companion_instance_43;
 }
 var Empty_instance;
 function Empty_getInstance() {
@@ -60665,7 +60885,7 @@ function *_generator_flushAndClose__wsi7db($this, $completion) {
   return Unit_instance;
 }
 function closeSlot($this, cause) {
-  var closeContinuation = !(cause == null) ? new Closed_0(cause) : Companion_getInstance_41().CLOSED_1;
+  var closeContinuation = !(cause == null) ? new Closed_0(cause) : Companion_getInstance_43().CLOSED_1;
   var continuation = $this.suspensionSlot_1.atomicfu$getAndSet(closeContinuation);
   if (!isInterface(continuation, Task))
     return Unit_instance;
@@ -60693,34 +60913,14 @@ function ByteReadChannel_0(content, offset, length) {
 function ByteReadChannel_1(source) {
   return new SourceByteReadChannel(source);
 }
-var Companion_instance_42;
-function Companion_getInstance_42() {
-  if (Companion_instance_42 === VOID)
-    new Companion_42();
-  return Companion_instance_42;
+var Companion_instance_44;
+function Companion_getInstance_44() {
+  if (Companion_instance_44 === VOID)
+    new Companion_44();
+  return Companion_instance_44;
 }
 function cancel_4(_this__u8e3s4) {
   _this__u8e3s4.cancel_9i2dv0_k$(IOException.new_kotlinx_io_IOException_wvwdyo_k$('Channel was cancelled'));
-}
-function *_generator_readRemaining__kd4xx0(_this__u8e3s4, max, $completion) {
-  var result = BytePacketBuilder();
-  var remaining = max;
-  while (!_this__u8e3s4.get_isClosedForRead_ajcc1s_k$() && remaining > 0n) {
-    if (remaining >= get_remaining(_this__u8e3s4.get_readBuffer_yjmj9b_k$())) {
-      remaining = subtract_0(remaining, get_remaining(_this__u8e3s4.get_readBuffer_yjmj9b_k$()));
-      _this__u8e3s4.get_readBuffer_yjmj9b_k$().transferTo_lu4ka2_k$(result);
-    } else {
-      _this__u8e3s4.get_readBuffer_yjmj9b_k$().readTo_rtq83_k$(result, remaining);
-      remaining = 0n;
-    }
-    var tmp = _this__u8e3s4.awaitContent$default_j7khmh_k$(VOID, $completion);
-    if (tmp === get_COROUTINE_SUSPENDED())
-      tmp = yield tmp;
-  }
-  return result.get_buffer_bmaafd_k$();
-}
-function readRemaining(_this__u8e3s4, max, $completion) {
-  return suspendOrReturn(/*#__NOINLINE__*/_generator_readRemaining__kd4xx0.bind(VOID, _this__u8e3s4, max), $completion);
 }
 function *_generator_readAvailable__ki7w73(_this__u8e3s4, buffer, offset, length, $completion) {
   if (_this__u8e3s4.get_isClosedForRead_ajcc1s_k$())
@@ -60771,7 +60971,7 @@ function *_generator_copyTo__iu4794(_this__u8e3s4, channel, $completion) {
 function copyTo(_this__u8e3s4, channel, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_copyTo__iu4794.bind(VOID, _this__u8e3s4, channel), $completion);
 }
-function *_generator_readRemaining__kd4xx0_0(_this__u8e3s4, $completion) {
+function *_generator_readRemaining__kd4xx0(_this__u8e3s4, $completion) {
   var result = BytePacketBuilder();
   while (!_this__u8e3s4.get_isClosedForRead_ajcc1s_k$()) {
     result.transferFrom_v29myr_k$(_this__u8e3s4.get_readBuffer_yjmj9b_k$());
@@ -60782,8 +60982,28 @@ function *_generator_readRemaining__kd4xx0_0(_this__u8e3s4, $completion) {
   rethrowCloseCauseIfNeeded_0(_this__u8e3s4);
   return result.get_buffer_bmaafd_k$();
 }
-function readRemaining_0(_this__u8e3s4, $completion) {
-  return suspendOrReturn(/*#__NOINLINE__*/_generator_readRemaining__kd4xx0_0.bind(VOID, _this__u8e3s4), $completion);
+function readRemaining(_this__u8e3s4, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_readRemaining__kd4xx0.bind(VOID, _this__u8e3s4), $completion);
+}
+function *_generator_readRemaining__kd4xx0_0(_this__u8e3s4, max, $completion) {
+  var result = BytePacketBuilder();
+  var remaining = max;
+  while (!_this__u8e3s4.get_isClosedForRead_ajcc1s_k$() && remaining > 0n) {
+    if (remaining >= get_remaining(_this__u8e3s4.get_readBuffer_yjmj9b_k$())) {
+      remaining = subtract_0(remaining, get_remaining(_this__u8e3s4.get_readBuffer_yjmj9b_k$()));
+      _this__u8e3s4.get_readBuffer_yjmj9b_k$().transferTo_lu4ka2_k$(result);
+    } else {
+      _this__u8e3s4.get_readBuffer_yjmj9b_k$().readTo_rtq83_k$(result, remaining);
+      remaining = 0n;
+    }
+    var tmp = _this__u8e3s4.awaitContent$default_j7khmh_k$(VOID, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  }
+  return result.get_buffer_bmaafd_k$();
+}
+function readRemaining_0(_this__u8e3s4, max, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_readRemaining__kd4xx0_0.bind(VOID, _this__u8e3s4, max), $completion);
 }
 function *_generator_toByteArray__v3q9dq(_this__u8e3s4, $completion) {
   var tmp = readBuffer(_this__u8e3s4, $completion);
@@ -60974,10 +61194,10 @@ function *_generator_readUTF8LineTo__bg1rci(_this__u8e3s4, out, max, $completion
           if (_this__u8e3s4.get_readBuffer_yjmj9b_k$().get_buffer_bmaafd_k$().get_ugtq3c_k$(0n) === 10) {
             discard_0(_this__u8e3s4.get_readBuffer_yjmj9b_k$(), 1n);
           }
-          out.append_jgojdo_k$(readString_0(this_0));
+          out.append_jgojdo_k$(readString(this_0));
           return true;
         } else if (b === 10) {
-          out.append_jgojdo_k$(readString_0(this_0));
+          out.append_jgojdo_k$(readString(this_0));
           return true;
         } else {
           this_0.writeByte_9ih3z3_k$(b);
@@ -60993,7 +61213,7 @@ function *_generator_readUTF8LineTo__bg1rci(_this__u8e3s4, out, max, $completion
     // Inline function 'kotlin.also' call
     var this_1 = this_0.get_size_woubt6_k$() > 0n;
     if (this_1) {
-      out.append_jgojdo_k$(readString_0(this_0));
+      out.append_jgojdo_k$(readString(this_0));
     }
     return this_1;
   } catch ($p) {
@@ -61341,7 +61561,7 @@ function counted(_this__u8e3s4) {
   return new CountedByteReadChannel(_this__u8e3s4);
 }
 function readText(_this__u8e3s4) {
-  return readString(_this__u8e3s4);
+  return readString_0(_this__u8e3s4);
 }
 function decode(_this__u8e3s4, input, max) {
   max = max === VOID ? 2147483647 : max;
@@ -61445,7 +61665,7 @@ function readText_0(_this__u8e3s4, charset, max) {
   max = max === VOID ? 2147483647 : max;
   if (charset.equals(Charsets_getInstance().UTF_8__1)) {
     if (max === 2147483647)
-      return readString(_this__u8e3s4);
+      return readString_0(_this__u8e3s4);
     var tmp0 = _this__u8e3s4.get_buffer_bmaafd_k$().get_size_woubt6_k$();
     // Inline function 'kotlin.math.min' call
     var b = fromInt_0(max);
@@ -61481,9 +61701,9 @@ function _init_properties_ByteArrayPool_kt__kfi3uj() {
     ByteArrayPool = new ByteArrayPool$1();
   }
 }
-var Companion_instance_43;
-function Companion_getInstance_43() {
-  return Companion_instance_43;
+var Companion_instance_45;
+function Companion_getInstance_45() {
+  return Companion_instance_45;
 }
 var Charsets_instance;
 function Charsets_getInstance() {
@@ -61495,10 +61715,10 @@ function get_name(_this__u8e3s4) {
   return _this__u8e3s4._name_1;
 }
 function isSupported(_this__u8e3s4, name) {
-  return Companion_instance_43.isSupported_c9nas6_k$(name);
+  return Companion_instance_45.isSupported_c9nas6_k$(name);
 }
 function forName(_this__u8e3s4, name) {
-  return Companion_instance_43.forName_etcah2_k$(name);
+  return Companion_instance_45.forName_etcah2_k$(name);
 }
 function decode_0(_this__u8e3s4, input, dst, max) {
   var decoder = Decoder_0(get_name(get_charset(_this__u8e3s4)), true);
@@ -61851,7 +62071,7 @@ function split$lambda($first, $second) {
 function *_generator_invoke__zhh2q8_5($this, $this$launch, $completion) {
   try {
     while (!$this.$this_copyToBoth_1.get_isClosedForRead_ajcc1s_k$() && (!$this.$first_1.get_isClosedForWrite_seyg5n_k$() || !$this.$second_1.get_isClosedForWrite_seyg5n_k$())) {
-      var tmp = readRemaining($this.$this_copyToBoth_1, 4096n, $completion);
+      var tmp = readRemaining_0($this.$this_copyToBoth_1, 4096n, $completion);
       if (tmp === get_COROUTINE_SUSPENDED())
         tmp = yield tmp;
       var tmp0 = tmp;
@@ -61939,10 +62159,10 @@ function CaseInsensitiveMap$_get_keys_$lambda_ptzlqj_0($this$DelegatingMutableSe
   return caseInsensitive($this$DelegatingMutableSet);
 }
 function CaseInsensitiveMap$_get_entries_$lambda_r32w19($this$DelegatingMutableSet) {
-  return new Entry_0($this$DelegatingMutableSet.get_key_18j28a_k$().content_1, $this$DelegatingMutableSet.get_value_j01efc_k$());
+  return new Entry_1($this$DelegatingMutableSet.get_key_18j28a_k$().content_1, $this$DelegatingMutableSet.get_value_j01efc_k$());
 }
 function CaseInsensitiveMap$_get_entries_$lambda_r32w19_0($this$DelegatingMutableSet) {
-  return new Entry_0(caseInsensitive($this$DelegatingMutableSet.get_key_18j28a_k$()), $this$DelegatingMutableSet.get_value_j01efc_k$());
+  return new Entry_1(caseInsensitive($this$DelegatingMutableSet.get_key_18j28a_k$()), $this$DelegatingMutableSet.get_value_j01efc_k$());
 }
 function toCharArray_0(_this__u8e3s4) {
   var tmp = 0;
@@ -62168,11 +62388,11 @@ function toLowerCasePreservingASCII(ch) {
 function caseInsensitive(_this__u8e3s4) {
   return new CaseInsensitiveString(_this__u8e3s4);
 }
-var Companion_instance_44;
-function Companion_getInstance_44() {
-  if (Companion_instance_44 === VOID)
-    new Companion_44();
-  return Companion_instance_44;
+var Companion_instance_46;
+function Companion_getInstance_46() {
+  if (Companion_instance_46 === VOID)
+    new Companion_46();
+  return Companion_instance_46;
 }
 var $serializer_instance;
 function $serializer_getInstance() {
@@ -62187,9 +62407,9 @@ var WeekDay_THURSDAY_instance;
 var WeekDay_FRIDAY_instance;
 var WeekDay_SATURDAY_instance;
 var WeekDay_SUNDAY_instance;
-var Companion_instance_45;
-function Companion_getInstance_45() {
-  return Companion_instance_45;
+var Companion_instance_47;
+function Companion_getInstance_47() {
+  return Companion_instance_47;
 }
 function values_1() {
   return [WeekDay_MONDAY_getInstance(), WeekDay_TUESDAY_getInstance(), WeekDay_WEDNESDAY_getInstance(), WeekDay_THURSDAY_getInstance(), WeekDay_FRIDAY_getInstance(), WeekDay_SATURDAY_getInstance(), WeekDay_SUNDAY_getInstance()];
@@ -62225,9 +62445,9 @@ var Month_SEPTEMBER_instance;
 var Month_OCTOBER_instance;
 var Month_NOVEMBER_instance;
 var Month_DECEMBER_instance;
-var Companion_instance_46;
-function Companion_getInstance_46() {
-  return Companion_instance_46;
+var Companion_instance_48;
+function Companion_getInstance_48() {
+  return Companion_instance_48;
 }
 function values_2() {
   return [Month_JANUARY_getInstance(), Month_FEBRUARY_getInstance(), Month_MARCH_getInstance(), Month_APRIL_getInstance(), Month_MAY_getInstance(), Month_JUNE_getInstance(), Month_JULY_getInstance(), Month_AUGUST_getInstance(), Month_SEPTEMBER_getInstance(), Month_OCTOBER_getInstance(), Month_NOVEMBER_getInstance(), Month_DECEMBER_getInstance()];
@@ -62390,11 +62610,11 @@ function copyInterceptors($this) {
   $this.interceptors_1 = copiedInterceptors($this);
   $this.shared_1 = false;
 }
-var Companion_instance_47;
-function Companion_getInstance_47() {
-  if (Companion_instance_47 === VOID)
-    new Companion_47();
-  return Companion_instance_47;
+var Companion_instance_49;
+function Companion_getInstance_49() {
+  if (Companion_instance_49 === VOID)
+    new Companion_49();
+  return Companion_instance_49;
 }
 function _set_interceptors__wod97b($this, _set____db54di) {
   var tmp0 = $this.interceptors$delegate_1;
@@ -62547,7 +62767,7 @@ function cacheInterceptors($this) {
         tmp_2 = tmp1_elvis_lhs;
       }
       var phase = tmp_2;
-      phase.addTo_219g88_k$(destination);
+      phase.addTo_h97ksk_k$(destination);
     }
      while (!(phaseIndex_0 === last_0));
   notSharedInterceptorsList($this, destination);
@@ -62758,8 +62978,8 @@ function GMTDate_0(timestamp) {
   if (isNaN_0(date.getTime()))
     throw InvalidTimestampException.new_io_ktor_util_date_InvalidTimestampException_pe9yet_k$(ensureNotNull(timestamp));
   // Inline function 'kotlin.with' call
-  var dayOfWeek = Companion_instance_45.from_1ixx1u_k$((date.getUTCDay() + 6 | 0) % 7 | 0);
-  var month = Companion_instance_46.from_1ixx1u_k$(date.getUTCMonth());
+  var dayOfWeek = Companion_instance_47.from_1ixx1u_k$((date.getUTCDay() + 6 | 0) % 7 | 0);
+  var month = Companion_instance_48.from_1ixx1u_k$(date.getUTCMonth());
   return new GMTDate(date.getUTCSeconds(), date.getUTCMinutes(), date.getUTCHours(), dayOfWeek, date.getUTCDate(), date.getUTCFullYear(), month, date.getUTCFullYear(), numberToLong(date.getTime()));
 }
 function getTimeMillis() {
@@ -63054,7 +63274,7 @@ function decodeImpl(_this__u8e3s4, start, end, prefixEnd, plusIsSpace, charset) 
         tmp[_unary__edvuaz] = toByte(imul_0(digit1, 16) + digit2 | 0);
         index = index + 3 | 0;
       }
-      sb.append_22ad7x_k$(decodeToString(bytes, 0, 0 + count | 0));
+      sb.append_22ad7x_k$(decodeToString_0(bytes, 0, 0 + count | 0));
     } else {
       sb.append_58al37_k$(c);
       index = index + 1 | 0;
@@ -63220,11 +63440,11 @@ function hasParameter($this, name, value) {
   }
   return tmp;
 }
-var Companion_instance_48;
-function Companion_getInstance_48() {
-  if (Companion_instance_48 === VOID)
-    new Companion_48();
-  return Companion_instance_48;
+var Companion_instance_50;
+function Companion_getInstance_50() {
+  if (Companion_instance_50 === VOID)
+    new Companion_50();
+  return Companion_instance_50;
 }
 var Application_instance;
 function Application_getInstance() {
@@ -63287,9 +63507,9 @@ function get_HeaderFieldValueSeparators() {
   return HeaderFieldValueSeparators;
 }
 var HeaderFieldValueSeparators;
-var Companion_instance_49;
-function Companion_getInstance_49() {
-  return Companion_instance_49;
+var Companion_instance_51;
+function Companion_getInstance_51() {
+  return Companion_instance_51;
 }
 function needQuotes(_this__u8e3s4) {
   _init_properties_HeaderValueWithParameters_kt__z6luvy();
@@ -63375,11 +63595,11 @@ function _init_properties_HeaderValueWithParameters_kt__z6luvy() {
     HeaderFieldValueSeparators = setOf_0([new Char(_Char___init__impl__6a9atx(40)), new Char(_Char___init__impl__6a9atx(41)), new Char(_Char___init__impl__6a9atx(60)), new Char(_Char___init__impl__6a9atx(62)), new Char(_Char___init__impl__6a9atx(64)), new Char(_Char___init__impl__6a9atx(44)), new Char(_Char___init__impl__6a9atx(59)), new Char(_Char___init__impl__6a9atx(58)), new Char(_Char___init__impl__6a9atx(92)), new Char(_Char___init__impl__6a9atx(34)), new Char(_Char___init__impl__6a9atx(47)), new Char(_Char___init__impl__6a9atx(91)), new Char(_Char___init__impl__6a9atx(93)), new Char(_Char___init__impl__6a9atx(63)), new Char(_Char___init__impl__6a9atx(61)), new Char(_Char___init__impl__6a9atx(123)), new Char(_Char___init__impl__6a9atx(125)), new Char(_Char___init__impl__6a9atx(32)), new Char(_Char___init__impl__6a9atx(9)), new Char(_Char___init__impl__6a9atx(10)), new Char(_Char___init__impl__6a9atx(13))]);
   }
 }
-var Companion_instance_50;
-function Companion_getInstance_50() {
-  if (Companion_instance_50 === VOID)
-    new Companion_50();
-  return Companion_instance_50;
+var Companion_instance_52;
+function Companion_getInstance_52() {
+  if (Companion_instance_52 === VOID)
+    new Companion_52();
+  return Companion_instance_52;
 }
 function headersOf(name, value) {
   return new HeadersSingleImpl(name, listOf(value));
@@ -63558,7 +63778,7 @@ function contentType_0(_this__u8e3s4) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = Companion_getInstance_48().parse_pc1q8p_k$(tmp0_safe_receiver);
+    tmp = Companion_getInstance_50().parse_pc1q8p_k$(tmp0_safe_receiver);
   }
   return tmp;
 }
@@ -63569,7 +63789,7 @@ function contentType_1(_this__u8e3s4) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = Companion_getInstance_48().parse_pc1q8p_k$(tmp0_safe_receiver);
+    tmp = Companion_getInstance_50().parse_pc1q8p_k$(tmp0_safe_receiver);
   }
   return tmp;
 }
@@ -63581,36 +63801,36 @@ function charset_0(_this__u8e3s4) {
   var tmp0_safe_receiver = contentType_1(_this__u8e3s4);
   return tmp0_safe_receiver == null ? null : charset(tmp0_safe_receiver);
 }
-var Companion_instance_51;
-function Companion_getInstance_51() {
-  if (Companion_instance_51 === VOID)
-    new Companion_51();
-  return Companion_instance_51;
-}
-var Companion_instance_52;
-function Companion_getInstance_52() {
-  if (Companion_instance_52 === VOID)
-    new Companion_52();
-  return Companion_instance_52;
-}
 var Companion_instance_53;
 function Companion_getInstance_53() {
   if (Companion_instance_53 === VOID)
     new Companion_53();
   return Companion_instance_53;
 }
-function allStatusCodes() {
-  return listOf_0([Companion_getInstance_53().Continue_1, Companion_getInstance_53().SwitchingProtocols_1, Companion_getInstance_53().Processing_1, Companion_getInstance_53().OK_1, Companion_getInstance_53().Created_1, Companion_getInstance_53().Accepted_1, Companion_getInstance_53().NonAuthoritativeInformation_1, Companion_getInstance_53().NoContent_1, Companion_getInstance_53().ResetContent_1, Companion_getInstance_53().PartialContent_1, Companion_getInstance_53().MultiStatus_1, Companion_getInstance_53().MultipleChoices_1, Companion_getInstance_53().MovedPermanently_1, Companion_getInstance_53().Found_1, Companion_getInstance_53().SeeOther_1, Companion_getInstance_53().NotModified_1, Companion_getInstance_53().UseProxy_1, Companion_getInstance_53().SwitchProxy_1, Companion_getInstance_53().TemporaryRedirect_1, Companion_getInstance_53().PermanentRedirect_1, Companion_getInstance_53().BadRequest_1, Companion_getInstance_53().Unauthorized_1, Companion_getInstance_53().PaymentRequired_1, Companion_getInstance_53().Forbidden_1, Companion_getInstance_53().NotFound_1, Companion_getInstance_53().MethodNotAllowed_1, Companion_getInstance_53().NotAcceptable_1, Companion_getInstance_53().ProxyAuthenticationRequired_1, Companion_getInstance_53().RequestTimeout_1, Companion_getInstance_53().Conflict_1, Companion_getInstance_53().Gone_1, Companion_getInstance_53().LengthRequired_1, Companion_getInstance_53().PreconditionFailed_1, Companion_getInstance_53().PayloadTooLarge_1, Companion_getInstance_53().RequestURITooLong_1, Companion_getInstance_53().UnsupportedMediaType_1, Companion_getInstance_53().RequestedRangeNotSatisfiable_1, Companion_getInstance_53().ExpectationFailed_1, Companion_getInstance_53().UnprocessableEntity_1, Companion_getInstance_53().Locked_1, Companion_getInstance_53().FailedDependency_1, Companion_getInstance_53().TooEarly_1, Companion_getInstance_53().UpgradeRequired_1, Companion_getInstance_53().TooManyRequests_1, Companion_getInstance_53().RequestHeaderFieldTooLarge_1, Companion_getInstance_53().InternalServerError_1, Companion_getInstance_53().NotImplemented_1, Companion_getInstance_53().BadGateway_1, Companion_getInstance_53().ServiceUnavailable_1, Companion_getInstance_53().GatewayTimeout_1, Companion_getInstance_53().VersionNotSupported_1, Companion_getInstance_53().VariantAlsoNegotiates_1, Companion_getInstance_53().InsufficientStorage_1]);
-}
-function ParametersBuilder(size) {
-  size = size === VOID ? 8 : size;
-  return new ParametersBuilderImpl(size);
-}
 var Companion_instance_54;
 function Companion_getInstance_54() {
   if (Companion_instance_54 === VOID)
     new Companion_54();
   return Companion_instance_54;
+}
+var Companion_instance_55;
+function Companion_getInstance_55() {
+  if (Companion_instance_55 === VOID)
+    new Companion_55();
+  return Companion_instance_55;
+}
+function allStatusCodes() {
+  return listOf_0([Companion_getInstance_55().Continue_1, Companion_getInstance_55().SwitchingProtocols_1, Companion_getInstance_55().Processing_1, Companion_getInstance_55().OK_1, Companion_getInstance_55().Created_1, Companion_getInstance_55().Accepted_1, Companion_getInstance_55().NonAuthoritativeInformation_1, Companion_getInstance_55().NoContent_1, Companion_getInstance_55().ResetContent_1, Companion_getInstance_55().PartialContent_1, Companion_getInstance_55().MultiStatus_1, Companion_getInstance_55().MultipleChoices_1, Companion_getInstance_55().MovedPermanently_1, Companion_getInstance_55().Found_1, Companion_getInstance_55().SeeOther_1, Companion_getInstance_55().NotModified_1, Companion_getInstance_55().UseProxy_1, Companion_getInstance_55().SwitchProxy_1, Companion_getInstance_55().TemporaryRedirect_1, Companion_getInstance_55().PermanentRedirect_1, Companion_getInstance_55().BadRequest_1, Companion_getInstance_55().Unauthorized_1, Companion_getInstance_55().PaymentRequired_1, Companion_getInstance_55().Forbidden_1, Companion_getInstance_55().NotFound_1, Companion_getInstance_55().MethodNotAllowed_1, Companion_getInstance_55().NotAcceptable_1, Companion_getInstance_55().ProxyAuthenticationRequired_1, Companion_getInstance_55().RequestTimeout_1, Companion_getInstance_55().Conflict_1, Companion_getInstance_55().Gone_1, Companion_getInstance_55().LengthRequired_1, Companion_getInstance_55().PreconditionFailed_1, Companion_getInstance_55().PayloadTooLarge_1, Companion_getInstance_55().RequestURITooLong_1, Companion_getInstance_55().UnsupportedMediaType_1, Companion_getInstance_55().RequestedRangeNotSatisfiable_1, Companion_getInstance_55().ExpectationFailed_1, Companion_getInstance_55().UnprocessableEntity_1, Companion_getInstance_55().Locked_1, Companion_getInstance_55().FailedDependency_1, Companion_getInstance_55().TooEarly_1, Companion_getInstance_55().UpgradeRequired_1, Companion_getInstance_55().TooManyRequests_1, Companion_getInstance_55().RequestHeaderFieldTooLarge_1, Companion_getInstance_55().InternalServerError_1, Companion_getInstance_55().NotImplemented_1, Companion_getInstance_55().BadGateway_1, Companion_getInstance_55().ServiceUnavailable_1, Companion_getInstance_55().GatewayTimeout_1, Companion_getInstance_55().VersionNotSupported_1, Companion_getInstance_55().VariantAlsoNegotiates_1, Companion_getInstance_55().InsufficientStorage_1]);
+}
+function ParametersBuilder(size) {
+  size = size === VOID ? 8 : size;
+  return new ParametersBuilderImpl(size);
+}
+var Companion_instance_56;
+function Companion_getInstance_56() {
+  if (Companion_instance_56 === VOID)
+    new Companion_56();
+  return Companion_instance_56;
 }
 var EmptyParameters_instance;
 function EmptyParameters_getInstance() {
@@ -63622,10 +63842,10 @@ function parseQueryString(query, startIndex, limit, decode) {
   decode = decode === VOID ? true : decode;
   var tmp;
   if (startIndex > get_lastIndex_3(query)) {
-    tmp = Companion_getInstance_54().Empty_1;
+    tmp = Companion_getInstance_56().Empty_1;
   } else {
     // Inline function 'io.ktor.http.Companion.build' call
-    Companion_getInstance_54();
+    Companion_getInstance_56();
     // Inline function 'kotlin.apply' call
     var this_0 = ParametersBuilder();
     parse(this_0, query, startIndex, limit, decode);
@@ -63709,18 +63929,18 @@ function applyOrigin($this) {
   }
   if (tmp)
     return Unit_instance;
-  $this.host_1 = Companion_getInstance_55().originUrl_1.host_1;
+  $this.host_1 = Companion_getInstance_57().originUrl_1.host_1;
   if ($this.protocolOrNull_1 == null)
-    $this.protocolOrNull_1 = Companion_getInstance_55().originUrl_1.protocolOrNull_1;
+    $this.protocolOrNull_1 = Companion_getInstance_57().originUrl_1.protocolOrNull_1;
   if ($this.port_1 === 0) {
-    $this.set_port_gcpocq_k$(Companion_getInstance_55().originUrl_1.specifiedPort_1);
+    $this.set_port_gcpocq_k$(Companion_getInstance_57().originUrl_1.specifiedPort_1);
   }
 }
-var Companion_instance_55;
-function Companion_getInstance_55() {
-  if (Companion_instance_55 === VOID)
-    new Companion_55();
-  return Companion_instance_55;
+var Companion_instance_57;
+function Companion_getInstance_57() {
+  if (Companion_instance_57 === VOID)
+    new Companion_57();
+  return Companion_instance_57;
 }
 function get_authority(_this__u8e3s4) {
   // Inline function 'kotlin.text.buildString' call
@@ -63762,7 +63982,7 @@ function appendTo(_this__u8e3s4, out) {
   return out;
 }
 function set_encodedPath(_this__u8e3s4, value) {
-  _this__u8e3s4.encodedPathSegments_1 = isBlank(value) ? emptyList() : value === '/' ? get_ROOT_PATH() : toMutableList_0(split(value, charArrayOf([_Char___init__impl__6a9atx(47)])));
+  _this__u8e3s4.encodedPathSegments_1 = isBlank(value) ? emptyList() : value === '/' ? get_ROOT_PATH() : toMutableList_0(split_0(value, charArrayOf([_Char___init__impl__6a9atx(47)])));
 }
 function get_encodedPath(_this__u8e3s4) {
   return joinPath(_this__u8e3s4.encodedPathSegments_1);
@@ -63872,7 +64092,7 @@ function takeFromUnsafe(_this__u8e3s4, urlString) {
   var schemeLength = findScheme(urlString, startIndex, endIndex);
   if (schemeLength > 0) {
     var scheme = substring(urlString, startIndex, startIndex + schemeLength | 0);
-    _this__u8e3s4.set_protocol_4rvp64_k$(Companion_getInstance_56().createOrDefault_lkipzc_k$(scheme));
+    _this__u8e3s4.set_protocol_4rvp64_k$(Companion_getInstance_58().createOrDefault_lkipzc_k$(scheme));
     startIndex = startIndex + (schemeLength + 1 | 0) | 0;
   }
   var slashCount = count(urlString, startIndex, endIndex, _Char___init__impl__6a9atx(47));
@@ -63978,7 +64198,7 @@ function takeFromUnsafe(_this__u8e3s4, urlString) {
       tmp_3 = _this__u8e3s4.encodedPathSegments_1;
     }
     var basePath = tmp_3;
-    var rawChunks = rawPath === '/' ? get_ROOT_PATH() : split(rawPath, charArrayOf([_Char___init__impl__6a9atx(47)]));
+    var rawChunks = rawPath === '/' ? get_ROOT_PATH() : split_0(rawPath, charArrayOf([_Char___init__impl__6a9atx(47)]));
     var relativePath = plus_0(slashCount === 1 ? get_ROOT_PATH() : emptyList(), rawChunks);
     _this__u8e3s4.encodedPathSegments_1 = plus_0(basePath, relativePath);
     startIndex = pathEnd;
@@ -64136,11 +64356,11 @@ function _init_properties_URLParser_kt__sf11to() {
     ROOT_PATH = listOf('');
   }
 }
-var Companion_instance_56;
-function Companion_getInstance_56() {
-  if (Companion_instance_56 === VOID)
-    new Companion_56();
-  return Companion_instance_56;
+var Companion_instance_58;
+function Companion_getInstance_58() {
+  if (Companion_instance_58 === VOID)
+    new Companion_58();
+  return Companion_instance_58;
 }
 function isSecure(_this__u8e3s4) {
   return _this__u8e3s4.name_1 === 'https' || _this__u8e3s4.name_1 === 'wss';
@@ -64266,9 +64486,9 @@ function appendUrlFullPath$lambda(it) {
   }
   return tmp;
 }
-var Companion_instance_57;
-function Companion_getInstance_57() {
-  return Companion_instance_57;
+var Companion_instance_59;
+function Companion_getInstance_59() {
+  return Companion_instance_59;
 }
 function Url$segments$delegate$lambda($pathSegments) {
   return () => {
@@ -64697,7 +64917,7 @@ function _init_properties_HttpParser_kt__gbdom1() {
   if (!properties_initialized_HttpParser_kt_uedryv) {
     properties_initialized_HttpParser_kt_uedryv = true;
     hostForbiddenSymbols = setOf_0([new Char(_Char___init__impl__6a9atx(47)), new Char(_Char___init__impl__6a9atx(63)), new Char(_Char___init__impl__6a9atx(35)), new Char(_Char___init__impl__6a9atx(64))]);
-    versions = Companion_instance_58.build_qfjo4r_k$(listOf_0(['HTTP/1.0', 'HTTP/1.1']));
+    versions = Companion_instance_60.build_qfjo4r_k$(listOf_0(['HTTP/1.0', 'HTTP/1.1']));
   }
 }
 function get_CrLf() {
@@ -64955,7 +65175,7 @@ function *_generator_invoke__zhh2q8_7($this, $this$produce, $completion) {
   var countedInput = counted($this.$input_1);
   var readBeforeParse = countedInput.get_totalBytesRead_dai8jq_k$();
   var firstBoundary = $this.$boundaryPrefixed_1.substring$default_wq769b_k$(get_PrefixString().get_size_woubt6_k$());
-  var tmp = readRemaining_0(writer($this$produce, VOID, VOID, parseMultipart$slambda$slambda_0(firstBoundary, countedInput)).channel_1, $completion);
+  var tmp = readRemaining(writer($this$produce, VOID, VOID, parseMultipart$slambda$slambda_0(firstBoundary, countedInput)).channel_1, $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   var preambleData = tmp;
@@ -65038,7 +65258,7 @@ function *_generator_invoke__zhh2q8_7($this, $this$produce, $completion) {
         tmp_10 = yield tmp_10;
     }
   } else {
-    var tmp_11 = readRemaining_0(countedInput, $completion);
+    var tmp_11 = readRemaining(countedInput, $completion);
     if (tmp_11 === get_COROUTINE_SUSPENDED())
       tmp_11 = yield tmp_11;
     var epilogueContent = tmp_11;
@@ -65102,7 +65322,7 @@ function build_0($this, resultList, from, maxLength, idx, length, charAt) {
     var list_0 = element_0.get_value_j01efc_k$();
     var nextIdx = idx + 1 | 0;
     var children = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
-    var tmp_0 = Companion_instance_58;
+    var tmp_0 = Companion_instance_60;
     // Inline function 'kotlin.collections.filter' call
     // Inline function 'kotlin.collections.filterTo' call
     var destination_0 = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
@@ -65134,9 +65354,9 @@ function AsciiCharTree$Companion$build$lambda(it) {
 function AsciiCharTree$Companion$build$lambda_0(s, idx) {
   return new Char(charSequenceGet(s, idx));
 }
-var Companion_instance_58;
-function Companion_getInstance_58() {
-  return Companion_instance_58;
+var Companion_instance_60;
+function Companion_getInstance_60() {
+  return Companion_instance_60;
 }
 function getImpl($this, index) {
   return bufferForIndex($this, index)[index % ensureNotNull($this.current_1).length | 0];
@@ -65378,8 +65598,8 @@ var properties_initialized_Chars_kt_phjfhp;
 function _init_properties_Chars_kt__d3i39x() {
   if (!properties_initialized_Chars_kt_phjfhp) {
     properties_initialized_Chars_kt_phjfhp = true;
-    var tmp = Companion_instance_58;
-    var tmp_0 = Companion_getInstance_51().DefaultMethods_1;
+    var tmp = Companion_instance_60;
+    var tmp_0 = Companion_getInstance_53().DefaultMethods_1;
     var tmp_1 = DefaultHttpMethods$lambda;
     DefaultHttpMethods = tmp.build_su3zc2_k$(tmp_0, tmp_1, DefaultHttpMethods$lambda_0);
     // Inline function 'kotlin.collections.map' call
@@ -65502,12 +65722,12 @@ var Codes_NO_EXTENSION_instance;
 var Codes_INTERNAL_ERROR_instance;
 var Codes_SERVICE_RESTART_instance;
 var Codes_TRY_AGAIN_LATER_instance;
-var Companion_instance_59;
-function Companion_getInstance_59() {
+var Companion_instance_61;
+function Companion_getInstance_61() {
   Codes_initEntries();
-  if (Companion_instance_59 === VOID)
-    new Companion_59();
-  return Companion_instance_59;
+  if (Companion_instance_61 === VOID)
+    new Companion_61();
+  return Companion_instance_61;
 }
 function values_4() {
   return [Codes_NORMAL_getInstance(), Codes_GOING_AWAY_getInstance(), Codes_PROTOCOL_ERROR_getInstance(), Codes_CANNOT_ACCEPT_getInstance(), Codes_CLOSED_ABNORMALLY_getInstance(), Codes_NOT_CONSISTENT_getInstance(), Codes_VIOLATED_POLICY_getInstance(), Codes_TOO_BIG_getInstance(), Codes_NO_EXTENSION_getInstance(), Codes_INTERNAL_ERROR_getInstance(), Codes_SERVICE_RESTART_getInstance(), Codes_TRY_AGAIN_LATER_getInstance()];
@@ -65534,7 +65754,7 @@ function Codes_initEntries() {
   Codes_INTERNAL_ERROR_instance = new Codes('INTERNAL_ERROR', 9, 1011);
   Codes_SERVICE_RESTART_instance = new Codes('SERVICE_RESTART', 10, 1012);
   Codes_TRY_AGAIN_LATER_instance = new Codes('TRY_AGAIN_LATER', 11, 1013);
-  Companion_getInstance_59();
+  Companion_getInstance_61();
 }
 var $ENTRIES_4;
 function Codes_NORMAL_getInstance() {
@@ -65689,7 +65909,7 @@ function *_generator_invoke__zhh2q8_8($this, $this$launch, $completion) {
                     break $l$block_0;
                   }
                   writeFully_0(ensureNotNull(frameBody), e.data_1);
-                  var defragmented = Companion_getInstance_62().byType_2g4m5x_k$(true, ensureNotNull(firstFrame).frameType_1, readByteArray(build(ensureNotNull(frameBody))), ensureNotNull(firstFrame).rsv1__1, ensureNotNull(firstFrame).rsv2__1, ensureNotNull(firstFrame).rsv3__1);
+                  var defragmented = Companion_getInstance_64().byType_2g4m5x_k$(true, ensureNotNull(firstFrame).frameType_1, readByteArray(build(ensureNotNull(frameBody))), ensureNotNull(firstFrame).rsv1__1, ensureNotNull(firstFrame).rsv2__1, ensureNotNull(firstFrame).rsv3__1);
                   firstFrame = null;
                   var tmp_6 = $this.this$0__1.filtered_1.send_id7hdx_k$(processIncomingExtensions($this.this$0__1, defragmented), $completion);
                   if (tmp_6 === get_COROUTINE_SUSPENDED())
@@ -65907,7 +66127,7 @@ function runOrCancelPinger($this) {
     null;
   else
     tmp0_safe_receiver.close$default_kcbl7u_k$();
-  var tmp2_safe_receiver = newPinger == null ? null : new ChannelResult(newPinger.trySend_62dpg8_k$(Companion_getInstance_60().EmptyPong_1));
+  var tmp2_safe_receiver = newPinger == null ? null : new ChannelResult(newPinger.trySend_62dpg8_k$(Companion_getInstance_62().EmptyPong_1));
   if (tmp2_safe_receiver == null)
     null;
   else
@@ -65958,11 +66178,11 @@ function processOutgoingExtensions($this, frame) {
   }
   return accumulator;
 }
-var Companion_instance_60;
-function Companion_getInstance_60() {
-  if (Companion_instance_60 === VOID)
-    new Companion_60();
-  return Companion_instance_60;
+var Companion_instance_62;
+function Companion_getInstance_62() {
+  if (Companion_instance_62 === VOID)
+    new Companion_62();
+  return Companion_instance_62;
 }
 function DefaultWebSocketSessionImpl$runIncomingProcessor$slambda_0(this$0, $ponger) {
   var i = new DefaultWebSocketSessionImpl$runIncomingProcessor$slambda(this$0, $ponger);
@@ -66013,12 +66233,12 @@ var FrameType_BINARY_instance;
 var FrameType_CLOSE_instance;
 var FrameType_PING_instance;
 var FrameType_PONG_instance;
-var Companion_instance_61;
-function Companion_getInstance_61() {
+var Companion_instance_63;
+function Companion_getInstance_63() {
   FrameType_initEntries();
-  if (Companion_instance_61 === VOID)
-    new Companion_61();
-  return Companion_instance_61;
+  if (Companion_instance_63 === VOID)
+    new Companion_63();
+  return Companion_instance_63;
 }
 function values_5() {
   return [FrameType_TEXT_getInstance(), FrameType_BINARY_getInstance(), FrameType_CLOSE_getInstance(), FrameType_PING_getInstance(), FrameType_PONG_getInstance()];
@@ -66038,7 +66258,7 @@ function FrameType_initEntries() {
   FrameType_CLOSE_instance = new FrameType('CLOSE', 2, true, 8);
   FrameType_PING_instance = new FrameType('PING', 3, true, 9);
   FrameType_PONG_instance = new FrameType('PONG', 4, true, 10);
-  Companion_getInstance_61();
+  Companion_getInstance_63();
 }
 var $ENTRIES_5;
 function FrameType_TEXT_getInstance() {
@@ -66157,7 +66377,7 @@ function *_generator_invoke__zhh2q8_13($this, $this$withTimeoutOrNull, $completi
     if (tmp_0 === get_COROUTINE_SUSPENDED())
       tmp_0 = yield tmp_0;
     var msg = tmp_0;
-    if (decodeToString(msg.data_1, 0, 0 + msg.data_1.length | 0) === $this.$pingMessage_1) {
+    if (decodeToString_0(msg.data_1, 0, 0 + msg.data_1.length | 0) === $this.$pingMessage_1) {
       get_LOGGER().trace_fti9bv_k$('WebSocket Pinger: received valid pong frame ' + msg.toString());
       break $l$loop;
     }
@@ -66246,13 +66466,13 @@ function parametersToString($this) {
 }
 function parseWebSocketExtensions(value) {
   // Inline function 'kotlin.collections.map' call
-  var this_0 = split_0(value, [',']);
+  var this_0 = split(value, [',']);
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var item = _iterator__ex2g4s.next_20eer_k$();
-    var extension = split_0(item, [';']);
+    var extension = split(item, [';']);
     // Inline function 'kotlin.text.trim' call
     var this_1 = first_0(extension);
     var name = toString_1(trim(isCharSequence(this_1) ? this_1 : THROW_CCE()));
@@ -66316,11 +66536,11 @@ function *_generator_closeExceptionally__hurwhz(_this__u8e3s4, cause, $completio
 function closeExceptionally(_this__u8e3s4, cause, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_closeExceptionally__hurwhz.bind(VOID, _this__u8e3s4, cause), $completion);
 }
-var Companion_instance_62;
-function Companion_getInstance_62() {
-  if (Companion_instance_62 === VOID)
-    new Companion_62();
-  return Companion_instance_62;
+var Companion_instance_64;
+function Companion_getInstance_64() {
+  if (Companion_instance_64 === VOID)
+    new Companion_64();
+  return Companion_instance_64;
 }
 function get_OUTGOING_CHANNEL_CAPACITY() {
   return 8;
@@ -66536,7 +66756,7 @@ function *_generator_bodyNullable__6r60mz($this, info, $completion) {
     if (!$this.get_allowDoubleReceive_um1gnm_k$() && !get_isSaved($this.get_response_xlk07e_k$()) && !$this.received_1.atomicfu$compareAndSet(false, true)) {
       throw DoubleReceiveException.new_io_ktor_client_call_DoubleReceiveException_f99ezc_k$($this);
     }
-    var tmp0_elvis_lhs = $this.get_attributes_dgqof4_k$().getOrNull_6mjt1v_k$(Companion_getInstance_63().CustomResponse_1);
+    var tmp0_elvis_lhs = $this.get_attributes_dgqof4_k$().getOrNull_6mjt1v_k$(Companion_getInstance_65().CustomResponse_1);
     var tmp;
     if (tmp0_elvis_lhs == null) {
       var tmp_0 = $this.getResponseContent_ctkpnn_k$($completion);
@@ -66576,14 +66796,14 @@ function *_generator_bodyNullable__6r60mz($this, info, $completion) {
     }
   }
 }
-var Companion_instance_63;
-function Companion_getInstance_63() {
-  if (Companion_instance_63 === VOID)
-    new Companion_63();
-  return Companion_instance_63;
+var Companion_instance_65;
+function Companion_getInstance_65() {
+  if (Companion_instance_65 === VOID)
+    new Companion_65();
+  return Companion_instance_65;
 }
 function *_generator_save__qhzefp(_this__u8e3s4, $completion) {
-  var tmp = readRemaining_0(_this__u8e3s4.get_response_xlk07e_k$().get_rawContent_u3f8li_k$(), $completion);
+  var tmp = readRemaining(_this__u8e3s4.get_response_xlk07e_k$().get_rawContent_u3f8li_k$(), $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   var responseBody = readByteArray(tmp);
@@ -66593,7 +66813,7 @@ function save(_this__u8e3s4, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_save__qhzefp.bind(VOID, _this__u8e3s4), $completion);
 }
 function checkContentLength(contentLength, bodySize, method) {
-  if (contentLength == null || contentLength < 0n || method.equals(Companion_getInstance_51().Head_1))
+  if (contentLength == null || contentLength < 0n || method.equals(Companion_getInstance_53().Head_1))
     return Unit_instance;
   if (!(contentLength === bodySize)) {
     throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$('Content-Length mismatch: expected ' + toString_0(contentLength) + ' bytes, but received ' + bodySize.toString() + ' bytes');
@@ -66617,7 +66837,7 @@ function getContent($this, delegate) {
         throw UnsupportedContentTypeException.new_io_ktor_client_call_UnsupportedContentTypeException_l70byd_k$(delegate);
       } else {
         if (delegate instanceof NoContent) {
-          tmp = Companion_getInstance_42().Empty_1;
+          tmp = Companion_getInstance_44().Empty_1;
         } else {
           if (delegate instanceof ReadChannelContent) {
             tmp = delegate.readFrom_ecr4ww_k$();
@@ -66918,14 +67138,14 @@ function get_DATE_HEADERS() {
   return DATE_HEADERS;
 }
 var DATE_HEADERS;
-var Companion_instance_64;
-function Companion_getInstance_64() {
-  return Companion_instance_64;
+var Companion_instance_66;
+function Companion_getInstance_66() {
+  return Companion_instance_66;
 }
 function callContext($completion) {
   // Inline function 'kotlin.js.getCoroutineContext' call
   var tmp$ret$0 = $completion.get_context_h02k06_k$();
-  return ensureNotNull(tmp$ret$0.get_y2st91_k$(Companion_instance_64)).callContext_1;
+  return ensureNotNull(tmp$ret$0.get_y2st91_k$(Companion_instance_66)).callContext_1;
 }
 function mergeHeaders(requestHeaders, content, block) {
   _init_properties_Utils_kt__jo07cx();
@@ -67434,7 +67654,7 @@ function *_generator_invoke__zhh2q8_25($this, $this$intercept, _destruct__k2r9zo
       tmp_0 = yield tmp_0;
     tmp = tmp_0;
   } else if (tmp0_subject.equals(PrimitiveClasses_getInstance().get_intClass_mw4y9a_k$())) {
-    var tmp_1 = readRemaining_0(body, $completion);
+    var tmp_1 = readRemaining(body, $completion);
     if (tmp_1 === get_COROUTINE_SUSPENDED())
       tmp_1 = yield tmp_1;
     var tmp_2 = $this$intercept.proceedWith_9a1lq3_k$(new HttpResponseContainer(info, toInt_0(readText(tmp_1))), $completion);
@@ -67442,7 +67662,7 @@ function *_generator_invoke__zhh2q8_25($this, $this$intercept, _destruct__k2r9zo
       tmp_2 = yield tmp_2;
     tmp = tmp_2;
   } else if (tmp0_subject.equals(getKClass(Source)) || tmp0_subject.equals(getKClass(Source))) {
-    var tmp_3 = readRemaining_0(body, $completion);
+    var tmp_3 = readRemaining(body, $completion);
     if (tmp_3 === get_COROUTINE_SUSPENDED())
       tmp_3 = yield tmp_3;
     var tmp_4 = $this$intercept.proceedWith_9a1lq3_k$(new HttpResponseContainer(info, tmp_3), $completion);
@@ -67455,7 +67675,7 @@ function *_generator_invoke__zhh2q8_25($this, $this$intercept, _destruct__k2r9zo
       tmp_5 = yield tmp_5;
     var bytes = tmp_5;
     var contentLength_0 = contentLength($this$intercept.context_1.get_response_xlk07e_k$());
-    if (!$this$intercept.context_1.get_request_jdwg4m_k$().get_method_gl8esq_k$().equals(Companion_getInstance_51().Head_1)) {
+    if (!$this$intercept.context_1.get_request_jdwg4m_k$().get_method_gl8esq_k$().equals(Companion_getInstance_53().Head_1)) {
       checkContentLength_0(contentLength_0, fromInt_0(bytes.length));
     }
     var tmp_6 = $this$intercept.proceedWith_9a1lq3_k$(new HttpResponseContainer(info, bytes), $completion);
@@ -67492,7 +67712,7 @@ function *_generator_invoke__zhh2q8_25($this, $this$intercept, _destruct__k2r9zo
       }
     }
     var rawContentType = tmp$ret$3;
-    var contentType = Companion_getInstance_48().parse_pc1q8p_k$(rawContentType);
+    var contentType = Companion_getInstance_50().parse_pc1q8p_k$(rawContentType);
     // Inline function 'kotlin.check' call
     if (!contentType.match_syvve3_k$(MultiPart_getInstance().FormData_1)) {
       var message_0 = 'Expected multipart/form-data, got ' + contentType.toString();
@@ -68074,7 +68294,7 @@ function HttpPlainText$lambda$slambda_1($acceptCharsetHeader, $requestCharset) {
 function *_generator_invoke__zhh2q8_33($this, $this$transformResponseBody, response, content, requestedType, $completion) {
   if (!requestedType.type_1.equals(PrimitiveClasses_getInstance().get_stringClass_bik2gy_k$()))
     return null;
-  var tmp = readRemaining_0(content, $completion);
+  var tmp = readRemaining(content, $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   var bodyBytes = tmp;
@@ -68118,7 +68338,7 @@ var HttpRedirect;
 function isRedirect(_this__u8e3s4) {
   _init_properties_HttpRedirect_kt__ure7fo();
   var tmp0_subject = _this__u8e3s4.value_1;
-  return tmp0_subject === Companion_getInstance_53().MovedPermanently_1.value_1 || tmp0_subject === Companion_getInstance_53().Found_1.value_1 || (tmp0_subject === Companion_getInstance_53().TemporaryRedirect_1.value_1 || (tmp0_subject === Companion_getInstance_53().PermanentRedirect_1.value_1 || tmp0_subject === Companion_getInstance_53().SeeOther_1.value_1)) ? true : false;
+  return tmp0_subject === Companion_getInstance_55().MovedPermanently_1.value_1 || tmp0_subject === Companion_getInstance_55().Found_1.value_1 || (tmp0_subject === Companion_getInstance_55().TemporaryRedirect_1.value_1 || (tmp0_subject === Companion_getInstance_55().PermanentRedirect_1.value_1 || tmp0_subject === Companion_getInstance_55().SeeOther_1.value_1)) ? true : false;
 }
 function HttpRedirectConfig$_init_$ref_rhym9t() {
   var l = () => new HttpRedirectConfig();
@@ -68197,7 +68417,7 @@ var properties_initialized_HttpRedirect_kt_klj746;
 function _init_properties_HttpRedirect_kt__ure7fo() {
   if (!properties_initialized_HttpRedirect_kt_klj746) {
     properties_initialized_HttpRedirect_kt_klj746 = true;
-    ALLOWED_FOR_REDIRECT = setOf_0([Companion_getInstance_51().Get_1, Companion_getInstance_51().Head_1]);
+    ALLOWED_FOR_REDIRECT = setOf_0([Companion_getInstance_53().Get_1, Companion_getInstance_53().Head_1]);
     LOGGER_5 = KtorSimpleLogger('io.ktor.client.plugins.HttpRedirect');
     HttpResponseRedirectEvent = new EventDefinition();
     var tmp = HttpRedirectConfig$_init_$ref_rhym9t();
@@ -68436,14 +68656,14 @@ function checkTimeoutValue($this, value) {
   }
   return value;
 }
-var Companion_instance_65;
-function Companion_getInstance_65() {
-  if (Companion_instance_65 === VOID)
-    new Companion_65();
-  return Companion_instance_65;
+var Companion_instance_67;
+function Companion_getInstance_67() {
+  if (Companion_instance_67 === VOID)
+    new Companion_67();
+  return Companion_instance_67;
 }
 function init_io_ktor_client_plugins_HttpTimeoutConfig(_this__u8e3s4) {
-  Companion_getInstance_65();
+  Companion_getInstance_67();
   _this__u8e3s4._requestTimeoutMillis_1 = 0n;
   _this__u8e3s4._connectTimeoutMillis_1 = 0n;
   _this__u8e3s4._socketTimeoutMillis_1 = 0n;
@@ -68957,8 +69177,8 @@ function *_generator_invoke__zhh2q8_50($this, $this$intercept, _destruct__k2r9zo
     }
     return Unit_instance;
   }
-  if (!status.equals(Companion_getInstance_53().SwitchingProtocols_1)) {
-    throw WebSocketException.new_io_ktor_client_plugins_websocket_WebSocketException_5c7cps_k$('Handshake exception, expected status code ' + Companion_getInstance_53().SwitchingProtocols_1.value_1 + ' but was ' + status.value_1);
+  if (!status.equals(Companion_getInstance_55().SwitchingProtocols_1)) {
+    throw WebSocketException.new_io_ktor_client_plugins_websocket_WebSocketException_5c7cps_k$('Handshake exception, expected status code ' + Companion_getInstance_55().SwitchingProtocols_1.value_1 + ' but was ' + status.value_1);
   }
   if (!isInterface(session, WebSocketSession)) {
     throw WebSocketException.new_io_ktor_client_plugins_websocket_WebSocketException_5c7cps_k$('Handshake exception, expected `WebSocketSession` content but was ' + toString_1(getKClassFromExpression(session)));
@@ -69102,9 +69322,9 @@ function get_ResponseAdapterAttributeKey() {
   return ResponseAdapterAttributeKey;
 }
 var ResponseAdapterAttributeKey;
-var Companion_instance_66;
-function Companion_getInstance_66() {
-  return Companion_instance_66;
+var Companion_instance_68;
+function Companion_getInstance_68() {
+  return Companion_instance_68;
 }
 function HttpRequestBuilder$setCapability$lambda() {
   // Inline function 'kotlin.collections.mutableMapOf' call
@@ -69397,7 +69617,7 @@ var DecompressionListAttribute;
 function dropCompressionHeaders(_this__u8e3s4, method, attributes, alwaysRemove) {
   alwaysRemove = alwaysRemove === VOID ? false : alwaysRemove;
   _init_properties_HeadersUtils_kt__fb6dxx();
-  if (method.equals(Companion_getInstance_51().Head_1) || method.equals(Companion_getInstance_51().Options_1))
+  if (method.equals(Companion_getInstance_53().Head_1) || method.equals(Companion_getInstance_53().Options_1))
     return Unit_instance;
   var header = _this__u8e3s4.get_6bo4tg_k$(HttpHeaders_getInstance().ContentEncoding_1);
   if (header == null) {
@@ -69493,7 +69713,7 @@ function *_generator_execute__d6syw1_1($this, data, $completion) {
   var rawResponse = tmp_2;
   var status = new HttpStatusCode(rawResponse.status, rawResponse.statusText);
   var headers = mapToKtor(rawResponse.headers, data.method_1, data.attributes_1);
-  var version = Companion_getInstance_52().HTTP_1_1__1;
+  var version = Companion_getInstance_54().HTTP_1_1__1;
   var body = readBody(CoroutineScope_0(callContext_0), rawResponse);
   var tmp0_safe_receiver = data.attributes_1.getOrNull_6mjt1v_k$(get_ResponseAdapterAttributeKey());
   var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.adapt_vve343_k$(data, status, headers, body, data.body_1, callContext_0);
@@ -69580,8 +69800,8 @@ function *_generator_executeWebSocketRequest__7f0rb($this, request, callContext,
     tmp_1 = null;
   }
   var protocol = tmp_1;
-  var headers = !(protocol == null) ? headersOf(HttpHeaders_getInstance().SecWebSocketProtocol_1, protocol) : Companion_getInstance_50().Empty_1;
-  return new HttpResponseData(Companion_getInstance_53().SwitchingProtocols_1, requestTime, headers, Companion_getInstance_52().HTTP_1_1__1, session, callContext);
+  var headers = !(protocol == null) ? headersOf(HttpHeaders_getInstance().SecWebSocketProtocol_1, protocol) : Companion_getInstance_52().Empty_1;
+  return new HttpResponseData(Companion_getInstance_55().SwitchingProtocols_1, requestTime, headers, Companion_getInstance_54().HTTP_1_1__1, session, callContext);
 }
 function executeWebSocketRequest($this, request, callContext, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_executeWebSocketRequest__7f0rb.bind(VOID, $this, request, callContext), $completion);
@@ -69689,14 +69909,14 @@ function *_generator_getBodyBytes__kitznv(content, callContext, $completion) {
     tmp = content.bytes_1k3k2z_k$();
   } else {
     if (content instanceof ReadChannelContent) {
-      var tmp_0 = readRemaining_0(content.readFrom_ecr4ww_k$(), $completion);
+      var tmp_0 = readRemaining(content.readFrom_ecr4ww_k$(), $completion);
       if (tmp_0 === get_COROUTINE_SUSPENDED())
         tmp_0 = yield tmp_0;
       tmp = readByteArray(tmp_0);
     } else {
       if (content instanceof WriteChannelContent) {
         var tmp_1 = GlobalScope_instance;
-        var tmp_2 = readRemaining_0(writer(tmp_1, callContext, VOID, getBodyBytes$slambda_0(content)).channel_1, $completion);
+        var tmp_2 = readRemaining(writer(tmp_1, callContext, VOID, getBodyBytes$slambda_0(content)).channel_1, $completion);
         if (tmp_2 === get_COROUTINE_SUSPENDED())
           tmp_2 = yield tmp_2;
         tmp = readByteArray(tmp_2);
@@ -69785,7 +70005,7 @@ function readBodyBrowser(_this__u8e3s4, response) {
   var tmp0_elvis_lhs = response.body;
   var tmp;
   if (tmp0_elvis_lhs == null) {
-    return Companion_getInstance_42().Empty_1;
+    return Companion_getInstance_44().Empty_1;
   } else {
     tmp = tmp0_elvis_lhs;
   }
@@ -69939,7 +70159,7 @@ function *_generator_invoke__zhh2q8_54($this, $this$launch, $completion) {
         switch (e.frameType_1.ordinal_1) {
           case 0:
             var text = e.data_1;
-            $this.this$0__1.websocket_1.send(decodeToString(text, 0, 0 + text.length | 0));
+            $this.this$0__1.websocket_1.send(decodeToString_0(text, 0, 0 + text.length | 0));
             break;
           case 1:
             var tmp_0 = e.data_1;
@@ -69989,7 +70209,7 @@ function *_generator_invoke__zhh2q8_54($this, $this$launch, $completion) {
 }
 function isReservedStatusCode($this, _this__u8e3s4) {
   // Inline function 'kotlin.let' call
-  var resolved = Companion_getInstance_59().byCode_d9s8a4_k$(_this__u8e3s4);
+  var resolved = Companion_getInstance_61().byCode_d9s8a4_k$(_this__u8e3s4);
   return resolved == null || equals(resolved, Codes_CLOSED_ABNORMALLY_getInstance());
 }
 function JsWebSocketSession$lambda(this$0) {
@@ -70192,7 +70412,7 @@ function *_generator_invoke$convertRequest__66fw6k(registrations, $this_createCl
       var _iterator__ex2g4s_2 = acceptHeaders.iterator_jk1svi_k$();
       while (_iterator__ex2g4s_2.hasNext_bitz1p_k$()) {
         var element_2 = _iterator__ex2g4s_2.next_20eer_k$();
-        if (Companion_getInstance_48().parse_pc1q8p_k$(element_2).match_syvve3_k$(element_1.contentTypeToSend_1)) {
+        if (Companion_getInstance_50().parse_pc1q8p_k$(element_2).match_syvve3_k$(element_1.contentTypeToSend_1)) {
           tmp$ret$6 = false;
           break $l$block_2;
         }
@@ -70570,7 +70790,7 @@ function *_generator_deserialize__why6p7_0($this, charset, typeInfo, content, $c
   if (tmp_1)
     return fromExtension;
   var serializer = serializerForTypeInfo($this.format_1.get_serializersModule_piitvg_k$(), typeInfo);
-  var tmp_2 = readRemaining_0(content, $completion);
+  var tmp_2 = readRemaining(content, $completion);
   if (tmp_2 === get_COROUTINE_SUSPENDED())
     tmp_2 = yield tmp_2;
   var contentPacket = tmp_2;
@@ -70870,9 +71090,9 @@ function LogLevel_NONE_getInstance_0() {
   LogLevel_initEntries_0();
   return LogLevel_NONE_instance_0;
 }
-var Companion_instance_67;
-function Companion_getInstance_67() {
-  return Companion_instance_67;
+var Companion_instance_69;
+function Companion_getInstance_69() {
+  return Companion_instance_69;
 }
 function get_SIMPLE(_this__u8e3s4) {
   return new SimpleLogger();
@@ -71090,7 +71310,7 @@ function *_generator_invoke__zhh2q8_63($this, $this$launch, $completion) {
     var charset = $this.$charset_1;
     var tmp;
     try {
-      var tmp_0 = readRemaining_0(tmp0, $completion);
+      var tmp_0 = readRemaining(tmp0, $completion);
       if (tmp_0 === get_COROUTINE_SUSPENDED())
         tmp_0 = yield tmp_0;
       tmp = readText_0(tmp_0, charset);
@@ -71250,7 +71470,7 @@ function *_generator_invoke$logRequestBody__8lc79h(logger, $this_createClientPlu
       tmp_0 = Charsets_getInstance().UTF_8__1;
     }
     var charset_0 = tmp_0;
-    var tmp_1 = readRemaining_0(newBody, $completion);
+    var tmp_1 = readRemaining(newBody, $completion);
     if (tmp_1 === get_COROUTINE_SUSPENDED())
       tmp_1 = yield tmp_1;
     logger.log_bt7sva_k$(readText_0(tmp_1, charset_0));
@@ -71344,12 +71564,12 @@ function *_generator_invoke$logRequestOkHttpFormat__4yd0te(logger, sanitizedHead
   var tmp_0;
   var tmp_1;
   if (body instanceof OutgoingContent) {
-    tmp_1 = !request.method_1.equals(Companion_getInstance_51().Get_1);
+    tmp_1 = !request.method_1.equals(Companion_getInstance_53().Get_1);
   } else {
     tmp_1 = false;
   }
   if (tmp_1) {
-    tmp_0 = !request.method_1.equals(Companion_getInstance_51().Head_1);
+    tmp_0 = !request.method_1.equals(Companion_getInstance_53().Head_1);
   } else {
     tmp_0 = false;
   }
@@ -71379,7 +71599,7 @@ function *_generator_invoke$logRequestOkHttpFormat__4yd0te(logger, sanitizedHead
   var tmp0_safe_receiver_0 = headers.get_6bo4tg_k$(HttpHeaders_getInstance().ContentLength_1);
   var contentLength = tmp0_safe_receiver_0 == null ? null : toLongOrNull(tmp0_safe_receiver_0);
   var tmp_2;
-  if (request.method_1.equals(Companion_getInstance_51().Get_1) || request.method_1.equals(Companion_getInstance_51().Head_1) || ((invoke$isHeaders(level) || invoke$isBody(level)) && !(contentLength == null)) || (invoke$isHeaders(level) && contentLength == null) || headers.contains_zh0gsb_k$(HttpHeaders_getInstance().ContentEncoding_1)) {
+  if (request.method_1.equals(Companion_getInstance_53().Get_1) || request.method_1.equals(Companion_getInstance_53().Head_1) || ((invoke$isHeaders(level) || invoke$isBody(level)) && !(contentLength == null)) || (invoke$isHeaders(level) && contentLength == null) || headers.contains_zh0gsb_k$(HttpHeaders_getInstance().ContentEncoding_1)) {
     tmp_2 = '--> ' + request.method_1.value_1 + ' ' + uri;
   } else {
     if (invoke$isInfo(level) && !(contentLength == null)) {
@@ -71431,7 +71651,7 @@ function *_generator_invoke$logRequestOkHttpFormat__4yd0te(logger, sanitizedHead
       logger.log_bt7sva_k$(name + ': \u2588\u2588');
     }
   }
-  if (!invoke$isBody(level) || request.method_1.equals(Companion_getInstance_51().Get_1) || request.method_1.equals(Companion_getInstance_51().Head_1)) {
+  if (!invoke$isBody(level) || request.method_1.equals(Companion_getInstance_53().Get_1) || request.method_1.equals(Companion_getInstance_53().Head_1)) {
     logger.log_bt7sva_k$('--> END ' + request.method_1.value_1);
     return null;
   }
@@ -71483,7 +71703,7 @@ function *_generator_invoke$logResponseBody__tye5v1(logger, $this_createClientPl
       tmp_0 = Charsets_getInstance().UTF_8__1;
     }
     var charset_0 = tmp_0;
-    var tmp_1 = readRemaining_0(newBody, $completion);
+    var tmp_1 = readRemaining(newBody, $completion);
     if (tmp_1 === get_COROUTINE_SUSPENDED())
       tmp_1 = yield tmp_1;
     logger.log_bt7sva_k$(readText_0(tmp_1, charset_0));
@@ -72035,7 +72255,7 @@ function *_generator_logResponseBody__1citar_0(log, contentType, content, $compl
   var charset_0 = tmp1_elvis_lhs == null ? Charsets_getInstance().UTF_8__1 : tmp1_elvis_lhs;
   var tmp;
   try {
-    var tmp_0 = readRemaining_0(content, $completion);
+    var tmp_0 = readRemaining(content, $completion);
     if (tmp_0 === get_COROUTINE_SUSPENDED())
       tmp_0 = yield tmp_0;
     tmp = readText_0(tmp_0, charset_0);
@@ -72162,6 +72382,172 @@ function get_File(_this__u8e3s4) {
   return File$delegate.getValue_m93qlt_k$(_this__u8e3s4, getPropertyCallableRef('File', 1, tmp, tmp_0, _set_File_$ref_mw3hhy()));
 }
 var File$delegate;
+function *_generator_bufferedSink$suspendBridge__vnys4r($this, path, actions, $completion) {
+  if ($this.bufferedSink === protoOf(FileAdapter).bufferedSink) {
+    var tmp = $this.bufferedSink_zi1kd0_k$(path, actions, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.bufferedSink(path, actions), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_bufferedSink__jzl5my($this, path, actions, $completion) {
+  var sink = new Buffer();
+  actions(sink);
+  var tmp = $this.writeBinaryFile$suspendBridge_b1fkfc_k$(path, readByteArray(sink), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_bufferedSource$suspendBridge__96t6ml($this, path, actions, $completion) {
+  if ($this.bufferedSource === protoOf(FileAdapter).bufferedSource) {
+    var tmp = $this.bufferedSource_2wrsws_k$(path, actions, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.bufferedSource(path, actions), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_bufferedSource__rp32tu($this, path, actions, $completion) {
+  var tmp = $this.readBinaryFile$suspendBridge_vf3zi7_k$(path, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_elvis_lhs = tmp;
+  var tmp_0;
+  if (tmp0_elvis_lhs == null) {
+    return Unit_instance;
+  } else {
+    tmp_0 = tmp0_elvis_lhs;
+  }
+  var bytes = tmp_0;
+  var source = new Buffer();
+  source.write$default_fa5nq1_k$(bytes);
+  actions(source);
+  return Unit_instance;
+}
+function *_generator_exists$suspendBridge__m7ec5n($this, path, $completion) {
+  var tmp;
+  if ($this.exists === protoOf(FileAdapter).exists) {
+    var tmp_0 = $this.exists_2vzl3b_k$(path, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    tmp = tmp_0;
+  } else {
+    var tmp_1 = await_0($this.exists(path), $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    tmp = tmp_1;
+  }
+  return tmp;
+}
+function *_generator_delete$suspendBridge__s5hexo($this, path, $completion) {
+  if ($this.delete === protoOf(FileAdapter).delete) {
+    var tmp = $this.delete_buf2mu_k$(path, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.delete(path), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_delete__spiywt($this, path, $completion) {
+  var tmp = platformDeleteFile(path, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_copy$suspendBridge__gtbuxe($this, sourcePath, destPath, $completion) {
+  if ($this.copy === protoOf(FileAdapter).copy) {
+    var tmp = $this.copy_av90wg_k$(sourcePath, destPath, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.copy(sourcePath, destPath), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_copy__qqja31($this, sourcePath, destPath, $completion) {
+  var tmp = platformCopyFile(sourcePath, destPath, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_readBinaryFile$suspendBridge__pzum2c($this, path, $completion) {
+  var tmp;
+  if ($this.readBinaryFile === protoOf(FileAdapter).readBinaryFile) {
+    var tmp_0 = $this.readBinaryFile_p0msam_k$(path, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    tmp = tmp_0;
+  } else {
+    var tmp_1 = await_0($this.readBinaryFile(path), $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    tmp = tmp_1;
+  }
+  return tmp;
+}
+function *_generator_readTextFile$suspendBridge__gtfvco($this, path, $completion) {
+  var tmp;
+  if ($this.readTextFile === protoOf(FileAdapter).readTextFile) {
+    var tmp_0 = $this.readTextFile_tnwmsq_k$(path, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    tmp = tmp_0;
+  } else {
+    var tmp_1 = await_0($this.readTextFile(path), $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    tmp = tmp_1;
+  }
+  return tmp;
+}
+function *_generator_writeTextFile$suspendBridge__kt68cr($this, path, data, $completion) {
+  if ($this.writeTextFile === protoOf(FileAdapter).writeTextFile) {
+    var tmp = $this.writeTextFile_939qsd_k$(path, data, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.writeTextFile(path, data), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_writeTextFile__f2w0vg($this, path, data, $completion) {
+  var tmp = platformWriteText(path, data, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_writeBinaryFile$suspendBridge__vxjm47($this, path, data, $completion) {
+  if ($this.writeBinaryFile === protoOf(FileAdapter).writeBinaryFile) {
+    var tmp = $this.writeBinaryFile_ulbrfr_k$(path, data, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.writeBinaryFile(path, data), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_writeBinaryFile__4giv6g($this, path, data, $completion) {
+  var tmp = platformWriteBinary(path, data, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
 function _get_File_$ref_zc490e() {
   return (p0) => get_File(p0);
 }
@@ -72193,9 +72579,9 @@ function RoutePattern$Companion$from$lambda($paramNames) {
     return '([^/]+)';
   };
 }
-var Companion_instance_68;
-function Companion_getInstance_68() {
-  return Companion_instance_68;
+var Companion_instance_70;
+function Companion_getInstance_70() {
+  return Companion_instance_70;
 }
 var RegexCommon_instance;
 function RegexCommon_getInstance() {
@@ -72242,6 +72628,296 @@ function middleware$lambda_1($this$install) {
 function middleware$lambda_2($this$defaultRequest) {
   contentType($this$defaultRequest, Application_getInstance().Json_1);
   return Unit_instance;
+}
+function *_generator_platformFileExists__eg807x(path, $completion) {
+  // Inline function 'kotlin.runCatching' call
+  var tmp;
+  try {
+    var tmp_0 = resolveFileHandle(path, false, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    // Inline function 'kotlin.Companion.success' call
+    tmp = _Result___init__impl__xyqfz8(true);
+  } catch ($p) {
+    var tmp_1;
+    if ($p instanceof Error) {
+      var e = $p;
+      // Inline function 'kotlin.Companion.failure' call
+      tmp_1 = _Result___init__impl__xyqfz8(createFailure(e));
+    } else {
+      throw $p;
+    }
+    tmp = tmp_1;
+  }
+  var tmp0 = tmp;
+  var tmp$ret$4;
+  $l$block: {
+    // Inline function 'kotlin.getOrDefault' call
+    if (_Result___get_isFailure__impl__jpiriv(tmp0)) {
+      tmp$ret$4 = false;
+      break $l$block;
+    }
+    var tmp_2 = _Result___get_value__impl__bjfvqg(tmp0);
+    tmp$ret$4 = (tmp_2 == null ? true : !(tmp_2 == null)) ? tmp_2 : THROW_CCE();
+  }
+  return tmp$ret$4;
+}
+function platformFileExists(path, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformFileExists__eg807x.bind(VOID, path), $completion);
+}
+function *_generator_platformDeleteFile__e4xr6a(path, $completion) {
+  // Inline function 'kotlin.runCatching' call
+  var tmp;
+  try {
+    var tmp_0 = resolveParent(path, false, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    var _destruct__k2r9zo = tmp_0;
+    var directory = _destruct__k2r9zo.component1_7eebsc_k$();
+    var name = _destruct__k2r9zo.component2_7eebsb_k$();
+    // Inline function 'kotlin.Companion.success' call
+    var value = directory.removeEntry(name).await();
+    tmp = _Result___init__impl__xyqfz8(value);
+  } catch ($p) {
+    var tmp_1;
+    if ($p instanceof Error) {
+      var e = $p;
+      // Inline function 'kotlin.Companion.failure' call
+      tmp_1 = _Result___init__impl__xyqfz8(createFailure(e));
+    } else {
+      throw $p;
+    }
+    tmp = tmp_1;
+  }
+  return Unit_instance;
+}
+function platformDeleteFile(path, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformDeleteFile__e4xr6a.bind(VOID, path), $completion);
+}
+function *_generator_platformCopyFile__6erexw(sourcePath, destPath, $completion) {
+  var tmp = platformReadBinary(sourcePath, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_elvis_lhs = tmp;
+  var tmp_0;
+  if (tmp0_elvis_lhs == null) {
+    return Unit_instance;
+  } else {
+    tmp_0 = tmp0_elvis_lhs;
+  }
+  var contents = tmp_0;
+  var tmp_1 = platformWriteBinary(destPath, contents, $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  return Unit_instance;
+}
+function platformCopyFile(sourcePath, destPath, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformCopyFile__6erexw.bind(VOID, sourcePath, destPath), $completion);
+}
+function *_generator_platformReadBinary__97sw8y(path, $completion) {
+  // Inline function 'kotlin.runCatching' call
+  var tmp;
+  try {
+    var tmp_0 = resolveFileHandle(path, false, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    var fileHandle = tmp_0;
+    var file = fileHandle.getFile().await();
+    // Inline function 'kotlin.Companion.success' call
+    var value = arrayBufferToByteArray(file.arrayBuffer().await());
+    tmp = _Result___init__impl__xyqfz8(value);
+  } catch ($p) {
+    var tmp_1;
+    if ($p instanceof Error) {
+      var e = $p;
+      // Inline function 'kotlin.Companion.failure' call
+      tmp_1 = _Result___init__impl__xyqfz8(createFailure(e));
+    } else {
+      throw $p;
+    }
+    tmp = tmp_1;
+  }
+  // Inline function 'kotlin.Result.getOrNull' call
+  var this_0 = tmp;
+  var tmp_2;
+  if (_Result___get_isFailure__impl__jpiriv(this_0)) {
+    tmp_2 = null;
+  } else {
+    var tmp_3 = _Result___get_value__impl__bjfvqg(this_0);
+    tmp_2 = (tmp_3 == null ? true : !(tmp_3 == null)) ? tmp_3 : THROW_CCE();
+  }
+  return tmp_2;
+}
+function platformReadBinary(path, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformReadBinary__97sw8y.bind(VOID, path), $completion);
+}
+function *_generator_platformReadText__yc5m4y(path, $completion) {
+  var tmp = platformReadBinary(path, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = tmp;
+  return tmp0_safe_receiver == null ? null : decodeToString(tmp0_safe_receiver);
+}
+function platformReadText(path, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformReadText__yc5m4y.bind(VOID, path), $completion);
+}
+function *_generator_platformWriteText__3nzjc5(path, data, $completion) {
+  var tmp = resolveFileHandle(path, true, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var fileHandle = tmp;
+  var writable = fileHandle.createWritable().await();
+  try {
+    writable.write(data).await();
+  }finally {
+    writable.close().await();
+  }
+  return Unit_instance;
+}
+function platformWriteText(path, data, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformWriteText__3nzjc5.bind(VOID, path, data), $completion);
+}
+function *_generator_platformWriteBinary__l5ftyx(path, data, $completion) {
+  var tmp = resolveFileHandle(path, true, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var fileHandle = tmp;
+  var writable = fileHandle.createWritable().await();
+  try {
+    writable.write(toUint8Array(data)).await();
+  }finally {
+    writable.close().await();
+  }
+  return Unit_instance;
+}
+function platformWriteBinary(path, data, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_platformWriteBinary__l5ftyx.bind(VOID, path, data), $completion);
+}
+function *_generator_resolveFileHandle__6g6ndw(path, create, $completion) {
+  var tmp = resolveParent(path, create, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var _destruct__k2r9zo = tmp;
+  var directory = _destruct__k2r9zo.component1_7eebsc_k$();
+  var name = _destruct__k2r9zo.component2_7eebsb_k$();
+  return directory.getFileHandle(name, createOptions(create)).await();
+}
+function resolveFileHandle(path, create, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_resolveFileHandle__6g6ndw.bind(VOID, path, create), $completion);
+}
+function *_generator_resolveParent__4zc0ce(path, create, $completion) {
+  var segments = pathSegments(path);
+  // Inline function 'kotlin.collections.isNotEmpty' call
+  // Inline function 'kotlin.require' call
+  if (!!segments.isEmpty_y1axqb_k$()) {
+    var message = 'Path must not be empty';
+    throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+  }
+  var tmp = resolveDirectory(dropLast(segments, 1), create, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var directory = tmp;
+  return directory.to(last(segments));
+}
+function resolveParent(path, create, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_resolveParent__4zc0ce.bind(VOID, path, create), $completion);
+}
+function arrayBufferToByteArray(buffer) {
+  var view = new Uint8Array(buffer);
+  var tmp = view.length;
+  var bytes = new Int8Array((!(tmp == null) ? typeof tmp === 'number' : false) ? tmp : THROW_CCE());
+  var inductionVariable = 0;
+  var last = bytes.length - 1 | 0;
+  if (inductionVariable <= last)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      var tmp_0 = view[index];
+      bytes[index] = toByte((!(tmp_0 == null) ? typeof tmp_0 === 'number' : false) ? tmp_0 : THROW_CCE());
+    }
+     while (inductionVariable <= last);
+  return bytes;
+}
+function toUint8Array(_this__u8e3s4) {
+  var view = new Uint8Array(this.length);
+  var inductionVariable = 0;
+  var last = _this__u8e3s4.length - 1 | 0;
+  if (inductionVariable <= last)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      view[index] = _this__u8e3s4[index] & 255;
+    }
+     while (inductionVariable <= last);
+  return view;
+}
+function createOptions(create) {
+  var options = {};
+  options.create = create;
+  return options;
+}
+function pathSegments(path) {
+  // Inline function 'kotlin.collections.map' call
+  var this_0 = split(path, ['/']);
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
+  var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var item = _iterator__ex2g4s.next_20eer_k$();
+    // Inline function 'kotlin.text.trim' call
+    var tmp$ret$1 = toString_1(trim(isCharSequence(item) ? item : THROW_CCE()));
+    destination.add_utx5q5_k$(tmp$ret$1);
+  }
+  // Inline function 'kotlin.collections.filter' call
+  // Inline function 'kotlin.collections.filterTo' call
+  var destination_0 = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var _iterator__ex2g4s_0 = destination.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s_0.hasNext_bitz1p_k$()) {
+    var element = _iterator__ex2g4s_0.next_20eer_k$();
+    var tmp;
+    // Inline function 'kotlin.text.isNotEmpty' call
+    if (charSequenceLength(element) > 0) {
+      tmp = !(element === '.');
+    } else {
+      tmp = false;
+    }
+    if (tmp) {
+      destination_0.add_utx5q5_k$(element);
+    }
+  }
+  return destination_0;
+}
+function *_generator_resolveDirectory__rqtmbr(segments, create, $completion) {
+  var tmp = resolveRootDirectory($completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var directory = tmp;
+  var _iterator__ex2g4s = segments.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var segment = _iterator__ex2g4s.next_20eer_k$();
+    directory = directory.getDirectoryHandle(segment, createOptions(create)).await();
+  }
+  return directory;
+}
+function resolveDirectory(segments, create, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_resolveDirectory__rqtmbr.bind(VOID, segments, create), $completion);
+}
+function resolveRootDirectory($completion) {
+  var storage = globalThis.navigator && globalThis.navigator.storage;
+  var tmp;
+  try {
+    tmp = storage.getDirectory().await();
+  } catch ($p) {
+    var tmp_0;
+    if ($p instanceof Error) {
+      var _unused_var__etf5q3 = $p;
+      var message = 'Web File System API is unavailable in this JS runtime. Use a browser/worker runtime with navigator.storage.getDirectory() or a different FileAdapter.';
+      throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    } else {
+      throw $p;
+    }
+  }
+  return tmp;
 }
 function get_http() {
   _init_properties_httpClient_js_kt__seo9f2();
@@ -72304,10 +72980,10 @@ function ConcurrentMutableMap$_get_size_$lambda_nuyc4q(this$0) {
   return () => this$0.del_1.get_size_woubt6_k$();
 }
 function ConcurrentMutableMap$_get_entries_$lambda_dp7xtt(this$0) {
-  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(this$0, this$0.del_1.get_entries_p20ztl_k$());
+  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(this$0, this$0.del_1.get_entries_p20ztl_k$());
 }
 function ConcurrentMutableMap$_get_keys_$lambda_5gjoyr(this$0) {
-  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_en1pow_k$(this$0, this$0.del_1.get_keys_wop4xp_k$());
+  return () => ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_ol8hpw_k$(this$0, this$0.del_1.get_keys_wop4xp_k$());
 }
 function ConcurrentMutableMap$_get_values_$lambda_tyvlyt(this$0) {
   return () => ConcurrentMutableCollection.new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(this$0, this$0.del_1.get_values_ksazhn_k$());
@@ -72342,9 +73018,9 @@ function ConcurrentMutableMap$putAll$lambda(this$0, $from) {
 function ConcurrentMutableMap$remove$lambda(this$0, $key) {
   return () => this$0.del_1.remove_gppy8k_k$($key);
 }
-var Companion_instance_69;
-function Companion_getInstance_69() {
-  return Companion_instance_69;
+var Companion_instance_71;
+function Companion_getInstance_71() {
+  return Companion_instance_71;
 }
 function startKoin(appDeclaration) {
   return KoinPlatformTools_instance.defaultContext_m5e9ci_k$().startKoin_5fxk64_k$(appDeclaration);
@@ -72495,11 +73171,11 @@ function unloadModule($this, module_0) {
 function loadModule_0($this, module_0) {
   $this._scopeDefinitions_1.addAll_4lah1e_k$(module_0.scopes_1);
 }
-var Companion_instance_70;
-function Companion_getInstance_70() {
-  if (Companion_instance_70 === VOID)
-    new Companion_70();
-  return Companion_instance_70;
+var Companion_instance_72;
+function Companion_getInstance_72() {
+  if (Companion_instance_72 === VOID)
+    new Companion_72();
+  return Companion_instance_72;
 }
 function Scope$close$lambda(this$0) {
   return () => {
@@ -72952,16 +73628,16 @@ function get__sequence() {
   return _sequence;
 }
 var _sequence;
-var Companion_instance_71;
-function Companion_getInstance_71() {
-  return Companion_instance_71;
+var Companion_instance_73;
+function Companion_getInstance_73() {
+  return Companion_instance_73;
 }
-var Companion_instance_72;
-function Companion_getInstance_72() {
-  return Companion_instance_72;
+var Companion_instance_74;
+function Companion_getInstance_74() {
+  return Companion_instance_74;
 }
 function invoke_0(key, type) {
-  return Companion_instance_72.invoke_h1q7yg_k$(key, type);
+  return Companion_instance_74.invoke_h1q7yg_k$(key, type);
 }
 function name(_this__u8e3s4) {
   _init_properties_Port_kt__lbdmcf();
@@ -73100,7 +73776,7 @@ function getElementLabel($this, visitable) {
           tmp = '[ProviderPort] ' + visitable.key.toString();
         } else {
           if (visitable instanceof Edge) {
-            tmp = '[Edge] ' + take_0(visitable.id.toString(), 8) + '...';
+            tmp = '[Edge] ' + take_1(visitable.id.toString(), 8) + '...';
           } else {
             tmp = '[Visitable] ' + hashCode(visitable);
           }
@@ -73331,7 +74007,7 @@ function handleCrossGraphForward($this, navCommand) {
     container.activateGraphForRoute(edge.end);
     destGraph.navigationImpl_1.dispatch_ad1g38_k$(navCommand);
   } else {
-    var tmp0 = Companion_getInstance_40();
+    var tmp0 = Companion_getInstance_42();
     // Inline function 'co.touchlab.kermit.Logger.w' call
     var messageString = "Cross-graph navigation failed: no container found for graph '" + destGraph.label + "' (" + destGraph.id.toString() + ').';
     var tag = tmp0.get_tag_18ivnz_k$();
@@ -73407,7 +74083,7 @@ function ContainerNode$routeBinding$delegate$lambda(thisRef, property) {
   var key = property.callableName;
   var tmp = new Key_6(key);
   // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
-  var tmp$ret$0 = Companion_instance_71.create(getKClass(RouteBinding));
+  var tmp$ret$0 = Companion_instance_73.create(getKClass(RouteBinding));
   var port = registerConsumer_0(thisRef, tmp, tmp$ret$0);
   var tmp_0 = ContainerNode$routeBinding$delegate$lambda$lambda(port);
   return new sam$kotlin_properties_ReadOnlyProperty$0(tmp_0);
@@ -73437,9 +74113,9 @@ function NavBinding$update$lambda($payload) {
 function RouteNode$Companion$invoke$lambda(it) {
   return new RouteBinding(new Payload());
 }
-var Companion_instance_73;
-function Companion_getInstance_73() {
-  return Companion_instance_73;
+var Companion_instance_75;
+function Companion_getInstance_75() {
+  return Companion_instance_75;
 }
 function Graph$dispatch$ref(p0) {
   var l = (_this__u8e3s4) => {
@@ -73459,7 +74135,7 @@ function RouteNode$navBinding$delegate$lambda($impl) {
     var impl = $impl;
     var tmp = new Key_6(tmp2);
     // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
-    var tmp$ret$0 = Companion_instance_71.create(getKClass(NavBinding));
+    var tmp$ret$0 = Companion_instance_73.create(getKClass(NavBinding));
     var port = registerProvider_0(thisRef, tmp, tmp$ret$0, impl);
     var tmp_0 = RouteNode$navBinding$delegate$lambda$lambda(port);
     return new sam$kotlin_properties_ReadOnlyProperty$0_0(tmp_0);
@@ -73529,13 +74205,13 @@ var dev_shibasis_reaktor_graph_navigation_Push$stable;
 var dev_shibasis_reaktor_graph_navigation_Replace$stable;
 var dev_shibasis_reaktor_graph_navigation_Return$stable;
 var dev_shibasis_reaktor_graph_navigation_Pop$stable;
-var Companion_instance_74;
-function Companion_getInstance_74() {
-  return Companion_instance_74;
+var Companion_instance_76;
+function Companion_getInstance_76() {
+  return Companion_instance_76;
 }
-var Companion_instance_75;
-function Companion_getInstance_75() {
-  return Companion_instance_75;
+var Companion_instance_77;
+function Companion_getInstance_77() {
+  return Companion_instance_77;
 }
 protoOf(Pop_0)['<get-value>'] = protoOf(Pop_0).get_value_j01efc_k$;
 var Pop_instance;
@@ -73552,11 +74228,11 @@ var dev_shibasis_reaktor_graph_navigation_BackStackEntry$stable;
 function Payload$Companion$$childSerializers$_anonymous__7bbyuc() {
   return new HashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
 }
-var Companion_instance_76;
-function Companion_getInstance_76() {
-  if (Companion_instance_76 === VOID)
-    new Companion_76();
-  return Companion_instance_76;
+var Companion_instance_78;
+function Companion_getInstance_78() {
+  if (Companion_instance_78 === VOID)
+    new Companion_78();
+  return Companion_instance_78;
 }
 var $serializer_instance_0;
 function $serializer_getInstance_0() {
@@ -73565,30 +74241,30 @@ function $serializer_getInstance_0() {
   return $serializer_instance_0;
 }
 var dev_shibasis_reaktor_graph_service_DeleteHandler$stable;
-var Companion_instance_77;
-function Companion_getInstance_77() {
-  return Companion_instance_77;
-}
-var dev_shibasis_reaktor_graph_service_GetHandler$stable;
-var Companion_instance_78;
-function Companion_getInstance_78() {
-  return Companion_instance_78;
-}
-var dev_shibasis_reaktor_graph_service_PostHandler$stable;
 var Companion_instance_79;
 function Companion_getInstance_79() {
   return Companion_instance_79;
 }
-var dev_shibasis_reaktor_graph_service_PutHandler$stable;
+var dev_shibasis_reaktor_graph_service_GetHandler$stable;
 var Companion_instance_80;
 function Companion_getInstance_80() {
   return Companion_instance_80;
 }
-var dev_shibasis_reaktor_graph_service_Request_$serializer$stable;
-var dev_shibasis_reaktor_graph_service_Request$stable;
+var dev_shibasis_reaktor_graph_service_PostHandler$stable;
 var Companion_instance_81;
 function Companion_getInstance_81() {
   return Companion_instance_81;
+}
+var dev_shibasis_reaktor_graph_service_PutHandler$stable;
+var Companion_instance_82;
+function Companion_getInstance_82() {
+  return Companion_instance_82;
+}
+var dev_shibasis_reaktor_graph_service_Request_$serializer$stable;
+var dev_shibasis_reaktor_graph_service_Request$stable;
+var Companion_instance_83;
+function Companion_getInstance_83() {
+  return Companion_instance_83;
 }
 var $serializer_instance_1;
 function $serializer_getInstance_1() {
@@ -73614,9 +74290,9 @@ function *_generator_invoke$suspendBridge__nzsxht($this, request, $completion) {
 }
 var dev_shibasis_reaktor_graph_service_Response_$serializer$stable;
 var dev_shibasis_reaktor_graph_service_Response$stable;
-var Companion_instance_82;
-function Companion_getInstance_82() {
-  return Companion_instance_82;
+var Companion_instance_84;
+function Companion_getInstance_84() {
+  return Companion_instance_84;
 }
 var $serializer_instance_2;
 function $serializer_getInstance_2() {
@@ -73638,7 +74314,7 @@ function *_generator_invoke__zhh2q8_70($this, $this$factory, request, $completio
   var this_0 = new HttpRequestBuilder();
   url(this_0, fullUrl);
   this_0.method_1 = ktorMethod;
-  this_0.headers_1.append_rhug0a_k$(Companion_instance_83.Header, request.environment.name_1);
+  this_0.headers_1.append_rhug0a_k$(Companion_instance_85.Header, request.environment.name_1);
   // Inline function 'kotlin.collections.forEach' call
   // Inline function 'kotlin.collections.iterator' call
   var _iterator__ex2g4s = request.headers.get_entries_p20ztl_k$().iterator_jk1svi_k$();
@@ -73662,7 +74338,7 @@ function *_generator_invoke__zhh2q8_70($this, $this$factory, request, $completio
     this_0.url_1.parameters_1.append_rhug0a_k$(k_0, v_0);
   }
   var tmp0_subject = this_0.method_1;
-  if (tmp0_subject.equals(Companion_getInstance_51().Post_1) || (tmp0_subject.equals(Companion_getInstance_51().Put_1) || tmp0_subject.equals(Companion_getInstance_51().Patch_1))) {
+  if (tmp0_subject.equals(Companion_getInstance_53().Post_1) || (tmp0_subject.equals(Companion_getInstance_53().Put_1) || tmp0_subject.equals(Companion_getInstance_53().Patch_1))) {
     contentType(this_0, Application_getInstance().Json_1);
     // Inline function 'io.ktor.client.request.setBody' call
     var body = get_json().encodeToString_k0apqx_k$($this.$requestSerializer_1, request);
@@ -73779,9 +74455,9 @@ function HttpMethod_initEntries() {
 }
 var Environment_STAGE_instance;
 var Environment_PROD_instance;
-var Companion_instance_83;
-function Companion_getInstance_83() {
-  return Companion_instance_83;
+var Companion_instance_85;
+function Companion_getInstance_85() {
+  return Companion_instance_85;
 }
 function values_7() {
   return [Environment_STAGE_getInstance(), Environment_PROD_getInstance()];
@@ -73944,11 +74620,11 @@ function WindowSize$Companion$startListening$slambda_0($source) {
   l.$arity = 1;
   return l;
 }
-var Companion_instance_84;
-function Companion_getInstance_84() {
-  if (Companion_instance_84 === VOID)
-    new Companion_84();
-  return Companion_instance_84;
+var Companion_instance_86;
+function Companion_getInstance_86() {
+  if (Companion_instance_86 === VOID)
+    new Companion_86();
+  return Companion_instance_86;
 }
 function WindowWidthClass_COMPACT_getInstance() {
   WindowWidthClass_initEntries();
@@ -74002,7 +74678,7 @@ function ReactNode$routeBinding$delegate$lambda(thisRef, property) {
   var key = property.callableName;
   var tmp = new Key_6(key);
   // Inline function 'dev.shibasis.reaktor.portgraph.port.Companion.Type' call
-  var tmp$ret$0 = Companion_instance_71.create(getKClass(RouteBinding));
+  var tmp$ret$0 = Companion_instance_73.create(getKClass(RouteBinding));
   var port = registerConsumer_0(thisRef, tmp, tmp$ret$0);
   var tmp_0 = ReactNode$routeBinding$delegate$lambda$lambda(port);
   return new sam$kotlin_properties_ReadOnlyProperty$0_1(tmp_0);
@@ -74037,7 +74713,7 @@ var properties_initialized_ReactNode_kt_yylmdr;
 function _init_properties_ReactNode_kt__5qhygf() {
   if (!properties_initialized_ReactNode_kt_yylmdr) {
     properties_initialized_ReactNode_kt_yylmdr = true;
-    PersonViewDataKey_0 = Companion_instance_72.invoke_h1q7yg_k$('personViewData', 'ViewData');
+    PersonViewDataKey_0 = Companion_instance_74.invoke_h1q7yg_k$('personViewData', 'ViewData');
     dev_shibasis_reaktor_graph_ui_ReactNode$stable = 8;
     dev_shibasis_reaktor_graph_ui_Person$stable = 0;
     dev_shibasis_reaktor_graph_ui_TestBasic$stable = 8;
@@ -74074,10 +74750,10 @@ function toReactState(_this__u8e3s4) {
 function getWindowSizeFlow() {
   var state = MutableStateFlow(sizeClass(window));
   var callback = getWindowSizeFlow$lambda(state);
-  var tmp = Companion_getInstance_84();
+  var tmp = Companion_getInstance_86();
   var tmp_0 = getWindowSizeFlow$lambda_0(callback, state);
   tmp.startListening(tmp_0, getWindowSizeFlow$lambda_1(callback));
-  return Companion_getInstance_84().state;
+  return Companion_getInstance_86().state;
 }
 function sizeClass(_this__u8e3s4) {
   return new WindowSize(widthClass(_this__u8e3s4), heightClass(_this__u8e3s4));
@@ -74187,7 +74863,7 @@ function workerJsonResponse(body) {
   var contentType = 'application/json; charset=utf-8';
   return new Response(body, {headers: {'Content-Type': contentType}});
 }
-function get_3(_this__u8e3s4, binding) {
+function get_4(_this__u8e3s4, binding) {
   return binding.require_rt1k4n_k$(_this__u8e3s4);
 }
 function CloudflareRequest$Companion$$childSerializers$_anonymous__tm7pp0() {
@@ -74202,11 +74878,11 @@ function CloudflareRequest$Companion$$childSerializers$_anonymous__tm7pp0_1() {
 function CloudflareRequest$Companion$$childSerializers$_anonymous__tm7pp0_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_85;
-function Companion_getInstance_85() {
-  if (Companion_instance_85 === VOID)
-    new Companion_85();
-  return Companion_instance_85;
+var Companion_instance_87;
+function Companion_getInstance_87() {
+  if (Companion_instance_87 === VOID)
+    new Companion_87();
+  return Companion_instance_87;
 }
 var $serializer_instance_3;
 function $serializer_getInstance_3() {
@@ -74214,8 +74890,8 @@ function $serializer_getInstance_3() {
     new $serializer_3();
   return $serializer_instance_3;
 }
-function get_4(_this__u8e3s4, binding) {
-  return get_3(get_context(_this__u8e3s4), binding);
+function get_5(_this__u8e3s4, binding) {
+  return get_4(get_context(_this__u8e3s4), binding);
 }
 function get_context(_this__u8e3s4) {
   var tmp0_elvis_lhs = get_contextOrNull(_this__u8e3s4);
@@ -74644,8 +75320,8 @@ function *_generator_invoke__zhh2q8_73($this, $this$promise, $completion) {
     var element = _iterator__ex2g4s.next_20eer_k$();
     var key = element.get_key_18j28a_k$();
     var value_0 = element.get_value_j01efc_k$();
-    if (key === Companion_instance_83.Header) {
-      request.set_environment_er9c07_k$(Companion_instance_83.invoke(value_0));
+    if (key === Companion_instance_85.Header) {
+      request.set_environment_er9c07_k$(Companion_instance_85.invoke(value_0));
     }
     // Inline function 'kotlin.collections.set' call
     request.headers.put_4fpzoq_k$(key, value_0);
@@ -74888,23 +75564,7 @@ function projectedJson($this, descriptor) {
   return tmp0_elvis_lhs == null ? $this.jsonObject_y9iwop_k$() : tmp0_elvis_lhs;
 }
 function columnLookup($this) {
-  // Inline function 'kotlin.collections.buildMap' call
-  // Inline function 'kotlin.collections.buildMapInternal' call
-  // Inline function 'kotlin.apply' call
-  var this_0 = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
-  // Inline function 'kotlin.collections.forEach' call
-  var indexedObject = $this.columnNames_4y08su_k$();
-  var inductionVariable = 0;
-  var last = indexedObject.length;
-  while (inductionVariable < last) {
-    var element = indexedObject[inductionVariable];
-    inductionVariable = inductionVariable + 1 | 0;
-    this_0.put_4fpzoq_k$(canonicalKey(element), new ColumnValue($this.raw_1[element]));
-  }
-  return this_0.build_nmwvly_k$();
-}
-function decode_1(_this__u8e3s4, block) {
-  return block(new SqlRowDecoder(_this__u8e3s4));
+  return Companion_instance_88.build_8afo8s_k$($this.raw_1, $this.columnNames_4y08su_k$());
 }
 function dynamicKeys(value) {
   var tmp = Object.keys(arguments[0]);
@@ -74951,7 +75611,7 @@ function normalizeColumnSegment(segment) {
     return segment;
   }
   // Inline function 'kotlin.collections.filter' call
-  var tmp0 = split(segment, charArrayOf([_Char___init__impl__6a9atx(95)]));
+  var tmp0 = split_0(segment, charArrayOf([_Char___init__impl__6a9atx(95)]));
   // Inline function 'kotlin.collections.filterTo' call
   var destination = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
   var _iterator__ex2g4s = tmp0.iterator_jk1svi_k$();
@@ -75035,7 +75695,7 @@ function projectDescriptor(descriptor, path, columns) {
        while (inductionVariable < times);
     return fields.isEmpty_y1axqb_k$() ? new JsonObject(emptyMap()) : new JsonObject(fields);
   }
-  var tmp0_elvis_lhs = columns.get_wei43m_k$(canonicalKey(joinToString_1(path, '.')));
+  var tmp0_elvis_lhs = columns.get_wshmss_k$(path);
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return null;
@@ -75052,25 +75712,9 @@ function projectDescriptor(descriptor, path, columns) {
   }
   return tmp_0;
 }
-function canonicalKey(value) {
-  // Inline function 'kotlin.text.filter' call
-  // Inline function 'kotlin.text.filterTo' call
-  var destination = StringBuilder.new_kotlin_text_StringBuilder_u46mrb_k$();
-  var inductionVariable = 0;
-  var last = charSequenceLength(value);
-  if (inductionVariable < last)
-    do {
-      var index = inductionVariable;
-      inductionVariable = inductionVariable + 1 | 0;
-      var element = charSequenceGet(value, index);
-      if (isLetterOrDigit(element)) {
-        destination.append_58al37_k$(element);
-      }
-    }
-     while (inductionVariable < last);
-  // Inline function 'kotlin.text.lowercase' call
-  // Inline function 'kotlin.js.asDynamic' call
-  return destination.toString().toLowerCase();
+var Companion_instance_88;
+function Companion_getInstance_88() {
+  return Companion_instance_88;
 }
 function toJsonElement(_this__u8e3s4) {
   var tmp;
@@ -75156,6 +75800,83 @@ function toJsonElement(_this__u8e3s4) {
     }
   }
   return tmp;
+}
+function canonicalKey(value) {
+  // Inline function 'kotlin.text.filter' call
+  // Inline function 'kotlin.text.filterTo' call
+  var destination = StringBuilder.new_kotlin_text_StringBuilder_u46mrb_k$();
+  var inductionVariable = 0;
+  var last = charSequenceLength(value);
+  if (inductionVariable < last)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      var element = charSequenceGet(value, index);
+      if (isLetterOrDigit(element)) {
+        destination.append_58al37_k$(element);
+      }
+    }
+     while (inductionVariable < last);
+  // Inline function 'kotlin.text.lowercase' call
+  // Inline function 'kotlin.js.asDynamic' call
+  return destination.toString().toLowerCase();
+}
+function putWhenMissing(_this__u8e3s4, key, value) {
+  // Inline function 'kotlin.collections.contains' call
+  // Inline function 'kotlin.collections.containsKey' call
+  if (!(isInterface(_this__u8e3s4, KtMap) ? _this__u8e3s4 : THROW_CCE()).containsKey_aw81wo_k$(key)) {
+    // Inline function 'kotlin.collections.set' call
+    _this__u8e3s4.put_4fpzoq_k$(key, value);
+  }
+}
+function columnFallbackKeys(columnName) {
+  var words = splitColumnWords(columnName);
+  if (words.get_size_woubt6_k$() < 2) {
+    return emptyList();
+  }
+  // Inline function 'kotlin.collections.buildList' call
+  // Inline function 'kotlin.collections.buildListInternal' call
+  // Inline function 'kotlin.apply' call
+  var this_0 = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var inductionVariable = 1;
+  var last = words.get_size_woubt6_k$();
+  if (inductionVariable < last)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      this_0.add_utx5q5_k$(canonicalKey(joinToString_1(drop(words, index), '')));
+    }
+     while (inductionVariable < last);
+  return this_0.build_nmwvly_k$();
+}
+function splitColumnWords(columnName) {
+  // Inline function 'kotlin.text.replace' call
+  var tmp0 = Regex.new_kotlin_text_Regex_acuq4a_k$('([a-z0-9])([A-Z])').replace_1ix0wf_k$(columnName, '$1_$2');
+  // Inline function 'kotlin.text.split' call
+  // Inline function 'kotlin.collections.filter' call
+  var tmp0_0 = Regex.new_kotlin_text_Regex_acuq4a_k$('[^A-Za-z0-9]+').split_p7ck23_k$(tmp0, 0);
+  // Inline function 'kotlin.collections.filterTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var _iterator__ex2g4s = tmp0_0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var element = _iterator__ex2g4s.next_20eer_k$();
+    // Inline function 'kotlin.text.isNotBlank' call
+    if (!isBlank(element)) {
+      destination.add_utx5q5_k$(element);
+    }
+  }
+  // Inline function 'kotlin.collections.map' call
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_0 = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(destination, 10));
+  var _iterator__ex2g4s_0 = destination.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s_0.hasNext_bitz1p_k$()) {
+    var item = _iterator__ex2g4s_0.next_20eer_k$();
+    // Inline function 'kotlin.text.lowercase' call
+    // Inline function 'kotlin.js.asDynamic' call
+    var tmp$ret$8 = item.toLowerCase();
+    destination_0.add_utx5q5_k$(tmp$ret$8);
+  }
+  return destination_0;
 }
 var androidx_compose_ui_geometry_MutableRect$stable;
 var androidx_compose_ui_geometry_Rect$stable;
@@ -79243,6 +79964,58 @@ function bindArgs($this, binder, args) {
     }
   }
 }
+function *_generator_backup$suspendBridge__4gtaed($this, backupName, $completion) {
+  if ($this.backup === protoOf(SqlAdapter).backup) {
+    var tmp = $this.backup_n15g2b_k$(backupName, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.backup(backupName), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_backup__2oadiy($this, backupName, $completion) {
+  var backupPath = $this.fileAdapter.resolvePath(backupName);
+  var tmp = $this.fileAdapter.delete$suspendBridge_796qeh_k$(backupPath, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp_0 = $this.getDriver();
+  tmp_0.execute_umnm3_k$(null, 'VACUUM INTO ?', 1, SqlAdapter$backup$lambda(backupPath));
+  return Unit_instance;
+}
+function *_generator_restore$suspendBridge__vefq9n($this, backupName, $completion) {
+  if ($this.restore === protoOf(SqlAdapter).restore) {
+    var tmp = $this.restore_py954p_k$(backupName, $completion);
+    if (tmp === get_COROUTINE_SUSPENDED())
+      tmp = yield tmp;
+  } else {
+    var tmp_0 = await_0($this.restore(backupName), $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+  }
+  return Unit_instance;
+}
+function *_generator_restore__ihj2w6($this, backupName, $completion) {
+  $this.closeDriver();
+  var backupPath = $this.fileAdapter.resolvePath(backupName);
+  var dbPath = $this.fileAdapter.resolvePath($this.dbName);
+  var tmp = $this.fileAdapter.exists$suspendBridge_w8k2ns_k$(backupPath, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  if (!tmp) {
+    throw Error_0.new_kotlin_Error_cvq542_k$('Backup file not found at ' + backupPath);
+  }
+  var tmp_0 = $this.fileAdapter.delete$suspendBridge_796qeh_k$(dbPath, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp_1 = $this.fileAdapter.copy$suspendBridge_qy3bhr_k$(backupPath, dbPath, $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  $this.getDriver();
+  return Unit_instance;
+}
 function SqlAdapter$transaction$lambda($body) {
   return ($this$transactionWithResult) => $body();
 }
@@ -79287,16 +80060,21 @@ function *_generator_upload$suspendBridge__917ay($this, uploadUrl, snapshotName,
   return Unit_instance;
 }
 function *_generator_upload__oil3t($this, uploadUrl, snapshotName, $completion) {
-  $this.sqlAdapter_1.backup(snapshotName);
+  var tmp = $this.sqlAdapter_1.backup$suspendBridge_ibbcvi_k$(snapshotName, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
   var snapshotPath = $this.fileAdapter_1.resolvePath(snapshotName);
-  var tmp0_elvis_lhs = $this.fileAdapter_1.readBinaryFile(snapshotPath);
-  var tmp;
+  var tmp_0 = $this.fileAdapter_1.readBinaryFile$suspendBridge_vf3zi7_k$(snapshotPath, $completion);
+  if (tmp_0 === get_COROUTINE_SUSPENDED())
+    tmp_0 = yield tmp_0;
+  var tmp0_elvis_lhs = tmp_0;
+  var tmp_1;
   if (tmp0_elvis_lhs == null) {
     throw Error_0.new_kotlin_Error_cvq542_k$('Failed to read snapshot file at ' + snapshotPath);
   } else {
-    tmp = tmp0_elvis_lhs;
+    tmp_1 = tmp0_elvis_lhs;
   }
-  var bytes = tmp;
+  var bytes = tmp_1;
   try {
     // Inline function 'io.ktor.client.request.put' call
     // Inline function 'io.ktor.client.request.put' call
@@ -79310,23 +80088,23 @@ function *_generator_upload__oil3t($this, uploadUrl, snapshotName, $completion) 
     if (body == null) {
       this_0.body_1 = NullBody_instance;
       // Inline function 'io.ktor.util.reflect.typeInfo' call
-      var tmp_0 = getKClass(ByteArrayContent_0);
+      var tmp_2 = getKClass(ByteArrayContent_0);
       // Inline function 'io.ktor.util.reflect.typeOfOrNull' call
-      var tmp_1;
+      var tmp_3;
       try {
-        tmp_1 = createKType(getKClass(ByteArrayContent_0), arrayOf([]), false);
+        tmp_3 = createKType(getKClass(ByteArrayContent_0), arrayOf([]), false);
       } catch ($p) {
-        var tmp_2;
+        var tmp_4;
         if ($p instanceof Error) {
           var _unused_var__etf5q3 = $p;
-          tmp_2 = null;
+          tmp_4 = null;
         } else {
           throw $p;
         }
-        tmp_1 = tmp_2;
+        tmp_3 = tmp_4;
       }
-      var tmp$ret$0 = tmp_1;
-      var tmp$ret$1 = new TypeInfo(tmp_0, tmp$ret$0);
+      var tmp$ret$0 = tmp_3;
+      var tmp$ret$1 = new TypeInfo(tmp_2, tmp$ret$0);
       this_0.set_bodyType_8pgqkl_k$(tmp$ret$1);
     } else {
       if (body instanceof OutgoingContent) {
@@ -79335,39 +80113,41 @@ function *_generator_upload__oil3t($this, uploadUrl, snapshotName, $completion) 
       } else {
         this_0.body_1 = body;
         // Inline function 'io.ktor.util.reflect.typeInfo' call
-        var tmp_3 = getKClass(ByteArrayContent_0);
+        var tmp_5 = getKClass(ByteArrayContent_0);
         // Inline function 'io.ktor.util.reflect.typeOfOrNull' call
-        var tmp_4;
+        var tmp_6;
         try {
-          tmp_4 = createKType(getKClass(ByteArrayContent_0), arrayOf([]), false);
+          tmp_6 = createKType(getKClass(ByteArrayContent_0), arrayOf([]), false);
         } catch ($p) {
-          var tmp_5;
+          var tmp_7;
           if ($p instanceof Error) {
             var _unused_var__etf5q3_0 = $p;
-            tmp_5 = null;
+            tmp_7 = null;
           } else {
             throw $p;
           }
-          tmp_4 = tmp_5;
+          tmp_6 = tmp_7;
         }
-        var tmp$ret$2 = tmp_4;
-        var tmp$ret$3 = new TypeInfo(tmp_3, tmp$ret$2);
+        var tmp$ret$2 = tmp_6;
+        var tmp$ret$3 = new TypeInfo(tmp_5, tmp$ret$2);
         this_0.set_bodyType_8pgqkl_k$(tmp$ret$3);
       }
     }
     // Inline function 'io.ktor.client.request.put' call
-    this_0.method_1 = Companion_getInstance_51().Put_1;
+    this_0.method_1 = Companion_getInstance_53().Put_1;
     // Inline function 'io.ktor.client.request.request' call
-    var tmp_6 = (new HttpStatement(this_0, tmp0)).execute_a2emz4_k$($completion);
-    if (tmp_6 === get_COROUTINE_SUSPENDED())
-      tmp_6 = yield tmp_6;
-    var response = tmp_6;
+    var tmp_8 = (new HttpStatement(this_0, tmp0)).execute_a2emz4_k$($completion);
+    if (tmp_8 === get_COROUTINE_SUSPENDED())
+      tmp_8 = yield tmp_8;
+    var response = tmp_8;
     var containsArg = response.get_status_jnf6d7_k$().value_1;
     if (!(200 <= containsArg ? containsArg <= 299 : false)) {
       throw Error_0.new_kotlin_Error_cvq542_k$('Upload failed with status: ' + response.get_status_jnf6d7_k$().toString());
     }
   }finally {
-    $this.fileAdapter_1.delete(snapshotPath);
+    var tmp_9 = $this.fileAdapter_1.delete$suspendBridge_796qeh_k$(snapshotPath, $completion);
+    if (tmp_9 === get_COROUTINE_SUSPENDED())
+      tmp_9 = yield tmp_9;
   }
   return Unit_instance;
 }
@@ -79393,7 +80173,7 @@ function *_generator_download__dyage8($this, downloadUrl, restoreName, $completi
     var this_0 = new HttpRequestBuilder();
     url(this_0, downloadUrl);
     // Inline function 'io.ktor.client.request.get' call
-    this_0.method_1 = Companion_getInstance_51().Get_1;
+    this_0.method_1 = Companion_getInstance_53().Get_1;
     // Inline function 'io.ktor.client.request.request' call
     var tmp = (new HttpStatement(this_0, tmp0)).execute_a2emz4_k$($completion);
     if (tmp === get_COROUTINE_SUSPENDED())
@@ -79423,12 +80203,18 @@ function *_generator_download__dyage8($this, downloadUrl, restoreName, $completi
       tmp_4 = yield tmp_4;
     var tmp_5 = tmp_4;
     var bytes = (!(tmp_5 == null) ? isByteArray(tmp_5) : false) ? tmp_5 : THROW_CCE();
-    $this.fileAdapter_1.writeBinaryFile(restorePath, bytes);
-    $this.sqlAdapter_1.restore(restoreName);
+    var tmp_6 = $this.fileAdapter_1.writeBinaryFile$suspendBridge_b1fkfc_k$(restorePath, bytes, $completion);
+    if (tmp_6 === get_COROUTINE_SUSPENDED())
+      tmp_6 = yield tmp_6;
+    var tmp_7 = $this.sqlAdapter_1.restore$suspendBridge_wo6r0m_k$(restoreName, $completion);
+    if (tmp_7 === get_COROUTINE_SUSPENDED())
+      tmp_7 = yield tmp_7;
   } catch ($p) {
     if ($p instanceof Error) {
       var e = $p;
-      $this.fileAdapter_1.delete(restorePath);
+      var tmp_8 = $this.fileAdapter_1.delete$suspendBridge_796qeh_k$(restorePath, $completion);
+      if (tmp_8 === get_COROUTINE_SUSPENDED())
+        tmp_8 = yield tmp_8;
       throw e;
     } else {
       throw $p;
@@ -91268,9 +92054,9 @@ function ChatRoomDurableObject$upsert$lambda(a, b) {
   var tmp$ret$1 = b.displayName_1;
   return compareValues(tmp, tmp$ret$1);
 }
-var Companion_instance_86;
-function Companion_getInstance_86() {
-  return Companion_instance_86;
+var Companion_instance_89;
+function Companion_getInstance_89() {
+  return Companion_instance_89;
 }
 var $serializer_instance_4;
 function $serializer_getInstance_4() {
@@ -91278,9 +92064,9 @@ function $serializer_getInstance_4() {
     new $serializer_4();
   return $serializer_instance_4;
 }
-var Companion_instance_87;
-function Companion_getInstance_87() {
-  return Companion_instance_87;
+var Companion_instance_90;
+function Companion_getInstance_90() {
+  return Companion_instance_90;
 }
 var $serializer_instance_5;
 function $serializer_getInstance_5() {
@@ -91288,9 +92074,9 @@ function $serializer_getInstance_5() {
     new $serializer_5();
   return $serializer_instance_5;
 }
-var Companion_instance_88;
-function Companion_getInstance_88() {
-  return Companion_instance_88;
+var Companion_instance_91;
+function Companion_getInstance_91() {
+  return Companion_instance_91;
 }
 var $serializer_instance_6;
 function $serializer_getInstance_6() {
@@ -91298,9 +92084,9 @@ function $serializer_getInstance_6() {
     new $serializer_6();
   return $serializer_instance_6;
 }
-var Companion_instance_89;
-function Companion_getInstance_89() {
-  return Companion_instance_89;
+var Companion_instance_92;
+function Companion_getInstance_92() {
+  return Companion_instance_92;
 }
 var $serializer_instance_7;
 function $serializer_getInstance_7() {
@@ -91311,11 +92097,11 @@ function $serializer_getInstance_7() {
 function CoordinatorState$Companion$$childSerializers$_anonymous__i6obo7() {
   return new ArrayListSerializer($serializer_getInstance_9());
 }
-var Companion_instance_90;
-function Companion_getInstance_90() {
-  if (Companion_instance_90 === VOID)
-    new Companion_90();
-  return Companion_instance_90;
+var Companion_instance_93;
+function Companion_getInstance_93() {
+  if (Companion_instance_93 === VOID)
+    new Companion_93();
+  return Companion_instance_93;
 }
 var $serializer_instance_8;
 function $serializer_getInstance_8() {
@@ -91435,9 +92221,9 @@ function *_generator_reserveSequence__y7rnpl($this, roomId, participant, $comple
   var tmp$ret$4 = isInterface(this_4, KSerializer) ? this_4 : THROW_CCE();
   return tmp0_0.decodeFromString_jwu9sq_k$(tmp$ret$4, string);
 }
-var Companion_instance_91;
-function Companion_getInstance_91() {
-  return Companion_instance_91;
+var Companion_instance_94;
+function Companion_getInstance_94() {
+  return Companion_instance_94;
 }
 var $serializer_instance_9;
 function $serializer_getInstance_9() {
@@ -91445,9 +92231,9 @@ function $serializer_getInstance_9() {
     new $serializer_9();
   return $serializer_instance_9;
 }
-var Companion_instance_92;
-function Companion_getInstance_92() {
-  return Companion_instance_92;
+var Companion_instance_95;
+function Companion_getInstance_95() {
+  return Companion_instance_95;
 }
 var $serializer_instance_10;
 function $serializer_getInstance_10() {
@@ -91455,9 +92241,9 @@ function $serializer_getInstance_10() {
     new $serializer_10();
   return $serializer_instance_10;
 }
-var Companion_instance_93;
-function Companion_getInstance_93() {
-  return Companion_instance_93;
+var Companion_instance_96;
+function Companion_getInstance_96() {
+  return Companion_instance_96;
 }
 var $serializer_instance_11;
 function $serializer_getInstance_11() {
@@ -91468,11 +92254,11 @@ function $serializer_getInstance_11() {
 function ChatPresence$Companion$$childSerializers$_anonymous__fesj7t() {
   return new ArrayListSerializer($serializer_getInstance_9());
 }
-var Companion_instance_94;
-function Companion_getInstance_94() {
-  if (Companion_instance_94 === VOID)
-    new Companion_94();
-  return Companion_instance_94;
+var Companion_instance_97;
+function Companion_getInstance_97() {
+  if (Companion_instance_97 === VOID)
+    new Companion_97();
+  return Companion_instance_97;
 }
 var $serializer_instance_12;
 function $serializer_getInstance_12() {
@@ -91480,9 +92266,9 @@ function $serializer_getInstance_12() {
     new $serializer_12();
   return $serializer_instance_12;
 }
-var Companion_instance_95;
-function Companion_getInstance_95() {
-  return Companion_instance_95;
+var Companion_instance_98;
+function Companion_getInstance_98() {
+  return Companion_instance_98;
 }
 var $serializer_instance_13;
 function $serializer_getInstance_13() {
@@ -91502,11 +92288,11 @@ function ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_1() 
 function ChatOverviewRequest$Companion$$childSerializers$_anonymous__v19zik_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_96;
-function Companion_getInstance_96() {
-  if (Companion_instance_96 === VOID)
-    new Companion_96();
-  return Companion_instance_96;
+var Companion_instance_99;
+function Companion_getInstance_99() {
+  if (Companion_instance_99 === VOID)
+    new Companion_99();
+  return Companion_instance_99;
 }
 var $serializer_instance_14;
 function $serializer_getInstance_14() {
@@ -91520,11 +92306,11 @@ function ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs() {
 function ChatOverviewResponse$Companion$$childSerializers$_anonymous__mmauvs_0() {
   return new ArrayListSerializer(StringSerializer_getInstance());
 }
-var Companion_instance_97;
-function Companion_getInstance_97() {
-  if (Companion_instance_97 === VOID)
-    new Companion_97();
-  return Companion_instance_97;
+var Companion_instance_100;
+function Companion_getInstance_100() {
+  if (Companion_instance_100 === VOID)
+    new Companion_100();
+  return Companion_instance_100;
 }
 var $serializer_instance_15;
 function $serializer_getInstance_15() {
@@ -91544,11 +92330,11 @@ function ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_1() {
 function ListRoomsRequest$Companion$$childSerializers$_anonymous__axqvp1_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_98;
-function Companion_getInstance_98() {
-  if (Companion_instance_98 === VOID)
-    new Companion_98();
-  return Companion_instance_98;
+var Companion_instance_101;
+function Companion_getInstance_101() {
+  if (Companion_instance_101 === VOID)
+    new Companion_101();
+  return Companion_instance_101;
 }
 var $serializer_instance_16;
 function $serializer_getInstance_16() {
@@ -91559,11 +92345,11 @@ function $serializer_getInstance_16() {
 function ChatRoomsResponse$Companion$$childSerializers$_anonymous__fpgg3b() {
   return new ArrayListSerializer($serializer_getInstance_13());
 }
-var Companion_instance_99;
-function Companion_getInstance_99() {
-  if (Companion_instance_99 === VOID)
-    new Companion_99();
-  return Companion_instance_99;
+var Companion_instance_102;
+function Companion_getInstance_102() {
+  if (Companion_instance_102 === VOID)
+    new Companion_102();
+  return Companion_instance_102;
 }
 var $serializer_instance_17;
 function $serializer_getInstance_17() {
@@ -91586,11 +92372,11 @@ function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_2() {
 function CreateRoomRequest$Companion$$childSerializers$_anonymous__g5jn4i_3() {
   return new ArrayListSerializer($serializer_getInstance_9());
 }
-var Companion_instance_100;
-function Companion_getInstance_100() {
-  if (Companion_instance_100 === VOID)
-    new Companion_100();
-  return Companion_instance_100;
+var Companion_instance_103;
+function Companion_getInstance_103() {
+  if (Companion_instance_103 === VOID)
+    new Companion_103();
+  return Companion_instance_103;
 }
 var $serializer_instance_18;
 function $serializer_getInstance_18() {
@@ -91610,11 +92396,11 @@ function RoomRequest$Companion$$childSerializers$_anonymous__8cox56_1() {
 function RoomRequest$Companion$$childSerializers$_anonymous__8cox56_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_101;
-function Companion_getInstance_101() {
-  if (Companion_instance_101 === VOID)
-    new Companion_101();
-  return Companion_instance_101;
+var Companion_instance_104;
+function Companion_getInstance_104() {
+  if (Companion_instance_104 === VOID)
+    new Companion_104();
+  return Companion_instance_104;
 }
 var $serializer_instance_19;
 function $serializer_getInstance_19() {
@@ -91634,11 +92420,11 @@ function RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_1()
 function RoomMembershipRequest$Companion$$childSerializers$_anonymous__dhsfg_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_102;
-function Companion_getInstance_102() {
-  if (Companion_instance_102 === VOID)
-    new Companion_102();
-  return Companion_instance_102;
+var Companion_instance_105;
+function Companion_getInstance_105() {
+  if (Companion_instance_105 === VOID)
+    new Companion_105();
+  return Companion_instance_105;
 }
 var $serializer_instance_20;
 function $serializer_getInstance_20() {
@@ -91658,11 +92444,11 @@ function SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_1() {
 function SendMessageRequest$Companion$$childSerializers$_anonymous__brnfuu_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_103;
-function Companion_getInstance_103() {
-  if (Companion_instance_103 === VOID)
-    new Companion_103();
-  return Companion_instance_103;
+var Companion_instance_106;
+function Companion_getInstance_106() {
+  if (Companion_instance_106 === VOID)
+    new Companion_106();
+  return Companion_instance_106;
 }
 var $serializer_instance_21;
 function $serializer_getInstance_21() {
@@ -91682,11 +92468,11 @@ function RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_1() 
 function RoomMessagesRequest$Companion$$childSerializers$_anonymous__4u7i8y_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_104;
-function Companion_getInstance_104() {
-  if (Companion_instance_104 === VOID)
-    new Companion_104();
-  return Companion_instance_104;
+var Companion_instance_107;
+function Companion_getInstance_107() {
+  if (Companion_instance_107 === VOID)
+    new Companion_107();
+  return Companion_instance_107;
 }
 var $serializer_instance_22;
 function $serializer_getInstance_22() {
@@ -91706,11 +92492,11 @@ function UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_1() {
 function UploadMediaRequest$Companion$$childSerializers$_anonymous__v3x9by_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_105;
-function Companion_getInstance_105() {
-  if (Companion_instance_105 === VOID)
-    new Companion_105();
-  return Companion_instance_105;
+var Companion_instance_108;
+function Companion_getInstance_108() {
+  if (Companion_instance_108 === VOID)
+    new Companion_108();
+  return Companion_instance_108;
 }
 var $serializer_instance_23;
 function $serializer_getInstance_23() {
@@ -91730,11 +92516,11 @@ function MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_1() {
 function MediaRequest$Companion$$childSerializers$_anonymous__bhvnz3_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_106;
-function Companion_getInstance_106() {
-  if (Companion_instance_106 === VOID)
-    new Companion_106();
-  return Companion_instance_106;
+var Companion_instance_109;
+function Companion_getInstance_109() {
+  if (Companion_instance_109 === VOID)
+    new Companion_109();
+  return Companion_instance_109;
 }
 var $serializer_instance_24;
 function $serializer_getInstance_24() {
@@ -91745,11 +92531,11 @@ function $serializer_getInstance_24() {
 function ChatRoomStateResponse$Companion$$childSerializers$_anonymous__cp3qx7() {
   return new ArrayListSerializer($serializer_getInstance_11());
 }
-var Companion_instance_107;
-function Companion_getInstance_107() {
-  if (Companion_instance_107 === VOID)
-    new Companion_107();
-  return Companion_instance_107;
+var Companion_instance_110;
+function Companion_getInstance_110() {
+  if (Companion_instance_110 === VOID)
+    new Companion_110();
+  return Companion_instance_110;
 }
 var $serializer_instance_25;
 function $serializer_getInstance_25() {
@@ -91757,9 +92543,9 @@ function $serializer_getInstance_25() {
     new $serializer_25();
   return $serializer_instance_25;
 }
-var Companion_instance_108;
-function Companion_getInstance_108() {
-  return Companion_instance_108;
+var Companion_instance_111;
+function Companion_getInstance_111() {
+  return Companion_instance_111;
 }
 var $serializer_instance_26;
 function $serializer_getInstance_26() {
@@ -91767,9 +92553,9 @@ function $serializer_getInstance_26() {
     new $serializer_26();
   return $serializer_instance_26;
 }
-var Companion_instance_109;
-function Companion_getInstance_109() {
-  return Companion_instance_109;
+var Companion_instance_112;
+function Companion_getInstance_112() {
+  return Companion_instance_112;
 }
 var $serializer_instance_27;
 function $serializer_getInstance_27() {
@@ -91777,9 +92563,9 @@ function $serializer_getInstance_27() {
     new $serializer_27();
   return $serializer_instance_27;
 }
-var Companion_instance_110;
-function Companion_getInstance_110() {
-  return Companion_instance_110;
+var Companion_instance_113;
+function Companion_getInstance_113() {
+  return Companion_instance_113;
 }
 var $serializer_instance_28;
 function $serializer_getInstance_28() {
@@ -91788,9 +92574,9 @@ function $serializer_getInstance_28() {
   return $serializer_instance_28;
 }
 var schemaReady;
-var Companion_instance_111;
-function Companion_getInstance_111() {
-  return Companion_instance_111;
+var Companion_instance_114;
+function Companion_getInstance_114() {
+  return Companion_instance_114;
 }
 var $serializer_instance_29;
 function $serializer_getInstance_29() {
@@ -92278,10 +93064,10 @@ function withPresence(_this__u8e3s4, presence) {
   return _this__u8e3s4.copy$default_b2qtis_k$(VOID, VOID, VOID, VOID, VOID, presence.activeParticipants_1, presence.latestSequence_1);
 }
 function repository(_this__u8e3s4) {
-  return new ChatRepository(get_4(_this__u8e3s4, ChatBindings_getInstance().database_1), get_4(_this__u8e3s4, ChatBindings_getInstance().media_1));
+  return new ChatRepository(get_5(_this__u8e3s4, ChatBindings_getInstance().database_1), get_5(_this__u8e3s4, ChatBindings_getInstance().media_1));
 }
 function coordinator(_this__u8e3s4) {
-  return new ChatRoomCoordinator(get_4(_this__u8e3s4, ChatBindings_getInstance().coordinator_1));
+  return new ChatRoomCoordinator(get_5(_this__u8e3s4, ChatBindings_getInstance().coordinator_1));
 }
 function roomId(_this__u8e3s4) {
   var tmp0_elvis_lhs = _this__u8e3s4.pathParams.get_wei43m_k$('roomId');
@@ -92330,9 +93116,9 @@ function SupabaseBindings_getInstance() {
     new SupabaseBindings();
   return SupabaseBindings_instance;
 }
-var Companion_instance_112;
-function Companion_getInstance_112() {
-  return Companion_instance_112;
+var Companion_instance_115;
+function Companion_getInstance_115() {
+  return Companion_instance_115;
 }
 var $serializer_instance_30;
 function $serializer_getInstance_30() {
@@ -92340,9 +93126,9 @@ function $serializer_getInstance_30() {
     new $serializer_30();
   return $serializer_instance_30;
 }
-var Companion_instance_113;
-function Companion_getInstance_113() {
-  return Companion_instance_113;
+var Companion_instance_116;
+function Companion_getInstance_116() {
+  return Companion_instance_116;
 }
 var $serializer_instance_31;
 function $serializer_getInstance_31() {
@@ -92350,9 +93136,9 @@ function $serializer_getInstance_31() {
     new $serializer_31();
   return $serializer_instance_31;
 }
-var Companion_instance_114;
-function Companion_getInstance_114() {
-  return Companion_instance_114;
+var Companion_instance_117;
+function Companion_getInstance_117() {
+  return Companion_instance_117;
 }
 var $serializer_instance_32;
 function $serializer_getInstance_32() {
@@ -92372,11 +93158,11 @@ function SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60_
 function SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_115;
-function Companion_getInstance_115() {
-  if (Companion_instance_115 === VOID)
-    new Companion_115();
-  return Companion_instance_115;
+var Companion_instance_118;
+function Companion_getInstance_118() {
+  if (Companion_instance_118 === VOID)
+    new Companion_118();
+  return Companion_instance_118;
 }
 var $serializer_instance_33;
 function $serializer_getInstance_33() {
@@ -92390,11 +93176,11 @@ function SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g
 function SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g_0() {
   return new ArrayListSerializer(StringSerializer_getInstance());
 }
-var Companion_instance_116;
-function Companion_getInstance_116() {
-  if (Companion_instance_116 === VOID)
-    new Companion_116();
-  return Companion_instance_116;
+var Companion_instance_119;
+function Companion_getInstance_119() {
+  if (Companion_instance_119 === VOID)
+    new Companion_119();
+  return Companion_instance_119;
 }
 var $serializer_instance_34;
 function $serializer_getInstance_34() {
@@ -92414,11 +93200,11 @@ function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_1(
 function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
-var Companion_instance_117;
-function Companion_getInstance_117() {
-  if (Companion_instance_117 === VOID)
-    new Companion_117();
-  return Companion_instance_117;
+var Companion_instance_120;
+function Companion_getInstance_120() {
+  if (Companion_instance_120 === VOID)
+    new Companion_120();
+  return Companion_instance_120;
 }
 var $serializer_instance_35;
 function $serializer_getInstance_35() {
@@ -92432,11 +93218,11 @@ function SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9()
 function SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9_0() {
   return new ArrayListSerializer($serializer_getInstance_31());
 }
-var Companion_instance_118;
-function Companion_getInstance_118() {
-  if (Companion_instance_118 === VOID)
-    new Companion_118();
-  return Companion_instance_118;
+var Companion_instance_121;
+function Companion_getInstance_121() {
+  if (Companion_instance_121 === VOID)
+    new Companion_121();
+  return Companion_instance_121;
 }
 var $serializer_instance_36;
 function $serializer_getInstance_36() {
@@ -92452,32 +93238,44 @@ var countedTables;
 function *_generator_inspectBestBudsSurface__lqqwad($this, $completion) {
   var tmp0 = $this.database_1;
   var tmp2 = 'SELECT\n    current_database()::text AS database,\n    current_user::text AS "currentUser",\n    now()::text AS "serverTime"';
-  var tmp4 = [];
   // Inline function 'dev.shibasis.reaktor.cloudflare.PostgresDatabase.firstOrNull' call
-  var decode = SupabaseRepository$inspectBestBudsSurface$lambda;
+  var arguments_0 = [];
   // Inline function 'dev.shibasis.reaktor.cloudflare.PostgresDatabase.firstOrNull' call
-  var statement = postgresQuery(tmp2, tmp4.slice());
+  var statement = postgresQuery(tmp2, arguments_0.slice());
   var tmp = tmp0.rawFirstOrNull_gblnt2_k$(statement, $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   var tmp0_safe_receiver = tmp;
-  var tmp0_elvis_lhs = tmp0_safe_receiver == null ? null : decode_1(tmp0_safe_receiver, decode);
   var tmp_0;
+  if (tmp0_safe_receiver == null) {
+    tmp_0 = null;
+  } else {
+    // Inline function 'dev.shibasis.reaktor.cloudflare.decode' call
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_0 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_1 = serializer_0(this_0, createKType(getKClass(SupabaseConnectionInfo), arrayOf([]), true));
+    var tmp$ret$2 = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+    tmp_0 = tmp0_safe_receiver.decode_uqmn82_k$(tmp$ret$2);
+  }
+  var tmp0_elvis_lhs = tmp_0;
+  var tmp_1;
   if (tmp0_elvis_lhs == null) {
     var message = 'Supabase connection metadata query returned no rows';
     throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
   } else {
-    tmp_0 = tmp0_elvis_lhs;
+    tmp_1 = tmp0_elvis_lhs;
   }
-  var connection = tmp_0;
-  var tmp_1 = loadCatalog($this, $completion);
-  if (tmp_1 === get_COROUTINE_SUSPENDED())
-    tmp_1 = yield tmp_1;
-  var objects = tmp_1;
+  var connection = tmp_1;
+  var tmp_2 = loadCatalog($this, $completion);
+  if (tmp_2 === get_COROUTINE_SUSPENDED())
+    tmp_2 = yield tmp_2;
+  var objects = tmp_2;
   // Inline function 'kotlin.collections.buildList' call
   // Inline function 'kotlin.collections.buildListInternal' call
   // Inline function 'kotlin.apply' call
-  var this_0 = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var this_2 = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
   // Inline function 'kotlin.collections.filter' call
   var tmp0_0 = get_countedTables();
   // Inline function 'kotlin.collections.filterTo' call
@@ -92485,30 +93283,30 @@ function *_generator_inspectBestBudsSurface__lqqwad($this, $completion) {
   var _iterator__ex2g4s = tmp0_0.iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var element = _iterator__ex2g4s.next_20eer_k$();
-    var tmp$ret$2;
+    var tmp$ret$6;
     $l$block_0: {
       // Inline function 'kotlin.collections.any' call
-      var tmp_2;
+      var tmp_3;
       if (isInterface(objects, Collection)) {
-        tmp_2 = objects.isEmpty_y1axqb_k$();
+        tmp_3 = objects.isEmpty_y1axqb_k$();
       } else {
-        tmp_2 = false;
+        tmp_3 = false;
       }
-      if (tmp_2) {
-        tmp$ret$2 = false;
+      if (tmp_3) {
+        tmp$ret$6 = false;
         break $l$block_0;
       }
       var _iterator__ex2g4s_0 = objects.iterator_jk1svi_k$();
       while (_iterator__ex2g4s_0.hasNext_bitz1p_k$()) {
         var element_0 = _iterator__ex2g4s_0.next_20eer_k$();
         if (element_0.schema_1 === element.schema_1 && element_0.name_1 === element.name_1 && element_0.kind_1 === element.kind_1) {
-          tmp$ret$2 = true;
+          tmp$ret$6 = true;
           break $l$block_0;
         }
       }
-      tmp$ret$2 = false;
+      tmp$ret$6 = false;
     }
-    if (tmp$ret$2) {
+    if (tmp$ret$6) {
       destination.add_utx5q5_k$(element);
     }
   }
@@ -92516,18 +93314,18 @@ function *_generator_inspectBestBudsSurface__lqqwad($this, $completion) {
   var _iterator__ex2g4s_1 = destination.iterator_jk1svi_k$();
   while (_iterator__ex2g4s_1.hasNext_bitz1p_k$()) {
     var element_1 = _iterator__ex2g4s_1.next_20eer_k$();
-    var tmp_3 = countRows($this, element_1, $completion);
-    if (tmp_3 === get_COROUTINE_SUSPENDED())
-      tmp_3 = yield tmp_3;
-    var tmp0_safe_receiver_0 = tmp_3;
+    var tmp_4 = countRows($this, element_1, $completion);
+    if (tmp_4 === get_COROUTINE_SUSPENDED())
+      tmp_4 = yield tmp_4;
+    var tmp0_safe_receiver_0 = tmp_4;
     if (tmp0_safe_receiver_0 == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      this_0.add_utx5q5_k$(tmp0_safe_receiver_0);
+      this_2.add_utx5q5_k$(tmp0_safe_receiver_0);
     }
   }
-  var counts = this_0.build_nmwvly_k$();
+  var counts = this_2.build_nmwvly_k$();
   return SupabaseStatusResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusResponse_5vlham_k$(connection, objects, counts);
 }
 function *_generator_loadCatalog__h9f9dt($this, $completion) {
@@ -92590,15 +93388,6 @@ function *_generator_countRows__dn7lf0($this, target, $completion) {
 }
 function countRows($this, target, $completion) {
   return suspendOrReturn(/*#__NOINLINE__*/_generator_countRows__dn7lf0.bind(VOID, $this, target), $completion);
-}
-function SupabaseRepository$inspectBestBudsSurface$lambda($this$firstOrNull) {
-  var tmp = $this$firstOrNull.string_m28nxz_k$('database');
-  var tmp0_elvis_lhs = $this$firstOrNull.stringOrNull_uh1d0f_k$('currentUser');
-  var tmp1_elvis_lhs = tmp0_elvis_lhs == null ? $this$firstOrNull.stringOrNull_uh1d0f_k$('currentuser') : tmp0_elvis_lhs;
-  var tmp_0 = tmp1_elvis_lhs == null ? $this$firstOrNull.string_m28nxz_k$('current_user') : tmp1_elvis_lhs;
-  var tmp2_elvis_lhs = $this$firstOrNull.stringOrNull_uh1d0f_k$('serverTime');
-  var tmp3_elvis_lhs = tmp2_elvis_lhs == null ? $this$firstOrNull.stringOrNull_uh1d0f_k$('servertime') : tmp2_elvis_lhs;
-  return new SupabaseConnectionInfo(tmp, tmp_0, tmp3_elvis_lhs == null ? $this$firstOrNull.string_m28nxz_k$('server_time') : tmp3_elvis_lhs);
 }
 var properties_initialized_SupabaseRepository_kt_88lg0g;
 function _init_properties_SupabaseRepository_kt__m5peni() {
@@ -92668,14 +93457,14 @@ initMetadataForInterface(Collection, 'Collection', VOID, VOID, [Iterable]);
 initMetadataForInterface(KtList, 'List', VOID, VOID, [Collection]);
 initMetadataForInterface(KtSet, 'Set', VOID, VOID, [Collection]);
 initMetadataForInterface(MutableIterable, 'MutableIterable', VOID, VOID, [Iterable]);
-initMetadataForInterface(KtMutableSet, 'MutableSet', VOID, VOID, [KtSet, MutableIterable, Collection]);
+initMetadataForInterface(KtMutableSet, 'MutableSet', VOID, VOID, [KtSet, Collection, MutableIterable]);
 initMetadataForCompanion(Companion_1);
 initMetadataForInterface(KtMap, 'Map');
 initMetadataForInterface(KtMutableMap, 'MutableMap', VOID, VOID, [KtMap]);
 initMetadataForInterface(Entry, 'Entry');
 initMetadataForCompanion(Companion_2);
 initMetadataForCompanion(Companion_3);
-initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, MutableIterable, Collection]);
+initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, Collection, MutableIterable]);
 initMetadataForCompanion(Companion_4);
 initMetadataForClass(Enum, 'Enum', VOID, VOID, [Comparable]);
 initMetadataForCompanion(Companion_5);
@@ -92696,7 +93485,7 @@ initMetadataForInterface(AutoCloseable, 'AutoCloseable');
 initMetadataForInterface(Comparator, 'Comparator');
 initMetadataForObject(Unit, 'Unit');
 initMetadataForClass(AbstractCollection, 'AbstractCollection', VOID, VOID, [Collection]);
-initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, VOID, [AbstractCollection, MutableIterable, Collection]);
+initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, VOID, [AbstractCollection, Collection, MutableIterable]);
 initMetadataForClass(IteratorImpl, 'IteratorImpl');
 initMetadataForClass(ListIteratorImpl, 'ListIteratorImpl');
 protoOf(AbstractMutableList).asJsArrayView = asJsArrayView;
@@ -92713,7 +93502,7 @@ initMetadataForCompanion(Companion_6);
 initMetadataForClass(ArrayList, 'ArrayList', ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$, VOID, [AbstractMutableList, KtMutableList, RandomAccess]);
 initMetadataForClass(HashMap, 'HashMap', HashMap.new_kotlin_collections_HashMap_2a5kxx_k$, VOID, [AbstractMutableMap, KtMutableMap]);
 initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, VOID, [KtMutableSet, AbstractMutableSet]);
-initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [MutableIterable, Collection, AbstractMutableCollection]);
+initMetadataForClass(HashMapValues, 'HashMapValues', VOID, VOID, [Collection, MutableIterable, AbstractMutableCollection]);
 initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, VOID, [KtMutableSet, AbstractMutableSet]);
 initMetadataForClass(HashMapEntrySet, 'HashMapEntrySet');
 initMetadataForClass(HashMapKeysDefault$iterator$1);
@@ -92733,6 +93522,10 @@ initMetadataForClass(InternalHashMap, 'InternalHashMap', InternalHashMap.new_kot
 initMetadataForObject(EmptyHolder, 'EmptyHolder');
 initMetadataForClass(LinkedHashMap, 'LinkedHashMap', LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$, VOID, [HashMap, KtMutableMap]);
 initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$, VOID, [HashSet, KtMutableSet]);
+initMetadataForClass(AtomicReference, 'AtomicReference');
+initMetadataForClass(AtomicInt, 'AtomicInt');
+initMetadataForClass(AtomicBoolean, 'AtomicBoolean');
+initMetadataForClass(AtomicLong, 'AtomicLong');
 initMetadataForClass(BaseOutput, 'BaseOutput');
 initMetadataForClass(NodeJsOutput, 'NodeJsOutput');
 initMetadataForClass(BufferedOutput, 'BufferedOutput', BufferedOutput);
@@ -92762,8 +93555,7 @@ initMetadataForObject(NothingKClassImpl, 'NothingKClassImpl');
 initMetadataForClass(SimpleKClassImpl, 'SimpleKClassImpl');
 initMetadataForInterface(KProperty1, 'KProperty1');
 initMetadataForInterface(KMutableProperty1, 'KMutableProperty1', VOID, VOID, [KProperty1]);
-initMetadataForInterface(KProperty0, 'KProperty0');
-initMetadataForInterface(KMutableProperty0, 'KMutableProperty0', VOID, VOID, [KProperty0]);
+initMetadataForInterface(KMutableProperty0, 'KMutableProperty0');
 initMetadataForClass(KTypeParameterImpl, 'KTypeParameterImpl');
 initMetadataForObject(PrimitiveClasses, 'PrimitiveClasses');
 initMetadataForClass(CharacterCodingException, 'CharacterCodingException', CharacterCodingException.new_kotlin_text_CharacterCodingException_el5v5_k$);
@@ -92771,7 +93563,8 @@ initMetadataForClass(StringBuilder, 'StringBuilder', StringBuilder.new_kotlin_te
 initMetadataForCompanion(Companion_8);
 initMetadataForClass(Regex, 'Regex');
 initMetadataForClass(MatchGroup, 'MatchGroup');
-initMetadataForClass(findNext$1$groups$1, VOID, VOID, VOID, [Collection, AbstractCollection]);
+initMetadataForInterface(MatchNamedGroupCollection, 'MatchNamedGroupCollection', VOID, VOID, [Collection]);
+initMetadataForClass(findNext$1$groups$1, VOID, VOID, VOID, [MatchNamedGroupCollection, AbstractCollection]);
 protoOf(AbstractList).asJsReadonlyArrayView = asJsReadonlyArrayView;
 initMetadataForClass(AbstractList, 'AbstractList', VOID, VOID, [AbstractCollection, KtList]);
 initMetadataForClass(findNext$1$groupValues$1);
@@ -92814,6 +93607,12 @@ initMetadataForClass(ReversedListReadOnly$listIterator$1);
 initMetadataForClass(ReversedListReadOnly, 'ReversedListReadOnly');
 initMetadataForClass(TransformingSequence$iterator$1);
 initMetadataForClass(TransformingSequence, 'TransformingSequence');
+initMetadataForInterface(DropTakeSequence, 'DropTakeSequence');
+initMetadataForClass(TakeSequence$iterator$1);
+initMetadataForClass(TakeSequence, 'TakeSequence', VOID, VOID, [DropTakeSequence]);
+initMetadataForObject(EmptySequence, 'EmptySequence', VOID, VOID, [DropTakeSequence]);
+initMetadataForClass(GeneratorSequence$iterator$1);
+initMetadataForClass(GeneratorSequence, 'GeneratorSequence');
 initMetadataForObject(EmptySet, 'EmptySet', VOID, VOID, [KtSet]);
 initMetadataForObject(Key, 'Key');
 initMetadataForInterface(CoroutineContext, 'CoroutineContext');
@@ -92909,10 +93708,10 @@ initMetadataForClass(UShortArray, 'UShortArray', VOID, VOID, [Collection]);
 initMetadataForClass(atomicfu$AtomicRefArray$ref, 'AtomicArray');
 initMetadataForClass(atomicfu$TraceBase, 'TraceBase');
 initMetadataForObject(None, 'None');
-initMetadataForClass(AtomicInt, 'AtomicInt');
+initMetadataForClass(AtomicInt_0, 'AtomicInt');
 initMetadataForClass(AtomicRef, 'AtomicRef');
-initMetadataForClass(AtomicBoolean, 'AtomicBoolean');
-initMetadataForClass(AtomicLong, 'AtomicLong');
+initMetadataForClass(AtomicBoolean_0, 'AtomicBoolean');
+initMetadataForClass(AtomicLong_0, 'AtomicLong');
 initMetadataForInterface(Job, 'Job', VOID, VOID, [Element], [0]);
 initMetadataForInterface(ParentJob, 'ParentJob', VOID, VOID, [Job], [0]);
 protoOf(JobSupport).invokeOnCompletion$default_1v3utx_k$ = invokeOnCompletion$default;
@@ -92999,11 +93798,11 @@ initMetadataForClass(Segment, 'Segment', VOID, VOID, [ConcurrentLinkedListNode, 
 initMetadataForClass(ChannelSegment, 'ChannelSegment');
 initMetadataForClass(SendBroadcast, 'SendBroadcast', VOID, VOID, [Waiter]);
 initMetadataForClass(BufferedChannelIterator, 'BufferedChannelIterator', VOID, VOID, [Waiter], [0, 3]);
-initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
 initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
+initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
 protoOf(BufferedChannel).close$default_kcbl7u_k$ = close$default;
 protoOf(BufferedChannel).cancel$default_880p35_k$ = cancel$default_0;
-initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [SendChannel, ReceiveChannel], [1, 4, 0, 3]);
+initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [ReceiveChannel, SendChannel], [1, 4, 0, 3]);
 initMetadataForClass(WaiterEB, 'WaiterEB');
 initMetadataForClass(ReceiveCatching, 'ReceiveCatching', VOID, VOID, [Waiter]);
 initMetadataForObject(Factory, 'Factory');
@@ -93014,7 +93813,7 @@ initMetadataForClass(ChannelResult, 'ChannelResult');
 initMetadataForClass(ClosedReceiveChannelException, 'ClosedReceiveChannelException');
 initMetadataForClass(ClosedSendChannelException, 'ClosedSendChannelException');
 protoOf(ChannelCoroutine).close$default_kcbl7u_k$ = close$default;
-initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, SendChannel, ReceiveChannel], [1, 0]);
+initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, ReceiveChannel, SendChannel], [1, 0]);
 initMetadataForClass(ConflatedBufferedChannel, 'ConflatedBufferedChannel', VOID, VOID, VOID, [1, 0]);
 initMetadataForInterface(ProducerScope, 'ProducerScope', VOID, VOID, [CoroutineScope, SendChannel], [1]);
 initMetadataForClass(ProducerCoroutine, 'ProducerCoroutine', VOID, VOID, [ChannelCoroutine, ProducerScope], [1, 0]);
@@ -93309,31 +94108,35 @@ initMetadataForObject(Feature, 'Feature', VOID, VOID, [AutoCloseable]);
 initMetadataForClass(CreateSlot, 'CreateSlot', CreateSlot, VOID, [ReadOnlyProperty]);
 initMetadataForCompanion(Companion_37, VOID, [SerializerFactory]);
 initMetadataForClass(StatusCode, 'StatusCode', VOID, VOID, VOID, VOID, VOID, {0: Companion_getInstance_37});
+initMetadataForClass(ConcurrentHashMap$Companion$TOMBSTONE$1);
+initMetadataForClass(ConcurrentHashMap$Companion$REDIRECT$1);
+initMetadataForClass(Entry_0, 'Entry');
+initMetadataForCompanion(Companion_38);
+initMetadataForClass(Table, 'Table');
+initMetadataForClass(ConcurrentHashMap$NEEDS_RESIZE$1);
+initMetadataForClass(ConcurrentHashMap$RETRY_SENTINEL$1);
+initMetadataForClass(ConcurrentHashMap, 'ConcurrentHashMap', ConcurrentHashMap);
+initMetadataForClass(StripedCounter, 'StripedCounter', StripedCounter);
+initMetadataForCompanion(Companion_39);
+initMetadataForClass(Backoff, 'Backoff', Backoff);
 initMetadataForClass(JsResult, 'JsResult');
 initMetadataForClass(JsSuccessResult, 'JsSuccessResult');
 initMetadataForClass(JsFailureResult, 'JsFailureResult');
 initMetadataForClass(WeakRef, 'WeakRef');
-initMetadataForClass(AtomicInt_0, 'AtomicInt');
-initMetadataForCompanion(Companion_38);
+initMetadataForClass(AtomicInt_1, 'AtomicInt');
+initMetadataForCompanion(Companion_40);
 initMetadataForClass(ByteString, 'ByteString', VOID, VOID, [Comparable]);
 initMetadataForObject(UnsafeByteStringOperations, 'UnsafeByteStringOperations');
 initMetadataForInterface(Source, 'Source', VOID, VOID, [AutoCloseable]);
 initMetadataForInterface(Sink, 'Sink', VOID, VOID, [AutoCloseable]);
-protoOf(Buffer).readAtMostTo$default_u5qy9z_k$ = readAtMostTo$default;
 protoOf(Buffer).write$default_fa5nq1_k$ = write$default;
 initMetadataForClass(Buffer, 'Buffer', Buffer, VOID, [Source, Sink]);
 initMetadataForClass(PeekSource, 'PeekSource', VOID, VOID, [AutoCloseable]);
-protoOf(RealSink).write$default_fa5nq1_k$ = write$default;
-initMetadataForClass(RealSink, 'RealSink', VOID, VOID, [Sink]);
-protoOf(RealSource).readAtMostTo$default_u5qy9z_k$ = readAtMostTo$default;
 initMetadataForClass(RealSource, 'RealSource', VOID, VOID, [Source]);
-initMetadataForCompanion(Companion_39);
+initMetadataForCompanion(Companion_41);
 initMetadataForClass(Segment_0, 'Segment');
 initMetadataForClass(SegmentCopyTracker, 'SegmentCopyTracker');
 initMetadataForObject(AlwaysSharedCopyTracker, 'AlwaysSharedCopyTracker');
-initMetadataForInterface(FileSystem, 'FileSystem');
-protoOf(SystemFileSystemImpl).sink$default_v7kfux_k$ = sink$default;
-initMetadataForClass(SystemFileSystemImpl, 'SystemFileSystemImpl', VOID, VOID, [FileSystem]);
 initMetadataForObject(UnsafeBufferOperations, 'UnsafeBufferOperations');
 initMetadataForClass(SegmentReadContextImpl$1);
 initMetadataForClass(SegmentWriteContextImpl$1);
@@ -93341,11 +94144,6 @@ initMetadataForClass(BufferIterationContextImpl$1);
 initMetadataForClass(IOException, 'IOException', IOException.new_kotlinx_io_IOException_28biy1_k$);
 initMetadataForClass(EOFException, 'EOFException', EOFException.new_kotlinx_io_EOFException_pc0t1h_k$);
 initMetadataForObject(SegmentPool, 'SegmentPool');
-initMetadataForClass(FileNotFoundException, 'FileNotFoundException');
-initMetadataForClass(SystemFileSystem$1);
-initMetadataForClass(Path, 'Path');
-initMetadataForClass(FileSource, 'FileSource', VOID, VOID, [AutoCloseable]);
-initMetadataForClass(FileSink, 'FileSink', VOID, VOID, [AutoCloseable]);
 initMetadataForClass(BaseLogger, 'BaseLogger');
 initMetadataForClass(LogWriter, 'LogWriter');
 initMetadataForInterface(MessageStringFormatter, 'MessageStringFormatter');
@@ -93359,8 +94157,8 @@ initMetadataForClass(ConsoleWriter, 'ConsoleWriter', ConsoleWriter.new_co_touchl
 initMetadataForClass(JsMutableLoggerConfig, 'JsMutableLoggerConfig');
 initMetadataForObject(ConsoleActual, 'ConsoleActual');
 initMetadataForClass(Logger, 'Logger');
-initMetadataForCompanion(Companion_40);
-initMetadataForCompanion(Companion_41);
+initMetadataForCompanion(Companion_42);
+initMetadataForCompanion(Companion_43);
 initMetadataForObject(Empty_0, 'Empty');
 initMetadataForClass(Closed_0, 'Closed');
 initMetadataForInterface(Task, 'Task');
@@ -93376,7 +94174,7 @@ initMetadataForClass(ByteChannel, 'ByteChannel', ByteChannel, VOID, [ByteReadCha
 initMetadataForClass(ConcurrentIOException, 'ConcurrentIOException');
 protoOf(ByteReadChannel$Companion$Empty$1).awaitContent$default_j7khmh_k$ = awaitContent$default;
 initMetadataForClass(ByteReadChannel$Companion$Empty$1, VOID, VOID, VOID, [ByteReadChannel], [1]);
-initMetadataForCompanion(Companion_42);
+initMetadataForCompanion(Companion_44);
 initMetadataForClass(WriterJob, 'WriterJob');
 initMetadataForClass(WriterScope, 'WriterScope', VOID, VOID, [CoroutineScope]);
 initMetadataForClass(NO_CALLBACK$1, VOID, VOID, VOID, [Continuation]);
@@ -93398,7 +94196,7 @@ initMetadataForClass(DefaultPool, 'DefaultPool', VOID, VOID, [ObjectPool]);
 initMetadataForClass(ByteArrayPool$1);
 protoOf(NoPoolImpl).close_yn9xrc_k$ = close;
 initMetadataForClass(NoPoolImpl, 'NoPoolImpl', VOID, VOID, [ObjectPool]);
-initMetadataForCompanion(Companion_43);
+initMetadataForCompanion(Companion_45);
 initMetadataForClass(Charset, 'Charset');
 initMetadataForObject(Charsets, 'Charsets');
 initMetadataForClass(CharsetDecoder, 'CharsetDecoder');
@@ -93417,7 +94215,7 @@ initMetadataForLambda(copyToBoth$slambda, VOID, VOID, [1]);
 protoOf(CaseInsensitiveMap).asJsMapView = asJsMapView;
 protoOf(CaseInsensitiveMap).asJsReadonlyMapView = asJsReadonlyMapView;
 initMetadataForClass(CaseInsensitiveMap, 'CaseInsensitiveMap', CaseInsensitiveMap, VOID, [KtMutableMap]);
-initMetadataForClass(Entry_0, 'Entry', VOID, VOID, [Entry]);
+initMetadataForClass(Entry_1, 'Entry', VOID, VOID, [Entry]);
 initMetadataForClass(SilentSupervisor$$inlined$CoroutineExceptionHandler$1, VOID, VOID, VOID, [AbstractCoroutineContextElement, Element]);
 initMetadataForClass(DelegatingMutableSet$iterator$1);
 initMetadataForClass(DelegatingMutableSet, 'DelegatingMutableSet', VOID, VOID, [KtMutableSet]);
@@ -93439,13 +94237,13 @@ initMetadataForClass(StringValuesSingleImpl, 'StringValuesSingleImpl', VOID, VOI
 initMetadataForClass(CaseInsensitiveString, 'CaseInsensitiveString');
 initMetadataForClass(ChannelIOException, 'ChannelIOException');
 initMetadataForClass(CopyOnWriteHashMap, 'CopyOnWriteHashMap', CopyOnWriteHashMap);
-initMetadataForCompanion(Companion_44);
+initMetadataForCompanion(Companion_46);
 protoOf($serializer).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(GMTDate, 'GMTDate', VOID, VOID, [Comparable], VOID, VOID, {0: $serializer_getInstance});
-initMetadataForCompanion(Companion_45);
+initMetadataForCompanion(Companion_47);
 initMetadataForClass(WeekDay, 'WeekDay');
-initMetadataForCompanion(Companion_46);
+initMetadataForCompanion(Companion_48);
 initMetadataForClass(Month, 'Month');
 initMetadataForClass(LockFreeLinkedListNode_0, 'LockFreeLinkedListNode');
 initMetadataForClass(Symbol_1, 'Symbol');
@@ -93453,7 +94251,7 @@ initMetadataForClass(Removed, 'Removed');
 initMetadataForClass(OpDescriptor, 'OpDescriptor');
 initMetadataForClass(PipelineContext, 'PipelineContext', VOID, VOID, [CoroutineScope], [1, 0]);
 initMetadataForClass(DebugPipelineContext, 'DebugPipelineContext', VOID, VOID, VOID, [1, 0]);
-initMetadataForCompanion(Companion_47);
+initMetadataForCompanion(Companion_49);
 initMetadataForClass(PhaseContent, 'PhaseContent');
 initMetadataForClass(Pipeline, 'Pipeline', VOID, VOID, VOID, [2]);
 initMetadataForClass(PipelinePhase, 'PipelinePhase');
@@ -93476,16 +94274,16 @@ initMetadataForClass(HandlerRegistration, 'HandlerRegistration');
 initMetadataForClass(Events, 'Events', Events);
 initMetadataForClass(EventDefinition, 'EventDefinition', EventDefinition);
 initMetadataForClass(URLDecodeException, 'URLDecodeException');
-initMetadataForCompanion(Companion_48);
+initMetadataForCompanion(Companion_50);
 initMetadataForObject(Application, 'Application');
 initMetadataForObject(MultiPart, 'MultiPart');
 initMetadataForObject(Text, 'Text');
 initMetadataForClass(HeaderValueWithParameters, 'HeaderValueWithParameters');
 initMetadataForClass(ContentType, 'ContentType');
 initMetadataForClass(BadContentTypeFormatException, 'BadContentTypeFormatException');
-initMetadataForCompanion(Companion_49);
+initMetadataForCompanion(Companion_51);
 initMetadataForClass(HeadersBuilder, 'HeadersBuilder', HeadersBuilder);
-initMetadataForCompanion(Companion_50);
+initMetadataForCompanion(Companion_52);
 initMetadataForClass(HeadersImpl, 'HeadersImpl', HeadersImpl, VOID, [StringValues, StringValuesImpl]);
 protoOf(EmptyHeaders).get_6bo4tg_k$ = get_2;
 protoOf(EmptyHeaders).contains_zh0gsb_k$ = contains_0;
@@ -93499,13 +94297,13 @@ initMetadataForObject(HttpHeaders, 'HttpHeaders');
 initMetadataForClass(UnsafeHeaderException, 'UnsafeHeaderException');
 initMetadataForClass(IllegalHeaderNameException, 'IllegalHeaderNameException');
 initMetadataForClass(IllegalHeaderValueException, 'IllegalHeaderValueException');
-initMetadataForCompanion(Companion_51);
-initMetadataForClass(HttpMethod, 'HttpMethod');
-initMetadataForCompanion(Companion_52);
-initMetadataForClass(HttpProtocolVersion, 'HttpProtocolVersion');
 initMetadataForCompanion(Companion_53);
-initMetadataForClass(HttpStatusCode, 'HttpStatusCode', VOID, VOID, [Comparable]);
+initMetadataForClass(HttpMethod, 'HttpMethod');
 initMetadataForCompanion(Companion_54);
+initMetadataForClass(HttpProtocolVersion, 'HttpProtocolVersion');
+initMetadataForCompanion(Companion_55);
+initMetadataForClass(HttpStatusCode, 'HttpStatusCode', VOID, VOID, [Comparable]);
+initMetadataForCompanion(Companion_56);
 initMetadataForInterface(Parameters, 'Parameters', VOID, VOID, [StringValues]);
 initMetadataForClass(ParametersBuilderImpl, 'ParametersBuilderImpl', ParametersBuilderImpl);
 protoOf(EmptyParameters).get_6bo4tg_k$ = get_2;
@@ -93513,12 +94311,12 @@ protoOf(EmptyParameters).contains_zh0gsb_k$ = contains_0;
 protoOf(EmptyParameters).forEach_jocloe_k$ = forEach;
 initMetadataForObject(EmptyParameters, 'EmptyParameters', VOID, VOID, [Parameters]);
 initMetadataForClass(ParametersImpl, 'ParametersImpl', ParametersImpl, VOID, [Parameters, StringValuesImpl]);
-initMetadataForCompanion(Companion_55);
+initMetadataForCompanion(Companion_57);
 initMetadataForClass(URLBuilder, 'URLBuilder', URLBuilder);
 initMetadataForClass(URLParserException, 'URLParserException');
-initMetadataForCompanion(Companion_56);
+initMetadataForCompanion(Companion_58);
 initMetadataForClass(URLProtocol, 'URLProtocol');
-initMetadataForCompanion(Companion_57);
+initMetadataForCompanion(Companion_59);
 initMetadataForClass(Url, 'Url', VOID, VOID, VOID, VOID, VOID, {0: UrlSerializer_getInstance});
 initMetadataForObject(UrlSerializer, 'UrlSerializer', VOID, VOID, [KSerializer]);
 initMetadataForClass(UrlDecodedParametersBuilder, 'UrlDecodedParametersBuilder');
@@ -93544,7 +94342,7 @@ initMetadataForClass(Epilogue, 'Epilogue');
 initMetadataForLambda(parseMultipart$slambda$slambda, VOID, VOID, [1]);
 initMetadataForLambda(parseMultipart$slambda, VOID, VOID, [1]);
 initMetadataForClass(Node, 'Node');
-initMetadataForCompanion(Companion_58);
+initMetadataForCompanion(Companion_60);
 initMetadataForClass(AsciiCharTree, 'AsciiCharTree');
 initMetadataForClass(SubSequenceImpl, 'SubSequenceImpl', VOID, VOID, [CharSequence]);
 initMetadataForClass(CharArrayBuilder_0, 'CharArrayBuilder', CharArrayBuilder_0, VOID, [CharSequence]);
@@ -93552,12 +94350,12 @@ initMetadataForClass(CharArrayPool$1);
 initMetadataForClass(CharArrayPool$2);
 initMetadataForClass(UnsupportedMediaTypeExceptionCIO, 'UnsupportedMediaTypeExceptionCIO');
 initMetadataForClass(MutableRange, 'MutableRange');
-initMetadataForCompanion(Companion_59);
+initMetadataForCompanion(Companion_61);
 initMetadataForClass(Codes, 'Codes');
 initMetadataForClass(CloseReason, 'CloseReason');
 initMetadataForInterface(WebSocketSession, 'WebSocketSession', VOID, VOID, [CoroutineScope], [1, 0]);
 initMetadataForInterface(DefaultWebSocketSession, 'DefaultWebSocketSession', VOID, VOID, [WebSocketSession], [1, 0]);
-initMetadataForCompanion(Companion_60);
+initMetadataForCompanion(Companion_62);
 initMetadataForLambda(DefaultWebSocketSessionImpl$runIncomingProcessor$slambda, VOID, VOID, [1]);
 initMetadataForLambda(DefaultWebSocketSessionImpl$runOutgoingProcessor$slambda, VOID, VOID, [1]);
 initMetadataForLambda(DefaultWebSocketSessionImpl$runOrCancelPinger$slambda, VOID, VOID, [1]);
@@ -93565,7 +94363,7 @@ protoOf(DefaultWebSocketSessionImpl).send_sglh1y_k$ = send;
 initMetadataForClass(DefaultWebSocketSessionImpl, 'DefaultWebSocketSessionImpl', VOID, VOID, [DefaultWebSocketSession, WebSocketSession], [1, 0, 2]);
 initMetadataForObject(NonDisposableHandle_0, 'NonDisposableHandle');
 initMetadataForClass(FrameTooBigException, 'FrameTooBigException', VOID, VOID, [Exception, CopyableThrowable]);
-initMetadataForCompanion(Companion_61);
+initMetadataForCompanion(Companion_63);
 initMetadataForClass(FrameType, 'FrameType');
 initMetadataForLambda(ponger$slambda, VOID, VOID, [1]);
 initMetadataForLambda(pinger$slambda$slambda, VOID, VOID, [1]);
@@ -93580,7 +94378,7 @@ initMetadataForClass(Text_0, 'Text');
 initMetadataForClass(Close, 'Close', Close.new_io_ktor_websocket_Frame_Close_ddsmnf_k$);
 initMetadataForClass(Ping, 'Ping');
 initMetadataForClass(Pong, 'Pong');
-initMetadataForCompanion(Companion_62);
+initMetadataForCompanion(Companion_64);
 initMetadataForClass(ContentConvertException, 'ContentConvertException');
 initMetadataForClass(JsonConvertException, 'JsonConvertException');
 initMetadataForInterface(Configuration, 'Configuration');
@@ -93592,7 +94390,7 @@ initMetadataForLambda(HttpClient$slambda, VOID, VOID, [2]);
 initMetadataForLambda(HttpClient$slambda_0, VOID, VOID, [2]);
 initMetadataForClass(HttpClient, 'HttpClient', VOID, VOID, [CoroutineScope, AutoCloseable], [1]);
 initMetadataForClass(HttpClientConfig, 'HttpClientConfig', HttpClientConfig);
-initMetadataForCompanion(Companion_63);
+initMetadataForCompanion(Companion_65);
 initMetadataForClass(HttpClientCall, 'HttpClientCall', VOID, VOID, [CoroutineScope], [0, 1]);
 initMetadataForClass(DoubleReceiveException, 'DoubleReceiveException');
 initMetadataForClass(NoTransformationFoundException, 'NoTransformationFoundException');
@@ -93614,7 +94412,7 @@ protoOf(HttpClientEngineBase).install_55cq5g_k$ = install;
 initMetadataForClass(HttpClientEngineBase, 'HttpClientEngineBase', VOID, VOID, [HttpClientEngine], [1]);
 initMetadataForInterface(HttpClientEngineCapability, 'HttpClientEngineCapability');
 initMetadataForClass(HttpClientEngineConfig, 'HttpClientEngineConfig', HttpClientEngineConfig);
-initMetadataForCompanion(Companion_64);
+initMetadataForCompanion(Companion_66);
 protoOf(KtorCallContextElement).get_y2st91_k$ = get;
 protoOf(KtorCallContextElement).fold_j2vaxd_k$ = fold;
 protoOf(KtorCallContextElement).minusKey_9i5ggf_k$ = minusKey;
@@ -93675,7 +94473,7 @@ initMetadataForClass(InterceptedSender, 'InterceptedSender', VOID, VOID, [Sender
 initMetadataForClass(DefaultSender, 'DefaultSender', VOID, VOID, [Sender], [1]);
 initMetadataForClass(HttpSend, 'HttpSend');
 initMetadataForClass(SendCountExceedException, 'SendCountExceedException');
-initMetadataForCompanion(Companion_65);
+initMetadataForCompanion(Companion_67);
 initMetadataForClass(HttpTimeoutConfig, 'HttpTimeoutConfig', HttpTimeoutConfig.new_io_ktor_client_plugins_HttpTimeoutConfig_3wmaef_k$);
 initMetadataForObject(HttpTimeoutCapability, 'HttpTimeoutCapability', VOID, VOID, [HttpClientEngineCapability]);
 initMetadataForClass(HttpRequestTimeoutException, 'HttpRequestTimeoutException', VOID, VOID, [IOException, CopyableThrowable]);
@@ -93726,7 +94524,7 @@ initMetadataForObject(WebSocketExtensionsCapability, 'WebSocketExtensionsCapabil
 initMetadataForObject(WebSocketCapability, 'WebSocketCapability', VOID, VOID, [HttpClientEngineCapability]);
 initMetadataForClass(WebSocketException, 'WebSocketException');
 initMetadataForClass(DefaultHttpRequest, 'DefaultHttpRequest', VOID, VOID, [HttpRequest]);
-initMetadataForCompanion(Companion_66);
+initMetadataForCompanion(Companion_68);
 initMetadataForClass(HttpRequestBuilder, 'HttpRequestBuilder', HttpRequestBuilder);
 initMetadataForClass(HttpRequestData, 'HttpRequestData');
 initMetadataForClass(HttpResponseData, 'HttpResponseData');
@@ -93778,7 +94576,7 @@ initMetadataForClass(KotlinxWebsocketSerializationConverter, 'KotlinxWebsocketSe
 initMetadataForClass(HttpClientCallLogger, 'HttpClientCallLogger', VOID, VOID, VOID, [1, 0]);
 initMetadataForClass(LogLevel_0, 'LogLevel');
 initMetadataForClass(LoggedContent, 'LoggedContent');
-initMetadataForCompanion(Companion_67);
+initMetadataForCompanion(Companion_69);
 initMetadataForClass(SimpleLogger, 'SimpleLogger', SimpleLogger);
 initMetadataForClass(LoggingConfig, 'LoggingConfig', LoggingConfig);
 initMetadataForClass(SanitizedHeader, 'SanitizedHeader');
@@ -93811,20 +94609,20 @@ protoOf(MDCContextElement).fold_j2vaxd_k$ = fold;
 protoOf(MDCContextElement).minusKey_9i5ggf_k$ = minusKey;
 protoOf(MDCContextElement).plus_s13ygv_k$ = plus;
 initMetadataForObject(MDCContextElement, 'MDCContextElement', VOID, VOID, [Element]);
-initMetadataForClass(FileAdapter, 'FileAdapter', VOID, VOID, VOID, [1]);
-initMetadataForCompanion(Companion_68);
+initMetadataForClass(FileAdapter, 'FileAdapter', VOID, VOID, VOID, [2, 1]);
+initMetadataForCompanion(Companion_70);
 initMetadataForClass(RoutePattern, 'RoutePattern', RoutePattern);
 initMetadataForObject(RegexCommon, 'RegexCommon');
 initMetadataForClass(middleware$4$1);
 initMetadataForClass(TextSerializer, 'TextSerializer', TextSerializer);
-initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [MutableIterable, Collection]);
+initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [Collection, MutableIterable]);
 initMetadataForClass(ConcurrentMutableIterator, 'ConcurrentMutableIterator');
 protoOf(ConcurrentMutableMap).asJsMapView = asJsMapView;
 protoOf(ConcurrentMutableMap).asJsReadonlyMapView = asJsReadonlyMapView;
 initMetadataForClass(ConcurrentMutableMap, 'ConcurrentMutableMap', ConcurrentMutableMap.new_co_touchlab_stately_collections_ConcurrentMutableMap_8v3ml1_k$, VOID, [KtMutableMap]);
 initMetadataForClass(ConcurrentMutableSet, 'ConcurrentMutableSet', ConcurrentMutableSet.new_co_touchlab_stately_collections_ConcurrentMutableSet_t534k6_k$, VOID, [ConcurrentMutableCollection, KtMutableSet]);
 initMetadataForClass(Koin, 'Koin', Koin);
-initMetadataForCompanion(Companion_69);
+initMetadataForCompanion(Companion_71);
 initMetadataForClass(KoinApplication, 'KoinApplication');
 initMetadataForClass(BeanDefinition, 'BeanDefinition');
 initMetadataForClass(DefinitionOverrideException, 'DefinitionOverrideException');
@@ -93845,7 +94643,7 @@ initMetadataForClass(StringQualifier, 'StringQualifier');
 initMetadataForClass(InstanceRegistry, 'InstanceRegistry');
 initMetadataForClass(OptionRegistry, 'OptionRegistry', OptionRegistry);
 initMetadataForClass(PropertyRegistry, 'PropertyRegistry');
-initMetadataForCompanion(Companion_70);
+initMetadataForCompanion(Companion_72);
 initMetadataForClass(ScopeRegistry, 'ScopeRegistry');
 initMetadataForClass(CoreResolver, 'CoreResolver');
 initMetadataForClass(Scope, 'Scope');
@@ -93861,9 +94659,9 @@ initMetadataForClass(PortNode, 'PortNode', VOID, VOID, [Unique, Visitable, PortC
 initMetadataForClass(Port, 'Port', VOID, VOID, [Visitable]);
 initMetadataForClass(ConsumerPort, 'ConsumerPort', VOID, VOID, [Port, AutoCloseable], [1]);
 initMetadataForClass(Key_6, 'Key');
-initMetadataForCompanion(Companion_71);
+initMetadataForCompanion(Companion_73);
 initMetadataForClass(Type, 'Type');
-initMetadataForCompanion(Companion_72);
+initMetadataForCompanion(Companion_74);
 initMetadataForClass(KeyType, 'KeyType');
 initMetadataForClass(PortEvent, 'PortEvent');
 initMetadataForClass(Created, 'Created');
@@ -93908,7 +94706,7 @@ initMetadataForClass(ControllerNode, 'ControllerNode', VOID, VOID, [Node_1, Rout
 initMetadataForInterface(Stateful, 'Stateful');
 initMetadataForClass(RouteBinding, 'RouteBinding');
 initMetadataForInterface(NavBinding, 'NavBinding');
-initMetadataForCompanion(Companion_73);
+initMetadataForCompanion(Companion_75);
 initMetadataForClass(sam$kotlin_properties_ReadOnlyProperty$0_0, 'sam$kotlin_properties_ReadOnlyProperty$0', VOID, VOID, [ReadOnlyProperty, FunctionAdapter]);
 initMetadataForClass(sam$kotlin_properties_PropertyDelegateProvider$0_0, 'sam$kotlin_properties_PropertyDelegateProvider$0', VOID, VOID, [PropertyDelegateProvider, FunctionAdapter]);
 protoOf(RouteNode$navBinding$2).update = update;
@@ -93922,41 +94720,41 @@ initMetadataForClass(KoinDependencyAdapter, 'KoinDependencyAdapter', VOID, VOID,
 initMetadataForInterface(NavCommand, 'NavCommand');
 initMetadataForInterface(Forward, 'Forward', VOID, VOID, [NavCommand]);
 initMetadataForInterface(Back, 'Back', VOID, VOID, [NavCommand]);
-initMetadataForCompanion(Companion_74);
+initMetadataForCompanion(Companion_76);
 initMetadataForClass(Push, 'Push', VOID, VOID, [Forward]);
-initMetadataForCompanion(Companion_75);
+initMetadataForCompanion(Companion_77);
 initMetadataForClass(Replace, 'Replace', VOID, VOID, [Forward]);
 initMetadataForClass(Return, 'Return', VOID, VOID, [Back]);
 initMetadataForObject(Pop_0, 'Pop', VOID, VOID, [Back]);
 initMetadataForClass(AutoClosed, 'AutoClosed', AutoClosed.new_dev_shibasis_reaktor_graph_navigation_NavigationCapabilityImpl_AutoClosed_ckjda3_k$);
 initMetadataForClass(NavigationCapabilityImpl, 'NavigationCapabilityImpl', NavigationCapabilityImpl, VOID, [AutoCloseable]);
-initMetadataForCompanion(Companion_76);
+initMetadataForCompanion(Companion_78);
 protoOf($serializer_0).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_0, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(Payload, 'Payload', Payload, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_0});
 initMetadataForClass(BackStackEntry, 'BackStackEntry', VOID, VOID, [Unique]);
 initMetadataForInterface(Factory_0, 'Factory');
-initMetadataForCompanion(Companion_77, VOID, [Factory_0]);
+initMetadataForCompanion(Companion_79, VOID, [Factory_0]);
 initMetadataForClass(RequestHandler, 'RequestHandler', VOID, VOID, VOID, [1]);
 initMetadataForClass(DeleteHandler, 'DeleteHandler', VOID, VOID, VOID, [1]);
-initMetadataForCompanion(Companion_78, VOID, [Factory_0]);
-initMetadataForClass(GetHandler, 'GetHandler', VOID, VOID, VOID, [1]);
-initMetadataForCompanion(Companion_79, VOID, [Factory_0]);
-initMetadataForClass(PostHandler, 'PostHandler', VOID, VOID, VOID, [1]);
 initMetadataForCompanion(Companion_80, VOID, [Factory_0]);
+initMetadataForClass(GetHandler, 'GetHandler', VOID, VOID, VOID, [1]);
+initMetadataForCompanion(Companion_81, VOID, [Factory_0]);
+initMetadataForClass(PostHandler, 'PostHandler', VOID, VOID, VOID, [1]);
+initMetadataForCompanion(Companion_82, VOID, [Factory_0]);
 initMetadataForClass(PutHandler, 'PutHandler', VOID, VOID, VOID, [1]);
-initMetadataForCompanion(Companion_81);
+initMetadataForCompanion(Companion_83);
 protoOf($serializer_1).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_1, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(Request, 'Request', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_1});
-initMetadataForCompanion(Companion_82);
+initMetadataForCompanion(Companion_84);
 protoOf($serializer_2).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_2, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(Response_0, 'Response', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_2});
 initMetadataForLambda(Service$client$slambda, VOID, VOID, [2]);
 initMetadataForClass(Service, 'Service');
 initMetadataForClass(HttpMethod_0, 'HttpMethod');
-initMetadataForCompanion(Companion_83);
+initMetadataForCompanion(Companion_85);
 initMetadataForClass(Environment, 'Environment');
 initMetadataForInterface(View, 'View');
 initMetadataForClass(ObservableStack, 'ObservableStack', ObservableStack);
@@ -93965,7 +94763,7 @@ initMetadataForClass(WindowHeightClass, 'WindowHeightClass');
 initMetadataForLambda(WindowSize$Companion$startListening$slambda$slambda, VOID, VOID, [1]);
 initMetadataForClass(sam$kotlinx_coroutines_flow_FlowCollector$0_2, 'sam$kotlinx_coroutines_flow_FlowCollector$0', VOID, VOID, [FlowCollector, FunctionAdapter], [1]);
 initMetadataForLambda(WindowSize$Companion$startListening$slambda, VOID, VOID, [1]);
-initMetadataForCompanion(Companion_84, VOID, [AutoCloseable]);
+initMetadataForCompanion(Companion_86, VOID, [AutoCloseable]);
 initMetadataForClass(WindowSize, 'WindowSize', WindowSize);
 initMetadataForInterface(ReactContent, 'ReactContent', VOID, VOID, [View]);
 initMetadataForClass(sam$kotlin_properties_ReadOnlyProperty$0_1, 'sam$kotlin_properties_ReadOnlyProperty$0', VOID, VOID, [ReadOnlyProperty, FunctionAdapter]);
@@ -93985,7 +94783,7 @@ initMetadataForClass(Binding, 'Binding');
 initMetadataForClass(D1Binding, 'D1Binding');
 initMetadataForClass(R2Binding, 'R2Binding');
 initMetadataForClass(DurableObjectBinding, 'DurableObjectBinding');
-initMetadataForCompanion(Companion_85);
+initMetadataForCompanion(Companion_87);
 protoOf($serializer_3).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_3, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForInterface(CloudflareAwareRequest, 'CloudflareAwareRequest');
@@ -94010,8 +94808,9 @@ initMetadataForClass(SqlValues, 'SqlValues');
 initMetadataForClass(SqlStatement, 'SqlStatement');
 initMetadataForClass(SqlDialect, 'SqlDialect');
 initMetadataForClass(SqlIdentifier, 'SqlIdentifier');
-initMetadataForClass(SqlRowDecoder, 'SqlRowDecoder');
 initMetadataForClass(SqlRow, 'SqlRow');
+initMetadataForCompanion(Companion_88);
+initMetadataForClass(ColumnLookup, 'ColumnLookup');
 initMetadataForClass(ColumnValue, 'ColumnValue');
 initMetadataForObject(ReactHTML, 'ReactHTML');
 initMetadataForClass(ThemeOption, 'ThemeOption');
@@ -94054,7 +94853,7 @@ initMetadataForObject(BooleanType_0, 'BooleanType', VOID, VOID, [SqlType]);
 initMetadataForObject(DoubleType_0, 'DoubleType', VOID, VOID, [SqlType]);
 initMetadataForObject(BlobType_0, 'BlobType', VOID, VOID, [SqlType]);
 initMetadataForClass(ColumnDefinition, 'ColumnDefinition', ColumnDefinition);
-initMetadataForClass(Table, 'Table');
+initMetadataForClass(Table_0, 'Table');
 initMetadataForClass(Column, 'Column');
 initMetadataForClass(Expression, 'Expression');
 initMetadataForClass(Eq, 'Eq');
@@ -94094,108 +94893,108 @@ initMetadataForObject(ChatBindings, 'ChatBindings');
 initMetadataForClass(sam$kotlin_Comparator$0_3, 'sam$kotlin_Comparator$0', VOID, VOID, [Comparator, FunctionAdapter]);
 initMetadataForLambda(ChatRoomDurableObject$fetch$slambda, VOID, VOID, [1]);
 initMetadataForClass(ChatRoomDurableObject, 'ChatRoomDurableObject', VOID, VOID, VOID, [0, 1]);
-initMetadataForCompanion(Companion_86);
+initMetadataForCompanion(Companion_89);
 protoOf($serializer_4).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_4, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ReservedMessageSequence, 'ReservedMessageSequence', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_4});
-initMetadataForCompanion(Companion_87);
+initMetadataForCompanion(Companion_90);
 protoOf($serializer_5).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_5, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(JoinRoomCommand, 'JoinRoomCommand', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_5});
-initMetadataForCompanion(Companion_88);
+initMetadataForCompanion(Companion_91);
 protoOf($serializer_6).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_6, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(LeaveRoomCommand, 'LeaveRoomCommand', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_6});
-initMetadataForCompanion(Companion_89);
+initMetadataForCompanion(Companion_92);
 protoOf($serializer_7).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_7, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(PublishMessageCommand, 'PublishMessageCommand', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_7});
-initMetadataForCompanion(Companion_90);
+initMetadataForCompanion(Companion_93);
 protoOf($serializer_8).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_8, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(CoordinatorState, 'CoordinatorState', CoordinatorState, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_8});
 initMetadataForClass(ChatRoomCoordinator, 'ChatRoomCoordinator', VOID, VOID, VOID, [1, 2]);
-initMetadataForCompanion(Companion_91);
+initMetadataForCompanion(Companion_94);
 protoOf($serializer_9).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_9, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatParticipant, 'ChatParticipant', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_9});
-initMetadataForCompanion(Companion_92);
+initMetadataForCompanion(Companion_95);
 protoOf($serializer_10).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_10, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatMediaRef, 'ChatMediaRef', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_10});
-initMetadataForCompanion(Companion_93);
+initMetadataForCompanion(Companion_96);
 protoOf($serializer_11).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_11, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatMessage, 'ChatMessage', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_11});
-initMetadataForCompanion(Companion_94);
+initMetadataForCompanion(Companion_97);
 protoOf($serializer_12).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_12, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatPresence, 'ChatPresence', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_12});
-initMetadataForCompanion(Companion_95);
+initMetadataForCompanion(Companion_98);
 protoOf($serializer_13).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_13, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatRoomSummary, 'ChatRoomSummary', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_13});
-initMetadataForCompanion(Companion_96);
+initMetadataForCompanion(Companion_99);
 protoOf($serializer_14).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_14, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatOverviewRequest, 'ChatOverviewRequest', ChatOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewRequest_2hr453_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_14});
-initMetadataForCompanion(Companion_97);
+initMetadataForCompanion(Companion_100);
 protoOf($serializer_15).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_15, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatOverviewResponse, 'ChatOverviewResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_15});
-initMetadataForCompanion(Companion_98);
+initMetadataForCompanion(Companion_101);
 protoOf($serializer_16).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_16, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ListRoomsRequest, 'ListRoomsRequest', ListRoomsRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ListRoomsRequest_awg7t0_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_16});
-initMetadataForCompanion(Companion_99);
+initMetadataForCompanion(Companion_102);
 protoOf($serializer_17).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_17, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatRoomsResponse, 'ChatRoomsResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_17});
-initMetadataForCompanion(Companion_100);
+initMetadataForCompanion(Companion_103);
 protoOf($serializer_18).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_18, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(CreateRoomRequest, 'CreateRoomRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_18});
-initMetadataForCompanion(Companion_101);
+initMetadataForCompanion(Companion_104);
 protoOf($serializer_19).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_19, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(RoomRequest, 'RoomRequest', RoomRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomRequest_nl1bbh_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_19});
-initMetadataForCompanion(Companion_102);
+initMetadataForCompanion(Companion_105);
 protoOf($serializer_20).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_20, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(RoomMembershipRequest, 'RoomMembershipRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_20});
-initMetadataForCompanion(Companion_103);
+initMetadataForCompanion(Companion_106);
 protoOf($serializer_21).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_21, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SendMessageRequest, 'SendMessageRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_21});
-initMetadataForCompanion(Companion_104);
+initMetadataForCompanion(Companion_107);
 protoOf($serializer_22).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_22, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(RoomMessagesRequest, 'RoomMessagesRequest', RoomMessagesRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_RoomMessagesRequest_nj9zmp_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_22});
-initMetadataForCompanion(Companion_105);
+initMetadataForCompanion(Companion_108);
 protoOf($serializer_23).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_23, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(UploadMediaRequest, 'UploadMediaRequest', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_23});
-initMetadataForCompanion(Companion_106);
+initMetadataForCompanion(Companion_109);
 protoOf($serializer_24).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_24, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(MediaRequest, 'MediaRequest', MediaRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_MediaRequest_swvzn2_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_24});
-initMetadataForCompanion(Companion_107);
+initMetadataForCompanion(Companion_110);
 protoOf($serializer_25).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_25, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatRoomStateResponse, 'ChatRoomStateResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_25});
-initMetadataForCompanion(Companion_108);
+initMetadataForCompanion(Companion_111);
 protoOf($serializer_26).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_26, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatMessageResponse, 'ChatMessageResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_26});
-initMetadataForCompanion(Companion_109);
+initMetadataForCompanion(Companion_112);
 protoOf($serializer_27).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_27, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatMediaResponse, 'ChatMediaResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_27});
-initMetadataForCompanion(Companion_110);
+initMetadataForCompanion(Companion_113);
 protoOf($serializer_28).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_28, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(ChatMediaDownloadResponse, 'ChatMediaDownloadResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_28});
-initMetadataForCompanion(Companion_111);
+initMetadataForCompanion(Companion_114);
 protoOf($serializer_29).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_29, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(StoredMediaEnvelope, 'StoredMediaEnvelope', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_29});
@@ -94212,31 +95011,31 @@ initMetadataForLambda(ChatService$slambda_7, VOID, VOID, [2]);
 initMetadataForLambda(ChatService$slambda_8, VOID, VOID, [2]);
 initMetadataForClass(ChatService, 'ChatService', ChatService);
 initMetadataForObject(SupabaseBindings, 'SupabaseBindings');
-initMetadataForCompanion(Companion_112);
+initMetadataForCompanion(Companion_115);
 protoOf($serializer_30).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_30, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseCatalogEntry, 'SupabaseCatalogEntry', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_30});
-initMetadataForCompanion(Companion_113);
+initMetadataForCompanion(Companion_116);
 protoOf($serializer_31).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_31, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseTableCount, 'SupabaseTableCount', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_31});
-initMetadataForCompanion(Companion_114);
+initMetadataForCompanion(Companion_117);
 protoOf($serializer_32).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_32, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseConnectionInfo, 'SupabaseConnectionInfo', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_32});
-initMetadataForCompanion(Companion_115);
+initMetadataForCompanion(Companion_118);
 protoOf($serializer_33).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_33, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseOverviewRequest, 'SupabaseOverviewRequest', SupabaseOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_3330ax_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_33});
-initMetadataForCompanion(Companion_116);
+initMetadataForCompanion(Companion_119);
 protoOf($serializer_34).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_34, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseOverviewResponse, 'SupabaseOverviewResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_34});
-initMetadataForCompanion(Companion_117);
+initMetadataForCompanion(Companion_120);
 protoOf($serializer_35).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_35, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseStatusRequest, 'SupabaseStatusRequest', SupabaseStatusRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_t1z0wu_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_35});
-initMetadataForCompanion(Companion_118);
+initMetadataForCompanion(Companion_121);
 protoOf($serializer_36).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_36, '$serializer', VOID, VOID, [GeneratedSerializer]);
 initMetadataForClass(SupabaseStatusResponse, 'SupabaseStatusResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_36});
@@ -94271,6 +95070,7 @@ Companion_instance_11 = new Companion_11();
 EmptyIterator_instance = new EmptyIterator();
 EmptyList_instance = new EmptyList();
 EmptyMap_instance = new EmptyMap();
+EmptySequence_instance = new EmptySequence();
 EmptySet_instance = new EmptySet();
 Key_instance = new Key();
 EmptyCoroutineContext_instance = new EmptyCoroutineContext();
@@ -94300,26 +95100,26 @@ Companion_instance_35 = new Companion_35();
 Companion_instance_36 = new Companion_36();
 Tombstone_instance = new Tombstone();
 UnsafeByteStringOperations_instance = new UnsafeByteStringOperations();
-Companion_instance_39 = new Companion_39();
+Companion_instance_41 = new Companion_41();
 UnsafeBufferOperations_instance = new UnsafeBufferOperations();
 SegmentPool_instance = new SegmentPool();
 DefaultFormatter_instance = new DefaultFormatter();
 ConsoleActual_instance = new ConsoleActual();
 defaultTag = '';
 Empty_instance = new Empty_0();
-Companion_instance_43 = new Companion_43();
-Identity_instance = new Identity();
 Companion_instance_45 = new Companion_45();
-Companion_instance_46 = new Companion_46();
+Identity_instance = new Identity();
+Companion_instance_47 = new Companion_47();
+Companion_instance_48 = new Companion_48();
 DISABLE_SFG = false;
-Companion_instance_49 = new Companion_49();
+Companion_instance_51 = new Companion_51();
 EmptyHeaders_instance = new EmptyHeaders();
 EmptyParameters_instance = new EmptyParameters();
-Companion_instance_57 = new Companion_57();
+Companion_instance_59 = new Companion_59();
 NullBody_instance = new NullBody();
-Companion_instance_58 = new Companion_58();
+Companion_instance_60 = new Companion_60();
 NonDisposableHandle_instance_0 = new NonDisposableHandle_0();
-Companion_instance_64 = new Companion_64();
+Companion_instance_66 = new Companion_66();
 AfterRenderHook_instance = new AfterRenderHook();
 AfterReceiveHook_instance = new AfterReceiveHook();
 RequestError_instance = new RequestError();
@@ -94335,19 +95135,19 @@ AfterReceiveHook_instance_0 = new AfterReceiveHook_0();
 SSECapability_instance = new SSECapability();
 WebSocketExtensionsCapability_instance = new WebSocketExtensionsCapability();
 WebSocketCapability_instance = new WebSocketCapability();
-Companion_instance_66 = new Companion_66();
+Companion_instance_68 = new Companion_68();
 Js_instance = new Js_0();
 JsonContentTypeMatcher_instance = new JsonContentTypeMatcher();
-Companion_instance_67 = new Companion_67();
+Companion_instance_69 = new Companion_69();
 SendHook_instance = new SendHook();
 ResponseAfterEncodingHook_instance = new ResponseAfterEncodingHook();
 ResponseHook_instance = new ResponseHook();
 ReceiveHook_instance = new ReceiveHook();
 MDCContextKey_instance = new MDCContextKey();
 MDCContextElement_instance = new MDCContextElement();
-Companion_instance_68 = new Companion_68();
+Companion_instance_70 = new Companion_70();
 serverIp = null;
-Companion_instance_69 = new Companion_69();
+Companion_instance_71 = new Companion_71();
 GlobalContext_instance = new GlobalContext();
 KoinPlatformTools_instance = new KoinPlatformTools();
 androidx_compose_runtime_AbstractApplier$stable = 8;
@@ -94535,8 +95335,8 @@ androidx_compose_runtime_internal_PlatformOptimizedCancellationException$stable 
 androidx_compose_runtime_snapshots_SnapshotContextElementImpl$stable = 0;
 androidx_compose_runtime_tooling_DiagnosticComposeException$stable = 8;
 androidx_compose_runtime_internal_WeakReference$stable = 0;
-Companion_instance_71 = new Companion_71();
-Companion_instance_72 = new Companion_72();
+Companion_instance_73 = new Companion_73();
+Companion_instance_74 = new Companion_74();
 StructuralSelector_instance = new StructuralSelector_0();
 ConnectivitySelector_instance = new ConnectivitySelector_0();
 DepthFirstTraverser_instance = new DepthFirstTraverser_0();
@@ -94560,37 +95360,37 @@ dev_shibasis_reaktor_graph_core_node_ControllerNode$stable = 8;
 dev_shibasis_reaktor_graph_core_node_Node$stable = 8;
 dev_shibasis_reaktor_graph_core_node_RouteBinding$stable = 8;
 dev_shibasis_reaktor_graph_core_node_RouteNode$stable = 8;
-Companion_instance_73 = new Companion_73();
+Companion_instance_75 = new Companion_75();
 dev_shibasis_reaktor_graph_di_DependencyCapabilityImpl$stable = 8;
 dev_shibasis_reaktor_graph_di_KoinDependencyAdapter$stable = 8;
 dev_shibasis_reaktor_graph_navigation_Push$stable = 8;
 dev_shibasis_reaktor_graph_navigation_Replace$stable = 8;
 dev_shibasis_reaktor_graph_navigation_Return$stable = 0;
 dev_shibasis_reaktor_graph_navigation_Pop$stable = 0;
-Companion_instance_74 = new Companion_74();
-Companion_instance_75 = new Companion_75();
+Companion_instance_76 = new Companion_76();
+Companion_instance_77 = new Companion_77();
 dev_shibasis_reaktor_graph_navigation_NavigationCapabilityImpl_AutoClosed$stable = 8;
 dev_shibasis_reaktor_graph_navigation_NavigationCapabilityImpl$stable = 8;
 dev_shibasis_reaktor_graph_navigation_Payload_$serializer$stable = 8;
 dev_shibasis_reaktor_graph_navigation_Payload$stable = 8;
 dev_shibasis_reaktor_graph_navigation_BackStackEntry$stable = 8;
 dev_shibasis_reaktor_graph_service_DeleteHandler$stable = 8;
-Companion_instance_77 = new Companion_77();
-dev_shibasis_reaktor_graph_service_GetHandler$stable = 8;
-Companion_instance_78 = new Companion_78();
-dev_shibasis_reaktor_graph_service_PostHandler$stable = 8;
 Companion_instance_79 = new Companion_79();
-dev_shibasis_reaktor_graph_service_PutHandler$stable = 8;
+dev_shibasis_reaktor_graph_service_GetHandler$stable = 8;
 Companion_instance_80 = new Companion_80();
+dev_shibasis_reaktor_graph_service_PostHandler$stable = 8;
+Companion_instance_81 = new Companion_81();
+dev_shibasis_reaktor_graph_service_PutHandler$stable = 8;
+Companion_instance_82 = new Companion_82();
 dev_shibasis_reaktor_graph_service_Request_$serializer$stable = 8;
 dev_shibasis_reaktor_graph_service_Request$stable = 8;
-Companion_instance_81 = new Companion_81();
+Companion_instance_83 = new Companion_83();
 dev_shibasis_reaktor_graph_service_RequestHandler$stable = 8;
 dev_shibasis_reaktor_graph_service_Response_$serializer$stable = 8;
 dev_shibasis_reaktor_graph_service_Response$stable = 8;
-Companion_instance_82 = new Companion_82();
+Companion_instance_84 = new Companion_84();
 dev_shibasis_reaktor_graph_service_Service$stable = 8;
-Companion_instance_83 = new Companion_83();
+Companion_instance_85 = new Companion_85();
 dev_shibasis_reaktor_graph_ui_ChildGraph$stable = 8;
 dev_shibasis_reaktor_graph_ui_BottomNavigationContainer$stable = 8;
 dev_shibasis_reaktor_graph_ui_ComposeNode$stable = 8;
@@ -94606,6 +95406,7 @@ dev_shibasis_reaktor_graph_visitor_ConnectivitySelector$stable = 0;
 dev_shibasis_reaktor_graph_visitor_Visitor$stable = 8;
 dev_shibasis_reaktor_graph_visitor_HierarchyVisitor$stable = 8;
 dev_shibasis_reaktor_graph_karakum_Greeter$stable = 0;
+Companion_instance_88 = new Companion_88();
 androidx_compose_ui_geometry_MutableRect$stable = 8;
 androidx_compose_ui_geometry_Rect$stable = 0;
 androidx_compose_ui_geometry_RoundRect$stable = 0;
@@ -106893,22 +107694,22 @@ _warning_3 = null;
 androidx_lifecycle_compose_LifecycleStartStopEffectScope$stable = 8;
 androidx_lifecycle_compose_LifecycleResumePauseEffectScope$stable = 8;
 strictMemoryModel = false;
-Companion_instance_86 = new Companion_86();
-Companion_instance_87 = new Companion_87();
-Companion_instance_88 = new Companion_88();
 Companion_instance_89 = new Companion_89();
+Companion_instance_90 = new Companion_90();
 Companion_instance_91 = new Companion_91();
 Companion_instance_92 = new Companion_92();
-Companion_instance_93 = new Companion_93();
+Companion_instance_94 = new Companion_94();
 Companion_instance_95 = new Companion_95();
-Companion_instance_108 = new Companion_108();
-Companion_instance_109 = new Companion_109();
-Companion_instance_110 = new Companion_110();
-schemaReady = false;
+Companion_instance_96 = new Companion_96();
+Companion_instance_98 = new Companion_98();
 Companion_instance_111 = new Companion_111();
 Companion_instance_112 = new Companion_112();
 Companion_instance_113 = new Companion_113();
+schemaReady = false;
 Companion_instance_114 = new Companion_114();
+Companion_instance_115 = new Companion_115();
+Companion_instance_116 = new Companion_116();
+Companion_instance_117 = new Companion_117();
 //endregion
 //region block: eager init
 initHook_0 = initHook$init$();
@@ -106989,9 +107790,9 @@ defineProp(StatusCode, 'NOT_EXTENDED', StatusCode_NOT_EXTENDED_getInstance, VOID
 defineProp(StatusCode, 'NETWORK_AUTHENTICATION_REQUIRED', StatusCode_NETWORK_AUTHENTICATION_REQUIRED_getInstance, VOID, true);
 defineProp(StatusCode, 'Companion', Companion_getInstance_37, VOID, true);
 var initHook = {get: get_initHook};
-defineProp(Type, 'Companion', Companion_getInstance_71, VOID, true);
+defineProp(Type, 'Companion', Companion_getInstance_73, VOID, true);
 KeyType.invoke = invoke_0;
-defineProp(KeyType, 'Companion', Companion_getInstance_72, VOID, true);
+defineProp(KeyType, 'Companion', Companion_getInstance_74, VOID, true);
 PortEvent.Created = Created;
 PortEvent.Connected = Connected;
 PortEvent.Disconnected = Disconnected;
@@ -107000,14 +107801,14 @@ var ConnectivitySelector = {getInstance: ConnectivitySelector_getInstance};
 var DepthFirstTraverser = {getInstance: DepthFirstTraverser_getInstance};
 var BreadthFirstTraverser = {getInstance: BreadthFirstTraverser_getInstance};
 var Reaktor = {getInstance: Reaktor_getInstance};
-defineProp(RouteNode, 'Companion', Companion_getInstance_73, VOID, true);
-defineProp(Push, 'Companion', Companion_getInstance_74, VOID, true);
-defineProp(Replace, 'Companion', Companion_getInstance_75, VOID, true);
+defineProp(RouteNode, 'Companion', Companion_getInstance_75, VOID, true);
+defineProp(Push, 'Companion', Companion_getInstance_76, VOID, true);
+defineProp(Replace, 'Companion', Companion_getInstance_77, VOID, true);
 var Pop = {getInstance: Pop_getInstance};
-defineProp(DeleteHandler, 'Companion', Companion_getInstance_77, VOID, true);
-defineProp(GetHandler, 'Companion', Companion_getInstance_78, VOID, true);
-defineProp(PostHandler, 'Companion', Companion_getInstance_79, VOID, true);
-defineProp(PutHandler, 'Companion', Companion_getInstance_80, VOID, true);
+defineProp(DeleteHandler, 'Companion', Companion_getInstance_79, VOID, true);
+defineProp(GetHandler, 'Companion', Companion_getInstance_80, VOID, true);
+defineProp(PostHandler, 'Companion', Companion_getInstance_81, VOID, true);
+defineProp(PutHandler, 'Companion', Companion_getInstance_82, VOID, true);
 HttpMethod_0.values = values_6;
 HttpMethod_0.valueOf = valueOf_0;
 defineProp(HttpMethod_0, 'GET', HttpMethod_GET_getInstance, VOID, true);
@@ -107021,7 +107822,7 @@ Environment.values = values_7;
 Environment.valueOf = valueOf_1;
 defineProp(Environment, 'STAGE', Environment_STAGE_getInstance, VOID, true);
 defineProp(Environment, 'PROD', Environment_PROD_getInstance, VOID, true);
-defineProp(Environment, 'Companion', Companion_getInstance_83, VOID, true);
+defineProp(Environment, 'Companion', Companion_getInstance_85, VOID, true);
 WindowWidthClass.values = values_8;
 WindowWidthClass.valueOf = valueOf_2;
 defineProp(WindowWidthClass, 'COMPACT', WindowWidthClass_COMPACT_getInstance, VOID, true);
@@ -107034,7 +107835,7 @@ WindowHeightClass.valueOf = valueOf_3;
 defineProp(WindowHeightClass, 'COMPACT', WindowHeightClass_COMPACT_getInstance, VOID, true);
 defineProp(WindowHeightClass, 'MEDIUM', WindowHeightClass_MEDIUM_getInstance, VOID, true);
 defineProp(WindowHeightClass, 'EXPANDED', WindowHeightClass_EXPANDED_getInstance, VOID, true);
-defineProp(WindowSize, 'Companion', Companion_getInstance_84, VOID, true);
+defineProp(WindowSize, 'Companion', Companion_getInstance_86, VOID, true);
 var PersonViewDataKey = {get: get_PersonViewDataKey};
 ComponentSize.values = values_11;
 ComponentSize.valueOf = valueOf_4;
@@ -107198,7 +107999,7 @@ export {
   DoubleType as DoubleType,
   BlobType as BlobType,
   ColumnDefinition as ColumnDefinition,
-  Table as Table,
+  Table_0 as Table,
   Column as Column,
   Expression as Expression,
   RenderResult as RenderResult,

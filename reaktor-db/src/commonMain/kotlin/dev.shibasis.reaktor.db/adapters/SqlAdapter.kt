@@ -97,7 +97,7 @@ abstract class SqlAdapter<Controller>(
         getDriver().execute(null, "VACUUM", 0)
     }
 
-    fun backup(backupName: String) {
+    suspend fun backup(backupName: String) {
         val backupPath = fileAdapter.resolvePath(backupName)
 
         fileAdapter.delete(backupPath)
@@ -107,7 +107,7 @@ abstract class SqlAdapter<Controller>(
         }
     }
 
-    fun restore(backupName: String) {
+    suspend fun restore(backupName: String) {
         closeDriver()
 
         val backupPath = fileAdapter.resolvePath(backupName)

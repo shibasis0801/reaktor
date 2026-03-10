@@ -3,14 +3,10 @@ package dev.shibasis.reaktor.io.adapters
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlinx.io.Buffer
 import kotlinx.io.Sink
 import kotlinx.io.Source
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
-import kotlinx.io.readString
-import kotlinx.io.writeString
 import kotlin.js.JsExport
 
 /*
@@ -72,17 +68,28 @@ File System Access: Unlike Android, where apps can request permission to access 
 iCloud Backup: Certain iOS directories (like Documents) are backed up to iCloud by default, unlike Android's more manual approach to backup and restore.
 */
 
-fun bufferedSink(path: String, actions: Sink.() -> Unit) {
-    val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
-    actions(bufferedSink)
-    bufferedSink.close()
-}
+internal expect suspend fun platformFileExists(path: String): Boolean
 
-fun bufferedSource(path: String, actions: (source: Source) -> Unit) {
-    val bufferedSource = SystemFileSystem.source(Path(path)).buffered()
-    actions(bufferedSource)
-    bufferedSource.close()
-}
+internal expect suspend fun platformDeleteFile(path: String)
+
+internal expect suspend fun platformCopyFile(
+    sourcePath: String,
+    destPath: String,
+)
+
+internal expect suspend fun platformReadBinary(path: String): ByteArray?
+
+internal expect suspend fun platformReadText(path: String): String?
+
+internal expect suspend fun platformWriteText(
+    path: String,
+    data: String,
+)
+
+internal expect suspend fun platformWriteBinary(
+    path: String,
+    data: ByteArray,
+)
 
 @JsExport
 abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
@@ -93,66 +100,39 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
         return "$directory/$fileName"
     }
 
-    fun exists(path: String): Boolean {
-        return SystemFileSystem.exists(Path(path))
+    open suspend fun bufferedSink(path: String, actions: Sink.() -> Unit) {
+        val sink = Buffer()
+        actions(sink)
+        writeBinaryFile(path, sink.readByteArray())
     }
 
-    fun delete(path: String) {
-        val p = Path(path)
-        if (SystemFileSystem.exists(p)) {
-            SystemFileSystem.delete(p, false)
-        }
+    open suspend fun bufferedSource(path: String, actions: (source: Source) -> Unit) {
+        val bytes = readBinaryFile(path) ?: return
+        val source = Buffer()
+        source.write(bytes)
+        actions(source)
     }
 
-    fun copy(sourcePath: String, destPath: String) {
-        val source = Path(sourcePath)
-        val dest = Path(destPath)
-        if (!SystemFileSystem.exists(source)) return
+    open suspend fun exists(path: String): Boolean = platformFileExists(path)
 
-        val sourceData = SystemFileSystem.source(source).buffered()
-        val sinkData = SystemFileSystem.sink(dest).buffered()
-
-        val buffer = ByteArray(8192)
-        while (true) {
-            val bytesRead = sourceData.readAtMostTo(buffer)
-            if (bytesRead <= 0) break
-            sinkData.write(buffer, 0, bytesRead)
-        }
-
-        sourceData.close()
-        sinkData.close()
+    open suspend fun delete(path: String) {
+        platformDeleteFile(path)
     }
 
-    fun readBinaryFile(path: String): ByteArray? {
-        val actualPath = Path(path)
-        if (!SystemFileSystem.exists(actualPath)) return null
-
-        val bufferedSource = SystemFileSystem.source(actualPath).buffered()
-        val data = bufferedSource.readByteArray()
-        bufferedSource.close()
-        return data
+    open suspend fun copy(sourcePath: String, destPath: String) {
+        platformCopyFile(sourcePath, destPath)
     }
 
-    fun readTextFile(path: String): String? {
-        val actualPath = Path(path)
-        if (!SystemFileSystem.exists(actualPath)) return null
+    open suspend fun readBinaryFile(path: String): ByteArray? = platformReadBinary(path)
 
-        val bufferedSource = SystemFileSystem.source(actualPath).buffered()
-        val data = bufferedSource.readString()
-        bufferedSource.close()
-        return data
+    open suspend fun readTextFile(path: String): String? = platformReadText(path)
+
+    open suspend fun writeTextFile(path: String, data: String) {
+        platformWriteText(path, data)
     }
 
-    fun writeTextFile(path: String, data: String) {
-        val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
-        bufferedSink.writeString(data)
-        bufferedSink.close()
-    }
-
-    fun writeBinaryFile(path: String, data: ByteArray) {
-        val bufferedSink = SystemFileSystem.sink(Path(path)).buffered()
-        bufferedSink.write(data)
-        bufferedSink.close()
+    open suspend fun writeBinaryFile(path: String, data: ByteArray) {
+        platformWriteBinary(path, data)
     }
 }
 

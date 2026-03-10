@@ -8,7 +8,7 @@ import dev.shibasis.reaktor.io.adapters.File
 private val inMemoryCache = hashMapOf<String, ByteArray>()
 
 object FileBasedCache: Cache<ByteArray> {
-    override fun store(key: String, contents: ByteArray) {
+    override suspend fun store(key: String, contents: ByteArray) {
         val file = Feature.File
         if (file == null) {
             Logger.e { "Please initialize Feature.File, without which this is no-op" }
@@ -18,7 +18,7 @@ object FileBasedCache: Cache<ByteArray> {
         file.writeBinaryFile(cacheFile, contents)
     }
 
-    override fun retrieve(key: String): ByteArray? {
+    override suspend fun retrieve(key: String): ByteArray? {
         val file = Feature.File
         if (file == null) {
             Logger.e { "Please initialize Feature.File, without which this is no-op" }
@@ -30,12 +30,12 @@ object FileBasedCache: Cache<ByteArray> {
 }
 
 object MultiLevelCache: Cache<ByteArray> {
-    override fun store(key: String, contents: ByteArray) {
+    override suspend fun store(key: String, contents: ByteArray) {
         inMemoryCache[key] = contents
         FileBasedCache.store(key, contents)
     }
 
-    override fun retrieve(key: String): ByteArray? {
+    override suspend fun retrieve(key: String): ByteArray? {
         if (!inMemoryCache.containsKey(key)) {
             val contents = FileBasedCache.retrieve(key)
             if (contents != null) {
