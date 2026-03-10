@@ -59,6 +59,12 @@ if (typeof Math.clz32 === 'undefined') {
     };
   }(Math.log, Math.LN2);
 }
+if (typeof String.prototype.startsWith === 'undefined') {
+  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
+    position = position || 0;
+    return this.lastIndexOf(searchString, position) === position;
+  }});
+}
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
     var subjectString = this.toString();
@@ -68,12 +74,6 @@ if (typeof String.prototype.endsWith === 'undefined') {
     position -= searchString.length;
     var lastIndex = subjectString.indexOf(searchString, position);
     return lastIndex !== -1 && lastIndex === position;
-  }});
-}
-if (typeof String.prototype.startsWith === 'undefined') {
-  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
-    position = position || 0;
-    return this.lastIndexOf(searchString, position) === position;
   }});
 }
 //endregion
@@ -9446,6 +9446,11 @@ class BufferedChannelIterator {
     }
   }
 }
+class SendChannel {}
+function close$default(cause, $super) {
+  cause = cause === VOID ? null : cause;
+  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
+}
 class ReceiveChannel {}
 function cancel$default_0(cause, $super) {
   cause = cause === VOID ? null : cause;
@@ -9457,11 +9462,6 @@ function cancel$default_0(cause, $super) {
     tmp = $super.cancel_hkmm2i_k$.call(this, cause);
   }
   return tmp;
-}
-class SendChannel {}
-function close$default(cause, $super) {
-  cause = cause === VOID ? null : cause;
-  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
 }
 class BufferedChannel {
   constructor(capacity, onUndeliveredElement) {
@@ -28669,6 +28669,21 @@ class TextSerializer {
     return this.json_1.decodeFromString_jwu9sq_k$(serializer, data);
   }
 }
+class WebFileAdapter extends FileAdapter {
+  constructor(cacheDirectory, documentDirectory) {
+    cacheDirectory = cacheDirectory === VOID ? 'cache' : cacheDirectory;
+    documentDirectory = documentDirectory === VOID ? 'documents' : documentDirectory;
+    super(Unit_instance);
+    this.cacheDirectory_1 = cacheDirectory;
+    this.documentDirectory_1 = documentDirectory;
+  }
+  get_cacheDirectory_ji8b9w_k$() {
+    return this.cacheDirectory_1;
+  }
+  get_documentDirectory_rhbbah_k$() {
+    return this.documentDirectory_1;
+  }
+}
 class ConcurrentMutableCollection {
   static new_co_touchlab_stately_collections_ConcurrentMutableCollection_6adhq1_k$(rootArg, del) {
     rootArg = rootArg === VOID ? null : rootArg;
@@ -32941,17 +32956,32 @@ class R2Bucket {
   constructor(raw) {
     this.raw_1 = raw;
   }
+  head_t8sf05_k$(key, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_head__qnz0m0.bind(VOID, this, key), $completion);
+  }
   get_naor27_k$(key, $completion) {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_get__cbf6n6.bind(VOID, this, key), $completion);
   }
-  put_5c1t3e_k$(key, value, $completion) {
+  put_ylsgdi_k$(key, value, $completion) {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_put__cb93wb.bind(VOID, this, key, value), $completion);
+  }
+  put_5c1t3e_k$(key, value, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_put__cb93wb_0.bind(VOID, this, key, value), $completion);
+  }
+  delete_buf2mu_k$(key, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_delete__spiywt_0.bind(VOID, this, key), $completion);
   }
   putText_hwo4ax_k$(key, value, $completion) {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_putText__hffj8o_0.bind(VOID, this, key, value), $completion);
   }
+  putBytes_jnoi5j_k$(key, value, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_putBytes__jqmqcs.bind(VOID, this, key, value), $completion);
+  }
   getText_r3mpde_k$(key, $completion) {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_getText__eglyj3.bind(VOID, this, key), $completion);
+  }
+  getBytes_blgfxc_k$(key, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_getBytes__uc4jkd.bind(VOID, this, key), $completion);
   }
 }
 class R2Object {
@@ -32963,8 +32993,47 @@ class R2ObjectBody {
   constructor(raw) {
     this.raw_1 = raw;
   }
+  bytes_4v710m_k$($completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_bytes__n79h2h.bind(VOID, this), $completion);
+  }
   text_bfw0rs_k$($completion) {
     return await_1(this.raw_1.text(), $completion);
+  }
+}
+class CloudflareR2FileAdapter extends FileAdapter {
+  constructor(bucket, cacheDirectory, documentDirectory) {
+    cacheDirectory = cacheDirectory === VOID ? 'cache' : cacheDirectory;
+    documentDirectory = documentDirectory === VOID ? 'documents' : documentDirectory;
+    super(bucket);
+    this.cacheDirectory_1 = cacheDirectory;
+    this.documentDirectory_1 = documentDirectory;
+  }
+  get_cacheDirectory_ji8b9w_k$() {
+    return this.cacheDirectory_1;
+  }
+  get_documentDirectory_rhbbah_k$() {
+    return this.documentDirectory_1;
+  }
+  exists_2vzl3b_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_exists__ioqez8.bind(VOID, this, path), $completion);
+  }
+  delete_buf2mu_k$(path, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_delete__spiywt_1.bind(VOID, this, path), $completion);
+  }
+  copy_av90wg_k$(sourcePath, destPath, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_copy__qqja31_0.bind(VOID, this, sourcePath, destPath), $completion);
+  }
+  readBinaryFile_p0msam_k$(path, $completion) {
+    return requireBucket(this).getBytes_blgfxc_k$(normalize(path), $completion);
+  }
+  readTextFile_tnwmsq_k$(path, $completion) {
+    return requireBucket(this).getText_r3mpde_k$(normalize(path), $completion);
+  }
+  writeTextFile_939qsd_k$(path, data, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_writeTextFile__f2w0vg_0.bind(VOID, this, path, data), $completion);
+  }
+  writeBinaryFile_ulbrfr_k$(path, data, $completion) {
+    return suspendOrReturn(/*#__NOINLINE__*/_generator_writeBinaryFile__4giv6g_0.bind(VOID, this, path, data), $completion);
   }
 }
 class asHonoHandler$slambda {
@@ -36126,7 +36195,7 @@ class KtorNetworkFetcherServiceLoaderTarget {}
 class SvgDecoderServiceLoaderTarget {}
 class ExperimentRootService$slambda {
   invoke_xyxs4w_k$($this$GetHandler, it, $completion) {
-    return ChatOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_cgpcub_k$('Cloudflare chat experiment powered by Kotlin services', listOf_0(['/chat', '/supabase', '/supabase/status', '/chat/rooms', '/chat/media', '/chat/rooms/{roomId}/messages']), listOf_0(['GET /supabase/status to query bestbuds-backed Supabase metadata through Hyperdrive and postgres.js', 'POST /chat/rooms to create a room', 'POST /chat/rooms/{roomId}/members to coordinate presence via Durable Objects', 'POST /chat/media to store attachments in R2', 'POST /chat/rooms/{roomId}/messages to persist chat history in D1', 'GET /chat/rooms/{roomId}/messages to replay persisted history']));
+    return ChatOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_chat_ChatOverviewResponse_cgpcub_k$('Cloudflare chat experiment powered by Kotlin services', listOf_0(['/files/runtime', '/files/r2', '/chat', '/supabase', '/supabase/status', '/chat/rooms', '/chat/media', '/chat/rooms/{roomId}/messages']), listOf_0(['GET /files/runtime to probe the Worker Web File System API scratch space', 'GET /files/r2 to probe durable file storage through the R2-backed FileAdapter', 'GET /supabase/status to query bestbuds-backed Supabase metadata through Hyperdrive and postgres.js', 'POST /chat/rooms to create a room', 'POST /chat/rooms/{roomId}/members to coordinate presence via Durable Objects', 'POST /chat/media to store attachments in R2', 'POST /chat/rooms/{roomId}/messages to persist chat history in D1', 'GET /chat/rooms/{roomId}/messages to replay persisted history']));
   }
   invoke_x3sdos_k$(p1, p2, $completion) {
     var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
@@ -36175,7 +36244,7 @@ class HelloCounterDurableObject extends CloudflareDurableObject {
 class HelloWorker_0 {
   constructor() {
     HelloWorker_instance = this;
-    this.worker_1 = toWorker(nest(nest(mount(Hono(), new ExperimentRootService()), '/chat', new ChatService()), '/supabase', new SupabaseService()));
+    this.worker_1 = toWorker(nest(nest(nest(mount(Hono(), new ExperimentRootService()), '/files', new FileService()), '/chat', new ChatService()), '/supabase', new SupabaseService()));
   }
   fetch(request, env, executionContext) {
     return this.worker_1.fetch_bfzgk_k$(request, env, executionContext);
@@ -39677,16 +39746,405 @@ class ChatService extends Service {
     tmp_18 instanceof GetHandler || THROW_CCE();
   }
 }
+class FileBindings {
+  constructor() {
+    FileBindings_instance = this;
+    this.media_1 = r2('CHAT_MEDIA');
+  }
+}
+class Companion_115 {
+  constructor() {
+    Companion_instance_115 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d_2)];
+  }
+}
+class $serializer_30 {
+  constructor() {
+    $serializer_instance_30 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.files.FileProbeRequest', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_i934u4_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_115().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_i934u4_k$(encoder, value instanceof FileProbeRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp9_cached = Companion_getInstance_115().$childSerializers_1;
+    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return FileProbeRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeRequest_z58hdy_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_115().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
+  }
+}
+class FileProbeRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeRequest_xxtjx_k$() {
+    Companion_getInstance_115();
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeRequest_z58hdy_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_115();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_30().descriptor_1);
+    }
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+  }
+}
+class Companion_116 {}
+class $serializer_31 {
+  constructor() {
+    $serializer_instance_31 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.files.FileProbeResponse', this, 10);
+    tmp0_serialDesc.addElement_5pzumi_k$('storage', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('durable', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('key', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('previous', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('written', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('readBack', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('existsAfterWrite', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('matches', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('note', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('error', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_qhoa9k_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.storage_1);
+    tmp1_output.encodeBooleanElement_ydht7q_k$(tmp0_desc, 1, value.durable_1);
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 2, value.key_1);
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 3) ? true : !(value.previous_1 == null)) {
+      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 3, StringSerializer_getInstance(), value.previous_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 4) ? true : !(value.written_1 == null)) {
+      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 4, StringSerializer_getInstance(), value.written_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 5) ? true : !(value.readBack_1 == null)) {
+      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 5, StringSerializer_getInstance(), value.readBack_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 6) ? true : !(value.existsAfterWrite_1 === false)) {
+      tmp1_output.encodeBooleanElement_ydht7q_k$(tmp0_desc, 6, value.existsAfterWrite_1);
+    }
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 7) ? true : !(value.matches_1 === false)) {
+      tmp1_output.encodeBooleanElement_ydht7q_k$(tmp0_desc, 7, value.matches_1);
+    }
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 8, value.note_1);
+    if (tmp1_output.shouldEncodeElementDefault_x8eyid_k$(tmp0_desc, 9) ? true : !(value.error_1 == null)) {
+      tmp1_output.encodeNullableSerializableElement_5lquiv_k$(tmp0_desc, 9, StringSerializer_getInstance(), value.error_1);
+    }
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_qhoa9k_k$(encoder, value instanceof FileProbeResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = false;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_local4 = null;
+    var tmp9_local5 = null;
+    var tmp10_local6 = false;
+    var tmp11_local7 = false;
+    var tmp12_local8 = null;
+    var tmp13_local9 = null;
+    var tmp14_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    if (tmp14_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp14_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp14_input.decodeBooleanElement_vuyhtj_k$(tmp0_desc, 1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp14_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 3, StringSerializer_getInstance(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+      tmp8_local4 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 4, StringSerializer_getInstance(), tmp8_local4);
+      tmp3_bitMask0 = tmp3_bitMask0 | 16;
+      tmp9_local5 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 5, StringSerializer_getInstance(), tmp9_local5);
+      tmp3_bitMask0 = tmp3_bitMask0 | 32;
+      tmp10_local6 = tmp14_input.decodeBooleanElement_vuyhtj_k$(tmp0_desc, 6);
+      tmp3_bitMask0 = tmp3_bitMask0 | 64;
+      tmp11_local7 = tmp14_input.decodeBooleanElement_vuyhtj_k$(tmp0_desc, 7);
+      tmp3_bitMask0 = tmp3_bitMask0 | 128;
+      tmp12_local8 = tmp14_input.decodeStringElement_3oenpg_k$(tmp0_desc, 8);
+      tmp3_bitMask0 = tmp3_bitMask0 | 256;
+      tmp13_local9 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 9, StringSerializer_getInstance(), tmp13_local9);
+      tmp3_bitMask0 = tmp3_bitMask0 | 512;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp14_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp14_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp14_input.decodeBooleanElement_vuyhtj_k$(tmp0_desc, 1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp14_input.decodeStringElement_3oenpg_k$(tmp0_desc, 2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 3, StringSerializer_getInstance(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          case 4:
+            tmp8_local4 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 4, StringSerializer_getInstance(), tmp8_local4);
+            tmp3_bitMask0 = tmp3_bitMask0 | 16;
+            break;
+          case 5:
+            tmp9_local5 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 5, StringSerializer_getInstance(), tmp9_local5);
+            tmp3_bitMask0 = tmp3_bitMask0 | 32;
+            break;
+          case 6:
+            tmp10_local6 = tmp14_input.decodeBooleanElement_vuyhtj_k$(tmp0_desc, 6);
+            tmp3_bitMask0 = tmp3_bitMask0 | 64;
+            break;
+          case 7:
+            tmp11_local7 = tmp14_input.decodeBooleanElement_vuyhtj_k$(tmp0_desc, 7);
+            tmp3_bitMask0 = tmp3_bitMask0 | 128;
+            break;
+          case 8:
+            tmp12_local8 = tmp14_input.decodeStringElement_3oenpg_k$(tmp0_desc, 8);
+            tmp3_bitMask0 = tmp3_bitMask0 | 256;
+            break;
+          case 9:
+            tmp13_local9 = tmp14_input.decodeNullableSerializableElement_k2y6ab_k$(tmp0_desc, 9, StringSerializer_getInstance(), tmp13_local9);
+            tmp3_bitMask0 = tmp3_bitMask0 | 512;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp14_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return FileProbeResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeResponse_28pak5_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, tmp12_local8, tmp13_local9, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), BooleanSerializer_getInstance(), StringSerializer_getInstance(), get_nullable(StringSerializer_getInstance()), get_nullable(StringSerializer_getInstance()), get_nullable(StringSerializer_getInstance()), BooleanSerializer_getInstance(), BooleanSerializer_getInstance(), StringSerializer_getInstance(), get_nullable(StringSerializer_getInstance())];
+  }
+}
+class FileProbeResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeResponse_lf84po_k$(storage, durable, key, previous, written, readBack, existsAfterWrite, matches, note, error) {
+    previous = previous === VOID ? null : previous;
+    written = written === VOID ? null : written;
+    readBack = readBack === VOID ? null : readBack;
+    existsAfterWrite = existsAfterWrite === VOID ? false : existsAfterWrite;
+    matches = matches === VOID ? false : matches;
+    error = error === VOID ? null : error;
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.storage_1 = storage;
+    $this.durable_1 = durable;
+    $this.key_1 = key;
+    $this.previous_1 = previous;
+    $this.written_1 = written;
+    $this.readBack_1 = readBack;
+    $this.existsAfterWrite_1 = existsAfterWrite;
+    $this.matches_1 = matches;
+    $this.note_1 = note;
+    $this.error_1 = error;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeResponse_28pak5_k$(seen0, storage, durable, key, previous, written, readBack, existsAfterWrite, matches, note, error, serializationConstructorMarker) {
+    if (!(263 === (263 & seen0))) {
+      throwMissingFieldException(seen0, 263, $serializer_getInstance_31().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.storage_1 = storage;
+    $this.durable_1 = durable;
+    $this.key_1 = key;
+    if (0 === (seen0 & 8))
+      $this.previous_1 = null;
+    else
+      $this.previous_1 = previous;
+    if (0 === (seen0 & 16))
+      $this.written_1 = null;
+    else
+      $this.written_1 = written;
+    if (0 === (seen0 & 32))
+      $this.readBack_1 = null;
+    else
+      $this.readBack_1 = readBack;
+    if (0 === (seen0 & 64))
+      $this.existsAfterWrite_1 = false;
+    else
+      $this.existsAfterWrite_1 = existsAfterWrite;
+    if (0 === (seen0 & 128))
+      $this.matches_1 = false;
+    else
+      $this.matches_1 = matches;
+    $this.note_1 = note;
+    if (0 === (seen0 & 512))
+      $this.error_1 = null;
+    else
+      $this.error_1 = error;
+    return $this;
+  }
+}
+class FileService$slambda {
+  constructor(this$0) {
+    this.this$0__1 = this$0;
+  }
+  invoke_vzmihw_k$($this$GetHandler, it, $completion) {
+    return probe(this.this$0__1, 'worker-runtime-filesystem', false, 'Cloudflare Worker filesystem is runtime-local scratch space. It may not persist across requests.', new WebFileAdapter('worker-cache', 'worker-documents'), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_vzmihw_k$(tmp, p2 instanceof FileProbeRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class FileService$slambda_0 {
+  constructor(this$0) {
+    this.this$0__1 = this$0;
+  }
+  invoke_vzmihw_k$($this$GetHandler, request, $completion) {
+    return probe(this.this$0__1, 'cloudflare-r2', true, 'R2 is durable object storage and should persist across requests and deployments.', file(request, FileBindings_getInstance().media_1, 'cache', 'documents'), $completion);
+  }
+  invoke_x3sdos_k$(p1, p2, $completion) {
+    var tmp = p1 instanceof RequestHandler ? p1 : THROW_CCE();
+    return this.invoke_vzmihw_k$(tmp, p2 instanceof FileProbeRequest ? p2 : THROW_CCE(), $completion);
+  }
+}
+class FileService extends Service {
+  constructor() {
+    super();
+    var tmp2 = '/runtime';
+    // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block = FileService$slambda_1(this);
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_0 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_1 = serializer_0(this_0, createKType(getKClass(FileProbeRequest), arrayOf([]), false));
+    var tmp = isInterface(this_1, KSerializer) ? this_1 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_2 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_3 = serializer_0(this_2, createKType(getKClass(FileProbeResponse), arrayOf([]), false));
+    var tmp$ret$5 = isInterface(this_3, KSerializer) ? this_3 : THROW_CCE();
+    var tmp_0 = this.server(Companion_instance_80, tmp2, tmp, tmp$ret$5, block);
+    tmp_0 instanceof GetHandler || THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.graph.service.GetHandler' call
+    // Inline function 'dev.shibasis.reaktor.graph.service.server' call
+    var block_0 = FileService$slambda_2(this);
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_4 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_5 = serializer_0(this_4, createKType(getKClass(FileProbeRequest), arrayOf([]), false));
+    var tmp_1 = isInterface(this_5, KSerializer) ? this_5 : THROW_CCE();
+    // Inline function 'dev.shibasis.reaktor.core.framework.kSerializer' call
+    // Inline function 'kotlinx.serialization.serializer' call
+    var this_6 = get_json().get_serializersModule_piitvg_k$();
+    // Inline function 'kotlinx.serialization.internal.cast' call
+    var this_7 = serializer_0(this_6, createKType(getKClass(FileProbeResponse), arrayOf([]), false));
+    var tmp$ret$13 = isInterface(this_7, KSerializer) ? this_7 : THROW_CCE();
+    var tmp_2 = this.server(Companion_instance_80, '/r2', tmp_1, tmp$ret$13, block_0);
+    tmp_2 instanceof GetHandler || THROW_CCE();
+  }
+}
 class SupabaseBindings {
   constructor() {
     SupabaseBindings_instance = this;
     this.database_1 = postgres('SUPABASE');
   }
 }
-class Companion_115 {}
-class $serializer_30 {
+class Companion_117 {}
+class $serializer_32 {
   constructor() {
-    $serializer_instance_30 = this;
+    $serializer_instance_32 = this;
     var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseCatalogEntry', this, 3);
     tmp0_serialDesc.addElement_5pzumi_k$('schema', false);
     tmp0_serialDesc.addElement_5pzumi_k$('name', false);
@@ -39781,7 +40239,7 @@ class SupabaseCatalogEntry {
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseCatalogEntry_5rthp1_k$(seen0, schema, name, kind, serializationConstructorMarker) {
     if (!(7 === (7 & seen0))) {
-      throwMissingFieldException(seen0, 7, $serializer_getInstance_30().descriptor_1);
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_32().descriptor_1);
     }
     var $this = createThis(this);
     $this.schema_1 = schema;
@@ -39790,10 +40248,10 @@ class SupabaseCatalogEntry {
     return $this;
   }
 }
-class Companion_116 {}
-class $serializer_31 {
+class Companion_118 {}
+class $serializer_33 {
   constructor() {
-    $serializer_instance_31 = this;
+    $serializer_instance_33 = this;
     var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseTableCount', this, 3);
     tmp0_serialDesc.addElement_5pzumi_k$('schema', false);
     tmp0_serialDesc.addElement_5pzumi_k$('name', false);
@@ -39888,7 +40346,7 @@ class SupabaseTableCount {
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseTableCount_v2ufbg_k$(seen0, schema, name, count, serializationConstructorMarker) {
     if (!(7 === (7 & seen0))) {
-      throwMissingFieldException(seen0, 7, $serializer_getInstance_31().descriptor_1);
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_33().descriptor_1);
     }
     var $this = createThis(this);
     $this.schema_1 = schema;
@@ -39897,10 +40355,10 @@ class SupabaseTableCount {
     return $this;
   }
 }
-class Companion_117 {}
-class $serializer_32 {
+class Companion_119 {}
+class $serializer_34 {
   constructor() {
-    $serializer_instance_32 = this;
+    $serializer_instance_34 = this;
     var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseConnectionInfo', this, 3);
     tmp0_serialDesc.addElement_5pzumi_k$('database', false);
     tmp0_serialDesc.addElement_5pzumi_k$('currentUser', false);
@@ -39995,7 +40453,7 @@ class SupabaseConnectionInfo {
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseConnectionInfo_m4rfoe_k$(seen0, database, currentUser, serverTime, serializationConstructorMarker) {
     if (!(7 === (7 & seen0))) {
-      throwMissingFieldException(seen0, 7, $serializer_getInstance_32().descriptor_1);
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_34().descriptor_1);
     }
     var $this = createThis(this);
     $this.database_1 = database;
@@ -40004,9 +40462,9 @@ class SupabaseConnectionInfo {
     return $this;
   }
 }
-class Companion_118 {
+class Companion_120 {
   constructor() {
-    Companion_instance_118 = this;
+    Companion_instance_120 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60);
@@ -40021,9 +40479,9 @@ class Companion_118 {
     tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60_2)];
   }
 }
-class $serializer_33 {
+class $serializer_35 {
   constructor() {
-    $serializer_instance_33 = this;
+    $serializer_instance_35 = this;
     var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseOverviewRequest', this, 4);
     tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
     tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
@@ -40034,229 +40492,6 @@ class $serializer_33 {
   serialize_u87i0g_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_118().$childSerializers_1;
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
-    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
-  }
-  serialize_5ase3y_k$(encoder, value) {
-    return this.serialize_u87i0g_k$(encoder, value instanceof SupabaseOverviewRequest ? value : THROW_CCE());
-  }
-  deserialize_sy6x50_k$(decoder) {
-    var tmp0_desc = this.descriptor_1;
-    var tmp1_flag = true;
-    var tmp2_index = 0;
-    var tmp3_bitMask0 = 0;
-    var tmp4_local0 = null;
-    var tmp5_local1 = null;
-    var tmp6_local2 = null;
-    var tmp7_local3 = null;
-    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp9_cached = Companion_getInstance_118().$childSerializers_1;
-    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
-      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
-      tmp3_bitMask0 = tmp3_bitMask0 | 1;
-      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
-      tmp3_bitMask0 = tmp3_bitMask0 | 2;
-      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
-      tmp3_bitMask0 = tmp3_bitMask0 | 4;
-      tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
-      tmp3_bitMask0 = tmp3_bitMask0 | 8;
-    } else
-      while (tmp1_flag) {
-        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
-        switch (tmp2_index) {
-          case -1:
-            tmp1_flag = false;
-            break;
-          case 0:
-            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
-            tmp3_bitMask0 = tmp3_bitMask0 | 1;
-            break;
-          case 1:
-            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
-            tmp3_bitMask0 = tmp3_bitMask0 | 2;
-            break;
-          case 2:
-            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
-            tmp3_bitMask0 = tmp3_bitMask0 | 4;
-            break;
-          case 3:
-            tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
-            tmp3_bitMask0 = tmp3_bitMask0 | 8;
-            break;
-          default:
-            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
-        }
-      }
-    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
-    return SupabaseOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_fciana_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
-  }
-  get_descriptor_wjt6a0_k$() {
-    return this.descriptor_1;
-  }
-  childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_118().$childSerializers_1;
-    // Inline function 'kotlin.arrayOf' call
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
-  }
-}
-class SupabaseOverviewRequest extends CloudflareRequest {
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_3330ax_k$() {
-    Companion_getInstance_118();
-    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
-  }
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_fciana_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
-    Companion_getInstance_118();
-    if (!(0 === (0 & seen0))) {
-      throwMissingFieldException(seen0, 0, $serializer_getInstance_33().descriptor_1);
-    }
-    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
-  }
-}
-class Companion_119 {
-  constructor() {
-    Companion_instance_119 = this;
-    var tmp = this;
-    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_1 = lazy(tmp_0, SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g);
-    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    // Inline function 'kotlin.arrayOf' call
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    tmp.$childSerializers_1 = [null, tmp_1, lazy(tmp_2, SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g_0)];
-  }
-}
-class $serializer_34 {
-  constructor() {
-    $serializer_instance_34 = this;
-    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseOverviewResponse', this, 3);
-    tmp0_serialDesc.addElement_5pzumi_k$('message', false);
-    tmp0_serialDesc.addElement_5pzumi_k$('routes', false);
-    tmp0_serialDesc.addElement_5pzumi_k$('notes', false);
-    this.descriptor_1 = tmp0_serialDesc;
-  }
-  serialize_sj20gk_k$(encoder, value) {
-    var tmp0_desc = this.descriptor_1;
-    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_119().$childSerializers_1;
-    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.message_1);
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.routes_1);
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.notes_1);
-    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
-  }
-  serialize_5ase3y_k$(encoder, value) {
-    return this.serialize_sj20gk_k$(encoder, value instanceof SupabaseOverviewResponse ? value : THROW_CCE());
-  }
-  deserialize_sy6x50_k$(decoder) {
-    var tmp0_desc = this.descriptor_1;
-    var tmp1_flag = true;
-    var tmp2_index = 0;
-    var tmp3_bitMask0 = 0;
-    var tmp4_local0 = null;
-    var tmp5_local1 = null;
-    var tmp6_local2 = null;
-    var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_119().$childSerializers_1;
-    if (tmp7_input.decodeSequentially_xlblqy_k$()) {
-      tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
-      tmp3_bitMask0 = tmp3_bitMask0 | 1;
-      tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
-      tmp3_bitMask0 = tmp3_bitMask0 | 2;
-      tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
-      tmp3_bitMask0 = tmp3_bitMask0 | 4;
-    } else
-      while (tmp1_flag) {
-        tmp2_index = tmp7_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
-        switch (tmp2_index) {
-          case -1:
-            tmp1_flag = false;
-            break;
-          case 0:
-            tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
-            tmp3_bitMask0 = tmp3_bitMask0 | 1;
-            break;
-          case 1:
-            tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
-            tmp3_bitMask0 = tmp3_bitMask0 | 2;
-            break;
-          case 2:
-            tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
-            tmp3_bitMask0 = tmp3_bitMask0 | 4;
-            break;
-          default:
-            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
-        }
-      }
-    tmp7_input.endStructure_1xqz0n_k$(tmp0_desc);
-    return SupabaseOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_cc02qm_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
-  }
-  get_descriptor_wjt6a0_k$() {
-    return this.descriptor_1;
-  }
-  childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_119().$childSerializers_1;
-    // Inline function 'kotlin.arrayOf' call
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    return [StringSerializer_getInstance(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$()];
-  }
-}
-class SupabaseOverviewResponse extends Response_0 {
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_73osj_k$(message, routes, notes) {
-    Companion_getInstance_119();
-    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
-    $this.message_1 = message;
-    $this.routes_1 = routes;
-    $this.notes_1 = notes;
-    return $this;
-  }
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_cc02qm_k$(seen0, message, routes, notes, serializationConstructorMarker) {
-    Companion_getInstance_119();
-    if (!(7 === (7 & seen0))) {
-      throwMissingFieldException(seen0, 7, $serializer_getInstance_34().descriptor_1);
-    }
-    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
-    $this.message_1 = message;
-    $this.routes_1 = routes;
-    $this.notes_1 = notes;
-    return $this;
-  }
-}
-class Companion_120 {
-  constructor() {
-    Companion_instance_120 = this;
-    var tmp = this;
-    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_1 = lazy(tmp_0, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj);
-    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_3 = lazy(tmp_2, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_0);
-    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    var tmp_5 = lazy(tmp_4, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_1);
-    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-    // Inline function 'kotlin.arrayOf' call
-    // Inline function 'kotlin.js.unsafeCast' call
-    // Inline function 'kotlin.js.asDynamic' call
-    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_2)];
-  }
-}
-class $serializer_35 {
-  constructor() {
-    $serializer_instance_35 = this;
-    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseStatusRequest', this, 4);
-    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
-    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
-    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
-    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
-    this.descriptor_1 = tmp0_serialDesc;
-  }
-  serialize_etgrb_k$(encoder, value) {
-    var tmp0_desc = this.descriptor_1;
-    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
     var tmp2_cached = Companion_getInstance_120().$childSerializers_1;
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
@@ -40265,7 +40500,7 @@ class $serializer_35 {
     tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
   }
   serialize_5ase3y_k$(encoder, value) {
-    return this.serialize_etgrb_k$(encoder, value instanceof SupabaseStatusRequest ? value : THROW_CCE());
+    return this.serialize_u87i0g_k$(encoder, value instanceof SupabaseOverviewRequest ? value : THROW_CCE());
   }
   deserialize_sy6x50_k$(decoder) {
     var tmp0_desc = this.descriptor_1;
@@ -40315,7 +40550,7 @@ class $serializer_35 {
         }
       }
     tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
-    return SupabaseStatusRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_kq11c1_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+    return SupabaseOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_fciana_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
   }
   get_descriptor_wjt6a0_k$() {
     return this.descriptor_1;
@@ -40328,12 +40563,12 @@ class $serializer_35 {
     return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
   }
 }
-class SupabaseStatusRequest extends CloudflareRequest {
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_t1z0wu_k$() {
+class SupabaseOverviewRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_3330ax_k$() {
     Companion_getInstance_120();
     return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
   }
-  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_kq11c1_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_fciana_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
     Companion_getInstance_120();
     if (!(0 === (0 & seen0))) {
       throwMissingFieldException(seen0, 0, $serializer_getInstance_35().descriptor_1);
@@ -40346,6 +40581,229 @@ class Companion_121 {
     Companion_instance_121 = this;
     var tmp = this;
     var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [null, tmp_1, lazy(tmp_2, SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g_0)];
+  }
+}
+class $serializer_36 {
+  constructor() {
+    $serializer_instance_36 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseOverviewResponse', this, 3);
+    tmp0_serialDesc.addElement_5pzumi_k$('message', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('routes', false);
+    tmp0_serialDesc.addElement_5pzumi_k$('notes', false);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_sj20gk_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_121().$childSerializers_1;
+    tmp1_output.encodeStringElement_1n5wu2_k$(tmp0_desc, 0, value.message_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.routes_1);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.notes_1);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_sj20gk_k$(encoder, value instanceof SupabaseOverviewResponse ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp8_cached = Companion_getInstance_121().$childSerializers_1;
+    if (tmp7_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp7_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp7_input.decodeStringElement_3oenpg_k$(tmp0_desc, 0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp8_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp7_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return SupabaseOverviewResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_cc02qm_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_121().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [StringSerializer_getInstance(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$()];
+  }
+}
+class SupabaseOverviewResponse extends Response_0 {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_73osj_k$(message, routes, notes) {
+    Companion_getInstance_121();
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
+    $this.message_1 = message;
+    $this.routes_1 = routes;
+    $this.notes_1 = notes;
+    return $this;
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewResponse_cc02qm_k$(seen0, message, routes, notes, serializationConstructorMarker) {
+    Companion_getInstance_121();
+    if (!(7 === (7 & seen0))) {
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_36().descriptor_1);
+    }
+    var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
+    $this.message_1 = message;
+    $this.routes_1 = routes;
+    $this.notes_1 = notes;
+    return $this;
+  }
+}
+class Companion_122 {
+  constructor() {
+    Companion_instance_122 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_1 = lazy(tmp_0, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj);
+    var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_3 = lazy(tmp_2, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_0);
+    var tmp_4 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    var tmp_5 = lazy(tmp_4, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_1);
+    var tmp_6 = LazyThreadSafetyMode_PUBLICATION_getInstance();
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    tmp.$childSerializers_1 = [tmp_1, tmp_3, tmp_5, lazy(tmp_6, SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_2)];
+  }
+}
+class $serializer_37 {
+  constructor() {
+    $serializer_instance_37 = this;
+    var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseStatusRequest', this, 4);
+    tmp0_serialDesc.addElement_5pzumi_k$('headers', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('queryParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('pathParams', true);
+    tmp0_serialDesc.addElement_5pzumi_k$('environment', true);
+    this.descriptor_1 = tmp0_serialDesc;
+  }
+  serialize_etgrb_k$(encoder, value) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp2_cached = Companion_getInstance_122().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, tmp2_cached[0].get_value_j01efc_k$(), value.headers);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.queryParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.pathParams);
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 3, tmp2_cached[3].get_value_j01efc_k$(), value.environment);
+    tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
+  }
+  serialize_5ase3y_k$(encoder, value) {
+    return this.serialize_etgrb_k$(encoder, value instanceof SupabaseStatusRequest ? value : THROW_CCE());
+  }
+  deserialize_sy6x50_k$(decoder) {
+    var tmp0_desc = this.descriptor_1;
+    var tmp1_flag = true;
+    var tmp2_index = 0;
+    var tmp3_bitMask0 = 0;
+    var tmp4_local0 = null;
+    var tmp5_local1 = null;
+    var tmp6_local2 = null;
+    var tmp7_local3 = null;
+    var tmp8_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
+    var tmp9_cached = Companion_getInstance_122().$childSerializers_1;
+    if (tmp8_input.decodeSequentially_xlblqy_k$()) {
+      tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+      tmp3_bitMask0 = tmp3_bitMask0 | 1;
+      tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+      tmp3_bitMask0 = tmp3_bitMask0 | 2;
+      tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+      tmp3_bitMask0 = tmp3_bitMask0 | 4;
+      tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+      tmp3_bitMask0 = tmp3_bitMask0 | 8;
+    } else
+      while (tmp1_flag) {
+        tmp2_index = tmp8_input.decodeElementIndex_bstkhp_k$(tmp0_desc);
+        switch (tmp2_index) {
+          case -1:
+            tmp1_flag = false;
+            break;
+          case 0:
+            tmp4_local0 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, tmp9_cached[0].get_value_j01efc_k$(), tmp4_local0);
+            tmp3_bitMask0 = tmp3_bitMask0 | 1;
+            break;
+          case 1:
+            tmp5_local1 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp9_cached[1].get_value_j01efc_k$(), tmp5_local1);
+            tmp3_bitMask0 = tmp3_bitMask0 | 2;
+            break;
+          case 2:
+            tmp6_local2 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 2, tmp9_cached[2].get_value_j01efc_k$(), tmp6_local2);
+            tmp3_bitMask0 = tmp3_bitMask0 | 4;
+            break;
+          case 3:
+            tmp7_local3 = tmp8_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 3, tmp9_cached[3].get_value_j01efc_k$(), tmp7_local3);
+            tmp3_bitMask0 = tmp3_bitMask0 | 8;
+            break;
+          default:
+            throw UnknownFieldException.new_kotlinx_serialization_UnknownFieldException_ecrf7z_k$(tmp2_index);
+        }
+      }
+    tmp8_input.endStructure_1xqz0n_k$(tmp0_desc);
+    return SupabaseStatusRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_kq11c1_k$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
+  }
+  get_descriptor_wjt6a0_k$() {
+    return this.descriptor_1;
+  }
+  childSerializers_5ghqw5_k$() {
+    var tmp0_cached = Companion_getInstance_122().$childSerializers_1;
+    // Inline function 'kotlin.arrayOf' call
+    // Inline function 'kotlin.js.unsafeCast' call
+    // Inline function 'kotlin.js.asDynamic' call
+    return [tmp0_cached[0].get_value_j01efc_k$(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$(), tmp0_cached[3].get_value_j01efc_k$()];
+  }
+}
+class SupabaseStatusRequest extends CloudflareRequest {
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_t1z0wu_k$() {
+    Companion_getInstance_122();
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_askgq2_k$();
+  }
+  static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_kq11c1_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker) {
+    Companion_getInstance_122();
+    if (!(0 === (0 & seen0))) {
+      throwMissingFieldException(seen0, 0, $serializer_getInstance_37().descriptor_1);
+    }
+    return this.new_dev_shibasis_reaktor_cloudflare_CloudflareRequest_bo5x12_k$(seen0, headers, queryParams, pathParams, environment, serializationConstructorMarker);
+  }
+}
+class Companion_123 {
+  constructor() {
+    Companion_instance_123 = this;
+    var tmp = this;
+    var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     var tmp_1 = lazy(tmp_0, SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9);
     var tmp_2 = LazyThreadSafetyMode_PUBLICATION_getInstance();
     // Inline function 'kotlin.arrayOf' call
@@ -40354,9 +40812,9 @@ class Companion_121 {
     tmp.$childSerializers_1 = [null, tmp_1, lazy(tmp_2, SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9_0)];
   }
 }
-class $serializer_36 {
+class $serializer_38 {
   constructor() {
-    $serializer_instance_36 = this;
+    $serializer_instance_38 = this;
     var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('dev.shibasis.reaktor.experiments.cloudflarehello.supabase.SupabaseStatusResponse', this, 3);
     tmp0_serialDesc.addElement_5pzumi_k$('connection', false);
     tmp0_serialDesc.addElement_5pzumi_k$('objects', false);
@@ -40366,8 +40824,8 @@ class $serializer_36 {
   serialize_lj4q4t_k$(encoder, value) {
     var tmp0_desc = this.descriptor_1;
     var tmp1_output = encoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp2_cached = Companion_getInstance_121().$childSerializers_1;
-    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_32(), value.connection_1);
+    var tmp2_cached = Companion_getInstance_123().$childSerializers_1;
+    tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 0, $serializer_getInstance_34(), value.connection_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 1, tmp2_cached[1].get_value_j01efc_k$(), value.objects_1);
     tmp1_output.encodeSerializableElement_isqxcl_k$(tmp0_desc, 2, tmp2_cached[2].get_value_j01efc_k$(), value.counts_1);
     tmp1_output.endStructure_1xqz0n_k$(tmp0_desc);
@@ -40384,9 +40842,9 @@ class $serializer_36 {
     var tmp5_local1 = null;
     var tmp6_local2 = null;
     var tmp7_input = decoder.beginStructure_yljocp_k$(tmp0_desc);
-    var tmp8_cached = Companion_getInstance_121().$childSerializers_1;
+    var tmp8_cached = Companion_getInstance_123().$childSerializers_1;
     if (tmp7_input.decodeSequentially_xlblqy_k$()) {
-      tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_32(), tmp4_local0);
+      tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_34(), tmp4_local0);
       tmp3_bitMask0 = tmp3_bitMask0 | 1;
       tmp5_local1 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 1, tmp8_cached[1].get_value_j01efc_k$(), tmp5_local1);
       tmp3_bitMask0 = tmp3_bitMask0 | 2;
@@ -40400,7 +40858,7 @@ class $serializer_36 {
             tmp1_flag = false;
             break;
           case 0:
-            tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_32(), tmp4_local0);
+            tmp4_local0 = tmp7_input.decodeSerializableElement_uahnnv_k$(tmp0_desc, 0, $serializer_getInstance_34(), tmp4_local0);
             tmp3_bitMask0 = tmp3_bitMask0 | 1;
             break;
           case 1:
@@ -40422,16 +40880,16 @@ class $serializer_36 {
     return this.descriptor_1;
   }
   childSerializers_5ghqw5_k$() {
-    var tmp0_cached = Companion_getInstance_121().$childSerializers_1;
+    var tmp0_cached = Companion_getInstance_123().$childSerializers_1;
     // Inline function 'kotlin.arrayOf' call
     // Inline function 'kotlin.js.unsafeCast' call
     // Inline function 'kotlin.js.asDynamic' call
-    return [$serializer_getInstance_32(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$()];
+    return [$serializer_getInstance_34(), tmp0_cached[1].get_value_j01efc_k$(), tmp0_cached[2].get_value_j01efc_k$()];
   }
 }
 class SupabaseStatusResponse extends Response_0 {
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusResponse_5vlham_k$(connection, objects, counts) {
-    Companion_getInstance_121();
+    Companion_getInstance_123();
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_f0ghn1_k$();
     $this.connection_1 = connection;
     $this.objects_1 = objects;
@@ -40439,9 +40897,9 @@ class SupabaseStatusResponse extends Response_0 {
     return $this;
   }
   static new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusResponse_s3te37_k$(seen0, connection, objects, counts, serializationConstructorMarker) {
-    Companion_getInstance_121();
+    Companion_getInstance_123();
     if (!(7 === (7 & seen0))) {
-      throwMissingFieldException(seen0, 7, $serializer_getInstance_36().descriptor_1);
+      throwMissingFieldException(seen0, 7, $serializer_getInstance_38().descriptor_1);
     }
     var $this = this.new_dev_shibasis_reaktor_graph_service_Response_fhz4of_k$(seen0, serializationConstructorMarker);
     $this.connection_1 = connection;
@@ -47860,6 +48318,29 @@ function indexOfAny(_this__u8e3s4, chars, startIndex, ignoreCase) {
     }
      while (!(index === last));
   return -1;
+}
+function trimStart(_this__u8e3s4, chars) {
+  // Inline function 'kotlin.text.trimStart' call
+  var tmp0 = isCharSequence(_this__u8e3s4) ? _this__u8e3s4 : THROW_CCE();
+  var tmp$ret$1;
+  $l$block: {
+    // Inline function 'kotlin.text.trimStart' call
+    var inductionVariable = 0;
+    var last = charSequenceLength(tmp0) - 1 | 0;
+    if (inductionVariable <= last)
+      do {
+        var index = inductionVariable;
+        inductionVariable = inductionVariable + 1 | 0;
+        var it = charSequenceGet(tmp0, index);
+        if (!contains_3(chars, it)) {
+          tmp$ret$1 = charSequenceSubSequence(tmp0, index, charSequenceLength(tmp0));
+          break $l$block;
+        }
+      }
+       while (inductionVariable <= last);
+    tmp$ret$1 = '';
+  }
+  return toString_1(tmp$ret$1);
 }
 function requireNonNegativeLimit(limit) {
   // Inline function 'kotlin.require' call
@@ -63886,7 +64367,7 @@ function parse(_this__u8e3s4, query, startIndex, limit, decode) {
 }
 function appendParam(_this__u8e3s4, query, nameIndex, equalIndex, endIndex, decode) {
   if (equalIndex === -1) {
-    var spaceNameIndex = trimStart(nameIndex, endIndex, query);
+    var spaceNameIndex = trimStart_0(nameIndex, endIndex, query);
     var spaceEndIndex = trimEnd_0(spaceNameIndex, endIndex, query);
     if (spaceEndIndex > spaceNameIndex) {
       var name = decode ? decodeURLQueryComponent(query, spaceNameIndex, spaceEndIndex) : substring(query, spaceNameIndex, spaceEndIndex);
@@ -63894,17 +64375,17 @@ function appendParam(_this__u8e3s4, query, nameIndex, equalIndex, endIndex, deco
     }
     return Unit_instance;
   }
-  var spaceNameIndex_0 = trimStart(nameIndex, equalIndex, query);
+  var spaceNameIndex_0 = trimStart_0(nameIndex, equalIndex, query);
   var spaceEqualIndex = trimEnd_0(spaceNameIndex_0, equalIndex, query);
   if (spaceEqualIndex > spaceNameIndex_0) {
     var name_0 = decode ? decodeURLQueryComponent(query, spaceNameIndex_0, spaceEqualIndex) : substring(query, spaceNameIndex_0, spaceEqualIndex);
-    var spaceValueIndex = trimStart(equalIndex + 1 | 0, endIndex, query);
+    var spaceValueIndex = trimStart_0(equalIndex + 1 | 0, endIndex, query);
     var spaceEndIndex_0 = trimEnd_0(spaceValueIndex, endIndex, query);
     var value = decode ? decodeURLQueryComponent(query, spaceValueIndex, spaceEndIndex_0, true) : substring(query, spaceValueIndex, spaceEndIndex_0);
     _this__u8e3s4.append_rhug0a_k$(name_0, value);
   }
 }
-function trimStart(start, end, query) {
+function trimStart_0(start, end, query) {
   var spaceIndex = start;
   while (spaceIndex < end && isWhitespace(charSequenceGet(query, spaceIndex))) {
     spaceIndex = spaceIndex + 1 | 0;
@@ -75117,6 +75598,20 @@ function postgres$lambda_1($binding, $configure) {
 function connectPostgres$lambda(_this__u8e3s4) {
   return Unit_instance;
 }
+function *_generator_head__qnz0m0($this, key, $completion) {
+  var tmp = await_1($this.raw_1.head(key), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = tmp;
+  var tmp_0;
+  if (tmp0_safe_receiver == null) {
+    tmp_0 = null;
+  } else {
+    // Inline function 'kotlin.let' call
+    tmp_0 = new R2Object(tmp0_safe_receiver);
+  }
+  return tmp_0;
+}
 function *_generator_get__cbf6n6($this, key, $completion) {
   var tmp = await_1($this.raw_1.get(key), $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
@@ -75132,13 +75627,31 @@ function *_generator_get__cbf6n6($this, key, $completion) {
   return tmp_0;
 }
 function *_generator_put__cb93wb($this, key, value, $completion) {
+  var tmp = await_1($this.raw_1.put(key, toUint8Array_0(value)), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return new R2Object(tmp);
+}
+function *_generator_put__cb93wb_0($this, key, value, $completion) {
   var tmp = await_1($this.raw_1.put(key, value), $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   return new R2Object(tmp);
 }
+function *_generator_delete__spiywt_0($this, key, $completion) {
+  var tmp = await_1($this.raw_1.delete(key), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
 function *_generator_putText__hffj8o_0($this, key, value, $completion) {
   var tmp = $this.put_5c1t3e_k$(key, value, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_putBytes__jqmqcs($this, key, value, $completion) {
+  var tmp = $this.put_ylsgdi_k$(key, value, $completion);
   if (tmp === get_COROUTINE_SUSPENDED())
     tmp = yield tmp;
   return Unit_instance;
@@ -75158,6 +75671,136 @@ function *_generator_getText__eglyj3($this, key, $completion) {
     tmp_0 = tmp_1;
   }
   return tmp_0;
+}
+function *_generator_getBytes__uc4jkd($this, key, $completion) {
+  var tmp = $this.get_naor27_k$(key, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_safe_receiver = tmp;
+  var tmp_0;
+  if (tmp0_safe_receiver == null) {
+    tmp_0 = null;
+  } else {
+    var tmp_1 = tmp0_safe_receiver.bytes_4v710m_k$($completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    tmp_0 = tmp_1;
+  }
+  return tmp_0;
+}
+function *_generator_bytes__n79h2h($this, $completion) {
+  var tmp = await_1($this.raw_1.arrayBuffer(), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return arrayBufferToByteArray_0(tmp);
+}
+function toUint8Array_0(_this__u8e3s4) {
+  var view = new Uint8Array(this.length);
+  var inductionVariable = 0;
+  var last = _this__u8e3s4.length - 1 | 0;
+  if (inductionVariable <= last)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      view[index] = _this__u8e3s4[index] & 255;
+    }
+     while (inductionVariable <= last);
+  return view;
+}
+function arrayBufferToByteArray_0(buffer) {
+  var view = new Uint8Array(buffer);
+  var tmp = view.length;
+  var bytes = new Int8Array((!(tmp == null) ? typeof tmp === 'number' : false) ? tmp : THROW_CCE());
+  var inductionVariable = 0;
+  var last = bytes.length - 1 | 0;
+  if (inductionVariable <= last)
+    do {
+      var index = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      var tmp_0 = view[index];
+      bytes[index] = toByte((!(tmp_0 == null) ? typeof tmp_0 === 'number' : false) ? tmp_0 : THROW_CCE());
+    }
+     while (inductionVariable <= last);
+  return bytes;
+}
+function *_generator_exists__ioqez8($this, path, $completion) {
+  var tmp = requireBucket($this).head_t8sf05_k$(normalize(path), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return !(tmp == null);
+}
+function *_generator_delete__spiywt_1($this, path, $completion) {
+  var tmp = requireBucket($this).delete_buf2mu_k$(normalize(path), $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_copy__qqja31_0($this, sourcePath, destPath, $completion) {
+  var tmp = $this.readBinaryFile_p0msam_k$(sourcePath, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  var tmp0_elvis_lhs = tmp;
+  var tmp_0;
+  if (tmp0_elvis_lhs == null) {
+    return Unit_instance;
+  } else {
+    tmp_0 = tmp0_elvis_lhs;
+  }
+  var bytes = tmp_0;
+  var tmp_1 = $this.writeBinaryFile_ulbrfr_k$(destPath, bytes, $completion);
+  if (tmp_1 === get_COROUTINE_SUSPENDED())
+    tmp_1 = yield tmp_1;
+  return Unit_instance;
+}
+function *_generator_writeTextFile__f2w0vg_0($this, path, data, $completion) {
+  var tmp = requireBucket($this).putText_hwo4ax_k$(normalize(path), data, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function *_generator_writeBinaryFile__4giv6g_0($this, path, data, $completion) {
+  var tmp = requireBucket($this).putBytes_jnoi5j_k$(normalize(path), data, $completion);
+  if (tmp === get_COROUTINE_SUSPENDED())
+    tmp = yield tmp;
+  return Unit_instance;
+}
+function requireBucket($this) {
+  var tmp0_elvis_lhs = $this.get_controller_9mqriz_k$();
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    var message = 'R2 bucket controller is unavailable';
+    throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  return tmp;
+}
+function file(_this__u8e3s4, binding, cacheDirectory, documentDirectory) {
+  cacheDirectory = cacheDirectory === VOID ? 'cache' : cacheDirectory;
+  documentDirectory = documentDirectory === VOID ? 'documents' : documentDirectory;
+  return file_0(get_context(_this__u8e3s4), binding, cacheDirectory, documentDirectory);
+}
+function normalize(path) {
+  // Inline function 'kotlin.text.trim' call
+  var tmp$ret$0 = toString_1(trim(isCharSequence(path) ? path : THROW_CCE()));
+  // Inline function 'kotlin.collections.filter' call
+  var tmp0 = split_0(trimStart(tmp$ret$0, charArrayOf([_Char___init__impl__6a9atx(47)])), charArrayOf([_Char___init__impl__6a9atx(47)]));
+  // Inline function 'kotlin.collections.filterTo' call
+  var destination = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  var _iterator__ex2g4s = tmp0.iterator_jk1svi_k$();
+  while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+    var element = _iterator__ex2g4s.next_20eer_k$();
+    // Inline function 'kotlin.text.isNotBlank' call
+    if (!isBlank(element)) {
+      destination.add_utx5q5_k$(element);
+    }
+  }
+  return joinToString_1(destination, '/');
+}
+function file_0(_this__u8e3s4, binding, cacheDirectory, documentDirectory) {
+  cacheDirectory = cacheDirectory === VOID ? 'cache' : cacheDirectory;
+  documentDirectory = documentDirectory === VOID ? 'documents' : documentDirectory;
+  return new CloudflareR2FileAdapter(get_4(_this__u8e3s4, binding), cacheDirectory, documentDirectory);
 }
 function get_textSerializer() {
   _init_properties_Router_kt__77pu09();
@@ -93110,14 +93753,28 @@ function nowIsoString() {
   var tmp = (new Date()).toISOString();
   return (!(tmp == null) ? typeof tmp === 'string' : false) ? tmp : THROW_CCE();
 }
-var SupabaseBindings_instance;
-function SupabaseBindings_getInstance() {
-  if (SupabaseBindings_instance === VOID)
-    new SupabaseBindings();
-  return SupabaseBindings_instance;
+var FileBindings_instance;
+function FileBindings_getInstance() {
+  if (FileBindings_instance === VOID)
+    new FileBindings();
+  return FileBindings_instance;
+}
+function FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function FileProbeRequest$Companion$$childSerializers$_anonymous__8m9a9d_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
 var Companion_instance_115;
 function Companion_getInstance_115() {
+  if (Companion_instance_115 === VOID)
+    new Companion_115();
   return Companion_instance_115;
 }
 var $serializer_instance_30;
@@ -93136,6 +93793,74 @@ function $serializer_getInstance_31() {
     new $serializer_31();
   return $serializer_instance_31;
 }
+function *_generator_probe__tpycxw($this, storage, durable, note, file, $completion) {
+  var key = file.resolvePath('probe.txt');
+  // Inline function 'kotlin.runCatching' call
+  var tmp;
+  try {
+    var tmp_0 = file.readTextFile$suspendBridge_9gpsr9_k$(key, $completion);
+    if (tmp_0 === get_COROUTINE_SUSPENDED())
+      tmp_0 = yield tmp_0;
+    var previous = tmp_0;
+    var written = storage + ':' + (new Date()).toISOString();
+    var tmp_1 = file.writeTextFile$suspendBridge_mufrus_k$(key, written, $completion);
+    if (tmp_1 === get_COROUTINE_SUSPENDED())
+      tmp_1 = yield tmp_1;
+    var tmp_2 = file.readTextFile$suspendBridge_9gpsr9_k$(key, $completion);
+    if (tmp_2 === get_COROUTINE_SUSPENDED())
+      tmp_2 = yield tmp_2;
+    var readBack = tmp_2;
+    var tmp_3 = file.exists$suspendBridge_w8k2ns_k$(key, $completion);
+    if (tmp_3 === get_COROUTINE_SUSPENDED())
+      tmp_3 = yield tmp_3;
+    // Inline function 'kotlin.Companion.success' call
+    var value = FileProbeResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeResponse_lf84po_k$(storage, durable, key, previous, written, readBack, tmp_3, written === readBack, note);
+    tmp = _Result___init__impl__xyqfz8(value);
+  } catch ($p) {
+    var tmp_4;
+    if ($p instanceof Error) {
+      var e = $p;
+      // Inline function 'kotlin.Companion.failure' call
+      tmp_4 = _Result___init__impl__xyqfz8(createFailure(e));
+    } else {
+      throw $p;
+    }
+    tmp = tmp_4;
+  }
+  // Inline function 'kotlin.getOrElse' call
+  var this_0 = tmp;
+  var exception = Result__exceptionOrNull_impl_p6xea9(this_0);
+  var tmp_5;
+  if (exception == null) {
+    var tmp_6 = _Result___get_value__impl__bjfvqg(this_0);
+    tmp_5 = (tmp_6 == null ? true : !(tmp_6 == null)) ? tmp_6 : THROW_CCE();
+  } else {
+    var tmp0_elvis_lhs = exception.message;
+    tmp_5 = FileProbeResponse.new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeResponse_lf84po_k$(storage, durable, key, VOID, VOID, VOID, VOID, VOID, note, tmp0_elvis_lhs == null ? exception.toString() : tmp0_elvis_lhs);
+  }
+  return tmp_5;
+}
+function probe($this, storage, durable, note, file, $completion) {
+  return suspendOrReturn(/*#__NOINLINE__*/_generator_probe__tpycxw.bind(VOID, $this, storage, durable, note, file), $completion);
+}
+function FileService$slambda_1(this$0) {
+  var i = new FileService$slambda(this$0);
+  var l = ($this$GetHandler, it, $completion) => i.invoke_vzmihw_k$($this$GetHandler, it, $completion);
+  l.$arity = 2;
+  return l;
+}
+function FileService$slambda_2(this$0) {
+  var i = new FileService$slambda_0(this$0);
+  var l = ($this$GetHandler, request, $completion) => i.invoke_vzmihw_k$($this$GetHandler, request, $completion);
+  l.$arity = 2;
+  return l;
+}
+var SupabaseBindings_instance;
+function SupabaseBindings_getInstance() {
+  if (SupabaseBindings_instance === VOID)
+    new SupabaseBindings();
+  return SupabaseBindings_instance;
+}
 var Companion_instance_117;
 function Companion_getInstance_117() {
   return Companion_instance_117;
@@ -93145,6 +93870,26 @@ function $serializer_getInstance_32() {
   if ($serializer_instance_32 === VOID)
     new $serializer_32();
   return $serializer_instance_32;
+}
+var Companion_instance_118;
+function Companion_getInstance_118() {
+  return Companion_instance_118;
+}
+var $serializer_instance_33;
+function $serializer_getInstance_33() {
+  if ($serializer_instance_33 === VOID)
+    new $serializer_33();
+  return $serializer_instance_33;
+}
+var Companion_instance_119;
+function Companion_getInstance_119() {
+  return Companion_instance_119;
+}
+var $serializer_instance_34;
+function $serializer_getInstance_34() {
+  if ($serializer_instance_34 === VOID)
+    new $serializer_34();
+  return $serializer_instance_34;
 }
 function SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60() {
   return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
@@ -93156,48 +93901,6 @@ function SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60_
   return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
 }
 function SupabaseOverviewRequest$Companion$$childSerializers$_anonymous__8myg60_2() {
-  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
-}
-var Companion_instance_118;
-function Companion_getInstance_118() {
-  if (Companion_instance_118 === VOID)
-    new Companion_118();
-  return Companion_instance_118;
-}
-var $serializer_instance_33;
-function $serializer_getInstance_33() {
-  if ($serializer_instance_33 === VOID)
-    new $serializer_33();
-  return $serializer_instance_33;
-}
-function SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g() {
-  return new ArrayListSerializer(StringSerializer_getInstance());
-}
-function SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g_0() {
-  return new ArrayListSerializer(StringSerializer_getInstance());
-}
-var Companion_instance_119;
-function Companion_getInstance_119() {
-  if (Companion_instance_119 === VOID)
-    new Companion_119();
-  return Companion_instance_119;
-}
-var $serializer_instance_34;
-function $serializer_getInstance_34() {
-  if ($serializer_instance_34 === VOID)
-    new $serializer_34();
-  return $serializer_instance_34;
-}
-function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj() {
-  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
-}
-function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_0() {
-  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
-}
-function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_1() {
-  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
-}
-function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_2() {
   return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
 }
 var Companion_instance_120;
@@ -93212,11 +93915,11 @@ function $serializer_getInstance_35() {
     new $serializer_35();
   return $serializer_instance_35;
 }
-function SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9() {
-  return new ArrayListSerializer($serializer_getInstance_30());
+function SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g() {
+  return new ArrayListSerializer(StringSerializer_getInstance());
 }
-function SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9_0() {
-  return new ArrayListSerializer($serializer_getInstance_31());
+function SupabaseOverviewResponse$Companion$$childSerializers$_anonymous__wfmb5g_0() {
+  return new ArrayListSerializer(StringSerializer_getInstance());
 }
 var Companion_instance_121;
 function Companion_getInstance_121() {
@@ -93229,6 +93932,48 @@ function $serializer_getInstance_36() {
   if ($serializer_instance_36 === VOID)
     new $serializer_36();
   return $serializer_instance_36;
+}
+function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_0() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_1() {
+  return new LinkedHashMapSerializer(StringSerializer_getInstance(), StringSerializer_getInstance());
+}
+function SupabaseStatusRequest$Companion$$childSerializers$_anonymous__n0jnrj_2() {
+  return createSimpleEnumSerializer('dev.shibasis.reaktor.graph.service.Environment', values_7());
+}
+var Companion_instance_122;
+function Companion_getInstance_122() {
+  if (Companion_instance_122 === VOID)
+    new Companion_122();
+  return Companion_instance_122;
+}
+var $serializer_instance_37;
+function $serializer_getInstance_37() {
+  if ($serializer_instance_37 === VOID)
+    new $serializer_37();
+  return $serializer_instance_37;
+}
+function SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9() {
+  return new ArrayListSerializer($serializer_getInstance_32());
+}
+function SupabaseStatusResponse$Companion$$childSerializers$_anonymous__j8mxd9_0() {
+  return new ArrayListSerializer($serializer_getInstance_33());
+}
+var Companion_instance_123;
+function Companion_getInstance_123() {
+  if (Companion_instance_123 === VOID)
+    new Companion_123();
+  return Companion_instance_123;
+}
+var $serializer_instance_38;
+function $serializer_getInstance_38() {
+  if ($serializer_instance_38 === VOID)
+    new $serializer_38();
+  return $serializer_instance_38;
 }
 function get_countedTables() {
   _init_properties_SupabaseRepository_kt__m5peni();
@@ -93798,11 +94543,11 @@ initMetadataForClass(Segment, 'Segment', VOID, VOID, [ConcurrentLinkedListNode, 
 initMetadataForClass(ChannelSegment, 'ChannelSegment');
 initMetadataForClass(SendBroadcast, 'SendBroadcast', VOID, VOID, [Waiter]);
 initMetadataForClass(BufferedChannelIterator, 'BufferedChannelIterator', VOID, VOID, [Waiter], [0, 3]);
-initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
 initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
+initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
 protoOf(BufferedChannel).close$default_kcbl7u_k$ = close$default;
 protoOf(BufferedChannel).cancel$default_880p35_k$ = cancel$default_0;
-initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [ReceiveChannel, SendChannel], [1, 4, 0, 3]);
+initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [SendChannel, ReceiveChannel], [1, 4, 0, 3]);
 initMetadataForClass(WaiterEB, 'WaiterEB');
 initMetadataForClass(ReceiveCatching, 'ReceiveCatching', VOID, VOID, [Waiter]);
 initMetadataForObject(Factory, 'Factory');
@@ -93813,7 +94558,7 @@ initMetadataForClass(ChannelResult, 'ChannelResult');
 initMetadataForClass(ClosedReceiveChannelException, 'ClosedReceiveChannelException');
 initMetadataForClass(ClosedSendChannelException, 'ClosedSendChannelException');
 protoOf(ChannelCoroutine).close$default_kcbl7u_k$ = close$default;
-initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, ReceiveChannel, SendChannel], [1, 0]);
+initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, SendChannel, ReceiveChannel], [1, 0]);
 initMetadataForClass(ConflatedBufferedChannel, 'ConflatedBufferedChannel', VOID, VOID, VOID, [1, 0]);
 initMetadataForInterface(ProducerScope, 'ProducerScope', VOID, VOID, [CoroutineScope, SendChannel], [1]);
 initMetadataForClass(ProducerCoroutine, 'ProducerCoroutine', VOID, VOID, [ChannelCoroutine, ProducerScope], [1, 0]);
@@ -94615,6 +95360,7 @@ initMetadataForClass(RoutePattern, 'RoutePattern', RoutePattern);
 initMetadataForObject(RegexCommon, 'RegexCommon');
 initMetadataForClass(middleware$4$1);
 initMetadataForClass(TextSerializer, 'TextSerializer', TextSerializer);
+initMetadataForClass(WebFileAdapter, 'WebFileAdapter', WebFileAdapter, VOID, VOID, [2, 1]);
 initMetadataForClass(ConcurrentMutableCollection, 'ConcurrentMutableCollection', VOID, VOID, [Collection, MutableIterable]);
 initMetadataForClass(ConcurrentMutableIterator, 'ConcurrentMutableIterator');
 protoOf(ConcurrentMutableMap).asJsMapView = asJsMapView;
@@ -94803,6 +95549,7 @@ initMetadataForClass(PostgresOptionsBuilder, 'PostgresOptionsBuilder', PostgresO
 initMetadataForClass(R2Bucket, 'R2Bucket', VOID, VOID, VOID, [1, 2]);
 initMetadataForClass(R2Object, 'R2Object');
 initMetadataForClass(R2ObjectBody, 'R2ObjectBody', VOID, VOID, VOID, [0]);
+initMetadataForClass(CloudflareR2FileAdapter, 'CloudflareR2FileAdapter', VOID, VOID, VOID, [1, 2]);
 initMetadataForLambda(asHonoHandler$slambda, VOID, VOID, [1]);
 initMetadataForClass(SqlValues, 'SqlValues');
 initMetadataForClass(SqlStatement, 'SqlStatement');
@@ -95010,35 +95757,47 @@ initMetadataForLambda(ChatService$slambda_6, VOID, VOID, [2]);
 initMetadataForLambda(ChatService$slambda_7, VOID, VOID, [2]);
 initMetadataForLambda(ChatService$slambda_8, VOID, VOID, [2]);
 initMetadataForClass(ChatService, 'ChatService', ChatService);
-initMetadataForObject(SupabaseBindings, 'SupabaseBindings');
+initMetadataForObject(FileBindings, 'FileBindings');
 initMetadataForCompanion(Companion_115);
 protoOf($serializer_30).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_30, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseCatalogEntry, 'SupabaseCatalogEntry', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_30});
+initMetadataForClass(FileProbeRequest, 'FileProbeRequest', FileProbeRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_files_FileProbeRequest_xxtjx_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_30});
 initMetadataForCompanion(Companion_116);
 protoOf($serializer_31).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_31, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseTableCount, 'SupabaseTableCount', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_31});
+initMetadataForClass(FileProbeResponse, 'FileProbeResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_31});
+initMetadataForLambda(FileService$slambda, VOID, VOID, [2]);
+initMetadataForLambda(FileService$slambda_0, VOID, VOID, [2]);
+initMetadataForClass(FileService, 'FileService', FileService, VOID, VOID, [4]);
+initMetadataForObject(SupabaseBindings, 'SupabaseBindings');
 initMetadataForCompanion(Companion_117);
 protoOf($serializer_32).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_32, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseConnectionInfo, 'SupabaseConnectionInfo', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_32});
+initMetadataForClass(SupabaseCatalogEntry, 'SupabaseCatalogEntry', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_32});
 initMetadataForCompanion(Companion_118);
 protoOf($serializer_33).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_33, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseOverviewRequest, 'SupabaseOverviewRequest', SupabaseOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_3330ax_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_33});
+initMetadataForClass(SupabaseTableCount, 'SupabaseTableCount', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_33});
 initMetadataForCompanion(Companion_119);
 protoOf($serializer_34).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_34, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseOverviewResponse, 'SupabaseOverviewResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_34});
+initMetadataForClass(SupabaseConnectionInfo, 'SupabaseConnectionInfo', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_34});
 initMetadataForCompanion(Companion_120);
 protoOf($serializer_35).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_35, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseStatusRequest, 'SupabaseStatusRequest', SupabaseStatusRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_t1z0wu_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_35});
+initMetadataForClass(SupabaseOverviewRequest, 'SupabaseOverviewRequest', SupabaseOverviewRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseOverviewRequest_3330ax_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_35});
 initMetadataForCompanion(Companion_121);
 protoOf($serializer_36).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
 initMetadataForObject($serializer_36, '$serializer', VOID, VOID, [GeneratedSerializer]);
-initMetadataForClass(SupabaseStatusResponse, 'SupabaseStatusResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_36});
+initMetadataForClass(SupabaseOverviewResponse, 'SupabaseOverviewResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_36});
+initMetadataForCompanion(Companion_122);
+protoOf($serializer_37).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_37, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(SupabaseStatusRequest, 'SupabaseStatusRequest', SupabaseStatusRequest.new_dev_shibasis_reaktor_experiments_cloudflarehello_supabase_SupabaseStatusRequest_t1z0wu_k$, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_37});
+initMetadataForCompanion(Companion_123);
+protoOf($serializer_38).typeParametersSerializers_fr94fx_k$ = typeParametersSerializers;
+initMetadataForObject($serializer_38, '$serializer', VOID, VOID, [GeneratedSerializer]);
+initMetadataForClass(SupabaseStatusResponse, 'SupabaseStatusResponse', VOID, VOID, VOID, VOID, VOID, {0: $serializer_getInstance_38});
 initMetadataForClass(CatalogTarget, 'CatalogTarget');
 initMetadataForClass(SupabaseRepository, 'SupabaseRepository', VOID, VOID, VOID, [0, 1]);
 initMetadataForLambda(SupabaseService$slambda, VOID, VOID, [2]);
@@ -107707,9 +108466,10 @@ Companion_instance_112 = new Companion_112();
 Companion_instance_113 = new Companion_113();
 schemaReady = false;
 Companion_instance_114 = new Companion_114();
-Companion_instance_115 = new Companion_115();
 Companion_instance_116 = new Companion_116();
 Companion_instance_117 = new Companion_117();
+Companion_instance_118 = new Companion_118();
+Companion_instance_119 = new Companion_119();
 //endregion
 //region block: eager init
 initHook_0 = initHook$init$();
