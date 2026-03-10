@@ -50,10 +50,8 @@ internal actual suspend fun platformReadBinary(path: String): ByteArray? {
     }
 
     val input = SystemFileSystem.source(target).buffered()
-    return try {
+    return input.use { input ->
         input.readByteArray()
-    } finally {
-        input.close()
     }
 }
 
@@ -64,10 +62,8 @@ internal actual suspend fun platformReadText(path: String): String? {
     }
 
     val input = SystemFileSystem.source(target).buffered()
-    return try {
+    return input.use { input ->
         input.readString()
-    } finally {
-        input.close()
     }
 }
 
@@ -76,10 +72,8 @@ internal actual suspend fun platformWriteText(
     data: String,
 ) {
     val output = SystemFileSystem.sink(Path(path)).buffered()
-    try {
+    output.use { output ->
         output.writeString(data)
-    } finally {
-        output.close()
     }
 }
 
@@ -88,9 +82,7 @@ internal actual suspend fun platformWriteBinary(
     data: ByteArray,
 ) {
     val output = SystemFileSystem.sink(Path(path)).buffered()
-    try {
+    output.use { output ->
         output.write(data)
-    } finally {
-        output.close()
     }
 }

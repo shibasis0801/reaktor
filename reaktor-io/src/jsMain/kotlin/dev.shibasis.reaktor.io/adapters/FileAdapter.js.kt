@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlin.js.Promise
 import kotlinx.coroutines.await
 
 internal actual suspend fun platformFileExists(path: String): Boolean = runCatching {
@@ -11,7 +12,7 @@ internal actual suspend fun platformFileExists(path: String): Boolean = runCatch
 internal actual suspend fun platformDeleteFile(path: String) {
     runCatching {
         val (directory, name) = resolveParent(path, create = false)
-        directory.removeEntry(name).await()
+        awaitDynamic(directory.removeEntry(name))
     }
 }
 
@@ -25,8 +26,8 @@ internal actual suspend fun platformCopyFile(
 
 internal actual suspend fun platformReadBinary(path: String): ByteArray? = runCatching {
     val fileHandle = resolveFileHandle(path, create = false)
-    val file = fileHandle.getFile().await()
-    arrayBufferToByteArray(file.arrayBuffer().await())
+    val file = awaitDynamic(fileHandle.getFile())
+    arrayBufferToByteArray(awaitDynamic(file.arrayBuffer()))
 }.getOrNull()
 
 internal actual suspend fun platformReadText(path: String): String? =
@@ -37,11 +38,11 @@ internal actual suspend fun platformWriteText(
     data: String,
 ) {
     val fileHandle = resolveFileHandle(path, create = true)
-    val writable = fileHandle.createWritable().await()
+    val writable = awaitDynamic(fileHandle.createWritable())
     try {
-        writable.write(data).await()
+        awaitDynamic(writable.write(data))
     } finally {
-        writable.close().await()
+        awaitDynamic(writable.close())
     }
 }
 
@@ -50,11 +51,11 @@ internal actual suspend fun platformWriteBinary(
     data: ByteArray,
 ) {
     val fileHandle = resolveFileHandle(path, create = true)
-    val writable = fileHandle.createWritable().await()
+    val writable = awaitDynamic(fileHandle.createWritable())
     try {
-        writable.write(data.toUint8Array()).await()
+        awaitDynamic(writable.write(data.toUint8Array()))
     } finally {
-        writable.close().await()
+        awaitDynamic(writable.close())
     }
 }
 
@@ -73,7 +74,7 @@ fun Feature.webFiles(
 private suspend fun resolveRootDirectory(): dynamic {
     val storage = js("globalThis.navigator && globalThis.navigator.storage")
     return try {
-        storage.getDirectory().await()
+        awaitDynamic(storage.getDirectory())
     } catch (_: Throwable) {
         error(
             "Web File System API is unavailable in this JS runtime. " +
@@ -98,7 +99,7 @@ private suspend fun resolveDirectory(
 ): dynamic {
     var directory = resolveRootDirectory()
     for (segment in segments) {
-        directory = directory.getDirectoryHandle(segment, createOptions(create)).await()
+        directory = awaitDynamic(directory.getDirectoryHandle(segment, createOptions(create)))
     }
     return directory
 }
@@ -108,8 +109,11 @@ private suspend fun resolveFileHandle(
     create: Boolean,
 ): dynamic {
     val (directory, name) = resolveParent(path, create)
-    return directory.getFileHandle(name, createOptions(create)).await()
+    return awaitDynamic(directory.getFileHandle(name, createOptions(create)))
 }
+
+private suspend fun awaitDynamic(value: dynamic): dynamic =
+    value.unsafeCast<Promise<dynamic>>().await()
 
 private fun createOptions(create: Boolean): dynamic {
     val options = js("({})")
