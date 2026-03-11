@@ -41,7 +41,7 @@ fun KotlinMultiplatformExtension.darwin(
     }
 
     val targets = mutableListOf(
-//        iosSimulatorArm64(),
+        iosSimulatorArm64(),
         iosArm64()
     )
 

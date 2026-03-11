@@ -1,4 +1,4 @@
 package dev.shibasis.reaktor.core.serialization.decoder.typed
 
-class PrimitiveDecoder {
-}
+// Primitive decoding is handled directly within FlexDecoder
+// using FlexBuffer Reference.toInt(), toDouble(), etc.
