@@ -4,65 +4,39 @@ import dev.shibasis.reaktor.core.framework.Feature
 import kotlin.js.Promise
 import kotlinx.coroutines.await
 
-internal actual suspend fun platformFileExists(path: String): Boolean = runCatching {
-    resolveFileHandle(path, create = false)
-    true
-}.getOrDefault(false)
-
-internal actual suspend fun platformDeleteFile(path: String) {
-    runCatching {
-        val (directory, name) = resolveParent(path, create = false)
-        awaitDynamic(directory.removeEntry(name))
-    }
-}
-
-internal actual suspend fun platformCopyFile(
-    sourcePath: String,
-    destPath: String,
-) {
-    val contents = platformReadBinary(sourcePath) ?: return
-    platformWriteBinary(destPath, contents)
-}
-
-internal actual suspend fun platformReadBinary(path: String): ByteArray? = runCatching {
-    val fileHandle = resolveFileHandle(path, create = false)
-    val file = awaitDynamic(fileHandle.getFile())
-    arrayBufferToByteArray(awaitDynamic(file.arrayBuffer()))
-}.getOrNull()
-
-internal actual suspend fun platformReadText(path: String): String? =
-    platformReadBinary(path)?.decodeToString()
-
-internal actual suspend fun platformWriteText(
-    path: String,
-    data: String,
-) {
-    val fileHandle = resolveFileHandle(path, create = true)
-    val writable = awaitDynamic(fileHandle.createWritable())
-    try {
-        awaitDynamic(writable.write(data))
-    } finally {
-        awaitDynamic(writable.close())
-    }
-}
-
-internal actual suspend fun platformWriteBinary(
-    path: String,
-    data: ByteArray,
-) {
-    val fileHandle = resolveFileHandle(path, create = true)
-    val writable = awaitDynamic(fileHandle.createWritable())
-    try {
-        awaitDynamic(writable.write(data.toUint8Array()))
-    } finally {
-        awaitDynamic(writable.close())
-    }
-}
-
 class WebFileAdapter(
     override val cacheDirectory: String = "cache",
     override val documentDirectory: String = "documents",
-) : FileAdapter<Unit>(Unit)
+) : FileAdapter<Unit>(Unit) {
+    override suspend fun exists(path: String): Boolean =
+        runCatching {
+            resolveFileHandle(path, create = false)
+            true
+        }.getOrDefault(false)
+
+    override suspend fun delete(path: String) {
+        runCatching {
+            val (directory, name) = resolveParent(path, create = false)
+            awaitDynamic(directory.removeEntry(name))
+        }
+    }
+
+    override suspend fun readBinaryFile(path: String): ByteArray? = runCatching {
+        val fileHandle = resolveFileHandle(path, create = false)
+        val file = awaitDynamic(fileHandle.getFile())
+        arrayBufferToByteArray(awaitDynamic(file.arrayBuffer()))
+    }.getOrNull()
+
+    override suspend fun writeBinaryFile(path: String, data: ByteArray) {
+        val fileHandle = resolveFileHandle(path, create = true)
+        val writable = awaitDynamic(fileHandle.createWritable())
+        try {
+            awaitDynamic(writable.write(data.toUint8Array()))
+        } finally {
+            awaitDynamic(writable.close())
+        }
+    }
+}
 
 fun Feature.webFiles(
     cacheDirectory: String = "cache",

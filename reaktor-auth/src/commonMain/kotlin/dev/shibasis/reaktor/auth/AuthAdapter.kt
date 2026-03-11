@@ -4,6 +4,8 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.auth.db.AuthObjectStore
+import dev.shibasis.reaktor.db.Database
 import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
@@ -59,6 +61,20 @@ abstract class AuthAdapter<Controller>(
                     environment = environment
                 )
             )
+
+            if (response is LoginResponse.Success) {
+                val db = Feature.Database
+                if (db != null) {
+                    try {
+                        val authStore = AuthObjectStore(db)
+                        authStore.setUser(response.user)
+                        authStore.setAccessToken(response.accessToken)
+                        authStore.setRefreshToken(response.refreshToken)
+                    } catch (e: Exception) {
+                        Logger.e(e) { "Failed to cache auth tokens to ObjectDatabase" }
+                    }
+                }
+            }
 
             Logger.i { response.toString() }
             response

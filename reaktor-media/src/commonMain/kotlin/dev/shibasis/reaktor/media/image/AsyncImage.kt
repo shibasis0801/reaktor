@@ -29,6 +29,7 @@ import kotlinx.coroutines.isActive
 fun AsyncImage(
     url: String,
     modifier: Modifier = Modifier,
+    contentDescription: String = "url",
     contentScale: ContentScale = ContentScale.FillBounds
 ) {
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -61,7 +62,7 @@ fun AsyncImage(
     imageBitmap?.let {
         Image(
             bitmap = it,
-            "url",
+            contentDescription,
             modifier = modifier.onSizeChanged { size = it },
             contentScale = contentScale
         )

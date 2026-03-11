@@ -12,21 +12,29 @@ import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.core.utils.fail
 import kotlinx.serialization.Serializable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
+import com.nimbusds.jose.JWSHeader
+import com.nimbusds.jose.JWSSigner
+import com.nimbusds.jose.crypto.MACSigner
+import com.nimbusds.jwt.SignedJWT
+import java.util.Date
 
 @Serializable
 data class AuthenticatedUser(
     val subject: String,
     val provider: UserProvider,
-    val email: String? = null
+    val email: String? = null,
+    val scopes: List<String> = emptyList()
 ) {
     companion object {
         operator fun invoke(jwtClaims: JWTClaimsSet, userProvider: UserProvider) = AuthenticatedUser(
             jwtClaims.subject,
             userProvider,
-            runCatching { jwtClaims.getStringClaim("email") }.getOrNull()
+            runCatching { jwtClaims.getStringClaim("email") }.getOrNull(),
+            runCatching { jwtClaims.getStringListClaim("scopes") }.getOrNull() ?: emptyList()
         )
     }
 }
@@ -111,5 +119,39 @@ open class JwtVerifier(
         }.map {
             AuthenticatedUser(it, userProvider)
         }
+    }
+}
+
+@Component
+class JwtMinter(
+    @Value("\${reaktor.jwt.secret:dumb_secret_for_testing_1234567890}") 
+    private val rawSecret: String
+) {
+    private val secret = rawSecret.toByteArray().let {
+        if (it.size < 32) it + ByteArray(32 - it.size) { 0 } else it
+    }
+    private val signer: JWSSigner = MACSigner(secret)
+
+    fun mintAccessToken(
+        userId: String,
+        appId: String,
+        scopes: List<String>,
+        expirationMs: Long = 1000 * 60 * 60 // Default 1 hour
+    ): String {
+        val now = Date()
+        val claimsSet = JWTClaimsSet.Builder()
+            .subject(userId)
+            .issuer("https://reaktor.build/")
+            .claim("appId", appId)
+            .claim("scopes", scopes)
+            .issueTime(now)
+            .expirationTime(Date(now.time + expirationMs))
+            .build()
+
+        val header = JWSHeader(JWSAlgorithm.HS256)
+        val signedJWT = SignedJWT(header, claimsSet)
+        signedJWT.sign(signer)
+
+        return signedJWT.serialize()
     }
 }

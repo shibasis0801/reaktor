@@ -64,4 +64,16 @@ class UserRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
         val data = Users.upsertReturning { it.fields(user) }.toList()
         data.firstOrNull()?.let { Users.toDto(it) }
     }
+
+    suspend fun getUserPermissions(
+        request: Request,
+        userId: UUID,
+        appId: UUID
+    ) = request.sql {
+        (Users innerJoin UserRoles innerJoin Roles innerJoin RolePermissions innerJoin Permissions)
+            .selectAll()
+            .where { (Users.id eq userId) and (Users.appId eq appId) }
+            .map { it[Permissions.name] }
+            .distinct()
+    }
 }

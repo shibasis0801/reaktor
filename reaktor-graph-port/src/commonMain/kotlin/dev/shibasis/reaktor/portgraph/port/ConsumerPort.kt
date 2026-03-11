@@ -7,7 +7,7 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
 @JsExport
-class ConsumerPort<Functionality: Any>(
+open class ConsumerPort<Functionality: Any>(
     owner: PortCapability,
     key: Key,
     type: Type

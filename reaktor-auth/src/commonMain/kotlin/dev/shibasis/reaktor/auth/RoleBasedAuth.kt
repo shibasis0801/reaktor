@@ -51,14 +51,21 @@ enum class UserProvider {
 }
 
 @JsExport
+enum class AccountType {
+    USER,
+    SERVICE_ACCOUNT
+}
+
+@JsExport
 @Serializable
 data class User(
     val id: String,
     val name: String,
-    val socialId: String,
+    val socialId: String?,
     val appId: String,
-    val provider: UserProvider,
+    val provider: UserProvider?,
     val status: UserStatus,
+    val accountType: AccountType = AccountType.USER,
     override var data: JsonElement,
     @Contextual override var createdAt: Instant = Clock.System.now(),
     @Contextual override var updatedAt: Instant = Clock.System.now()
@@ -129,6 +136,23 @@ data class UserRole(
     val userId: String,
     val roleId: String,
     val contextId: String,
+    override var data: JsonElement,
+    @Contextual override var createdAt: Instant = Clock.System.now(),
+    @Contextual override var updatedAt: Instant = Clock.System.now()
+): AuditableDto
+
+@JsExport
+@Serializable
+data class PersonalAccessToken(
+    val id: String,
+    val userId: String?,
+    val name: String,
+    val tokenHash: String,
+    val scopes: String,
+    val contextId: String?,
+    @Contextual val expiresAt: Instant? = null,
+    @Contextual val lastUsedAt: Instant? = null,
+    @Contextual val revokedAt: Instant? = null,
     override var data: JsonElement,
     @Contextual override var createdAt: Instant = Clock.System.now(),
     @Contextual override var updatedAt: Instant = Clock.System.now()

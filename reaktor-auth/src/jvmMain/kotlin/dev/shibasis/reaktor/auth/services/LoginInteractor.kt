@@ -22,7 +22,8 @@ inline fun String.uuid(): UUID = UUID.fromString(this)
 open class LoginInteractor(
     private val userRepository: UserRepository,
     private val appRepository: AppRepository,
-    private val jwtVerifier: JwtVerifier
+    private val jwtVerifier: JwtVerifier,
+    private val jwtMinter: dev.shibasis.reaktor.auth.jwt.JwtMinter
 ) {
     private val logger = "Reaktor:LoginService".logger()
 
@@ -76,6 +77,16 @@ open class LoginInteractor(
         }
 
         logger { user }
-        return LoginResponse.Success(user, user.data)
+
+        val permissions = userRepository.getUserPermissions(request, user.id.uuid(), appId).getOrElse { listOf("user") }
+        val accessToken = jwtMinter.mintAccessToken(
+            userId = user.id,
+            appId = user.appId,
+            scopes = permissions
+        )
+
+        val refreshToken = UUID.randomUUID().toString()
+        
+        return LoginResponse.Success(user, user.data, accessToken, refreshToken)
     }
 }

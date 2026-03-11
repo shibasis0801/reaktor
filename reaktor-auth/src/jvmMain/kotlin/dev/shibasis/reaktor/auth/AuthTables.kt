@@ -24,10 +24,11 @@ object Apps: UUIDAuditable<App>("app") {
 
 object Users: UUIDAuditable<User>("users") {
     val name = varchar("name", 100)
-    val socialId = text("social_id")
+    val socialId = text("social_id").nullable()
     val appId = foreignKey(Apps,"app_id")
-    val provider = enumerationByName<UserProvider>("provider", 20)
+    val provider = enumerationByName<UserProvider>("provider", 20).nullable()
     val status = enumerationByName<UserStatus>("status", 50)
+    val accountType = enumerationByName<AccountType>("account_type", 20).default(AccountType.USER)
 
     override fun toDto(result: ResultRow) = User(
         id = result[id].value.toString(),
@@ -36,6 +37,7 @@ object Users: UUIDAuditable<User>("users") {
         appId = result[appId].value.toString(),
         provider = result[provider],
         status = result[status],
+        accountType = result[accountType],
         data = result[data],
         createdAt = result[createdAt],
         updatedAt = result[updatedAt]
@@ -47,6 +49,7 @@ object Users: UUIDAuditable<User>("users") {
         this[appId] =  Apps.entityId(dto.appId.uuid())
         this[provider] = dto.provider
         this[status] = dto.status
+        this[accountType] = dto.accountType
     }
 }
 
@@ -170,5 +173,42 @@ object Sessions: UUIDAuditable<Session>("session") {
         this[appId] = Apps.entityId(dto.appId.uuid())
         this[contextId] = Contexts.entityId(dto.contextId.uuid())
         this[expiresAt] = dto.expiresAt
+    }
+}
+
+object PersonalAccessTokens: UUIDAuditable<PersonalAccessToken>("personal_access_token") {
+    val userId = foreignKey(Users, "user_id").nullable()
+    val name = varchar("name", 100)
+    val tokenHash = varchar("token_hash", 255).uniqueIndex()
+    val scopes = text("scopes")
+    val contextId = foreignKey(Contexts, "context_id").nullable()
+    val expiresAt = timestampZ("expires_at").nullable()
+    val lastUsedAt = timestampZ("last_used_at").nullable()
+    val revokedAt = timestampZ("revoked_at").nullable()
+
+    override fun toDto(result: ResultRow) = PersonalAccessToken(
+        id = result[id].value.toString(),
+        userId = result[userId]?.value?.toString(),
+        name = result[name],
+        tokenHash = result[tokenHash],
+        scopes = result[scopes],
+        contextId = result[contextId]?.value?.toString(),
+        expiresAt = result[expiresAt],
+        lastUsedAt = result[lastUsedAt],
+        revokedAt = result[revokedAt],
+        data = result[data],
+        createdAt = result[createdAt],
+        updatedAt = result[updatedAt]
+    )
+
+    override fun UpdateBuilder<*>.selfFields(dto: PersonalAccessToken) {
+        this[userId] = dto.userId?.let { Users.entityId(it.uuid()) }
+        this[name] = dto.name
+        this[tokenHash] = dto.tokenHash
+        this[scopes] = dto.scopes
+        this[contextId] = dto.contextId?.let { Contexts.entityId(it.uuid()) }
+        this[expiresAt] = dto.expiresAt
+        this[lastUsedAt] = dto.lastUsedAt
+        this[revokedAt] = dto.revokedAt
     }
 }

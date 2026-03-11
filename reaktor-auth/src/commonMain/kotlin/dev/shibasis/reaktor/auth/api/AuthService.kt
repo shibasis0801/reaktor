@@ -57,7 +57,12 @@ sealed class LoginResponse(
     override val headers: MutableMap<String, String> = mutableMapOf()
 ): Response() {
     @Serializable
-    data class Success(val user: User, val profile: JsonElement): LoginResponse(StatusCode.OK)
+    data class Success(
+        val user: User, 
+        val profile: JsonElement,
+        val accessToken: String,
+        val refreshToken: String
+    ): LoginResponse(StatusCode.OK)
 
     @Serializable
     sealed class Failure(private val hack: StatusCode): LoginResponse(hack) {
@@ -85,8 +90,58 @@ sealed class LoginResponse(
 }
 
 @JsExport
+@Serializable
+data class MintPatRequest(
+    val name: String,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment
+): Request() {
+    companion object {
+        @OptIn(ExperimentalJsStatic::class)
+        @JsStatic
+        fun Create(name: String, environment: Environment) = MintPatRequest(name, environment = environment)
+    }
+}
+
+@JsExport
+@Serializable
+data class MintPatResponse(
+    val rawToken: String,
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf()
+): Response()
+
+@JsExport
+@Serializable
+data class VerifyPatRequest(
+    val rawToken: String,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment
+): Request() {
+    companion object {
+        @OptIn(ExperimentalJsStatic::class)
+        @JsStatic
+        fun Create(rawToken: String, environment: Environment) = VerifyPatRequest(rawToken, environment = environment)
+    }
+}
+
+@JsExport
+@Serializable
+data class VerifyPatResponse(
+    val isValid: Boolean,
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf()
+): Response()
+
+@JsExport
 abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val login: PostHandler<LoginRequest, LoginResponse>
+    abstract val mintPat: PostHandler<MintPatRequest, MintPatResponse>
+    abstract val verifyPat: PostHandler<VerifyPatRequest, VerifyPatResponse>
 }
 
 @JsExport
@@ -97,5 +152,13 @@ open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
                 { it.body() },
                 { LoginResponse.Failure.ServerError("Unknown Error") }
             )
+    }
+
+    override val mintPat = PostHandler<MintPatRequest, MintPatResponse>("/auth/test-mint-pat") {
+        http.Post(route) { setBody(it) }.fold({ it.body() }, { MintPatResponse("") })
+    }
+
+    override val verifyPat = PostHandler<VerifyPatRequest, VerifyPatResponse>("/auth/test-verify-pat") {
+        http.Post(route) { setBody(it) }.fold({ it.body() }, { VerifyPatResponse(false) })
     }
 }

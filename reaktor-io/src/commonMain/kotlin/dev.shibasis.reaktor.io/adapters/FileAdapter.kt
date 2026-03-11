@@ -68,29 +68,6 @@ File System Access: Unlike Android, where apps can request permission to access 
 iCloud Backup: Certain iOS directories (like Documents) are backed up to iCloud by default, unlike Android's more manual approach to backup and restore.
 */
 
-internal expect suspend fun platformFileExists(path: String): Boolean
-
-internal expect suspend fun platformDeleteFile(path: String)
-
-internal expect suspend fun platformCopyFile(
-    sourcePath: String,
-    destPath: String,
-)
-
-internal expect suspend fun platformReadBinary(path: String): ByteArray?
-
-internal expect suspend fun platformReadText(path: String): String?
-
-internal expect suspend fun platformWriteText(
-    path: String,
-    data: String,
-)
-
-internal expect suspend fun platformWriteBinary(
-    path: String,
-    data: ByteArray,
-)
-
 @JsExport
 abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     abstract val cacheDirectory: String
@@ -113,27 +90,24 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
         actions(source)
     }
 
-    open suspend fun exists(path: String): Boolean = platformFileExists(path)
+    abstract suspend fun exists(path: String): Boolean
 
-    open suspend fun delete(path: String) {
-        platformDeleteFile(path)
-    }
+    abstract suspend fun delete(path: String)
 
     open suspend fun copy(sourcePath: String, destPath: String) {
-        platformCopyFile(sourcePath, destPath)
+        val contents = readBinaryFile(sourcePath) ?: return
+        writeBinaryFile(destPath, contents)
     }
 
-    open suspend fun readBinaryFile(path: String): ByteArray? = platformReadBinary(path)
+    abstract suspend fun readBinaryFile(path: String): ByteArray?
 
-    open suspend fun readTextFile(path: String): String? = platformReadText(path)
+    open suspend fun readTextFile(path: String): String? = readBinaryFile(path)?.decodeToString()
 
     open suspend fun writeTextFile(path: String, data: String) {
-        platformWriteText(path, data)
+        writeBinaryFile(path, data.encodeToByteArray())
     }
 
-    open suspend fun writeBinaryFile(path: String, data: ByteArray) {
-        platformWriteBinary(path, data)
-    }
+    abstract suspend fun writeBinaryFile(path: String, data: ByteArray)
 }
 
 var Feature.File by CreateSlot<FileAdapter<*>>()

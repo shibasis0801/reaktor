@@ -9,7 +9,7 @@ import kotlin.properties.ReadOnlyProperty
 
 
 @JsExport
-class ProviderPort<Functionality: Any>(
+open class ProviderPort<Functionality: Any>(
     owner: PortCapability,
     key: Key,
     type: Type,
