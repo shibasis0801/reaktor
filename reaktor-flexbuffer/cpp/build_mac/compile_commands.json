@@ -1,0 +1,38 @@
+[
+{
+  "directory": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/reaktor-flexbuffer/cpp/build_mac/fb-build",
+  "command": "/usr/bin/c++ -DFLATBUFFERS_LOCALE_INDEPENDENT=0 -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/include -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/grpc -std=c++14 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -Wall -pedantic -Wextra -Wno-unused-parameter -Wold-style-cast -fsigned-char -Wnon-virtual-dtor -Wnewline-eof -Wno-unknown-warning-option -Wmissing-declarations -Wzero-as-null-pointer-constant -Wimplicit-fallthrough -Wextra-semi -o CMakeFiles/flatbuffers.dir/src/file_manager.cpp.o -c /Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/file_manager.cpp",
+  "file": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/file_manager.cpp",
+  "output": "fb-build/CMakeFiles/flatbuffers.dir/src/file_manager.cpp.o"
+},
+{
+  "directory": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/reaktor-flexbuffer/cpp/build_mac/fb-build",
+  "command": "/usr/bin/c++ -DFLATBUFFERS_LOCALE_INDEPENDENT=0 -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/include -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/grpc -std=c++14 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -Wall -pedantic -Wextra -Wno-unused-parameter -Wold-style-cast -fsigned-char -Wnon-virtual-dtor -Wnewline-eof -Wno-unknown-warning-option -Wmissing-declarations -Wzero-as-null-pointer-constant -Wimplicit-fallthrough -Wextra-semi -o CMakeFiles/flatbuffers.dir/src/file_name_manager.cpp.o -c /Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/file_name_manager.cpp",
+  "file": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/file_name_manager.cpp",
+  "output": "fb-build/CMakeFiles/flatbuffers.dir/src/file_name_manager.cpp.o"
+},
+{
+  "directory": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/reaktor-flexbuffer/cpp/build_mac/fb-build",
+  "command": "/usr/bin/c++ -DFLATBUFFERS_LOCALE_INDEPENDENT=0 -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/include -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/grpc -std=c++14 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -Wall -pedantic -Wextra -Wno-unused-parameter -Wold-style-cast -fsigned-char -Wnon-virtual-dtor -Wnewline-eof -Wno-unknown-warning-option -Wmissing-declarations -Wzero-as-null-pointer-constant -Wimplicit-fallthrough -Wextra-semi -o CMakeFiles/flatbuffers.dir/src/idl_parser.cpp.o -c /Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/idl_parser.cpp",
+  "file": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/idl_parser.cpp",
+  "output": "fb-build/CMakeFiles/flatbuffers.dir/src/idl_parser.cpp.o"
+},
+{
+  "directory": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/reaktor-flexbuffer/cpp/build_mac/fb-build",
+  "command": "/usr/bin/c++ -DFLATBUFFERS_LOCALE_INDEPENDENT=0 -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/include -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/grpc -std=c++14 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -Wall -pedantic -Wextra -Wno-unused-parameter -Wold-style-cast -fsigned-char -Wnon-virtual-dtor -Wnewline-eof -Wno-unknown-warning-option -Wmissing-declarations -Wzero-as-null-pointer-constant -Wimplicit-fallthrough -Wextra-semi -o CMakeFiles/flatbuffers.dir/src/idl_gen_text.cpp.o -c /Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/idl_gen_text.cpp",
+  "file": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/idl_gen_text.cpp",
+  "output": "fb-build/CMakeFiles/flatbuffers.dir/src/idl_gen_text.cpp.o"
+},
+{
+  "directory": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/reaktor-flexbuffer/cpp/build_mac/fb-build",
+  "command": "/usr/bin/c++ -DFLATBUFFERS_LOCALE_INDEPENDENT=0 -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/include -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/grpc -std=c++14 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -Wall -pedantic -Wextra -Wno-unused-parameter -Wold-style-cast -fsigned-char -Wnon-virtual-dtor -Wnewline-eof -Wno-unknown-warning-option -Wmissing-declarations -Wzero-as-null-pointer-constant -Wimplicit-fallthrough -Wextra-semi -o CMakeFiles/flatbuffers.dir/src/reflection.cpp.o -c /Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/reflection.cpp",
+  "file": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/reflection.cpp",
+  "output": "fb-build/CMakeFiles/flatbuffers.dir/src/reflection.cpp.o"
+},
+{
+  "directory": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/reaktor-flexbuffer/cpp/build_mac/fb-build",
+  "command": "/usr/bin/c++ -DFLATBUFFERS_LOCALE_INDEPENDENT=0 -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/include -I/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/grpc -std=c++14 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -Wall -pedantic -Wextra -Wno-unused-parameter -Wold-style-cast -fsigned-char -Wnon-virtual-dtor -Wnewline-eof -Wno-unknown-warning-option -Wmissing-declarations -Wzero-as-null-pointer-constant -Wimplicit-fallthrough -Wextra-semi -o CMakeFiles/flatbuffers.dir/src/util.cpp.o -c /Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/util.cpp",
+  "file": "/Users/ovd/dev/.claude/worktrees/musing-northcutt/flatInvoker/.github_modules/flatbuffers/src/util.cpp",
+  "output": "fb-build/CMakeFiles/flatbuffers.dir/src/util.cpp.o"
+}
+]
