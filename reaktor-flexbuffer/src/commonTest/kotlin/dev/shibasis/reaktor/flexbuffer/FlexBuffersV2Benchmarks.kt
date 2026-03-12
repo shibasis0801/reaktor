@@ -10,7 +10,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.time.measureTime
 
 /**
@@ -24,11 +23,35 @@ import kotlin.time.measureTime
  *
  * Run via: ./gradlew :reaktor-flexbuffer:iosSimulatorArm64Test
  *   or:    ./gradlew :reaktor-flexbuffer:connectedDebugAndroidTest
+ *
+ * Latest JVM snapshot (2026-03-12, local arm64 run via `:reaktor-flexbuffer:testDebugUnitTest`):
+ * - FlatPrimitives: Flex encode/decode 12/5us, Json 6/7us, size 164B vs 113B.
+ * - CollectionHeavy: Flex encode/decode 17/13us, Json 29/31us, size 3375B vs 3325B.
+ * - EncodingComplexCase: Flex encode/decode 27/21us, Json 10/16us, size 1275B vs 981B.
+ * - EncodingSophisticatedCase: Flex encode/decode 379/307us, Json 158/247us, size 43450B vs 48538B.
+ * - DeeplyNested: Flex encode/decode 2/1us, Json 0/1us, size 304B vs 213B.
+ *
+ * Why Json still wins on some JVM cases:
+ * - FlexBuffers is schemaless here, so every class/object is encoded as a map and every map is key-sorted on close.
+ * - The Google Kotlin builder materializes one Value wrapper per emitted field/value before flushing bytes.
+ * - Object decode does name-based map lookups instead of declaration-order streaming, so nested graphs pay repeated key search cost.
+ * - Non-string map keys still round-trip through strings because FlexBuffer keys are stored as T_KEY.
+ * - kotlinx.serialization Json is already highly optimized for generated serializers on JVM, so "binary" does not automatically mean "faster".
+ *
+ * Current improvement targets:
+ * - Reuse a pooled builder and backing byte buffer so each encode does less allocation and copying.
+ * - Cache descriptor field metadata and precomputed keys to cut repeated name lookup and branching.
+ * - Add typed fast paths for homogeneous primitive vectors and byte arrays instead of generic collection flow.
+ * - Avoid string round-trips for non-string map keys during decode by keeping typed key metadata on the stack.
+ * - Reduce decode-side object churn in nested collections by pre-sizing containers from FlexBuffer vector/map counts.
  */
 class FlexBuffersV2Benchmarks {
 
-    // Reusable Json instance — mirrors real-world usage where Json is configured once
-    private val json = Json { ignoreUnknownKeys = true }
+    // Reusable Json instance — encode defaults so size comparisons reflect full payloads.
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     // ==================== Data Structures ====================
 
@@ -99,6 +122,10 @@ class FlexBuffersV2Benchmarks {
         return perOp
     }
 
+    private inline fun <reified T> encodeJson(value: T): String = json.encodeToString(value)
+
+    private fun jsonSizeBytes(jsonString: String): Int = jsonString.encodeToByteArray().size
+
     // ==================== Correctness + Performance: Flat Primitives ====================
 
     @Test
@@ -116,10 +143,10 @@ class FlexBuffersV2Benchmarks {
         }
 
         val jsonEncodeTime = benchmark("Json encode") {
-            json.encodeToString(data)
+            encodeJson(data)
         }
 
-        val jsonString = json.encodeToString(data)
+        val jsonString = encodeJson(data)
         val jsonDecodeTime = benchmark("Json decode") {
             json.decodeFromString<FlatPrimitives>(jsonString)
         }
@@ -127,7 +154,7 @@ class FlexBuffersV2Benchmarks {
         println("  FlexBuffer round-trip: ${flexEncodeTime + flexDecodeTime}µs")
         println("  Json round-trip: ${jsonEncodeTime + jsonDecodeTime}µs")
         println("  FlexBuffer encoded size: ${encoded.size} bytes")
-        println("  Json encoded size: ${jsonString.length} bytes")
+        println("  Json encoded size: ${jsonSizeBytes(jsonString)} bytes")
 
         // Correctness
         val decoded = FlexBuffers.decode<FlatPrimitives>(encoded)
@@ -153,10 +180,10 @@ class FlexBuffersV2Benchmarks {
         }
 
         val jsonEncodeTime = benchmark("Json encode") {
-            json.encodeToString(data)
+            encodeJson(data)
         }
 
-        val jsonString = json.encodeToString(data)
+        val jsonString = encodeJson(data)
         val jsonDecodeTime = benchmark("Json decode") {
             json.decodeFromString<CollectionHeavy>(jsonString)
         }
@@ -164,7 +191,7 @@ class FlexBuffersV2Benchmarks {
         println("  FlexBuffer round-trip: ${flexEncodeTime + flexDecodeTime}µs")
         println("  Json round-trip: ${jsonEncodeTime + jsonDecodeTime}µs")
         println("  FlexBuffer encoded size: ${encoded.size} bytes")
-        println("  Json encoded size: ${jsonString.length} bytes")
+        println("  Json encoded size: ${jsonSizeBytes(jsonString)} bytes")
 
         // Correctness
         val decoded = FlexBuffers.decode<CollectionHeavy>(encoded)
@@ -189,10 +216,10 @@ class FlexBuffersV2Benchmarks {
         }
 
         val jsonEncodeTime = benchmark("Json encode") {
-            json.encodeToString(data)
+            encodeJson(data)
         }
 
-        val jsonString = json.encodeToString(data)
+        val jsonString = encodeJson(data)
         val jsonDecodeTime = benchmark("Json decode") {
             json.decodeFromString<EncodingComplexCase>(jsonString)
         }
@@ -200,7 +227,7 @@ class FlexBuffersV2Benchmarks {
         println("  FlexBuffer round-trip: ${flexEncodeTime + flexDecodeTime}µs")
         println("  Json round-trip: ${jsonEncodeTime + jsonDecodeTime}µs")
         println("  FlexBuffer encoded size: ${encoded.size} bytes")
-        println("  Json encoded size: ${jsonString.length} bytes")
+        println("  Json encoded size: ${jsonSizeBytes(jsonString)} bytes")
 
         // Correctness
         val decoded = FlexBuffers.decode<EncodingComplexCase>(encoded)
@@ -227,10 +254,10 @@ class FlexBuffersV2Benchmarks {
         }
 
         val jsonEncodeTime = benchmark("Json encode") {
-            json.encodeToString(data)
+            encodeJson(data)
         }
 
-        val jsonString = json.encodeToString(data)
+        val jsonString = encodeJson(data)
         val jsonDecodeTime = benchmark("Json decode") {
             json.decodeFromString<EncodingSophisticatedCase>(jsonString)
         }
@@ -238,7 +265,7 @@ class FlexBuffersV2Benchmarks {
         println("  FlexBuffer round-trip: ${flexEncodeTime + flexDecodeTime}µs")
         println("  Json round-trip: ${jsonEncodeTime + jsonDecodeTime}µs")
         println("  FlexBuffer encoded size: ${encoded.size} bytes")
-        println("  Json encoded size: ${jsonString.length} bytes")
+        println("  Json encoded size: ${jsonSizeBytes(jsonString)} bytes")
 
         // Correctness
         val decoded = FlexBuffers.decode<EncodingSophisticatedCase>(encoded)
@@ -262,10 +289,10 @@ class FlexBuffersV2Benchmarks {
         }
 
         val jsonEncodeTime = benchmark("Json encode") {
-            json.encodeToString(data)
+            encodeJson(data)
         }
 
-        val jsonString = json.encodeToString(data)
+        val jsonString = encodeJson(data)
         val jsonDecodeTime = benchmark("Json decode") {
             json.decodeFromString<DeeplyNested>(jsonString)
         }
@@ -273,7 +300,7 @@ class FlexBuffersV2Benchmarks {
         println("  FlexBuffer round-trip: ${flexEncodeTime + flexDecodeTime}µs")
         println("  Json round-trip: ${jsonEncodeTime + jsonDecodeTime}µs")
         println("  FlexBuffer encoded size: ${encoded.size} bytes")
-        println("  Json encoded size: ${jsonString.length} bytes")
+        println("  Json encoded size: ${jsonSizeBytes(jsonString)} bytes")
 
         // Correctness
         val decoded = FlexBuffers.decode<DeeplyNested>(encoded)
@@ -331,19 +358,19 @@ class FlexBuffersV2Benchmarks {
 
         printSize("FlatPrimitives",
             FlexBuffers.encode(FlatPrimitives()).size,
-            json.encodeToString(FlatPrimitives()).length)
+            jsonSizeBytes(encodeJson(FlatPrimitives())))
 
         printSize("CollectionHeavy",
             FlexBuffers.encode(CollectionHeavy()).size,
-            json.encodeToString(CollectionHeavy()).length)
+            jsonSizeBytes(encodeJson(CollectionHeavy())))
 
         printSize("EncodingComplexCase",
             FlexBuffers.encode(EncodingComplexCase()).size,
-            json.encodeToString(EncodingComplexCase()).length)
+            jsonSizeBytes(encodeJson(EncodingComplexCase())))
 
         printSize("DeeplyNested",
             FlexBuffers.encode(DeeplyNested()).size,
-            json.encodeToString(DeeplyNested()).length)
+            jsonSizeBytes(encodeJson(DeeplyNested())))
     }
 
     // ==================== Full Round-Trip Correctness ====================
