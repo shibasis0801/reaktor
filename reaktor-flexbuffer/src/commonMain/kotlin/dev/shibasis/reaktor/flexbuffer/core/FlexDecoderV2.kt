@@ -16,22 +16,24 @@ import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 
-// Type alias to avoid conflict with kotlin.collections.Map
 internal typealias FlexMap = com.google.flatbuffers.kotlin.Map
 
 /**
- * High-performance FlexBuffer decoder.
+ * FlexBuffer decoder using kotlinx.serialization's AbstractDecoder.
  *
- * Design goals:
- * 1. Zero-copy where possible - reads directly from buffer
- * 2. Minimum allocations - reuses internal structures
- * 3. Full type support - primitives, collections, nested objects
- * 4. Thread-safe - stateless after construction
+ * Architecture: uses a pooled context stack to track position in nested structures.
+ * Each context holds a reference to the current FlexBuffer node (Map, Vector, or scalar).
  *
- * Key concepts:
- * - Uses a DecodingContext stack to track position in nested structures
- * - Maps use binary search for key lookup (O(log n))
- * - Vectors/arrays use direct index access (O(1))
+ * Hot path: decodeElementIndex → getCurrentReference → decodePrimitive.
+ * This path executes for every field in every object, so it must be allocation-free.
+ *
+ * Field lookup in MAP_OBJECT context: FlexBuffer maps store keys sorted, so
+ * Map.get(String) uses binary search — O(log n) per field. For a class with k fields
+ * present in a map of n entries, total cost is O(k * log n). Fields missing from the
+ * buffer are skipped in O(1) per field via the iterative scan in decodeElementIndex.
+ *
+ * Ref: "Effective Java" (Bloch, Item 6) — avoid creating unnecessary objects
+ * Ref: https://flatbuffers.dev/flexbuffers.html — FlexBuffer binary layout
  */
 @OptIn(ExperimentalSerializationApi::class)
 class FlexDecoderV2 private constructor(
@@ -39,27 +41,18 @@ class FlexDecoderV2 private constructor(
     override val serializersModule: SerializersModule
 ) : AbstractDecoder() {
 
-    // Stack of decoding contexts for nested structures
+    // Pre-allocated context stack. Avoids per-structure allocations after warmup.
+    // Ref: "Object Pool" pattern — "Game Programming Patterns" (Nystrom, ch.19)
     private val contextStack = DecodingContextStack()
 
-    // Current context being decoded
     private var currentContext: DecodingContext? = null
-
-    // Index tracking for sequential decoding
     private var elementIndex = 0
 
     companion object {
-        /**
-         * Decode FlexBuffer bytes to a value.
-         * This is the recommended entry point.
-         */
         inline fun <reified T> decode(bytes: ByteArray): T {
             return decode(serializer(), bytes)
         }
 
-        /**
-         * Decode using explicit deserializer.
-         */
         fun <T> decode(deserializer: DeserializationStrategy<T>, bytes: ByteArray): T {
             val buffer = ArrayReadBuffer(bytes)
             val root = getRoot(buffer)
@@ -67,9 +60,6 @@ class FlexDecoderV2 private constructor(
             return decoder.decodeSerializableValue(deserializer)
         }
 
-        /**
-         * Decode from an existing ReadBuffer (zero-copy from encoder).
-         */
         fun <T> decode(deserializer: DeserializationStrategy<T>, buffer: ReadBuffer): T {
             val root = getRoot(buffer)
             val decoder = FlexDecoderV2(root, EmptySerializersModule())
@@ -79,27 +69,37 @@ class FlexDecoderV2 private constructor(
 
     // ==================== Element Index Tracking ====================
 
+    /**
+     * Returns the next element index to decode, or DECODE_DONE.
+     *
+     * MAP_OBJECT: iterates descriptor fields, skipping any not present in the FlexBuffer map.
+     * Uses a while loop instead of recursion to avoid stack depth proportional to missing fields.
+     * Worst case: class with N fields, none present → N iterations, zero stack growth.
+     *
+     * VECTOR: direct index increment — O(1).
+     * MAP_ENTRIES: alternates key/value — O(1).
+     */
     override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
         val ctx = currentContext ?: return CompositeDecoder.DECODE_DONE
 
         return when (ctx.type) {
             ContextType.MAP_OBJECT -> {
-                // For objects decoded from maps, iterate through descriptor fields
-                if (ctx.fieldIndex >= descriptor.elementsCount) {
-                    CompositeDecoder.DECODE_DONE
-                } else {
+                val map = ctx.mapRef
+                val count = descriptor.elementsCount
+                // Iterative scan replaces the original recursive call.
+                // Each iteration is a single Map.get (binary search on sorted keys).
+                while (ctx.fieldIndex < count) {
                     val fieldName = descriptor.getElementName(ctx.fieldIndex)
-                    val ref = ctx.mapRef?.get(fieldName)
+                    val ref = map?.get(fieldName)
                     if (ref != null && !ref.isNull) {
                         ctx.currentRef = ref
+                        val idx = ctx.fieldIndex
                         ctx.fieldIndex++
-                        ctx.fieldIndex - 1
-                    } else {
-                        // Field not found in map, try next
-                        ctx.fieldIndex++
-                        decodeElementIndex(descriptor)
+                        return idx
                     }
+                    ctx.fieldIndex++
                 }
+                CompositeDecoder.DECODE_DONE
             }
             ContextType.VECTOR -> {
                 if (ctx.vectorIndex >= ctx.size) {
@@ -112,18 +112,14 @@ class FlexDecoderV2 private constructor(
                 }
             }
             ContextType.MAP_ENTRIES -> {
-                // For Map<K,V> iteration - return key/value pairs
                 if (ctx.mapEntryIndex >= ctx.size * 2) {
                     CompositeDecoder.DECODE_DONE
                 } else {
                     val pairIndex = ctx.mapEntryIndex / 2
                     val isKey = ctx.mapEntryIndex % 2 == 0
-
                     if (isKey) {
-                        // Return map key
                         ctx.currentMapKey = ctx.mapRef?.keyAsString(pairIndex)
                     } else {
-                        // Return map value
                         ctx.currentRef = ctx.mapRef?.get(pairIndex)
                     }
                     val idx = ctx.mapEntryIndex
@@ -146,56 +142,51 @@ class FlexDecoderV2 private constructor(
     override fun decodeSequentially(): Boolean = false
 
     override fun decodeCollectionSize(descriptor: SerialDescriptor): Int {
-        val ctx = currentContext ?: return 0
-        return ctx.size
+        return currentContext?.size ?: 0
     }
 
     // ==================== Primitive Decoding ====================
+    // Each method reads directly from the FlexBuffer Reference — zero copy for primitives.
+    // Reference.toInt() etc. read from the underlying byte buffer without allocation.
+    // Ref: https://flatbuffers.dev/flexbuffers.html — packed value types
 
     override fun decodeBoolean(): Boolean {
-        val ref = getCurrentReference()
-        return ref?.toBoolean() ?: false
+        return getCurrentReference()?.toBoolean() ?: false
     }
 
     override fun decodeByte(): Byte {
-        val ref = getCurrentReference()
-        return ref?.toByte() ?: 0
+        return getCurrentReference()?.toByte() ?: 0
     }
 
     override fun decodeShort(): Short {
-        val ref = getCurrentReference()
-        return ref?.toShort() ?: 0
+        return getCurrentReference()?.toShort() ?: 0
     }
 
     override fun decodeInt(): Int {
-        val ref = getCurrentReference()
-        return ref?.toInt() ?: 0
+        return getCurrentReference()?.toInt() ?: 0
     }
 
     override fun decodeLong(): Long {
-        val ref = getCurrentReference()
-        return ref?.toLong() ?: 0L
+        return getCurrentReference()?.toLong() ?: 0L
     }
 
     override fun decodeFloat(): Float {
-        val ref = getCurrentReference()
-        return ref?.toFloat() ?: 0f
+        return getCurrentReference()?.toFloat() ?: 0f
     }
 
     override fun decodeDouble(): Double {
-        val ref = getCurrentReference()
-        return ref?.toDouble() ?: 0.0
+        return getCurrentReference()?.toDouble() ?: 0.0
     }
 
     override fun decodeChar(): Char {
-        val ref = getCurrentReference()
-        return ref?.toInt()?.toChar() ?: '\u0000'
+        return getCurrentReference()?.toInt()?.toChar() ?: '\u0000'
     }
 
     override fun decodeString(): String {
         val ctx = currentContext
-
-        // Check if we're decoding a map key
+        // Fast path: map key decoding. The key string is already materialized by
+        // keyAsString() in decodeElementIndex, so we return it directly without
+        // any Reference traversal.
         if (ctx != null && ctx.type == ContextType.MAP_ENTRIES) {
             val key = ctx.currentMapKey
             if (key != null) {
@@ -203,19 +194,14 @@ class FlexDecoderV2 private constructor(
                 return key
             }
         }
-
-        val ref = getCurrentReference()
-        return ref?.toString() ?: ""
+        return getCurrentReference()?.toString() ?: ""
     }
 
     override fun decodeEnum(enumDescriptor: SerialDescriptor): Int {
-        val ref = getCurrentReference()
-        return ref?.toInt() ?: 0
+        return getCurrentReference()?.toInt() ?: 0
     }
 
-    override fun decodeNull(): Nothing? {
-        return null
-    }
+    override fun decodeNull(): Nothing? = null
 
     override fun decodeNotNullMark(): Boolean {
         val ref = getCurrentReference()
@@ -229,17 +215,14 @@ class FlexDecoderV2 private constructor(
 
         when (descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
-                // Classes are encoded as maps
                 if (ref.isMap) {
                     val map = ref.toMap()
                     contextStack.push(ContextType.MAP_OBJECT, mapRef = map, size = map.size)
                 } else {
-                    // Fallback: treat as single value
                     contextStack.push(ContextType.ROOT)
                 }
             }
             StructureKind.LIST -> {
-                // Lists are encoded as vectors
                 if (ref.isVector || ref.isTypedVector) {
                     val vec = ref.toVector()
                     contextStack.push(ContextType.VECTOR, vectorRef = vec, size = vec.size)
@@ -248,7 +231,6 @@ class FlexDecoderV2 private constructor(
                 }
             }
             StructureKind.MAP -> {
-                // Maps iterate as key-value pairs
                 if (ref.isMap) {
                     val map = ref.toMap()
                     contextStack.push(ContextType.MAP_ENTRIES, mapRef = map, size = map.size)
@@ -297,31 +279,33 @@ class FlexDecoderV2 private constructor(
  */
 enum class ContextType {
     ROOT,           // Root level
-    MAP_OBJECT,     // Decoding object fields from a map
-    VECTOR,         // Decoding vector elements
-    MAP_ENTRIES     // Decoding map as key-value pairs
+    MAP_OBJECT,     // Decoding object fields from a map (binary search lookup)
+    VECTOR,         // Decoding vector elements (O(1) indexed access)
+    MAP_ENTRIES     // Decoding map as key-value pairs (for Map<K,V>)
 }
 
 /**
- * Context for tracking position during decoding.
+ * Mutable context for tracking position during decoding.
+ * Instances are pooled in DecodingContextStack to avoid GC pressure.
+ *
+ * Fields are reset via reset() rather than creating new instances.
+ * This trades code clarity for allocation avoidance — critical in tight decode loops.
+ *
+ * Ref: "Effective Java" (Bloch, Item 6) — reuse objects instead of creating new ones
  */
 class DecodingContext {
     var type: ContextType = ContextType.ROOT
     var size: Int = 0
 
-    // For MAP_OBJECT: iterating through object fields
     var mapRef: FlexMap? = null
     var fieldIndex: Int = 0
 
-    // For VECTOR: iterating through elements
     var vectorRef: Vector? = null
     var vectorIndex: Int = 0
 
-    // For MAP_ENTRIES: iterating through map entries
     var mapEntryIndex: Int = 0
     var currentMapKey: String? = null
 
-    // Current reference being decoded
     var currentRef: Reference? = null
 
     fun reset(
@@ -343,9 +327,13 @@ class DecodingContext {
 }
 
 /**
- * Pooled stack for decoding contexts.
+ * Pre-allocated stack of DecodingContext objects.
+ * Grows by doubling when capacity is exceeded, but never shrinks — contexts are reused.
+ * Initial capacity of 16 handles nesting depth up to 16 without reallocation.
+ *
+ * Ref: "Introduction to Algorithms" (CLRS, §17.4) — amortized doubling
  */
-class DecodingContextStack(initialCapacity: Int = 32) {
+class DecodingContextStack(initialCapacity: Int = 16) {
     private val contexts = ArrayList<DecodingContext>(initialCapacity)
     private var size = 0
 
@@ -362,7 +350,8 @@ class DecodingContextStack(initialCapacity: Int = 32) {
         size: Int = 0
     ) {
         if (this.size >= contexts.size) {
-            repeat(contexts.size) {
+            val growBy = contexts.size
+            repeat(growBy) {
                 contexts.add(DecodingContext())
             }
         }

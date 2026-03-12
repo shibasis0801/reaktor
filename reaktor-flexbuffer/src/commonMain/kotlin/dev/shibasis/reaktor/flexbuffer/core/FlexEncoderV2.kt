@@ -8,25 +8,25 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
-import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 
 /**
- * High-performance FlexBuffer encoder using pure Kotlin FlexBuffersBuilder.
+ * FlexBuffer encoder using pure Kotlin FlexBuffersBuilder (no JNI).
  *
- * Design goals:
- * 1. Minimum allocations - reuse builders via pooling
- * 2. No JNI overhead - pure Kotlin implementation
- * 3. Thread-safe - can be used from multiple threads with pooling
- * 4. Full type support - all Kotlin types including nested structures
+ * Hot path: encodeElement → handleMapKey/getEncodingKey → builder.set().
+ * The dominant cost is FlexBuffersBuilder.set() which writes to its internal byte buffer.
+ * Everything above it (key resolution, stack peek) is O(1) with zero allocation in steady state.
  *
- * Performance optimizations:
- * - Uses object pooling for builders
- * - Inline functions where beneficial
- * - Avoids string allocations for field names by caching
- * - Direct primitive encoding without boxing
+ * Map<K,V> encoding protocol (from kotlinx.serialization):
+ *   Even indices = keys, odd indices = values.
+ *   Keys arrive via encodePrimitive() before their corresponding value.
+ *   We capture the key as a string (handleMapKey) and pass it to builder.set() with the value.
+ *   Non-string keys are converted via toString() — this is inherent to FlexBuffer's T_KEY type.
+ *
+ * Ref: https://flatbuffers.dev/flexbuffers.html — binary format spec
+ * Ref: "Game Programming Patterns" (Nystrom, ch.19) — Object Pool pattern for StructureStack
  */
 @OptIn(ExperimentalSerializationApi::class, ExperimentalUnsignedTypes::class)
 class FlexEncoderV2 private constructor(
@@ -34,23 +34,20 @@ class FlexEncoderV2 private constructor(
     override val serializersModule: SerializersModule
 ) : AbstractEncoder() {
 
-    // Stack for tracking nested structures
     private val structureStack = StructureStack()
-
-    // Current field name for map keys
     private var pendingKey: String? = null
 
     companion object {
-        /**
-         * Encode a value to FlexBuffer bytes using object pooling.
-         * This is the recommended way to encode.
-         */
         inline fun <reified T> encode(value: T): ByteArray {
             return encode(serializer(), value)
         }
 
         /**
-         * Encode a value using explicit serializer.
+         * Encode using pooled FlexBuffersBuilder. The pool amortizes builder allocation.
+         * After encoding, finish() returns a ReadBuffer pointing to the builder's internal
+         * storage, which is then copied to a new ByteArray via toByteArray().
+         *
+         * If you want to avoid this final copy, use encodeToBuffer() with your own builder.
          */
         fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
             return FlexBufferPool.withEncoder { builder ->
@@ -61,7 +58,9 @@ class FlexEncoderV2 private constructor(
         }
 
         /**
-         * Encode to a pre-allocated buffer (for zero-copy scenarios).
+         * Encode into a caller-owned builder for zero-copy scenarios.
+         * The returned ReadBuffer points directly into the builder's byte buffer.
+         * Valid only until the builder is cleared or reused.
          */
         fun <T> encodeToBuffer(
             serializer: SerializationStrategy<T>,
@@ -75,25 +74,28 @@ class FlexEncoderV2 private constructor(
         }
     }
 
-    // ==================== Primitive Encoding ====================
+    // ==================== Map Key Handling ====================
+    // FlexBuffer maps require keys as strings (T_KEY type).
+    // When encoding Map<K,V>, kotlinx.serialization sends keys at even indices
+    // and values at odd indices. We intercept keys via handleMapKey() and
+    // hold them until the corresponding value is encoded.
 
     /**
-     * Handles map key capture for Map<K,V> encoding.
-     * When we're in a MAP context and expecting a key, capture the value as the key
-     * for the next value, rather than encoding it.
-     * @return true if the value should NOT be encoded (was captured as key), false if it should be encoded
+     * If we're in a MAP context expecting a key, capture value.toString() as the key.
+     * @return true if captured (caller should NOT encode the value), false otherwise
      */
     private fun handleMapKey(value: Any): Boolean {
         val current = structureStack.peek() ?: return false
         if (current.kind == StructureType.MAP && current.expectingKey) {
             current.capturedKey = value.toString()
-            return true // Key captured, don't encode
+            return true
         }
         return false
     }
 
     /**
-     * Gets the key to use for encoding, either from pendingKey or capturedKey.
+     * Returns the key for the next builder.set() call.
+     * Priority: capturedKey (from map key encoding) > pendingKey (from class field name).
      */
     private fun getEncodingKey(): String? {
         val current = structureStack.peek()
@@ -105,100 +107,88 @@ class FlexEncoderV2 private constructor(
         return consumeKey()
     }
 
+    // ==================== Primitive Encoding ====================
+    // Each override follows the same pattern: check if this is a map key, then encode.
+    // builder.set(key, value) writes directly to the internal byte buffer — no boxing.
+
     override fun encodeBoolean(value: Boolean) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeByte(value: Byte) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeShort(value: Short) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeInt(value: Int) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeLong(value: Long) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeFloat(value: Float) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeDouble(value: Double) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeChar(value: Char) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value.code)
+        builder.set(getEncodingKey(), value.code)
     }
 
     override fun encodeString(value: String) {
         if (handleMapKey(value)) return
-        val key = getEncodingKey()
-        builder.set(key, value)
+        builder.set(getEncodingKey(), value)
     }
 
     override fun encodeNull() {
-        val key = getEncodingKey()
-        builder.putNull(key)
+        builder.putNull(getEncodingKey())
     }
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) {
         if (handleMapKey(index)) return
-        val key = getEncodingKey()
-        builder.set(key, index)
+        builder.set(getEncodingKey(), index)
     }
 
     // ==================== Structure Handling ====================
 
+    /**
+     * Called before each element. Sets up pendingKey for class fields,
+     * toggles key/value expectation for map entries.
+     *
+     * Cost: O(1). descriptor.getElementName() returns a cached string.
+     */
     override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
         val current = structureStack.peek()
         if (current == null) {
-            // Root level - just set field name
             pendingKey = descriptor.getElementName(index)
             return true
         }
 
         when (current.kind) {
             StructureType.CLASS, StructureType.OBJECT -> {
-                // For classes, field names come from descriptor
                 pendingKey = descriptor.getElementName(index)
             }
             StructureType.MAP -> {
-                // For maps, even indices are keys, odd indices are values
-                // Keys are encoded as values first, then become the key for the next value
-                if (current.elementIndex % 2 == 0) {
-                    // This is a key position - the actual key will be set in encodeValue
-                    current.expectingKey = true
-                } else {
-                    // This is a value position - key was already captured
-                    current.expectingKey = false
-                }
+                current.expectingKey = current.elementIndex % 2 == 0
                 current.elementIndex++
             }
             StructureType.LIST -> {
-                // For lists, no keys needed
                 pendingKey = null
             }
         }
@@ -213,17 +203,13 @@ class FlexEncoderV2 private constructor(
 
         when (descriptor.kind) {
             StructureKind.LIST -> {
-                val start = builder.startVector()
-                structureStack.push(StructureType.LIST, start, key)
+                structureStack.push(StructureType.LIST, builder.startVector(), key)
             }
             StructureKind.MAP -> {
-                val start = builder.startMap()
-                structureStack.push(StructureType.MAP, start, key)
+                structureStack.push(StructureType.MAP, builder.startMap(), key)
             }
             else -> {
-                // Treat as list
-                val start = builder.startVector()
-                structureStack.push(StructureType.LIST, start, key)
+                structureStack.push(StructureType.LIST, builder.startVector(), key)
             }
         }
         return this
@@ -234,21 +220,16 @@ class FlexEncoderV2 private constructor(
 
         when (descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {
-                val start = builder.startMap()
-                structureStack.push(StructureType.CLASS, start, key)
+                structureStack.push(StructureType.CLASS, builder.startMap(), key)
             }
             StructureKind.LIST -> {
-                val start = builder.startVector()
-                structureStack.push(StructureType.LIST, start, key)
+                structureStack.push(StructureType.LIST, builder.startVector(), key)
             }
             StructureKind.MAP -> {
-                val start = builder.startMap()
-                structureStack.push(StructureType.MAP, start, key)
+                structureStack.push(StructureType.MAP, builder.startMap(), key)
             }
             else -> {
-                // Default to map for unknown structures
-                val start = builder.startMap()
-                structureStack.push(StructureType.CLASS, start, key)
+                structureStack.push(StructureType.CLASS, builder.startMap(), key)
             }
         }
         return this
@@ -276,18 +257,12 @@ class FlexEncoderV2 private constructor(
     }
 }
 
-/**
- * Type of structure being encoded.
- */
 enum class StructureType {
-    CLASS,
-    OBJECT,
-    LIST,
-    MAP
+    CLASS, OBJECT, LIST, MAP
 }
 
 /**
- * Entry on the structure stack.
+ * Mutable entry on the structure stack. Reused via reset() to avoid allocation.
  */
 class StructureEntry(
     var kind: StructureType = StructureType.CLASS,
@@ -308,10 +283,14 @@ class StructureEntry(
 }
 
 /**
- * Pooled stack for tracking nested structures.
- * Pre-allocates entries to avoid allocations during encoding.
+ * Pre-allocated stack of StructureEntry objects.
+ * Avoids per-structure allocation after the first encode pass warms the pool.
+ * Grows by doubling if nesting exceeds initial capacity (amortized O(1) push).
+ *
+ * Ref: "Introduction to Algorithms" (CLRS, §17.4) — amortized analysis of doubling arrays
+ * Ref: "Game Programming Patterns" (Nystrom, ch.19) — Object Pool pattern
  */
-class StructureStack(initialCapacity: Int = 32) {
+class StructureStack(initialCapacity: Int = 16) {
     private val entries = ArrayList<StructureEntry>(initialCapacity)
     private var size = 0
 
@@ -323,8 +302,8 @@ class StructureStack(initialCapacity: Int = 32) {
 
     fun push(kind: StructureType, position: Int, key: String? = null) {
         if (size >= entries.size) {
-            // Expand capacity
-            repeat(entries.size) {
+            val growBy = entries.size
+            repeat(growBy) {
                 entries.add(StructureEntry())
             }
         }

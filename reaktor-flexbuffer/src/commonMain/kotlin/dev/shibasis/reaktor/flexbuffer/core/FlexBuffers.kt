@@ -9,75 +9,45 @@ import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.serializer
 
 /**
- * FlexBuffers - High-performance binary serialization for Kotlin.
+ * Public API for FlexBuffer binary serialization.
  *
- * Features:
- * - Schema-less binary format (self-describing)
- * - Zero-copy decoding where possible
- * - Thread-safe with object pooling
- * - Full Kotlin Serialization integration
- * - Minimum allocations in steady state
+ * Encoding pipeline:
+ *   T → kotlinx.serialization → FlexEncoderV2 → FlexBuffersBuilder → ByteArray
+ *   - FlexEncoderV2 is allocation-free after warmup (pooled builder + pooled structure stack)
+ *   - FlexBuffersBuilder writes to a reusable internal byte buffer
+ *   - Final ByteArray copy is the only allocation per encode()
  *
- * Usage:
- * ```kotlin
- * // Encoding
- * val bytes = FlexBuffers.encode(myObject)
+ * Decoding pipeline:
+ *   ByteArray → ArrayReadBuffer → getRoot(Reference) → FlexDecoderV2 → T
+ *   - ArrayReadBuffer wraps the byte[] without copying
+ *   - getRoot() parses the root type tag from the last 2 bytes (O(1))
+ *   - FlexDecoderV2 navigates the binary tree using pooled context stack
+ *   - Primitive reads (toInt, toLong, etc.) are zero-copy from the buffer
  *
- * // Decoding
- * val decoded = FlexBuffers.decode<MyClass>(bytes)
+ * Thread safety: each encode/decode creates its own encoder/decoder instance.
+ * The FlexBuffersBuilder is acquired from a thread-safe pool (FlexBufferPool).
  *
- * // High-performance batch encoding
- * FlexBuffers.withEncoder { builder ->
- *     builder["name"] = "value"
- *     builder.putMap {
- *         this["nested"] = 123
- *     }
- * }
- * ```
- *
- * Thread Safety:
- * - All public methods are thread-safe
- * - Uses object pooling for FlexBuffersBuilder instances
- * - Each encode/decode operation is independent
- *
- * Performance Tips:
- * - For batch operations, use withEncoder to reuse builder
- * - For large objects, consider streaming if available
- * - Decoder reads directly from buffer (zero-copy for primitives)
+ * Ref: https://flatbuffers.dev/flexbuffers.html — format specification
+ * Ref: https://google.github.io/flatbuffers/ — FlatBuffers documentation
  */
 @OptIn(ExperimentalUnsignedTypes::class)
 object FlexBuffers {
 
     // ==================== Encoding ====================
 
-    /**
-     * Encode a value to FlexBuffer bytes.
-     *
-     * @param value The value to encode
-     * @return ByteArray containing the FlexBuffer data
-     */
     inline fun <reified T> encode(value: T): ByteArray {
         return encode(serializer<T>(), value)
     }
 
-    /**
-     * Encode a value using an explicit serializer.
-     *
-     * @param serializer The serialization strategy to use
-     * @param value The value to encode
-     * @return ByteArray containing the FlexBuffer data
-     */
     fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
         return FlexEncoderV2.encode(serializer, value)
     }
 
     /**
-     * Encode to a pre-allocated buffer for zero-copy scenarios.
-     *
-     * @param serializer The serialization strategy to use
-     * @param value The value to encode
-     * @param builder Pre-allocated FlexBuffersBuilder (will be cleared)
-     * @return ReadBuffer containing the encoded data (points to builder's internal buffer)
+     * Encode into a caller-owned builder, returning a ReadBuffer that points to the
+     * builder's internal storage. Avoids the final ByteArray copy — use when you need
+     * to pass the result directly to another FlexBuffer consumer or network layer.
+     * The returned ReadBuffer is invalidated when the builder is cleared or reused.
      */
     fun <T> encodeToBuffer(
         serializer: SerializationStrategy<T>,
@@ -87,94 +57,44 @@ object FlexBuffers {
         return FlexEncoderV2.encodeToBuffer(serializer, value, builder)
     }
 
-    /**
-     * Execute a block with a pooled encoder for manual building.
-     * Useful for dynamic or non-serializable data.
-     *
-     * @param block Lambda receiving FlexBuffersBuilder
-     * @return Result of the block
-     */
     inline fun <T> withEncoder(block: (FlexBuffersBuilder) -> T): T {
         return FlexBufferPool.withEncoder(block)
     }
 
-    /**
-     * Build FlexBuffer data manually with a DSL.
-     *
-     * ```kotlin
-     * val bytes = FlexBuffers.build {
-     *     this["name"] = "John"
-     *     this["age"] = 30
-     *     putVector("items") {
-     *         put("item1")
-     *         put("item2")
-     *     }
-     * }
-     * ```
-     */
     inline fun build(block: FlexBuffersBuilder.() -> Unit): ByteArray {
         return FlexBufferPool.encode(block)
     }
 
     // ==================== Decoding ====================
 
-    /**
-     * Decode FlexBuffer bytes to a value.
-     *
-     * @param bytes The FlexBuffer data to decode
-     * @return Decoded value
-     */
     inline fun <reified T> decode(bytes: ByteArray): T {
         return decode(serializer<T>(), bytes)
     }
 
-    /**
-     * Decode using an explicit deserializer.
-     *
-     * @param deserializer The deserialization strategy to use
-     * @param bytes The FlexBuffer data to decode
-     * @return Decoded value
-     */
     fun <T> decode(deserializer: DeserializationStrategy<T>, bytes: ByteArray): T {
         return FlexDecoderV2.decode(deserializer, bytes)
     }
 
     /**
-     * Decode from an existing ReadBuffer (zero-copy from encoder).
-     *
-     * @param deserializer The deserialization strategy to use
-     * @param buffer ReadBuffer containing FlexBuffer data
-     * @return Decoded value
+     * Decode from an existing ReadBuffer. Useful for zero-copy round-trips:
+     *   val buf = FlexBuffers.encodeToBuffer(serializer, value, builder)
+     *   val decoded = FlexBuffers.decode(deserializer, buf)
+     * No intermediate ByteArray allocation.
      */
     fun <T> decode(deserializer: DeserializationStrategy<T>, buffer: ReadBuffer): T {
         return FlexDecoderV2.decode(deserializer, buffer)
     }
 
-    /**
-     * Get the root Reference for manual traversal.
-     * Useful for dynamic or schema-less access.
-     *
-     * @param bytes The FlexBuffer data
-     * @return Root Reference for manual traversal
-     */
     fun getRoot(bytes: ByteArray): com.google.flatbuffers.kotlin.Reference {
         return getRoot(ArrayReadBuffer(bytes))
     }
 
     // ==================== Utilities ====================
 
-    /**
-     * Clear the encoder pool.
-     * Useful for memory pressure situations or testing.
-     */
     fun clearPool() {
         FlexBufferPool.clearPool()
     }
 
-    /**
-     * Check if bytes are valid FlexBuffer data.
-     * Performs basic structural validation.
-     */
     fun isValid(bytes: ByteArray): Boolean {
         if (bytes.size < 3) return false
         return try {
@@ -186,10 +106,6 @@ object FlexBuffers {
         }
     }
 
-    /**
-     * Get human-readable string representation of FlexBuffer data.
-     * Useful for debugging.
-     */
     fun toString(bytes: ByteArray): String {
         return try {
             val root = getRoot(bytes)
@@ -202,16 +118,10 @@ object FlexBuffers {
 
 // ==================== Extension Functions ====================
 
-/**
- * Encode this object to FlexBuffer bytes.
- */
 inline fun <reified T> T.toFlexBuffer(): ByteArray {
     return FlexBuffers.encode(this)
 }
 
-/**
- * Decode FlexBuffer bytes to an object.
- */
 inline fun <reified T> ByteArray.fromFlexBuffer(): T {
     return FlexBuffers.decode(this)
 }

@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.core.serialization.encoder
 
-import com.google.flatbuffers.kotlin.FlexBuffersBuilder
 import dev.shibasis.reaktor.core.FlexBuffer
 import dev.shibasis.reaktor.core.serialization.util.COMPOSITE_CLASS
 import dev.shibasis.reaktor.core.serialization.util.COMPOSITE_MAP
@@ -72,8 +71,6 @@ Would save time in high frequency transfers
 
 */
 
-@OptIn(ExperimentalUnsignedTypes::class)
-fun test() = FlexBuffersBuilder().put(1)
 class FlexEncoder: AbstractEncoder() {
     override val serializersModule = EmptySerializersModule()
     val flexBuffer: Long = FlexBuffer.Create()
