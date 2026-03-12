@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUnsignedTypes::class)
+
 package dev.shibasis.reaktor.flexbuffer.core
 
 import com.google.flatbuffers.kotlin.FlexBuffersBuilder
@@ -28,7 +30,7 @@ import kotlinx.serialization.serializer
  * Ref: https://flatbuffers.dev/flexbuffers.html — binary format spec
  * Ref: "Game Programming Patterns" (Nystrom, ch.19) — Object Pool pattern for StructureStack
  */
-@OptIn(ExperimentalSerializationApi::class, ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalSerializationApi::class)
 class FlexEncoderV2 private constructor(
     private val builder: FlexBuffersBuilder,
     override val serializersModule: SerializersModule
@@ -102,6 +104,17 @@ class FlexEncoderV2 private constructor(
             return key
         }
         return consumeKey()
+    }
+
+    override fun <T> encodeSerializableValue(
+        serializer: SerializationStrategy<T>,
+        value: T
+    ) {
+        val descriptor = serializer.descriptor
+        if (descriptor.kind == StructureKind.LIST || descriptor.serialName.endsWith("Array")) {
+            if (tryEncodeBulkValue(descriptor, value)) return
+        }
+        serializer.serialize(this, value)
     }
 
     // ==================== Primitive Encoding ====================
@@ -283,6 +296,129 @@ class FlexEncoderV2 private constructor(
         pendingKey = null
         return key
     }
+
+    private fun tryEncodeBulkValue(descriptor: SerialDescriptor, value: Any?): Boolean {
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) return false
+
+        return when (descriptor.serialName) {
+            "kotlin.ByteArray" -> {
+                builder.set(resolveKeyFrom(current), value as? ByteArray ?: return false)
+                true
+            }
+            "kotlin.ShortArray" -> {
+                val array = value as? ShortArray ?: return false
+                if (!array.allNonNegative()) return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.IntArray" -> {
+                val array = value as? IntArray ?: return false
+                if (!array.allNonNegative()) return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.LongArray" -> {
+                val array = value as? LongArray ?: return false
+                if (!array.allNonNegative()) return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.FloatArray" -> {
+                builder.set(resolveKeyFrom(current), value as? FloatArray ?: return false)
+                true
+            }
+            "kotlin.DoubleArray" -> {
+                builder.set(resolveKeyFrom(current), value as? DoubleArray ?: return false)
+                true
+            }
+            "kotlin.UByteArray" -> {
+                builder.set(resolveKeyFrom(current), value as? UByteArray ?: return false)
+                true
+            }
+            "kotlin.UShortArray" -> {
+                builder.set(resolveKeyFrom(current), value as? UShortArray ?: return false)
+                true
+            }
+            "kotlin.UIntArray" -> {
+                builder.set(resolveKeyFrom(current), value as? UIntArray ?: return false)
+                true
+            }
+            "kotlin.ULongArray" -> {
+                builder.set(resolveKeyFrom(current), value as? ULongArray ?: return false)
+                true
+            }
+            else -> {
+                val collection = value as? Collection<*> ?: return false
+                tryEncodeBulkCollection(descriptor, current, collection)
+            }
+        }
+    }
+
+    private fun tryEncodeBulkCollection(
+        descriptor: SerialDescriptor,
+        current: StructureEntry?,
+        values: Collection<*>
+    ): Boolean {
+        if (descriptor.kind != StructureKind.LIST || descriptor.elementsCount == 0) return false
+
+        val elementDescriptor = descriptor.getElementDescriptor(0)
+        return when (elementDescriptor.serialName) {
+            "kotlin.Boolean" -> {
+                builder.set(resolveKeyFrom(current), values.toBooleanIntArray() ?: return false)
+                true
+            }
+            "kotlin.Byte" -> {
+                val array = values.toNonNegativeShortArray() ?: return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.Short" -> {
+                val array = values.toNonNegativeShortArray() ?: return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.Int" -> {
+                val array = values.toNonNegativeIntArray() ?: return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.Long" -> {
+                val array = values.toNonNegativeLongArray() ?: return false
+                builder.set(resolveKeyFrom(current), array)
+                true
+            }
+            "kotlin.Float" -> {
+                builder.set(resolveKeyFrom(current), values.toFloatArrayOrNull() ?: return false)
+                true
+            }
+            "kotlin.Double" -> {
+                builder.set(resolveKeyFrom(current), values.toDoubleArrayOrNull() ?: return false)
+                true
+            }
+            "kotlin.Char" -> {
+                builder.set(resolveKeyFrom(current), values.toCharCodeArray() ?: return false)
+                true
+            }
+            "kotlin.UByte" -> {
+                builder.set(resolveKeyFrom(current), values.toUByteArrayOrNull() ?: return false)
+                true
+            }
+            "kotlin.UShort" -> {
+                builder.set(resolveKeyFrom(current), values.toUShortArrayOrNull() ?: return false)
+                true
+            }
+            "kotlin.UInt" -> {
+                builder.set(resolveKeyFrom(current), values.toUIntArrayOrNull() ?: return false)
+                true
+            }
+            "kotlin.ULong" -> {
+                builder.set(resolveKeyFrom(current), values.toULongArrayOrNull() ?: return false)
+                true
+            }
+            else -> false
+        }
+    }
 }
 
 enum class StructureType {
@@ -355,4 +491,125 @@ class StructureStack(initialCapacity: Int = 16) {
     }
 
     fun isEmpty(): Boolean = size == 0
+}
+
+private fun ShortArray.allNonNegative(): Boolean = all { it >= 0 }
+
+private fun IntArray.allNonNegative(): Boolean = all { it >= 0 }
+
+private fun LongArray.allNonNegative(): Boolean = all { it >= 0L }
+
+private fun Collection<*>.toBooleanIntArray(): IntArray? {
+    val result = IntArray(size)
+    var index = 0
+    for (value in this) {
+        result[index++] = when (value) {
+            true -> 1
+            false -> 0
+            else -> return null
+        }
+    }
+    return result
+}
+
+private fun Collection<*>.toNonNegativeShortArray(): ShortArray? {
+    val result = ShortArray(size)
+    var index = 0
+    for (value in this) {
+        val number = value as? Number ?: return null
+        val shortValue = number.toShort()
+        if (shortValue < 0) return null
+        result[index++] = shortValue
+    }
+    return result
+}
+
+private fun Collection<*>.toNonNegativeIntArray(): IntArray? {
+    val result = IntArray(size)
+    var index = 0
+    for (value in this) {
+        val number = value as? Number ?: return null
+        val intValue = number.toInt()
+        if (intValue < 0) return null
+        result[index++] = intValue
+    }
+    return result
+}
+
+private fun Collection<*>.toNonNegativeLongArray(): LongArray? {
+    val result = LongArray(size)
+    var index = 0
+    for (value in this) {
+        val number = value as? Number ?: return null
+        val longValue = number.toLong()
+        if (longValue < 0L) return null
+        result[index++] = longValue
+    }
+    return result
+}
+
+private fun Collection<*>.toFloatArrayOrNull(): FloatArray? {
+    val result = FloatArray(size)
+    var index = 0
+    for (value in this) {
+        val number = value as? Number ?: return null
+        result[index++] = number.toFloat()
+    }
+    return result
+}
+
+private fun Collection<*>.toDoubleArrayOrNull(): DoubleArray? {
+    val result = DoubleArray(size)
+    var index = 0
+    for (value in this) {
+        val number = value as? Number ?: return null
+        result[index++] = number.toDouble()
+    }
+    return result
+}
+
+private fun Collection<*>.toCharCodeArray(): IntArray? {
+    val result = IntArray(size)
+    var index = 0
+    for (value in this) {
+        val charValue = value as? Char ?: return null
+        result[index++] = charValue.code
+    }
+    return result
+}
+
+private fun Collection<*>.toUByteArrayOrNull(): UByteArray? {
+    val result = UByteArray(size)
+    var index = 0
+    for (value in this) {
+        result[index++] = value as? UByte ?: return null
+    }
+    return result
+}
+
+private fun Collection<*>.toUShortArrayOrNull(): UShortArray? {
+    val result = UShortArray(size)
+    var index = 0
+    for (value in this) {
+        result[index++] = value as? UShort ?: return null
+    }
+    return result
+}
+
+private fun Collection<*>.toUIntArrayOrNull(): UIntArray? {
+    val result = UIntArray(size)
+    var index = 0
+    for (value in this) {
+        result[index++] = value as? UInt ?: return null
+    }
+    return result
+}
+
+private fun Collection<*>.toULongArrayOrNull(): ULongArray? {
+    val result = ULongArray(size)
+    var index = 0
+    for (value in this) {
+        result[index++] = value as? ULong ?: return null
+    }
+    return result
 }

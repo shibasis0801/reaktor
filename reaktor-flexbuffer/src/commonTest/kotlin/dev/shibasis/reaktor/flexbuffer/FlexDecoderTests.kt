@@ -10,6 +10,8 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.measureTime
 
 /**
@@ -24,6 +26,20 @@ class FlexDecoderTests {
         val encoded = FlexBuffers.encode(value)
         return FlexBuffers.decode(encoded)
     }
+
+    @Serializable
+    data class PrimitiveBulkCase(
+        val bytes: ByteArray = byteArrayOf(1, 2, 3, 4),
+        val ints: List<Int> = listOf(1, 2, 3, 4, 5),
+        val doubles: List<Double> = listOf(1.5, 2.5, 3.5),
+        val flags: List<Boolean> = listOf(true, false, true),
+        val chars: List<Char> = listOf('a', 'b', 'c')
+    )
+
+    @Serializable
+    data class NegativePrimitiveCase(
+        val ints: List<Int> = listOf(-1, 0, 1)
+    )
 
     // ---- Simple Case ----
 
@@ -103,6 +119,37 @@ class FlexDecoderTests {
             assertEquals(value.nestedString, decodedNested.nestedString)
             assertEquals(value.innerNestedData.size, decodedNested.innerNestedData.size)
         }
+    }
+
+    @Test
+    fun testBulkPrimitiveCollectionsUseCompactWireTypes() {
+        val encoded = FlexBuffers.encode(PrimitiveBulkCase())
+        val root = FlexBuffers.getRoot(encoded).toMap()
+
+        assertTrue(root["bytes"].isBlob)
+        assertTrue(root["ints"].isTypedVector)
+        assertTrue(root["doubles"].isTypedVector)
+        assertTrue(root["flags"].isTypedVector)
+        assertTrue(root["chars"].isTypedVector)
+
+        val decoded = FlexBuffers.decode<PrimitiveBulkCase>(encoded)
+        assertContentEquals(byteArrayOf(1, 2, 3, 4), decoded.bytes)
+        assertEquals(listOf(1, 2, 3, 4, 5), decoded.ints)
+        assertEquals(listOf(1.5, 2.5, 3.5), decoded.doubles)
+        assertEquals(listOf(true, false, true), decoded.flags)
+        assertEquals(listOf('a', 'b', 'c'), decoded.chars)
+    }
+
+    @Test
+    fun testNegativeSignedCollectionsStayGenericVectors() {
+        val encoded = FlexBuffers.encode(NegativePrimitiveCase())
+        val root = FlexBuffers.getRoot(encoded).toMap()
+
+        assertTrue(root["ints"].isVector)
+        assertFalse(root["ints"].isTypedVector)
+
+        val decoded = FlexBuffers.decode<NegativePrimitiveCase>(encoded)
+        assertEquals(listOf(-1, 0, 1), decoded.ints)
     }
 
     // ---- Primitives in isolation ----

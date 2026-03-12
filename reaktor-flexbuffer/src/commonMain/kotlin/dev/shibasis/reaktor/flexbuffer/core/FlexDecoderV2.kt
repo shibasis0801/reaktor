@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUnsignedTypes::class)
+
 package dev.shibasis.reaktor.flexbuffer.core
 
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
@@ -148,6 +150,17 @@ class FlexDecoderV2 private constructor(
         return currentContext?.size ?: 0
     }
 
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
+        val descriptor = deserializer.descriptor
+        if (descriptor.serialName.endsWith("Array")) {
+            tryDecodeBulkValue(descriptor)?.let { value ->
+                @Suppress("UNCHECKED_CAST")
+                return value as T
+            }
+        }
+        return deserializer.deserialize(this)
+    }
+
     // ==================== Primitive Decoding ====================
     // Each method reads directly from the FlexBuffer Reference — zero copy for primitives.
     // Reference.toInt() etc. read from the underlying byte buffer without allocation.
@@ -281,6 +294,26 @@ class FlexDecoderV2 private constructor(
         val key = ctx.currentMapKey ?: return null
         ctx.currentMapKey = null
         return key
+    }
+
+    private fun tryDecodeBulkValue(descriptor: SerialDescriptor): Any? {
+        val ctx = currentContext
+        if (ctx?.type == ContextType.MAP_ENTRIES && ctx.currentMapKey != null) return null
+
+        val ref = getCurrentReference() ?: return null
+        return when (descriptor.serialName) {
+            "kotlin.ByteArray" -> if (ref.isBlob) ref.toBlob().toByteArray() else ref.toByteArray()
+            "kotlin.ShortArray" -> ref.toShortArray()
+            "kotlin.IntArray" -> ref.toIntArray()
+            "kotlin.LongArray" -> ref.toLongArray()
+            "kotlin.FloatArray" -> ref.toFloatArray()
+            "kotlin.DoubleArray" -> ref.toDoubleArray()
+            "kotlin.UByteArray" -> ref.toUByteArray()
+            "kotlin.UShortArray" -> ref.toUShortArray()
+            "kotlin.UIntArray" -> ref.toUIntArray()
+            "kotlin.ULongArray" -> ref.toULongArray()
+            else -> null
+        }
     }
 }
 

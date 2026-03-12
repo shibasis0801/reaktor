@@ -24,12 +24,25 @@ import kotlin.time.measureTime
  * Run via: ./gradlew :reaktor-flexbuffer:iosSimulatorArm64Test
  *   or:    ./gradlew :reaktor-flexbuffer:connectedDebugAndroidTest
  *
- * Latest JVM snapshot (2026-03-12, local arm64 run via `:reaktor-flexbuffer:testDebugUnitTest`):
- * - FlatPrimitives: Flex encode/decode 12/5us, Json 6/7us, size 164B vs 113B.
- * - CollectionHeavy: Flex encode/decode 17/13us, Json 29/31us, size 3375B vs 3325B.
- * - EncodingComplexCase: Flex encode/decode 27/21us, Json 10/16us, size 1275B vs 981B.
- * - EncodingSophisticatedCase: Flex encode/decode 379/307us, Json 158/247us, size 43450B vs 48538B.
- * - DeeplyNested: Flex encode/decode 2/1us, Json 0/1us, size 304B vs 213B.
+ * Implemented on 2026-03-12:
+ * - `ByteArray` now writes as a FlexBuffer blob.
+ * - Homogeneous primitive `List`/`Set`/array values now write as typed vectors when the payload
+ *   is safe to compress that way.
+ * - Signed integral vectors with negative values intentionally fall back to the generic path to
+ *   avoid width inflation from the current Google Kotlin builder.
+ *
+ * Deterministic size deltas from that bulk-vector fast path:
+ * - CollectionHeavy: 3375B -> 3071B.
+ * - EncodingComplexCase: 1275B -> 1243B.
+ * - EncodingSophisticatedCase: 43450B -> 41498B.
+ *
+ * Latest JVM snapshot (2026-03-12, local arm64 rerun via `:reaktor-flexbuffer:testDebugUnitTest`).
+ * These timings are microbenchmark-level and noisy on the JVM; size numbers are deterministic:
+ * - PrimitiveBulkCase: Flex encode/decode 13/22us, Json 30/38us, size 3796B vs 5844B.
+ * - CollectionHeavy: Flex encode/decode 18/16us, Json 28/29us, size 3071B vs 3325B.
+ * - EncodingComplexCase: Flex encode/decode 22/21us, Json 21/18us, size 1243B vs 981B.
+ * - EncodingSophisticatedCase: Flex encode/decode 468/352us, Json 258/323us, size 41498B vs 48538B.
+ * - DeeplyNested: Flex encode/decode 3/1us, Json 2/1us, size 304B vs 213B.
  *
  * Why Json still wins on some JVM cases:
  * - FlexBuffers is schemaless here, so every class/object is encoded as a map and every map is key-sorted on close.
@@ -38,12 +51,18 @@ import kotlin.time.measureTime
  * - Non-string map keys still round-trip through strings because FlexBuffer keys are stored as T_KEY.
  * - kotlinx.serialization Json is already highly optimized for generated serializers on JVM, so "binary" does not automatically mean "faster".
  *
- * Current improvement targets:
- * - Reuse a pooled builder and backing byte buffer so each encode does less allocation and copying.
+ * Remaining improvement targets:
  * - Cache descriptor field metadata and precomputed keys to cut repeated name lookup and branching.
- * - Add typed fast paths for homogeneous primitive vectors and byte arrays instead of generic collection flow.
+ * - Pre-index object maps by descriptor once per decode instead of repeated field-name lookups.
  * - Avoid string round-trips for non-string map keys during decode by keeping typed key metadata on the stack.
  * - Reduce decode-side object churn in nested collections by pre-sizing containers from FlexBuffer vector/map counts.
+ * - Use `FlexBuffers.encodeToBuffer()` on hot transport/storage paths to avoid the final `ByteArray` copy.
+ *
+ * Relevant references from the local library:
+ * - Fedor G. Pikus, "The Art of Writing Efficient Programs" — bulk processing and avoiding per-element abstraction overhead.
+ * - Brendan Gregg, "Systems Performance" — benchmarking caveats, warmup effects, and noisy JVM measurements.
+ * - Joshua Bloch, "Effective Java" — avoid unnecessary allocation on hot paths.
+ * - Robert Nystrom, "Game Programming Patterns" — pooling/reuse tradeoffs in tight loops.
  */
 class FlexBuffersV2Benchmarks {
 
@@ -76,6 +95,15 @@ class FlexBuffersV2Benchmarks {
         val nestedList: List<List<Int>> = (1..10).map { (1..10).toList() },
         val stringMap: Map<String, String> = (1..50).associate { "key$it" to "value$it" },
         val intMap: Map<String, Int> = (1..50).associate { "k$it" to it }
+    )
+
+    @Serializable
+    data class PrimitiveBulkCase(
+        val bytes: ByteArray = ByteArray(512) { (it % 127).toByte() },
+        val ints: List<Int> = List(256) { it },
+        val doubles: List<Double> = List(256) { it * 0.5 },
+        val flags: List<Boolean> = List(256) { it % 3 == 0 },
+        val chars: List<Char> = List(128) { ('A'.code + (it % 26)).toChar() }
     )
 
     @Serializable
@@ -197,6 +225,44 @@ class FlexBuffersV2Benchmarks {
         val decoded = FlexBuffers.decode<CollectionHeavy>(encoded)
         assertEquals(data.intList.size, decoded.intList.size)
         assertEquals(data.stringMap.size, decoded.stringMap.size)
+    }
+
+    // ==================== Correctness + Performance: Primitive Bulk Fast Path ====================
+
+    @Test
+    fun benchPrimitiveBulkCase() {
+        println("=== Primitive Bulk Case (blob + typed primitive vectors) ===")
+        val data = PrimitiveBulkCase()
+
+        val flexEncodeTime = benchmark("FlexBuffer encode") {
+            FlexBuffers.encode(data)
+        }
+
+        val encoded = FlexBuffers.encode(data)
+        val flexDecodeTime = benchmark("FlexBuffer decode") {
+            FlexBuffers.decode<PrimitiveBulkCase>(encoded)
+        }
+
+        val jsonEncodeTime = benchmark("Json encode") {
+            encodeJson(data)
+        }
+
+        val jsonString = encodeJson(data)
+        val jsonDecodeTime = benchmark("Json decode") {
+            json.decodeFromString<PrimitiveBulkCase>(jsonString)
+        }
+
+        println("  FlexBuffer round-trip: ${flexEncodeTime + flexDecodeTime}µs")
+        println("  Json round-trip: ${jsonEncodeTime + jsonDecodeTime}µs")
+        println("  FlexBuffer encoded size: ${encoded.size} bytes")
+        println("  Json encoded size: ${jsonSizeBytes(jsonString)} bytes")
+
+        val decoded = FlexBuffers.decode<PrimitiveBulkCase>(encoded)
+        assertEquals(data.ints, decoded.ints)
+        assertEquals(data.doubles, decoded.doubles)
+        assertEquals(data.flags, decoded.flags)
+        assertEquals(data.chars, decoded.chars)
+        assertEquals(data.bytes.size, decoded.bytes.size)
     }
 
     // ==================== Correctness + Performance: Complex Case ====================
@@ -363,6 +429,10 @@ class FlexBuffersV2Benchmarks {
         printSize("CollectionHeavy",
             FlexBuffers.encode(CollectionHeavy()).size,
             jsonSizeBytes(encodeJson(CollectionHeavy())))
+
+        printSize("PrimitiveBulkCase",
+            FlexBuffers.encode(PrimitiveBulkCase()).size,
+            jsonSizeBytes(encodeJson(PrimitiveBulkCase())))
 
         printSize("EncodingComplexCase",
             FlexBuffers.encode(EncodingComplexCase()).size,
