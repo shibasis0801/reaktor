@@ -227,7 +227,7 @@ class FlexEncoderV2 private constructor(
         descriptor: SerialDescriptor,
         collectionSize: Int
     ): CompositeEncoder {
-        val key = consumeKey()
+        val key = resolveKeyFrom(structureStack.peek())
 
         when (descriptor.kind) {
             StructureKind.LIST -> {
@@ -244,7 +244,7 @@ class FlexEncoderV2 private constructor(
     }
 
     override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
-        val key = consumeKey()
+        val key = resolveKeyFrom(structureStack.peek())
 
         when (descriptor.kind) {
             StructureKind.CLASS, StructureKind.OBJECT -> {

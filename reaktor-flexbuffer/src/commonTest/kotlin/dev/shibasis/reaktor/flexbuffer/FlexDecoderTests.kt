@@ -2,11 +2,9 @@ package dev.shibasis.reaktor.flexbuffer
 
 import dev.shibasis.reaktor.core.EncodingComplexCase
 import dev.shibasis.reaktor.core.EncodingSimpleCase
-import dev.shibasis.reaktor.core.FlexBuffer
 import dev.shibasis.reaktor.core.InnerNestedData
 import dev.shibasis.reaktor.core.NestedData
-import dev.shibasis.reaktor.core.serialization.decodeFromFlexBuffer
-import dev.shibasis.reaktor.core.serialization.encodeToFlexBuffer
+import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -23,11 +21,8 @@ class FlexDecoderTests {
     // ---- Helper ----
 
     private inline fun <reified T> roundTrip(value: T): T {
-        val pointer = encodeToFlexBuffer(value)
-        FlexBuffer.Finish(pointer)
-        val result = decodeFromFlexBuffer<T>(pointer)
-        FlexBuffer.Destroy(pointer)
-        return result
+        val encoded = FlexBuffers.encode(value)
+        return FlexBuffers.decode(encoded)
     }
 
     // ---- Simple Case ----
@@ -269,18 +264,15 @@ class FlexDecoderTests {
 
         repeat(times) {
             val flexEncodeTime = measureTime {
-                val ptr = encodeToFlexBuffer(complexCase)
-                FlexBuffer.Finish(ptr)
+                FlexBuffers.encode(complexCase)
             }.inWholeMicroseconds
 
             // Encode once for decode timing
-            val ptr = encodeToFlexBuffer(complexCase)
-            FlexBuffer.Finish(ptr)
+            val encoded = FlexBuffers.encode(complexCase)
 
             val flexDecodeTime = measureTime {
-                decodeFromFlexBuffer<EncodingComplexCase>(ptr)
+                FlexBuffers.decode<EncodingComplexCase>(encoded)
             }.inWholeMicroseconds
-            FlexBuffer.Destroy(ptr)
 
             var json = ""
             val jsonEncodeTime = measureTime {
@@ -311,12 +303,9 @@ class FlexDecoderTests {
         println("Json Total:  ${avgJsonEncode + avgJsonDecode}")
 
         // Sanity: decoded values must match
-        val ptr = encodeToFlexBuffer(complexCase)
-        FlexBuffer.Finish(ptr)
-        val decoded = decodeFromFlexBuffer<EncodingComplexCase>(ptr)
+        val decoded = roundTrip(complexCase)
         assertEquals(complexCase.intField, decoded.intField)
         assertEquals(complexCase.stringField, decoded.stringField)
         assertEquals(complexCase.booleanField, decoded.booleanField)
-        FlexBuffer.Destroy(ptr)
     }
 }

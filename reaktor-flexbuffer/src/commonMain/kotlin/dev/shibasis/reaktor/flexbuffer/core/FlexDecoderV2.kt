@@ -120,6 +120,7 @@ class FlexDecoderV2 private constructor(
                     val pairIndex = ctx.mapEntryIndex / 2
                     val isKey = ctx.mapEntryIndex % 2 == 0
                     if (isKey) {
+                        ctx.currentRef = null
                         ctx.currentMapKey = ctx.mapRef?.keyAsString(pairIndex)
                     } else {
                         ctx.currentRef = ctx.mapRef?.get(pairIndex)
@@ -153,53 +154,52 @@ class FlexDecoderV2 private constructor(
     // Ref: https://flatbuffers.dev/flexbuffers.html — packed value types
 
     override fun decodeBoolean(): Boolean {
+        consumeMapKey()?.let { return it.toBooleanStrictOrNull() ?: false }
         return getCurrentReference()?.toBoolean() ?: false
     }
 
     override fun decodeByte(): Byte {
+        consumeMapKey()?.let { return it.toByte() }
         return getCurrentReference()?.toByte() ?: 0
     }
 
     override fun decodeShort(): Short {
+        consumeMapKey()?.let { return it.toShort() }
         return getCurrentReference()?.toShort() ?: 0
     }
 
     override fun decodeInt(): Int {
+        consumeMapKey()?.let { return it.toInt() }
         return getCurrentReference()?.toInt() ?: 0
     }
 
     override fun decodeLong(): Long {
+        consumeMapKey()?.let { return it.toLong() }
         return getCurrentReference()?.toLong() ?: 0L
     }
 
     override fun decodeFloat(): Float {
+        consumeMapKey()?.let { return it.toFloat() }
         return getCurrentReference()?.toFloat() ?: 0f
     }
 
     override fun decodeDouble(): Double {
+        consumeMapKey()?.let { return it.toDouble() }
         return getCurrentReference()?.toDouble() ?: 0.0
     }
 
     override fun decodeChar(): Char {
+        consumeMapKey()?.let { return it.singleOrNull() ?: '\u0000' }
         return getCurrentReference()?.toInt()?.toChar() ?: '\u0000'
     }
 
     override fun decodeString(): String {
-        val ctx = currentContext
-        // Fast path: map key decoding. The key string is already materialized by
-        // keyAsString() in decodeElementIndex, so we return it directly without
-        // any Reference traversal.
-        if (ctx != null && ctx.type == ContextType.MAP_ENTRIES) {
-            val key = ctx.currentMapKey
-            if (key != null) {
-                ctx.currentMapKey = null
-                return key
-            }
-        }
+        consumeMapKey()?.let { return it }
         return getCurrentReference()?.toString() ?: ""
     }
 
     override fun decodeEnum(enumDescriptor: SerialDescriptor): Int {
+        consumeMapKey()?.let { return it.toInt() }
         return getCurrentReference()?.toInt() ?: 0
     }
 
@@ -273,6 +273,14 @@ class FlexDecoderV2 private constructor(
 
     private fun getCurrentReference(): Reference? {
         return currentContext?.currentRef ?: root
+    }
+
+    private fun consumeMapKey(): String? {
+        val ctx = currentContext ?: return null
+        if (ctx.type != ContextType.MAP_ENTRIES) return null
+        val key = ctx.currentMapKey ?: return null
+        ctx.currentMapKey = null
+        return key
     }
 }
 
