@@ -81,20 +81,22 @@ object FlexBufferPool {
 }
 
 /**
- * Converts ReadBuffer to ByteArray.
+ * Converts ReadBuffer to ByteArray using bulk array copy.
  *
- * Per-byte copy via ReadBuffer.get(i). ArrayReadBuffer.buffer is `protected`,
- * so bulk copy via copyInto isn't possible without subclassing.
- * For a future optimization, subclass ArrayReadBuffer to expose the backing array
- * and use System.arraycopy (intrinsified by HotSpot into memcpy).
+ * ReadBuffer.data() returns the backing ByteArray without copying (it's a direct reference).
+ * copyInto() maps to System.arraycopy on JVM (intrinsified to memcpy by HotSpot)
+ * and to optimized memcpy on Kotlin/Native.
  *
- * Ref: https://shipilev.net/jvm/anatomy-quarks/24-object-alignment/
+ * We copy [0, limit) from the backing array. This is correct because:
+ * - FlexBuffersBuilder creates its internal ArrayReadWriteBuffer with offset=0
+ * - ArrayReadWriteBuffer.limit returns writePosition (the actual data size, not buffer capacity)
+ *
+ * Ref: "Computer Systems: A Programmer's Perspective" (Bryant & O'Hallaron, §6.2)
+ *      — spatial locality: sequential bulk copy is cache-line friendly
  */
 fun ReadBuffer.toByteArray(): ByteArray {
     val size = limit
     val result = ByteArray(size)
-    for (i in 0 until size) {
-        result[i] = this[i]
-    }
+    data().copyInto(result, 0, 0, size)
     return result
 }

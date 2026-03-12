@@ -15,14 +15,14 @@ import kotlinx.serialization.serializer
 /**
  * FlexBuffer encoder using pure Kotlin FlexBuffersBuilder (no JNI).
  *
- * Hot path: encodeElement → handleMapKey/getEncodingKey → builder.set().
+ * Hot path: encodeElement → resolveKey → builder.set().
  * The dominant cost is FlexBuffersBuilder.set() which writes to its internal byte buffer.
  * Everything above it (key resolution, stack peek) is O(1) with zero allocation in steady state.
  *
  * Map<K,V> encoding protocol (from kotlinx.serialization):
  *   Even indices = keys, odd indices = values.
  *   Keys arrive via encodePrimitive() before their corresponding value.
- *   We capture the key as a string (handleMapKey) and pass it to builder.set() with the value.
+ *   We capture the key as a string and pass it to builder.set() with the value.
  *   Non-string keys are converted via toString() — this is inherent to FlexBuffer's T_KEY type.
  *
  * Ref: https://flatbuffers.dev/flexbuffers.html — binary format spec
@@ -38,6 +38,10 @@ class FlexEncoderV2 private constructor(
     private var pendingKey: String? = null
 
     companion object {
+        // Reusable module instance — EmptySerializersModule() returns a singleton internally,
+        // but caching the reference avoids the function call overhead in tight loops.
+        private val MODULE = EmptySerializersModule()
+
         inline fun <reified T> encode(value: T): ByteArray {
             return encode(serializer(), value)
         }
@@ -51,7 +55,7 @@ class FlexEncoderV2 private constructor(
          */
         fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
             return FlexBufferPool.withEncoder { builder ->
-                val encoder = FlexEncoderV2(builder, EmptySerializersModule())
+                val encoder = FlexEncoderV2(builder, MODULE)
                 encoder.encodeSerializableValue(serializer, value)
                 builder.finish().toByteArray()
             }
@@ -68,37 +72,30 @@ class FlexEncoderV2 private constructor(
             builder: FlexBuffersBuilder
         ): ReadBuffer {
             builder.clear()
-            val encoder = FlexEncoderV2(builder, EmptySerializersModule())
+            val encoder = FlexEncoderV2(builder, MODULE)
             encoder.encodeSerializableValue(serializer, value)
             return builder.finish()
         }
     }
 
-    // ==================== Map Key Handling ====================
+    // ==================== Map Key Resolution ====================
     // FlexBuffer maps require keys as strings (T_KEY type).
     // When encoding Map<K,V>, kotlinx.serialization sends keys at even indices
-    // and values at odd indices. We intercept keys via handleMapKey() and
-    // hold them until the corresponding value is encoded.
+    // and values at odd indices. We intercept keys in the encode methods
+    // and hold them until the corresponding value is encoded.
+    //
+    // Each primitive encode method uses a single structureStack.peek() to both
+    // check for map key capture AND resolve the encoding key. This avoids the
+    // double-peek of separate handleMapKey()+getEncodingKey() calls.
+    // It also avoids boxing primitives to Any in the non-map hot path.
+    //
+    // Ref: "Effective Java" (Bloch, Item 6) — avoid unnecessary object creation (boxing)
 
     /**
-     * If we're in a MAP context expecting a key, capture value.toString() as the key.
-     * @return true if captured (caller should NOT encode the value), false otherwise
-     */
-    private fun handleMapKey(value: Any): Boolean {
-        val current = structureStack.peek() ?: return false
-        if (current.kind == StructureType.MAP && current.expectingKey) {
-            current.capturedKey = value.toString()
-            return true
-        }
-        return false
-    }
-
-    /**
-     * Returns the key for the next builder.set() call.
+     * Resolves the key for the next builder.set() call from a pre-fetched stack entry.
      * Priority: capturedKey (from map key encoding) > pendingKey (from class field name).
      */
-    private fun getEncodingKey(): String? {
-        val current = structureStack.peek()
+    private fun resolveKeyFrom(current: StructureEntry?): String? {
         if (current != null && current.kind == StructureType.MAP && current.capturedKey != null) {
             val key = current.capturedKey
             current.capturedKey = null
@@ -108,61 +105,92 @@ class FlexEncoderV2 private constructor(
     }
 
     // ==================== Primitive Encoding ====================
-    // Each override follows the same pattern: check if this is a map key, then encode.
-    // builder.set(key, value) writes directly to the internal byte buffer — no boxing.
+    // Each override does a single peek(), checks map-key capture inline (no boxing),
+    // then encodes with the resolved key.
+    // builder.set(key, value) writes directly to the internal byte buffer.
 
     override fun encodeBoolean(value: Boolean) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeByte(value: Byte) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeShort(value: Short) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeInt(value: Int) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeLong(value: Long) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeFloat(value: Float) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeDouble(value: Double) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeChar(value: Char) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value.code)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), value.code)
     }
 
     override fun encodeString(value: String) {
-        if (handleMapKey(value)) return
-        builder.set(getEncodingKey(), value)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = value; return
+        }
+        builder.set(resolveKeyFrom(current), value)
     }
 
     override fun encodeNull() {
-        builder.putNull(getEncodingKey())
+        builder.putNull(resolveKeyFrom(structureStack.peek()))
     }
 
     override fun encodeEnum(enumDescriptor: SerialDescriptor, index: Int) {
-        if (handleMapKey(index)) return
-        builder.set(getEncodingKey(), index)
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) {
+            current.capturedKey = index.toString(); return
+        }
+        builder.set(resolveKeyFrom(current), index)
     }
 
     // ==================== Structure Handling ====================

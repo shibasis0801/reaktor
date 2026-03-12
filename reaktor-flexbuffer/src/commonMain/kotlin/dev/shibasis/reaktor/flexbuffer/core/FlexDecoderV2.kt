@@ -49,6 +49,8 @@ class FlexDecoderV2 private constructor(
     private var elementIndex = 0
 
     companion object {
+        private val MODULE = EmptySerializersModule()
+
         inline fun <reified T> decode(bytes: ByteArray): T {
             return decode(serializer(), bytes)
         }
@@ -56,13 +58,13 @@ class FlexDecoderV2 private constructor(
         fun <T> decode(deserializer: DeserializationStrategy<T>, bytes: ByteArray): T {
             val buffer = ArrayReadBuffer(bytes)
             val root = getRoot(buffer)
-            val decoder = FlexDecoderV2(root, EmptySerializersModule())
+            val decoder = FlexDecoderV2(root, MODULE)
             return decoder.decodeSerializableValue(deserializer)
         }
 
         fun <T> decode(deserializer: DeserializationStrategy<T>, buffer: ReadBuffer): T {
             val root = getRoot(buffer)
-            val decoder = FlexDecoderV2(root, EmptySerializersModule())
+            val decoder = FlexDecoderV2(root, MODULE)
             return decoder.decodeSerializableValue(deserializer)
         }
     }
