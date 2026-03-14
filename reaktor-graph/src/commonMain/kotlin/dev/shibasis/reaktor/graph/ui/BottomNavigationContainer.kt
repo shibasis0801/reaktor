@@ -50,12 +50,15 @@ open class BottomNavigationContainer(
     graph: Graph,
     pattern: String,
     val children: Map<String, ChildGraph>,
-    initialSelection: String
+    initialSelection: String,
+    val bottomNavKeys: Set<String> = children.keys
 ): ContainerNode(
     graph, pattern,
     ArrayList(children.values.map { it.graph })
 ), ComposeContainer {
     val selected = MutableStateFlow(initialSelection)
+
+    var topBar: (@Composable (selectedKey: String, isAtRoot: Boolean) -> Unit)? = null
 
     val controller by provides<Controller>(object: Controller {
         override val selected = this@BottomNavigationContainer.selected
@@ -80,15 +83,19 @@ open class BottomNavigationContainer(
         val selected by contract.selected.collectAsState()
         val activeGraph = children[selected] ?: throw IllegalStateException("selected key is invalid")
 
+        val entries by activeGraph.graph.backStack.entries.collectAsState()
+        val isAtRoot = entries.size <= 1
+
         val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
         val isKeyboardVisible = imeBottom > 0
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            topBar = { if (isAtRoot) topBar?.invoke(selected, isAtRoot) },
             bottomBar = {
-                if (!isKeyboardVisible) {
+                if (!isKeyboardVisible && isAtRoot) {
                     NavigationBar {
-                        children.forEach { (key, value) ->
+                        children.filter { it.key in bottomNavKeys }.forEach { (key, value) ->
                             NavigationBarItem(
                                 selected = (selected == key),
                                 onClick = { contract.selected.value = key },
