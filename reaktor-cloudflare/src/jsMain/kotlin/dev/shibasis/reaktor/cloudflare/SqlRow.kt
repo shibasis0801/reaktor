@@ -11,13 +11,17 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlin.js.jsTypeOf
 
 open class SqlRow internal constructor(
     private val raw: dynamic,
 ) {
     operator fun get(columnName: String): Any? = raw[columnName]
 
-    fun string(columnName: String): String? = raw[columnName]?.toString()
+    fun string(columnName: String): String? {
+        val value: Any? = raw[columnName]
+        return value?.asSqlString()
+    }
 
     fun requireString(columnName: String): String =
         string(columnName) ?: error("Missing column '$columnName' in SQL row")
@@ -200,13 +204,34 @@ private fun projectDescriptor(
         return if (fields.isEmpty()) JsonObject(emptyMap()) else JsonObject(fields)
     }
 
-    val column = columns[path] ?: return null
-    val value = column.value
+    val resolved = resolveProjectedValue(path, columns)
+    if (!resolved.found) {
+        return null
+    }
+
+    val value = resolved.value
     return if (value == null) {
         if (path.size <= 1) JsonNull else null
     } else {
-        value.toJsonElement()
+        valueToJsonElement(value)
     }
+}
+
+private fun resolveProjectedValue(
+    path: List<String>,
+    columns: ColumnLookup,
+): NestedValue {
+    columns[path]?.let { return NestedValue(found = true, value = it.value) }
+
+    for (index in path.lastIndex downTo 1) {
+        val parent = columns[path.take(index)] ?: continue
+        val nested = nestedValue(parent.value, path.drop(index))
+        if (nested.found) {
+            return nested
+        }
+    }
+
+    return NestedValue(found = false, value = null)
 }
 
 private fun canonicalKey(value: String): String =
@@ -231,6 +256,38 @@ private fun splitColumnWords(columnName: String): List<String> =
         .split(Regex("[^A-Za-z0-9]+"))
         .filter(String::isNotBlank)
         .map(String::lowercase)
+
+private data class NestedValue(
+    val found: Boolean,
+    val value: Any?,
+)
+
+private fun nestedValue(
+    root: Any?,
+    path: List<String>,
+): NestedValue {
+    if (path.isEmpty()) {
+        return NestedValue(found = true, value = root)
+    }
+
+    val entries = objectEntries(root) ?: return NestedValue(found = false, value = null)
+    val next = entries.entries.firstOrNull { canonicalKey(it.key) == canonicalKey(path.first()) }
+        ?: return NestedValue(found = false, value = null)
+
+    return nestedValue(next.value, path.drop(1))
+}
+
+private fun objectEntries(value: Any?): Map<String, Any?>? =
+    when (value) {
+        null -> null
+        is JsonObject -> value.mapValues { (_, nested) -> nested }
+        is Map<*, *> -> value.entries.associate { (key, nested) -> key.toString() to nested }
+        else -> if (isPlainJsObject(value)) {
+            dynamicKeys(value).associateWith { key -> value.asDynamic()[key] }
+        } else {
+            null
+        }
+    }
 
 private fun MutableMap<String, ColumnValue>.putWhenMissing(
     key: String,
@@ -263,20 +320,53 @@ private fun putPath(
 }
 
 private fun Map<String, Any?>.toJsonObject(): JsonObject =
-    JsonObject(mapValues { (_, value) -> value.toJsonElement() })
+    JsonObject(mapValues { (_, value) -> valueToJsonElement(value) })
 
-private fun Any?.toJsonElement(): JsonElement =
-    when (this) {
+private fun valueToJsonElement(value: Any?): JsonElement =
+    when (value) {
         null -> JsonNull
-        is JsonElement -> this
-        is Map<*, *> -> entries.associate { (key, value) -> key.toString() to value }.toJsonObject()
-        is Iterable<*> -> JsonArray(map { it.toJsonElement() })
-        is Array<*> -> JsonArray(map { it.toJsonElement() })
-        is Boolean -> JsonPrimitive(this)
-        is Int -> JsonPrimitive(this)
-        is Long -> JsonPrimitive(this)
-        is Float -> JsonPrimitive(this)
-        is Double -> JsonPrimitive(this)
-        is Number -> JsonPrimitive(this.toDouble())
-        else -> JsonPrimitive(toString())
+        is JsonElement -> value
+        is Map<*, *> -> value.entries.associate { (key, nested) -> key.toString() to nested }.toJsonObject()
+        is Iterable<*> -> JsonArray(value.map(::valueToJsonElement))
+        is Array<*> -> JsonArray(value.map(::valueToJsonElement))
+        is Boolean -> JsonPrimitive(value)
+        is Int -> JsonPrimitive(value)
+        is Long -> JsonPrimitive(value)
+        is Float -> JsonPrimitive(value)
+        is Double -> JsonPrimitive(value)
+        is Number -> JsonPrimitive(value.toDouble())
+        else -> when {
+            isJsDate(value) -> JsonPrimitive(jsDateIsoString(value))
+            isPlainJsObject(value) -> dynamicObjectToJson(value)
+            else -> JsonPrimitive(value.toString())
+        }
     }
+
+private fun Any.asSqlString(): String =
+    when {
+        isJsDate(this) -> jsDateIsoString(this)
+        else -> toString()
+    }
+
+private fun isJsDate(value: Any): Boolean =
+    jsTypeOf(value) == "object" && js("value instanceof Date") as Boolean
+
+private fun isJsArray(value: Any): Boolean =
+    js("Array.isArray(value)") as Boolean
+
+private fun isPlainJsObject(value: Any): Boolean =
+    jsTypeOf(value) == "object" &&
+        !isJsDate(value) &&
+        !isJsArray(value)
+
+private fun jsDateIsoString(value: Any): String =
+    js("value.toISOString()") as String
+
+private fun dynamicObjectToJson(value: Any): JsonObject =
+    JsonObject(
+        dynamicKeys(value)
+            .associateWith { key ->
+                val nestedValue: Any? = value.asDynamic()[key]
+                valueToJsonElement(nestedValue)
+            },
+    )

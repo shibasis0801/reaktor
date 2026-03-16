@@ -85,7 +85,12 @@ resolve_ios_device() {
 
   if [[ -x "/Users/ovd/Library/Python/3.9/bin/idb" && -x "/opt/homebrew/bin/idb_companion" ]]; then
     local device_id
-    device_id="$(IDB_COMPANION_PATH=/opt/homebrew/bin/idb_companion /Users/ovd/Library/Python/3.9/bin/idb list-targets 2>/dev/null | awk -F'|' '$4 ~ /device/ { gsub(/^ +| +$/, "", $2); print $2; exit }')"
+    device_id="$(
+      IDB_COMPANION_PATH=/opt/homebrew/bin/idb_companion \
+        /Users/ovd/Library/Python/3.9/bin/idb list-targets 2>/dev/null \
+        | awk -F'|' '$4 ~ /device/ { gsub(/^ +| +$/, "", $2); print $2; exit }' \
+        || true
+    )"
     if [[ -n "${device_id}" ]]; then
       echo "${device_id}"
       return
@@ -93,6 +98,12 @@ resolve_ios_device() {
   fi
 
   local trace_device
-  trace_device="$(xcrun xctrace list devices 2>/dev/null | awk 'match($0, /\(([0-9A-F-]{10,})\)$/, matches) && $0 !~ /Simulator/ { print matches[1]; exit }')"
+  trace_device="$(
+    xcrun xctrace list devices 2>/dev/null \
+      | grep -E '^[^=].*(Phone|iPhone|iPad).*\([0-9A-F-]{10,}\)$' \
+      | grep -v 'Simulator' \
+      | sed -n 's/.*(\([0-9A-F-][0-9A-F-]*\))$/\1/p' \
+      | head -n 1
+  )"
   echo "${trace_device}"
 }

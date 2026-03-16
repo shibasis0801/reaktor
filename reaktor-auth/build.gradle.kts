@@ -21,6 +21,7 @@ kotlin {
             api(project(":reaktor-ui"))
             api(project(":reaktor-graph"))
             api(project(":reaktor-io"))
+            api("com.appstractive:jwt-kt:1.2.1")
         }
     }
 

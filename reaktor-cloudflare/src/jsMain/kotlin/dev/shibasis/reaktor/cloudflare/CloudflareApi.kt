@@ -30,6 +30,14 @@ class VectorBinding internal constructor(name: String) : Binding<VectorIndex>(na
     override fun resolve(context: CloudflareContext): VectorIndex? = context.vectorOrNull(name)
 }
 
+class ServiceBinding internal constructor(name: String) : Binding<WorkerService>(name, "Service") {
+    override fun resolve(context: CloudflareContext): WorkerService? = context.serviceOrNull(name)
+}
+
+class SecretBinding internal constructor(name: String) : Binding<String>(name, "String") {
+    override fun resolve(context: CloudflareContext): String? = context.secretOrNull(name)
+}
+
 fun d1(name: String): D1Binding = D1Binding(name)
 
 fun r2(name: String): R2Binding = R2Binding(name)
@@ -37,6 +45,10 @@ fun r2(name: String): R2Binding = R2Binding(name)
 fun durableObject(name: String): DurableObjectBinding = DurableObjectBinding(name)
 
 fun vector(name: String): VectorBinding = VectorBinding(name)
+
+fun service(name: String): ServiceBinding = ServiceBinding(name)
+
+fun secret(name: String): SecretBinding = SecretBinding(name)
 
 operator fun <T : Any> CloudflareContext.get(binding: Binding<T>): T = binding.require(this)
 

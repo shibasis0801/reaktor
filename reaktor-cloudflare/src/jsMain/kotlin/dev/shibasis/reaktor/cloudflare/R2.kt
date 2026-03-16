@@ -53,6 +53,30 @@ class R2Bucket internal constructor(
     suspend fun put(key: String, value: String): R2Object =
         R2Object(raw.put(key, value).await())
 
+    suspend fun put(
+        key: String,
+        value: ByteArray,
+        contentType: String?,
+    ): R2Object =
+        R2Object(
+            raw.asDynamic()
+                .put(key, value.toUint8Array(), putOptions(contentType))
+                .unsafeCast<kotlin.js.Promise<RawR2Object>>()
+                .await(),
+        )
+
+    suspend fun put(
+        key: String,
+        value: String,
+        contentType: String?,
+    ): R2Object =
+        R2Object(
+            raw.asDynamic()
+                .put(key, value, putOptions(contentType))
+                .unsafeCast<kotlin.js.Promise<RawR2Object>>()
+                .await(),
+        )
+
     suspend fun delete(key: String) {
         raw.delete(key).await()
     }
@@ -67,6 +91,22 @@ class R2Bucket internal constructor(
 
     suspend fun putBytes(key: String, value: ByteArray) {
         put(key, value)
+    }
+
+    suspend fun putText(
+        key: String,
+        value: String,
+        contentType: String?,
+    ) {
+        put(key, value, contentType)
+    }
+
+    suspend fun putBytes(
+        key: String,
+        value: ByteArray,
+        contentType: String?,
+    ) {
+        put(key, value, contentType)
     }
 
     suspend fun getText(key: String): String? = get(key)?.text()
@@ -85,7 +125,8 @@ class R2Bucket internal constructor(
 }
 
 private fun ByteArray.toUint8Array(): dynamic {
-    val view = js("new Uint8Array(this.length)")
+    val length = size
+    val view = js("new Uint8Array(length)")
     for (index in indices) {
         view[index] = this[index].toInt() and 0xFF
     }
@@ -99,4 +140,16 @@ private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
         bytes[index] = (view[index] as Int).toByte()
     }
     return bytes
+}
+
+private fun putOptions(contentType: String?): dynamic {
+    if (contentType == null) {
+        return undefined
+    }
+
+    val options = js("({})")
+    val httpMetadata = js("({})")
+    httpMetadata.contentType = contentType
+    options.httpMetadata = httpMetadata
+    return options
 }

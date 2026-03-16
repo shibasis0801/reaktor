@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
 import kotlinx.coroutines.await
+import dev.shibasis.reaktor.graph.service.Request
 import kotlin.js.Promise
 import kotlin.js.jsTypeOf
 
@@ -173,6 +174,12 @@ suspend inline fun <T> CloudflareContext.postgres(
 }
 
 suspend inline fun <T> CloudflareRequest.postgres(
+    binding: PostgresBinding,
+    noinline configure: PostgresOptionsBuilder.() -> Unit = {},
+    block: suspend PostgresDatabase.() -> T,
+): T = context.postgres(binding, configure, block)
+
+suspend inline fun <T> Request.postgres(
     binding: PostgresBinding,
     noinline configure: PostgresOptionsBuilder.() -> Unit = {},
     block: suspend PostgresDatabase.() -> T,

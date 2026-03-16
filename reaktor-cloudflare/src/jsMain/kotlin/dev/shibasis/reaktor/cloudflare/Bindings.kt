@@ -9,6 +9,14 @@ internal external interface RawHyperdrive {
     val connectionString: String
 }
 
+internal external interface RawServiceBinding {
+    fun fetch(input: dynamic, init: dynamic = definedExternally): Promise<RawWorkerResponse>
+}
+
+internal external interface RawHeaders {
+    fun get(name: String): String?
+}
+
 external interface WorkerExecutionContext {
     fun waitUntil(promise: Promise<Any?>)
     fun passThroughOnException()
@@ -24,10 +32,25 @@ internal external interface RawWorkerResponse {
 internal external interface RawWorkerRequest {
     val method: String?
     val url: String
+    val headers: RawHeaders
+    fun text(): Promise<String>
+    fun arrayBuffer(): Promise<dynamic>
+    fun formData(): Promise<RawFormData>
+}
+
+internal external interface RawFormData {
+    fun get(name: String): dynamic
+}
+
+internal external interface RawFile {
+    val name: String
+    val type: String
+    fun arrayBuffer(): Promise<dynamic>
     fun text(): Promise<String>
 }
 
 external interface HonoRequest {
+    val raw: dynamic
     fun text(): Promise<String>
     fun query(): dynamic
     fun param(): dynamic
@@ -158,12 +181,16 @@ class CloudflareContext internal constructor(
     fun r2OrNull(name: String): R2Bucket? = rawBindingOrNull<RawR2Bucket>(name)?.let(::R2Bucket)
     fun durableObjectOrNull(name: String): DurableObjectNamespace? = rawBindingOrNull<RawDurableObjectNamespace>(name)?.let(::DurableObjectNamespace)
     fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
+    fun serviceOrNull(name: String): WorkerService? = rawBindingOrNull<RawServiceBinding>(name)?.let(::WorkerService)
+    fun secretOrNull(name: String): String? = raw(name)?.toString()
     internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
     fun requireR2(name: String): R2Bucket = r2OrNull(name) ?: missingBinding(name, "R2Bucket")
     fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjectOrNull(name) ?: missingBinding(name, "DurableObjectNamespace")
     fun requireVector(name: String): VectorIndex = vectorOrNull(name) ?: missingBinding(name, "VectorIndex")
+    fun requireService(name: String): WorkerService = serviceOrNull(name) ?: missingBinding(name, "Service")
+    fun requireSecret(name: String): String = secretOrNull(name) ?: missingBinding(name, "String")
     internal fun requireHyperdrive(name: String): HyperdriveConfig = hyperdriveOrNull(name) ?: missingBinding(name, "Hyperdrive")
 
     fun waitUntil(promise: Promise<Any?>) {
