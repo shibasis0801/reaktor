@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.portgraph.port
 
 import dev.shibasis.reaktor.portgraph.edge.Edge
+import dev.shibasis.reaktor.portgraph.graph.disconnectInternal
 import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import kotlin.js.JsExport
 import kotlin.properties.PropertyDelegateProvider
@@ -37,8 +38,9 @@ open class ConsumerPort<Functionality: Any>(
     }
 
     override fun close() {
-        edge?.provider?.edges?.remove(this)
-        edge = null
+        edge?.provider?.let { provider ->
+            disconnectInternal(this, provider)
+        }
     }
 
     override fun toString(): String {
@@ -49,16 +51,21 @@ open class ConsumerPort<Functionality: Any>(
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerConsumer(key: Key, type: Type): ConsumerPort<Functionality> {
-    return consumerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { ConsumerPort(this, key, type) } as ConsumerPort<Functionality>
+    val ports = consumerPorts.getOrPut(type) { linkedMapOf() }
+    val existing = ports[key] as? ConsumerPort<Functionality>
+    if (existing != null) {
+        return existing
+    }
+
+    val created = ConsumerPort<Functionality>(this, key, type)
+    ports[key] = created as ConsumerPort<Any>
+    emit(PortEvent.Created(created))
+    return created
 }
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.getConsumer(key: Key, type: Type): ConsumerPort<Functionality>? {
-    return consumerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .get(key) as? ConsumerPort<Functionality>
+    return consumerPorts[type]?.get(key) as? ConsumerPort<Functionality>
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerConsumer(key: String = ""): ConsumerPort<Functionality> {

@@ -9,5 +9,6 @@ class ApplicationPlugin: Plugin<Project> {
 //        plugins.apply("com.google.firebase.crashlytics")
         plugins.apply("com.android.application")
         plugins.apply("org.jetbrains.kotlin.android")
+        dependencies.add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs:2.1.4")
     }
 }

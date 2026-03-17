@@ -10,13 +10,13 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.library")
     id("dev.shibasis.dependeasy.library")
-    
 }
 
 kotlin {
     common {
         dependencies {
-            api(project(":reaktor-ui"))
+            api(project(":reaktor-core"))
+            api("dev.mattramotar.meeseeks:runtime:1.0.2")
         }
     }
     droid {}

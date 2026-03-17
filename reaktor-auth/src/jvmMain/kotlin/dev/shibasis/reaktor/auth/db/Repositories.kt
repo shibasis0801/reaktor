@@ -3,8 +3,8 @@ package dev.shibasis.reaktor.auth.db
 import dev.shibasis.reaktor.auth.*
 import dev.shibasis.reaktor.auth.Apps
 import dev.shibasis.reaktor.auth.Users
-import dev.shibasis.reaktor.framework.CrudRepository
-import dev.shibasis.reaktor.framework.ExposedAdapter
+import dev.shibasis.reaktor.graph.service.db.CrudRepository
+import dev.shibasis.reaktor.graph.service.db.ExposedAdapter
 import dev.shibasis.reaktor.graph.service.Request
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.selectAll

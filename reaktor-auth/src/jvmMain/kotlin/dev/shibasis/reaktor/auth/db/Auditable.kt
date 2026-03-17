@@ -1,36 +1,23 @@
-package dev.shibasis.reaktor.framework
+package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.AuditableDto
-import dev.shibasis.reaktor.framework.db.CurrentTimestamp
-import dev.shibasis.reaktor.framework.db.timestampZ
-import kotlin.time.Instant
-import kotlin.time.toKotlinInstant
+import dev.shibasis.reaktor.core.framework.db.CurrentTimestamp
+import dev.shibasis.reaktor.core.framework.db.timestampZ
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.ColumnType
-import org.jetbrains.exposed.v1.core.IDateColumnType
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.IdTable
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
-import org.jetbrains.exposed.v1.core.vendors.currentDialect
 import org.jetbrains.exposed.v1.json.jsonb
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import java.util.UUID
 
 inline fun <reified T : Any> Table.jsonb(name: String): Column<T> = jsonb(name, { Json.encodeToString(
     serializer<T>(), it) }, { Json.decodeFromString(serializer<T>(), it) })
-
-fun java.sql.Date.toKotlinInstant(): Instant {
-    val date = toLocalDate()
-    val javaInstant = date.atStartOfDay(ZoneOffset.UTC).toInstant()
-    return javaInstant.toKotlinInstant()
-}
 
 abstract class Auditable<IdType: Comparable<IdType>, DTO: AuditableDto>(
     name: String

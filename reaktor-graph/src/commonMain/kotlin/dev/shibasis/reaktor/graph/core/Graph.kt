@@ -3,19 +3,17 @@ package dev.shibasis.reaktor.graph.core
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
-import dev.shibasis.reaktor.core.capabilities.invoke
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.graph.di.DependencyCapability
 import dev.shibasis.reaktor.graph.di.DependencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
-import dev.shibasis.reaktor.core.utils.fail
-import dev.shibasis.reaktor.core.utils.succeed
 import dev.shibasis.reaktor.graph.navigation.Forward
 import dev.shibasis.reaktor.graph.navigation.NavigationCapability
 import dev.shibasis.reaktor.graph.navigation.NavigationCapabilityImpl
 import dev.shibasis.reaktor.graph.navigation.Payload
+import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.Push
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.Node
@@ -23,9 +21,9 @@ import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.portgraph.graph.connect
-import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.DependencyException
+import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import kotlinx.coroutines.CoroutineDispatcher
@@ -43,19 +41,29 @@ open class Graph(
     val dependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},
     builder: Graph.() -> Unit = {}
 ): PortGraph<Graph, Node>(id, label),
-    LifecycleCapability by LifecycleCapabilityImpl(),
-    DependencyCapability by DependencyCapabilityImpl(
+    LifecycleCapability,
+    DependencyCapability,
+    ConcurrencyCapability,
+    NavigationCapability
+{
+    private val lifecycleCapability = LifecycleCapabilityImpl()
+    private val dependencyCapability = DependencyCapabilityImpl(
         diAdapter = dependencyAdapter,
         id = id.toString(),
         parentScope = parentGraph?.let { (it as DependencyCapability).diScope },
         configure = dependencies
-    ),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(
-        parentGraph?.coroutineScope?.coroutineContext,
+    )
+    private val concurrencyCapability = ConcurrencyCapabilityImpl(
+        parentGraph?.let { (it as ConcurrencyCapability).coroutineScope.coroutineContext },
         dispatcher
-    ),
-    NavigationCapability
-{
+    )
+
+    override val lifecycle get() = lifecycleCapability.lifecycle
+    override val diAdapter get() = dependencyCapability.diAdapter
+    override val diScope get() = dependencyCapability.diScope
+    override val coroutineScope get() = concurrencyCapability.coroutineScope
+    override val coroutineDispatcher get() = concurrencyCapability.coroutineDispatcher
+
     val sentinel = RouteNode(this, "")
 
     private val navigationImpl = NavigationCapabilityImpl()
@@ -88,6 +96,7 @@ open class Graph(
         val container = findContainerForGraph(destGraph)
 
         if (container != null) {
+            pushContainerEntry(container, navCommand.entry.payload)
             container.activateGraphForRoute(edge.end)
             destGraph.navigationImpl.dispatch(navCommand)
         } else {
@@ -95,7 +104,46 @@ open class Graph(
         }
     }
 
+    private fun pushContainerEntry(
+        container: ContainerNode,
+        payload: Payload,
+    ) {
+        val currentRoute = backStack.entries.value.lastOrNull()?.edge?.end ?: sentinel
+        if (currentRoute == container.route) {
+            return
+        }
+
+        navigationImpl.dispatch(
+            Push<Payload>(
+                currentRoute.edge(container.route),
+                Payload(HashMap(payload.routeParams)),
+            ),
+        )
+    }
+
     init { builder() }
+
+    override fun attach(node: Node): Boolean {
+        if (!super.attach(node)) {
+            Logger.w("Node ${node.id} is already attached. Ignoring.")
+            return false
+        }
+
+        node.transition(Lifecycle.Restoring)
+        node.transition(Lifecycle.Attaching)
+        return true
+    }
+
+    override fun detach(node: Node): Boolean {
+        if (!nodes.contains(node)) {
+            return false
+        }
+
+        node.transition(Lifecycle.Saving)
+        node.transition(Lifecycle.Destroying)
+        node.close()
+        return super.detach(node)
+    }
 
     fun<P: Payload> addRoot(routeNode: RouteNode<P, *>, payload: P) {
         val edge = sentinel.edge(routeNode)
@@ -117,38 +165,20 @@ open class Graph(
             Lifecycle.Saving -> transitionNodes()
             Lifecycle.Destroying -> {
                 nodes.toList().forEach { detach(it) }
-                nodes.clear()
             }
         }
     }
 
     override fun close() {
         transition(Lifecycle.Destroying)
-        invoke<DependencyCapability> { close() }
-        invoke<ConcurrencyCapability> { close() }
-        invoke<LifecycleCapability> { close() }
+        dependencyCapability.close()
+        concurrencyCapability.close()
+        lifecycleCapability.close()
     }
 
     override fun toString(): String {
         return "[Graph] label='$label' id='$id' nodes=${nodes.size} stackDepth=${backStack.entries.value.size}, sentinel=$sentinel"
     }
-}
-
-fun Graph.attach(node: Node): Result<Unit> {
-    if (nodes.find { it.id == node.id } != null) {
-        Logger.w("Node ${node.id} is already attached. Ignoring.")
-        return fail(ConcurrentModificationException("Node already attached"))
-    }
-
-    nodes += node
-    node.transition(Lifecycle.Restoring)
-
-    return succeed(Unit)
-}
-
-fun Graph.detach(node: Node) {
-    node.transition(Lifecycle.Saving)
-    nodes.remove(node)
 }
 
 inline fun <reified Functionality : Any> Node.exposePort(port: ProviderPort<Functionality>) {
@@ -190,9 +220,25 @@ fun Graph.autoWire() {
             }
 
             if (match != null) {
-                connect(consumer, match)
+                connect(consumer, match).getOrThrow()
             }
         }
+}
+
+fun Graph.unconnectedConsumers() = nodes
+    .flatMap { it.consumerPorts.flattenedValues() }
+    .filterNot { it.isConnected() }
+
+fun Graph.requireFullyWired() {
+    val unconnected = unconnectedConsumers()
+    require(unconnected.isEmpty()) {
+        buildString {
+            append("Graph '$label' has unconnected consumer ports:")
+            unconnected.forEach { port ->
+                append("\n- key='${port.key.key}' type='${port.type.type}' owner='${port.owner}'")
+            }
+        }
+    }
 }
 
 fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this)

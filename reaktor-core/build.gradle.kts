@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.web.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
@@ -45,6 +46,9 @@ kotlin {
     server {
         dependencies {
             springWebFlux()
+            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
+            api("io.github.sebasbaumh:postgis-java-ng:23.2.0")
         }
     }
 

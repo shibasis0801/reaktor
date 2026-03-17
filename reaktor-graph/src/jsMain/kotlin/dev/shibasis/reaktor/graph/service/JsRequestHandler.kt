@@ -28,9 +28,9 @@ fun <In: Request, Out: Response> handler(
         HttpMethod.POST -> PostHandler.Companion
         HttpMethod.PUT -> PutHandler.Companion
         HttpMethod.DELETE -> DeleteHandler.Companion
-        HttpMethod.PATCH -> TODO()
-        HttpMethod.OPTIONS -> TODO()
-        HttpMethod.HEAD -> TODO()
+        HttpMethod.PATCH -> PatchHandler.Companion
+        HttpMethod.OPTIONS -> OptionsHandler.Companion
+        HttpMethod.HEAD -> HeadHandler.Companion
     }
 
     return factory(route, requestSerializer, responseSerializer) { request ->

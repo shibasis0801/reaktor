@@ -1,6 +1,5 @@
-package dev.shibasis.reaktor.framework.db
+package dev.shibasis.reaktor.core.framework.db
 
-import dev.shibasis.reaktor.framework.toKotlinInstant
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
@@ -13,6 +12,12 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.vendors.currentDialect
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+
+private fun java.sql.Date.toKotlinInstant(): Instant {
+    val date = toLocalDate()
+    val javaInstant = date.atStartOfDay(ZoneOffset.UTC).toInstant()
+    return javaInstant.toKotlinInstant()
+}
 
 /**
  * Custom Exposed column type for storing a kotlin.time.Instant

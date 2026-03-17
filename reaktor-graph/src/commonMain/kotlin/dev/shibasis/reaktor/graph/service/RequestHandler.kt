@@ -10,13 +10,21 @@ typealias RequestHandlerBlock<In, Out> =
 
 @JsExport
 sealed class RequestHandler<In: Request, Out: Response>(
-    val method: HttpMethod,
-    val route: String,
+    val endpoint: ServiceEndpoint,
     val requestSerializer: KSerializer<In>,
     val responseSerializer: KSerializer<Out>,
     val handler: RequestHandlerBlock<In, Out>
 ) {
-    val routePattern = RoutePattern.from(route)
+    val transport: ServiceTransport
+        get() = endpoint.transport
+
+    val method: HttpMethod
+        get() = endpoint.method ?: error("RequestHandler '${endpoint.operation}' is not bound to HTTP")
+
+    val route: String
+        get() = endpoint.address
+
+    val routePattern by lazy { RoutePattern.from(route) }
 
     inline fun url(request: In, vararg extraPathParams: Pair<String, String>): String =
         routePattern.fill(request.pathParams + extraPathParams)
@@ -24,22 +32,31 @@ sealed class RequestHandler<In: Request, Out: Response>(
     suspend operator fun invoke(request: In): Out = handler(request)
 
     interface Factory {
-        operator fun<In: Request, Out: Response> invoke(
+        fun <In: Request, Out: Response> create(
             route: String,
+            operation: String,
             requestSerializer: KSerializer<In>,
             responseSerializer: KSerializer<Out>,
             block: RequestHandlerBlock<In, Out>
         ): RequestHandler<In, Out>
+
+        operator fun <In: Request, Out: Response> invoke(
+            route: String,
+            requestSerializer: KSerializer<In>,
+            responseSerializer: KSerializer<Out>,
+            block: RequestHandlerBlock<In, Out>
+        ): RequestHandler<In, Out> = create(route, route, requestSerializer, responseSerializer, block)
     }
 }
 
 
-inline operator
-fun <reified In: Request, reified Out: Response> RequestHandler.Factory.invoke(
-    rawRoute: String,
+inline fun <reified In: Request, reified Out: Response> RequestHandler.Factory.create(
+    route: String,
+    operation: String = route,
     noinline fn: RequestHandlerBlock<In, Out>
-) = invoke(
-    rawRoute,
+) = create(
+    route,
+    operation,
     kSerializer<In>(),
     kSerializer<Out>(),
     fn

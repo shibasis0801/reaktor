@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.graph.core.node
 
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.attach
 import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
 import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.KeyType

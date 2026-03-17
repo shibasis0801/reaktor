@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-graph-port",
-  "version": "2026.3.7-SNAPSHOT",
+  "version": "2026.3.17-SNAPSHOT",
   "main": "reaktor-reaktor-graph-port.mjs",
   "types": "reaktor-reaktor-graph-port.d.mts",
   "devDependencies": {

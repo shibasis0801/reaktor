@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.graph.service
 
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.attach
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.Type
@@ -13,8 +12,8 @@ import kotlin.js.JsExport
  * [ProviderPort].
  *
  * ## Port Matching
- * - **Key** = handler route (e.g. `"/auth/sign-in"`)
- * - **Type** = `"method:route"` (e.g. `"POST:/auth/sign-in"`) for uniqueness across HTTP methods.
+ * - **Key** = handler operation (defaults to the route)
+ * - **Type** = transport-specific port type (e.g. `"HTTP:POST:Auth.SignIn"`).
  *
  * ## Usage
  *
@@ -44,8 +43,8 @@ open class ServiceNode(
     init {
         service.handlers.forEach { handler ->
             registerProvider(
-                    Key(handler.route),
-                    Type(handler.method.name + ":" + handler.route),
+                    Key(handler.endpoint.portKey),
+                    Type(handler.endpoint.portType),
                     handler
             )
         }

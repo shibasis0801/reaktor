@@ -59,6 +59,7 @@ fun CmakeFlags.defaults(name: String) {
 fun CompileOptions.defaults() {
     sourceCompatibility = Version.SDK.Java.asEnum
     targetCompatibility = Version.SDK.Java.asEnum
+    isCoreLibraryDesugaringEnabled = true
 }
 
 fun ExternalNativeBuild.defaults(cmakeLists: File) {

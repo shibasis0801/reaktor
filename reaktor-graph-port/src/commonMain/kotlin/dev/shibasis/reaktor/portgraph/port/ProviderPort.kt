@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.portgraph.port
 
+import dev.shibasis.reaktor.portgraph.graph.disconnectInternal
 import dev.shibasis.reaktor.portgraph.edge.Edge
 import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import kotlin.js.JsExport
@@ -27,7 +28,9 @@ open class ProviderPort<Functionality: Any>(
     suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R = fn(impl)
 
     override fun close() {
-        edges.keys.forEach { it.edge = null }
+        edges.keys.toList().forEach { consumer ->
+            disconnectInternal(consumer, this)
+        }
         edges.clear()
     }
 
@@ -38,16 +41,24 @@ open class ProviderPort<Functionality: Any>(
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerProvider(key: Key, type: Type, impl: Functionality): ProviderPort<Functionality> {
-    return providerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { ProviderPort(this, key, type, impl) } as ProviderPort<Functionality>
+    val ports = providerPorts.getOrPut(type) { linkedMapOf() }
+    val existing = ports[key] as? ProviderPort<Functionality>
+    if (existing != null) {
+        require(existing.impl === impl) {
+            "Provider already registered for key='${key.key}' type='${type.type}' with a different implementation."
+        }
+        return existing
+    }
+
+    val created = ProviderPort(this, key, type, impl)
+    ports[key] = created as ProviderPort<Any>
+    emit(PortEvent.Created(created))
+    return created
 }
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.getProvider(key: Key, type: Type): ProviderPort<Functionality>? {
-    return providerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .get(key) as? ProviderPort<Functionality>
+    return providerPorts[type]?.get(key) as? ProviderPort<Functionality>
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerProvider(key: String = "", impl: Functionality): ProviderPort<Functionality> {

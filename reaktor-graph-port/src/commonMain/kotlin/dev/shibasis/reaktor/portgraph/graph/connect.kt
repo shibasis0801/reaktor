@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.portgraph.graph
 import dev.shibasis.reaktor.portgraph.edge.Edge
 import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.PortCapability
+import dev.shibasis.reaktor.portgraph.port.PortEvent
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import kotlin.js.JsExport
@@ -49,6 +50,7 @@ fun connect(
 ): Result<List<Edge<Any>>> {
     if (
         consumers.size == 1 && providers.size == 1 &&
+        consumers.keys.first() == providers.keys.first() &&
         consumers.values.first().type == providers.values.first().type
     ) {
         return connect(
@@ -57,17 +59,26 @@ fun connect(
         ).map { listOf(it) }
     }
 
-    val edges = consumers.keys
-        .intersect(providers.keys)
-        .mapNotNull {
-            val consumer = consumers[it] as ConsumerPort<Any>
-            val provider = providers[it] as ProviderPort<Any>
-            if (consumer.type == provider.type)
-                connect(consumer, provider).getOrNull()
-            else null
-        }
+    val failures = mutableListOf<String>()
+    val edges = mutableListOf<Edge<Any>>()
 
-    return Result.success(edges)
+    consumers.forEach { (key, consumerPort) ->
+        val providerPort = providers[key]
+        when {
+            providerPort == null -> failures += "Missing provider for key='${key.key}' type='${consumerPort.type.type}'"
+            consumerPort.type != providerPort.type ->
+                failures += "Type mismatch for key='${key.key}': consumer='${consumerPort.type.type}' provider='${providerPort.type.type}'"
+            else -> connect(consumerPort, providerPort)
+                .onSuccess(edges::add)
+                .onFailure { failures += it.message ?: "Failed to connect key='${key.key}'" }
+        }
+    }
+
+    return if (failures.isEmpty()) {
+        Result.success(edges)
+    } else {
+        Result.failure(IllegalStateException(failures.joinToString(separator = "\n")))
+    }
 }
 
 private fun connectConsumerProvider(consumerNode: PortCapability, providerNode: PortCapability) {
@@ -78,7 +89,7 @@ private fun connectConsumerProvider(consumerNode: PortCapability, providerNode: 
             connect(
                 consumerNode.consumerPorts[it] ?: mapOf(),
                 providerNode.providerPorts[it] ?: mapOf()
-            )
+            ).getOrThrow()
         }
 }
 
@@ -92,9 +103,22 @@ fun connect(node1: PortCapability, node2: PortCapability) {
 
 infix fun PortCapability.connectWith(other: PortCapability) = connect(this, other)
 
-fun <C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>, kClass: KClass<C>) {
+internal fun <C : Any> disconnectInternal(
+    consumerPort: ConsumerPort<C>,
+    providerPort: ProviderPort<C>,
+) {
+    if (consumerPort.edge == null && providerPort.edges[consumerPort] == null) {
+        return
+    }
+
     consumerPort.edge = null
     providerPort.edges.remove(consumerPort)
+    consumerPort.owner.emit(PortEvent.Disconnected(consumerPort, providerPort))
+    providerPort.owner.emit(PortEvent.Disconnected(providerPort, consumerPort))
+}
+
+fun <C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>, kClass: KClass<C>) {
+    disconnectInternal(consumerPort, providerPort)
 }
 
 inline fun <reified C : Any> disconnect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>)

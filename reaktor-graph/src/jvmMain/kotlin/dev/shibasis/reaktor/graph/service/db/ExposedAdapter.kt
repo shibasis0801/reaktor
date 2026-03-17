@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.framework
+package dev.shibasis.reaktor.graph.service.db
 
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.graph.service.Environment
@@ -14,7 +14,6 @@ open class ExposedAdapter(
     val stageDb: Database,
     val prodDb: Database
 ): Adapter<Unit>(Unit) {
-    fun npe() = NullPointerException("Not Found")
     private val dbDispatcher: CoroutineDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     suspend fun <T> sql(
@@ -27,7 +26,7 @@ open class ExposedAdapter(
             GlobalScope.async(dbDispatcher) {
                 transaction(db) {
                     exec("SET search_path TO heimdall, public;")
-                    val data = statement() ?: throw npe()
+                    val data = statement() ?: throw NullPointerException("Not Found")
                     if (data is Throwable) throw data
 
                     data
@@ -36,4 +35,3 @@ open class ExposedAdapter(
         }
     }
 }
-

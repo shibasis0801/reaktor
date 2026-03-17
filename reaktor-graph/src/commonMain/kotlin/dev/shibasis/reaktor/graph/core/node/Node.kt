@@ -6,9 +6,7 @@ import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
-import dev.shibasis.reaktor.core.capabilities.invoke
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.attach
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
@@ -28,17 +26,24 @@ sealed class Node(
     override val label: String = "",
     portCapability: PortCapability = PortCapabilityImpl()
 ): PortNode<Graph>(graph, id, label, portCapability),
-    LifecycleCapability by LifecycleCapabilityImpl(),
-    ConcurrencyCapability by ConcurrencyCapabilityImpl(
+    LifecycleCapability,
+    ConcurrencyCapability
+{
+    private val lifecycleCapability = LifecycleCapabilityImpl()
+    private val concurrencyCapability = ConcurrencyCapabilityImpl(
         graph.coroutineScope.coroutineContext,
         dispatcher
     )
-{
+
+    override val lifecycle get() = lifecycleCapability.lifecycle
+    override val coroutineScope get() = concurrencyCapability.coroutineScope
+    override val coroutineDispatcher get() = concurrencyCapability.coroutineDispatcher
+
     override fun close() {
         consumerPorts.flattenedValues().forEach { it.close() }
         providerPorts.flattenedValues().forEach { it.close() }
-        invoke<LifecycleCapability> { close() }
-        invoke<ConcurrencyCapability> { close() }
+        lifecycleCapability.close()
+        concurrencyCapability.close()
     }
 
     interface Stateful<State> {

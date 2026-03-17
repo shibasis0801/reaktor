@@ -1,13 +1,7 @@
-package dev.shibasis.reaktor.framework
+package dev.shibasis.reaktor.graph.service
 
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.serialization.TextSerializer
-import dev.shibasis.reaktor.graph.service.Request
-import dev.shibasis.reaktor.graph.service.Response
-import dev.shibasis.reaktor.graph.service.Environment
-import dev.shibasis.reaktor.graph.service.HttpMethod
-import dev.shibasis.reaktor.graph.service.RequestHandler
-import dev.shibasis.reaktor.graph.service.Service
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.springframework.http.HttpStatus
@@ -18,14 +12,11 @@ import org.springframework.web.reactive.function.server.RouterFunction
 import org.springframework.web.reactive.function.server.RouterFunctions
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.bodyValueAndAwait
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 
 fun HttpMethod.toSpring(): org.springframework.http.HttpMethod = org.springframework.http.HttpMethod.valueOf(name)
 fun StatusCode.toHttpStatus(): HttpStatus = HttpStatus.valueOf(code)
 
-val textSerializer = TextSerializer()
+private val textSerializer = TextSerializer()
 
 fun Service.toRouter(): RouterFunction<ServerResponse> {
     val builder = RouterFunctions.route()
@@ -57,12 +48,10 @@ fun Service.toRouter(): RouterFunction<ServerResponse> {
                     request.headers[key] = value
                 }
 
-
-
                 val response = handler(request)
 
-                ServerResponse.status(response.statusCode.toHttpStatus())
-                    .headers { httpHeaders -> response.headers.forEach(httpHeaders::add) }
+                ServerResponse.status(response.transportStatusCode.toHttpStatus())
+                    .headers { httpHeaders -> response.transportHeaders.forEach(httpHeaders::add) }
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValueAndAwait(textSerializer.serialize(handler.responseSerializer, response))
             }

@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.framework.db
+package dev.shibasis.reaktor.core.framework.db
 
 import io.github.sebasbaumh.postgis.Point
 import org.jetbrains.exposed.v1.core.ColumnType

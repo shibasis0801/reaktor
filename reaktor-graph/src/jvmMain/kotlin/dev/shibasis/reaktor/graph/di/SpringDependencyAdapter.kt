@@ -1,7 +1,5 @@
-package dev.shibasis.reaktor.graph.util
+package dev.shibasis.reaktor.graph.di
 
-import dev.shibasis.reaktor.graph.di.DependencyAdapter
-import dev.shibasis.reaktor.graph.di.DependencyScopeCapability
 import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.beans.factory.support.DefaultListableBeanFactory
 import org.springframework.beans.factory.support.GenericBeanDefinition

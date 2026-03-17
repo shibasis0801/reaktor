@@ -244,6 +244,32 @@ class DurableObjectStorage internal constructor(
     fun clearAsync(): Promise<Unit> = promiseOf { clear() }
 }
 
+@JsExport
+class DurableObjectState internal constructor(
+    private val raw: RawDurableObjectState,
+) {
+    val id: DurableObjectId
+        get() = DurableObjectId(raw.id)
+
+    val storage: DurableObjectStorage = DurableObjectStorage(raw.storage)
+
+    fun waitUntil(promise: Promise<Any?>) {
+        raw.waitUntil(promise)
+    }
+
+    @JsExport.Ignore
+    suspend fun <T> blockConcurrencyWhile(block: suspend () -> T): T {
+        var result: Result<T>? = null
+        raw.blockConcurrencyWhile {
+            promiseOf {
+                result = runCatching { block() }
+                null
+            }
+        }.await()
+        return result!!.getOrThrow()
+    }
+}
+
 internal fun requestInit(
     method: String,
     body: String? = null,

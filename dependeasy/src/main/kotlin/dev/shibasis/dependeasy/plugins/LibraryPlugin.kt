@@ -79,8 +79,8 @@ class LibraryPlugin: Plugin<Project> {
 
         val extension = DependeasyExtension.create(this)
         applyMultiplatformPlugins(extension)
+        dependencies.add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs:2.1.4")
 //        plugins.apply("com.codingfeline.buildkonfig")
     }
 }
-
 

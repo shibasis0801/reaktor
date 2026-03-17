@@ -438,6 +438,15 @@ class PartyKitRoom internal constructor(
 
     val assets: PartyKitAssets = PartyKitAssets(raw.context.assets)
 
+    @JsExport.Ignore
+    fun rawRoom(): Any = raw.unsafeCast<Any>()
+
+    @JsExport.Ignore
+    fun rawDurableObjectStateOrNull(): DurableObjectState? =
+        raw.asDynamic().state?.unsafeCast<RawDurableObjectState?>()?.let(::DurableObjectState)
+
+    fun hasRawDurableObjectState(): Boolean = raw.asDynamic().state != null
+
     fun broadcast(message: String) {
         raw.broadcast(message)
     }

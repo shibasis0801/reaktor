@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.framework
+package dev.shibasis.reaktor.graph.service.db
 
 import dev.shibasis.reaktor.graph.service.Request
 
@@ -9,4 +9,3 @@ abstract class CrudRepository(
         statement: () -> T?
     ): Result<T> = adapter.sql(environment, statement)
 }
-

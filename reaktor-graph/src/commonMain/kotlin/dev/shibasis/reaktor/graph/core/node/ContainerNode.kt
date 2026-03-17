@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.graph.core.node
 
 import androidx.compose.runtime.Composable
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.attach
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.graph.navigation.Payload
