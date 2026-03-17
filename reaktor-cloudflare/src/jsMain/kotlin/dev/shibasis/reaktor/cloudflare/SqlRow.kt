@@ -11,11 +11,14 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlin.js.JsExport
 import kotlin.js.jsTypeOf
 
+@JsExport
 open class SqlRow internal constructor(
     private val raw: dynamic,
 ) {
+    @JsExport.Ignore
     operator fun get(columnName: String): Any? = raw[columnName]
 
     fun string(columnName: String): String? {
@@ -60,6 +63,10 @@ open class SqlRow internal constructor(
     fun requireBoolean(columnName: String): Boolean =
         boolean(columnName) ?: error("Missing column '$columnName' in SQL row")
 
+    fun jsonText(columnName: String): String? =
+        raw[columnName]?.let(::valueToJsonElement)?.toJsonText()
+
+    @JsExport.Ignore
     fun <T> decode(serializer: KSerializer<T>): T =
         json.decodeFromJsonElement(serializer, projectedJson(serializer.descriptor))
 
@@ -112,6 +119,16 @@ class SqlRowDecoder internal constructor(
     fun booleanOrNull(columnName: String): Boolean? = row.boolean(columnName)
 
     fun value(columnName: String): Any? = row[columnName]
+
+    fun jsonElement(columnName: String): JsonElement? =
+        value(columnName)?.let(::valueToJsonElement)
+
+    fun jsonObject(columnName: String): JsonObject =
+        jsonElement(columnName) as? JsonObject
+            ?: error("Column '$columnName' is not a JSON object")
+
+    fun jsonObjectOrNull(columnName: String): JsonObject? =
+        jsonElement(columnName) as? JsonObject
 }
 
 inline fun <reified T> SqlRow.decode(): T = decode(kSerializer<T>())

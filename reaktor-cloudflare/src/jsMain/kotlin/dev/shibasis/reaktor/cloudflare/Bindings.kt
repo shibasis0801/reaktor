@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.cloudflare.R2Bucket as RawR2Bucket
+import kotlin.js.JsExport
 import kotlin.js.Promise
 
 external interface CloudflareEnv
@@ -168,8 +169,9 @@ internal external interface RawVectorizeIndex {
     fun deleteByIds(ids: Array<String>): Promise<RawVectorizeMutationResult>
 }
 
+@JsExport
 class CloudflareContext internal constructor(
-    val env: CloudflareEnv,
+    private val env: CloudflareEnv,
     private val executionContextOrNull: WorkerExecutionContext? = null,
     internal val honoOrNull: HonoContext? = null,
 ) {
@@ -180,17 +182,19 @@ class CloudflareContext internal constructor(
     fun d1OrNull(name: String): D1Database? = rawBindingOrNull<RawD1Database>(name)?.let(::D1Database)
     fun r2OrNull(name: String): R2Bucket? = rawBindingOrNull<RawR2Bucket>(name)?.let(::R2Bucket)
     fun durableObjectOrNull(name: String): DurableObjectNamespace? = rawBindingOrNull<RawDurableObjectNamespace>(name)?.let(::DurableObjectNamespace)
-    fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
     fun serviceOrNull(name: String): WorkerService? = rawBindingOrNull<RawServiceBinding>(name)?.let(::WorkerService)
     fun secretOrNull(name: String): String? = raw(name)?.toString()
+    @JsExport.Ignore
+    fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
     internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
     fun requireR2(name: String): R2Bucket = r2OrNull(name) ?: missingBinding(name, "R2Bucket")
     fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjectOrNull(name) ?: missingBinding(name, "DurableObjectNamespace")
-    fun requireVector(name: String): VectorIndex = vectorOrNull(name) ?: missingBinding(name, "VectorIndex")
     fun requireService(name: String): WorkerService = serviceOrNull(name) ?: missingBinding(name, "Service")
     fun requireSecret(name: String): String = secretOrNull(name) ?: missingBinding(name, "String")
+    @JsExport.Ignore
+    fun requireVector(name: String): VectorIndex = vectorOrNull(name) ?: missingBinding(name, "VectorIndex")
     internal fun requireHyperdrive(name: String): HyperdriveConfig = hyperdriveOrNull(name) ?: missingBinding(name, "Hyperdrive")
 
     fun waitUntil(promise: Promise<Any?>) {
