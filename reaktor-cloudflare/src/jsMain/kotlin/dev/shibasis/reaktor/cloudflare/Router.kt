@@ -110,8 +110,8 @@ private val routeParameterPattern = """\{([^}]+)\}""".toRegex()
 
 private fun Response.toWorkerResponse(body: String): dynamic {
     val initHeaders = js("({})")
-    val status = statusCode.code
-    headers.forEach { (key, value) ->
+    val status = transportStatusCode.code
+    transportHeaders.forEach { (key, value) ->
         initHeaders[key] = value
     }
     val hasContentType = js("initHeaders['Content-Type'] !== undefined") as Boolean

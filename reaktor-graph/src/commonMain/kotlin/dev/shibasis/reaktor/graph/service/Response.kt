@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.js.JsExport
 
-
 @Serializable
 @JsExport
 open class Response(
