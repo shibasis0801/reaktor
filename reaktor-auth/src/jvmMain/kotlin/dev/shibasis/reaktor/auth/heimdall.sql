@@ -66,6 +66,7 @@ CREATE TABLE users (
     app_id UUID NOT NULL,
     provider VARCHAR(20) DEFAULT 'GOOGLE' NOT NULL,
     status VARCHAR(50) DEFAULT 'ONBOARDING' NOT NULL,
+    account_type VARCHAR(20) DEFAULT 'USER' NOT NULL,
     UNIQUE (social_id, app_id),
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);

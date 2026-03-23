@@ -3,17 +3,15 @@ package dev.shibasis.reaktor.auth
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.NoCredentialException
 import co.touchlab.kermit.Logger
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 class AndroidGoogleLogin(
     adapter: AndroidAuthAdapter,
     audience: String
 ): GoogleAuthProvider<AndroidAuthAdapter>(adapter) {
-    // nonce for security later
-    private val googleIdOption = GetGoogleIdOption.Builder()
-        .setFilterByAuthorizedAccounts(false)
-        .setServerClientId(audience)
+    // The app exposes an explicit Google button, so use the button-specific CM option.
+    private val googleIdOption = GetSignInWithGoogleOption.Builder(audience)
         .build()
 
     private val request = GetCredentialRequest.Builder()
@@ -27,15 +25,15 @@ class AndroidGoogleLogin(
 
         try {
             val result = adapter.credentialManager.getCredential(this, request)
-            if (result.credential.type == GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                current = GoogleIdTokenCredential.Companion.createFrom(result.credential.data).toGoogleUser()
+            if (result.credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                current = GoogleIdTokenCredential.createFrom(result.credential.data).toGoogleUser()
                 current
             } else null
         } catch (e: NoCredentialException) {
-            Logger.Companion.e(e) { "Missing credentials" }
+            Logger.e(e) { "Missing credentials" }
             null
         } catch (e: Exception) {
-            Logger.Companion.e { e.message ?: "Unknown Exception" }
+            Logger.e { e.message ?: "Unknown Exception" }
             null
         }
     }

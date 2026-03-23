@@ -48,10 +48,11 @@ open class LoginInteractor(
         val provider = request.provider
 
 
-        val userResult = userRepository
+        val existingUser = userRepository
             .findByAppIdAndProvider(request, appId,subject, provider)
+            .getOrNull()
 
-        val user = if (userResult.isFailure) {
+        val user = if (existingUser == null) {
             // Apple does not send name in JWT, so server needs to be very reliable. todo add queue here
             if (request.givenName == null || request.familyName == null) {
                 return LoginResponse.Failure.RequiresUserName
@@ -65,15 +66,18 @@ open class LoginInteractor(
                 provider = provider,
                 status = UserStatus.ONBOARDING,
                 data = request.newUserProfile ?: EMPTY_JSON
-            ))
+            )).getOrElse {
+                return LoginResponse.Failure.ServerError(it.message ?: "Unable to create user")
+            }
 
-            // Re-fetch the user after upsert
             userRepository
                 .findByAppIdAndProvider(request, appId, subject, provider)
-                .read()
+                .getOrElse {
+                    return LoginResponse.Failure.ServerError(it.message ?: "Unable to read/create user")
+                }
                 ?: return LoginResponse.Failure.ServerError("Unable to read/create user")
         } else {
-            userResult.read()!!
+            existingUser
         }
 
         logger { user }
