@@ -14,6 +14,8 @@ kotlin {
         dependencies {
             api(project(":reaktor-graph"))
             api(project(":reaktor-io"))
+            api("io.coil-kt.coil3:coil-compose:3.2.0")
+            api("io.coil-kt.coil3:coil-network-ktor3:3.2.0")
         }
     }
 
