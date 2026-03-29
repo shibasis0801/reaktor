@@ -1,26 +1,51 @@
-# Reaktor Cloudflare bindings
+# reaktor-cloudflare
 
-Kotlin/JS externals for the Cloudflare Workers platform and the [Hono](https://github.com/honojs/hono) edge web framework. The declarations map the runtime APIs exposed in `@cloudflare/workers-types`, `cloudflare:workers`, and `@cloudflare/containers` together with Hono's type definitions to Kotlin-friendly interfaces that follow the conventions used by `kotlin-wrappers`.
+`reaktor-cloudflare` is the Kotlin/JS runtime layer for Cloudflare deployments.
 
-## Gradle setup
+## What it covers
 
-```kotlin
-kotlin {
-    js(IR) {
-        browser()
-    }
+- Workers
+- D1
+- R2
+- Durable Objects
+- service bindings
+- Vector bindings
+- secrets
+- Hono integration
+- PartyKit integration
 
-    sourceSets {
-        jsMain {
-            dependencies {
-                implementation(project(":reaktor-cloudflare"))
-            }
-        }
-    }
-}
-```
+## Design goals
 
-The module exposes:
+- typed access to Cloudflare bindings from Kotlin
+- request-aware binding lookup instead of raw `dynamic`
+- shared service contracts mounted directly on Cloudflare handlers
+- escape hatches for raw responses, multipart handling, and websocket/realtime surfaces
 
-* Worker lifecycle handlers, service fetchers, Durable Objects (including the RPC helpers from `cloudflare:workers`), queues, D1, Hyperdrive, R2 object storage, and container orchestration primitives.
-* High-level Hono bindings covering the application runtime, context/request helpers, router DSL, and coroutine-friendly fetch utilities so Kotlin services can share middleware, handlers, and bindings with TypeScript codebases.
+## Important types
+
+- `CloudflareContext`
+- `Binding<T>` and concrete binding types
+- `CloudflareWorkerRequest`
+- `CloudflareResponse`
+- `WorkerService`
+- `CloudflareWorker`
+- `CloudflareDurableObject`
+- `PartyKitServer`
+- `PartyKitRoom`
+
+## Current use in production
+
+BestBuds uses this module for:
+- social worker
+- messaging worker
+- media worker
+- config worker
+- realtime PartyKit chat
+
+## Typical usage
+
+Use this module when you want to:
+- implement a worker in Kotlin instead of TypeScript
+- resolve bindings safely from request context
+- mount Reaktor services into Cloudflare routes
+- access PartyKit from Kotlin with a typed wrapper surface

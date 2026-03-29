@@ -1,12 +1,19 @@
-Requirements: (these must be exposed)
-1. 
+# reaktor-location
 
-Responsibilities: (these should be internal)
-1.
+`reaktor-location` provides location access through shared adapters.
 
-Assumptions: (this must be internal)
-1.
+## Current surface
 
-Dependencies: (these must be supplied)
-1. 
+- `Location`
+- `LocationAdapter`
+- `MapAdapter`
+- Android implementation
+- Darwin implementation
 
+## Goal
+
+Shared code should be able to request location without knowing whether the host is Android or iOS.
+
+## Status
+
+This module is intentionally small. It is an adapter surface, not a full mapping SDK.
