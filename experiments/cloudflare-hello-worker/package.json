@@ -2,7 +2,7 @@
   "name": "cloudflare-hello-worker-experiment",
   "private": true,
   "scripts": {
-    "build:kotlin": "cd ../.. && GRADLE_USER_HOME=/tmp/.gradle-flatinvoker ./gradlew :experiments-cloudflare-hello-worker:compileKotlinJs --no-daemon --console=plain",
+    "build:kotlin": "cd ../.. && GRADLE_USER_HOME=/tmp/.gradle-reaktor ./gradlew :experiments-cloudflare-hello-worker:compileKotlinJs --no-daemon --console=plain",
     "deploy": "npm run build:kotlin && wrangler deploy"
   },
   "dependencies": {

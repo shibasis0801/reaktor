@@ -2,6 +2,9 @@ package dev.shibasis.dependeasy.android
 
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.common.Configuration
+import dev.shibasis.dependeasy.native.hasNativeConfiguration
+import dev.shibasis.dependeasy.native.nativeConfigurationOrNull
+import dev.shibasis.dependeasy.native.nativeBuildDirectory
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.getting
 import org.gradle.kotlin.dsl.invoke
@@ -10,6 +13,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
+
+import dev.shibasis.dependeasy.tasks.droidCmake
 
 class AndroidConfiguration(
 
@@ -26,17 +31,61 @@ fun KotlinMultiplatformExtension.droid(
     configuration: AndroidConfiguration.() -> Unit = {}
 ) {
     val configure = AndroidConfiguration().apply(configuration)
+    val native = project.nativeConfigurationOrNull
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
         publishLibraryVariants("release", "debug")
 
         compilerOptions {
-            jvmTarget.set(Version.SDK.Java.asTarget)
+            jvmTarget.set(Version.SDK.AndroidJava.asTarget)
             freeCompilerArgs.add("-Xstring-concat=inline")
         }
 
         configure.targetModifier(this)
+    }
+
+    if (project.hasNativeConfiguration) {
+        val sdkDir = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT") 
+            ?: project.rootProject.file("local.properties")
+                .takeIf { it.exists() }
+                ?.let { java.util.Properties().apply { load(it.reader()) }.getProperty("sdk.dir") }
+            ?: throw IllegalArgumentException("ANDROID_HOME not found")
+
+        val cmakeTasks = dev.shibasis.dependeasy.Version.architectures.mapNotNull { abi ->
+            project.droidCmake(
+                abi = abi,
+                sdkDir = sdkDir
+            )
+        }
+
+        val generatedJniLibs = project.layout.buildDirectory.dir("dependeasy/jniLibs")
+        val copyNativeLibs = project.tasks.register("copyNativeLibs", org.gradle.api.tasks.Copy::class.java) {
+            dependsOn(cmakeTasks)
+            dev.shibasis.dependeasy.Version.architectures.forEach { abi ->
+                from(project.nativeBuildDirectory("android/$abi")) {
+                    include("**/*.so")
+                    into(abi)
+                }
+            }
+            into(generatedJniLibs)
+        }
+
+        project.tasks.matching {
+            it.name != "copyNativeLibs" && (
+            it.name.contains("JniLib", ignoreCase = true) ||
+                it.name.contains("NativeLib", ignoreCase = true) ||
+                it.name.contains("DebugSymbols", ignoreCase = true)
+            )
+        }.configureEach {
+            dependsOn(copyNativeLibs)
+        }
+
+        project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
+            ?.sourceSets
+            ?.getByName("main")
+            ?.jniLibs
+            ?.setSrcDirs(listOf(generatedJniLibs.get().asFile))
     }
 
     sourceSets {
@@ -44,8 +93,9 @@ fun KotlinMultiplatformExtension.droid(
             configure.sourceSetModifier(this)
             dependencies {
                 configure.dependencies(this)
-                // bad idea todo shibasis fix
-                fbjni()
+                if (native?.android?.usesFbjni == true) {
+                    fbjni()
+                }
             }
         }
 

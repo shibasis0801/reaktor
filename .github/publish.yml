@@ -46,10 +46,10 @@
 #      matrix:
 #        package:
 #          - dependeasy
-#          - flatinvoker-core
-#          - flatinvoker-ffi
-#          # - flatinvoker-react  # will fix later
-#          - flatinvoker-compiler
+#          - reaktor-core
+#          - reaktor-ffi
+#          # - reaktor-react  # will fix later
+#          - reaktor-compiler
 #          - reaktor-core
 #          - reaktor-io
 #          - reaktor-ui

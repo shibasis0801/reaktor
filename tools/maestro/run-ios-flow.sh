@@ -14,7 +14,12 @@ FLOW_TARGET="$1"
 shift || true
 ENGINE="$(resolve_engine ios)"
 DEVICE_ID="$(resolve_ios_device)"
-OUTPUT_ROOT="$(resolve_output_root tmp/maestro-results)"
+OUTPUT_ROOT="$(resolve_output_root tmp/maestro-results/ios)"
+FLOW_EXEC_TARGET="${FLOW_TARGET}"
+
+if [[ "${MAESTRO_EVERY_STEP_SCREENSHOT:-false}" == "true" ]]; then
+  FLOW_EXEC_TARGET="$(instrument_maestro_target "${FLOW_TARGET}" "${OUTPUT_ROOT}/instrumented")"
+fi
 
 if [[ -z "${DEVICE_ID}" ]]; then
   echo "No connected iOS device found. Set IOS_DEVICE_ID or MAESTRO_DEVICE explicitly." >&2
@@ -53,9 +58,12 @@ case "${ENGINE}" in
 
     echo "Running ${ENGINE} on iOS device: ${DEVICE_ID}"
     echo "Flow target: ${FLOW_TARGET}"
+    if [[ "${FLOW_EXEC_TARGET}" != "${FLOW_TARGET}" ]]; then
+      echo "Instrumented flow target: ${FLOW_EXEC_TARGET}"
+    fi
     echo "Artifacts: ${OUTPUT_ROOT}"
 
-    exec "${ARGS[@]}" test --output "${OUTPUT_ROOT}" --flatten "$@" "${FLOW_TARGET}"
+    "${ARGS[@]}" test --output "${OUTPUT_ROOT}" --flatten "$@" "${FLOW_EXEC_TARGET}"
     ;;
   maestro)
     require_maestro
@@ -64,19 +72,24 @@ case "${ENGINE}" in
 
     echo "Running ${ENGINE} on iOS device: ${DEVICE_ID}"
     echo "Flow target: ${FLOW_TARGET}"
+    if [[ "${FLOW_EXEC_TARGET}" != "${FLOW_TARGET}" ]]; then
+      echo "Instrumented flow target: ${FLOW_EXEC_TARGET}"
+    fi
     echo "Artifacts: ${OUTPUT_ROOT}"
 
-    exec maestro test \
+    maestro test \
       --platform ios \
       --device "${DEVICE_ID}" \
       --test-output-dir "${OUTPUT_ROOT}" \
       --debug-output "${DEBUG_ROOT}" \
       --flatten-debug-output \
       "$@" \
-      "${FLOW_TARGET}"
+      "${FLOW_EXEC_TARGET}"
     ;;
   *)
     echo "Unsupported MAESTRO_ENGINE for iOS: ${ENGINE}" >&2
     exit 1
     ;;
  esac
+
+export_successful_screenshots ios "${OUTPUT_ROOT}"

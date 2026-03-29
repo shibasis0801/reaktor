@@ -1,64 +1,20 @@
 #include "Reaktor.h"
-#import <Foundation/Foundation.h>
-//#include <core-cpp/base.h>
-#include <string>
-#include <flatbuffers/flexbuffers.h>
+#include <common/NativeFlexBuffer.h>
+#include <cstdlib>
+#include <cstring>
 
-int reaktorTest() {
-    std::string x = "Hello World Shibasis here";
-    return 100 + x.size();
-//    return getNumber();
-}
-const char* result;
-
-const char* getName() {
-    flexbuffers::Builder builder(1024);
-    builder.Vector([&]() {
-        builder.String("shibasis");
-    });
-    builder.Finish();
-
-    auto data = builder.GetBuffer();
-    auto vector = flexbuffers::GetRoot(data).AsVector();
-    result = vector[0].ToString().c_str();
-    printf("result: %s\n", result);
-//    return result;
-    return "shibasis";
-}
-
-/*
-xcrun --sdk iphonesimulator clang++ -arch arm64 -c Reaktor.cpp -o Reaktor.o -I ../../flatbuffers/include/ -std=c++17
-ar rcs libReaktor.a reaktor.o
-
-I didn't link with libflatbuffers.a but still it worked.
-Haven't understood cinterop properly yet.
-
-Next steps:
- 1. CMakelists.txt unified for android and iOS
- 2. import objective-c headers
-
-*/
-
-
-char* getNameCpp() {
-    std::string name = "shibasisCpp";
-    char* heapStr = new char[name.length() + 1];
-    std::strcpy(heapStr, name.c_str());
-    return heapStr;
-}
-
-int sendByteArray(const uint8_t* bytes, int size) {
-    for (size_t i = 0; i < size; ++i) {
-        printf("%x ", bytes[i]);
+ReaktorByteBuffer Reaktor_FlexHello() {
+    auto bytes = Reaktor_FlexHelloBytes();
+    auto* data = static_cast<uint8_t*>(std::malloc(bytes.size()));
+    if (data == nullptr || bytes.empty()) {
+        return {nullptr, 0};
     }
-    printf("\n");
-    return 1;
+    std::memcpy(data, bytes.data(), bytes.size());
+    return {data, static_cast<int32_t>(bytes.size())};
 }
 
-@implementation ExampleClass
-
-- (NSString *)getHelloWorld {
-return @"Hello, World!";
+void Reaktor_FreeByteBuffer(ReaktorByteBuffer buffer) {
+    if (buffer.data != nullptr) {
+        std::free(const_cast<uint8_t*>(buffer.data));
+    }
 }
-
-@end

@@ -1,10 +1,12 @@
 #include <droid/AndroidInvokable.h>
 #include <common/Engine.h>
+#include <common/HermesHello.h>
+#include <flatbuffers/flexbuffers.h>
 
 jni::global_ref<jni::JObject> instance;
 
 struct JTester : public jni::JavaClass<JTester> {
-    JAVA_DESCRIPTOR("Ldev/shibasis/flatinvoker/ffi/Tester;");
+    static constexpr auto kJavaDescriptor = JAVA_DESCRIPTOR("dev.shibasis.reaktor.ffi.Tester");
 
     static int sum() {
         auto method = instance->getClass()->getMethod<jlong(jbyteArray)>("invokeSync");
@@ -33,10 +35,16 @@ struct JTester : public jni::JavaClass<JTester> {
         return 0;
     }
 
+    // Integration test: evaluates JS in Hermes and returns the result
+    static jni::local_ref<jni::JString> hermesHello(jni::alias_ref<JTester> self) {
+        return jni::make_jstring(Reaktor_HermesHello());
+    }
+
     static void registerNatives() {
         javaClassStatic()->registerNatives({
             makeNativeMethod("test", JTester::test),
-            makeNativeMethod("testHermes", JTester::testHermes)
+            makeNativeMethod("testHermes", JTester::testHermes),
+            makeNativeMethod("hermesHello", JTester::hermesHello)
         });
     }
 };

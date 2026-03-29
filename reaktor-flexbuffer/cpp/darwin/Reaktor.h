@@ -1,15 +1,17 @@
 #pragma once
 
-#import <common/CBase.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-    int reaktorTest();
-    const char* getName();
-    char* getNameCpp();
-    // Used by kotlin to send byte array to cpp
-    int sendByteArray(const uint8_t* bytes, int size);
+    typedef struct ReaktorByteBuffer {
+        const uint8_t* data;
+        int32_t size;
+    } ReaktorByteBuffer;
+
+    ReaktorByteBuffer Reaktor_FlexHello();
+    void Reaktor_FreeByteBuffer(ReaktorByteBuffer buffer);
 #ifdef __cplusplus
 }
 #endif

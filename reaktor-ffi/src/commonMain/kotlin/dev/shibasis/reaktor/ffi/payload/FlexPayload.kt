@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.ffi.payload
 import com.google.flatbuffers.kotlin.ArrayReadBuffer
 import com.google.flatbuffers.kotlin.Vector
 import com.google.flatbuffers.kotlin.getRoot
-import dev.shibasis.reaktor.core.serialization.decodeFromFlexBuffer
+// import dev.shibasis.reaktor.core.serialization.decodeFromFlexBuffer
 
 typealias FlexPayload = Vector
 
@@ -46,5 +46,5 @@ inline val FlexPayload.isFlow: Boolean
 inline fun<reified T> FlexPayload.argument(idx: Int): T {
     val actualIdx = idx + 3
     val flexPointer = this[actualIdx].toInt().toLong()
-    return decodeFromFlexBuffer<T>(flexPointer)
+    TODO("decodeFromFlexBuffer is currently missing")
 }

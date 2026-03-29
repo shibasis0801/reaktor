@@ -1,6 +1,4 @@
 #include <common/Engine.h>
-#include <flatbuffers/flexbuffers.h>
-#include <common/FlexPrinter.h>
 #include <iostream>
 
 void flowLogic() {
@@ -34,13 +32,10 @@ int main() {
     try {
         Engine::start();
         flowLogic();
-        flexbuffers::testPrintFlex();
     } catch (facebook::jsi::JSError &e) {
-        // Handle JS exceptions here.
         std::cerr << "JS Exception: " << e.getStack() << std::endl;
         status = 1;
     } catch (facebook::jsi::JSIException &e) {
-        // Handle JSI exceptions here.
         std::cerr << "JSI Exception: " << e.what() << std::endl;
         status = 1;
     }

@@ -22,8 +22,16 @@ kotlin {
             api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion")
         }
     }
-    droid {}
-    darwin {}
+    droid {
+        dependencies {
+            api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
+        }
+    }
+    darwin {
+        dependencies {
+            api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
+        }
+    }
     web {}
     server {}
 }

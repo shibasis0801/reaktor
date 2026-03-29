@@ -1,4 +1,4 @@
-# flatInvoker / reaktor — Setup Guide
+# reaktor / reaktor — Setup Guide
 
 This guide covers everything needed to build the project from scratch on macOS (Apple Silicon / arm64).
 
@@ -150,7 +150,7 @@ kotlin.apple.cocoapods.bin=/Users/<your-username>/.rbenv/shims/pod
 ## Building
 
 ```bash
-cd flatInvoker
+cd reaktor
 export JAVA_HOME=~/local/jdk/amazon-corretto-21.jdk/Contents/Home   # skip if set in .zshrc
 ./gradlew build
 ```

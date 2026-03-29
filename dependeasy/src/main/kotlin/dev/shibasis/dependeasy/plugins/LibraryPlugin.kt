@@ -1,6 +1,9 @@
 package dev.shibasis.dependeasy.plugins
 
 import com.android.build.api.dsl.AndroidSourceSet
+import dev.shibasis.dependeasy.native.AndroidNativeConfiguration
+import dev.shibasis.dependeasy.native.DarwinNativeConfiguration
+import dev.shibasis.dependeasy.native.NativeConfiguration
 import dev.shibasis.dependeasy.tasks.generateDocumentation
 import dev.shibasis.dependeasy.tasks.buildReleaseBinariesLogSizes
 import org.gradle.api.Plugin
@@ -13,7 +16,9 @@ import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.konan.target.Family
 
-open class DependeasyExtension {
+open class DependeasyExtension internal constructor(
+    private val project: Project,
+) {
     // Living on the edge
     val annotations = listOf(
         "kotlin.js.ExperimentalJsExport",
@@ -28,9 +33,19 @@ open class DependeasyExtension {
         "kotlin.time.ExperimentalTime"
     )
 
+    internal val native = NativeConfiguration(project)
+
+    fun androidNative(configuration: AndroidNativeConfiguration.() -> Unit) {
+        native.android.apply(configuration)
+    }
+
+    fun darwinNative(configuration: DarwinNativeConfiguration.() -> Unit) {
+        native.darwin.apply(configuration)
+    }
+
     companion object {
         @JvmStatic
-        fun create(project: Project) = project.extensions.create("dependeasy", DependeasyExtension::class.java)
+        fun create(project: Project) = project.extensions.create("dependeasy", DependeasyExtension::class.java, project)
 
         @JvmStatic
         fun get(project: Project) = project.extensions.getByName("dependeasy") as DependeasyExtension
@@ -83,4 +98,3 @@ class LibraryPlugin: Plugin<Project> {
 //        plugins.apply("com.codingfeline.buildkonfig")
     }
 }
-

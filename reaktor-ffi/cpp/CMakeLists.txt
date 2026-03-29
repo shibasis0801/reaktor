@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
 project(ReaktorFFI)
 
+if(iOS)
+    setup_ios()
+endif()
+
 init()
 configure_hermes()
-fi_dependency(reaktor-flexbuffer)
+set(ffi_common ${common})
 
 if(ANDROID)
     add_library(
@@ -19,27 +23,40 @@ if(ANDROID)
             ${PROJECT_NAME}
             SHARED
             ${droid}
-            ${common}
+            ${ffi_common}
     )
-    find_package(hermes-engine REQUIRED CONFIG)
-    target_link_libraries(${PROJECT_NAME} jsi hermes-engine::libhermes ReaktorFlexbuffer)
+    target_link_libraries(${PROJECT_NAME}
+            PUBLIC
+            fbjni::fbjni
+            jsi
+            hermes-engine::libhermes
+    )
 elseif(iOS)
-    setup_ios()
     add_library(
             ${PROJECT_NAME}
             STATIC
-            ${common}
+            ${ffi_common}
             ${darwin}
     )
-    target_link_libraries(${PROJECT_NAME} jsi ReaktorFlexbuffer hermes)
+    target_link_libraries(${PROJECT_NAME}
+            PUBLIC
+            hermesvm
+            jsi
+    )
 else()
     message(STATUS "CLI Target")
     add_executable(
             ${PROJECT_NAME}
-            ${common}
+            ${ffi_common}
             ${main}
     )
-    target_link_libraries(${PROJECT_NAME} ReaktorFlexbuffer hermes jsi)
+    target_link_libraries(${PROJECT_NAME}
+            PUBLIC
+            ReaktorFlexbuffer
+            hermes
+            jsi
+    )
 endif()
 
+fi_link_dependencies(${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC .)

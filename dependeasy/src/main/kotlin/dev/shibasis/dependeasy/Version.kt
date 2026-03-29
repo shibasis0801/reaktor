@@ -6,8 +6,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 object Version {
     object SDK {
         const val minSdk = 26
-        const val compileSdk = 35
-        const val targetSdk = 35
+        const val compileSdk = 36
+        const val targetSdk = 36
         const val ndkVersion = "25.0.8775105"
         const val CMake = "3.22.1"
 
@@ -16,11 +16,18 @@ object Version {
         const val Kotlin = "2.3.0-Beta2"
         const val SpringBoot = "4.0.0"
 
+        // JVM (server, desktop, toolchain) — Java 25
         object Java {
+            val asTarget = JvmTarget.JVM_25
+            val asEnum = JavaVersion.VERSION_25
+            val asString = "25"
+            val asInt = asString.toInt()
+        }
+
+        // Android — stays at 21 (AGP toolchain constraint)
+        object AndroidJava {
             val asTarget = JvmTarget.JVM_21
             val asEnum = JavaVersion.VERSION_21
-            val asString = "21"
-            val asInt = asString.toInt() // wtf is wrong with gradle and java version types
         }
     }
 
@@ -73,8 +80,8 @@ object Version {
         "libjsi.so",
         // todo stupid hack fix
         "libhermes.so",
-        "libFlatInvokerCore.so",
-        "libFlatInvokerFFI.so",
+        "libReaktorFlexbuffer.so",
+        "libReaktorFFI.so",
         "libFlatInvokerReact.so"
     )
 }
