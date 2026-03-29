@@ -1,8 +1,9 @@
-import dev.shibasis.dependeasy.web.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
+import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.web.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
@@ -48,7 +49,8 @@ kotlin {
         dependencies {
             implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
             implementation("app.cash.sqldelight:sqlite-driver:$sqldelightVersion")
-            api("org.springframework.boot:spring-boot-starter-data-neo4j:4.0.2")
+            api("org.neo4j.driver:neo4j-java-driver:5.28.9")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${Version.Coroutines}")
         }
     }
 }

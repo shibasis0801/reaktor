@@ -1,6 +1,3 @@
-import java.nio.file.*
-import dev.shibasis.dependeasy.utils.*
-
 rootProject.name = "reaktor"
 
 pluginManagement {
@@ -48,9 +45,6 @@ plugins {
     id("dev.shibasis.dependeasy.settings")
 }
 
-val cmake = "/usr/local/bin/cmake"
-val ninja = "/opt/homebrew/bin/ninja"
-
 gradle.beforeProject {
         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
             compilerOptions {
@@ -59,133 +53,7 @@ gradle.beforeProject {
         }
     }
 
-
-val githubDir = file(".github_modules")
-githubDir.mkdir()
-println("SETTINGS PATH=" + System.getenv("PATH"))
-
-fun linkFlatBuffers(
-    githubDirectory: File,
-    buildDirectory: File = File(githubDirectory, "flatbuffers"),
-    url: String = "https://github.com/shibasis0801/flatbuffers.git"
-) {
-    githubDirectory.gitDependency(url)
-    val isWindows = System.getProperty("os.name").contains("Windows")
-    val flatc = if(isWindows) File(buildDirectory, "Debug/flatc.exe") else File(buildDirectory, "flatc")
-
-    if (!flatc.exists()) {
-        println("Generating CMake build for flatbuffers")
-        if (isWindows) {
-            println("Generating CMake build for flatbuffers on Windows")
-            exec {
-                workingDir = buildDirectory
-                commandLine(cmake, "-G", "Visual Studio 17 2022")
-            }
-            println("Building flatc with make...")
-            exec {
-                workingDir = buildDirectory
-                commandLine(cmake, "--build", '.')
-            }
-        } else {
-            println("Generating CMake build for flatbuffers on Unix")
-            exec {
-                workingDir = buildDirectory
-                commandLine(cmake, "-G", "Unix Makefiles")
-            }
-            println("Building flatc with make...")
-            exec {
-                workingDir = buildDirectory
-                commandLine("make", "-j")
-            }
-        }
-
-
-    } else {
-        println("flatc already built.")
-    }
-
-    if (!flatc.exists()) {
-        throw GradleException("Failed to build flatc binary. Check the build logs for details.")
-    } else {
-        println("flatc binary built successfully at ${flatc.absolutePath}")
-    }
-
-    includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
-}
-
-fun linkHermes(
-    githubDirectory: File,
-    buildDirectory: File = File(githubDirectory, "hermes/debug"),
-    url: String = "https://github.com/facebook/hermes.git"
-) {
-    githubDirectory.gitDependency(url)
-    val isWindows = System.getProperty("os.name").contains("Windows")
-    val hermesSrcDir = File(githubDirectory, "hermes")
-    val hermesBuildDir = buildDirectory
-    buildDirectory.mkdir()
-
-    val hermesExecutable = if(isWindows) File(buildDirectory, "bin/Debug/hermes.exe") else File(buildDirectory, "bin/hermes")
-
-    // Check for the existence of jsi.h
-    val jsiHeader = File(hermesSrcDir, "API/jsi/jsi/jsi.h")
-    if (!jsiHeader.exists()) {
-        throw GradleException("${jsiHeader.absolutePath} does not exist.")
-    }
-
-    // Check if Hermes executable exists
-    if (!hermesExecutable.exists()) {
-        if (isWindows) {
-            println("Generating CMake build for Hermes on Windows")
-            exec {
-                workingDir = hermesBuildDir
-                commandLine(
-                    cmake,
-                    "-G", "Visual Studio 17 2022",
-                    "-A", "x64",
-                    "-DCMAKE_BUILD_TYPE=Debug",
-                    hermesSrcDir.absolutePath
-                )
-            }
-            println("Building Hermes with CMake...")
-            exec {
-                workingDir = hermesBuildDir
-                commandLine(cmake, "--build", ".")
-            }
-        } else {
-            println("Generating CMake build for Hermes on Unix")
-            exec {
-                workingDir = hermesBuildDir
-                commandLine(
-                    cmake,
-                    "-G", "Ninja",
-                    "-DHERMES_BUILD_APPLE_FRAMEWORK=ON",
-                    "-DCMAKE_BUILD_TYPE=Debug",
-                    "-DCMAKE_MAKE_PROGRAM=/opt/homebrew/bin/ninja",
-                    hermesSrcDir.absolutePath
-                )
-            }
-            println("Building Hermes with Ninja...")
-            exec {
-                workingDir = hermesBuildDir
-                commandLine("/opt/homebrew/bin/ninja")
-            }
-        }
-
-        if (!hermesExecutable.exists()) {
-            throw GradleException("Hermes executable still not found after build attempt. Please investigate further.")
-        }
-    } else {
-        println("Hermes executable already built.")
-    }
-
-    println("Hermes executable built successfully at ${hermesExecutable.absolutePath}")
-}
-
-
-    linkFlatBuffers(githubDir)
-    linkHermes(githubDir)
-
-//include(":flatinvoker-react") // will fix later
+//include(":reaktor-react") // will fix later
 
 
 include(":reaktor-compiler")
@@ -204,7 +72,6 @@ include(":reaktor-graph")
 include(":reaktor-telemetry")
 include(":reaktor-location")
 include(":reaktor-work")
-include(":reaktor-cloudflare")
 include(":reaktor-cloudflare")
 include(":reaktor-mcp")
 include(":reaktor-web")

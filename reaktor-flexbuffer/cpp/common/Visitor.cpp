@@ -1,367 +1,141 @@
-#include <common/CppBase.h>
+#include <common/Visitor.h>
 
-
-class Pet;
-class Cat;
-class Dog;
-
-class PetVisitor {
-public:
-    virtual void visit(Cat* c, Pet* p) = 0;
-    virtual void visit(Dog* d, Pet* p) = 0;
-};
-
-
-
-class Pet {
-public:
-    virtual ~Pet() {}
-    virtual void accept(PetVisitor& visitor, Pet* p = nullptr) = 0;
-
-    Pet(string_view color): color_(color) {}
-    const string& color() const { return color_; }
-    void add_child(Pet *baby) {
-        children.push_back(baby);
-    }
-    const vector<Pet*>& get_children() const {
-        return children;
-    }
-
-private:
-    const string color_;
-    vector<Pet*> children;
-};
-
-
-class Cat: public Pet {
-public:
-    Cat(string_view color): Pet(color) {}
-
-    void accept(PetVisitor &visitor, Pet* p = nullptr) override {
-        visitor.visit(this, p);
-    }
-
-};
-
-class Dog: public Pet {
-public:
-    Dog(string_view color): Pet(color) {}
-
-    void accept(PetVisitor &visitor, Pet *p = nullptr) override {
-        visitor.visit(this, p);
-    }
-};
-
-
-#include <iostream>
-class FeedingVisitor: public PetVisitor {
-public:
-    void visit(Cat *c, Pet *p = nullptr) override {
-        std::cout << "Feeding cat: " << c->color() << std::endl;
-    }
-
-    void visit(Dog *d, Pet *p = nullptr) override {
-        std::cout << "Feeding dog: " << d->color() << std::endl;
-    }
-};
-
-class PlayingVisitor: public PetVisitor {
-public:
-    void visit(Cat *c, Pet *p = nullptr) override {
-        std::cout << "Playing cat: " << c->color() << std::endl;
-    }
-
-    void visit(Dog *d, Pet *p = nullptr) override {
-        std::cout << "Playing dog: " << d->color() << std::endl;
-    }
-};
-
-class BabyCreationVisitor: public PetVisitor {
-public:
-    void visit(Cat *c, Pet *p) override {
-        assert(dynamic_cast<Cat*>(p));
-        c->add_child(p);
-    }
-
-    void visit(Dog *d, Pet *p) override {
-        assert(dynamic_cast<Dog*>(p));
-        d->add_child(p);
-    }
-};
-
-class CensusVisitor: public PetVisitor {
-public:
-    void visit(Cat *c, Pet *p = nullptr) override {
-        std::cout << c-> color();
-        for (auto *baby: c->get_children()) {
-            baby->accept(*this);
+namespace FlatInvoker {
+    unique_ptr<Geometry> Geometry::make(TypeTag tag) {
+        switch (tag) {
+            case POINT:
+                return std::make_unique<Point>();
+            case CIRCLE:
+                return std::make_unique<Circle>();
+            case LINE:
+                return std::make_unique<Line>();
+            case INTERSECTION:
+                return std::make_unique<Intersection>();
         }
+        throw Exception("Unknown geometry tag");
     }
 
-    void visit(Dog *d, Pet *p = nullptr) override {
-        std::cout << d-> color();
-        for (auto *baby: d->get_children()) {
-            baby->accept(*this);
-        }
+    Point::Point(double x, double y) : x(x), y(y) {}
+
+    void Point::accept(GeometryVisitor& visitor) {
+        visitor.visit(*this);
     }
-};
 
-void PetTester() {
-    auto pet = unique_ptr<Pet>(new Cat("orange"));
-    FeedingVisitor fv;
+    Geometry::TypeTag Point::tag() const {
+        return POINT;
+    }
 
-    pet->accept(fv);
-}
+    Circle::Circle(Point centre, double radius) : centre(std::move(centre)), radius(radius) {}
 
+    void Circle::accept(GeometryVisitor& visitor) {
+        visitor.visit(*this);
+    }
 
+    Geometry::TypeTag Circle::tag() const {
+        return CIRCLE;
+    }
 
+    Line::Line(Point start, Point end) : start(std::move(start)), end(std::move(end)) {}
 
+    void Line::accept(GeometryVisitor& visitor) {
+        visitor.visit(*this);
+    }
 
+    Geometry::TypeTag Line::tag() const {
+        return LINE;
+    }
 
+    Intersection::Intersection(unique_ptr<Geometry> first, unique_ptr<Geometry> second)
+        : first(std::move(first)), second(std::move(second)) {}
 
+    void Intersection::accept(GeometryVisitor& visitor) {
+        visitor.visit(*this);
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Visitor;
-
-class Geometry {
-public:
-    virtual ~Geometry() {}
-    virtual void accept(Visitor &v) = 0;
-    enum type_tag { POINT = 100, CIRCLE, LINE, INTERSECTION };
-    virtual type_tag tag() const = 0;
-
-    static Geometry* make_geometry(Geometry::type_tag &tag);
-
-};
-
-class Point: public Geometry {
-public:
-    Point() = default;
-    Point(double x, double y): x(x), y(y) {}
-
-    void accept(Visitor &v) override;
-
-    type_tag tag() const override { return POINT; };
-
-private:
-    double x, y;
-};
-
-class Circle: public Geometry {
-public:
-    Circle() = default;
-    Circle(Point centre, double radius): centre(centre), radius(radius) {}
-
-    void accept(Visitor &v) override;
-    type_tag tag() const override { return CIRCLE; };
-private:
-    Point centre;
-    double radius;
-};
-
-class Line: public Geometry {
-public:
-    Line() = default;
-    Line(Point start, Point end): start(start), end(end) {}
-
-    void accept(Visitor &v) override;
-    type_tag tag() const override { return LINE; };
-private:
-    Point start;
-    Point end;
-};
-
-class Intersection: public Geometry {
-public:
-    Intersection() = default;
-    Intersection(Geometry *g1, Geometry *g2): g1(g1), g2(g2) {}
-
-    type_tag tag() const override {
+    Geometry::TypeTag Intersection::tag() const {
         return INTERSECTION;
     }
-    void accept(Visitor &v) override;
 
-private:
-    std::unique_ptr<Geometry> g1;
-    std::unique_ptr<Geometry> g2;
-};
+    void StringSerializerVisitor::visit(double& value) {
+        stream_ << value << ' ';
+    }
 
-class Visitor {
-public:
-    virtual void visit(double& d) = 0;
-    virtual void visit(Point& p) = 0;
-    virtual void visit(Circle& c) = 0;
-    virtual void visit(Line& l) = 0;
-    virtual void visit(Geometry::type_tag& tag) = 0;
+    void StringSerializerVisitor::visit(Point& point) {
+        visit(point.x);
+        visit(point.y);
+    }
 
-    static Geometry* make_geometry(Geometry::type_tag tag) {
-        switch (tag) {
-            case Geometry::POINT: return new Point();
-            case Geometry::LINE: return new Line();
-            case Geometry::CIRCLE: return new Circle();
-            case Geometry::INTERSECTION: return new Intersection();
+    void StringSerializerVisitor::visit(Circle& circle) {
+        Point centre = circle.centre;
+        visit(centre);
+        double radius = circle.radius;
+        visit(radius);
+    }
+
+    void StringSerializerVisitor::visit(Line& line) {
+        Point start = line.start;
+        Point end = line.end;
+        visit(start);
+        visit(end);
+    }
+
+    void StringSerializerVisitor::visit(Intersection& intersection) {
+        auto writeChild = [this](const unique_ptr<Geometry>& geometry) {
+            if (geometry == nullptr) {
+                stream_ << 0 << ' ';
+                return;
+            }
+            stream_ << 1 << ' ' << static_cast<int>(geometry->tag()) << ' ';
+            geometry->accept(*this);
+        };
+
+        writeChild(intersection.first);
+        writeChild(intersection.second);
+    }
+
+    string StringSerializerVisitor::str() const {
+        return stream_.str();
+    }
+
+    StringDeserializerVisitor::StringDeserializerVisitor(string data) {
+        stream_.str(std::move(data));
+    }
+
+    void StringDeserializerVisitor::visit(double& value) {
+        stream_ >> value;
+    }
+
+    void StringDeserializerVisitor::visit(Point& point) {
+        visit(point.x);
+        visit(point.y);
+    }
+
+    void StringDeserializerVisitor::visit(Circle& circle) {
+        visit(circle.centre);
+        visit(circle.radius);
+    }
+
+    void StringDeserializerVisitor::visit(Line& line) {
+        visit(line.start);
+        visit(line.end);
+    }
+
+    void StringDeserializerVisitor::visit(Intersection& intersection) {
+        intersection.first = readGeometry();
+        intersection.second = readGeometry();
+    }
+
+    unique_ptr<Geometry> StringDeserializerVisitor::readGeometry() {
+        int present = 0;
+        stream_ >> present;
+        if (present == 0) {
+            return nullptr;
         }
-    }
-};
 
-
-void Point::accept(Visitor &v) {
-    v.visit(x);
-    v.visit(y);
-}
-
-void Circle::accept(Visitor &v) {
-    v.visit(centre);
-    v.visit(radius);
-}
-
-void Line::accept(Visitor &v) {
-    v.visit(start);
-    v.visit(end);
-}
-
-void Intersection::accept(Visitor &v) {
-    Geometry::type_tag tag;
-
-    if (g1) {
-        tag = g1->tag();
-        v.visit(tag);
-        g1->accept(v);
-    }
-
-    if (g2) {
-        tag = g2->tag();
-        v.visit(tag);
-        g2->accept(v);
+        int rawTag = 0;
+        stream_ >> rawTag;
+        auto geometry = Geometry::make(static_cast<Geometry::TypeTag>(rawTag));
+        geometry->accept(*this);
+        return geometry;
     }
 }
-
-class StringSerializerVisitor: public Visitor {
-public:
-    void visit(double& d) override {
-        S << d << " ";
-    }
-
-    void visit(Point& p) override {
-        p.accept(*this);
-    }
-
-    void visit(Circle& c) override {
-        c.accept(*this);
-    }
-
-    void visit(Line& l) override {
-        l.accept(*this);
-    }
-
-    void visit(Geometry::type_tag &tag) override {
-        S << size_t(tag) << " ";
-    }
-
-    string str() {
-        return S.str();
-    }
-
-private:
-    std::stringstream S;
-};
-
-
-class StringDeserializationVisitor: public Visitor {
-public:
-    StringDeserializationVisitor(string s) {
-        S.str(s);
-    }
-
-    void visit(double& d) override {
-        S >> d;
-    }
-
-    void visit(Point& p) override {
-        p.accept(*this);
-    }
-
-    void visit(Circle& c) override {
-        c.accept(*this);
-    }
-
-    void visit(Line& l) override {
-        l.accept(*this);
-    }
-
-    void visit(Geometry::type_tag &tag) override {
-        size_t value;
-        S >> value;
-        tag = Geometry::type_tag(value);
-    }
-
-    string str() {
-        return S.str();
-    }
-
-private:
-    std::stringstream S;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

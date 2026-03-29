@@ -107,3 +107,32 @@ resolve_ios_device() {
   )"
   echo "${trace_device}"
 }
+
+instrument_maestro_target() {
+  local source_target="$1"
+  local instrument_root="$2"
+  local instrument_script="${SCRIPT_DIR}/instrument-maestro-flow.rb"
+
+  mkdir -p "${instrument_root}"
+  ruby "${instrument_script}" "${source_target}" "${instrument_root}"
+}
+
+export_successful_screenshots() {
+  local platform="$1"
+  local output_root="$2"
+  local project_root="${MAESTRO_PROJECT_ROOT:-$(pwd)}"
+  local assets_root="${output_root}/assets"
+
+  if [[ ! -d "${assets_root}" ]]; then
+    return
+  fi
+
+  local date_component="${output_root:h:t}"
+  local time_component="${output_root:t}"
+  local screenshot_root="${MAESTRO_SCREENSHOT_DIR:-${project_root}/maestro/screenshots/${platform}/${date_component}/${time_component}}"
+
+  mkdir -p "${screenshot_root}"
+  cp -R "${assets_root}/." "${screenshot_root}/"
+
+  echo "Screenshots: ${screenshot_root}"
+}

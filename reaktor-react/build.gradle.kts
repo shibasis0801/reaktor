@@ -1,7 +1,7 @@
+import dev.shibasis.dependeasy.*
 import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.*
 
 
 plugins {
@@ -11,6 +11,12 @@ plugins {
 
 group = "dev.shibasis.flatinvoker.react"
 version = "1.0-SNAPSHOT"
+
+dependeasy {
+    androidNative {
+        fbjni()
+    }
+}
 
 kotlin {
     common {
@@ -36,6 +42,5 @@ kotlin {
 
 
 android {
-    defaults("dev.shibasis.flatinvoker.react", file("cpp/CMakeLists.txt"))
+    defaults("dev.shibasis.flatinvoker.react")
 }
-

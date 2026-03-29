@@ -61,4 +61,3 @@ tasks.withType(Jar::class.java).configureEach {
 }
 
 apply(from = "$rootDir/../publishing.gradle.kts")
-

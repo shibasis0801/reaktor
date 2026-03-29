@@ -6,7 +6,7 @@ extensions.configure<PublishingExtension> {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/shibasis0801/flatInvoker")
+            url = uri("https://maven.pkg.github.com/shibasis0801/reaktor")
             credentials {
                 username = System.getenv("USERNAME")
                 password = System.getenv("TOKEN")

@@ -9,11 +9,13 @@ import kotlinx.coroutines.flow.flow
 
 object Tester: Invokable {
     init {
-        System.loadLibrary("FlatInvokerFFI")
+        System.loadLibrary("ReaktorFFI")
     }
     external fun test(): Int
 
     external fun testHermes(): Int
+
+    external fun hermesHello(): String
 
     override fun invokeSync(payload: ByteArray): Long {
         val invokation = payload.toFlexPayload()

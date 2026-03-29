@@ -2,6 +2,8 @@
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
+#include <optional>
+#include <sstream>
 
 void flowLogic() {
     auto &runtime = *Engine::runtime;
@@ -45,14 +47,14 @@ static std::optional<std::string> readFile(const char *path) {
 
     return stringStream.str();
 }
-unique_ptr<HermesRuntime> Engine::runtime = nullptr;
+std::unique_ptr<HermesRuntime> Engine::runtime = nullptr;
 void Engine::start() {
     auto runtimeConfig =
             hermes::vm::RuntimeConfig::Builder().withIntl(false).build();
     runtime = facebook::hermes::makeHermesRuntime(runtimeConfig);
 //    const auto path = "../../js/Flow.js";
 //    auto code = readFile(path);
-    std::optional<string> code = "var __BUNDLE_START_TIME__=this.nativePerformanceNow?nativePerformanceNow():Date.now(),__DEV__=false,process=this.process||{},__METRO_GLOBAL_PREFIX__='';process.env=process.env||{};process.env.NODE_ENV=process.env.NODE_ENV||\"production\";\n"
+    std::optional<std::string> code = "var __BUNDLE_START_TIME__=this.nativePerformanceNow?nativePerformanceNow():Date.now(),__DEV__=false,process=this.process||{},__METRO_GLOBAL_PREFIX__='';process.env=process.env||{};process.env.NODE_ENV=process.env.NODE_ENV||\"production\";\n"
                 "!(function(e){\"use strict\";e.__r=i,e[`${__METRO_GLOBAL_PREFIX__}__d`]=function(e,n,o){if(r.has(n))return;var i={dependencyMap:o,factory:e,hasError:!1,importedAll:t,importedDefault:t,isInitialized:!1,publicModule:{exports:{}}};r.set(n,i)},e.__c=o,e.__registerSegment=function(e,t,n){s[e]=t,n&&n.forEach((function(t){r.has(t)||v.has(t)||v.set(t,e)}))};var r=o(),t={},n={}.hasOwnProperty;function o(){return r=new Map}function i(e){var t=e,n=r.get(t);return n&&n.isInitialized?n.publicModule.exports:d(t,n)}function a(e){var n=e,o=r.get(n);if(o&&o.importedDefault!==t)return o.importedDefault;var a=i(n),l=a&&a.__esModule?a.default:a;return r.get(n).importedDefault=l}function l(e){var o=e,a=r.get(o);if(a&&a.importedAll!==t)return a.importedAll;var l,u=i(o);if(u&&u.__esModule)l=u;else{if(l={},u)for(var d in u)n.call(u,d)&&(l[d]=u[d]);l.default=u}return r.get(o).importedAll=l}i.importDefault=a,i.importAll=l,i.context=function(){throw new Error(\"The experimental Metro feature `require.context` is not enabled in your project.\")},i.resolveWeak=function(){throw new Error(\"require.resolveWeak cannot be called dynamically.\")};var u=!1;function d(r,t){if(!u&&e.ErrorUtils){var n;u=!0;try{n=h(r,t)}catch(r){e.ErrorUtils.reportFatalError(r)}return u=!1,n}return h(r,t)}var c=16,f=65535;function p(e){return{segmentId:e>>>c,localId:e&f}}i.unpackModuleId=p,i.packModuleId=function(e){return(e.segmentId<<c)+e.localId};var s=[],v=new Map;function h(t,n){if(!n&&s.length>0){var o,u=null!=(o=v.get(t))?o:0,d=s[u];null!=d&&(d(t),n=r.get(t),v.delete(t))}var c=e.nativeRequire;if(!n&&c){var f=p(t),h=f.segmentId;c(f.localId,h),n=r.get(t)}if(!n)throw Error('Requiring unknown module \"'+t+'\".');if(n.hasError)throw n.error;n.isInitialized=!0;var g=n,_=g.factory,m=g.dependencyMap;try{var w=n.publicModule;return w.id=t,_(e,i,a,l,w,w.exports,m),n.factory=void 0,n.dependencyMap=void 0,w.exports}catch(e){throw n.hasError=!0,n.error=e,n.isInitialized=!1,n.publicModule.exports=void 0,e}}})('undefined'!=typeof globalThis?globalThis:'undefined'!=typeof global?global:'undefined'!=typeof window?window:this);\n"
                 "__d((function(g,r,i,a,m,e,d){Object.defineProperty(e,\"__esModule\",{value:!0}),Object.defineProperty(e,\"Flow\",{enumerable:!0,get:function(){return t.Flow}}),Object.defineProperty(e,\"StateFlow\",{enumerable:!0,get:function(){return t.StateFlow}});var t=r(d[0]),o=new t.StateFlow;o.collect(print),g.Flow=t.StateFlow,[1,2,3,4,5,6,7,8,9,10].forEach(o.emit)}),0,[1]);\n"
                 "__d((function(g,r,i,a,m,e,d){var u=r(d[0]);Object.defineProperty(e,\"__esModule\",{value:!0}),e.default=e.StateFlow=void 0;var t=u(r(d[1])),n=u(r(d[2])),s=e.default=(0,t.default)((function u(){var t=this;(0,n.default)(this,u),this.values=[],this.empty=function(){return 0===t.size()},this.size=function(){return t.values.length},this.enqueue=function(u){t.values.push(u)},this.dequeue=function(){return t.values.shift()}}));e.StateFlow=(0,t.default)((function u(){var t=this;(0,n.default)(this,u),this.queue=new s,this.flushQueue=function(){for(;!t.queue.empty();)null==t.observer||t.observer(t.queue.dequeue())},this.collect=function(u){if(null!=t.observer)throw new Error(\"This version of flow does not support multiple observers, call the source function again\");return t.observer=u,t.flushQueue(),u},this.stopCollecting=function(u){t.observer=null},this.emit=function(u){null==t.observer?null!=t.queue&&t.queue.enqueue(u):t.observer(u)},this.stop=function(){t.observer=null}}))}),1,[2,3,7]);\n"
@@ -122,6 +124,6 @@ std::string Engine::getString(const jsi::Value &value) {
     return value.asString(*runtime).utf8(*runtime);
 }
 
-jsi::Function Engine::getFunction(const string &name) {
+jsi::Function Engine::getFunction(const std::string &name) {
     return runtime->global().getPropertyAsFunction(*runtime, name.c_str());
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <common/CppBase.h>
 #include <hermes/hermes.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 using facebook::hermes::HermesRuntime;
 namespace jsi = facebook::jsi;
@@ -12,7 +12,7 @@ namespace jsi = facebook::jsi;
 class Engine {
 public:
     static void start();
-    static unique_ptr<HermesRuntime> runtime;
+    static std::unique_ptr<HermesRuntime> runtime;
     static jsi::PropNameID createPropName(const std::string &propName);
     static jsi::Function createFunction(const jsi::PropNameID &name, int argCount, jsi::HostFunctionType &&fn);
     static jsi::Function createFunction(const std::string &name, int argCount, jsi::HostFunctionType &&fn);

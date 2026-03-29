@@ -3,24 +3,19 @@ package dev.shibasis.dependeasy.android
 
 import com.android.build.api.dsl.ApplicationBuildFeatures
 import com.android.build.api.dsl.BuildFeatures
-import com.android.build.api.dsl.CmakeFlags
 import com.android.build.api.dsl.CompileOptions
-import com.android.build.api.dsl.ExternalNativeBuild
 import com.android.build.api.dsl.LibraryBuildFeatures
 import com.android.build.api.dsl.Packaging
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
-import com.android.build.gradle.internal.dsl.ExternalNativeCmakeOptions
 import dev.shibasis.dependeasy.Version
 import dev.shibasis.dependeasy.utils.exclude
 import org.gradle.api.artifacts.Configuration
 import org.gradle.kotlin.dsl.NamedDomainObjectContainerScope
 import org.gradle.kotlin.dsl.get
-import java.io.File
 
 fun BuildFeatures.defaults() {
     prefab = true
-//    compose = true
 }
 
 fun ApplicationBuildFeatures.defaults() {
@@ -50,24 +45,10 @@ fun Packaging.excludeNativeLibs() {
     }
 }
 
-fun CmakeFlags.defaults(name: String) {
-    cFlags.addAll(listOf("-Wall", "-Werror", "-fexceptions", "-fPIC", "-frtti", "-DWITH_INSPECTOR=1", "-O2"))
-    arguments.addAll(listOf("-DCMAKE_VERBOSE_MAKEFILE=1", "-DANDROID_STL=c++_shared", "-DNAME=$name"))
-    cppFlags.add("-std=c++20")
-}
-
 fun CompileOptions.defaults() {
-    sourceCompatibility = Version.SDK.Java.asEnum
-    targetCompatibility = Version.SDK.Java.asEnum
+    sourceCompatibility = Version.SDK.AndroidJava.asEnum
+    targetCompatibility = Version.SDK.AndroidJava.asEnum
     isCoreLibraryDesugaringEnabled = true
-}
-
-fun ExternalNativeBuild.defaults(cmakeLists: File) {
-    cmake {
-        path = cmakeLists
-        // pin cmake version to support M1 machines
-        version = Version.SDK.CMake
-    }
 }
 
 fun NamedDomainObjectContainerScope<Configuration>.defaults() {
@@ -78,13 +59,10 @@ fun NamedDomainObjectContainerScope<Configuration>.defaults() {
 
 fun LibraryExtension.defaults(
     namespace: String,
-    cmakeLists: File? = null,
-    cmakeProjectName: String = "",
 ) {
     this.namespace = namespace
     compileSdk = Version.SDK.compileSdk
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-// temporary todo remove1
     lint {
         checkReleaseBuilds = false
         abortOnError = false
@@ -93,13 +71,7 @@ fun LibraryExtension.defaults(
 
     defaultConfig {
         minSdk = Version.SDK.minSdk
-        externalNativeBuild { cmake { defaults(cmakeProjectName) } }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-    if (cmakeLists != null) {
-        externalNativeBuild {
-            defaults(cmakeLists)
-        }
     }
 
     compileOptions { defaults() }
@@ -112,10 +84,6 @@ fun LibraryExtension.defaults(
         }
         release {
             isMinifyEnabled = false
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
         }
     }
 }
@@ -123,8 +91,6 @@ fun LibraryExtension.defaults(
 
 fun BaseAppModuleExtension.defaults(
     appID: String,
-    cmakeLists: File? = null,
-    cmakeProjectName: String = ""
 ) {
     compileSdk = Version.SDK.compileSdk
     ndkVersion = Version.SDK.ndkVersion
@@ -138,22 +104,9 @@ fun BaseAppModuleExtension.defaults(
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        cmakeLists?.let {
-            externalNativeBuild { cmake { defaults(cmakeProjectName) } }
-        }
-    }
-
-    cmakeLists?.apply {
-        externalNativeBuild { defaults(cmakeLists) }
     }
 
     compileOptions { defaults() }
     packaging { includeNativeLibs() }
     buildFeatures { defaults() }
-//    composeOptions {
-//        kotlinCompilerExtensionVersion = Version.ComposeCompiler
-//        useLiveLiterals = false
-//    }
 }
-
