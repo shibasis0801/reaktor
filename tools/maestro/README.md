@@ -1,66 +1,46 @@
-# Maestro Tooling
+# Reaktor Maestro Tooling
 
-Reusable mobile-testing tooling lives here. Product-specific flows should stay in the product repo.
+This folder contains reusable Maestro runner scripts shared by product repos.
 
-Current split:
-- `reaktor/tools/maestro`: reusable install/run/capture scripts
-- product repo `maestro/`: app-specific flows, assertions, and screenshots
+Product-specific flows belong in the product repo. For BestBuds, see:
+- [bestbuds/maestro](https://github.com/shibasis0801/bestbuds/blob/main/maestro/README.md)
 
-## Runner
-- `maestro-runner` is the default runner on both Android and iOS
-- `MAESTRO_ENGINE` still exists as an escape hatch, but the checked-in setup assumes `maestro-runner`
+## What lives here
 
-## Android prerequisites
-- `maestro-runner`
-- `adb` on `PATH`, or `ADB_BIN` set explicitly
-- a connected device visible through `adb devices`
+- Android flow runner
+- iOS flow runner
+- shared environment detection and output handling
+- optional step-by-step screenshot instrumentation
 
-## Run a product flow
-From the product repo:
+## Common commands
+
+From a product repo:
 
 ```sh
 ../reaktor/tools/maestro/run-android-flow.sh maestro/android
-```
-
-Run a single flow:
-
-```sh
-../reaktor/tools/maestro/run-android-flow.sh maestro/android/login-screen.yaml
-```
-
-Override device or output folder:
-
-```sh
-ANDROID_SERIAL=RZCY11GDXHT \
-MAESTRO_OUTPUT_DIR=$PWD/tmp/maestro-results/manual \
-../reaktor/tools/maestro/run-android-flow.sh maestro/android/dev-login-shibasis.yaml
-```
-
-## iOS prerequisites
-- `maestro-runner` installed, or `MAESTRO_RUNNER_BIN` set explicitly
-- Xcode command line tools working
-- a signed iOS app build if you want the runner to reinstall the app before testing
-- `MAESTRO_TEAM_ID` set for WDA signing
-
-Run an iOS flow:
-
-```sh
-MAESTRO_TEAM_ID=YOUR_TEAM_ID \
-MAESTRO_APP_FILE=$PWD/tmp/xcode-derived/Build/Products/Debug-iphoneos/iosApp.app \
 ../reaktor/tools/maestro/run-ios-flow.sh maestro/ios/login-screen.yaml
 ```
 
-If the app is already installed and you do not want to reinstall it:
+## Screenshot modes
 
-```sh
-MAESTRO_TEAM_ID=YOUR_TEAM_ID \
-../reaktor/tools/maestro/run-ios-flow.sh maestro/ios/dev-login-shibasis.yaml
-```
+Default behavior:
+- screenshots are kept when flows explicitly call `takeScreenshot`
+- successful runs are exported into the product repo's `maestro/screenshots/...` folder
 
-## Capture current Android UI state
+Step-by-step capture mode:
+- set `MAESTRO_EVERY_STEP_SCREENSHOT=true`
+- or use the product-level screenshot npm commands if they exist
 
-```sh
-../reaktor/tools/maestro/capture-android-state.sh ai.bestbuds.app login-screen
-```
+## iOS requirements
 
-That writes a PNG screenshot plus a pulled `uiautomator` XML hierarchy into `tmp/maestro-captures/<date>/`.
+- `maestro-runner`
+- Xcode command line tools
+- signed WDA configuration
+- `MAESTRO_TEAM_ID`
+- optional `MAESTRO_APP_FILE` if the wrapper should reinstall the app before the run
+
+## Android requirements
+
+- `maestro-runner`
+- `adb`
+- connected Android device visible to `adb devices`

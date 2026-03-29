@@ -1,66 +1,30 @@
-Shibasis, 27
-data class Person(val name: String, val age: Int)
-shibasis\027
+# reaktor-flexbuffer
 
-type Person = { name: String, age: Int }
-shibasis - 27
+`reaktor-flexbuffer` contains Reaktor's FlexBuffers-native utility layer.
 
-struct Person {
-    std::string name;
-    int age;
-}
-shibasis\0 - 27
+## What is supported now
 
-shibasis\27\
+- native C++ utility types such as `CBase`, `CppBase`, `Visitor`, and `Matrix`
+- native creation of simple FlexBuffers payloads in C++
+- Kotlin decoding/consumption across Android, iOS, JVM, and JS bridges
+- integration with `reaktor-ffi`
 
-json -> slow
- > slow
-    > needs parse
- > O(logn)
- >
-proto -> fast
- > faster
- > needs parse
- > O(1)
- >
+## What changed
 
+The old broad experimental FlexBuffer encoder/store surface is no longer the supported API.
 
-class Person {
-    String name;
-    int age;
-}
+Removed from the supported surface:
+- the old pointer-store style helper API
+- the earlier generic FlexBuffer writer path
 
+Kept and restored:
+- actual FlatBuffers / FlexBuffers dependency usage
+- the reusable native utility layer
+- the simple end-to-end native verification path used in BestBuds
 
-{
-field person -> string
-field age -> number
-}
+## Current verified scenario
 
-FlatBuffers 
-independent memory format
-
-
-
-
-Person(hello, 27)
-
-[ h, e, l, l, o, SENTINEL, 2, 7 ] <- binary proto
-{ 
-    
-} <- text json
-
-
-{
-    [ "hello", 27 ] 
-    fields: {
-            person: 0,
-            age: 1
-        }    
-    }
-}
-
-
-1. Project Panama -> Increase FFI speed
-2. Static Hermes Zero Cost FFI -> Increase FFI speed
-3. Swift C++ Interop -> Increase speed
-4. FlexBuffer -> Language independent transmission supported format
+BestBuds uses this module in a real device flow where:
+- C++ creates a FlexBuffer payload
+- Kotlin receives and decodes it
+- Maestro verifies the result on Android and iOS

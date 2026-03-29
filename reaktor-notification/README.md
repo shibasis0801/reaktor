@@ -1,12 +1,12 @@
-Requirements: (these must be exposed)
-1. 
+# reaktor-notification
 
-Responsibilities: (these should be internal)
-1.
+`reaktor-notification` is the shared notification adapter surface.
 
-Assumptions: (this must be internal)
-1.
+## Current purpose
 
-Dependencies: (these must be supplied)
-1. 
+- provide a stable abstraction for notification delivery and registration
+- keep notification integration out of product code where possible
 
+## Status
+
+This module is still intentionally thin. It exists as the shared seam for platform-specific notification implementations.

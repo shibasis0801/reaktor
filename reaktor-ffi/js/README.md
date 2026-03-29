@@ -1,21 +1,21 @@
-We use Hermes standalone to execute typescript.
+# reaktor-ffi JS runtime notes
 
-We use metro because metro is optimised for mobile (RAM bundles, future features), future support for vite will come when I complete actual features.
+This folder exists for the JavaScript-side runtime that pairs with the native bridge strategy.
 
-You are welcome to raise a PR for adding support.
+## Current direction
 
-While many react native components are used, the React Native framework is not.
+- Hermes is the JavaScript engine used for the native bridge path
+- Metro is used because it is still the most practical mobile-oriented bundler for this runtime shape
+- React Native is not a required framework dependency; the goal is a framework-agnostic bridge
 
-This is done for few reasons
-1. Better design without brittleness from the changing RN API
-2. Allow usage in Kotlin Multiplatform without adding a React Native dependency.
+## Why this exists
 
-Why not Turbo Modules ?
-Turbo Modules have limitations from backward compatibility and other things. This does not.
+The intent is to support native-hosted JavaScript execution without forcing product code to adopt React Native's full runtime model.
 
+## Non-goals right now
 
-Why not CashApp/Zipline ?
-This allows you to bundle things and use npm libraries as usual. CashApp requires Kotlin/JS or your own bundling setup.
+- complete React Native compatibility
+- Turbo Module parity
+- broad public API stability
 
-Can this support Flutter ?
-Yes, that is the plan once FlexBuffer based full functionality is written for RN and KMM. This is supposed to be framework agnostic, and Flutter should only need a DartBinaryTransport and DartCallInvoker to be implemented. 
+This area is still experimental and secondary to the Kotlin-native bridge itself.
