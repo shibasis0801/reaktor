@@ -1,6 +1,19 @@
+# Vendored dependencies
 .github_modules/** linguist-vendored=true
+
+# Generated code
 **/ts/export/** linguist-generated=true
 **/package-lock.json linguist-generated=true
 dependeasy/bin/** linguist-generated=true
 *.mjs.map linguist-generated=true
 *.d.mts linguist-generated=true
+
+# Generated documentation (HTML from Dokka/KDoc)
+docs/** linguist-documentation=true
+**/docs/**/*.html linguist-documentation=true
+
+# Website (Docusaurus)
+website/** linguist-documentation=true
+
+# Experiments
+experiments/** linguist-vendored=true
