@@ -10,7 +10,7 @@ It is the shared runtime used by:
 
 The graph blueprint is a live visualization of how a Reaktor application is assembled. Every screen, service, repository, and navigation binding is a node in the graph, wired together through typed ports and edges.
 
-![Reaktor Graph Blueprint - BestBuds application graph showing nodes, routes, containers, services, and navigation wires](assets/graph-blueprint.png)
+![Reaktor Graph Blueprint - BestBuds application graph showing nodes, routes, containers, services, and navigation wires](https://media.licdn.com/dms/image/v2/D5622AQEjWgnHCS6qVQ/feedshare-shrink_800/B56Z1DUxzQGYAc-/0/1774951013900?e=2147483647&v=beta&t=78ucaCV3dKt5uHDhILM6wr8WlGcwEbZYmm0YC-Ah2i4)
 
 *BestBuds running on Reaktor: screens (green), routes (blue), containers (yellow), services/data (orange), with navigation wires (dark blue) and data wires (green lines) connecting them.*
 
