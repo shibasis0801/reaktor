@@ -1,26 +1,37 @@
 # reaktor-flexbuffer
 
-`reaktor-flexbuffer` contains Reaktor's FlexBuffers-native utility layer.
+> **Stability: Experimental** - Production-verified in BestBuds device flows.
+
+`reaktor-flexbuffer` provides Kotlin's bridge to Google's FlexBuffers format -- a flexible binary serialization format faster than JSON with native C++ integration for high-performance scenarios.
+
+## Platforms
+
+Android, iOS (Darwin), JVM, JavaScript/Web
 
 ## What is supported now
 
-- native C++ utility types such as `CBase`, `CppBase`, `Visitor`, and `Matrix`
-- native creation of simple FlexBuffers payloads in C++
-- Kotlin decoding/consumption across Android, iOS, JVM, and JS bridges
-- integration with `reaktor-ffi`
+### Kotlin serialization bridge
 
-## What changed
+- `FlexEncoderV2` - Pooled, allocation-free encoder
+- `FlexDecoderV2` - Pooled, allocation-free decoder with context stack
+- `FlexBufferPool` - Thread-safe encoder/decoder pool
+- Encoding: `T -> kotlinx.serialization -> FlexEncoderV2 -> FlexBuffersBuilder -> ByteArray`
+- Decoding: `ByteArray -> ArrayReadBuffer -> getRoot() -> FlexDecoderV2 -> T`
 
-The old broad experimental FlexBuffer encoder/store surface is no longer the supported API.
+### Native C++ utility layer
 
-Removed from the supported surface:
-- the old pointer-store style helper API
-- the earlier generic FlexBuffer writer path
+- `CBase` - C++ base utilities
+- `CppBase` - C++ class base
+- `Visitor` - Visitor pattern for C++ objects
+- `Matrix` - Geometry computation utilities
+- `NativeFlexBuffer` - C++ FlexBuffer creation and validation
 
-Kept and restored:
-- actual FlatBuffers / FlexBuffers dependency usage
-- the reusable native utility layer
-- the simple end-to-end native verification path used in BestBuds
+### Performance characteristics
+
+- Allocation-free after warmup (pooled builder + pooled structure stack)
+- Thread-safe per-operation (each encode/decode gets new pool instances)
+- Zero-copy primitive reads from buffer
+- O(log n) field lookup in maps via binary search
 
 ## Current verified scenario
 
@@ -28,3 +39,14 @@ BestBuds uses this module in a real device flow where:
 - C++ creates a FlexBuffer payload
 - Kotlin receives and decodes it
 - Maestro verifies the result on Android and iOS
+
+## What changed
+
+The old broad experimental FlexBuffer encoder/store surface is no longer the supported API. Only the V2 encoder/decoder and native utility layer are maintained.
+
+## Dependencies
+
+- `reaktor-core`
+- `flatbuffers-kotlin` (shared)
+- `reaktor-compiler` (KSP code generation)
+- `com.google.flatbuffers:flatbuffers-java` (Android)
