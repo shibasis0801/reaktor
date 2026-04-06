@@ -46,6 +46,13 @@ subprojects {
 //    apply(plugin = "org.jetbrains.dokka")
     apply(plugin = "maven-publish")
     apply(from = "$rootDir/publishing.gradle.kts")
+
+    // Disable lint for library modules — lint runs on the app target, not here
+    afterEvaluate {
+        tasks.matching { it.name.contains("lint", ignoreCase = true) }.configureEach {
+            enabled = false
+        }
+    }
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {

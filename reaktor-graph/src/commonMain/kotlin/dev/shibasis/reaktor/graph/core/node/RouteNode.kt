@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.KeyType
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
+import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.io.network.RoutePattern
@@ -63,13 +64,24 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
         }
     })
 
-    fun attachedNode(): Routable? {
-        val edge = routeBinding.edges.values.firstOrNull()
-        val bound = edge?.source ?: return null
-        if (bound !is Routable)
-            return null
+    fun attachedNodes(): List<Routable> =
+        routeBinding.edges.values
+            .mapNotNull { it.source as? Routable }
+            .distinct()
 
-        return bound
+    fun navigationTargets(): List<RouteNode<*, *>> =
+        consumerPorts.flattenedValues()
+            .mapNotNull { consumer ->
+                val edge = consumer.edge ?: return@mapNotNull null
+                if (edge.provider.impl !is NavBinding<*>) {
+                    return@mapNotNull null
+                }
+                edge.destination as? RouteNode<*, *>
+            }
+            .distinct()
+
+    fun attachedNode(): Routable? {
+        return attachedNodes().firstOrNull()
     }
 
     fun <D: Payload> edge(

@@ -45,6 +45,7 @@ kotlin {
 
     server {
         dependencies {
+            serverCoroutines()
             springWebFlux()
             api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
             api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")

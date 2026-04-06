@@ -11,3 +11,7 @@ fun KotlinDependencyHandler.serverNetworking() {
 fun KotlinDependencyHandler.springWebFlux() {
     api("org.springframework.boot:spring-boot-starter-webflux:${Version.SDK.SpringBoot}")
 }
+
+fun KotlinDependencyHandler.serverCoroutines() {
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${Version.Coroutines}")
+}

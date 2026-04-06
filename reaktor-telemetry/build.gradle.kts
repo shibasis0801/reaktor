@@ -16,10 +16,10 @@ kotlin {
         dependencies {
             api(project(":reaktor-core"))
             api(project(":reaktor-graph"))
+            api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion")
             api("io.opentelemetry.kotlin:api:$otelKotlinVersion")
             api("io.opentelemetry.kotlin:noop:$otelKotlinVersion")
             implementation("io.opentelemetry.kotlin:implementation:$otelKotlinVersion")
-            api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion")
         }
     }
     droid {
