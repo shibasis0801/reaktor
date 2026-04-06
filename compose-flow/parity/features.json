@@ -1,0 +1,36 @@
+{
+  "categories": [
+    {
+      "name": "Model and change helpers",
+      "features": [
+        { "name": "Node model", "status": "supported", "notes": "Node, Edge, Handle, Viewport, Connection, FitViewOptions, changes implemented in Kotlin commonMain." },
+        { "name": "applyNodeChanges/applyEdgeChanges", "status": "supported", "notes": "Common change helpers available in compose-flow model package." },
+        { "name": "addEdge helper", "status": "supported", "notes": "Generic edge creation helper implemented." }
+      ]
+    },
+    {
+      "name": "Canvas runtime",
+      "features": [
+        { "name": "Pan and wheel zoom", "status": "supported", "notes": "Compose runtime supports pan, wheel zoom, programmatic fit and center." },
+        { "name": "Keyboard zoom", "status": "partial", "notes": "Supported by host/editor integrations; not yet a built-in generic shortcut policy." },
+        { "name": "Fit view", "status": "supported", "notes": "Generic fitViewport math is implemented in runtime." }
+      ]
+    },
+    {
+      "name": "Render surface",
+      "features": [
+        { "name": "Node rendering", "status": "supported", "notes": "Composable node content with custom render styles supported." },
+        { "name": "Edge rendering", "status": "supported", "notes": "Bezier and orthogonal path rendering supported." },
+        { "name": "Panels, minimap, background", "status": "supported", "notes": "Generic panels, minimap, controls and background overlays implemented." }
+      ]
+    },
+    {
+      "name": "Interop parity",
+      "features": [
+        { "name": "React Flow JS facade", "status": "partial", "notes": "JS bridge and Karakum externals exist, but parity is incomplete." },
+        { "name": "Store hooks and advanced utilities", "status": "unsupported", "notes": "React Flow provider/store parity and advanced system utilities remain to be added." },
+        { "name": "Node resizer / viewport portal parity", "status": "partial", "notes": "ViewportPortal exists in Compose, NodeResizer parity is not implemented." }
+      ]
+    }
+  ]
+}

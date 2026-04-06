@@ -13,6 +13,7 @@ plugins {
 kotlin {
     common {
         dependencies {
+            api(project(":compose-flow"))
             api(project(":reaktor-graph"))
             api(compose.runtime)
             api(compose.foundation)
@@ -26,7 +27,6 @@ kotlin {
             react()
             webCoroutines()
         }
-        packageJson = file("ts/package.json")
     }
 
     droid {
