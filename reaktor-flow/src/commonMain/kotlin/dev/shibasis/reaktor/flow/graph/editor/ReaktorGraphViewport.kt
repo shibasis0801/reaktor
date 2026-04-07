@@ -3,8 +3,10 @@ package dev.shibasis.reaktor.flow.graph.editor
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.Viewport
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
+import dev.shibasis.reaktor.flow.graph.layout.GraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
-import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphViewportTokens
+import dev.shibasis.reaktor.flow.graph.render.GraphUi
 import dev.shibasis.reaktor.flow.graph.render.flowBounds
 import dev.shibasis.reaktor.flow.graph.render.readableFlowBounds
 import kotlin.math.min
@@ -14,8 +16,7 @@ import kotlin.math.min
 internal fun frameGraph(
     state: ReactFlowState,
     flow: ReaktorFlowGraph,
-    defaultNodeWidthPx: Double,
-    defaultNodeHeightPx: Double,
+    metrics: GraphFlowMetrics = DefaultGraphFlowMetrics,
     rightInsetPx: Float = 0f,
     readable: Boolean = false,
 ) {
@@ -23,25 +24,26 @@ internal fun frameGraph(
         return
     }
 
-    val bounds = if (readable) readableFlowBounds(flow, defaultNodeWidthPx, defaultNodeHeightPx) else flowBounds(flow)
+    val bounds = if (readable) readableFlowBounds(flow, metrics) else flowBounds(flow)
     val viewportWidth = (state.canvasSize.width - rightInsetPx).coerceAtLeast(1f).toDouble()
     val viewportHeight = state.canvasSize.height.toDouble()
-    val horizontalPadding = if (readable) ReaktorGraphViewportTokens.readablePaddingXPx else ReaktorGraphViewportTokens.fitPaddingXPx
-    val verticalPadding = if (readable) ReaktorGraphViewportTokens.readablePaddingYPx else ReaktorGraphViewportTokens.fitPaddingYPx
+    val padding = if (readable) GraphUi.readablePadding else GraphUi.fitPadding
+    val horizontalPadding = padding.horizontal
+    val verticalPadding = padding.vertical
     val availableWidth = (viewportWidth - horizontalPadding * 2.0).coerceAtLeast(1.0)
     val availableHeight = (viewportHeight - verticalPadding * 2.0).coerceAtLeast(1.0)
 
-    val contentWidth = bounds.width.coerceAtLeast(defaultNodeWidthPx)
-    val contentHeight = bounds.height.coerceAtLeast(defaultNodeHeightPx)
+    val contentWidth = bounds.width.coerceAtLeast(metrics.defaultNodeWidth)
+    val contentHeight = bounds.height.coerceAtLeast(metrics.defaultNodeHeight)
     val fitZoom = min(
         availableWidth / contentWidth,
         availableHeight / contentHeight,
     )
     val zoom = if (readable) {
-        (fitZoom * ReaktorGraphViewportTokens.readableZoomBias)
-            .coerceIn(ReaktorGraphViewportTokens.readableMinZoom, 1.2)
+        (fitZoom * GraphUi.readableZoomBias)
+            .coerceIn(GraphUi.readableMinZoom, 1.2)
     } else {
-        fitZoom.coerceIn(ReaktorGraphViewportTokens.fitMinZoom, 1.2)
+        fitZoom.coerceIn(GraphUi.minZoom, 1.2)
     }
 
     val offsetX = horizontalPadding - bounds.left * zoom

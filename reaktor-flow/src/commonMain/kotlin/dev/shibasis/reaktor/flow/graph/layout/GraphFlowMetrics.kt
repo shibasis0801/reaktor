@@ -1,44 +1,49 @@
 package dev.shibasis.reaktor.flow.graph.layout
 
-// Layout metrics live in graph-space pixels, not dp. The Compose renderer converts them to dp
-// only at the final render boundary so the measurement contract stays consistent with the editor
-// viewport math and with React Flow's pixel-space layout model.
-internal object GraphFlowMetrics {
-    const val nodeMinWidth = 1200.0
-    const val titleHeight = 144.0
-    const val rowHeight = 120.0
-    const val nodePaddingY = 48.0
-    const val portInset = 18.0
-    const val subgraphHeader = 60.0
-    const val subgraphPadding = 60.0
-    const val layerGap = 16.0
-    const val attachmentGap = 12.0
-    const val rowGap = 12.0
-    const val attachmentRowGap = 8.0
-    const val childGraphGap = 8.0
-    const val routeColumnGap = 8.0
-    const val serviceColumnGap = 8.0
-
-    // Keep the render contract in graph-space pixels so layout and Compose rendering stay aligned.
-    // The renderer converts these to dp/sp at the edge, similar to how React Flow measures in
-    // editor-space and only applies browser/layout units at render time.
-    const val nodeCornerRadius = 36.0
-    const val titleHorizontalPadding = 72.0
-    const val titleVerticalPadding = 30.0
-    const val titleToBadgeGap = 32.0
-    const val bodyHorizontalPadding = 52.0
-    const val columnGap = 64.0
-    const val portGap = 24.0
-    const val portDotSize = 18.0
-    const val titleFontSize = 48.0
-    const val portFontSize = 32.0
-    const val rootBadgeFontSize = 22.0
-    const val rootBadgeHorizontalPadding = 16.0
-    const val rootBadgeVerticalPadding = 8.0
-
-    const val titleCharWidthEstimate = 28.0
-    const val portCharWidthEstimate = 18.0
-    const val regionInsetX = 28.0
-    const val regionInsetTop = 18.0
-    const val regionInsetBottom = 28.0
+// Layout metrics live in graph-space pixels, not dp. Compose only converts them at the final
+// render boundary so measurement, handles, regions, and viewport math all speak one coordinate
+// system.
+//
+// References:
+// - "Thinking in Compose" and the official custom layout docs: keep measurement explicit and
+//   stable instead of spreading layout intent through modifiers.
+// - xyflow/React Flow source: node sizing, handle anchors, and fit-view math operate in editor
+//   space before browser/render units are applied.
+internal data class GraphFlowMetrics(
+    val rootOrigin: Double = 80.0,
+    val nodeMinWidth: Double = 1200.0,
+    val titleHeight: Double = 144.0,
+    val rowHeight: Double = 120.0,
+    val nodePaddingY: Double = 48.0,
+    val subgraphInset: Double = 60.0,
+    val gap: Double = 12.0,
+    val portInset: Double = 18.0,
+    val navigationHandleOffset: Double = 0.5,
+    val containmentHandleOffset: Double = 0.84,
+    val regionInsetX: Double = 28.0,
+    val defaultPreviewRows: Int = 4,
+) {
+    val compactGap: Double get() = gap * (2.0 / 3.0)
+    val majorGap: Double get() = gap * (4.0 / 3.0)
+    val nodeCornerRadius: Double get() = titleHeight / 4.0
+    val titlePaddingX: Double get() = titleHeight / 2.0
+    val titlePaddingY: Double get() = rowHeight / 4.0
+    val titleToBadgeGap: Double get() = gap * (8.0 / 3.0)
+    val bodyPaddingX: Double get() = rowHeight * 0.43333333333333335
+    val columnGap: Double get() = rowHeight * 0.5333333333333333
+    val portGap: Double get() = rowHeight * 0.2
+    val portDotSize: Double get() = rowHeight * 0.15
+    val titleFontSize: Double get() = rowHeight / 3.0
+    val portFontSize: Double get() = titleFontSize
+    val rootBadgeFontSize: Double get() = titleFontSize * 0.55
+    val rootBadgePaddingX: Double get() = portGap * (2.0 / 3.0)
+    val rootBadgePaddingY: Double get() = gap * (2.0 / 3.0)
+    val titleCharWidthEstimate: Double get() = titleFontSize * 0.5833333333333334
+    val portCharWidthEstimate: Double get() = portFontSize * 0.5625
+    val regionInsetTop: Double get() = portGap * 0.75
+    val regionInsetBottom: Double get() = regionInsetX
+    val defaultNodeWidth: Double get() = nodeMinWidth
+    val defaultNodeHeight: Double get() = titleHeight + (rowHeight * defaultPreviewRows) + (nodePaddingY * 2.0)
 }
+
+internal val DefaultGraphFlowMetrics = GraphFlowMetrics()

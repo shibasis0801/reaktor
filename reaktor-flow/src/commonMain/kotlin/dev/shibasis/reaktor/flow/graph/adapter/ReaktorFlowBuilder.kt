@@ -1,23 +1,9 @@
-@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
-
 package dev.shibasis.reaktor.flow.graph.adapter
 
-import androidx.compose.ui.graphics.Color
 import dev.shibasis.composeflow.model.Edge
-import dev.shibasis.composeflow.model.EdgeMarker
-import dev.shibasis.composeflow.model.Handle
-import dev.shibasis.composeflow.model.HandleType
-import dev.shibasis.composeflow.model.MarkerType
-import dev.shibasis.composeflow.model.Node
-import dev.shibasis.composeflow.model.Position
-import dev.shibasis.composeflow.model.XYPosition
-import dev.shibasis.reaktor.flow.graph.layout.GraphFlowMetrics
-import dev.shibasis.reaktor.flow.graph.model.ReaktorEdgeKind
+import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
-import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
-import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
-import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
@@ -25,11 +11,12 @@ import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.ControllerNode
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 import dev.shibasis.reaktor.graph.core.node.RouteNode
-import dev.shibasis.reaktor.portgraph.port.Port
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import kotlin.math.max
 
-private data class GraphNodeLayout(
+private val metrics = DefaultGraphFlowMetrics
+
+internal data class GraphNodeLayout(
     val flowId: String,
     val graphNode: GraphNode,
     val graph: Graph,
@@ -45,7 +32,7 @@ private data class GraphNodeLayout(
     val hiddenConsumerCount: Int,
 )
 
-private data class LayoutBounds(
+internal data class LayoutBounds(
     val left: Double,
     val top: Double,
     val right: Double,
@@ -58,17 +45,19 @@ private data class LayoutBounds(
 fun buildReaktorFlowGraph(graph: Graph): ReaktorFlowGraph =
     ReaktorFlowBuilder().build(graph)
 
-private class ReaktorFlowBuilder {
-    private val layouts = linkedMapOf<GraphNode, GraphNodeLayout>()
-    private val flowIdsByNode = linkedMapOf<GraphNode, String>()
-    private val graphIdsByNode = linkedMapOf<GraphNode, String>()
-    private val graphNodes = linkedMapOf<String, GraphNode>()
-    private val edges = linkedMapOf<String, Edge>()
-    private val regions = mutableListOf<ReaktorGraphRegion>()
-    private val graphs = linkedMapOf<String, Graph>()
+// Build-state owns traversal/layout only. Edge assembly and render-facing node construction are
+// kept in sibling files so semantic graph extraction stays separate from rendering concerns.
+internal class ReaktorFlowBuilder {
+    internal val layouts = linkedMapOf<GraphNode, GraphNodeLayout>()
+    internal val flowIdsByNode = linkedMapOf<GraphNode, String>()
+    internal val graphIdsByNode = linkedMapOf<GraphNode, String>()
+    internal val graphNodes = linkedMapOf<String, GraphNode>()
+    internal val edges = linkedMapOf<String, Edge>()
+    internal val regions = mutableListOf<ReaktorGraphRegion>()
+    internal val graphs = linkedMapOf<String, Graph>()
 
-    fun build(graph: Graph): ReaktorFlowGraph {
-        layoutGraph(graph, 80.0, 80.0, 0, "root")
+    internal fun build(graph: Graph): ReaktorFlowGraph {
+        layoutGraph(graph, metrics.rootOrigin, metrics.rootOrigin, 0, "root")
         resolveEdges(graph)
         return ReaktorFlowGraph(
             nodes = layouts.values.map(::toFlowNode),
@@ -81,7 +70,7 @@ private class ReaktorFlowBuilder {
         )
     }
 
-    private fun layoutGraph(
+    internal fun layoutGraph(
         graph: Graph,
         originX: Double,
         originY: Double,
@@ -102,7 +91,7 @@ private class ReaktorFlowBuilder {
             else -> services += node
         }
 
-        val startY = originY + GraphFlowMetrics.subgraphHeader + GraphFlowMetrics.subgraphPadding
+        val startY = originY + metrics.subgraphInset * 2.0
         val localLayouts = mutableListOf<GraphNodeLayout>()
 
         fun place(layout: GraphNodeLayout) {
@@ -120,12 +109,12 @@ private class ReaktorFlowBuilder {
         val standaloneScreens = screens.filterNot(attachedScreens::contains)
         val routeAttachedNodes: List<GraphNode> = routeAttachments.values.flatten()
 
-        var maxRight = originX + GraphFlowMetrics.subgraphPadding
+        var maxRight = originX + metrics.subgraphInset
         var maxBottom = startY
 
-        val servicesWidth = services.maxOfOrNull(::measureWidth) ?: GraphFlowMetrics.nodeMinWidth
+        val servicesWidth = services.maxOfOrNull(::measureNodeWidth) ?: metrics.nodeMinWidth
         val serviceColumns = preferredServiceColumns(services.size)
-        val serviceColumnGap = GraphFlowMetrics.serviceColumnGap
+        val serviceColumnGap = metrics.compactGap
         val serviceAreaWidth = if (services.isEmpty()) {
             0.0
         } else {
@@ -141,7 +130,7 @@ private class ReaktorFlowBuilder {
                         val layout = createLayout(
                             node = node,
                             graph = graph,
-                            x = originX + GraphFlowMetrics.subgraphPadding + column * (servicesWidth + serviceColumnGap),
+                            x = originX + metrics.subgraphInset + column * (servicesWidth + serviceColumnGap),
                             y = serviceColumnBottom,
                             widthOverride = servicesWidth,
                         )
@@ -150,25 +139,25 @@ private class ReaktorFlowBuilder {
                         maxRight = max(maxRight, layout.x + layout.width)
                         maxBottom = max(maxBottom, layout.y + layout.height)
                     }
-                    serviceColumnBottom = rowBottom + GraphFlowMetrics.rowGap
+                    serviceColumnBottom = rowBottom + metrics.gap
                 }
         }
 
-        val routeColumnX = originX + GraphFlowMetrics.subgraphPadding +
-            if (services.isNotEmpty()) serviceAreaWidth + GraphFlowMetrics.layerGap else 0.0
+        val routeColumnX = originX + metrics.subgraphInset +
+            if (services.isNotEmpty()) serviceAreaWidth + metrics.majorGap else 0.0
 
-        val routeWidth = routes.maxOfOrNull(::measureWidth) ?: GraphFlowMetrics.nodeMinWidth
+        val routeWidth = routes.maxOfOrNull(::measureNodeWidth) ?: metrics.nodeMinWidth
         val screenWidth = (routeAttachedNodes + standaloneScreens)
-            .maxOfOrNull(::measureWidth)
-            ?: GraphFlowMetrics.nodeMinWidth
-        val screenColumnX = routeColumnX + routeWidth + GraphFlowMetrics.attachmentGap
+            .maxOfOrNull(::measureNodeWidth)
+            ?: metrics.nodeMinWidth
+        val screenColumnX = routeColumnX + routeWidth + metrics.gap
         if (services.isNotEmpty()) {
             maxRight = max(maxRight, routeColumnX)
         }
 
         val routeColumns = preferredRouteColumns(routes.size)
         val routeBlockWidth = routeWidth + if (routeAttachedNodes.isNotEmpty() || standaloneScreens.isNotEmpty()) {
-            GraphFlowMetrics.attachmentGap + screenWidth
+            metrics.gap + screenWidth
         } else {
             0.0
         }
@@ -176,7 +165,7 @@ private class ReaktorFlowBuilder {
         routes.chunked(routeColumns).forEach { routeRow ->
             var rowBottom = routeLaneBottom
             routeRow.forEachIndexed { column, route ->
-                val routeX = routeColumnX + column * (routeBlockWidth + GraphFlowMetrics.routeColumnGap)
+                val routeX = routeColumnX + column * (routeBlockWidth + metrics.compactGap)
                 val routeY = routeLaneBottom
                 val routeLayout = createLayout(
                     node = route,
@@ -194,12 +183,12 @@ private class ReaktorFlowBuilder {
                     val attachedLayout = createLayout(
                         node = attached,
                         graph = graph,
-                        x = routeX + routeWidth + GraphFlowMetrics.attachmentGap,
+                        x = routeX + routeWidth + metrics.gap,
                         y = attachedY,
                         widthOverride = screenWidth,
                     )
                     place(attachedLayout)
-                    attachedY = attachedLayout.y + attachedLayout.height + GraphFlowMetrics.attachmentRowGap
+                    attachedY = attachedLayout.y + attachedLayout.height + metrics.compactGap
                     laneBottom = max(laneBottom, attachedLayout.y + attachedLayout.height)
                     laneRight = max(laneRight, attachedLayout.x + attachedLayout.width)
                 }
@@ -208,7 +197,7 @@ private class ReaktorFlowBuilder {
                 maxRight = max(maxRight, laneRight)
                 maxBottom = max(maxBottom, laneBottom)
             }
-            routeLaneBottom = rowBottom + GraphFlowMetrics.rowGap
+            routeLaneBottom = rowBottom + metrics.gap
         }
 
         if (standaloneScreens.isNotEmpty()) {
@@ -220,7 +209,7 @@ private class ReaktorFlowBuilder {
                     val layout = createLayout(
                         node = screen,
                         graph = graph,
-                        x = screenColumnX + column * (screenWidth + GraphFlowMetrics.routeColumnGap),
+                        x = screenColumnX + column * (screenWidth + metrics.compactGap),
                         y = standaloneTop,
                         widthOverride = screenWidth,
                     )
@@ -229,7 +218,7 @@ private class ReaktorFlowBuilder {
                     maxRight = max(maxRight, layout.x + layout.width)
                     maxBottom = max(maxBottom, layout.y + layout.height)
                 }
-                standaloneTop = rowBottom + GraphFlowMetrics.rowGap
+                standaloneTop = rowBottom + metrics.gap
             }
         }
 
@@ -237,22 +226,22 @@ private class ReaktorFlowBuilder {
         var childGraphBottom = maxBottom
         if (containers.isNotEmpty()) {
             var currentY = max(maxBottom, serviceColumnBottom).let {
-                if (localLayouts.isEmpty()) startY else it + GraphFlowMetrics.childGraphGap
+                if (localLayouts.isEmpty()) startY else it + metrics.compactGap
             }
             for (containerNode in containers) {
                 val layout = createLayout(
                     node = containerNode,
                     graph = graph,
-                    x = originX + GraphFlowMetrics.subgraphPadding,
+                    x = originX + metrics.subgraphInset,
                     y = currentY,
-                    widthOverride = max(servicesWidth, measureWidth(containerNode)),
+                    widthOverride = max(servicesWidth, measureNodeWidth(containerNode)),
                 )
                 place(layout)
                 maxRight = max(maxRight, layout.x + layout.width)
                 maxBottom = max(maxBottom, layout.y + layout.height)
 
                 if (containerNode is ContainerNode && containerNode.graphs.isNotEmpty()) {
-                    val childStartX = layout.x + layout.width + GraphFlowMetrics.layerGap
+                    val childStartX = layout.x + layout.width + metrics.majorGap
                     var childX = childStartX
                     var childY = currentY
                     var rowBottom = currentY
@@ -260,7 +249,7 @@ private class ReaktorFlowBuilder {
                     containerNode.graphs.forEachIndexed { index, childGraph ->
                         if (index > 0 && index % childGraphsPerRow == 0) {
                             childX = childStartX
-                            childY = rowBottom + GraphFlowMetrics.childGraphGap
+                            childY = rowBottom + metrics.compactGap
                         }
                         val childBounds = layoutGraph(
                             graph = childGraph,
@@ -269,14 +258,14 @@ private class ReaktorFlowBuilder {
                             depth = depth + 1,
                             graphId = "$graphId/$index",
                         )
-                        childX = childBounds.right + GraphFlowMetrics.subgraphPadding
+                        childX = childBounds.right + metrics.subgraphInset
                         rowBottom = max(rowBottom, childBounds.bottom)
                         childGraphRight = max(childGraphRight, childBounds.right)
                         childGraphBottom = max(childGraphBottom, childBounds.bottom)
                     }
-                    currentY = max(layout.y + layout.height, rowBottom) + GraphFlowMetrics.childGraphGap
+                    currentY = max(layout.y + layout.height, rowBottom) + metrics.compactGap
                 } else {
-                    currentY += layout.height + GraphFlowMetrics.rowGap
+                    currentY += layout.height + metrics.gap
                 }
                 maxBottom = max(maxBottom, currentY)
             }
@@ -284,17 +273,17 @@ private class ReaktorFlowBuilder {
 
         val contentRight = max(
             childGraphRight,
-            localLayouts.maxOfOrNull { it.x + it.width } ?: originX + GraphFlowMetrics.subgraphPadding,
+            localLayouts.maxOfOrNull { it.x + it.width } ?: originX + metrics.subgraphInset,
         )
         val contentBottom = max(
             childGraphBottom,
             localLayouts.maxOfOrNull { it.y + it.height } ?: startY,
         )
         val bounds = LayoutBounds(
-            left = originX - GraphFlowMetrics.regionInsetX,
-            top = originY - GraphFlowMetrics.regionInsetTop,
-            right = contentRight + GraphFlowMetrics.subgraphPadding + GraphFlowMetrics.regionInsetX,
-            bottom = contentBottom + GraphFlowMetrics.subgraphPadding + GraphFlowMetrics.regionInsetBottom,
+            left = originX - metrics.regionInsetX,
+            top = originY - metrics.regionInsetTop,
+            right = contentRight + metrics.subgraphInset + metrics.regionInsetX,
+            bottom = contentBottom + metrics.subgraphInset + metrics.regionInsetBottom,
         )
         regions += ReaktorGraphRegion(
             label = graphLabel(graph),
@@ -309,33 +298,7 @@ private class ReaktorFlowBuilder {
         return bounds
     }
 
-    private fun preferredChildGraphsPerRow(childGraphCount: Int): Int = when {
-        childGraphCount <= 2 -> childGraphCount
-        childGraphCount <= 9 -> 3
-        else -> 4
-    }
-
-    private fun preferredServiceColumns(serviceCount: Int): Int = when {
-        serviceCount <= 2 -> 1
-        serviceCount <= 8 -> 2
-        else -> 3
-    }
-
-    private fun preferredRouteColumns(routeCount: Int): Int = when {
-        routeCount <= 2 -> 1
-        routeCount <= 16 -> 2
-        routeCount <= 28 -> 3
-        else -> 4
-    }
-
-    private fun preferredStandaloneColumns(screenCount: Int): Int = when {
-        screenCount <= 2 -> 1
-        screenCount <= 12 -> 2
-        screenCount <= 20 -> 3
-        else -> 4
-    }
-
-    private fun createLayout(
+    internal fun createLayout(
         node: GraphNode,
         graph: Graph,
         x: Double,
@@ -344,9 +307,11 @@ private class ReaktorFlowBuilder {
     ): GraphNodeLayout {
         val allProviderPorts = visiblePorts(node.providerPorts.flattenedValues().toList())
         val allConsumerPorts = visiblePorts(node.consumerPorts.flattenedValues().toList())
-        val width = widthOverride ?: measureWidth(node)
-        val rowCount = max(allProviderPorts.size, allConsumerPorts.size).coerceAtLeast(1)
-        val height = GraphFlowMetrics.titleHeight + rowCount * GraphFlowMetrics.rowHeight + GraphFlowMetrics.nodePaddingY * 2
+        val width = widthOverride ?: measureNodeWidth(node)
+        val height = measureNodeHeight(
+            providerCount = allProviderPorts.size,
+            consumerCount = allConsumerPorts.size,
+        )
         val flowId = flowIdsByNode.getOrPut(node) { "${graphLabel(graph)}::${node.id}" }
         graphNodes[flowId] = node
 
@@ -367,270 +332,4 @@ private class ReaktorFlowBuilder {
         )
     }
 
-    private fun resolveEdges(graph: Graph) {
-        graph.nodes.filterIsInstance<RouteNode<*, *>>().forEach { route ->
-            val routeLayout = layouts[route] ?: return@forEach
-
-            route.attachedNodes().forEach { attached ->
-                val attachedNode = attached as? GraphNode ?: return@forEach
-                val targetLayout = layouts[attachedNode] ?: return@forEach
-                addEdge(
-                    source = routeLayout.flowId,
-                    target = targetLayout.flowId,
-                    kind = ReaktorEdgeKind.Attachment,
-                    label = route.pattern.original,
-                    sourceHandle = "routeBinding",
-                    targetHandle = "routeBinding",
-                )
-            }
-
-            route.navigationTargets().forEach { targetRoute ->
-                val targetLayout = layouts[targetRoute] ?: return@forEach
-                addEdge(
-                    source = routeLayout.flowId,
-                    target = targetLayout.flowId,
-                    kind = ReaktorEdgeKind.Navigation,
-                    sourceHandle = "__nav__",
-                    targetHandle = "navBinding",
-                )
-            }
-        }
-
-        graph.nodes.forEach { node ->
-            val sourceLayout = layouts[node] ?: return@forEach
-
-            node.consumerPorts.flattenedValues()
-                .filter { it.isConnected() }
-                .forEach { consumer ->
-                    if (isInternalPort(consumer.key.key)) {
-                        return@forEach
-                    }
-
-                    val edge = consumer.edge ?: return@forEach
-                    val providerNode = edge.destination as? GraphNode ?: return@forEach
-                    if (providerNode is RouteNode<*, *>) {
-                        return@forEach
-                    }
-
-                    val targetLayout = layouts[providerNode] ?: return@forEach
-                    addEdge(
-                        source = targetLayout.flowId,
-                        target = sourceLayout.flowId,
-                        kind = ReaktorEdgeKind.Data,
-                        label = pinLabel(consumer.key.key, consumer.type.type),
-                        sourceHandle = edge.provider.key.key.ifBlank { edge.provider.type.type },
-                        targetHandle = consumer.key.key.ifBlank { consumer.type.type },
-                    )
-                }
-
-            if (node is ContainerNode) {
-                node.graphs.forEach { child ->
-                    graphRootRoute(child)?.let { rootRoute ->
-                        val rootLayout = layouts[rootRoute] ?: return@let
-                        addEdge(
-                            source = sourceLayout.flowId,
-                            target = rootLayout.flowId,
-                            kind = ReaktorEdgeKind.Containment,
-                            label = graphLabel(child),
-                            sourceHandle = "__contains__",
-                            targetHandle = "routeBinding",
-                        )
-                    }
-                    resolveEdges(child)
-                }
-            }
-        }
-    }
-
-    private fun graphRootRoute(graph: Graph): RouteNode<*, *>? =
-        (graph.backStack.entries.value.firstOrNull()?.edge?.end as? RouteNode<*, *>)
-            ?: graph.nodes.filterIsInstance<RouteNode<*, *>>().firstOrNull()
-
-    private fun addEdge(
-        source: String,
-        target: String,
-        kind: ReaktorEdgeKind,
-        label: String? = null,
-        sourceHandle: String? = null,
-        targetHandle: String? = null,
-    ) {
-        val id = listOf(source, sourceHandle.orEmpty(), target, targetHandle.orEmpty(), kind.name, label.orEmpty()).joinToString("->")
-        if (edges[id] == null) {
-            edges[id] = Edge(
-                id = id,
-                source = source,
-                target = target,
-                sourceHandle = sourceHandle,
-                targetHandle = targetHandle,
-                data = ReaktorGraphEdgeData(kind = kind, label = label),
-                label = label,
-                markerEnd = EdgeMarker(type = MarkerType.ArrowClosed),
-                zIndex = when (kind) {
-                    ReaktorEdgeKind.Containment -> 0
-                    ReaktorEdgeKind.Data -> 1
-                    ReaktorEdgeKind.Attachment -> 2
-                    ReaktorEdgeKind.Navigation -> 3
-                },
-            )
-        }
-    }
-
-    private fun toFlowNode(layout: GraphNodeLayout): Node {
-        val graphNode = layout.graphNode
-        return Node(
-            id = layout.flowId,
-            position = XYPosition(layout.x, layout.y),
-            data = ReaktorGraphNodeData(
-                nodeId = graphNode.id.toString(),
-                title = nodeTitle(graphNode),
-                subtitle = nodeSubtitle(graphNode),
-                graphLabel = graphLabel(layout.graph),
-                isRootNode = graphRootRoute(layout.graph) == graphNode,
-                providerCount = layout.providerCount,
-                consumerCount = layout.consumerCount,
-                providerPorts = layout.providerPorts,
-                consumerPorts = layout.consumerPorts,
-                hiddenProviderCount = layout.hiddenProviderCount,
-                hiddenConsumerCount = layout.hiddenConsumerCount,
-                kind = reaktorNodeKind(graphNode),
-            ),
-            type = "graph",
-            width = layout.width,
-            height = layout.height,
-            handles = buildHandles(layout),
-            sourcePosition = Position.Right,
-            targetPosition = Position.Left,
-            showDefaultHandles = false,
-        )
-    }
-
-    private fun measureWidth(node: GraphNode): Double {
-        // Match layout width to the visual contract of the Compose node renderer. React Flow also
-        // treats node measurement as editor-space data; if the estimate is too small, titles and
-        // ports become unreadable even when the graph topology itself is correct.
-        val consumers = node.consumerPorts.flattenedValues().toList()
-        val providers = node.providerPorts.flattenedValues().toList()
-        val titleLength = nodeTitle(node).length
-        val maxLeftLabel = consumers.maxOfOrNull { pinLabel(it.key.key, it.type.type).length } ?: 0
-        val maxRightLabel = providers.maxOfOrNull { pinLabel(it.key.key, it.type.type).length } ?: 0
-
-        val leftColumnWidth = if (maxLeftLabel == 0) {
-            0.0
-        } else {
-            maxLeftLabel * GraphFlowMetrics.portCharWidthEstimate +
-                GraphFlowMetrics.portDotSize +
-                GraphFlowMetrics.portGap
-        }
-        val rightColumnWidth = if (maxRightLabel == 0) {
-            0.0
-        } else {
-            maxRightLabel * GraphFlowMetrics.portCharWidthEstimate +
-                GraphFlowMetrics.portDotSize +
-                GraphFlowMetrics.portGap
-        }
-        val bodyWidth =
-            when {
-                leftColumnWidth > 0.0 && rightColumnWidth > 0.0 ->
-                    leftColumnWidth + GraphFlowMetrics.columnGap + rightColumnWidth
-                else -> max(leftColumnWidth, rightColumnWidth)
-            } + GraphFlowMetrics.bodyHorizontalPadding * 2.0
-
-        val badgeAllowance = if (graphRootRoute(node.graph) == node) {
-            (4 * GraphFlowMetrics.titleCharWidthEstimate) +
-                GraphFlowMetrics.rootBadgeHorizontalPadding * 2.0 +
-                GraphFlowMetrics.titleToBadgeGap
-        } else {
-            0.0
-        }
-        val titleWidth =
-            titleLength * GraphFlowMetrics.titleCharWidthEstimate +
-                GraphFlowMetrics.titleHorizontalPadding * 2.0 +
-                badgeAllowance
-        // React Flow effectively works from measured DOM widths; this builder has to provide the
-        // same safety margin up front, otherwise the Compose renderer receives a width that is
-        // already too small for its real title/body sublayout.
-        val widthFactor = when (node) {
-            is RouteNode<*, *> -> 1.24
-            is ControllerNode<*> -> 1.18
-            is ContainerNode -> 1.16
-            is BasicNode -> 1.10
-            else -> 1.12
-        }
-        val columnFactor = if (leftColumnWidth > 0.0 && rightColumnWidth > 0.0) 1.10 else 1.0
-        val baseWidth = max(bodyWidth * columnFactor, titleWidth)
-        return max(GraphFlowMetrics.nodeMinWidth, baseWidth * widthFactor)
-    }
-
-    private fun visiblePorts(ports: List<Port<*>>): List<ReaktorPortData> =
-        ports
-            .filter { shouldDisplayPort(it.key.key) }
-            .map { port ->
-                ReaktorPortData(
-                    handleId = port.key.key.ifBlank { port.type.type },
-                    label = pinLabel(port.key.key, port.type.type),
-                    type = shortType(port.type.type),
-                    color = portColor(port.type.type, port.isConnected()),
-                    connected = port.isConnected(),
-                )
-            }
-            .distinctBy(ReaktorPortData::handleId)
-
-    private fun buildHandles(layout: GraphNodeLayout): List<Handle> {
-        val rowCount = max(layout.consumerPorts.size, layout.providerPorts.size).coerceAtLeast(1)
-        val handles = buildList {
-            layout.consumerPorts.forEachIndexed { index, port ->
-                add(
-                    Handle(
-                        id = port.handleId,
-                        type = HandleType.Target,
-                        position = Position.Left,
-                        offset = handleOffset(index, rowCount),
-                        inset = GraphFlowMetrics.portInset,
-                    )
-                )
-            }
-            layout.providerPorts.forEachIndexed { index, port ->
-                add(
-                    Handle(
-                        id = port.handleId,
-                        type = HandleType.Source,
-                        position = Position.Right,
-                        offset = handleOffset(index, rowCount),
-                        inset = GraphFlowMetrics.portInset,
-                    )
-                )
-            }
-            if (layout.graphNode is RouteNode<*, *> && layout.graphNode.navigationTargets().isNotEmpty()) {
-                add(Handle(id = "__nav__", type = HandleType.Source, position = Position.Bottom, offset = 0.5))
-                add(Handle(id = "navBinding", type = HandleType.Target, position = Position.Top, offset = 0.5))
-            }
-            if (layout.graphNode is ContainerNode && layout.graphNode.graphs.isNotEmpty()) {
-                add(Handle(id = "__contains__", type = HandleType.Source, position = Position.Bottom, offset = 0.84))
-            }
-        }
-        return handles.distinctBy { it.type to it.id }
-    }
-
-    private fun handleOffset(index: Int, count: Int): Double =
-        when {
-            count <= 0 -> 0.5
-            else -> {
-                val totalHeight =
-                    GraphFlowMetrics.titleHeight +
-                        count * GraphFlowMetrics.rowHeight +
-                        GraphFlowMetrics.nodePaddingY * 2.0
-                val rowCenter =
-                    GraphFlowMetrics.titleHeight +
-                        GraphFlowMetrics.nodePaddingY +
-                        index * GraphFlowMetrics.rowHeight +
-                        GraphFlowMetrics.rowHeight / 2.0
-                rowCenter / totalHeight
-            }
-        }
-}
-
-private fun regionColor(depth: Int): Color = when (depth) {
-    0 -> Color(0xFF4A5878)
-    1 -> Color(0xFF4A7858)
-    else -> Color(0xFF6A5A7E)
 }

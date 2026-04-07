@@ -23,6 +23,7 @@ internal object FlowSizing {
     val controlButtonSpacing = 2.dp
     val controlGroupPadding = 8.dp
     val viewportLabelSpacing = 8.dp
+    val controlsElevation = 2.dp
 
     val minimapPadding = 8.dp
     val minimapWidth = 144.dp
@@ -30,10 +31,19 @@ internal object FlowSizing {
     val minimapRadius = 12.dp
     val minimapInnerPadding = 8.dp
     val minimapElevation = 2.dp
+    const val minimapDefaultNodeWidthPx = 180.0
+    const val minimapDefaultNodeHeightPx = 96.0
 
     const val minimapEdgeStrokePx = 1f
     const val minimapNodeMinSizePx = 8f
     const val minimapNodeCornerPx = 6f
+    const val defaultEdgeStrokePx = 2f
+    const val animatedEdgeStrokePx = 3f
+    const val selectedEdgeStrokePx = 3f
+    const val bezierControlRatio = 0.34f
+    const val bezierControlBiasPx = 34f
+    const val defaultMarkerWidthPx = 12.0
+    const val markerHalfAngleRadians = kotlin.math.PI / 7.0
 
     const val dotGridStepPx = 28f
     const val lineGridStepPx = 36f

@@ -23,10 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import dev.shibasis.composeflow.compose.primitives.Handle
+import dev.shibasis.composeflow.compose.theme.FlowSelection
 import dev.shibasis.composeflow.compose.theme.FlowBorder
 import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.compose.theme.FlowSurface
 import dev.shibasis.composeflow.compose.theme.FlowText
+import dev.shibasis.composeflow.compose.theme.FlowVisualDefaults
 import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeContent
 import dev.shibasis.composeflow.compose.primitives.NodeProps
@@ -43,6 +45,7 @@ import dev.shibasis.composeflow.model.Dimensions
 import dev.shibasis.composeflow.model.Handle
 import dev.shibasis.composeflow.model.NodeDimensionChange
 import dev.shibasis.composeflow.model.Viewport
+import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
 import kotlin.collections.get
 import kotlin.math.roundToInt
 
@@ -68,14 +71,18 @@ internal fun FlowNodeBox(
     val widthDp = with(density) { width.toFloat().toDp() }
     val heightDp = with(density) { height.toFloat().toDp() }
     val handles = resolvedHandles(node)
-    val backgroundColor = renderStyle.backgroundColor ?: if (node.selected) FlowSurface.copy(alpha = 0.98f) else FlowSurface.copy(alpha = 0.92f)
-    val borderColor = renderStyle.borderColor ?: if (node.selected) Color(0xFF60A5FA) else FlowBorder
+    val backgroundColor = renderStyle.backgroundColor ?: if (node.selected) {
+        FlowSurface.copy(alpha = FlowVisualDefaults.selectedNodeSurfaceAlpha)
+    } else {
+        FlowSurface.copy(alpha = FlowVisualDefaults.idleNodeSurfaceAlpha)
+    }
+    val borderColor = renderStyle.borderColor ?: if (node.selected) FlowSelection else FlowBorder
 
     Box(
         modifier = Modifier
             .offset { IntOffset(node.position.x.roundToInt(), node.position.y.roundToInt()) }
             .size(widthDp, heightDp)
-            .zIndex(if (node.dragging || node.selected) 100f else node.zIndex.toFloat())
+            .zIndex(if (node.dragging || node.selected) FlowRuntimeDefaults.selectedNodeZIndex else node.zIndex.toFloat())
             .graphicsLayer {
                 alpha = renderStyle.alpha
                 scaleX = renderStyle.scale
@@ -177,7 +184,7 @@ internal fun DefaultNode(props: NodeProps) {
         props.type?.takeIf { it.isNotBlank() }?.let {
             Text(
                 text = it,
-                color = FlowText.copy(alpha = 0.7f),
+                color = FlowText.copy(alpha = FlowVisualDefaults.secondaryTextAlpha),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(top = FlowSizing.defaultLabelSpacing),
             )

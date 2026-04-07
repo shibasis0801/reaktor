@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.shibasis.composeflow.compose.primitives.NodeProps
+import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import kotlin.math.max
 
@@ -20,7 +22,8 @@ import kotlin.math.max
 internal fun BoxScope.ReaktorGraphNodeCard(props: NodeProps) {
     val data = props.data as? ReaktorGraphNodeData ?: return
     val rowCount = max(1, max(data.consumerPorts.size, data.providerPorts.size))
-    val metrics = rememberReaktorNodeRenderMetrics()
+    val metrics = DefaultGraphFlowMetrics
+    val density = LocalDensity.current
 
     // Similar to the Compose "measure once, render many" guidance: the card only consumes the
     // precomputed render metrics and semantic port data; it does not own graph/layout math.
@@ -38,8 +41,8 @@ internal fun BoxScope.ReaktorGraphNodeCard(props: NodeProps) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    horizontal = metrics.bodyHorizontalPadding,
-                    vertical = metrics.bodyVerticalPadding,
+                    horizontal = with(density) { dpOf(metrics.bodyPaddingX) },
+                    vertical = with(density) { dpOf(metrics.nodePaddingY) },
                 ),
             verticalArrangement = Arrangement.Top,
         ) {
@@ -48,7 +51,7 @@ internal fun BoxScope.ReaktorGraphNodeCard(props: NodeProps) {
                     Text(
                         text = subtitle,
                         color = GraphCanvasMuted,
-                        fontSize = metrics.titleFontSize,
+                        fontSize = with(density) { spOf(metrics.titleFontSize) },
                         fontFamily = FontFamily.Monospace,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

@@ -19,7 +19,6 @@ import dev.shibasis.composeflow.model.Viewport
 import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.composeflow.model.applyEdgeChanges
 import dev.shibasis.composeflow.model.applyNodeChanges
-import dev.shibasis.composeflow.runtime.fitViewport
 
 class NodesState internal constructor(initialNodes: List<Node>) {
     var nodes by mutableStateOf(initialNodes)
@@ -156,8 +155,8 @@ class ReactFlowState internal constructor(
         zoom: Double,
         anchorX: Double? = null,
         anchorY: Double? = null,
-        minZoom: Double = 0.25,
-        maxZoom: Double = 2.0,
+        minZoom: Double = FlowRuntimeDefaults.minZoom,
+        maxZoom: Double = FlowRuntimeDefaults.maxZoom,
     ) {
         val nextZoom = zoom.coerceIn(minZoom, maxZoom)
         val current = viewport
@@ -181,8 +180,8 @@ class ReactFlowState internal constructor(
         factor: Double,
         anchorX: Double? = null,
         anchorY: Double? = null,
-        minZoom: Double = 0.25,
-        maxZoom: Double = 2.0,
+        minZoom: Double = FlowRuntimeDefaults.minZoom,
+        maxZoom: Double = FlowRuntimeDefaults.maxZoom,
     ) {
         zoomTo(
             zoom = viewport.zoom * factor,

@@ -14,10 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
+import dev.shibasis.reaktor.flow.graph.layout.GraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import kotlin.math.max
 import kotlin.math.min
@@ -29,37 +33,45 @@ internal fun BoxScope.GraphRegionsOverlay(
     selectedGraphId: String?,
     onSelectGraph: (String?) -> Unit,
 ) {
+    val metrics = DefaultGraphFlowMetrics
+    val density = LocalDensity.current
+    val regionCornerRadiusPx = with(density) { regionCornerRadiusPx() }
+    val regionSelectedStrokePx = with(density) { regionSelectedStrokePx() }
+    val regionStrokePx = with(density) { regionStrokePx() }
+    val regionDashOnPx = with(density) { regionDashOnPx() }
+    val regionDashOffPx = with(density) { regionDashOffPx() }
+    val regionLabelOffset = with(density) { regionLabelOffsetPx() }
     Canvas(Modifier.fillMaxSize()) {
         flow.regions.sortedBy { it.depth }.forEach { region ->
             val topLeft = Offset(region.x.toFloat(), region.y.toFloat())
             val size = Size(region.width.toFloat(), region.height.toFloat())
             drawRoundRect(
-                color = region.color.copy(alpha = ReaktorGraphChromeTokens.regionFillAlpha),
+                color = region.color.copy(alpha = REGION_FILL_ALPHA),
                 topLeft = topLeft,
                 size = size,
                 cornerRadius = CornerRadius(
-                    ReaktorGraphChromeTokens.regionCornerRadiusPx,
-                    ReaktorGraphChromeTokens.regionCornerRadiusPx,
+                    regionCornerRadiusPx,
+                    regionCornerRadiusPx,
                 ),
             )
             drawRoundRect(
-                color = region.color.copy(alpha = ReaktorGraphChromeTokens.regionStrokeAlpha),
+                color = region.color.copy(alpha = REGION_STROKE_ALPHA),
                 topLeft = topLeft,
                 size = size,
                 cornerRadius = CornerRadius(
-                    ReaktorGraphChromeTokens.regionCornerRadiusPx,
-                    ReaktorGraphChromeTokens.regionCornerRadiusPx,
+                    regionCornerRadiusPx,
+                    regionCornerRadiusPx,
                 ),
                 style = Stroke(
                     width = if (selectedGraphId == region.id) {
-                        ReaktorGraphChromeTokens.regionSelectedStrokePx
+                        regionSelectedStrokePx
                     } else {
-                        ReaktorGraphChromeTokens.regionStrokePx
+                        regionStrokePx
                     },
                     pathEffect = PathEffect.dashPathEffect(
                         floatArrayOf(
-                            ReaktorGraphChromeTokens.regionDashOnPx,
-                            ReaktorGraphChromeTokens.regionDashOffPx,
+                            regionDashOnPx,
+                            regionDashOffPx,
                         ),
                     ),
                 ),
@@ -70,17 +82,17 @@ internal fun BoxScope.GraphRegionsOverlay(
     flow.regions.sortedBy { it.depth }.forEach { region ->
         Surface(
             color = if (selectedGraphId == region.id) {
-                ReaktorGraphChromeTokens.regionSelectedLabelSurface
+                GraphUi.regionSelectedLabelSurface
             } else {
-                ReaktorGraphChromeTokens.regionLabelSurface
+                GraphUi.regionLabelSurface
             },
-            shape = RoundedCornerShape(ReaktorGraphChromeTokens.regionLabelRadius),
-            tonalElevation = ReaktorGraphChromeTokens.zeroElevation,
+            shape = RoundedCornerShape(GraphUi.panelRadius),
+            tonalElevation = 0.dp,
             modifier = Modifier
                 .offset {
                     IntOffset(
-                        x = (region.x + ReaktorGraphChromeTokens.regionLabelOffsetXPx).roundToInt(),
-                        y = (region.y + ReaktorGraphChromeTokens.regionLabelOffsetYPx).roundToInt(),
+                        x = (region.x + regionLabelOffset.x).roundToInt(),
+                        y = (region.y + regionLabelOffset.y).roundToInt(),
                     )
                 }
                 .clickable { onSelectGraph(region.id) },
@@ -88,11 +100,11 @@ internal fun BoxScope.GraphRegionsOverlay(
             Text(
                 text = region.label,
                 color = region.color.copy(alpha = if (selectedGraphId == region.id) 0.96f else 0.72f),
-                fontSize = ReaktorGraphChromeTokens.sectionTitleFontSize,
+                fontSize = with(density) { spOf(metrics.titleFontSize) },
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(
-                    horizontal = ReaktorGraphChromeTokens.regionLabelHorizontalPadding,
-                    vertical = ReaktorGraphChromeTokens.regionLabelVerticalPadding,
+                    horizontal = GraphUi.regionLabelPadding.horizontal,
+                    vertical = GraphUi.regionLabelPadding.vertical,
                 ),
             )
         }
@@ -107,6 +119,7 @@ internal data class FlowBounds(
 )
 
 internal fun flowBounds(flow: ReaktorFlowGraph): FlowBounds {
+    val metrics = DefaultGraphFlowMetrics
     val left = min(
         flow.nodes.minOfOrNull { it.position.x } ?: 0.0,
         flow.regions.minOfOrNull { it.x } ?: Double.POSITIVE_INFINITY,
@@ -116,11 +129,11 @@ internal fun flowBounds(flow: ReaktorFlowGraph): FlowBounds {
         flow.regions.minOfOrNull { it.y } ?: Double.POSITIVE_INFINITY,
     ).takeUnless(Double::isInfinite) ?: 0.0
     val right = max(
-        flow.nodes.maxOfOrNull { it.position.x + (it.width ?: ReaktorDefaultNodeWidthPx) } ?: 1.0,
+        flow.nodes.maxOfOrNull { it.position.x + (it.width ?: metrics.defaultNodeWidth) } ?: 1.0,
         flow.regions.maxOfOrNull { it.x + it.width } ?: 1.0,
     )
     val bottom = max(
-        flow.nodes.maxOfOrNull { it.position.y + (it.height ?: ReaktorDefaultNodeHeightPx) } ?: 1.0,
+        flow.nodes.maxOfOrNull { it.position.y + (it.height ?: metrics.defaultNodeHeight) } ?: 1.0,
         flow.regions.maxOfOrNull { it.y + it.height } ?: 1.0,
     )
     return FlowBounds(left = left, top = top, width = right - left, height = bottom - top)
@@ -128,17 +141,16 @@ internal fun flowBounds(flow: ReaktorFlowGraph): FlowBounds {
 
 internal fun readableFlowBounds(
     flow: ReaktorFlowGraph,
-    defaultNodeWidthPx: Double,
-    defaultNodeHeightPx: Double,
+    metrics: GraphFlowMetrics = DefaultGraphFlowMetrics,
 ): FlowBounds {
     val nodeLeft = flow.nodes.minOfOrNull { it.position.x } ?: 0.0
     val nodeTop = flow.nodes.minOfOrNull { it.position.y } ?: 0.0
-    val nodeRight = flow.nodes.maxOfOrNull { it.position.x + (it.width ?: defaultNodeWidthPx) } ?: defaultNodeWidthPx
-    val nodeBottom = flow.nodes.maxOfOrNull { it.position.y + (it.height ?: defaultNodeHeightPx) } ?: defaultNodeHeightPx
+    val nodeRight = flow.nodes.maxOfOrNull { it.position.x + (it.width ?: metrics.defaultNodeWidth) } ?: metrics.defaultNodeWidth
+    val nodeBottom = flow.nodes.maxOfOrNull { it.position.y + (it.height ?: metrics.defaultNodeHeight) } ?: metrics.defaultNodeHeight
     return FlowBounds(
-        left = nodeLeft - ReaktorGraphViewportTokens.readablePaddingXPx,
-        top = nodeTop - ReaktorGraphViewportTokens.readablePaddingYPx,
-        width = (nodeRight - nodeLeft) + ReaktorGraphViewportTokens.readablePaddingXPx * 2.0,
-        height = (nodeBottom - nodeTop) + ReaktorGraphViewportTokens.readablePaddingYPx * 2.0,
+        left = nodeLeft - GraphUi.readablePadding.horizontal,
+        top = nodeTop - GraphUi.readablePadding.vertical,
+        width = (nodeRight - nodeLeft) + GraphUi.readablePadding.horizontal * 2.0,
+        height = (nodeBottom - nodeTop) + GraphUi.readablePadding.vertical * 2.0,
     )
 }

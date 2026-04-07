@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.flow.graph.adapter
 
 import androidx.compose.ui.graphics.Color
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphPalette
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
@@ -22,11 +23,11 @@ internal fun portColor(
     type: String,
     connected: Boolean,
 ): Color {
-    if (!connected) return Color(0xFF666C80)
+    if (!connected) return ReaktorGraphPalette.disconnectedPort
     return if ("NavBinding" in type || "RouteBinding" in type) {
-        Color(0xFF55A8F4)
+        ReaktorGraphPalette.navigationPort
     } else {
-        Color(0xFF55D46E)
+        ReaktorGraphPalette.dataPort
     }
 }
 

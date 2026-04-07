@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isCtrlPressed
@@ -47,8 +46,10 @@ import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.NodeChange
 import dev.shibasis.composeflow.runtime.LocalReactFlowState
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.composeflow.compose.theme.FlowSizing
+import dev.shibasis.composeflow.compose.theme.FlowCanvasBackground
 import kotlin.math.exp
 
 // Compose best-practice note:
@@ -71,8 +72,8 @@ fun ReactFlow(
     backgroundVariant: BackgroundVariant = BackgroundVariant.Dots,
     showControls: Boolean = true,
     showMiniMap: Boolean = false,
-    minZoom: Double = 0.25,
-    maxZoom: Double = 2.0,
+    minZoom: Double = FlowRuntimeDefaults.minZoom,
+    maxZoom: Double = FlowRuntimeDefaults.maxZoom,
     defaultNodeWidth: androidx.compose.ui.unit.Dp = FlowSizing.defaultNodeWidth,
     defaultNodeHeight: androidx.compose.ui.unit.Dp = FlowSizing.defaultNodeHeight,
     nodeRenderStyle: (Node) -> NodeRenderStyle = { NodeRenderStyle() },
@@ -104,7 +105,7 @@ fun ReactFlow(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color(0xFF020617))
+                .background(FlowCanvasBackground)
                 .onSizeChanged {
                     canvasSize = it
                     state.canvasSize = it

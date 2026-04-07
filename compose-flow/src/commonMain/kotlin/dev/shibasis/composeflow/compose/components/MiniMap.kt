@@ -17,6 +17,7 @@ import dev.shibasis.composeflow.compose.theme.FlowPanelSurface
 import dev.shibasis.composeflow.compose.theme.FlowSelection
 import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.compose.theme.FlowSurface
+import dev.shibasis.composeflow.compose.theme.FlowVisualDefaults
 import dev.shibasis.composeflow.model.Edge
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.XYPosition
@@ -29,8 +30,8 @@ fun MiniMap(
     modifier: Modifier = Modifier,
     nodes: List<Node>,
     edges: List<Edge>,
-    defaultNodeWidth: Double = 180.0,
-    defaultNodeHeight: Double = 96.0,
+    defaultNodeWidth: Double = FlowSizing.minimapDefaultNodeWidthPx,
+    defaultNodeHeight: Double = FlowSizing.minimapDefaultNodeHeightPx,
 ) {
     Surface(
         modifier = modifier.width(FlowSizing.minimapWidth).size(width = FlowSizing.minimapWidth, height = FlowSizing.minimapHeight),
@@ -49,7 +50,7 @@ fun MiniMap(
                 val source = nodes.firstOrNull { it.id == edge.source } ?: return@forEach
                 val target = nodes.firstOrNull { it.id == edge.target } ?: return@forEach
                 drawLine(
-                    color = FlowEdge.copy(alpha = 0.55f),
+                    color = FlowEdge.copy(alpha = FlowVisualDefaults.miniMapEdgeAlpha),
                     start = miniMapPoint(source.position, bounds.left, bounds.top, scale),
                     end = miniMapPoint(target.position, bounds.left, bounds.top, scale),
                     strokeWidth = FlowSizing.minimapEdgeStrokePx,

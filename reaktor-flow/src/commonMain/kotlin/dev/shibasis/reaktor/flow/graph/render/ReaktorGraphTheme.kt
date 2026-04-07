@@ -1,14 +1,7 @@
 package dev.shibasis.reaktor.flow.graph.render
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.Color
 import dev.shibasis.composeflow.compose.primitives.EdgeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeRenderStyle
@@ -16,12 +9,23 @@ import dev.shibasis.composeflow.model.Edge
 import dev.shibasis.composeflow.model.Handle
 import dev.shibasis.composeflow.model.HandleType
 import dev.shibasis.composeflow.model.Node
-import dev.shibasis.reaktor.flow.graph.layout.GraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorEdgeKind
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.max
 
+// References:
+// - Fluent UI / styled-system token layering: keep semantic chrome tokens small and let components
+//   compose from them instead of introducing parallel ad hoc literals.
+// - Compose internals/custom layout guidance: layout math belongs to a stable measurement contract;
+//   this file only converts graph-space metrics into render units and supplies editor chrome colors.
 internal val GraphCanvasChrome = Color(0xCC1C2338)
 internal val GraphCanvasBorder = Color(0xFF2F3A56)
 internal val GraphCanvasMuted = Color(0xFF93A0BB)
@@ -31,145 +35,103 @@ internal val GraphCanvasBackground = Color(0xFF08101C)
 internal val GraphCanvasMono = FontFamily.Monospace
 internal val GraphCanvasRootBadge = Color(0x332F8BFF)
 internal val GraphCanvasRootBadgeText = Color(0xFFC9D8FF)
-internal val ReaktorDefaultNodeWidthPx: Double = GraphFlowMetrics.nodeMinWidth
-internal val ReaktorDefaultNodeHeightPx: Double =
-    GraphFlowMetrics.titleHeight + (GraphFlowMetrics.rowHeight * 4) + (GraphFlowMetrics.nodePaddingY * 2)
 
-internal object ReaktorGraphChromeTokens {
-    val zeroElevation = 0.dp
-    val overlayPadding = 12.dp
-    val toolbarRadius = 10.dp
-    val toolbarHorizontalPadding = 12.dp
-    val toolbarVerticalPadding = 9.dp
-    val toolbarButtonRadius = 9.dp
-    val toolbarButtonHorizontalPadding = 10.dp
-    val toolbarButtonVerticalPadding = 6.dp
-    val toolbarButtonSpacing = 6.dp
-    val toolbarMetadataSpacing = 2.dp
-    val toolbarSectionSpacing = 12.dp
-    val legendWidth = 176.dp
-    val legendRadius = 10.dp
-    val legendHorizontalPadding = 12.dp
-    val legendVerticalPadding = 10.dp
-    val legendItemSpacing = 6.dp
-    val legendItemRadius = 10.dp
-    val legendItemBorderWidth = 1.dp
-    val legendDotGap = 8.dp
-    val legendIndicatorSize = 9.dp
-    val legendItemHorizontalPadding = 10.dp
-    val legendItemVerticalPadding = 7.dp
-    val miniMapWidth = 140.dp
-    val miniMapHeight = 88.dp
-    val miniMapRadius = 10.dp
-    val miniMapInnerPadding = 10.dp
-    const val miniMapNodeMinSizePx = 6f
-    const val miniMapNodeCornerPx = 4f
-    const val miniMapViewportCornerPx = 3f
-    const val miniMapViewportStrokePx = 1.3f
-    const val miniMapEdgeStrokePx = 1f
-    const val regionLabelOffsetXPx = 16.0
-    const val regionLabelOffsetYPx = 12.0
-    val regionLabelRadius = 7.dp
-    val regionLabelHorizontalPadding = 14.dp
-    val regionLabelVerticalPadding = 8.dp
-    val regionCornerRadiusPx = 14f
-    val regionDashOnPx = 10f
-    val regionDashOffPx = 6f
-    val regionSelectedStrokePx = 1.8f
-    val regionStrokePx = 1.1f
-    const val regionFillAlpha = 0.045f
-    const val regionStrokeAlpha = 0.22f
-    val rootBadgeHorizontalPadding = 12.dp
-    val rootBadgeVerticalPadding = 6.dp
-    val rootBadgeRadius = 999.dp
-    val viewportBadgeRadius = 999.dp
-    val viewportBadgeHorizontalPadding = 10.dp
-    val viewportBadgeVerticalPadding = 6.dp
-    val rootBadgeFontSize = 16.sp
-    val titleFontSize = 20.sp
-    val sectionTitleFontSize = 18.sp
-    val bodyFontSize = 16.sp
-    val viewportFontSize = 15.sp
-    val buttonFontSize = 11.sp
-    val editorPadding = 4.dp
-    val panelSurface = Color(0xFF11182A)
-    val miniMapSurface = Color(0xDD0D1020)
-    val regionLabelSurface = Color(0x88121A2C)
-    val regionSelectedLabelSurface = Color(0xCC162846)
-    val legendItemSurface = Color(0x5011182A)
-    val hiddenHandleBorder = Color(0xFF09101D)
-}
-
-internal object ReaktorGraphViewportTokens {
-    const val startupFrameDelayMillis = 120L
-    const val readablePaddingXPx = 20.0
-    const val readablePaddingYPx = 18.0
-    const val fitPaddingXPx = 28.0
-    const val fitPaddingYPx = 28.0
-    const val readableZoomBias = 1.10
-    const val readableMinZoom = 0.74
-    const val fitMinZoom = 0.22
-    const val maxZoom = 2.4
-    const val minZoom = 0.22
-    const val zoomStep = 1.12
-}
-
-internal data class ReaktorNodeRenderMetrics(
-    val cornerRadius: Dp,
-    val titleHeight: Dp,
-    val rowHeight: Dp,
-    val titleHorizontalPadding: Dp,
-    val titleTextPadding: Dp,
-    val titleToBadgeGap: Dp,
-    val bodyHorizontalPadding: Dp,
-    val bodyVerticalPadding: Dp,
-    val columnGap: Dp,
-    val portGap: Dp,
-    val portDotSize: Dp,
-    val titleFontSize: TextUnit,
-    val portFontSize: TextUnit,
-    val rootBadgeFontSize: TextUnit,
-    val defaultNodeWidth: Dp,
-    val defaultNodeHeight: Dp,
-)
-
-@Composable
-internal fun rememberReaktorNodeRenderMetrics(): ReaktorNodeRenderMetrics {
-    val density = LocalDensity.current
-    return remember(density) {
-        ReaktorNodeRenderMetrics(
-            cornerRadius = with(density) { GraphFlowMetrics.nodeCornerRadius.toFloat().toDp() },
-            titleHeight = with(density) { GraphFlowMetrics.titleHeight.toFloat().toDp() },
-            rowHeight = with(density) { GraphFlowMetrics.rowHeight.toFloat().toDp() },
-            titleHorizontalPadding = with(density) { GraphFlowMetrics.titleHorizontalPadding.toFloat().toDp() },
-            titleTextPadding = with(density) { GraphFlowMetrics.titleVerticalPadding.toFloat().toDp() },
-            titleToBadgeGap = with(density) { GraphFlowMetrics.titleToBadgeGap.toFloat().toDp() },
-            bodyHorizontalPadding = with(density) { GraphFlowMetrics.bodyHorizontalPadding.toFloat().toDp() },
-            bodyVerticalPadding = with(density) { GraphFlowMetrics.nodePaddingY.toFloat().toDp() },
-            columnGap = with(density) { GraphFlowMetrics.columnGap.toFloat().toDp() },
-            portGap = with(density) { GraphFlowMetrics.portGap.toFloat().toDp() },
-            portDotSize = with(density) { GraphFlowMetrics.portDotSize.toFloat().toDp() },
-            titleFontSize = with(density) { GraphFlowMetrics.titleFontSize.toFloat().toSp() },
-            portFontSize = with(density) { GraphFlowMetrics.portFontSize.toFloat().toSp() },
-            rootBadgeFontSize = with(density) { GraphFlowMetrics.rootBadgeFontSize.toFloat().toSp() },
-            defaultNodeWidth = with(density) { ReaktorDefaultNodeWidthPx.toFloat().toDp() },
-            defaultNodeHeight = with(density) { ReaktorDefaultNodeHeightPx.toFloat().toDp() },
-        )
-    }
-}
-
-@Composable
-internal fun rememberRootBadgePadding() = rememberReaktorNodeRenderMetrics().let { metrics ->
-    RootBadgePadding(
-        horizontal = with(LocalDensity.current) { GraphFlowMetrics.rootBadgeHorizontalPadding.toFloat().toDp() },
-        vertical = with(LocalDensity.current) { GraphFlowMetrics.rootBadgeVerticalPadding.toFloat().toDp() },
-    )
-}
-
-internal data class RootBadgePadding(
+internal data class DpAxisInsets(
     val horizontal: Dp,
     val vertical: Dp,
 )
+
+internal data class PxAxisInsets(
+    val horizontal: Double,
+    val vertical: Double,
+)
+
+internal data class PxAxisOffset(
+    val x: Double,
+    val y: Double,
+)
+
+// Keep one editor-chrome surface instead of separate chrome and viewport token objects. Graph
+// sizing belongs to GraphFlowMetrics; editor chrome and framing policy belong here.
+internal data class ReaktorGraphUiMetrics(
+    val spacing: Dp = 12.dp,
+    val radius: Dp = 10.dp,
+    val borderWidth: Dp = 1.dp,
+    val miniMapSize: DpSize = DpSize(width = 140.dp, height = 88.dp),
+    val panelSurface: Color = Color(0xFF11182A),
+    val miniMapSurface: Color = Color(0xDD0D1020),
+    val regionLabelSurface: Color = Color(0x88121A2C),
+    val startupFrameDelayMillis: Long = 120L,
+    val readablePadding: PxAxisInsets = PxAxisInsets(horizontal = 20.0, vertical = 18.0),
+    val fitPadding: PxAxisInsets = PxAxisInsets(horizontal = 28.0, vertical = 28.0),
+    val readableZoomBias: Double = 1.10,
+    val readableMinZoom: Double = 0.74,
+    val maxZoom: Double = 2.4,
+    val minZoom: Double = 0.22,
+    val zoomStep: Double = 1.12,
+){
+    val overlayPadding: Dp get() = spacing
+    val panelRadius: Dp get() = radius
+    val shellPadding: DpAxisInsets get() = DpAxisInsets(horizontal = spacing, vertical = spacing * 0.75f)
+    val controlPadding: DpAxisInsets get() = DpAxisInsets(horizontal = spacing * 0.8333333f, vertical = spacing * 0.5f)
+    val sectionGap: Dp get() = spacing
+    val itemGap: Dp get() = spacing * 0.5f
+    val microGap: Dp get() = spacing * 0.1666667f
+    val legendWidth: Dp get() = miniMapSize.width + spacing * 3
+    val indicatorSize: Dp get() = spacing * 0.75f
+    val miniMapInnerPadding: Dp get() = spacing * 0.8333333f
+    val hiddenHandleSize: Dp get() = spacing * 0.9166667f
+    val editorPadding: Dp get() = spacing * 0.3333333f
+    val regionLabelPadding: DpAxisInsets get() = DpAxisInsets(horizontal = spacing * 1.1666667f, vertical = spacing * 0.6666667f)
+    val regionSelectedLabelSurface: Color get() = regionLabelSurface.copy(alpha = 0.9f)
+    val legendItemSurface: Color get() = panelSurface.copy(alpha = 0.32f)
+    val hiddenHandleBorder: Color get() = GraphCanvasBackground
+}
+
+internal val GraphUi = ReaktorGraphUiMetrics()
+
+internal fun Density.dpOf(value: Double): Dp = value.toFloat().toDp()
+
+internal fun Density.spOf(value: Double): TextUnit = value.toFloat().toSp()
+
+internal fun Density.regionLabelOffsetPx(ui: ReaktorGraphUiMetrics = GraphUi): PxAxisOffset =
+    PxAxisOffset(
+        x = ui.spacing.toPx().toDouble() * 1.3333333,
+        y = ui.spacing.toPx().toDouble(),
+    )
+
+internal fun Density.regionCornerRadiusPx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    ui.radius.toPx() * 1.4f
+
+internal fun Density.regionDashOnPx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    ui.spacing.toPx() * 0.8333333f
+
+internal fun Density.regionDashOffPx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    ui.spacing.toPx() * 0.5f
+
+internal fun Density.regionSelectedStrokePx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    max(ui.borderWidth.toPx(), 1f) * 1.8f
+
+internal fun Density.regionStrokePx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    max(ui.borderWidth.toPx(), 1f) * 1.1f
+
+internal fun Density.miniMapNodeMinSizePx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    ui.spacing.toPx() * 0.5f
+
+internal fun Density.miniMapNodeCornerPx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    ui.radius.toPx() * 0.4f
+
+internal fun Density.miniMapViewportCornerPx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    ui.radius.toPx() * 0.3f
+
+internal fun Density.miniMapViewportStrokePx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    max(ui.borderWidth.toPx(), 1f) * 1.3f
+
+internal fun Density.miniMapEdgeStrokePx(ui: ReaktorGraphUiMetrics = GraphUi): Float =
+    max(ui.borderWidth.toPx(), 1f)
+
+internal const val REGION_FILL_ALPHA = 0.045f
+internal const val REGION_STROKE_ALPHA = 0.22f
 
 internal fun graphNodeRenderStyle(
     node: Node,
@@ -227,8 +189,8 @@ internal fun graphHandleRenderStyle(
     }
     return HandleRenderStyle(
         fillColor = color,
-        borderColor = ReaktorGraphChromeTokens.hiddenHandleBorder,
+        borderColor = GraphUi.hiddenHandleBorder,
         alpha = if (matchesKind) 0f else 0f,
-        size = 11.dp,
+        size = GraphUi.hiddenHandleSize,
     )
 }

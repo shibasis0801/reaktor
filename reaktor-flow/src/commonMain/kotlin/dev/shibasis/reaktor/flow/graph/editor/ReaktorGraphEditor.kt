@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
@@ -30,8 +29,7 @@ import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.render.GraphCanvasBackground
-import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphChromeTokens
-import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphViewportTokens
+import dev.shibasis.reaktor.flow.graph.render.GraphUi
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
 @Composable
@@ -50,13 +48,15 @@ fun ReaktorGraphEditor(
 ) {
     val focusRequester = remember { FocusRequester() }
 
+    // Compose desktop routes keyboard input through the focused subtree. We keep the editor root
+    // focusable so graph shortcuts stay local to the editor instead of leaking into window chrome.
     fun zoomGraph(factor: Double) {
         state.zoomBy(
             factor = factor,
             anchorX = state.canvasSize.width / 2.0,
             anchorY = state.canvasSize.height / 2.0,
-            minZoom = ReaktorGraphViewportTokens.minZoom,
-            maxZoom = ReaktorGraphViewportTokens.maxZoom,
+            minZoom = GraphUi.minZoom,
+            maxZoom = GraphUi.maxZoom,
         )
     }
 
@@ -68,7 +68,7 @@ fun ReaktorGraphEditor(
         modifier = modifier
             .fillMaxSize()
             .background(GraphCanvasBackground)
-            .padding(ReaktorGraphChromeTokens.editorPadding)
+            .padding(GraphUi.editorPadding)
             .focusRequester(focusRequester)
             .focusable()
             .pointerInput(Unit) {
@@ -83,11 +83,11 @@ fun ReaktorGraphEditor(
                 }
                 when (event.key) {
                     Key.Equals, Key.Plus, Key.NumPadAdd -> {
-                        zoomGraph(ReaktorGraphViewportTokens.zoomStep)
+                        zoomGraph(GraphUi.zoomStep)
                         true
                     }
                     Key.Minus, Key.NumPadSubtract -> {
-                        zoomGraph(1.0 / ReaktorGraphViewportTokens.zoomStep)
+                        zoomGraph(1.0 / GraphUi.zoomStep)
                         true
                     }
                     else -> false

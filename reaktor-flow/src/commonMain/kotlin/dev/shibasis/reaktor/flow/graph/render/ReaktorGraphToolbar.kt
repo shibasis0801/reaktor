@@ -12,10 +12,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.components.Panel
 import dev.shibasis.composeflow.model.PanelPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 
 @Composable
@@ -27,35 +30,37 @@ internal fun BoxScope.GraphViewportToolbar(
     onFitView: () -> Unit,
     onResetZoom: () -> Unit,
 ) {
-    Panel(position = PanelPosition.TopLeft, modifier = Modifier.padding(ReaktorGraphChromeTokens.overlayPadding)) {
+    val metrics = DefaultGraphFlowMetrics
+    val density = LocalDensity.current
+    Panel(position = PanelPosition.BottomRight, modifier = Modifier.padding(GraphUi.overlayPadding)) {
         Surface(
             color = GraphCanvasChrome,
-            shape = RoundedCornerShape(ReaktorGraphChromeTokens.toolbarRadius),
-            tonalElevation = ReaktorGraphChromeTokens.zeroElevation,
+            shape = RoundedCornerShape(GraphUi.panelRadius),
+            tonalElevation = 0.dp,
         ) {
             Row(
                 modifier = Modifier.padding(
-                    horizontal = ReaktorGraphChromeTokens.toolbarHorizontalPadding,
-                    vertical = ReaktorGraphChromeTokens.toolbarVerticalPadding,
+                    horizontal = GraphUi.shellPadding.horizontal,
+                    vertical = GraphUi.shellPadding.vertical,
                 ),
-                horizontalArrangement = Arrangement.spacedBy(ReaktorGraphChromeTokens.toolbarSectionSpacing),
+                horizontalArrangement = Arrangement.spacedBy(GraphUi.sectionGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(ReaktorGraphChromeTokens.toolbarMetadataSpacing)) {
+                Column(verticalArrangement = Arrangement.spacedBy(GraphUi.microGap)) {
                     Text(
                         text = "Graph",
                         color = GraphCanvasText,
-                        fontSize = ReaktorGraphChromeTokens.titleFontSize,
+                        fontSize = with(density) { spOf(metrics.titleFontSize) },
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
                         text = "${flow.nodes.size} nodes • ${flow.edges.size} edges",
                         color = GraphCanvasMuted,
-                        fontSize = ReaktorGraphChromeTokens.bodyFontSize,
+                        fontSize = with(density) { spOf(metrics.portFontSize) },
                     )
                 }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(ReaktorGraphChromeTokens.toolbarButtonSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(GraphUi.itemGap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     ToolbarButton(label = "-", onClick = onZoomOut)
@@ -63,18 +68,18 @@ internal fun BoxScope.GraphViewportToolbar(
                     ToolbarButton(label = "Fit", onClick = onFitView)
                     ToolbarButton(label = "100%", onClick = onResetZoom)
                     Surface(
-                        color = ReaktorGraphChromeTokens.panelSurface,
-                        shape = RoundedCornerShape(ReaktorGraphChromeTokens.viewportBadgeRadius),
-                        tonalElevation = ReaktorGraphChromeTokens.zeroElevation,
+                        color = GraphUi.panelSurface,
+                        shape = RoundedCornerShape(GraphUi.panelRadius),
+                        tonalElevation = 0.dp,
                     ) {
                         Text(
                             text = "${(state.viewport.zoom * 100).toInt()}%",
                             color = GraphCanvasText,
-                            fontSize = ReaktorGraphChromeTokens.viewportFontSize,
+                            fontSize = with(density) { spOf(metrics.portFontSize) },
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(
-                                horizontal = ReaktorGraphChromeTokens.viewportBadgeHorizontalPadding,
-                                vertical = ReaktorGraphChromeTokens.viewportBadgeVerticalPadding,
+                                horizontal = GraphUi.controlPadding.horizontal,
+                                vertical = GraphUi.controlPadding.vertical,
                             ),
                         )
                     }
@@ -89,21 +94,23 @@ private fun ToolbarButton(
     label: String,
     onClick: () -> Unit,
 ) {
+    val metrics = DefaultGraphFlowMetrics
+    val density = LocalDensity.current
     Surface(
-        color = ReaktorGraphChromeTokens.panelSurface,
-        shape = RoundedCornerShape(ReaktorGraphChromeTokens.toolbarButtonRadius),
-        tonalElevation = ReaktorGraphChromeTokens.zeroElevation,
+        color = GraphUi.panelSurface,
+        shape = RoundedCornerShape(GraphUi.panelRadius),
+        tonalElevation = 0.dp,
     ) {
         Text(
             text = label,
             color = GraphCanvasText,
-            fontSize = ReaktorGraphChromeTokens.buttonFontSize,
+            fontSize = with(density) { spOf(metrics.portFontSize * 0.92f) },
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .clickable(onClick = onClick)
                 .padding(
-                    horizontal = ReaktorGraphChromeTokens.toolbarButtonHorizontalPadding,
-                    vertical = ReaktorGraphChromeTokens.toolbarButtonVerticalPadding,
+                    horizontal = GraphUi.controlPadding.horizontal,
+                    vertical = GraphUi.controlPadding.vertical,
                 ),
         )
     }

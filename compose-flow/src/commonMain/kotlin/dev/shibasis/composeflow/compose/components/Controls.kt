@@ -13,11 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.theme.FlowSizing
+import dev.shibasis.composeflow.compose.theme.FlowPanelSurface
 import dev.shibasis.composeflow.compose.theme.FlowSurface
 import dev.shibasis.composeflow.compose.theme.FlowText
+import dev.shibasis.composeflow.compose.theme.FlowVisualDefaults
 import dev.shibasis.composeflow.model.PanelPosition
 import dev.shibasis.composeflow.model.Viewport
 import kotlin.math.roundToInt
@@ -60,9 +60,9 @@ internal fun FlowControls(
 ) {
     Surface(
         modifier = modifier,
-        color = Color(0xCC020617),
+        color = FlowPanelSurface,
         shape = RoundedCornerShape(FlowSizing.controlsContainerRadius),
-        tonalElevation = 2.dp,
+        tonalElevation = FlowSizing.controlsElevation,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(FlowSizing.controlGroupPadding)) {
             ControlButton(label = "-", onClick = onZoomOut)
@@ -70,7 +70,7 @@ internal fun FlowControls(
             ControlButton(label = "Fit", onClick = onFitView)
             Text(
                 text = "${(viewport.zoom * 100).roundToInt()}%",
-                color = FlowText.copy(alpha = 0.75f),
+                color = FlowText.copy(alpha = FlowVisualDefaults.panelTextAlpha),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(start = FlowSizing.viewportLabelSpacing),
             )

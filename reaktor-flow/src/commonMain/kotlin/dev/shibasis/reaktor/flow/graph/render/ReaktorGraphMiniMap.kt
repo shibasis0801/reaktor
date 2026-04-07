@@ -18,10 +18,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.components.Panel
 import dev.shibasis.composeflow.model.PanelPosition
 import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
@@ -40,21 +42,27 @@ internal fun BoxScope.GraphMiniMap(
     if (flow.nodes.isEmpty()) return
 
     val density = LocalDensity.current
-    val miniMapPaddingPx = with(density) { ReaktorGraphChromeTokens.miniMapInnerPadding.toPx() }
+    val metrics = DefaultGraphFlowMetrics
+    val miniMapPaddingPx = with(density) { GraphUi.miniMapInnerPadding.toPx() }
+    val miniMapEdgeStrokePx = with(density) { miniMapEdgeStrokePx() }
+    val miniMapNodeMinSizePx = with(density) { miniMapNodeMinSizePx() }
+    val miniMapNodeCornerPx = with(density) { miniMapNodeCornerPx() }
+    val miniMapViewportCornerPx = with(density) { miniMapViewportCornerPx() }
+    val miniMapViewportStrokePx = with(density) { miniMapViewportStrokePx() }
 
-    Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(ReaktorGraphChromeTokens.overlayPadding)) {
+    Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(GraphUi.overlayPadding)) {
         Box(
             modifier = Modifier
                 .padding(end = rightInset)
                 .size(
-                    width = ReaktorGraphChromeTokens.miniMapWidth,
-                    height = ReaktorGraphChromeTokens.miniMapHeight,
+                    width = GraphUi.miniMapSize.width,
+                    height = GraphUi.miniMapSize.height,
                 ),
         ) {
             Surface(
-                color = ReaktorGraphChromeTokens.miniMapSurface,
-                shape = RoundedCornerShape(ReaktorGraphChromeTokens.miniMapRadius),
-                tonalElevation = ReaktorGraphChromeTokens.zeroElevation,
+                color = GraphUi.miniMapSurface,
+                shape = RoundedCornerShape(GraphUi.panelRadius),
+                tonalElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(flow, state.canvasSize, state.viewport, miniMapPaddingPx) {
@@ -86,7 +94,7 @@ internal fun BoxScope.GraphMiniMap(
                         }
                     },
             ) {
-                Canvas(Modifier.fillMaxSize().padding(ReaktorGraphChromeTokens.miniMapInnerPadding)) {
+                Canvas(Modifier.fillMaxSize().padding(GraphUi.miniMapInnerPadding)) {
                     val bounds = flowBounds(flow)
                     val scale = min(
                         size.width / max(bounds.width.toFloat(), 1f),
@@ -100,15 +108,15 @@ internal fun BoxScope.GraphMiniMap(
                             color = ((edge.data as? ReaktorGraphEdgeData)?.kind?.color ?: GraphCanvasMuted).copy(alpha = 0.35f),
                             start = miniMapPoint(source.position.x, source.position.y, bounds.left, bounds.top, scale),
                             end = miniMapPoint(target.position.x, target.position.y, bounds.left, bounds.top, scale),
-                            strokeWidth = ReaktorGraphChromeTokens.miniMapEdgeStrokePx,
+                            strokeWidth = miniMapEdgeStrokePx,
                         )
                     }
 
                     flow.nodes.forEach { node ->
-                        val width = ((node.width ?: ReaktorDefaultNodeWidthPx) * scale).toFloat()
-                            .coerceAtLeast(ReaktorGraphChromeTokens.miniMapNodeMinSizePx)
-                        val height = ((node.height ?: ReaktorDefaultNodeHeightPx) * scale).toFloat()
-                            .coerceAtLeast(ReaktorGraphChromeTokens.miniMapNodeMinSizePx)
+                        val width = ((node.width ?: metrics.defaultNodeWidth) * scale).toFloat()
+                            .coerceAtLeast(miniMapNodeMinSizePx)
+                        val height = ((node.height ?: metrics.defaultNodeHeight) * scale).toFloat()
+                            .coerceAtLeast(miniMapNodeMinSizePx)
                         val origin = miniMapPoint(node.position.x, node.position.y, bounds.left, bounds.top, scale)
                         val kind = (node.data as? ReaktorGraphNodeData)?.kind ?: ReaktorNodeKind.Node
                         drawRoundRect(
@@ -116,8 +124,8 @@ internal fun BoxScope.GraphMiniMap(
                             topLeft = origin,
                             size = Size(width, height),
                             cornerRadius = CornerRadius(
-                                ReaktorGraphChromeTokens.miniMapNodeCornerPx,
-                                ReaktorGraphChromeTokens.miniMapNodeCornerPx,
+                                miniMapNodeCornerPx,
+                                miniMapNodeCornerPx,
                             ),
                         )
                     }
@@ -131,10 +139,10 @@ internal fun BoxScope.GraphMiniMap(
                         topLeft = Offset(viewportLeft.toFloat(), viewportTop.toFloat()),
                         size = Size(viewportWidth, viewportHeight),
                         cornerRadius = CornerRadius(
-                            ReaktorGraphChromeTokens.miniMapViewportCornerPx,
-                            ReaktorGraphChromeTokens.miniMapViewportCornerPx,
+                            miniMapViewportCornerPx,
+                            miniMapViewportCornerPx,
                         ),
-                        style = Stroke(ReaktorGraphChromeTokens.miniMapViewportStrokePx),
+                        style = Stroke(miniMapViewportStrokePx),
                     )
                 }
             }

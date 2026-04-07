@@ -6,13 +6,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import dev.shibasis.composeflow.compose.theme.FlowEdge
+import dev.shibasis.composeflow.compose.theme.FlowSelection
+import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.model.Edge
 import dev.shibasis.composeflow.model.EdgeMarker
 import dev.shibasis.composeflow.model.HandleType
 import dev.shibasis.composeflow.model.MarkerType
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.Position
-import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -28,6 +29,9 @@ internal fun DrawScope.drawFlowEdge(
     defaultNodeWidth: Double,
     defaultNodeHeight: Double,
 ) {
+    // React Flow/xyflow uses editor-space anchor points and derives the edge path from those
+    // anchors after node measurement. Keep the same separation here: node layout decides anchors,
+    // edge rendering only consumes those resolved points.
     val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
     val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
     val pathData = when (pathStyle) {
@@ -37,8 +41,14 @@ internal fun DrawScope.drawFlowEdge(
 
     drawPath(
         path = pathData.path,
-        color = (renderStyle.color ?: if (edge.selected) Color(0xFF93C5FD) else FlowEdge).copy(alpha = renderStyle.alpha),
-        style = Stroke(width = renderStyle.width ?: if (edge.animated) 3f else 2f),
+        color = (renderStyle.color ?: if (edge.selected) FlowSelection else FlowEdge).copy(alpha = renderStyle.alpha),
+        style = Stroke(
+            width = renderStyle.width ?: if (edge.animated) {
+                FlowSizing.animatedEdgeStrokePx
+            } else {
+                FlowSizing.defaultEdgeStrokePx
+            }
+        ),
     )
 
     edge.markerEnd?.let { marker ->
@@ -57,7 +67,9 @@ internal data class FlowEdgePath(
 )
 
 internal fun bezierEdgePath(start: FlowAnchor, end: FlowAnchor): FlowEdgePath {
-    val controlOffset = max(abs(end.point.x - start.point.x), abs(end.point.y - start.point.y)) * 0.34f + 34f
+    val controlOffset =
+        max(abs(end.point.x - start.point.x), abs(end.point.y - start.point.y)) * FlowSizing.bezierControlRatio +
+            FlowSizing.bezierControlBiasPx
     val startControl = controlPoint(start, controlOffset, outgoing = true)
     val endControl = controlPoint(end, controlOffset, outgoing = false)
     val path = Path().apply {
@@ -99,8 +111,8 @@ internal fun DrawScope.drawMarker(
         return
     }
     val angle = atan2(end.y - start.y, end.x - start.x)
-    val length = (marker.width ?: 12.0).toFloat()
-    val halfAngle = (PI / 7f).toFloat()
+    val length = (marker.width ?: FlowSizing.defaultMarkerWidthPx).toFloat()
+    val halfAngle = FlowSizing.markerHalfAngleRadians.toFloat()
     val p1 = Offset(
         x = (end.x - length * cos((angle - halfAngle).toDouble())).toFloat(),
         y = (end.y - length * sin((angle - halfAngle).toDouble())).toFloat(),

@@ -11,17 +11,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.theme.FlowSizing
+import dev.shibasis.composeflow.compose.theme.FlowHandleBorder
 import dev.shibasis.composeflow.compose.theme.FlowHandleSource
 import dev.shibasis.composeflow.compose.theme.FlowHandleTarget
 import dev.shibasis.composeflow.model.Handle
 import dev.shibasis.composeflow.model.HandleType
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.Position
+import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
 
 @Composable
 fun Handle(
@@ -31,7 +32,7 @@ fun Handle(
     onConnect: (() -> Unit)? = null,
 ) {
     val fill = style.fillColor ?: if (type == HandleType.Source) FlowHandleSource else FlowHandleTarget
-    val border = style.borderColor ?: Color(0xFF09101D)
+    val border = style.borderColor ?: FlowHandleBorder
     Box(
         modifier = modifier
             .size(style.size)
@@ -54,7 +55,8 @@ internal fun anchorFor(
     val height = node.measured?.height ?: node.height ?: defaultNodeHeight
     val handle = node.handles.firstOrNull { it.type == type && it.id == handleId }
         ?: defaultHandle(node, type)
-    val normalizedOffset = (handle.offset ?: 0.5).coerceIn(0.08, 0.92)
+    val normalizedOffset = (handle.offset ?: FlowRuntimeDefaults.defaultHandleOffset)
+        .coerceIn(FlowRuntimeDefaults.minHandleOffset, FlowRuntimeDefaults.maxHandleOffset)
     val inset = handle.inset ?: 0.0
 
     val x = when (handle.position) {
@@ -74,7 +76,7 @@ internal fun defaultHandle(node: Node, type: HandleType): Handle = Handle(
     id = if (type == HandleType.Source) "source" else "target",
     type = type,
     position = if (type == HandleType.Source) node.sourcePosition else node.targetPosition,
-    offset = 0.5,
+    offset = FlowRuntimeDefaults.defaultHandleOffset,
 )
 
 internal fun resolvedHandles(node: Node): List<Handle> =
@@ -91,7 +93,9 @@ internal fun handleModifier(
     height: Dp,
     style: HandleRenderStyle,
 ): Modifier {
-    val offset = (handle.offset ?: 0.5).coerceIn(0.08, 0.92).toFloat()
+    val offset = (handle.offset ?: FlowRuntimeDefaults.defaultHandleOffset)
+        .coerceIn(FlowRuntimeDefaults.minHandleOffset, FlowRuntimeDefaults.maxHandleOffset)
+        .toFloat()
     val half = style.size / 2
     val inset = (handle.inset ?: 0.0).dp
     return when (handle.position) {
