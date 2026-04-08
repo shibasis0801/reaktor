@@ -12,16 +12,16 @@ import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.ReactFlowProvider
 import dev.shibasis.composeflow.runtime.rememberEdgesState
 import dev.shibasis.composeflow.runtime.rememberNodesState
-import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
-import dev.shibasis.reaktor.flow.graph.render.GraphUi
 import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphNodeCard
-import dev.shibasis.reaktor.flow.graph.render.dpOf
 import dev.shibasis.reaktor.flow.graph.render.graphEdgeRenderStyle
 import dev.shibasis.reaktor.flow.graph.render.graphHandleRenderStyle
 import dev.shibasis.reaktor.flow.graph.render.graphNodeRenderStyle
+import dev.shibasis.reaktor.flow.graph.style.defaultNodeHeight
+import dev.shibasis.reaktor.flow.graph.style.defaultNodeWidth
+import dev.shibasis.reaktor.flow.graph.style.dpOf
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
 @Composable
@@ -40,7 +40,7 @@ internal fun ReaktorGraphScene(
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
-    val metrics = DefaultGraphFlowMetrics
+    val graphStyle = flow.style
     val selectedFlowId = remember(flow, selectedNode) { selectedNode?.let(flow.flowIdsByNode::get) }
     val nodesState = rememberNodesState(flow.nodes)
     val edgesState = rememberEdgesState(flow.edges)
@@ -49,8 +49,8 @@ internal fun ReaktorGraphScene(
             node.id to ((node.data as? ReaktorGraphNodeData)?.kind ?: ReaktorNodeKind.Node)
         }
     }
-    val nodeTypes: NodeTypes = remember {
-        mapOf("graph" to { props -> ReaktorGraphNodeCard(props) })
+    val nodeTypes: NodeTypes = remember(graphStyle) {
+        mapOf("graph" to { props -> ReaktorGraphNodeCard(props, graphStyle) })
     }
 
     SyncGraphScene(
@@ -60,7 +60,7 @@ internal fun ReaktorGraphScene(
         nodesState = nodesState,
         edgesState = edgesState,
         rightInsetPx = rightInsetPx,
-        metrics = metrics,
+        style = graphStyle,
     )
 
     ReactFlowProvider(state = state) {
@@ -77,14 +77,14 @@ internal fun ReaktorGraphScene(
             showMiniMap = false,
             showBackground = true,
             backgroundVariant = dev.shibasis.composeflow.model.BackgroundVariant.Cross,
-            minZoom = GraphUi.minZoom,
-            maxZoom = GraphUi.maxZoom,
-            defaultNodeWidth = with(density) { dpOf(metrics.defaultNodeWidth) },
-            defaultNodeHeight = with(density) { dpOf(metrics.defaultNodeHeight) },
-            nodeRenderStyle = { node -> graphNodeRenderStyle(node, highlightedKind) },
+            minZoom = graphStyle.viewport.minZoom,
+            maxZoom = graphStyle.viewport.maxZoom,
+            defaultNodeWidth = with(density) { dpOf(graphStyle.defaultNodeWidth()) },
+            defaultNodeHeight = with(density) { dpOf(graphStyle.defaultNodeHeight()) },
+            nodeRenderStyle = { node -> graphNodeRenderStyle(node, highlightedKind, graphStyle) },
             edgeRenderStyle = { edge -> graphEdgeRenderStyle(edge, nodeKinds, highlightedKind) },
             edgePathStyle = EdgePathStyle.Bezier,
-            handleRenderStyle = { node, handle -> graphHandleRenderStyle(node, handle, highlightedKind) },
+            handleRenderStyle = { node, handle -> graphHandleRenderStyle(node, handle, highlightedKind, graphStyle) },
             onPaneClick = onPaneClick,
             overlay = { reactFlowState ->
                 ReaktorGraphChromeOverlay(
@@ -95,27 +95,27 @@ internal fun ReaktorGraphScene(
                     rightInset = rightInset,
                     onZoomIn = {
                         state.zoomBy(
-                            factor = GraphUi.zoomStep,
+                            factor = graphStyle.viewport.zoomStep,
                             anchorX = state.canvasSize.width / 2.0,
                             anchorY = state.canvasSize.height / 2.0,
-                            minZoom = GraphUi.minZoom,
-                            maxZoom = GraphUi.maxZoom,
+                            minZoom = graphStyle.viewport.minZoom,
+                            maxZoom = graphStyle.viewport.maxZoom,
                         )
                     },
                     onZoomOut = {
                         state.zoomBy(
-                            factor = 1.0 / GraphUi.zoomStep,
+                            factor = 1.0 / graphStyle.viewport.zoomStep,
                             anchorX = state.canvasSize.width / 2.0,
                             anchorY = state.canvasSize.height / 2.0,
-                            minZoom = GraphUi.minZoom,
-                            maxZoom = GraphUi.maxZoom,
+                            minZoom = graphStyle.viewport.minZoom,
+                            maxZoom = graphStyle.viewport.maxZoom,
                         )
                     },
                     onFitView = {
                         frameGraph(
                             state = state,
                             flow = flow,
-                            metrics = metrics,
+                            style = graphStyle,
                             rightInsetPx = rightInsetPx,
                             readable = false,
                         )
@@ -125,10 +125,11 @@ internal fun ReaktorGraphScene(
                             zoom = 1.0,
                             anchorX = state.canvasSize.width / 2.0,
                             anchorY = state.canvasSize.height / 2.0,
-                            minZoom = GraphUi.minZoom,
-                            maxZoom = GraphUi.maxZoom,
+                            minZoom = graphStyle.viewport.minZoom,
+                            maxZoom = graphStyle.viewport.maxZoom,
                         )
                     },
+                    style = graphStyle,
                 )
             },
             viewportOverlay = {
@@ -136,6 +137,7 @@ internal fun ReaktorGraphScene(
                     flow = flow,
                     selectedGraphId = selectedGraphId,
                     onSelectGraph = onSelectGraph,
+                    style = graphStyle,
                 )
             },
         )

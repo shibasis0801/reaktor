@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.flow.graph.model
 import androidx.compose.ui.graphics.Color
 import dev.shibasis.composeflow.model.Edge
 import dev.shibasis.composeflow.model.Node
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
@@ -76,4 +78,5 @@ data class ReaktorFlowGraph(
     val flowIdsByNode: Map<GraphNode, String>,
     val graphIdsByNode: Map<GraphNode, String>,
     val graphs: Map<String, Graph>,
+    val style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 )

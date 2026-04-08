@@ -8,7 +8,6 @@ import dev.shibasis.composeflow.model.MarkerType
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.Position
 import dev.shibasis.composeflow.model.XYPosition
-import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorEdgeKind
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
@@ -18,8 +17,6 @@ import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import kotlin.math.max
-
-private val metrics = DefaultGraphFlowMetrics
 
 // References:
 // - React Flow keeps graph extraction and edge assembly separate from the renderer/store. That
@@ -176,8 +173,8 @@ internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Hand
                     id = port.handleId,
                     type = HandleType.Target,
                     position = Position.Left,
-                    offset = handleOffset(index, rowCount),
-                    inset = metrics.portInset,
+                    offset = handleOffset(index, rowCount, style),
+                    inset = style.port.insetPx,
                 )
             )
         }
@@ -187,8 +184,8 @@ internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Hand
                     id = port.handleId,
                     type = HandleType.Source,
                     position = Position.Right,
-                    offset = handleOffset(index, rowCount),
-                    inset = metrics.portInset,
+                    offset = handleOffset(index, rowCount, style),
+                    inset = style.port.insetPx,
                 )
             )
         }
@@ -198,7 +195,7 @@ internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Hand
                     id = "__nav__",
                     type = HandleType.Source,
                     position = Position.Bottom,
-                    offset = metrics.navigationHandleOffset,
+                    offset = style.port.navigationHandleOffset,
                 )
             )
             add(
@@ -206,7 +203,7 @@ internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Hand
                     id = "navBinding",
                     type = HandleType.Target,
                     position = Position.Top,
-                    offset = metrics.navigationHandleOffset,
+                    offset = style.port.navigationHandleOffset,
                 )
             )
         }
@@ -216,7 +213,7 @@ internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Hand
                     id = "__contains__",
                     type = HandleType.Source,
                     position = Position.Bottom,
-                    offset = metrics.containmentHandleOffset,
+                    offset = style.port.containmentHandleOffset,
                 )
             )
         }

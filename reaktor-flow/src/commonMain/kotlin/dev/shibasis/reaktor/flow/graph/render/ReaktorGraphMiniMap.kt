@@ -23,11 +23,15 @@ import dev.shibasis.composeflow.compose.components.Panel
 import dev.shibasis.composeflow.model.PanelPosition
 import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
-import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.defaultNodeHeight
+import dev.shibasis.reaktor.flow.graph.style.defaultNodeWidth
+import dev.shibasis.reaktor.flow.graph.style.dpOf
 import kotlin.math.max
 import kotlin.math.min
 
@@ -38,34 +42,29 @@ internal fun BoxScope.GraphMiniMap(
     flow: ReaktorFlowGraph,
     state: ReactFlowState,
     rightInset: Dp,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     if (flow.nodes.isEmpty()) return
 
     val density = LocalDensity.current
-    val metrics = DefaultGraphFlowMetrics
-    val miniMapPaddingPx = with(density) { GraphUi.miniMapInnerPadding.toPx() }
-    val miniMapEdgeStrokePx = with(density) { miniMapEdgeStrokePx() }
-    val miniMapNodeMinSizePx = with(density) { miniMapNodeMinSizePx() }
-    val miniMapNodeCornerPx = with(density) { miniMapNodeCornerPx() }
-    val miniMapViewportCornerPx = with(density) { miniMapViewportCornerPx() }
-    val miniMapViewportStrokePx = with(density) { miniMapViewportStrokePx() }
+    val miniMapPaddingPx = style.chrome.miniMapInnerPaddingPx.toFloat()
 
-    Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(GraphUi.overlayPadding)) {
+    Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Box(
             modifier = Modifier
                 .padding(end = rightInset)
                 .size(
-                    width = GraphUi.miniMapSize.width,
-                    height = GraphUi.miniMapSize.height,
+                    width = with(density) { dpOf(style.chrome.miniMapWidthPx) },
+                    height = with(density) { dpOf(style.chrome.miniMapHeightPx) },
                 ),
         ) {
             Surface(
-                color = GraphUi.miniMapSurface,
-                shape = RoundedCornerShape(GraphUi.panelRadius),
+                color = style.canvas.miniMapSurface,
+                shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
                 tonalElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(flow, state.canvasSize, state.viewport, miniMapPaddingPx) {
+                    .pointerInput(flow, state.canvasSize, state.viewport, miniMapPaddingPx, style) {
                         awaitPointerEventScope {
                             while (true) {
                                 val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
@@ -73,7 +72,7 @@ internal fun BoxScope.GraphMiniMap(
                                     pointer = down.position,
                                     boxSize = size,
                                     paddingPx = miniMapPaddingPx,
-                                    bounds = flowBounds(flow),
+                                    bounds = flowBounds(flow, style),
                                     state = state,
                                 )
                                 down.consume()
@@ -85,7 +84,7 @@ internal fun BoxScope.GraphMiniMap(
                                         pointer = change.position,
                                         boxSize = size,
                                         paddingPx = miniMapPaddingPx,
-                                        bounds = flowBounds(flow),
+                                        bounds = flowBounds(flow, style),
                                         state = state,
                                     )
                                     change.consume()
@@ -94,8 +93,8 @@ internal fun BoxScope.GraphMiniMap(
                         }
                     },
             ) {
-                Canvas(Modifier.fillMaxSize().padding(GraphUi.miniMapInnerPadding)) {
-                    val bounds = flowBounds(flow)
+                Canvas(Modifier.fillMaxSize().padding(with(density) { dpOf(style.chrome.miniMapInnerPaddingPx) })) {
+                    val bounds = flowBounds(flow, style)
                     val scale = min(
                         size.width / max(bounds.width.toFloat(), 1f),
                         size.height / max(bounds.height.toFloat(), 1f),
@@ -105,18 +104,18 @@ internal fun BoxScope.GraphMiniMap(
                         val source = flow.nodes.firstOrNull { it.id == edge.source } ?: return@forEach
                         val target = flow.nodes.firstOrNull { it.id == edge.target } ?: return@forEach
                         drawLine(
-                            color = ((edge.data as? ReaktorGraphEdgeData)?.kind?.color ?: GraphCanvasMuted).copy(alpha = 0.35f),
+                            color = ((edge.data as? ReaktorGraphEdgeData)?.kind?.color ?: style.canvas.mutedText).copy(alpha = 0.35f),
                             start = miniMapPoint(source.position.x, source.position.y, bounds.left, bounds.top, scale),
                             end = miniMapPoint(target.position.x, target.position.y, bounds.left, bounds.top, scale),
-                            strokeWidth = miniMapEdgeStrokePx,
+                            strokeWidth = style.chrome.miniMapEdgeStrokePx.toFloat(),
                         )
                     }
 
                     flow.nodes.forEach { node ->
-                        val width = ((node.width ?: metrics.defaultNodeWidth) * scale).toFloat()
-                            .coerceAtLeast(miniMapNodeMinSizePx)
-                        val height = ((node.height ?: metrics.defaultNodeHeight) * scale).toFloat()
-                            .coerceAtLeast(miniMapNodeMinSizePx)
+                        val width = ((node.width ?: style.defaultNodeWidth()) * scale).toFloat()
+                            .coerceAtLeast(style.chrome.miniMapNodeMinSizePx.toFloat())
+                        val height = ((node.height ?: style.defaultNodeHeight()) * scale).toFloat()
+                            .coerceAtLeast(style.chrome.miniMapNodeMinSizePx.toFloat())
                         val origin = miniMapPoint(node.position.x, node.position.y, bounds.left, bounds.top, scale)
                         val kind = (node.data as? ReaktorGraphNodeData)?.kind ?: ReaktorNodeKind.Node
                         drawRoundRect(
@@ -124,8 +123,8 @@ internal fun BoxScope.GraphMiniMap(
                             topLeft = origin,
                             size = Size(width, height),
                             cornerRadius = CornerRadius(
-                                miniMapNodeCornerPx,
-                                miniMapNodeCornerPx,
+                                style.chrome.miniMapNodeCornerPx.toFloat(),
+                                style.chrome.miniMapNodeCornerPx.toFloat(),
                             ),
                         )
                     }
@@ -139,10 +138,10 @@ internal fun BoxScope.GraphMiniMap(
                         topLeft = Offset(viewportLeft.toFloat(), viewportTop.toFloat()),
                         size = Size(viewportWidth, viewportHeight),
                         cornerRadius = CornerRadius(
-                            miniMapViewportCornerPx,
-                            miniMapViewportCornerPx,
+                            style.chrome.miniMapViewportCornerPx.toFloat(),
+                            style.chrome.miniMapViewportCornerPx.toFloat(),
                         ),
-                        style = Stroke(miniMapViewportStrokePx),
+                        style = Stroke(style.chrome.miniMapViewportStrokePx.toFloat()),
                     )
                 }
             }

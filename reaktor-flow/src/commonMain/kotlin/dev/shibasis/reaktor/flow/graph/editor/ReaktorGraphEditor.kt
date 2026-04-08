@@ -22,14 +22,15 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
-import dev.shibasis.reaktor.flow.graph.render.GraphCanvasBackground
-import dev.shibasis.reaktor.flow.graph.render.GraphUi
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.dpOf
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
 @Composable
@@ -43,10 +44,13 @@ fun ReaktorGraphEditor(
     onHighlightKind: (ReaktorNodeKind?) -> Unit,
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = 0.dp,
+    style: ReaktorGraphStyle? = null,
     modifier: Modifier = Modifier,
     state: ReactFlowState = rememberReactFlowState(),
 ) {
     val focusRequester = remember { FocusRequester() }
+    val graphStyle = style ?: flow.style
+    val density = LocalDensity.current
 
     // Compose desktop routes keyboard input through the focused subtree. We keep the editor root
     // focusable so graph shortcuts stay local to the editor instead of leaking into window chrome.
@@ -55,8 +59,8 @@ fun ReaktorGraphEditor(
             factor = factor,
             anchorX = state.canvasSize.width / 2.0,
             anchorY = state.canvasSize.height / 2.0,
-            minZoom = GraphUi.minZoom,
-            maxZoom = GraphUi.maxZoom,
+            minZoom = graphStyle.viewport.minZoom,
+            maxZoom = graphStyle.viewport.maxZoom,
         )
     }
 
@@ -67,8 +71,8 @@ fun ReaktorGraphEditor(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(GraphCanvasBackground)
-            .padding(GraphUi.editorPadding)
+            .background(graphStyle.canvas.background)
+            .padding(with(density) { dpOf(graphStyle.chrome.editorPaddingPx) })
             .focusRequester(focusRequester)
             .focusable()
             .pointerInput(Unit) {
@@ -83,11 +87,11 @@ fun ReaktorGraphEditor(
                 }
                 when (event.key) {
                     Key.Equals, Key.Plus, Key.NumPadAdd -> {
-                        zoomGraph(GraphUi.zoomStep)
+                        zoomGraph(graphStyle.viewport.zoomStep)
                         true
                     }
                     Key.Minus, Key.NumPadSubtract -> {
-                        zoomGraph(1.0 / GraphUi.zoomStep)
+                        zoomGraph(1.0 / graphStyle.viewport.zoomStep)
                         true
                     }
                     else -> false
@@ -107,6 +111,7 @@ fun ReaktorGraphEditor(
                 onPaneClick?.invoke()
             },
             rightInset = rightInset,
+            style = graphStyle,
             state = state,
             modifier = Modifier.fillMaxSize(),
         )

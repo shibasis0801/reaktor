@@ -9,9 +9,9 @@ import androidx.compose.runtime.setValue
 import dev.shibasis.composeflow.runtime.EdgesState
 import dev.shibasis.composeflow.runtime.NodesState
 import dev.shibasis.composeflow.runtime.ReactFlowState
-import dev.shibasis.reaktor.flow.graph.layout.GraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
-import dev.shibasis.reaktor.flow.graph.render.GraphUi
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import kotlinx.coroutines.delay
 
 @Composable
@@ -22,7 +22,7 @@ internal fun SyncGraphScene(
     nodesState: NodesState,
     edgesState: EdgesState,
     rightInsetPx: Float,
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     var hasFramedGraph by remember(flow) { mutableStateOf(false) }
 
@@ -42,14 +42,14 @@ internal fun SyncGraphScene(
         if (hasFramedGraph || state.canvasSize.width <= 0 || state.canvasSize.height <= 0) {
             return@LaunchedEffect
         }
-        delay(GraphUi.startupFrameDelayMillis)
+        delay(style.viewport.startupFrameDelayMillis)
         if (state.canvasSize.width <= 0 || state.canvasSize.height <= 0) {
             return@LaunchedEffect
         }
         frameGraph(
             state = state,
             flow = flow,
-            metrics = metrics,
+            style = style,
             rightInsetPx = rightInsetPx,
             readable = true,
         )

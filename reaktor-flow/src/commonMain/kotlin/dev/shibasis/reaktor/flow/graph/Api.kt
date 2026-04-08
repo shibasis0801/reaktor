@@ -12,11 +12,15 @@ typealias ReaktorFlowGraph = dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGr
 typealias ReaktorGraphEdgeData = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 typealias ReaktorGraphNodeData = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 typealias ReaktorGraphRegion = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
+typealias ReaktorGraphStyle = dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 typealias ReaktorNodeKind = dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 typealias ReaktorPortData = dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
 
-fun buildReaktorFlowGraph(graph: Graph): ReaktorFlowGraph =
-    dev.shibasis.reaktor.flow.graph.adapter.buildReaktorFlowGraph(graph)
+fun buildReaktorFlowGraph(
+    graph: Graph,
+    style: ReaktorGraphStyle = dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle,
+): ReaktorFlowGraph =
+    dev.shibasis.reaktor.flow.graph.adapter.buildReaktorFlowGraph(graph, style)
 
 fun reaktorNodeKind(node: GraphNode): ReaktorNodeKind =
     dev.shibasis.reaktor.flow.graph.adapter.reaktorNodeKind(node)
@@ -32,6 +36,7 @@ fun ReaktorGraphCanvas(
     onHighlightKind: (ReaktorNodeKind?) -> Unit,
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = Dp.Unspecified,
+    style: ReaktorGraphStyle? = null,
     state: ReactFlowState? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -45,6 +50,7 @@ fun ReaktorGraphCanvas(
         onHighlightKind = onHighlightKind,
         onPaneClick = onPaneClick,
         rightInset = if (rightInset == Dp.Unspecified) Dp(0f) else rightInset,
+        style = style,
         state = state,
         modifier = modifier,
     )
@@ -61,6 +67,7 @@ fun ReaktorGraphEditor(
     onHighlightKind: (ReaktorNodeKind?) -> Unit,
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = Dp.Unspecified,
+    style: ReaktorGraphStyle? = null,
     modifier: Modifier = Modifier,
     state: ReactFlowState = dev.shibasis.composeflow.runtime.rememberReactFlowState(),
 ) {
@@ -74,6 +81,7 @@ fun ReaktorGraphEditor(
         onHighlightKind = onHighlightKind,
         onPaneClick = onPaneClick,
         rightInset = if (rightInset == Dp.Unspecified) Dp(0f) else rightInset,
+        style = style,
         modifier = modifier,
         state = state,
     )

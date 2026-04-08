@@ -1,10 +1,11 @@
 package dev.shibasis.reaktor.flow.graph.adapter
 
 import dev.shibasis.composeflow.model.Edge
-import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
 import dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
@@ -13,8 +14,6 @@ import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import kotlin.math.max
-
-private val metrics = DefaultGraphFlowMetrics
 
 internal data class GraphNodeLayout(
     val flowId: String,
@@ -42,12 +41,16 @@ internal data class LayoutBounds(
     val height: Double get() = bottom - top
 }
 
-fun buildReaktorFlowGraph(graph: Graph): ReaktorFlowGraph =
-    ReaktorFlowBuilder().build(graph)
+fun buildReaktorFlowGraph(
+    graph: Graph,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+): ReaktorFlowGraph = ReaktorFlowBuilder(style).build(graph)
 
 // Build-state owns traversal/layout only. Edge assembly and render-facing node construction are
 // kept in sibling files so semantic graph extraction stays separate from rendering concerns.
-internal class ReaktorFlowBuilder {
+internal class ReaktorFlowBuilder(
+    internal val style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+) {
     internal val layouts = linkedMapOf<GraphNode, GraphNodeLayout>()
     internal val flowIdsByNode = linkedMapOf<GraphNode, String>()
     internal val graphIdsByNode = linkedMapOf<GraphNode, String>()
@@ -57,7 +60,7 @@ internal class ReaktorFlowBuilder {
     internal val graphs = linkedMapOf<String, Graph>()
 
     internal fun build(graph: Graph): ReaktorFlowGraph {
-        layoutGraph(graph, metrics.rootOrigin, metrics.rootOrigin, 0, "root")
+        layoutGraph(graph, style.layout.rootOriginPx, style.layout.rootOriginPx, 0, "root")
         resolveEdges(graph)
         return ReaktorFlowGraph(
             nodes = layouts.values.map(::toFlowNode),
@@ -67,6 +70,7 @@ internal class ReaktorFlowBuilder {
             flowIdsByNode = flowIdsByNode.toMap(),
             graphIdsByNode = graphIdsByNode.toMap(),
             graphs = graphs.toMap(),
+            style = style,
         )
     }
 
@@ -91,7 +95,7 @@ internal class ReaktorFlowBuilder {
             else -> services += node
         }
 
-        val startY = originY + metrics.subgraphInset * 2.0
+        val startY = originY + style.region.graphInsetPx * 2.0
         val localLayouts = mutableListOf<GraphNodeLayout>()
 
         fun place(layout: GraphNodeLayout) {
@@ -109,12 +113,12 @@ internal class ReaktorFlowBuilder {
         val standaloneScreens = screens.filterNot(attachedScreens::contains)
         val routeAttachedNodes: List<GraphNode> = routeAttachments.values.flatten()
 
-        var maxRight = originX + metrics.subgraphInset
+        var maxRight = originX + style.region.graphInsetPx
         var maxBottom = startY
 
-        val servicesWidth = services.maxOfOrNull(::measureNodeWidth) ?: metrics.nodeMinWidth
+        val servicesWidth = services.maxOfOrNull { measureNodeWidth(it, style) } ?: style.node.minWidthPx
         val serviceColumns = preferredServiceColumns(services.size)
-        val serviceColumnGap = metrics.compactGap
+        val serviceColumnGap = style.layout.compactGapPx
         val serviceAreaWidth = if (services.isEmpty()) {
             0.0
         } else {
@@ -130,7 +134,7 @@ internal class ReaktorFlowBuilder {
                         val layout = createLayout(
                             node = node,
                             graph = graph,
-                            x = originX + metrics.subgraphInset + column * (servicesWidth + serviceColumnGap),
+                            x = originX + style.region.graphInsetPx + column * (servicesWidth + serviceColumnGap),
                             y = serviceColumnBottom,
                             widthOverride = servicesWidth,
                         )
@@ -139,25 +143,25 @@ internal class ReaktorFlowBuilder {
                         maxRight = max(maxRight, layout.x + layout.width)
                         maxBottom = max(maxBottom, layout.y + layout.height)
                     }
-                    serviceColumnBottom = rowBottom + metrics.gap
+                    serviceColumnBottom = rowBottom + style.layout.gapPx
                 }
         }
 
-        val routeColumnX = originX + metrics.subgraphInset +
-            if (services.isNotEmpty()) serviceAreaWidth + metrics.majorGap else 0.0
+        val routeColumnX = originX + style.region.graphInsetPx +
+            if (services.isNotEmpty()) serviceAreaWidth + style.layout.majorGapPx else 0.0
 
-        val routeWidth = routes.maxOfOrNull(::measureNodeWidth) ?: metrics.nodeMinWidth
+        val routeWidth = routes.maxOfOrNull { measureNodeWidth(it, style) } ?: style.node.minWidthPx
         val screenWidth = (routeAttachedNodes + standaloneScreens)
-            .maxOfOrNull(::measureNodeWidth)
-            ?: metrics.nodeMinWidth
-        val screenColumnX = routeColumnX + routeWidth + metrics.gap
+            .maxOfOrNull { measureNodeWidth(it, style) }
+            ?: style.node.minWidthPx
+        val screenColumnX = routeColumnX + routeWidth + style.layout.gapPx
         if (services.isNotEmpty()) {
             maxRight = max(maxRight, routeColumnX)
         }
 
         val routeColumns = preferredRouteColumns(routes.size)
         val routeBlockWidth = routeWidth + if (routeAttachedNodes.isNotEmpty() || standaloneScreens.isNotEmpty()) {
-            metrics.gap + screenWidth
+            style.layout.gapPx + screenWidth
         } else {
             0.0
         }
@@ -165,7 +169,7 @@ internal class ReaktorFlowBuilder {
         routes.chunked(routeColumns).forEach { routeRow ->
             var rowBottom = routeLaneBottom
             routeRow.forEachIndexed { column, route ->
-                val routeX = routeColumnX + column * (routeBlockWidth + metrics.compactGap)
+                val routeX = routeColumnX + column * (routeBlockWidth + style.layout.compactGapPx)
                 val routeY = routeLaneBottom
                 val routeLayout = createLayout(
                     node = route,
@@ -183,12 +187,12 @@ internal class ReaktorFlowBuilder {
                     val attachedLayout = createLayout(
                         node = attached,
                         graph = graph,
-                        x = routeX + routeWidth + metrics.gap,
+                        x = routeX + routeWidth + style.layout.gapPx,
                         y = attachedY,
                         widthOverride = screenWidth,
                     )
                     place(attachedLayout)
-                    attachedY = attachedLayout.y + attachedLayout.height + metrics.compactGap
+                    attachedY = attachedLayout.y + attachedLayout.height + style.layout.compactGapPx
                     laneBottom = max(laneBottom, attachedLayout.y + attachedLayout.height)
                     laneRight = max(laneRight, attachedLayout.x + attachedLayout.width)
                 }
@@ -197,7 +201,7 @@ internal class ReaktorFlowBuilder {
                 maxRight = max(maxRight, laneRight)
                 maxBottom = max(maxBottom, laneBottom)
             }
-            routeLaneBottom = rowBottom + metrics.gap
+            routeLaneBottom = rowBottom + style.layout.gapPx
         }
 
         if (standaloneScreens.isNotEmpty()) {
@@ -209,7 +213,7 @@ internal class ReaktorFlowBuilder {
                     val layout = createLayout(
                         node = screen,
                         graph = graph,
-                        x = screenColumnX + column * (screenWidth + metrics.compactGap),
+                        x = screenColumnX + column * (screenWidth + style.layout.compactGapPx),
                         y = standaloneTop,
                         widthOverride = screenWidth,
                     )
@@ -218,7 +222,7 @@ internal class ReaktorFlowBuilder {
                     maxRight = max(maxRight, layout.x + layout.width)
                     maxBottom = max(maxBottom, layout.y + layout.height)
                 }
-                standaloneTop = rowBottom + metrics.gap
+                standaloneTop = rowBottom + style.layout.gapPx
             }
         }
 
@@ -226,22 +230,22 @@ internal class ReaktorFlowBuilder {
         var childGraphBottom = maxBottom
         if (containers.isNotEmpty()) {
             var currentY = max(maxBottom, serviceColumnBottom).let {
-                if (localLayouts.isEmpty()) startY else it + metrics.compactGap
+                if (localLayouts.isEmpty()) startY else it + style.layout.compactGapPx
             }
             for (containerNode in containers) {
                 val layout = createLayout(
                     node = containerNode,
                     graph = graph,
-                    x = originX + metrics.subgraphInset,
+                    x = originX + style.region.graphInsetPx,
                     y = currentY,
-                    widthOverride = max(servicesWidth, measureNodeWidth(containerNode)),
+                    widthOverride = max(servicesWidth, measureNodeWidth(containerNode, style)),
                 )
                 place(layout)
                 maxRight = max(maxRight, layout.x + layout.width)
                 maxBottom = max(maxBottom, layout.y + layout.height)
 
                 if (containerNode is ContainerNode && containerNode.graphs.isNotEmpty()) {
-                    val childStartX = layout.x + layout.width + metrics.majorGap
+                    val childStartX = layout.x + layout.width + style.layout.majorGapPx
                     var childX = childStartX
                     var childY = currentY
                     var rowBottom = currentY
@@ -249,7 +253,7 @@ internal class ReaktorFlowBuilder {
                     containerNode.graphs.forEachIndexed { index, childGraph ->
                         if (index > 0 && index % childGraphsPerRow == 0) {
                             childX = childStartX
-                            childY = rowBottom + metrics.compactGap
+                            childY = rowBottom + style.layout.compactGapPx
                         }
                         val childBounds = layoutGraph(
                             graph = childGraph,
@@ -258,14 +262,14 @@ internal class ReaktorFlowBuilder {
                             depth = depth + 1,
                             graphId = "$graphId/$index",
                         )
-                        childX = childBounds.right + metrics.subgraphInset
+                        childX = childBounds.right + style.region.graphInsetPx
                         rowBottom = max(rowBottom, childBounds.bottom)
                         childGraphRight = max(childGraphRight, childBounds.right)
                         childGraphBottom = max(childGraphBottom, childBounds.bottom)
                     }
-                    currentY = max(layout.y + layout.height, rowBottom) + metrics.compactGap
+                    currentY = max(layout.y + layout.height, rowBottom) + style.layout.compactGapPx
                 } else {
-                    currentY += layout.height + metrics.gap
+                    currentY += layout.height + style.layout.gapPx
                 }
                 maxBottom = max(maxBottom, currentY)
             }
@@ -273,17 +277,17 @@ internal class ReaktorFlowBuilder {
 
         val contentRight = max(
             childGraphRight,
-            localLayouts.maxOfOrNull { it.x + it.width } ?: originX + metrics.subgraphInset,
+            localLayouts.maxOfOrNull { it.x + it.width } ?: originX + style.region.graphInsetPx,
         )
         val contentBottom = max(
             childGraphBottom,
             localLayouts.maxOfOrNull { it.y + it.height } ?: startY,
         )
         val bounds = LayoutBounds(
-            left = originX - metrics.regionInsetX,
-            top = originY - metrics.regionInsetTop,
-            right = contentRight + metrics.subgraphInset + metrics.regionInsetX,
-            bottom = contentBottom + metrics.subgraphInset + metrics.regionInsetBottom,
+            left = originX - style.region.insetXPx,
+            top = originY - style.region.insetTopPx,
+            right = contentRight + style.region.graphInsetPx + style.region.insetXPx,
+            bottom = contentBottom + style.region.graphInsetPx + style.region.insetBottomPx,
         )
         regions += ReaktorGraphRegion(
             label = graphLabel(graph),
@@ -307,10 +311,11 @@ internal class ReaktorFlowBuilder {
     ): GraphNodeLayout {
         val allProviderPorts = visiblePorts(node.providerPorts.flattenedValues().toList())
         val allConsumerPorts = visiblePorts(node.consumerPorts.flattenedValues().toList())
-        val width = widthOverride ?: measureNodeWidth(node)
+        val width = widthOverride ?: measureNodeWidth(node, style)
         val height = measureNodeHeight(
             providerCount = allProviderPorts.size,
             consumerCount = allConsumerPorts.size,
+            style = style,
         )
         val flowId = flowIdsByNode.getOrPut(node) { "${graphLabel(graph)}::${node.id}" }
         graphNodes[flowId] = node

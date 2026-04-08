@@ -18,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.components.Panel
 import dev.shibasis.composeflow.model.PanelPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
-import dev.shibasis.reaktor.flow.graph.layout.DefaultGraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.dpOf
+import dev.shibasis.reaktor.flow.graph.style.spOf
 
 @Composable
 internal fun BoxScope.GraphViewportToolbar(
@@ -29,57 +32,57 @@ internal fun BoxScope.GraphViewportToolbar(
     onZoomOut: () -> Unit,
     onFitView: () -> Unit,
     onResetZoom: () -> Unit,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
-    val metrics = DefaultGraphFlowMetrics
     val density = LocalDensity.current
-    Panel(position = PanelPosition.BottomRight, modifier = Modifier.padding(GraphUi.overlayPadding)) {
+    Panel(position = PanelPosition.TopLeft, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Surface(
-            color = GraphCanvasChrome,
-            shape = RoundedCornerShape(GraphUi.panelRadius),
+            color = style.canvas.panelChrome,
+            shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
             tonalElevation = 0.dp,
         ) {
             Row(
                 modifier = Modifier.padding(
-                    horizontal = GraphUi.shellPadding.horizontal,
-                    vertical = GraphUi.shellPadding.vertical,
+                    horizontal = with(density) { dpOf(style.chrome.shellPaddingXPx) },
+                    vertical = with(density) { dpOf(style.chrome.shellPaddingYPx) },
                 ),
-                horizontalArrangement = Arrangement.spacedBy(GraphUi.sectionGap),
+                horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.sectionGapPx) }),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(GraphUi.microGap)) {
+                Column(verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.microGapPx) })) {
                     Text(
                         text = "Graph",
-                        color = GraphCanvasText,
-                        fontSize = with(density) { spOf(metrics.titleFontSize) },
+                        color = style.canvas.text,
+                        fontSize = with(density) { spOf(style.chrome.titleFontPx) },
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
                         text = "${flow.nodes.size} nodes • ${flow.edges.size} edges",
-                        color = GraphCanvasMuted,
-                        fontSize = with(density) { spOf(metrics.portFontSize) },
+                        color = style.canvas.mutedText,
+                        fontSize = with(density) { spOf(style.chrome.captionFontPx) },
                     )
                 }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(GraphUi.itemGap),
+                    horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ToolbarButton(label = "-", onClick = onZoomOut)
-                    ToolbarButton(label = "+", onClick = onZoomIn)
-                    ToolbarButton(label = "Fit", onClick = onFitView)
-                    ToolbarButton(label = "100%", onClick = onResetZoom)
+                    ToolbarButton(label = "-", onClick = onZoomOut, style = style)
+                    ToolbarButton(label = "+", onClick = onZoomIn, style = style)
+                    ToolbarButton(label = "Fit", onClick = onFitView, style = style)
+                    ToolbarButton(label = "100%", onClick = onResetZoom, style = style)
                     Surface(
-                        color = GraphUi.panelSurface,
-                        shape = RoundedCornerShape(GraphUi.panelRadius),
+                        color = style.canvas.panelSurface,
+                        shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
                         tonalElevation = 0.dp,
                     ) {
                         Text(
                             text = "${(state.viewport.zoom * 100).toInt()}%",
-                            color = GraphCanvasText,
-                            fontSize = with(density) { spOf(metrics.portFontSize) },
+                            color = style.canvas.text,
+                            fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(
-                                horizontal = GraphUi.controlPadding.horizontal,
-                                vertical = GraphUi.controlPadding.vertical,
+                                horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },
+                                vertical = with(density) { dpOf(style.chrome.controlPaddingYPx) },
                             ),
                         )
                     }
@@ -93,24 +96,24 @@ internal fun BoxScope.GraphViewportToolbar(
 private fun ToolbarButton(
     label: String,
     onClick: () -> Unit,
+    style: ReaktorGraphStyle,
 ) {
-    val metrics = DefaultGraphFlowMetrics
     val density = LocalDensity.current
     Surface(
-        color = GraphUi.panelSurface,
-        shape = RoundedCornerShape(GraphUi.panelRadius),
+        color = style.canvas.panelSurface,
+        shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
         tonalElevation = 0.dp,
     ) {
         Text(
             text = label,
-            color = GraphCanvasText,
-            fontSize = with(density) { spOf(metrics.portFontSize * 0.92f) },
+            color = style.canvas.text,
+            fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .clickable(onClick = onClick)
                 .padding(
-                    horizontal = GraphUi.controlPadding.horizontal,
-                    vertical = GraphUi.controlPadding.vertical,
+                    horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },
+                    vertical = with(density) { dpOf(style.chrome.controlPaddingYPx) },
                 ),
         )
     }

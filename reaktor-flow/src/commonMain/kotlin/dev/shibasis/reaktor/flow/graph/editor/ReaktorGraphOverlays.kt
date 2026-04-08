@@ -9,6 +9,8 @@ import dev.shibasis.reaktor.flow.graph.render.GraphKindLegend
 import dev.shibasis.reaktor.flow.graph.render.GraphMiniMap
 import dev.shibasis.reaktor.flow.graph.render.GraphRegionsOverlay
 import dev.shibasis.reaktor.flow.graph.render.GraphViewportToolbar
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 
 // References:
 // - React Flow keeps viewport chrome separate from the scene graph and injects it through panel
@@ -26,6 +28,7 @@ internal fun BoxScope.ReaktorGraphChromeOverlay(
     onZoomOut: () -> Unit,
     onFitView: () -> Unit,
     onResetZoom: () -> Unit,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     GraphViewportToolbar(
         flow = flow,
@@ -34,16 +37,19 @@ internal fun BoxScope.ReaktorGraphChromeOverlay(
         onZoomOut = onZoomOut,
         onFitView = onFitView,
         onResetZoom = onResetZoom,
+        style = style,
     )
     GraphKindLegend(
         highlightedKind = highlightedKind,
         flow = flow,
         onHighlightKind = onHighlightKind,
+        style = style,
     )
     GraphMiniMap(
         flow = flow,
         state = state,
         rightInset = rightInset,
+        style = style,
     )
 }
 
@@ -52,10 +58,12 @@ internal fun BoxScope.ReaktorGraphViewportOverlay(
     flow: ReaktorFlowGraph,
     selectedGraphId: String?,
     onSelectGraph: (String?) -> Unit,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     GraphRegionsOverlay(
         flow = flow,
         selectedGraphId = selectedGraphId,
         onSelectGraph = onSelectGraph,
+        style = style,
     )
 }

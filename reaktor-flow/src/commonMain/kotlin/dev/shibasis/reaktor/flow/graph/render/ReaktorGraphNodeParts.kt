@@ -21,36 +21,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.shibasis.reaktor.flow.graph.layout.GraphFlowMetrics
 import dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
+import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
+import dev.shibasis.reaktor.flow.graph.style.dpOf
+import dev.shibasis.reaktor.flow.graph.style.spOf
 
 @Composable
 internal fun RootBadge(
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     Surface(
-        color = GraphCanvasRootBadge,
-        shape = RoundedCornerShape(with(density) { dpOf(metrics.nodeCornerRadius) }),
+        color = style.canvas.rootBadge,
+        shape = RoundedCornerShape(with(density) { dpOf(style.node.cornerRadiusPx) }),
         tonalElevation = 0.dp,
         modifier = modifier,
     ) {
         Text(
             text = "Root",
-            color = GraphCanvasRootBadgeText,
-            fontSize = with(density) { spOf(metrics.rootBadgeFontSize) },
+            color = style.canvas.rootBadgeText,
+            fontSize = with(density) { spOf(style.node.rootBadgeFontPx) },
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Clip,
             modifier = Modifier.padding(
-                horizontal = with(density) { dpOf(metrics.rootBadgePaddingX) },
-                vertical = with(density) { dpOf(metrics.rootBadgePaddingY) },
+                horizontal = with(density) { dpOf(style.node.rootBadgePaddingXPx) },
+                vertical = with(density) { dpOf(style.node.rootBadgePaddingYPx) },
             ),
         )
     }
@@ -59,22 +63,22 @@ internal fun RootBadge(
 @Composable
 internal fun ReaktorNodeTitle(
     title: String,
-    titleColor: androidx.compose.ui.graphics.Color,
+    titleColor: Color,
     isRootNode: Boolean,
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
-    val titleHeight = with(density) { dpOf(metrics.titleHeight) }
-    val cornerRadius = with(density) { dpOf(metrics.nodeCornerRadius) }
-    val titlePaddingX = with(density) { dpOf(metrics.titlePaddingX) }
-    val titlePaddingY = with(density) { dpOf(metrics.titlePaddingY) }
-    val titleToBadgeGapPx = with(density) { dpOf(metrics.titleToBadgeGap).roundToPx() }
-    val titleFontSize = with(density) { spOf(metrics.titleFontSize) }
+    val titleHeight = with(density) { dpOf(style.node.titleHeightPx) }
+    val cornerRadius = with(density) { dpOf(style.node.cornerRadiusPx) }
+    val titlePaddingX = with(density) { dpOf(style.node.titlePaddingXPx) }
+    val titlePaddingY = with(density) { dpOf(style.node.titlePaddingYPx) }
+    val titleToBadgeGapPx = with(density) { dpOf(style.node.titleToBadgeGapPx).roundToPx() }
+    val titleFontSize = with(density) { spOf(style.node.titleFontPx) }
 
     // Compose custom layout note:
-    // The title and root badge share a single width budget. This keeps the sizing contract explicit
-    // instead of relying on weighted Rows and hoping the title/badge split stays readable.
+    // The title and root badge share a single width budget. This keeps the sizing contract
+    // explicit instead of relying on weighted Rows and hoping the title/badge split stays stable.
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -89,15 +93,15 @@ internal fun ReaktorNodeTitle(
             content = {
                 Text(
                     text = title,
-                    color = androidx.compose.ui.graphics.Color.White,
+                    color = Color.White,
                     fontSize = titleFontSize,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = GraphCanvasMono,
-                    maxLines = 2,
+                    fontFamily = style.canvas.monoFont,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (isRootNode) {
-                    RootBadge(metrics = metrics)
+                    RootBadge(style = style)
                 }
             },
         ) { measurables, constraints ->
@@ -127,22 +131,20 @@ internal fun ReaktorNodeTitle(
 internal fun ReaktorNodePorts(
     consumerPorts: List<ReaktorPortData>,
     providerPorts: List<ReaktorPortData>,
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     val rowCount = maxOf(1, maxOf(consumerPorts.size, providerPorts.size))
-    val rowHeightPx = with(density) { dpOf(metrics.rowHeight).roundToPx() }
-    val columnGapPx = with(density) { dpOf(metrics.columnGap).roundToPx() }
+    val rowHeightPx = with(density) { dpOf(style.port.rowHeightPx).roundToPx() }
+    val columnGapPx = with(density) { dpOf(style.port.columnGapPx).roundToPx() }
 
-    // Intrinsic measurement keeps one-sided nodes from wasting half their width while still
-    // giving both columns a real width budget before placement.
     Layout(
         modifier = modifier.fillMaxWidth(),
         content = {
             repeat(rowCount) { index ->
-                PortEntry(port = consumerPorts.getOrNull(index), alignRight = false, metrics = metrics)
-                PortEntry(port = providerPorts.getOrNull(index), alignRight = true, metrics = metrics)
+                PortEntry(port = consumerPorts.getOrNull(index), alignRight = false, style = style)
+                PortEntry(port = providerPorts.getOrNull(index), alignRight = true, style = style)
             }
         },
     ) { measurables, constraints ->
@@ -180,7 +182,7 @@ internal fun ReaktorNodePorts(
                     minWidth = 0,
                     minHeight = 0,
                     maxWidth = maxWidth.coerceAtLeast(0),
-                )
+                ),
             )
         }
         val layoutHeight = (rowCount * rowHeightPx).coerceAtLeast(placeables.maxOfOrNull { it.height } ?: 0)
@@ -201,7 +203,7 @@ internal fun ReaktorNodePorts(
 internal fun PortEntry(
     port: ReaktorPortData?,
     alignRight: Boolean,
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -216,13 +218,13 @@ internal fun PortEntry(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (alignRight) {
-            Port(port, metrics)
-            Spacer(Modifier.width(with(density) { dpOf(metrics.portGap) }))
-            PortDot(port, metrics)
+            Port(port, style)
+            Spacer(Modifier.width(with(density) { dpOf(style.port.gapPx) }))
+            PortDot(port, style)
         } else {
-            PortDot(port, metrics)
-            Spacer(Modifier.width(with(density) { dpOf(metrics.portGap) }))
-            Port(port, metrics)
+            PortDot(port, style)
+            Spacer(Modifier.width(with(density) { dpOf(style.port.gapPx) }))
+            Port(port, style)
         }
     }
 }
@@ -230,14 +232,14 @@ internal fun PortEntry(
 @Composable
 private fun RowScope.Port(
     port: ReaktorPortData,
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle,
 ) {
     val density = LocalDensity.current
     Text(
         text = port.label,
-        color = if (port.connected) GraphCanvasText else GraphCanvasMuted,
-        fontSize = with(density) { spOf(metrics.portFontSize) },
-        fontFamily = GraphCanvasMono,
+        color = if (port.connected) style.canvas.text else style.canvas.mutedText,
+        fontSize = with(density) { spOf(style.port.fontPx) },
+        fontFamily = style.canvas.monoFont,
         fontWeight = FontWeight.Medium,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -247,13 +249,13 @@ private fun RowScope.Port(
 @Composable
 private fun RowScope.PortDot(
     port: ReaktorPortData,
-    metrics: GraphFlowMetrics,
+    style: ReaktorGraphStyle,
 ) {
     val density = LocalDensity.current
     Box(
         modifier = Modifier
-            .size(with(density) { dpOf(metrics.portDotSize) })
+            .size(with(density) { dpOf(style.port.dotSizePx) })
             .background(port.color.copy(alpha = if (port.connected) 1f else 0.36f), CircleShape)
-            .border(GraphUi.borderWidth, port.color, CircleShape),
+            .border(with(density) { dpOf(style.chrome.borderWidthPx) }, port.color, CircleShape),
     )
 }
