@@ -1,22 +1,46 @@
 # reaktor-media
 
+> **Stability: Early** - Camera and gallery work on Android/iOS. Speech adapters are placeholders.
+
 `reaktor-media` is the media capability layer for Reaktor apps.
 
-## Responsibilities
+## Platforms
 
-- camera adapter surface
-- gallery/media selection hooks
-- image loading and caching helpers
-- speech recognition and synthesis abstractions
-- shared media-related support utilities
+Android (primary), iOS/Darwin (primary), JVM/JS (minimal)
 
 ## Current areas
 
-- Android camera integration
-- Darwin camera integration
-- Darwin gallery support
-- shared caches and image utilities
-- speech recognizer / synthesizer abstractions
+### Camera
+
+| Type | Purpose |
+|---|---|
+| `CameraAdapter<Controller>` | Abstract base with lifecycle (start, switchCamera), render, file/analyzer |
+| `CameraComponent` | Android camera implementation |
+| `DarwinCameraAdapter` | iOS camera implementation |
+| `CameraScreen` | Composable camera UI |
+| `ReaktorCamera` | Android camera wrapper |
+| `CameraStart` | Enum: Success, ControllerFailure, PermissionFailure, CameraFailure |
+
+### Gallery
+
+| Type | Purpose |
+|---|---|
+| `DarwinGalleryAdapter` | iOS gallery/media selection |
+
+### Image loading
+
+| Type | Purpose |
+|---|---|
+| `AsyncImage` | Image loading composable |
+| `Cache` / `FileBasedCache` | Image caching |
+| `CoilSetup` | Coil image library integration |
+
+### Speech (placeholders)
+
+| Type | Purpose |
+|---|---|
+| `SpeechRecognizer<Controller>` | Placeholder abstract class |
+| `SpeechSynthesizer<Controller>` | Placeholder abstract class |
 
 ## What this module is not
 
@@ -24,4 +48,10 @@ It is not a full backend media pipeline. Upload authorization, storage, and back
 - `reaktor-auth`
 - `reaktor-db`
 - `reaktor-work`
-- product-specific media services
+- Product-specific media services
+
+## Dependencies
+
+- `reaktor-graph`, `reaktor-io`
+- Coil 3.2.0 (image loading, network, SVG)
+- Android Camera, WorkManager (Android only)

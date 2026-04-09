@@ -1,6 +1,24 @@
+# Vendored dependencies
 .github_modules/** linguist-vendored=true
+
+# Generated code
 **/ts/export/** linguist-generated=true
 **/package-lock.json linguist-generated=true
 dependeasy/bin/** linguist-generated=true
 *.mjs.map linguist-generated=true
 *.d.mts linguist-generated=true
+
+# Generated documentation (Dokka HTML) - use linguist-generated to fully exclude
+docs/** linguist-generated=true
+reaktor-core/docs/** linguist-generated=true
+reaktor-db/docs/** linguist-generated=true
+reaktor-io/docs/** linguist-generated=true
+reaktor-ui/docs/** linguist-generated=true
+**/docs/**/*.html linguist-generated=true
+*.html linguist-documentation=true
+
+# Website (Docusaurus)
+website/** linguist-generated=true
+
+# Experiments
+experiments/** linguist-vendored=true
