@@ -2,8 +2,6 @@ package dev.shibasis.reaktor.flow.graph.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,11 +18,11 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.shibasis.composeflow.compose.interaction.requestPointerFocusOnFirstDown
+import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
@@ -55,10 +53,8 @@ fun ReaktorGraphEditor(
     // Compose desktop routes keyboard input through the focused subtree. We keep the editor root
     // focusable so graph shortcuts stay local to the editor instead of leaking into window chrome.
     fun zoomGraph(factor: Double) {
-        state.zoomBy(
+        state.zoomAroundCanvasCenter(
             factor = factor,
-            anchorX = state.canvasSize.width / 2.0,
-            anchorY = state.canvasSize.height / 2.0,
             minZoom = graphStyle.viewport.minZoom,
             maxZoom = graphStyle.viewport.maxZoom,
         )
@@ -75,12 +71,7 @@ fun ReaktorGraphEditor(
             .padding(with(density) { dpOf(graphStyle.chrome.editorPaddingPx) })
             .focusRequester(focusRequester)
             .focusable()
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown(pass = PointerEventPass.Initial)
-                    focusRequester.requestFocus()
-                }
-            }
+            .requestPointerFocusOnFirstDown { focusRequester.requestFocus() }
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown || (!event.isMetaPressed && !event.isCtrlPressed)) {
                     return@onPreviewKeyEvent false

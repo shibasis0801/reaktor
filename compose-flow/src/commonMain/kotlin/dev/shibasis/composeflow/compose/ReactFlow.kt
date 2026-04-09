@@ -2,7 +2,6 @@ package dev.shibasis.composeflow.compose
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,11 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isCtrlPressed
-import androidx.compose.ui.input.pointer.isMetaPressed
-import androidx.compose.ui.input.pointer.isSecondaryPressed
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
@@ -31,6 +25,11 @@ import dev.shibasis.composeflow.compose.components.FlowBackground
 import dev.shibasis.composeflow.compose.components.FlowControls
 import dev.shibasis.composeflow.compose.components.FlowNodeBox
 import dev.shibasis.composeflow.compose.components.MiniMap
+import dev.shibasis.composeflow.compose.interaction.FlowViewportGestureConfig
+import dev.shibasis.composeflow.compose.interaction.flowPointerViewportGestures
+import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
+import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
+import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
 import dev.shibasis.composeflow.compose.primitives.EdgePathStyle
 import dev.shibasis.composeflow.compose.primitives.EdgeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
@@ -50,7 +49,6 @@ import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.compose.theme.FlowCanvasBackground
-import kotlin.math.exp
 
 // Compose best-practice note:
 // keep viewport state and gesture handling above the node content tree. This mirrors
@@ -85,13 +83,19 @@ fun ReactFlow(
     viewportOverlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    var userModifiedViewport by remember { mutableStateOf(false) }
+    val interactionState = rememberFlowViewportInteractionState()
+    val gestureConfig = remember(minZoom, maxZoom) {
+        FlowViewportGestureConfig(
+            minZoom = minZoom,
+            maxZoom = maxZoom,
+        )
+    }
     val density = LocalDensity.current
     val defaultWidthPx = with(density) { defaultNodeWidth.toPx().toDouble() }
     val defaultHeightPx = with(density) { defaultNodeHeight.toPx().toDouble() }
 
-    LaunchedEffect(nodes, canvasSize, fitView, fitViewOptions, userModifiedViewport) {
-        if (fitView && canvasSize.width > 0 && canvasSize.height > 0 && nodes.isNotEmpty() && !userModifiedViewport) {
+    LaunchedEffect(nodes, canvasSize, fitView, fitViewOptions, interactionState.userModifiedViewport) {
+        if (fitView && canvasSize.width > 0 && canvasSize.height > 0 && nodes.isNotEmpty() && !interactionState.userModifiedViewport) {
             state.fitView(nodes, defaultWidthPx, defaultHeightPx, fitViewOptions)
         }
     }
@@ -110,26 +114,11 @@ fun ReactFlow(
                     canvasSize = it
                     state.canvasSize = it
                 }
-                .pointerInput(minZoom, maxZoom) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            if (event.type != PointerEventType.Scroll) continue
-                            val change = event.changes.firstOrNull() ?: continue
-                            val scrollDelta = change.scrollDelta
-                            val isZoomGesture = event.keyboardModifiers.isCtrlPressed || event.keyboardModifiers.isMetaPressed
-                            userModifiedViewport = true
-                            if (isZoomGesture) {
-                                val factor = exp((-scrollDelta.y * FlowSizing.wheelZoomSensitivity).toDouble())
-                                    .coerceIn(FlowSizing.wheelZoomFactorMin, FlowSizing.wheelZoomFactorMax)
-                                state.zoomBy(factor, change.position.x.toDouble(), change.position.y.toDouble(), minZoom, maxZoom)
-                            } else {
-                                state.panBy(-scrollDelta.x.toDouble(), -scrollDelta.y.toDouble())
-                            }
-                            change.consume()
-                        }
-                    }
-                },
+                .flowWheelAndTrackpadViewportGestures(
+                    state = state,
+                    interactionState = interactionState,
+                    config = gestureConfig,
+                ),
         ) {
             if (showBackground) {
                 FlowBackground(Modifier.fillMaxSize(), state.viewport, backgroundVariant)
@@ -141,56 +130,12 @@ fun ReactFlow(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(minZoom, maxZoom) {
-                            detectTransformGestures { centroid, pan, zoom, _ ->
-                                if (pan != androidx.compose.ui.geometry.Offset.Zero) {
-                                    userModifiedViewport = true
-                                    state.panBy(pan.x.toDouble(), pan.y.toDouble())
-                                }
-                                if (zoom != 1f) {
-                                    userModifiedViewport = true
-                                    state.zoomBy(zoom.toDouble(), centroid.x.toDouble(), centroid.y.toDouble(), minZoom, maxZoom)
-                                }
-                            }
-                        }
-                        .pointerInput(onPaneClick) {
-                            awaitPointerEventScope {
-                                while (true) {
-                                    val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
-                                    var moved = false
-                                    while (true) {
-                                        val event = awaitPointerEvent()
-                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                        if (!change.pressed) {
-                                            if (!moved) onPaneClick?.invoke()
-                                            break
-                                        }
-                                        val delta = change.position - change.previousPosition
-                                        if (delta != androidx.compose.ui.geometry.Offset.Zero) {
-                                            moved = true
-                                            userModifiedViewport = true
-                                            state.panBy(delta.x.toDouble(), delta.y.toDouble())
-                                            change.consume()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .pointerInput(Unit) {
-                            awaitPointerEventScope {
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    if (!event.buttons.isSecondaryPressed) continue
-                                    val next = event.changes.firstOrNull { it.pressed } ?: continue
-                                    val delta = next.position - next.previousPosition
-                                    if (delta != androidx.compose.ui.geometry.Offset.Zero) {
-                                        userModifiedViewport = true
-                                        state.panBy(delta.x.toDouble(), delta.y.toDouble())
-                                        next.consume()
-                                    }
-                                }
-                            }
-                        },
+                        .flowPointerViewportGestures(
+                            state = state,
+                            interactionState = interactionState,
+                            config = gestureConfig,
+                            onPaneClick = onPaneClick,
+                        ),
                 )
 
                 Box(
@@ -234,15 +179,23 @@ fun ReactFlow(
                         modifier = Modifier.align(Alignment.TopEnd).padding(FlowSizing.controlsPadding),
                         viewport = state.viewport,
                         onZoomIn = {
-                            userModifiedViewport = true
-                            state.zoomBy(FlowSizing.controlZoomFactor, canvasSize.width / 2.0, canvasSize.height / 2.0, minZoom, maxZoom)
+                            interactionState.markViewportAsUserModified()
+                            state.zoomAroundCanvasCenter(
+                                factor = gestureConfig.controlZoomFactor,
+                                minZoom = minZoom,
+                                maxZoom = maxZoom,
+                            )
                         },
                         onZoomOut = {
-                            userModifiedViewport = true
-                            state.zoomBy(1.0 / FlowSizing.controlZoomFactor, canvasSize.width / 2.0, canvasSize.height / 2.0, minZoom, maxZoom)
+                            interactionState.markViewportAsUserModified()
+                            state.zoomAroundCanvasCenter(
+                                factor = 1.0 / gestureConfig.controlZoomFactor,
+                                minZoom = minZoom,
+                                maxZoom = maxZoom,
+                            )
                         },
                         onFitView = {
-                            userModifiedViewport = false
+                            interactionState.clearUserModifiedViewport()
                             state.fitView(nodes, defaultWidthPx, defaultHeightPx, fitViewOptions)
                         },
                     )

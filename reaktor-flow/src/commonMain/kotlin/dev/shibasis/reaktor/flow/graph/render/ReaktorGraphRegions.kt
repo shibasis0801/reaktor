@@ -102,7 +102,7 @@ internal fun BoxScope.GraphRegionsOverlay(
             Text(
                 text = region.label,
                 color = region.color.copy(alpha = if (selectedGraphId == region.id) 0.96f else 0.72f),
-                fontSize = with(density) { spOf(style.chrome.captionFontPx) },
+                fontSize = with(density) { spOf(style.chrome.titleFontPx) },
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(
                     horizontal = with(density) { dpOf(style.region.labelPaddingXPx) },

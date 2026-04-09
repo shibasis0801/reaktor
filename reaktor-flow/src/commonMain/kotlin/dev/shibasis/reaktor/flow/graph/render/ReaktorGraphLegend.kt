@@ -46,69 +46,57 @@ internal fun BoxScope.GraphKindLegend(
     }
 
     Panel(position = PanelPosition.BottomLeft, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
-        Surface(
-            color = style.canvas.panelChrome,
-            shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
-            tonalElevation = 0.dp,
+        Column(
+            modifier = Modifier.padding(
+                horizontal = with(density) { dpOf(style.chrome.shellPaddingXPx) },
+                vertical = with(density) { dpOf(style.chrome.shellPaddingYPx) },
+            ),
+            verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
         ) {
-            Column(
-                modifier = Modifier.padding(
-                    horizontal = with(density) { dpOf(style.chrome.shellPaddingXPx) },
-                    vertical = with(density) { dpOf(style.chrome.shellPaddingYPx) },
-                ),
-                verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
-            ) {
-                Text(
-                    text = "Node Types",
-                    color = style.canvas.text,
-                    fontSize = with(density) { spOf(style.chrome.titleFontPx) },
-                    fontWeight = FontWeight.SemiBold,
-                )
-                ReaktorNodeKind.entries.forEach { kind ->
-                    val selected = highlightedKind == kind
+            ReaktorNodeKind.entries.forEach { kind ->
+                val selected = highlightedKind == kind
+                Row(
+                    modifier = Modifier
+                        .width(with(density) { dpOf(style.chrome.legendWidthPx) })
+                        .background(
+                            if (selected) kind.bodyColor.copy(alpha = 0.95f) else style.legendItemSurface(),
+                            RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
+                        )
+                        .border(
+                            width = with(density) { dpOf(style.chrome.borderWidthPx) },
+                            color = if (selected) kind.borderColor else style.canvas.border,
+                            shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
+                        )
+                        .clickable { onHighlightKind(if (selected) null else kind) }
+                        .padding(
+                            horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },
+                            vertical = with(density) { dpOf(style.chrome.controlPaddingYPx) },
+                        ),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Row(
-                        modifier = Modifier
-                            .width(with(density) { dpOf(style.chrome.legendWidthPx) })
-                            .background(
-                                if (selected) kind.bodyColor.copy(alpha = 0.95f) else style.legendItemSurface(),
-                                RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
-                            )
-                            .border(
-                                width = with(density) { dpOf(style.chrome.borderWidthPx) },
-                                color = if (selected) kind.borderColor else style.canvas.border,
-                                shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
-                            )
-                            .clickable { onHighlightKind(if (selected) null else kind) }
-                            .padding(
-                                horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },
-                                vertical = with(density) { dpOf(style.chrome.controlPaddingYPx) },
-                            ),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(with(density) { dpOf(style.chrome.indicatorSizePx) })
-                                    .background(kind.borderColor, CircleShape),
-                            )
-                            Text(
-                                text = kind.label,
-                                color = style.canvas.text,
-                                fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
-                                maxLines = 1,
-                            )
-                        }
+                        Box(
+                            modifier = Modifier
+                                .size(with(density) { dpOf(style.chrome.indicatorSizePx) })
+                                .background(kind.borderColor, CircleShape),
+                        )
                         Text(
-                            text = (counts[kind] ?: 0).toString(),
-                            color = if (selected) androidx.compose.ui.graphics.Color.White else style.canvas.mutedText,
+                            text = kind.label,
+                            color = style.canvas.text,
                             fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
-                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
                         )
                     }
+                    Text(
+                        text = (counts[kind] ?: 0).toString(),
+                        color = if (selected) androidx.compose.ui.graphics.Color.White else style.canvas.mutedText,
+                        fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
         }

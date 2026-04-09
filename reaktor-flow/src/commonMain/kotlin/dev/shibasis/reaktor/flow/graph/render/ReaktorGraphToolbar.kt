@@ -35,7 +35,7 @@ internal fun BoxScope.GraphViewportToolbar(
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     val density = LocalDensity.current
-    Panel(position = PanelPosition.TopLeft, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
+    Panel(position = PanelPosition.BottomRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Surface(
             color = style.canvas.panelChrome,
             shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
@@ -51,12 +51,6 @@ internal fun BoxScope.GraphViewportToolbar(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.microGapPx) })) {
                     Text(
-                        text = "Graph",
-                        color = style.canvas.text,
-                        fontSize = with(density) { spOf(style.chrome.titleFontPx) },
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
                         text = "${flow.nodes.size} nodes • ${flow.edges.size} edges",
                         color = style.canvas.mutedText,
                         fontSize = with(density) { spOf(style.chrome.captionFontPx) },
@@ -66,8 +60,6 @@ internal fun BoxScope.GraphViewportToolbar(
                     horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ToolbarButton(label = "-", onClick = onZoomOut, style = style)
-                    ToolbarButton(label = "+", onClick = onZoomIn, style = style)
                     ToolbarButton(label = "Fit", onClick = onFitView, style = style)
                     ToolbarButton(label = "100%", onClick = onResetZoom, style = style)
                     Surface(
@@ -86,6 +78,8 @@ internal fun BoxScope.GraphViewportToolbar(
                             ),
                         )
                     }
+                    ToolbarButton(label = "-", onClick = onZoomOut, style = style)
+                    ToolbarButton(label = "+", onClick = onZoomIn, style = style)
                 }
             }
         }

@@ -53,11 +53,17 @@ data class ReaktorGraphStyle(
         val monoFont: FontFamily = FontFamily.Monospace,
     )
 
+    // Layout spacing is graph-space only:
+    // - column/row gaps separate peer nodes
+    // - compact gaps pack tighter local groups
+    // - group gap separates major graph sections such as services -> routes
     data class Layout(
-        val rootOriginPx: Double = 72.0,
-        val gapPx: Double = 14.0,
-        val compactGapPx: Double = 10.0,
-        val majorGapPx: Double = 18.0,
+        val rootOriginPx: Double = 16.0,
+        val columnGapPx: Double = 240.0,
+        val rowGapPx: Double = 240.0,
+        val compactColumnGapPx: Double = 200.0,
+        val compactRowGapPx: Double = 200.0,
+        val groupColumnGapPx: Double = 180.0,
     )
 
     data class Node(
@@ -71,7 +77,7 @@ data class ReaktorGraphStyle(
         val bodyPaddingXPx: Double = 24.0,
         val titleFontPx: Double = 34.0,
         val titleCharWidthPx: Double = 19.0,
-        val rootBadgeFontPx: Double = 18.0,
+        val rootBadgeFontPx: Double = 24.0,
         val rootBadgePaddingXPx: Double = 12.0,
         val rootBadgePaddingYPx: Double = 6.0,
     )
@@ -89,11 +95,19 @@ data class ReaktorGraphStyle(
         val previewRows: Int = 4,
     )
 
+    // Region spacing is kept separate from node-to-node spacing:
+    // - content padding moves content away from the region frame
+    // - child-region gaps separate nested graphs from each other
+    // - bounds insets expand the painted frame around already-placed content
     data class Region(
-        val graphInsetPx: Double = 56.0,
-        val insetXPx: Double = 24.0,
-        val insetTopPx: Double = 14.0,
-        val insetBottomPx: Double = 24.0,
+        val contentPaddingXPx: Double = 56.0,
+        val contentPaddingTopPx: Double = 112.0,
+        val contentPaddingBottomPx: Double = 56.0,
+        val childRegionGapXPx: Double = 56.0,
+        val childRegionGapYPx: Double = 10.0,
+        val boundsInsetXPx: Double = 24.0,
+        val boundsInsetTopPx: Double = 14.0,
+        val boundsInsetBottomPx: Double = 24.0,
         val labelOffsetXPx: Double = 14.0,
         val labelOffsetYPx: Double = 10.0,
         val labelPaddingXPx: Double = 12.0,
@@ -116,11 +130,11 @@ data class ReaktorGraphStyle(
         val shellPaddingYPx: Double = 12.0,
         val controlPaddingXPx: Double = 12.0,
         val controlPaddingYPx: Double = 8.0,
-        val sectionGapPx: Double = 14.0,
+        val sectionGapPx: Double = 24.0,
         val itemGapPx: Double = 8.0,
         val microGapPx: Double = 4.0,
         val legendWidthPx: Double = 216.0,
-        val indicatorSizePx: Double = 9.0,
+        val indicatorSizePx: Double = 14.0,
         val miniMapWidthPx: Double = 176.0,
         val miniMapHeightPx: Double = 112.0,
         val miniMapInnerPaddingPx: Double = 10.0,
@@ -133,7 +147,7 @@ data class ReaktorGraphStyle(
         val editorPaddingPx: Double = 4.0,
         val titleFontPx: Double = 32.0,
         val bodyFontPx: Double = 24.0,
-        val captionFontPx: Double = 20.0,
+        val captionFontPx: Double = 24.0,
     )
 
     data class Viewport(

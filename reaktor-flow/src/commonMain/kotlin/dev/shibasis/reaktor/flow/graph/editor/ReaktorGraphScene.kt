@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import dev.shibasis.composeflow.compose.ReactFlow
+import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
 import dev.shibasis.composeflow.compose.primitives.EdgePathStyle
 import dev.shibasis.composeflow.compose.primitives.NodeTypes
 import dev.shibasis.composeflow.runtime.ReactFlowState
@@ -94,19 +95,15 @@ internal fun ReaktorGraphScene(
                     onHighlightKind = onHighlightKind,
                     rightInset = rightInset,
                     onZoomIn = {
-                        state.zoomBy(
+                        state.zoomAroundCanvasCenter(
                             factor = graphStyle.viewport.zoomStep,
-                            anchorX = state.canvasSize.width / 2.0,
-                            anchorY = state.canvasSize.height / 2.0,
                             minZoom = graphStyle.viewport.minZoom,
                             maxZoom = graphStyle.viewport.maxZoom,
                         )
                     },
                     onZoomOut = {
-                        state.zoomBy(
+                        state.zoomAroundCanvasCenter(
                             factor = 1.0 / graphStyle.viewport.zoomStep,
-                            anchorX = state.canvasSize.width / 2.0,
-                            anchorY = state.canvasSize.height / 2.0,
                             minZoom = graphStyle.viewport.minZoom,
                             maxZoom = graphStyle.viewport.maxZoom,
                         )
