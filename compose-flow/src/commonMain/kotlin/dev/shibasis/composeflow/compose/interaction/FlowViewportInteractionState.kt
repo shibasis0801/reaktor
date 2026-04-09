@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 
 // References:
 // - "Thinking in Compose": keep interaction state explicit instead of hiding it inside a large UI
@@ -19,12 +20,26 @@ class FlowViewportInteractionState internal constructor(
     var userModifiedViewport by mutableStateOf(initialUserModifiedViewport)
         private set
 
+    var lastPointerPosition by mutableStateOf<Offset?>(null)
+        private set
+
+    var canvasOriginInWindow by mutableStateOf(Offset.Zero)
+        private set
+
     fun markViewportAsUserModified() {
         userModifiedViewport = true
     }
 
     fun clearUserModifiedViewport() {
         userModifiedViewport = false
+    }
+
+    fun updatePointerPosition(position: Offset) {
+        lastPointerPosition = position
+    }
+
+    fun updateCanvasOriginInWindow(origin: Offset) {
+        canvasOriginInWindow = origin
     }
 }
 

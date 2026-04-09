@@ -2,6 +2,8 @@ package dev.shibasis.composeflow.compose.interaction
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -35,34 +37,73 @@ fun Modifier.flowWheelAndTrackpadViewportGestures(
     state: ReactFlowState,
     interactionState: FlowViewportInteractionState,
     config: FlowViewportGestureConfig,
+    platformBridge: FlowViewportPlatformBridge? = null,
 ): Modifier = pointerInput(config) {
     awaitPointerEventScope {
         while (true) {
             val event = awaitPointerEvent()
-            if (event.type != PointerEventType.Scroll) continue
             val change = event.changes.firstOrNull() ?: continue
+            if (event.type != PointerEventType.Scroll) continue
             val scrollDelta = change.scrollDelta
             val isZoomGesture =
                 event.keyboardModifiers.isCtrlPressed || event.keyboardModifiers.isMetaPressed
             interactionState.markViewportAsUserModified()
             if (isZoomGesture) {
+                val anchor =
+                    platformBridge?.resolveScrollAnchor(event, interactionState)
+                        ?: interactionState.lastPointerPosition
+                        ?: change.position
                 val factor =
                     exp(-scrollDelta.y * config.wheelZoomSensitivity)
                         .coerceIn(config.wheelZoomFactorMin, config.wheelZoomFactorMax)
                 state.zoomBy(
                     factor = factor,
-                    anchorX = change.position.x.toDouble(),
-                    anchorY = change.position.y.toDouble(),
+                    anchorX = anchor.x.toDouble(),
+                    anchorY = anchor.y.toDouble(),
                     minZoom = config.minZoom,
                     maxZoom = config.maxZoom,
                 )
             } else {
                 state.panBy(
-                    dx = -scrollDelta.x.toDouble(),
-                    dy = -scrollDelta.y.toDouble(),
+                    dx = -scrollDelta.x.toDouble() * FlowSizing.wheelPanFactor,
+                    dy = -scrollDelta.y.toDouble() * FlowSizing.wheelPanFactor,
                 )
             }
+            interactionState.updatePointerPosition(change.position)
             change.consume()
+        }
+    }
+}
+
+@Composable
+fun FlowViewportPlatformGestureEffect(
+    state: ReactFlowState,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    platformBridge: FlowViewportPlatformBridge?,
+) {
+    DisposableEffect(platformBridge, state, interactionState, config) {
+        val subscription = platformBridge?.installViewportGestures(
+            state = state,
+            interactionState = interactionState,
+            config = config,
+        )
+        onDispose {
+            subscription?.dispose()
+        }
+    }
+}
+
+fun Modifier.flowViewportPointerTracking(
+    interactionState: FlowViewportInteractionState,
+): Modifier = pointerInput(interactionState) {
+    awaitPointerEventScope {
+        while (true) {
+            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+            if (event.type == PointerEventType.Scroll) continue
+            event.changes.firstOrNull()?.let { change ->
+                interactionState.updatePointerPosition(change.position)
+            }
         }
     }
 }
@@ -79,6 +120,7 @@ fun Modifier.flowPointerViewportGestures(
             requireUnconsumed = false,
             pass = PointerEventPass.Initial,
         )
+        interactionState.updatePointerPosition(down.position)
         var activePointerId = down.id
         var accumulatedDrag = Offset.Zero
         var dragStarted = false
@@ -131,6 +173,7 @@ fun Modifier.flowPointerViewportGestures(
 
             val change = event.changes.firstOrNull { it.id == activePointerId }
                 ?: pressedChanges.first().also { activePointerId = it.id }
+            interactionState.updatePointerPosition(change.position)
             val delta = change.position - change.previousPosition
             if (!dragStarted) {
                 accumulatedDrag += delta

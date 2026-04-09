@@ -42,6 +42,12 @@ internal object FlowSizing {
     const val selectedEdgeStrokePx = 3f
     const val bezierControlRatio = 0.34f
     const val bezierControlBiasPx = 34f
+    const val bezierMinControlPx = 22f
+    const val bezierMaxControlPx = 144f
+    const val bezierAxisAlignedThresholdPx = 72f
+    const val bezierAxisAlignedFactor = 0.58f
+    const val bezierVerticalCollinearThresholdPx = 56f
+    const val bezierVerticalCollinearBiasPx = 34f
     const val defaultMarkerWidthPx = 12.0
     const val markerHalfAngleRadians = kotlin.math.PI / 7.0
 
@@ -54,8 +60,10 @@ internal object FlowSizing {
     const val majorGridStrokePx = 1.3f
 
     const val nodeDragThresholdSquared = 9f
+    const val wheelPanFactor = 5.0
     const val wheelZoomSensitivity = 0.06
     const val wheelZoomFactorMin = 0.88
     const val wheelZoomFactorMax = 1.16
+    const val pinchZoomSensitivity = 2.0
     const val controlZoomFactor = 1.15
 }

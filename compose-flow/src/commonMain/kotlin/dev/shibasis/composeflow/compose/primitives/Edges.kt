@@ -17,7 +17,7 @@ import dev.shibasis.composeflow.model.Position
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.max
+import kotlin.math.sign
 import kotlin.math.sin
 
 internal fun DrawScope.drawFlowEdge(
@@ -67,11 +67,25 @@ internal data class FlowEdgePath(
 )
 
 internal fun bezierEdgePath(start: FlowAnchor, end: FlowAnchor): FlowEdgePath {
-    val controlOffset =
-        max(abs(end.point.x - start.point.x), abs(end.point.y - start.point.y)) * FlowSizing.bezierControlRatio +
-            FlowSizing.bezierControlBiasPx
-    val startControl = controlPoint(start, controlOffset, outgoing = true)
-    val endControl = controlPoint(end, controlOffset, outgoing = false)
+    val rawDx = end.point.x - start.point.x
+    val rawDy = end.point.y - start.point.y
+    val dx = abs(rawDx)
+    val dy = abs(rawDy)
+    var startControl = controlPoint(
+        anchor = start,
+        distance = tangentDistance(start, dx, dy),
+        outgoing = true,
+    )
+    var endControl = controlPoint(
+        anchor = end,
+        distance = tangentDistance(end, dx, dy),
+        outgoing = false,
+    )
+    if (isNearCollinearVerticalEdge(start, end, dx, dy)) {
+        val bias = verticalCollinearBias(start, rawDx)
+        startControl = startControl.copy(x = startControl.x + bias)
+        endControl = endControl.copy(x = endControl.x + bias)
+    }
     val path = Path().apply {
         moveTo(start.point.x, start.point.y)
         cubicTo(startControl.x, startControl.y, endControl.x, endControl.y, end.point.x, end.point.y)
@@ -143,6 +157,50 @@ internal fun controlPoint(anchor: FlowAnchor, distance: Float, outgoing: Boolean
         Position.Top -> anchor.point.copy(y = anchor.point.y - signedDistance)
         Position.Bottom -> anchor.point.copy(y = anchor.point.y + signedDistance)
     }
+}
+
+// Keep bezier tangents aligned with the actual dominant axis of the edge instead of using one
+// symmetric distance for every geometry. That preserves the current left-to-right look while
+// softening awkward bends when two nodes are almost vertically or horizontally aligned.
+internal fun tangentDistance(anchor: FlowAnchor, dx: Float, dy: Float): Float {
+    val axisDistance = when (anchor.position) {
+        Position.Left, Position.Right -> dx
+        Position.Top, Position.Bottom -> dy
+    }
+    val crossDistance = when (anchor.position) {
+        Position.Left, Position.Right -> dy
+        Position.Top, Position.Bottom -> dx
+    }
+    val baseDistance = axisDistance * FlowSizing.bezierControlRatio + FlowSizing.bezierControlBiasPx
+    val softenedDistance = if (crossDistance <= FlowSizing.bezierAxisAlignedThresholdPx) {
+        baseDistance * FlowSizing.bezierAxisAlignedFactor
+    } else {
+        baseDistance
+    }
+    return softenedDistance.coerceIn(
+        minimumValue = FlowSizing.bezierMinControlPx,
+        maximumValue = FlowSizing.bezierMaxControlPx,
+    )
+}
+
+internal fun isNearCollinearVerticalEdge(
+    start: FlowAnchor,
+    end: FlowAnchor,
+    dx: Float,
+    dy: Float,
+): Boolean =
+    start.position == Position.Bottom &&
+        end.position == Position.Top &&
+        dy > dx &&
+        dx <= FlowSizing.bezierVerticalCollinearThresholdPx
+
+internal fun verticalCollinearBias(start: FlowAnchor, rawDx: Float): Float {
+    val direction = when {
+        rawDx > 1f -> rawDx.sign
+        rawDx < -1f -> rawDx.sign
+        else -> 1f
+    }
+    return FlowSizing.bezierVerticalCollinearBiasPx * direction
 }
 
 internal fun parseColor(value: String): Color = runCatching {

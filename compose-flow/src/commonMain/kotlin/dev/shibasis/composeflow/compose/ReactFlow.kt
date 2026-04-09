@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
@@ -25,8 +27,11 @@ import dev.shibasis.composeflow.compose.components.FlowBackground
 import dev.shibasis.composeflow.compose.components.FlowControls
 import dev.shibasis.composeflow.compose.components.FlowNodeBox
 import dev.shibasis.composeflow.compose.components.MiniMap
+import dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformGestureEffect
 import dev.shibasis.composeflow.compose.interaction.FlowViewportGestureConfig
+import dev.shibasis.composeflow.compose.interaction.LocalFlowViewportPlatformBridge
 import dev.shibasis.composeflow.compose.interaction.flowPointerViewportGestures
+import dev.shibasis.composeflow.compose.interaction.flowViewportPointerTracking
 import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
 import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
 import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
@@ -84,6 +89,7 @@ fun ReactFlow(
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     val interactionState = rememberFlowViewportInteractionState()
+    val platformBridge = LocalFlowViewportPlatformBridge.current
     val gestureConfig = remember(minZoom, maxZoom) {
         FlowViewportGestureConfig(
             minZoom = minZoom,
@@ -106,6 +112,12 @@ fun ReactFlow(
     }
 
     CompositionLocalProvider(LocalReactFlowState provides state) {
+        FlowViewportPlatformGestureEffect(
+            state = state,
+            interactionState = interactionState,
+            config = gestureConfig,
+            platformBridge = platformBridge,
+        )
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
@@ -114,10 +126,15 @@ fun ReactFlow(
                     canvasSize = it
                     state.canvasSize = it
                 }
+                .onGloballyPositioned { coordinates ->
+                    interactionState.updateCanvasOriginInWindow(coordinates.positionInWindow())
+                }
+                .flowViewportPointerTracking(interactionState)
                 .flowWheelAndTrackpadViewportGestures(
                     state = state,
                     interactionState = interactionState,
                     config = gestureConfig,
+                    platformBridge = platformBridge,
                 ),
         ) {
             if (showBackground) {
