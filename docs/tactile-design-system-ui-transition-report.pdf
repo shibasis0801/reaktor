@@ -1,0 +1,1144 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R 23 0 R 25 0 R 27 0 R 29 0 R 31 0 R 33 0 R 35 0 R 37 0 R 39 0 R 41 0 R 43 0 R 45 0 R 47 0 R 49 0 R 51 0 R] /Count 23 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Length 3191 >>
+stream
+q
+BT /F2 22.00 Tf 54.00 730.00 Td (Tactile Design System: Architecture, Current UI Surface, And Transition Strategy) Tj ET
+BT /F1 10.50 Tf 54.00 684.00 Td (Prepared for the Reaktor, BestBuds, and Reaktor Desktop codebase.) Tj ET
+BT /F1 10.50 Tf 54.00 660.00 Td (Date: 2026-04-14) Tj ET
+BT /F2 16.00 Tf 54.00 626.00 Td (Executive Summary) Tj ET
+BT /F1 10.50 Tf 54.00 590.00 Td (The Tactile Design System should not be built as a static JSON server-driven UI system. The) Tj ET
+BT /F1 10.50 Tf 54.00 576.00 Td (central architectural decision is that React becomes the programming model for dynamic UI) Tj ET
+BT /F1 10.50 Tf 54.00 562.00 Td (composition, while the Tactile host tree becomes an internal reconciler output. Product) Tj ET
+BT /F1 10.50 Tf 54.00 548.00 Td (engineers and AI agents should write React components, not JSON layout documents and not a) Tj ET
+BT /F1 10.50 Tf 54.00 534.00 Td (partial expression language.) Tj ET
+BT /F1 10.50 Tf 54.00 510.00 Td (The target model is:) Tj ET
+BT /F3 8.50 Tf 68.00 473.00 Td (React components) Tj ET
+BT /F3 8.50 Tf 68.00 462.00 Td (  -> custom React reconciler) Tj ET
+BT /F3 8.50 Tf 68.00 451.00 Td (  -> TactileHostTree) Tj ET
+BT /F3 8.50 Tf 68.00 440.00 Td (  -> Reaktor FFI bridge) Tj ET
+BT /F3 8.50 Tf 68.00 429.00 Td (  -> StateFlow<TactileHostNode>) Tj ET
+BT /F3 8.50 Tf 68.00 418.00 Td (  -> TactileComposeRenderer) Tj ET
+BT /F3 8.50 Tf 68.00 407.00 Td (  -> Compose Multiplatform) Tj ET
+BT /F1 10.50 Tf 54.00 371.00 Td (For React-native terminal targets, the path is simpler:) Tj ET
+BT /F3 8.50 Tf 68.00 334.00 Td (React components) Tj ET
+BT /F3 8.50 Tf 68.00 323.00 Td (  -> @reaktor/tactile-rsd) Tj ET
+BT /F3 8.50 Tf 68.00 312.00 Td (  -> React Strict DOM) Tj ET
+BT /F3 8.50 Tf 68.00 301.00 Td (  -> DOM / React Native) Tj ET
+BT /F1 10.50 Tf 54.00 265.00 Td (The Tactile host tree is an implementation detail. It is similar in role to a shadow tree or) Tj ET
+BT /F1 10.50 Tf 54.00 251.00 Td (host tree in other renderer systems. It is not a public schema language. Its purpose is to) Tj ET
+BT /F1 10.50 Tf 54.00 237.00 Td (make the React composition model renderable through the native Compose Multiplatform design) Tj ET
+BT /F1 10.50 Tf 54.00 223.00 Td (system.) Tj ET
+BT /F1 10.50 Tf 54.00 199.00 Td (Reaktor Graph remains the app orchestration layer. It should continue to own navigation,) Tj ET
+BT /F1 10.50 Tf 54.00 185.00 Td (route payloads, graph ports, dependency scopes, services, repositories, and app lifecycle.) Tj ET
+BT /F1 10.50 Tf 54.00 171.00 Td (Tactile should plug into graph rendering as a sibling to the current ComposeContent path,) Tj ET
+BT /F1 10.50 Tf 54.00 157.00 Td (not replace the graph runtime.) Tj ET
+BT /F1 10.50 Tf 54.00 133.00 Td (BestBuds mobile should be the first product transition target. The transition should begin) Tj ET
+BT /F1 10.50 Tf 54.00 119.00 Td (with leaf components and product design tokens, not whole screens. Reaktor Desktop should be) Tj ET
+BT /F1 10.50 Tf 54.00 105.00 Td (upgraded later as tooling for host-tree inspection, component catalogues, skin switching,) Tj ET
+BT /F1 10.50 Tf 54.00 91.00 Td (and route preview.) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (1 / 23) Tj ET
+Q
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 3479 >>
+stream
+q
+BT /F2 16.00 Tf 54.00 726.00 Td (Why Not Static SDUI) Tj ET
+BT /F1 10.50 Tf 54.00 690.00 Td (Static SDUI systems often start with a clean idea: the server sends a tree of UI components,) Tj ET
+BT /F1 10.50 Tf 54.00 676.00 Td (and the client renders those components. This is safe, inspectable, and easy to cache at the) Tj ET
+BT /F1 10.50 Tf 54.00 662.00 Td (beginning.) Tj ET
+BT /F1 10.50 Tf 54.00 638.00 Td (The problem is that real product UI quickly needs features that are not simply a tree:) Tj ET
+BT /F1 10.50 Tf 66.00 615.00 Td (- conditionals) Tj ET
+BT /F1 10.50 Tf 66.00 600.00 Td (- loops) Tj ET
+BT /F1 10.50 Tf 66.00 585.00 Td (- local state) Tj ET
+BT /F1 10.50 Tf 66.00 570.00 Td (- form binding) Tj ET
+BT /F1 10.50 Tf 66.00 555.00 Td (- validation) Tj ET
+BT /F1 10.50 Tf 66.00 540.00 Td (- optimistic updates) Tj ET
+BT /F1 10.50 Tf 66.00 525.00 Td (- loading states) Tj ET
+BT /F1 10.50 Tf 66.00 510.00 Td (- effects and lifecycle) Tj ET
+BT /F1 10.50 Tf 66.00 495.00 Td (- component composition) Tj ET
+BT /F1 10.50 Tf 66.00 480.00 Td (- feature flags and experiments) Tj ET
+BT /F1 10.50 Tf 66.00 465.00 Td (- navigation actions) Tj ET
+BT /F1 10.50 Tf 66.00 450.00 Td (- cross-component coordination) Tj ET
+BT /F1 10.50 Tf 54.00 426.00 Td (When those needs appear, a static SDUI system tends to grow a partial programming language.) Tj ET
+BT /F1 10.50 Tf 54.00 412.00 Td (JSON receives fields like `visibleWhen`, `forEach`, `bind`, `onChange`, `validate`,) Tj ET
+BT /F1 10.50 Tf 54.00 398.00 Td (`computed`, and `action`. The design then becomes a custom language without the tooling,) Tj ET
+BT /F1 10.50 Tf 54.00 384.00 Td (debuggability, libraries, and mental model of a real programming language.) Tj ET
+BT /F1 10.50 Tf 54.00 360.00 Td (The second failure mode is separation. Logic becomes split between the SDUI document,) Tj ET
+BT /F1 10.50 Tf 54.00 346.00 Td (server-side builders, and client widgets. It becomes unclear whether behavior belongs in the) Tj ET
+BT /F1 10.50 Tf 54.00 332.00 Td (schema or in the widget. Different widgets start interpreting similar configuration) Tj ET
+BT /F1 10.50 Tf 54.00 318.00 Td (differently. The server begins to depend on client implementation quirks, and clients begin) Tj ET
+BT /F1 10.50 Tf 54.00 304.00 Td (to encode product-specific behavior in generic widgets.) Tj ET
+BT /F1 10.50 Tf 54.00 280.00 Td (The Tactile approach should avoid this. React is already a complete component language. It) Tj ET
+BT /F1 10.50 Tf 54.00 266.00 Td (has functions, conditionals, loops, composition, local state, effects, context, and mature) Tj ET
+BT /F1 10.50 Tf 54.00 252.00 Td (tooling. The reconciler can make React target Reaktor's native Compose runtime without) Tj ET
+BT /F1 10.50 Tf 54.00 238.00 Td (inventing another programming language.) Tj ET
+BT /F1 10.50 Tf 54.00 214.00 Td (This does not mean JSON or FlexBuffers disappear. They may still exist as internal encodings) Tj ET
+BT /F1 10.50 Tf 54.00 200.00 Td (for the reconciler commit protocol. The difference is that the authoring model is not JSON.) Tj ET
+BT /F1 10.50 Tf 54.00 186.00 Td (The authoring model is React.) Tj ET
+BT /F2 16.00 Tf 54.00 152.00 Td (Target Architecture) Tj ET
+BT /F1 10.50 Tf 54.00 116.00 Td (The system has four major runtime surfaces:) Tj ET
+BT /F1 10.50 Tf 66.00 93.00 Td (1. React composition surface.) Tj ET
+BT /F1 10.50 Tf 66.00 78.00 Td (2. Tactile host tree and reconciler bridge.) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (2 / 23) Tj ET
+Q
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 2513 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (3. Native Compose Multiplatform renderer.) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (4. React Strict DOM renderer.) Tj ET
+BT /F1 10.50 Tf 54.00 698.00 Td (The responsibilities should remain strict.) Tj ET
+BT /F1 10.50 Tf 54.00 674.00 Td (React owns:) Tj ET
+BT /F1 10.50 Tf 66.00 651.00 Td (- component composition) Tj ET
+BT /F1 10.50 Tf 66.00 636.00 Td (- conditionals) Tj ET
+BT /F1 10.50 Tf 66.00 621.00 Td (- loops) Tj ET
+BT /F1 10.50 Tf 66.00 606.00 Td (- local UI state) Tj ET
+BT /F1 10.50 Tf 66.00 591.00 Td (- hooks) Tj ET
+BT /F1 10.50 Tf 66.00 576.00 Td (- effects) Tj ET
+BT /F1 10.50 Tf 66.00 561.00 Td (- component abstraction) Tj ET
+BT /F1 10.50 Tf 66.00 546.00 Td (- handler definitions) Tj ET
+BT /F1 10.50 Tf 66.00 531.00 Td (- AI-generated component source) Tj ET
+BT /F1 10.50 Tf 54.00 507.00 Td (Tactile owns:) Tj ET
+BT /F1 10.50 Tf 66.00 484.00 Td (- host component contracts) Tj ET
+BT /F1 10.50 Tf 66.00 469.00 Td (- design tokens) Tj ET
+BT /F1 10.50 Tf 66.00 454.00 Td (- skins and visual languages) Tj ET
+BT /F1 10.50 Tf 66.00 439.00 Td (- interaction state) Tj ET
+BT /F1 10.50 Tf 66.00 424.00 Td (- physics and springs) Tj ET
+BT /F1 10.50 Tf 66.00 409.00 Td (- haptics and sound hooks) Tj ET
+BT /F1 10.50 Tf 66.00 394.00 Td (- shader field integration) Tj ET
+BT /F1 10.50 Tf 66.00 379.00 Td (- adaptive layout primitives) Tj ET
+BT /F1 10.50 Tf 66.00 364.00 Td (- renderer-neutral semantics) Tj ET
+BT /F1 10.50 Tf 54.00 340.00 Td (Reaktor Graph owns:) Tj ET
+BT /F1 10.50 Tf 66.00 317.00 Td (- route graph) Tj ET
+BT /F1 10.50 Tf 66.00 302.00 Td (- back stack) Tj ET
+BT /F1 10.50 Tf 66.00 287.00 Td (- route payloads) Tj ET
+BT /F1 10.50 Tf 66.00 272.00 Td (- graph ports) Tj ET
+BT /F1 10.50 Tf 66.00 257.00 Td (- dependency scopes) Tj ET
+BT /F1 10.50 Tf 66.00 242.00 Td (- repositories) Tj ET
+BT /F1 10.50 Tf 66.00 227.00 Td (- services) Tj ET
+BT /F1 10.50 Tf 66.00 212.00 Td (- app lifecycle) Tj ET
+BT /F1 10.50 Tf 66.00 197.00 Td (- app-level action registry) Tj ET
+BT /F1 10.50 Tf 54.00 173.00 Td (Compose owns:) Tj ET
+BT /F1 10.50 Tf 66.00 150.00 Td (- native layout) Tj ET
+BT /F1 10.50 Tf 66.00 135.00 Td (- native rendering) Tj ET
+BT /F1 10.50 Tf 66.00 120.00 Td (- accessibility semantics) Tj ET
+BT /F1 10.50 Tf 66.00 105.00 Td (- pointer, hover, focus, and drag input) Tj ET
+BT /F1 10.50 Tf 66.00 90.00 Td (- native haptics) Tj ET
+BT /F1 10.50 Tf 66.00 75.00 Td (- native spring and animation execution) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (3 / 23) Tj ET
+Q
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 3325 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- Skia shader execution) Tj ET
+BT /F1 10.50 Tf 54.00 713.00 Td (React Strict DOM owns:) Tj ET
+BT /F1 10.50 Tf 66.00 690.00 Td (- DOM and React Native terminal rendering) Tj ET
+BT /F1 10.50 Tf 66.00 675.00 Td (- `html.*` primitives) Tj ET
+BT /F1 10.50 Tf 66.00 660.00 Td (- `css.create` style definitions) Tj ET
+BT /F1 10.50 Tf 66.00 645.00 Td (- ARIA and platform semantic mapping for the React path) Tj ET
+BT /F1 10.50 Tf 54.00 621.00 Td (The most important performance rule is that React must not drive tactile animation frames. A) Tj ET
+BT /F1 10.50 Tf 54.00 607.00 Td (press, drag, hover, shader ripple, haptic impulse, or spring simulation should not require a) Tj ET
+BT /F1 10.50 Tf 54.00 593.00 Td (per-frame JS to Kotlin round trip. React should describe structure and semantic state.) Tj ET
+BT /F1 10.50 Tf 54.00 579.00 Td (Kotlin and Compose should run the tactile runtime locally.) Tj ET
+BT /F2 16.00 Tf 54.00 545.00 Td (Core Runtime) Tj ET
+BT /F1 10.50 Tf 54.00 509.00 Td (The core runtime lives in Kotlin and should be renderer-independent wherever possible. The) Tj ET
+BT /F1 10.50 Tf 54.00 495.00 Td (same concepts may have TypeScript mirrors for the React Strict DOM path, but the native) Tj ET
+BT /F1 10.50 Tf 54.00 481.00 Td (Compose path should run the tactile runtime locally.) Tj ET
+BT /F2 13.00 Tf 54.00 451.00 Td (Interaction Snapshot) Tj ET
+BT /F1 10.50 Tf 54.00 421.00 Td (The original simple design used a sealed state such as `Created`, `Focused`, `Hovered`, and) Tj ET
+BT /F1 10.50 Tf 54.00 407.00 Td (`Pressed`. That model is too narrow. A real control can be focused and hovered and pressed) Tj ET
+BT /F1 10.50 Tf 54.00 393.00 Td (at the same time. A drag can begin while a press is active. Disabled state is orthogonal to) Tj ET
+BT /F1 10.50 Tf 54.00 379.00 Td (hover and focus.) Tj ET
+BT /F1 10.50 Tf 54.00 355.00 Td (Use a snapshot with concurrent flags:) Tj ET
+BT /F3 8.50 Tf 68.00 318.00 Td (data class InteractionSnapshot\() Tj ET
+BT /F3 8.50 Tf 68.00 307.00 Td (    val focused: Boolean = false,) Tj ET
+BT /F3 8.50 Tf 68.00 296.00 Td (    val hovered: Boolean = false,) Tj ET
+BT /F3 8.50 Tf 68.00 285.00 Td (    val pressed: Boolean = false,) Tj ET
+BT /F3 8.50 Tf 68.00 274.00 Td (    val dragging: Boolean = false,) Tj ET
+BT /F3 8.50 Tf 68.00 263.00 Td (    val enabled: Boolean = true,) Tj ET
+BT /F3 8.50 Tf 68.00 252.00 Td (    val pointerPosition: Offset? = null,) Tj ET
+BT /F3 8.50 Tf 68.00 241.00 Td (    val pressOrigin: Offset? = null,) Tj ET
+BT /F3 8.50 Tf 68.00 230.00 Td (    val velocity: Velocity? = null,) Tj ET
+BT /F3 8.50 Tf 68.00 219.00 Td (    val pressDurationMs: Long = 0,) Tj ET
+BT /F3 8.50 Tf 68.00 208.00 Td (    val pressCount: Int = 0) Tj ET
+BT /F3 8.50 Tf 68.00 197.00 Td (\)) Tj ET
+BT /F1 10.50 Tf 54.00 161.00 Td (The snapshot is the local state the renderer and skin consume. It is not a React state) Tj ET
+BT /F1 10.50 Tf 54.00 147.00 Td (object and should not be updated across the FFI bridge every frame.) Tj ET
+BT /F2 13.00 Tf 54.00 117.00 Td (Interaction Controller) Tj ET
+BT /F1 10.50 Tf 54.00 87.00 Td (`InteractionController` should be a native Kotlin controller created by the Compose renderer) Tj ET
+BT /F1 10.50 Tf 54.00 73.00 Td (for interactive host nodes.) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (4 / 23) Tj ET
+Q
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 2835 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 728.00 Td (It should receive events such as:) Tj ET
+BT /F1 10.50 Tf 66.00 705.00 Td (- pointer down) Tj ET
+BT /F1 10.50 Tf 66.00 690.00 Td (- pointer up) Tj ET
+BT /F1 10.50 Tf 66.00 675.00 Td (- pointer move) Tj ET
+BT /F1 10.50 Tf 66.00 660.00 Td (- hover enter) Tj ET
+BT /F1 10.50 Tf 66.00 645.00 Td (- hover exit) Tj ET
+BT /F1 10.50 Tf 66.00 630.00 Td (- focus gain) Tj ET
+BT /F1 10.50 Tf 66.00 615.00 Td (- focus loss) Tj ET
+BT /F1 10.50 Tf 66.00 600.00 Td (- drag start) Tj ET
+BT /F1 10.50 Tf 66.00 585.00 Td (- drag move) Tj ET
+BT /F1 10.50 Tf 66.00 570.00 Td (- drag stop) Tj ET
+BT /F1 10.50 Tf 66.00 555.00 Td (- enabled state change) Tj ET
+BT /F1 10.50 Tf 54.00 531.00 Td (It should expose a `StateFlow<InteractionSnapshot>`. Visuals, haptics, shader impulses, and) Tj ET
+BT /F1 10.50 Tf 54.00 517.00 Td (local tactile reactions read the snapshot.) Tj ET
+BT /F2 13.00 Tf 54.00 487.00 Td (Physical Engine) Tj ET
+BT /F1 10.50 Tf 54.00 457.00 Td (The physical engine should start with renderer-neutral math:) Tj ET
+BT /F3 8.50 Tf 68.00 420.00 Td (data class MaterialPhysics\() Tj ET
+BT /F3 8.50 Tf 68.00 409.00 Td (    val mass: Float,) Tj ET
+BT /F3 8.50 Tf 68.00 398.00 Td (    val stiffness: Float,) Tj ET
+BT /F3 8.50 Tf 68.00 387.00 Td (    val damping: Float,) Tj ET
+BT /F3 8.50 Tf 68.00 376.00 Td (    val friction: Float) Tj ET
+BT /F3 8.50 Tf 68.00 365.00 Td (\)) Tj ET
+BT /F1 10.50 Tf 54.00 329.00 Td (The engine should define presets such as Feather, Rubber, Wood, Steel, and Stone. These) Tj ET
+BT /F1 10.50 Tf 54.00 315.00 Td (presets are not just animation constants. They express how a material should feel across) Tj ET
+BT /F1 10.50 Tf 54.00 301.00 Td (press depth, rebound, drag, impact, and haptic response.) Tj ET
+BT /F1 10.50 Tf 54.00 277.00 Td (The engine should expose pure spring simulation, and Compose adapters should map material) Tj ET
+BT /F1 10.50 Tf 54.00 263.00 Td (physics into Compose spring specs where appropriate. This allows native animation APIs to) Tj ET
+BT /F1 10.50 Tf 54.00 249.00 Td (remain responsible for frames.) Tj ET
+BT /F2 13.00 Tf 54.00 219.00 Td (Tactile Field) Tj ET
+BT /F1 10.50 Tf 54.00 189.00 Td (The Tactile field is the decoupling layer for cross-element reactions.) Tj ET
+BT /F1 10.50 Tf 54.00 165.00 Td (When a button is pressed, the button should not know which background shader is active. It) Tj ET
+BT /F1 10.50 Tf 54.00 151.00 Td (should emit an impulse into a shared field:) Tj ET
+BT /F3 8.50 Tf 68.00 114.00 Td (data class Impulse\() Tj ET
+BT /F3 8.50 Tf 68.00 103.00 Td (    val origin: Offset,) Tj ET
+BT /F3 8.50 Tf 68.00 92.00 Td (    val force: Float,) Tj ET
+BT /F3 8.50 Tf 68.00 81.00 Td (    val material: MaterialPhysics,) Tj ET
+BT /F3 8.50 Tf 68.00 70.00 Td (    val timestamp: Long) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (5 / 23) Tj ET
+Q
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Length 2976 >>
+stream
+q
+BT /F3 8.50 Tf 68.00 738.00 Td (\)) Tj ET
+BT /F1 10.50 Tf 54.00 702.00 Td (Other elements and shaders can read the field. This supports effects such as a background) Tj ET
+BT /F1 10.50 Tf 54.00 688.00 Td (responding to a card press or a button press causing nearby elements to shift without direct) Tj ET
+BT /F1 10.50 Tf 54.00 674.00 Td (component-to-component coupling.) Tj ET
+BT /F1 10.50 Tf 54.00 650.00 Td (This is especially important for the design goal of a living UI system. The field lets the) Tj ET
+BT /F1 10.50 Tf 54.00 636.00 Td (UI feel connected without making every component know about every other component.) Tj ET
+BT /F2 13.00 Tf 54.00 606.00 Td (Sensory Runtime) Tj ET
+BT /F1 10.50 Tf 54.00 576.00 Td (Haptics and sound should be abstracted behind adapters:) Tj ET
+BT /F3 8.50 Tf 68.00 539.00 Td (interface HapticEngine {) Tj ET
+BT /F3 8.50 Tf 68.00 528.00 Td (    fun play\(pattern: HapticPattern\)) Tj ET
+BT /F3 8.50 Tf 68.00 517.00 Td (}) Tj ET
+BT /F1 10.50 Tf 54.00 481.00 Td (Haptic patterns should support fixed patterns such as light click and success, and dynamic) Tj ET
+BT /F1 10.50 Tf 54.00 467.00 Td (patterns based on mass and velocity. The Compose renderer calls haptics from native) Tj ET
+BT /F1 10.50 Tf 54.00 453.00 Td (interaction events. React handlers should not trigger low-level haptics directly for) Tj ET
+BT /F1 10.50 Tf 54.00 439.00 Td (ordinary tactile interactions.) Tj ET
+BT /F2 13.00 Tf 54.00 409.00 Td (Shader Runtime) Tj ET
+BT /F1 10.50 Tf 54.00 379.00 Td (Skia shader support should be part of the Compose path and optional for web/canvas targets) Tj ET
+BT /F1 10.50 Tf 54.00 365.00 Td (based on capability. The shader layer should read the Tactile field, not individual) Tj ET
+BT /F1 10.50 Tf 54.00 351.00 Td (components.) Tj ET
+BT /F1 10.50 Tf 54.00 327.00 Td (The shader runtime should support:) Tj ET
+BT /F1 10.50 Tf 66.00 304.00 Td (- shader capability detection) Tj ET
+BT /F1 10.50 Tf 66.00 289.00 Td (- shader uniform derivation from `TactileField`) Tj ET
+BT /F1 10.50 Tf 66.00 274.00 Td (- fallback rendering when shaders are unavailable) Tj ET
+BT /F1 10.50 Tf 66.00 259.00 Td (- no direct coupling between a component and a shader implementation) Tj ET
+BT /F2 16.00 Tf 54.00 225.00 Td (Skins And Tokens) Tj ET
+BT /F1 10.50 Tf 54.00 189.00 Td (BestBuds currently uses three styling systems at once:) Tj ET
+BT /F1 10.50 Tf 66.00 166.00 Td (- `BestBudsTheme`, backed by old `reaktor-ui` `Theme`.) Tj ET
+BT /F1 10.50 Tf 66.00 151.00 Td (- `BestBudsTokens`, with `Spacing`, `Corners`, `BBColors`, `AppGradient`, and) Tj ET
+BT /F1 10.50 Tf 66.00 137.00 Td (  `ChatGradient`.) Tj ET
+BT /F1 10.50 Tf 66.00 122.00 Td (- Direct Material3 values inside screens and product components.) Tj ET
+BT /F1 10.50 Tf 54.00 98.00 Td (The Tactile system should unify these through a product skin.) Tj ET
+BT /F1 10.50 Tf 54.00 74.00 Td (The skin interface should be renderer-neutral:) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (6 / 23) Tj ET
+Q
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 16 0 R >>
+endobj
+18 0 obj
+<< /Length 3204 >>
+stream
+q
+BT /F3 8.50 Tf 68.00 715.00 Td (interface DesignLanguage {) Tj ET
+BT /F3 8.50 Tf 68.00 704.00 Td (    val name: String) Tj ET
+BT /F3 8.50 Tf 68.00 693.00 Td (    val defaultMaterial: MaterialPhysics) Tj ET
+BT /F3 8.50 Tf 68.00 682.00 Td (    fun tokens\(base: DesignTokens\): TactileTokens) Tj ET
+BT /F3 8.50 Tf 68.00 671.00 Td (    fun buttonVisuals\(variant: String, size: String, snapshot: InteractionSnapshot\): ButtonVisuals) Tj ET
+BT /F3 8.50 Tf 68.00 660.00 Td (    fun cardVisuals\(variant: String, snapshot: InteractionSnapshot\): CardVisuals) Tj ET
+BT /F3 8.50 Tf 68.00 649.00 Td (    fun surfaceVisuals\(elevation: Float, snapshot: InteractionSnapshot\): SurfaceVisuals) Tj ET
+BT /F3 8.50 Tf 68.00 638.00 Td (    fun inputVisuals\(state: String, snapshot: InteractionSnapshot\): InputVisuals) Tj ET
+BT /F3 8.50 Tf 68.00 627.00 Td (    fun textVisuals\(style: String\): TextVisuals) Tj ET
+BT /F3 8.50 Tf 68.00 616.00 Td (}) Tj ET
+BT /F1 10.50 Tf 54.00 580.00 Td (Visual specs must not contain Compose `Color`, CSS strings, or platform-specific types. They) Tj ET
+BT /F1 10.50 Tf 54.00 566.00 Td (should use raw values such as ARGB integers, floats, and semantic scalar values. Compose and) Tj ET
+BT /F1 10.50 Tf 54.00 552.00 Td (RSD renderers convert those specs into platform-specific APIs.) Tj ET
+BT /F1 10.50 Tf 54.00 528.00 Td (`BestBudsSkin` should be derived from:) Tj ET
+BT /F1 10.50 Tf 66.00 505.00 Td (- `BestBudsTheme`) Tj ET
+BT /F1 10.50 Tf 66.00 490.00 Td (- `BBColors`) Tj ET
+BT /F1 10.50 Tf 66.00 475.00 Td (- `Spacing`) Tj ET
+BT /F1 10.50 Tf 66.00 460.00 Td (- `Corners`) Tj ET
+BT /F1 10.50 Tf 66.00 445.00 Td (- `AppGradient`) Tj ET
+BT /F1 10.50 Tf 66.00 430.00 Td (- `ChatGradient`) Tj ET
+BT /F1 10.50 Tf 66.00 415.00 Td (- the observed card, chip, search, event, and chat visual patterns) Tj ET
+BT /F1 10.50 Tf 54.00 391.00 Td (This creates a bridge from today's Compose UI to the future Tactile runtime without forcing) Tj ET
+BT /F1 10.50 Tf 54.00 377.00 Td (a whole-screen rewrite first.) Tj ET
+BT /F2 16.00 Tf 54.00 343.00 Td (Host Tree And Reconciler) Tj ET
+BT /F1 10.50 Tf 54.00 307.00 Td (The host tree is the internal representation produced by the React reconciler.) Tj ET
+BT /F1 10.50 Tf 54.00 283.00 Td (It should not be public authoring syntax. Product engineers write React components. AI) Tj ET
+BT /F1 10.50 Tf 54.00 269.00 Td (agents generate React components. The reconciler produces host nodes.) Tj ET
+BT /F1 10.50 Tf 54.00 245.00 Td (The Kotlin shape can start as:) Tj ET
+BT /F3 8.50 Tf 68.00 208.00 Td (data class TactileHostNode\() Tj ET
+BT /F3 8.50 Tf 68.00 197.00 Td (    val id: Int,) Tj ET
+BT /F3 8.50 Tf 68.00 186.00 Td (    val type: String,) Tj ET
+BT /F3 8.50 Tf 68.00 175.00 Td (    val props: Map<String, TactileValue>,) Tj ET
+BT /F3 8.50 Tf 68.00 164.00 Td (    val handlers: Map<String, HandlerRef>,) Tj ET
+BT /F3 8.50 Tf 68.00 153.00 Td (    val children: List<TactileHostNode>) Tj ET
+BT /F3 8.50 Tf 68.00 142.00 Td (\)) Tj ET
+BT /F1 10.50 Tf 54.00 106.00 Td (The `type` field should use stable, versioned host component IDs:) Tj ET
+BT /F3 8.50 Tf 68.00 69.00 Td (reaktor.tactile.Button@1) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (7 / 23) Tj ET
+Q
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 18 0 R >>
+endobj
+20 0 obj
+<< /Length 3251 >>
+stream
+q
+BT /F3 8.50 Tf 68.00 738.00 Td (reaktor.tactile.Text@1) Tj ET
+BT /F3 8.50 Tf 68.00 727.00 Td (reaktor.tactile.Card@1) Tj ET
+BT /F3 8.50 Tf 68.00 716.00 Td (reaktor.tactile.ListDetail@1) Tj ET
+BT /F1 10.50 Tf 54.00 680.00 Td (Versioning matters. If the Button host contract changes incompatibly, introduce) Tj ET
+BT /F1 10.50 Tf 54.00 666.00 Td (`reaktor.tactile.Button@2`. Do not silently break old bundles.) Tj ET
+BT /F1 10.50 Tf 54.00 642.00 Td (Handlers must be references, not serialized lambdas:) Tj ET
+BT /F3 8.50 Tf 68.00 605.00 Td (data class HandlerRef\(val id: String\)) Tj ET
+BT /F1 10.50 Tf 54.00 569.00 Td (On the JS side, a handler registry maps IDs to functions. On the Kotlin side, Compose) Tj ET
+BT /F1 10.50 Tf 54.00 555.00 Td (dispatches native events back to Hermes using the handler ID. This keeps the host tree) Tj ET
+BT /F1 10.50 Tf 54.00 541.00 Td (data-only while still letting React own handler logic.) Tj ET
+BT /F1 10.50 Tf 54.00 517.00 Td (The event round trip is:) Tj ET
+BT /F3 8.50 Tf 68.00 480.00 Td (User presses button) Tj ET
+BT /F3 8.50 Tf 68.00 469.00 Td (  -> Compose pointer input) Tj ET
+BT /F3 8.50 Tf 68.00 458.00 Td (  -> InteractionController updates snapshot) Tj ET
+BT /F3 8.50 Tf 68.00 447.00 Td (  -> TactileField receives impulse) Tj ET
+BT /F3 8.50 Tf 68.00 436.00 Td (  -> native haptics and spring animation run locally) Tj ET
+BT /F3 8.50 Tf 68.00 425.00 Td (  -> on release, Compose calls bridge.dispatchEvent\(handlerId, payload\)) Tj ET
+BT /F3 8.50 Tf 68.00 414.00 Td (  -> Hermes invokes registered JS handler) Tj ET
+BT /F3 8.50 Tf 68.00 403.00 Td (  -> React setState or action call runs) Tj ET
+BT /F3 8.50 Tf 68.00 392.00 Td (  -> custom reconciler commits host tree) Tj ET
+BT /F3 8.50 Tf 68.00 381.00 Td (  -> Kotlin StateFlow<TactileHostNode> updates) Tj ET
+BT /F3 8.50 Tf 68.00 370.00 Td (  -> Compose recomposes) Tj ET
+BT /F1 10.50 Tf 54.00 334.00 Td (For MVP, a full host tree commit using JSON is acceptable because it is simple and) Tj ET
+BT /F1 10.50 Tf 54.00 320.00 Td (debuggable. After correctness is established, move to FlexBuffer full-tree commits. Only) Tj ET
+BT /F1 10.50 Tf 54.00 306.00 Td (after that should op batches be introduced.) Tj ET
+BT /F1 10.50 Tf 54.00 282.00 Td (The sequence should be:) Tj ET
+BT /F1 10.50 Tf 66.00 259.00 Td (1. JSON full-tree commit.) Tj ET
+BT /F1 10.50 Tf 66.00 244.00 Td (2. FlexBuffer full-tree commit.) Tj ET
+BT /F1 10.50 Tf 66.00 229.00 Td (3. FlexBuffer op batches: create, insert, update, remove, reorder.) Tj ET
+BT /F2 16.00 Tf 54.00 195.00 Td (Adaptive Layout Architecture) Tj ET
+BT /F1 10.50 Tf 54.00 159.00 Td (The current graph renderer renders the top route in a graph. This is enough for compact) Tj ET
+BT /F1 10.50 Tf 54.00 145.00 Td (screens. It is not enough for multi-pane layouts.) Tj ET
+BT /F1 10.50 Tf 54.00 121.00 Td (BestBuds chat is the key case:) Tj ET
+BT /F1 10.50 Tf 66.00 98.00 Td (- compact mode: `/chats` pushes `/chats/{id}`;) Tj ET
+BT /F1 10.50 Tf 66.00 83.00 Td (- expanded mode: `/chats` and `/chats/{id}` should be visible at the same time;) Tj ET
+BT /F1 10.50 Tf 66.00 68.00 Td (- extra pane mode: friend profile or group profile can appear as a third pane.) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (8 / 23) Tj ET
+Q
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 20 0 R >>
+endobj
+22 0 obj
+<< /Length 2502 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 728.00 Td (The missing primitive is:) Tj ET
+BT /F3 8.50 Tf 68.00 691.00 Td (@Composable) Tj ET
+BT /F3 8.50 Tf 68.00 680.00 Td (fun GraphRouteContent\() Tj ET
+BT /F3 8.50 Tf 68.00 669.00 Td (    graph: Graph,) Tj ET
+BT /F3 8.50 Tf 68.00 658.00 Td (    route: RouteNode<*, *>,) Tj ET
+BT /F3 8.50 Tf 68.00 647.00 Td (    isFocused: Boolean = true) Tj ET
+BT /F3 8.50 Tf 68.00 636.00 Td (\)) Tj ET
+BT /F1 10.50 Tf 54.00 600.00 Td (`GraphContent\(graph\)` renders the current top route. `GraphRouteContent\(graph, route\)`) Tj ET
+BT /F1 10.50 Tf 54.00 586.00 Td (renders a specific route. Adaptive pane containers need the second primitive.) Tj ET
+BT /F1 10.50 Tf 54.00 562.00 Td (The rule should be:) Tj ET
+BT /F1 10.50 Tf 66.00 539.00 Td (- Reaktor Graph owns route state and navigation.) Tj ET
+BT /F1 10.50 Tf 66.00 524.00 Td (- Compose Adaptive owns pane presentation.) Tj ET
+BT /F1 10.50 Tf 66.00 509.00 Td (- Tactile owns the renderer-neutral adaptive host component contract.) Tj ET
+BT /F1 10.50 Tf 54.00 485.00 Td (For a list-detail layout, the Tactile host component can represent:) Tj ET
+BT /F1 10.50 Tf 66.00 462.00 Td (- list pane) Tj ET
+BT /F1 10.50 Tf 66.00 447.00 Td (- detail pane) Tj ET
+BT /F1 10.50 Tf 66.00 432.00 Td (- extra pane) Tj ET
+BT /F1 10.50 Tf 66.00 417.00 Td (- collapse policy) Tj ET
+BT /F1 10.50 Tf 66.00 402.00 Td (- focus policy) Tj ET
+BT /F1 10.50 Tf 54.00 378.00 Td (Compose maps this to Material3 adaptive pane scaffolds. RSD maps it to responsive DOM/native) Tj ET
+BT /F1 10.50 Tf 54.00 364.00 Td (layout. The route graph does not need to adopt Compose Navigation.) Tj ET
+BT /F2 16.00 Tf 54.00 330.00 Td (BestBuds Mobile UI Surface) Tj ET
+BT /F2 13.00 Tf 54.00 288.00 Td (Graph And Navigation) Tj ET
+BT /F1 10.50 Tf 54.00 258.00 Td (The BestBuds root graph is defined in:) Tj ET
+BT /F1 10.50 Tf 54.00 234.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBuds.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 210.00 Td (The root graph attaches data nodes:) Tj ET
+BT /F1 10.50 Tf 66.00 187.00 Td (- `MessageRepository`) Tj ET
+BT /F1 10.50 Tf 66.00 172.00 Td (- `UserRepository`) Tj ET
+BT /F1 10.50 Tf 66.00 157.00 Td (- `ChatInteractor`) Tj ET
+BT /F1 10.50 Tf 66.00 142.00 Td (- `SocialRepository`) Tj ET
+BT /F1 10.50 Tf 66.00 127.00 Td (- `UserInteractor`) Tj ET
+BT /F1 10.50 Tf 54.00 103.00 Td (It then creates child graphs:) Tj ET
+BT /F1 10.50 Tf 66.00 80.00 Td (- Chat) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (9 / 23) Tj ET
+Q
+endstream
+endobj
+23 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 22 0 R >>
+endobj
+24 0 obj
+<< /Length 2626 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- Profile) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (- Campaign) Tj ET
+BT /F1 10.50 Tf 66.00 707.00 Td (- Discover) Tj ET
+BT /F1 10.50 Tf 66.00 692.00 Td (- Events) Tj ET
+BT /F1 10.50 Tf 66.00 677.00 Td (- Friends) Tj ET
+BT /F1 10.50 Tf 66.00 662.00 Td (- Dev) Tj ET
+BT /F1 10.50 Tf 54.00 638.00 Td (The `/home` container uses `BottomNavigationContainer` with bottom nav keys:) Tj ET
+BT /F1 10.50 Tf 66.00 615.00 Td (- Chat) Tj ET
+BT /F1 10.50 Tf 66.00 600.00 Td (- Campaign) Tj ET
+BT /F1 10.50 Tf 66.00 585.00 Td (- Discover) Tj ET
+BT /F1 10.50 Tf 66.00 570.00 Td (- Events) Tj ET
+BT /F1 10.50 Tf 54.00 546.00 Td (Friends, Profile, and Dev are present as child graphs, but they are accessed through the top) Tj ET
+BT /F1 10.50 Tf 54.00 532.00 Td (bar menu and overflow behavior. The top bar is implemented by `BestBudsTopBar`.) Tj ET
+BT /F1 10.50 Tf 54.00 508.00 Td (The Events graph contains a nested `TabbedContainer` for Private and Public event graphs.) Tj ET
+BT /F2 13.00 Tf 54.00 478.00 Td (Start Screen) Tj ET
+BT /F1 10.50 Tf 54.00 448.00 Td (File:) Tj ET
+BT /F1 10.50 Tf 54.00 424.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/StartScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 400.00 Td (The start screen contains:) Tj ET
+BT /F1 10.50 Tf 66.00 377.00 Td (- typewriter translation branding) Tj ET
+BT /F1 10.50 Tf 66.00 362.00 Td (- Apple login button) Tj ET
+BT /F1 10.50 Tf 66.00 347.00 Td (- Google login button) Tj ET
+BT /F1 10.50 Tf 66.00 332.00 Td (- impersonated login avatar row) Tj ET
+BT /F1 10.50 Tf 66.00 317.00 Td (- auto-navigation for active users) Tj ET
+BT /F1 10.50 Tf 66.00 302.00 Td (- status-based user navigation) Tj ET
+BT /F1 10.50 Tf 54.00 278.00 Td (Important current behavior:) Tj ET
+BT /F1 10.50 Tf 66.00 255.00 Td (- `UserStatus.ONBOARDING` currently navigates to the chat list edge with a TODO comment) Tj ET
+BT /F1 10.50 Tf 66.00 241.00 Td (  saying to switch to the onboarding edge after testing.) Tj ET
+BT /F1 10.50 Tf 54.00 217.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 194.00 Td (- This screen touches auth and app entry flow. It should not be the first React/Tactile) Tj ET
+BT /F1 10.50 Tf 66.00 180.00 Td (  route.) Tj ET
+BT /F1 10.50 Tf 66.00 165.00 Td (- The typewriter component is a good candidate for a Tactile animation primitive later.) Tj ET
+BT /F1 10.50 Tf 66.00 150.00 Td (- The impersonation avatars are good image/avatar leaf candidates.) Tj ET
+BT /F2 13.00 Tf 54.00 120.00 Td (Onboarding) Tj ET
+BT /F1 10.50 Tf 54.00 90.00 Td (Files:) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (10 / 23) Tj ET
+Q
+endstream
+endobj
+25 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 24 0 R >>
+endobj
+26 0 obj
+<< /Length 2914 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 736.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/onboarding/OnboardingScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 712.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/onboarding/OnboardingViews.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 688.00 Td (The onboarding UI contains:) Tj ET
+BT /F1 10.50 Tf 66.00 665.00 Td (- progress bar) Tj ET
+BT /F1 10.50 Tf 66.00 650.00 Td (- question count) Tj ET
+BT /F1 10.50 Tf 66.00 635.00 Td (- skip button) Tj ET
+BT /F1 10.50 Tf 66.00 620.00 Td (- centered question text) Tj ET
+BT /F1 10.50 Tf 66.00 605.00 Td (- true/false answer controls) Tj ET
+BT /F1 10.50 Tf 66.00 590.00 Td (- single-select grid) Tj ET
+BT /F1 10.50 Tf 66.00 575.00 Td (- integer-range slider) Tj ET
+BT /F1 10.50 Tf 66.00 560.00 Td (- back and submit/finish buttons) Tj ET
+BT /F1 10.50 Tf 66.00 545.00 Td (- service-backed response loading and submission) Tj ET
+BT /F1 10.50 Tf 54.00 521.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 498.00 Td (- This is an excellent proof for React state and form logic, but only after the host) Tj ET
+BT /F1 10.50 Tf 66.00 484.00 Td (  component set and event bridge are stable.) Tj ET
+BT /F1 10.50 Tf 66.00 469.00 Td (- It exercises state, lists, conditional rendering, local response state, service calls, and) Tj ET
+BT /F1 10.50 Tf 66.00 455.00 Td (  navigation.) Tj ET
+BT /F1 10.50 Tf 66.00 440.00 Td (- It should migrate after simpler card/list screens.) Tj ET
+BT /F2 13.00 Tf 54.00 410.00 Td (Chat List) Tj ET
+BT /F1 10.50 Tf 54.00 380.00 Td (File:) Tj ET
+BT /F1 10.50 Tf 54.00 356.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/ChatsScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 332.00 Td (The chat list UI contains:) Tj ET
+BT /F1 10.50 Tf 66.00 309.00 Td (- user gate through `UserRepository`) Tj ET
+BT /F1 10.50 Tf 66.00 294.00 Td (- data fetch through `ChatInteractor`) Tj ET
+BT /F1 10.50 Tf 66.00 279.00 Td (- `LazyColumn`) Tj ET
+BT /F1 10.50 Tf 66.00 264.00 Td (- `ChatRow` for each chat) Tj ET
+BT /F1 10.50 Tf 66.00 249.00 Td (- route dispatch to `/chats/{id}` with `ChatPayload`) Tj ET
+BT /F1 10.50 Tf 54.00 225.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 202.00 Td (- `ChatRow` should migrate before `ChatListScreen`.) Tj ET
+BT /F1 10.50 Tf 66.00 187.00 Td (- Route dispatch must remain graph-owned.) Tj ET
+BT /F1 10.50 Tf 66.00 172.00 Td (- The React component should call a named action or typed route action; it should not mutate) Tj ET
+BT /F1 10.50 Tf 66.00 158.00 Td (  graph internals directly.) Tj ET
+BT /F2 13.00 Tf 54.00 128.00 Td (Chat Detail) Tj ET
+BT /F1 10.50 Tf 54.00 98.00 Td (Files:) Tj ET
+BT /F1 10.50 Tf 54.00 74.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/ChatScreen.kt`) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (11 / 23) Tj ET
+Q
+endstream
+endobj
+27 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 26 0 R >>
+endobj
+28 0 obj
+<< /Length 3183 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 728.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/ChatViews.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 704.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/views/MessageView.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 680.00 Td (The chat detail UI contains:) Tj ET
+BT /F1 10.50 Tf 66.00 657.00 Td (- route payload reading) Tj ET
+BT /F1 10.50 Tf 66.00 642.00 Td (- open chat lifecycle effect) Tj ET
+BT /F1 10.50 Tf 66.00 627.00 Td (- close chat cleanup) Tj ET
+BT /F1 10.50 Tf 66.00 612.00 Td (- chat state render) Tj ET
+BT /F1 10.50 Tf 66.00 597.00 Td (- message list state) Tj ET
+BT /F1 10.50 Tf 66.00 582.00 Td (- older message pagination) Tj ET
+BT /F1 10.50 Tf 66.00 567.00 Td (- reverse `LazyColumn`) Tj ET
+BT /F1 10.50 Tf 66.00 552.00 Td (- date headers) Tj ET
+BT /F1 10.50 Tf 66.00 537.00 Td (- top app bar with avatar/title/subtitle/back/call) Tj ET
+BT /F1 10.50 Tf 66.00 522.00 Td (- title click navigation to friend or group profile) Tj ET
+BT /F1 10.50 Tf 66.00 507.00 Td (- message input) Tj ET
+BT /F1 10.50 Tf 66.00 492.00 Td (- sender and receiver message bubbles) Tj ET
+BT /F1 10.50 Tf 66.00 477.00 Td (- group sender labels) Tj ET
+BT /F1 10.50 Tf 66.00 462.00 Td (- horizontal draggable message bubbles) Tj ET
+BT /F1 10.50 Tf 54.00 438.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 415.00 Td (- Chat is the highest-value Tactile target because it contains tactile gestures, input, list) Tj ET
+BT /F1 10.50 Tf 66.00 401.00 Td (  behavior, navigation, and adaptive potential.) Tj ET
+BT /F1 10.50 Tf 66.00 386.00 Td (- It is also the highest-risk route-level migration.) Tj ET
+BT /F1 10.50 Tf 66.00 371.00 Td (- Migrate leaf components first: `ChatRow`, `ChatTopBar`, `MessageInput`, `ChatDateHeader`,) Tj ET
+BT /F1 10.50 Tf 66.00 357.00 Td (  and message bubbles.) Tj ET
+BT /F1 10.50 Tf 66.00 342.00 Td (- Keep pagination and chat lifecycle in Kotlin/graph/interactor until the action boundary is) Tj ET
+BT /F1 10.50 Tf 66.00 328.00 Td (  proven.) Tj ET
+BT /F1 10.50 Tf 66.00 313.00 Td (- Only after leaf parity should the whole chat route become React/Tactile.) Tj ET
+BT /F2 13.00 Tf 54.00 283.00 Td (Campaign And Discover) Tj ET
+BT /F1 10.50 Tf 54.00 253.00 Td (Files:) Tj ET
+BT /F1 10.50 Tf 54.00 229.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/campaigns/CampaignScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 205.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/campaigns/DiscoverScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 181.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/components/CampaignComponents.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 157.00 Td (The campaign surface contains:) Tj ET
+BT /F1 10.50 Tf 66.00 134.00 Td (- current campaign list) Tj ET
+BT /F1 10.50 Tf 66.00 119.00 Td (- discover campaign list) Tj ET
+BT /F1 10.50 Tf 66.00 104.00 Td (- search bar) Tj ET
+BT /F1 10.50 Tf 66.00 89.00 Td (- current campaign card) Tj ET
+BT /F1 10.50 Tf 66.00 74.00 Td (- discover card) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (12 / 23) Tj ET
+Q
+endstream
+endobj
+29 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 28 0 R >>
+endobj
+30 0 obj
+<< /Length 2647 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- status chips) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (- avatar stacks) Tj ET
+BT /F1 10.50 Tf 66.00 707.00 Td (- gradient action buttons) Tj ET
+BT /F1 10.50 Tf 66.00 692.00 Td (- TODO actions for join, open chat, and details) Tj ET
+BT /F1 10.50 Tf 54.00 668.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 645.00 Td (- These are the best first route-level migrations after leaf components.) Tj ET
+BT /F1 10.50 Tf 66.00 630.00 Td (- They exercise lists, cards, images, search, and buttons without complex lifecycle.) Tj ET
+BT /F1 10.50 Tf 66.00 615.00 Td (- Existing TODO actions reduce migration risk because not all action flows are final.) Tj ET
+BT /F2 13.00 Tf 54.00 585.00 Td (Events) Tj ET
+BT /F1 10.50 Tf 54.00 555.00 Td (Files:) Tj ET
+BT /F1 10.50 Tf 54.00 531.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/events/PrivateEventsScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 507.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/events/PublicEventsScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 483.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/events/CreateEventScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 459.00 Td (Private events contain:) Tj ET
+BT /F1 10.50 Tf 66.00 436.00 Td (- static event list) Tj ET
+BT /F1 10.50 Tf 66.00 421.00 Td (- `EventCard`) Tj ET
+BT /F1 10.50 Tf 66.00 406.00 Td (- relation label) Tj ET
+BT /F1 10.50 Tf 66.00 391.00 Td (- action button) Tj ET
+BT /F1 10.50 Tf 66.00 376.00 Td (- avatar stack) Tj ET
+BT /F1 10.50 Tf 66.00 361.00 Td (- FAB) Tj ET
+BT /F1 10.50 Tf 54.00 337.00 Td (Public events contain:) Tj ET
+BT /F1 10.50 Tf 66.00 314.00 Td (- search) Tj ET
+BT /F1 10.50 Tf 66.00 299.00 Td (- mutable saved toggle state) Tj ET
+BT /F1 10.50 Tf 66.00 284.00 Td (- `EventRow`) Tj ET
+BT /F1 10.50 Tf 66.00 269.00 Td (- thumbnail image) Tj ET
+BT /F1 10.50 Tf 66.00 254.00 Td (- date and venue text) Tj ET
+BT /F1 10.50 Tf 66.00 239.00 Td (- FAB) Tj ET
+BT /F1 10.50 Tf 54.00 215.00 Td (Create event contains:) Tj ET
+BT /F1 10.50 Tf 66.00 192.00 Td (- event name field) Tj ET
+BT /F1 10.50 Tf 66.00 177.00 Td (- event type segmented toggle) Tj ET
+BT /F1 10.50 Tf 66.00 162.00 Td (- date and time fields) Tj ET
+BT /F1 10.50 Tf 66.00 147.00 Td (- location field) Tj ET
+BT /F1 10.50 Tf 66.00 132.00 Td (- description field) Tj ET
+BT /F1 10.50 Tf 66.00 117.00 Td (- character count) Tj ET
+BT /F1 10.50 Tf 66.00 102.00 Td (- upload cover image button) Tj ET
+BT /F1 10.50 Tf 66.00 87.00 Td (- create event button) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (13 / 23) Tj ET
+Q
+endstream
+endobj
+31 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 30 0 R >>
+endobj
+32 0 obj
+<< /Length 2780 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 736.00 Td (Current limitations:) Tj ET
+BT /F1 10.50 Tf 66.00 713.00 Td (- Create event is not wired into the graph.) Tj ET
+BT /F1 10.50 Tf 66.00 698.00 Td (- Many event actions are TODO.) Tj ET
+BT /F1 10.50 Tf 54.00 674.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 651.00 Td (- Event leaf components are good early candidates.) Tj ET
+BT /F1 10.50 Tf 66.00 636.00 Td (- Whole event routes should wait until the product event flow is more settled, unless used) Tj ET
+BT /F1 10.50 Tf 66.00 622.00 Td (  as a demo-only Tactile proof.) Tj ET
+BT /F2 13.00 Tf 54.00 592.00 Td (Friends And Profiles) Tj ET
+BT /F1 10.50 Tf 54.00 562.00 Td (Files:) Tj ET
+BT /F1 10.50 Tf 54.00 538.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/friends/FriendsScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 514.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/profile/ProfileScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 490.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/profile/FriendProfileScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 466.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/profile/GroupProfileScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 442.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/profile/CreateProfileScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 418.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/profile/EditProfileScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 394.00 Td (The friends list contains:) Tj ET
+BT /F1 10.50 Tf 66.00 371.00 Td (- friends data fetch) Tj ET
+BT /F1 10.50 Tf 66.00 356.00 Td (- avatar image) Tj ET
+BT /F1 10.50 Tf 66.00 341.00 Td (- row click to friend profile) Tj ET
+BT /F1 10.50 Tf 54.00 317.00 Td (Friend profile contains:) Tj ET
+BT /F1 10.50 Tf 66.00 294.00 Td (- profile image or placeholder) Tj ET
+BT /F1 10.50 Tf 66.00 279.00 Td (- top app bar) Tj ET
+BT /F1 10.50 Tf 66.00 264.00 Td (- age calculation) Tj ET
+BT /F1 10.50 Tf 66.00 249.00 Td (- bio) Tj ET
+BT /F1 10.50 Tf 66.00 234.00 Td (- interests FlowRow) Tj ET
+BT /F1 10.50 Tf 66.00 219.00 Td (- info rows) Tj ET
+BT /F1 10.50 Tf 66.00 204.00 Td (- conditional message button) Tj ET
+BT /F1 10.50 Tf 66.00 189.00 Td (- navigation back to chat) Tj ET
+BT /F1 10.50 Tf 54.00 165.00 Td (Group profile contains:) Tj ET
+BT /F1 10.50 Tf 66.00 142.00 Td (- group image) Tj ET
+BT /F1 10.50 Tf 66.00 127.00 Td (- member count) Tj ET
+BT /F1 10.50 Tf 66.00 112.00 Td (- members list) Tj ET
+BT /F1 10.50 Tf 66.00 97.00 Td (- current user detection) Tj ET
+BT /F1 10.50 Tf 66.00 82.00 Td (- click to member friend profile) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (14 / 23) Tj ET
+Q
+endstream
+endobj
+33 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 32 0 R >>
+endobj
+34 0 obj
+<< /Length 2597 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 736.00 Td (Own profile contains:) Tj ET
+BT /F1 10.50 Tf 66.00 713.00 Td (- profile data fetch) Tj ET
+BT /F1 10.50 Tf 66.00 698.00 Td (- avatar or placeholder) Tj ET
+BT /F1 10.50 Tf 66.00 683.00 Td (- age and gender display) Tj ET
+BT /F1 10.50 Tf 66.00 668.00 Td (- editable email, bio, hobbies) Tj ET
+BT /F1 10.50 Tf 66.00 653.00 Td (- save button TODO) Tj ET
+BT /F1 10.50 Tf 54.00 629.00 Td (Current limitations:) Tj ET
+BT /F1 10.50 Tf 66.00 606.00 Td (- Create profile is a stub.) Tj ET
+BT /F1 10.50 Tf 66.00 591.00 Td (- Edit profile is `TODO\("Not yet implemented"\)`.) Tj ET
+BT /F1 10.50 Tf 66.00 576.00 Td (- Save profile action is TODO.) Tj ET
+BT /F1 10.50 Tf 54.00 552.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 529.00 Td (- Profile helpers should migrate as leaves before route-level profile screens.) Tj ET
+BT /F1 10.50 Tf 66.00 514.00 Td (- Group/friend profile has useful adaptive extra-pane potential for chat.) Tj ET
+BT /F1 10.50 Tf 66.00 499.00 Td (- Own profile should wait until update behavior is real.) Tj ET
+BT /F2 13.00 Tf 54.00 469.00 Td (Dev Screen) Tj ET
+BT /F1 10.50 Tf 54.00 439.00 Td (File:) Tj ET
+BT /F1 10.50 Tf 54.00 415.00 Td (`/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/dev/DevScreen.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 391.00 Td (The dev screen contains:) Tj ET
+BT /F1 10.50 Tf 66.00 368.00 Td (- dev access gating) Tj ET
+BT /F1 10.50 Tf 66.00 353.00 Td (- native Hermes/C++ test) Tj ET
+BT /F1 10.50 Tf 66.00 338.00 Td (- FlexBuffer test) Tj ET
+BT /F1 10.50 Tf 66.00 323.00 Td (- background work test) Tj ET
+BT /F1 10.50 Tf 66.00 308.00 Td (- analytics test) Tj ET
+BT /F1 10.50 Tf 66.00 293.00 Td (- crashlytics test) Tj ET
+BT /F1 10.50 Tf 54.00 269.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 246.00 Td (- This is useful for bridge validation later, but it should not be the first product UI) Tj ET
+BT /F1 10.50 Tf 66.00 232.00 Td (  migration.) Tj ET
+BT /F1 10.50 Tf 66.00 217.00 Td (- It couples UI to native infrastructure status and should be kept stable while the Tactile) Tj ET
+BT /F1 10.50 Tf 66.00 203.00 Td (  bridge is under construction.) Tj ET
+BT /F2 16.00 Tf 54.00 169.00 Td (Product Component Inventory) Tj ET
+BT /F1 10.50 Tf 54.00 133.00 Td (BestBuds product components live mainly in:) Tj ET
+BT /F1 10.50 Tf 54.00 109.00 Td (`/Users/ovd/dev/bestbuds/modules/design/src/commonMain/kotlin/ai/bestbuds/design/components/BestBudsComponents.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 85.00 Td (The main components are:) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (15 / 23) Tj ET
+Q
+endstream
+endobj
+35 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 34 0 R >>
+endobj
+36 0 obj
+<< /Length 2562 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- `Card2`) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (- `StatusChip`) Tj ET
+BT /F1 10.50 Tf 66.00 707.00 Td (- `BBText`) Tj ET
+BT /F1 10.50 Tf 66.00 692.00 Td (- `GradientButton`) Tj ET
+BT /F1 10.50 Tf 66.00 677.00 Td (- `SearchBar`) Tj ET
+BT /F1 10.50 Tf 66.00 662.00 Td (- `JoinButton`) Tj ET
+BT /F1 10.50 Tf 66.00 647.00 Td (- `ActionButton`) Tj ET
+BT /F1 10.50 Tf 66.00 632.00 Td (- `EventRow`) Tj ET
+BT /F1 10.50 Tf 66.00 617.00 Td (- `EventCard`) Tj ET
+BT /F1 10.50 Tf 66.00 602.00 Td (- `TabLayout`) Tj ET
+BT /F1 10.50 Tf 66.00 587.00 Td (- `BBTextField`) Tj ET
+BT /F1 10.50 Tf 66.00 572.00 Td (- `EventTypeToggle`) Tj ET
+BT /F1 10.50 Tf 66.00 557.00 Td (- `SegmentedSwitch`) Tj ET
+BT /F1 10.50 Tf 54.00 533.00 Td (Helpers live in:) Tj ET
+BT /F1 10.50 Tf 54.00 509.00 Td (`/Users/ovd/dev/bestbuds/modules/design/src/commonMain/kotlin/ai/bestbuds/design/components/BestBudsHelpers.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 485.00 Td (The main helpers are:) Tj ET
+BT /F1 10.50 Tf 66.00 462.00 Td (- `LoadingIndicator`) Tj ET
+BT /F1 10.50 Tf 66.00 447.00 Td (- `ProfilePicturePlaceholder`) Tj ET
+BT /F1 10.50 Tf 66.00 432.00 Td (- `EditableField`) Tj ET
+BT /F1 10.50 Tf 66.00 417.00 Td (- `InfoRow`) Tj ET
+BT /F1 10.50 Tf 66.00 402.00 Td (- `TypewriterText`) Tj ET
+BT /F1 10.50 Tf 66.00 387.00 Td (- `TypewriterTranslations`) Tj ET
+BT /F1 10.50 Tf 54.00 363.00 Td (These are the best first migration layer. They are visible across multiple screens and) Tj ET
+BT /F1 10.50 Tf 54.00 349.00 Td (define product vocabulary. Migrating them first lets the app retain its current Compose) Tj ET
+BT /F1 10.50 Tf 54.00 335.00 Td (route model while the design system becomes real.) Tj ET
+BT /F2 16.00 Tf 54.00 301.00 Td (Reaktor Desktop Workbench) Tj ET
+BT /F1 10.50 Tf 54.00 265.00 Td (The Reaktor desktop app starts at:) Tj ET
+BT /F1 10.50 Tf 54.00 241.00 Td (`/Users/ovd/dev/bestbuds/targets/reaktorDesktop/src/main/kotlin/Main.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 217.00 Td (The workbench is implemented in:) Tj ET
+BT /F1 10.50 Tf 54.00 193.00 Td (`/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbench.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 169.00 Td (It has two modes:) Tj ET
+BT /F1 10.50 Tf 66.00 146.00 Td (- Graph) Tj ET
+BT /F1 10.50 Tf 66.00 131.00 Td (- Run App) Tj ET
+BT /F1 10.50 Tf 54.00 107.00 Td (Graph mode renders:) Tj ET
+BT /F1 10.50 Tf 66.00 84.00 Td (- a Reaktor graph editor) Tj ET
+BT /F1 10.50 Tf 66.00 69.00 Td (- selected node/graph state) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (16 / 23) Tj ET
+Q
+endstream
+endobj
+37 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 36 0 R >>
+endobj
+38 0 obj
+<< /Length 2552 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- highlighted node kind) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (- inspector side panel) Tj ET
+BT /F1 10.50 Tf 66.00 707.00 Td (- panel tabs: Inspect, Preview, My Graph) Tj ET
+BT /F1 10.50 Tf 54.00 683.00 Td (Run App mode renders:) Tj ET
+BT /F1 10.50 Tf 66.00 660.00 Td (- `GraphApplication\(graph\)`) Tj ET
+BT /F1 10.50 Tf 54.00 636.00 Td (The inspector panel is in:) Tj ET
+BT /F1 10.50 Tf 54.00 612.00 Td (`/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbenchInspectorPanel.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 588.00 Td (It shows:) Tj ET
+BT /F1 10.50 Tf 66.00 565.00 Td (- node type) Tj ET
+BT /F1 10.50 Tf 66.00 550.00 Td (- route pattern) Tj ET
+BT /F1 10.50 Tf 66.00 535.00 Td (- attached node count) Tj ET
+BT /F1 10.50 Tf 66.00 520.00 Td (- navigation target count) Tj ET
+BT /F1 10.50 Tf 66.00 505.00 Td (- child graph count) Tj ET
+BT /F1 10.50 Tf 66.00 490.00 Td (- provider ports) Tj ET
+BT /F1 10.50 Tf 66.00 475.00 Td (- consumer ports) Tj ET
+BT /F1 10.50 Tf 66.00 460.00 Td (- attachment rows) Tj ET
+BT /F1 10.50 Tf 66.00 445.00 Td (- navigation rows) Tj ET
+BT /F1 10.50 Tf 54.00 421.00 Td (The tree panel is in:) Tj ET
+BT /F1 10.50 Tf 54.00 397.00 Td (`/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbenchTreePanel.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 373.00 Td (It shows:) Tj ET
+BT /F1 10.50 Tf 66.00 350.00 Td (- graph hierarchy) Tj ET
+BT /F1 10.50 Tf 66.00 335.00 Td (- node rows) Tj ET
+BT /F1 10.50 Tf 66.00 320.00 Td (- port summaries) Tj ET
+BT /F1 10.50 Tf 66.00 305.00 Td (- selected graph and node state) Tj ET
+BT /F1 10.50 Tf 54.00 281.00 Td (The preview panel is in:) Tj ET
+BT /F1 10.50 Tf 54.00 257.00 Td (`/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbenchPreviewPanel.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 233.00 Td (It previews `ComposeContent` nodes and rejects parameterized routes.) Tj ET
+BT /F1 10.50 Tf 54.00 209.00 Td (The graph document builder is in:) Tj ET
+BT /F1 10.50 Tf 54.00 185.00 Td (`/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorGraphDocument.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 161.00 Td (It exports:) Tj ET
+BT /F1 10.50 Tf 66.00 138.00 Td (- visible nodes) Tj ET
+BT /F1 10.50 Tf 66.00 123.00 Td (- containment edges) Tj ET
+BT /F1 10.50 Tf 66.00 108.00 Td (- navigation edges) Tj ET
+BT /F1 10.50 Tf 66.00 93.00 Td (- data edges) Tj ET
+BT /F1 10.50 Tf 66.00 78.00 Td (- route labels) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (17 / 23) Tj ET
+Q
+endstream
+endobj
+39 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 38 0 R >>
+endobj
+40 0 obj
+<< /Length 2543 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- graph labels) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (- provider/consumer port summaries) Tj ET
+BT /F1 10.50 Tf 54.00 698.00 Td (Migration implications:) Tj ET
+BT /F1 10.50 Tf 66.00 675.00 Td (- Desktop should become the Tactile developer tool surface.) Tj ET
+BT /F1 10.50 Tf 66.00 660.00 Td (- It should not be the first product migration target.) Tj ET
+BT /F1 10.50 Tf 66.00 645.00 Td (- The preview panel should eventually support `TactileContent`.) Tj ET
+BT /F1 10.50 Tf 66.00 630.00 Td (- The inspector should eventually add a host-tree tab.) Tj ET
+BT /F1 10.50 Tf 66.00 615.00 Td (- The graph document can later become part of an AI context/tool manifest.) Tj ET
+BT /F2 16.00 Tf 54.00 581.00 Td (Transition Strategy) Tj ET
+BT /F1 10.50 Tf 54.00 545.00 Td (The selected transition target is BestBuds mobile.) Tj ET
+BT /F1 10.50 Tf 54.00 521.00 Td (The selected migration mode is leaf components first.) Tj ET
+BT /F2 13.00 Tf 54.00 491.00 Td (Phase 1: Define Minimum Host Components) Tj ET
+BT /F1 10.50 Tf 54.00 461.00 Td (The initial BestBuds host component set should include:) Tj ET
+BT /F1 10.50 Tf 66.00 438.00 Td (- `Text`) Tj ET
+BT /F1 10.50 Tf 66.00 423.00 Td (- `RawText`) Tj ET
+BT /F1 10.50 Tf 66.00 408.00 Td (- `Surface`) Tj ET
+BT /F1 10.50 Tf 66.00 393.00 Td (- `Card`) Tj ET
+BT /F1 10.50 Tf 66.00 378.00 Td (- `Button`) Tj ET
+BT /F1 10.50 Tf 66.00 363.00 Td (- `IconButton`) Tj ET
+BT /F1 10.50 Tf 66.00 348.00 Td (- `Image`) Tj ET
+BT /F1 10.50 Tf 66.00 333.00 Td (- `Avatar`) Tj ET
+BT /F1 10.50 Tf 66.00 318.00 Td (- `Chip`) Tj ET
+BT /F1 10.50 Tf 66.00 303.00 Td (- `TextField`) Tj ET
+BT /F1 10.50 Tf 66.00 288.00 Td (- `SearchBar`) Tj ET
+BT /F1 10.50 Tf 66.00 273.00 Td (- `Slider`) Tj ET
+BT /F1 10.50 Tf 66.00 258.00 Td (- `Progress`) Tj ET
+BT /F1 10.50 Tf 66.00 243.00 Td (- `Row`) Tj ET
+BT /F1 10.50 Tf 66.00 228.00 Td (- `Column`) Tj ET
+BT /F1 10.50 Tf 66.00 213.00 Td (- `Box`) Tj ET
+BT /F1 10.50 Tf 66.00 198.00 Td (- `LazyList`) Tj ET
+BT /F1 10.50 Tf 66.00 183.00 Td (- `Scaffold`) Tj ET
+BT /F1 10.50 Tf 66.00 168.00 Td (- `TopBar`) Tj ET
+BT /F1 10.50 Tf 66.00 153.00 Td (- `Tabs`) Tj ET
+BT /F1 10.50 Tf 66.00 138.00 Td (- `FAB`) Tj ET
+BT /F1 10.50 Tf 66.00 123.00 Td (- `SegmentedSwitch`) Tj ET
+BT /F1 10.50 Tf 66.00 108.00 Td (- `Divider`) Tj ET
+BT /F1 10.50 Tf 66.00 93.00 Td (- `ListDetail`) Tj ET
+BT /F1 10.50 Tf 54.00 69.00 Td (Do not start with every component imaginable. Start with the host components required by the) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (18 / 23) Tj ET
+Q
+endstream
+endobj
+41 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 40 0 R >>
+endobj
+42 0 obj
+<< /Length 2554 >>
+stream
+q
+BT /F1 10.50 Tf 54.00 738.00 Td (current BestBuds UI surface.) Tj ET
+BT /F2 13.00 Tf 54.00 708.00 Td (Phase 2: Create BestBudsSkin) Tj ET
+BT /F1 10.50 Tf 54.00 678.00 Td (Create a Tactile product skin that preserves current visual identity:) Tj ET
+BT /F1 10.50 Tf 66.00 655.00 Td (- black primary from `BestBudsTheme`) Tj ET
+BT /F1 10.50 Tf 66.00 640.00 Td (- white surfaces) Tj ET
+BT /F1 10.50 Tf 66.00 625.00 Td (- success green) Tj ET
+BT /F1 10.50 Tf 66.00 610.00 Td (- current outline and surface variant colors) Tj ET
+BT /F1 10.50 Tf 66.00 595.00 Td (- product gradients) Tj ET
+BT /F1 10.50 Tf 66.00 580.00 Td (- spacing scale) Tj ET
+BT /F1 10.50 Tf 66.00 565.00 Td (- corner scale) Tj ET
+BT /F1 10.50 Tf 66.00 550.00 Td (- current card border style) Tj ET
+BT /F1 10.50 Tf 66.00 535.00 Td (- current chip style) Tj ET
+BT /F1 10.50 Tf 66.00 520.00 Td (- current gradient button style) Tj ET
+BT /F1 10.50 Tf 66.00 505.00 Td (- current chat bubble style) Tj ET
+BT /F1 10.50 Tf 54.00 481.00 Td (This phase should not change screen routing. It creates the bridge between the old design) Tj ET
+BT /F1 10.50 Tf 54.00 467.00 Td (vocabulary and the new renderer.) Tj ET
+BT /F2 13.00 Tf 54.00 437.00 Td (Phase 3: Migrate Leaf Components) Tj ET
+BT /F1 10.50 Tf 54.00 407.00 Td (Migrate in this order:) Tj ET
+BT /F1 10.50 Tf 66.00 384.00 Td (1. Text and simple display primitives:) Tj ET
+BT /F1 10.50 Tf 66.00 369.00 Td (- `BBText`) Tj ET
+BT /F1 10.50 Tf 66.00 354.00 Td (- `StatusChip`) Tj ET
+BT /F1 10.50 Tf 66.00 339.00 Td (- `ProfilePicturePlaceholder`) Tj ET
+BT /F1 10.50 Tf 66.00 316.00 Td (2. Surfaces and buttons:) Tj ET
+BT /F1 10.50 Tf 66.00 301.00 Td (- `Card2`) Tj ET
+BT /F1 10.50 Tf 66.00 286.00 Td (- `GradientButton`) Tj ET
+BT /F1 10.50 Tf 66.00 271.00 Td (- `JoinButton`) Tj ET
+BT /F1 10.50 Tf 66.00 256.00 Td (- `ActionButton`) Tj ET
+BT /F1 10.50 Tf 66.00 233.00 Td (3. Inputs:) Tj ET
+BT /F1 10.50 Tf 66.00 218.00 Td (- `SearchBar`) Tj ET
+BT /F1 10.50 Tf 66.00 203.00 Td (- `BBTextField`) Tj ET
+BT /F1 10.50 Tf 66.00 188.00 Td (- `SegmentedSwitch`) Tj ET
+BT /F1 10.50 Tf 66.00 173.00 Td (- onboarding true/false and single-select controls) Tj ET
+BT /F1 10.50 Tf 66.00 158.00 Td (- onboarding integer slider) Tj ET
+BT /F1 10.50 Tf 66.00 135.00 Td (4. List cards:) Tj ET
+BT /F1 10.50 Tf 66.00 120.00 Td (- `EventRow`) Tj ET
+BT /F1 10.50 Tf 66.00 105.00 Td (- `EventCard`) Tj ET
+BT /F1 10.50 Tf 66.00 90.00 Td (- `CurrentCampaignCard`) Tj ET
+BT /F1 10.50 Tf 66.00 75.00 Td (- `DiscoverCard`) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (19 / 23) Tj ET
+Q
+endstream
+endobj
+43 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 42 0 R >>
+endobj
+44 0 obj
+<< /Length 2263 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 729.00 Td (5. Chat components:) Tj ET
+BT /F1 10.50 Tf 66.00 714.00 Td (- `ChatRow`) Tj ET
+BT /F1 10.50 Tf 66.00 699.00 Td (- `ChatTopBar`) Tj ET
+BT /F1 10.50 Tf 66.00 684.00 Td (- `MessageInput`) Tj ET
+BT /F1 10.50 Tf 66.00 669.00 Td (- `ChatDateHeader`) Tj ET
+BT /F1 10.50 Tf 66.00 654.00 Td (- sender and receiver message bubbles) Tj ET
+BT /F1 10.50 Tf 66.00 631.00 Td (6. Profile helpers:) Tj ET
+BT /F1 10.50 Tf 66.00 616.00 Td (- `EditableField`) Tj ET
+BT /F1 10.50 Tf 66.00 601.00 Td (- `InfoRow`) Tj ET
+BT /F1 10.50 Tf 54.00 577.00 Td (This sequence maximizes visual coverage while keeping route-level behavior stable.) Tj ET
+BT /F2 13.00 Tf 54.00 547.00 Td (Phase 4: Migrate Route-Level Screens) Tj ET
+BT /F1 10.50 Tf 54.00 517.00 Td (Migrate route screens only after leaf parity is real.) Tj ET
+BT /F1 10.50 Tf 54.00 493.00 Td (Recommended order:) Tj ET
+BT /F1 10.50 Tf 66.00 470.00 Td (1. `DiscoverScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 455.00 Td (2. `CampaignScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 440.00 Td (3. `PrivateEventsScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 425.00 Td (4. `PublicEventsScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 410.00 Td (5. `FriendsScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 395.00 Td (6. `ChatListScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 380.00 Td (7. `ChatScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 365.00 Td (8. `FriendProfileScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 350.00 Td (9. `GroupProfileScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 335.00 Td (10. `ProfileScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 320.00 Td (11. `OnboardingScreen`) Tj ET
+BT /F1 10.50 Tf 66.00 305.00 Td (12. `StartScreen`) Tj ET
+BT /F1 10.50 Tf 54.00 281.00 Td (Do not migrate `CreateProfileScreen` or `EditProfileScreen` until their product behavior) Tj ET
+BT /F1 10.50 Tf 54.00 267.00 Td (exists.) Tj ET
+BT /F2 13.00 Tf 54.00 237.00 Td (Phase 5: Adaptive Chat) Tj ET
+BT /F1 10.50 Tf 54.00 207.00 Td (After chat leaf components are stable, add adaptive chat layout.) Tj ET
+BT /F1 10.50 Tf 54.00 183.00 Td (Compact behavior remains:) Tj ET
+BT /F3 8.50 Tf 68.00 146.00 Td (/chats -> /chats/{id}) Tj ET
+BT /F1 10.50 Tf 54.00 110.00 Td (Expanded behavior becomes:) Tj ET
+BT /F3 8.50 Tf 68.00 73.00 Td (list pane: /chats) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (20 / 23) Tj ET
+Q
+endstream
+endobj
+45 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 44 0 R >>
+endobj
+46 0 obj
+<< /Length 2736 >>
+stream
+q
+BT /F3 8.50 Tf 68.00 738.00 Td (detail pane: /chats/{id}) Tj ET
+BT /F3 8.50 Tf 68.00 727.00 Td (extra pane: friend or group profile) Tj ET
+BT /F1 10.50 Tf 54.00 691.00 Td (This requires `GraphRouteContent` so specific routes can render side by side.) Tj ET
+BT /F2 13.00 Tf 54.00 661.00 Td (Phase 6: Desktop Tooling) Tj ET
+BT /F1 10.50 Tf 54.00 631.00 Td (After BestBuds mobile validates the runtime, extend Reaktor Desktop with:) Tj ET
+BT /F1 10.50 Tf 66.00 608.00 Td (- Tactile host-tree inspector) Tj ET
+BT /F1 10.50 Tf 66.00 593.00 Td (- reconciler commit viewer) Tj ET
+BT /F1 10.50 Tf 66.00 578.00 Td (- component catalogue) Tj ET
+BT /F1 10.50 Tf 66.00 563.00 Td (- skin switcher) Tj ET
+BT /F1 10.50 Tf 66.00 548.00 Td (- `TactileContent` preview) Tj ET
+BT /F1 10.50 Tf 66.00 533.00 Td (- route payload preview harness) Tj ET
+BT /F1 10.50 Tf 66.00 518.00 Td (- parameterized route preview support) Tj ET
+BT /F1 10.50 Tf 54.00 494.00 Td (Desktop should become the place to debug and understand the new system.) Tj ET
+BT /F2 16.00 Tf 54.00 460.00 Td (Testing And Acceptance Criteria) Tj ET
+BT /F1 10.50 Tf 54.00 424.00 Td (Leaf migration acceptance:) Tj ET
+BT /F1 10.50 Tf 66.00 401.00 Td (- visual parity with existing Compose components) Tj ET
+BT /F1 10.50 Tf 66.00 386.00 Td (- stable layout on mobile widths) Tj ET
+BT /F1 10.50 Tf 66.00 371.00 Td (- semantics preserved where currently present) Tj ET
+BT /F1 10.50 Tf 66.00 356.00 Td (- no route behavior changes) Tj ET
+BT /F1 10.50 Tf 54.00 332.00 Td (Interaction acceptance:) Tj ET
+BT /F1 10.50 Tf 66.00 309.00 Td (- button press invokes handler) Tj ET
+BT /F1 10.50 Tf 66.00 294.00 Td (- input state changes propagate correctly) Tj ET
+BT /F1 10.50 Tf 66.00 279.00 Td (- search query updates locally) Tj ET
+BT /F1 10.50 Tf 66.00 264.00 Td (- segmented switch changes selected index) Tj ET
+BT /F1 10.50 Tf 66.00 249.00 Td (- slider updates and commits final value) Tj ET
+BT /F1 10.50 Tf 66.00 234.00 Td (- event save toggle changes state) Tj ET
+BT /F1 10.50 Tf 66.00 219.00 Td (- message input sends and clears text) Tj ET
+BT /F1 10.50 Tf 66.00 204.00 Td (- message bubble drag remains native and smooth) Tj ET
+BT /F1 10.50 Tf 54.00 180.00 Td (Graph acceptance:) Tj ET
+BT /F1 10.50 Tf 66.00 157.00 Td (- ChatList to ChatScreen works) Tj ET
+BT /F1 10.50 Tf 66.00 142.00 Td (- ChatScreen back works) Tj ET
+BT /F1 10.50 Tf 66.00 127.00 Td (- ChatScreen title to FriendProfile works) Tj ET
+BT /F1 10.50 Tf 66.00 112.00 Td (- ChatScreen title to GroupProfile works) Tj ET
+BT /F1 10.50 Tf 66.00 97.00 Td (- Friends to FriendProfile works) Tj ET
+BT /F1 10.50 Tf 66.00 82.00 Td (- FriendProfile to Chat works where chat edge exists) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (21 / 23) Tj ET
+Q
+endstream
+endobj
+47 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 46 0 R >>
+endobj
+48 0 obj
+<< /Length 3549 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- top-bar overflow still selects Friends/Profile/Dev) Tj ET
+BT /F1 10.50 Tf 66.00 722.00 Td (- Events tab container still switches Private/Public) Tj ET
+BT /F1 10.50 Tf 54.00 698.00 Td (Bridge acceptance:) Tj ET
+BT /F1 10.50 Tf 66.00 675.00 Td (- no per-frame JS/FFI traffic for tactile animation) Tj ET
+BT /F1 10.50 Tf 66.00 660.00 Td (- handlers are references, not serialized functions) Tj ET
+BT /F1 10.50 Tf 66.00 645.00 Td (- failed JS bundle or commit has a safe fallback) Tj ET
+BT /F1 10.50 Tf 66.00 630.00 Td (- existing ComposeContent screens still render during partial migration) Tj ET
+BT /F1 10.50 Tf 54.00 606.00 Td (Desktop acceptance:) Tj ET
+BT /F1 10.50 Tf 66.00 583.00 Td (- Graph mode still renders graph editor) Tj ET
+BT /F1 10.50 Tf 66.00 568.00 Td (- Run App mode still renders BestBuds) Tj ET
+BT /F1 10.50 Tf 66.00 553.00 Td (- Inspect tab still shows ports and route metadata) Tj ET
+BT /F1 10.50 Tf 66.00 538.00 Td (- Preview tab still supports ComposeContent) Tj ET
+BT /F1 10.50 Tf 66.00 523.00 Td (- My Graph tab still shows graph hierarchy) Tj ET
+BT /F1 10.50 Tf 66.00 508.00 Td (- Tactile tooling additions do not break existing workbench behavior) Tj ET
+BT /F2 16.00 Tf 54.00 474.00 Td (Key Risks) Tj ET
+BT /F1 10.50 Tf 54.00 438.00 Td (The biggest product risk is migrating chat too early. Chat mixes route payloads, lifecycle) Tj ET
+BT /F1 10.50 Tf 54.00 424.00 Td (effects, pagination, reverse lists, input, profile navigation, and draggable message) Tj ET
+BT /F1 10.50 Tf 54.00 410.00 Td (bubbles. It should be a major validation target, not the first target.) Tj ET
+BT /F1 10.50 Tf 54.00 386.00 Td (The biggest design-system risk is failing to centralize BestBuds styling. If `BestBudsSkin`) Tj ET
+BT /F1 10.50 Tf 54.00 372.00 Td (is not created early, the new system will reproduce the existing split between old) Tj ET
+BT /F1 10.50 Tf 54.00 358.00 Td (`reaktor-ui`, product tokens, and direct Material3 values.) Tj ET
+BT /F1 10.50 Tf 54.00 334.00 Td (The biggest runtime risk is using JS as the animation driver. That would make the system) Tj ET
+BT /F1 10.50 Tf 54.00 320.00 Td (feel slow and fragile. Native tactile effects must remain native.) Tj ET
+BT /F1 10.50 Tf 54.00 296.00 Td (The biggest graph risk is trying to replace Reaktor Graph with renderer navigation. Compose) Tj ET
+BT /F1 10.50 Tf 54.00 282.00 Td (Adaptive and RSD layouts should present panes; Reaktor Graph should continue to own semantic) Tj ET
+BT /F1 10.50 Tf 54.00 268.00 Td (navigation.) Tj ET
+BT /F1 10.50 Tf 54.00 244.00 Td (The biggest tooling risk is waiting too long to inspect host trees. The desktop workbench) Tj ET
+BT /F1 10.50 Tf 54.00 230.00 Td (should gain host-tree inspection once the first real Tactile routes exist.) Tj ET
+BT /F2 16.00 Tf 54.00 196.00 Td (Assumptions) Tj ET
+BT /F1 10.50 Tf 66.00 161.00 Td (- BestBuds mobile is the first product transition target.) Tj ET
+BT /F1 10.50 Tf 66.00 146.00 Td (- Leaf components migrate before whole screens.) Tj ET
+BT /F1 10.50 Tf 66.00 131.00 Td (- Static JSON SDUI remains out of scope.) Tj ET
+BT /F1 10.50 Tf 66.00 116.00 Td (- React/Hermes is the composition/runtime model for Compose targets.) Tj ET
+BT /F1 10.50 Tf 66.00 101.00 Td (- The Tactile host tree is internal reconciler output.) Tj ET
+BT /F1 10.50 Tf 66.00 86.00 Td (- React Strict DOM is the terminal renderer for React web/native targets.) Tj ET
+BT /F1 10.50 Tf 66.00 71.00 Td (- Reaktor Graph remains the app runtime.) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (22 / 23) Tj ET
+Q
+endstream
+endobj
+49 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 48 0 R >>
+endobj
+50 0 obj
+<< /Length 3001 >>
+stream
+q
+BT /F1 10.50 Tf 66.00 737.00 Td (- Desktop Reaktor becomes tooling support after BestBuds mobile validates the path.) Tj ET
+BT /F2 16.00 Tf 54.00 703.00 Td (References) Tj ET
+BT /F1 10.50 Tf 54.00 667.00 Td (Local files:) Tj ET
+BT /F1 10.50 Tf 66.00 644.00 Td (- `/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBuds.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 629.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 615.00 Td (  `/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/StartScreen.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 600.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 586.00 Td (  `/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/onboarding/OnboardingScreen.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 571.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 557.00 Td (  `/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/ChatScreen.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 542.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 528.00 Td (  `/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/ChatViews.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 513.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 499.00 Td (  `/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/ui/home/chats/views/MessageView.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 484.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 470.00 Td (  `/Users/ovd/dev/bestbuds/modules/design/src/commonMain/kotlin/ai/bestbuds/design/components/BestBudsComponents.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 455.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 441.00 Td (  `/Users/ovd/dev/bestbuds/modules/design/src/commonMain/kotlin/ai/bestbuds/design/tokens/BestBudsTokens.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 426.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 412.00 Td (  `/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbench.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 397.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 383.00 Td (  `/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbenchPreviewPanel.kt`) Tj ET
+BT /F1 10.50 Tf 66.00 368.00 Td (-) Tj ET
+BT /F1 10.50 Tf 66.00 354.00 Td (  `/Users/ovd/dev/bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorGraphDocument.kt`) Tj ET
+BT /F1 10.50 Tf 54.00 330.00 Td (External references:) Tj ET
+BT /F1 10.50 Tf 66.00 307.00 Td (- React Strict DOM: https://facebook.github.io/react-strict-dom/) Tj ET
+BT /F1 10.50 Tf 66.00 292.00 Td (- React reconciler package:) Tj ET
+BT /F1 10.50 Tf 66.00 278.00 Td (  https://github.com/facebook/react/tree/main/packages/react-reconciler) Tj ET
+BT /F1 10.50 Tf 66.00 263.00 Td (- Hermes: https://github.com/facebook/hermes) Tj ET
+BT /F1 10.50 Tf 66.00 248.00 Td (- Android adaptive layouts:) Tj ET
+BT /F1 10.50 Tf 66.00 234.00 Td (  https://developer.android.com/develop/ui/compose/layouts/adaptive) Tj ET
+BT /F1 10.50 Tf 66.00 219.00 Td (- Cash App Redwood: https://github.com/cashapp/redwood) Tj ET
+BT /F1 9.00 Tf 286.00 28.00 Td (23 / 23) Tj ET
+Q
+endstream
+endobj
+51 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 50 0 R >>
+endobj
+xref
+0 52
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000275 00000 n 
+0000000345 00000 n 
+0000000420 00000 n 
+0000000488 00000 n 
+0000003731 00000 n 
+0000003877 00000 n 
+0000007408 00000 n 
+0000007554 00000 n 
+0000010120 00000 n 
+0000010268 00000 n 
+0000013646 00000 n 
+0000013794 00000 n 
+0000016682 00000 n 
+0000016830 00000 n 
+0000019859 00000 n 
+0000020007 00000 n 
+0000023264 00000 n 
+0000023412 00000 n 
+0000026716 00000 n 
+0000026864 00000 n 
+0000029419 00000 n 
+0000029567 00000 n 
+0000032246 00000 n 
+0000032394 00000 n 
+0000035361 00000 n 
+0000035509 00000 n 
+0000038745 00000 n 
+0000038893 00000 n 
+0000041593 00000 n 
+0000041741 00000 n 
+0000044574 00000 n 
+0000044722 00000 n 
+0000047372 00000 n 
+0000047520 00000 n 
+0000050135 00000 n 
+0000050283 00000 n 
+0000052888 00000 n 
+0000053036 00000 n 
+0000055632 00000 n 
+0000055780 00000 n 
+0000058387 00000 n 
+0000058535 00000 n 
+0000060851 00000 n 
+0000060999 00000 n 
+0000063788 00000 n 
+0000063936 00000 n 
+0000067538 00000 n 
+0000067686 00000 n 
+0000070740 00000 n 
+trailer
+<< /Size 52 /Root 1 0 R >>
+startxref
+70888
+%%EOF

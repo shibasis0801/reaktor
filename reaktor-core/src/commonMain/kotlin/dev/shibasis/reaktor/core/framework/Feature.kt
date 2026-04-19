@@ -17,7 +17,6 @@ todo errors must be shown on a error screen like react native
  */
 object Feature: DependencyModule {
     private var moduleIdx = AtomicInt(0)
-    // not thread safe, replace this.
     private var moduleMap = ConcurrentHashMap<Int, Any>()
     override fun createId() = moduleIdx.getAndIncrement()
     override fun <T> storeDependency(id: Int, dependency: T) {
