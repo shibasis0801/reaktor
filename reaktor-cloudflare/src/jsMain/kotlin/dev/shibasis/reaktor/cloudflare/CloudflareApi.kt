@@ -38,6 +38,10 @@ class SecretBinding internal constructor(name: String) : Binding<String>(name, "
     override fun resolve(context: CloudflareContext): String? = context.secretOrNull(name)
 }
 
+class AIBinding internal constructor(name: String) : Binding<WorkersAI>(name, "WorkersAI") {
+    override fun resolve(context: CloudflareContext): WorkersAI? = context.aiOrNull(name)
+}
+
 fun d1(name: String): D1Binding = D1Binding(name)
 
 fun r2(name: String): R2Binding = R2Binding(name)
@@ -49,6 +53,8 @@ fun vector(name: String): VectorBinding = VectorBinding(name)
 fun service(name: String): ServiceBinding = ServiceBinding(name)
 
 fun secret(name: String): SecretBinding = SecretBinding(name)
+
+fun ai(name: String): AIBinding = AIBinding(name)
 
 operator fun <T : Any> CloudflareContext.get(binding: Binding<T>): T = binding.require(this)
 

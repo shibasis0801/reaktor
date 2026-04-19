@@ -21,7 +21,7 @@ sealed class CmakePlatform(
 
     class Darwin(val sdk: String) : CmakePlatform(
         variant = sdk,
-        generator = "Xcode",
+        generator = "Ninja",
         taskPrefix = sdk,
         cmakeExecutable = listOf("/opt/homebrew/bin/cmake", "/usr/local/bin/cmake", "cmake").first {
             java.io.File(it).exists() || it == "cmake"
@@ -31,6 +31,9 @@ sealed class CmakePlatform(
             "-DCMAKE_BUILD_TYPE=Release",
             "-Dsdk=$sdk",
             "-DiOS=true",
+            "-DCMAKE_MAKE_PROGRAM=${listOf("/opt/homebrew/bin/ninja", "/usr/local/bin/ninja", "ninja").first {
+                java.io.File(it).exists() || it == "ninja"
+            }}",
         )
     }
 
