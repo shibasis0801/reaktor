@@ -186,6 +186,8 @@ class CloudflareContext internal constructor(
     fun secretOrNull(name: String): String? = raw(name)?.toString()
     @JsExport.Ignore
     fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
+    @JsExport.Ignore
+    fun aiOrNull(name: String): WorkersAI? = rawBindingOrNull<RawWorkersAI>(name)?.let(::WorkersAI)
     internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
@@ -195,6 +197,8 @@ class CloudflareContext internal constructor(
     fun requireSecret(name: String): String = secretOrNull(name) ?: missingBinding(name, "String")
     @JsExport.Ignore
     fun requireVector(name: String): VectorIndex = vectorOrNull(name) ?: missingBinding(name, "VectorIndex")
+    @JsExport.Ignore
+    fun requireAI(name: String): WorkersAI = aiOrNull(name) ?: missingBinding(name, "WorkersAI")
     internal fun requireHyperdrive(name: String): HyperdriveConfig = hyperdriveOrNull(name) ?: missingBinding(name, "Hyperdrive")
 
     fun waitUntil(promise: Promise<Any?>) {
