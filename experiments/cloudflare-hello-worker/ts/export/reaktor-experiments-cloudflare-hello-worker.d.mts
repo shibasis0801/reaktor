@@ -9,15 +9,6 @@ export declare interface KtList<E> /* extends Collection<E> */ {
 export declare namespace KtList {
     function fromJsArray<E>(array: ReadonlyArray<E>): KtList<E>;
 }
-export declare interface KtMutableMap<K, V> extends KtMap<K, V> {
-    asJsMapView(): Map<K, V>;
-    readonly __doNotUseOrImplementIt: {
-        readonly "kotlin.collections.KtMutableMap": unique symbol;
-    } & KtMap<K, V>["__doNotUseOrImplementIt"];
-}
-export declare namespace KtMutableMap {
-    function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMutableMap<K, V>;
-}
 export declare interface KtMap<K, V> {
     asJsReadonlyMapView(): ReadonlyMap<K, V>;
     readonly __doNotUseOrImplementIt: {
@@ -35,6 +26,15 @@ export declare interface KtMutableList<E> extends KtList<E>/*, MutableCollection
 }
 export declare namespace KtMutableList {
     function fromJsArray<E>(array: ReadonlyArray<E>): KtMutableList<E>;
+}
+export declare interface KtMutableMap<K, V> extends KtMap<K, V> {
+    asJsMapView(): Map<K, V>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtMutableMap": unique symbol;
+    } & KtMap<K, V>["__doNotUseOrImplementIt"];
+}
+export declare namespace KtMutableMap {
+    function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMutableMap<K, V>;
 }
 export declare class Pair<A, B> /* implements Serializable */ {
     constructor(first: A, second: B);
@@ -795,6 +795,8 @@ export declare class Graph extends PortGraph.$metadata$.constructor<Graph, Node>
     get label(): string;
     get dependencies(): (p0: any/* DependencyAdapter.ScopeBuilder */) => void;
     get sentinel(): RouteNode<Payload, RouteBinding<Payload>>;
+    attach(node: Node): boolean;
+    detach(node: Node): boolean;
     addRoot<P extends Payload>(routeNode: RouteNode<P, any /*UnknownType **/>, payload: P): void;
     close(): void;
     toString(): string;
@@ -913,6 +915,8 @@ export declare class RouteNode<P extends Payload, Binding extends RouteBinding<P
     static construct<P extends Payload, Binding extends RouteBinding<P>>(graph: Graph, pattern: string, binder: (p0: RouteNode<P, Binding>) => Binding): RouteNode<P, Binding>;
     get routeBinding(): ProviderPort<Binding>;
     get navBinding(): ProviderPort<NavBinding<P>>;
+    attachedNodes(): KtList<Node.Routable>;
+    navigationTargets(): KtList<RouteNode<any /*UnknownType **/, any /*UnknownType **/>>;
     attachedNode(): Nullable<Node.Routable>;
     edge<D extends Payload>(destination: RouteNode<D, any /*UnknownType **/>): NavigationEdge<D>;
     toString(): string;
@@ -1060,7 +1064,7 @@ export declare namespace BackStackEntry {
     }
 }
 export declare class DeleteHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
 }
 export declare namespace DeleteHandler {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -1074,7 +1078,8 @@ export declare namespace DeleteHandler {
         /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
         namespace $metadata$ {
             abstract class constructor implements RequestHandler.Factory {
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): DeleteHandler<In, Out>;
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): DeleteHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
                 readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
                 private constructor();
             }
@@ -1082,7 +1087,7 @@ export declare namespace DeleteHandler {
     }
 }
 export declare class GetHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
 }
 export declare namespace GetHandler {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -1096,7 +1101,77 @@ export declare namespace GetHandler {
         /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
         namespace $metadata$ {
             abstract class constructor implements RequestHandler.Factory {
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): GetHandler<In, Out>;
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): GetHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class HeadHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace HeadHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => HeadHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): HeadHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class OptionsHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace OptionsHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => OptionsHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): OptionsHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PatchHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PatchHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PatchHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PatchHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
                 readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
                 private constructor();
             }
@@ -1104,7 +1179,7 @@ export declare namespace GetHandler {
     }
 }
 export declare class PostHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
 }
 export declare namespace PostHandler {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -1118,7 +1193,8 @@ export declare namespace PostHandler {
         /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
         namespace $metadata$ {
             abstract class constructor implements RequestHandler.Factory {
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PostHandler<In, Out>;
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PostHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
                 readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
                 private constructor();
             }
@@ -1126,7 +1202,7 @@ export declare namespace PostHandler {
     }
 }
 export declare class PutHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
 }
 export declare namespace PutHandler {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -1140,7 +1216,8 @@ export declare namespace PutHandler {
         /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
         namespace $metadata$ {
             abstract class constructor implements RequestHandler.Factory {
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PutHandler<In, Out>;
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PutHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
                 readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
                 private constructor();
             }
@@ -1162,12 +1239,14 @@ export declare namespace Request {
     }
 }
 export declare abstract class RequestHandler<In extends Request, Out extends Response> {
-    protected constructor(method: HttpMethod, route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-    get method(): HttpMethod;
-    get route(): string;
+    protected constructor(endpoint: ServiceEndpoint, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    get endpoint(): ServiceEndpoint;
     get requestSerializer(): any/* KSerializer<In> */;
     get responseSerializer(): any/* KSerializer<Out> */;
     get handler(): any /*Suspend functions are not supported*/;
+    get transport(): ServiceTransport;
+    get method(): HttpMethod;
+    get route(): string;
     get routePattern(): any/* RoutePattern */;
     url(request: In, extraPathParams: Array<Pair<string, string>>): string;
     invoke(request: In): Promise<Out>;
@@ -1178,6 +1257,7 @@ export declare namespace RequestHandler {
         const constructor: abstract new <In extends Request, Out extends Response>() => RequestHandler<In, Out>;
     }
     interface Factory {
+        create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
         invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
         readonly __doNotUseOrImplementIt: {
             readonly "dev.shibasis.reaktor.graph.service.RequestHandler.Factory": unique symbol;
@@ -1188,6 +1268,9 @@ export declare class Response {
     constructor(headers?: KtMutableMap<string, string>, statusCode?: StatusCode);
     get headers(): KtMutableMap<string, string>;
     get statusCode(): StatusCode;
+    get transportHeaders(): KtMutableMap<string, string>;
+    get transportStatusCode(): StatusCode;
+    get isSuccess(): boolean;
 }
 export declare namespace Response {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -1200,13 +1283,99 @@ export declare abstract class Service {
     get httpClient(): any/* HttpClient */;
     get handlers(): KtMutableList<RequestHandler<any /*UnknownType **/, any /*UnknownType **/>>/* ArrayList<RequestHandler<UnknownType *, UnknownType *>> */;
     get baseUrl(): string;
-    server<In extends Request, Out extends Response>(factory: RequestHandler.Factory, endpoint: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-    client<In extends Request, Out extends Response>(factory: RequestHandler.Factory, route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */): RequestHandler<In, Out>;
+    use(interceptor: Array<any/* ServiceInterceptor */>): Service;
+    protected serviceInterceptors(): KtList<any/* ServiceInterceptor */>;
+    server<In extends Request, Out extends Response>(factory: RequestHandler.Factory, endpoint: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+    client<In extends Request, Out extends Response>(factory: RequestHandler.Factory, route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */): RequestHandler<In, Out>;
 }
 export declare namespace Service {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
         const constructor: abstract new () => Service;
+    }
+}
+export declare class ServiceNode extends BasicNode.$metadata$.constructor {
+    constructor(graph: Graph, service: Service, label?: string);
+    get service(): Service;
+    toString(): string;
+}
+export declare namespace ServiceNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceNode;
+    }
+}
+export declare abstract class ServiceTransport {
+    private constructor();
+    static get HTTP(): ServiceTransport & {
+        get name(): "HTTP";
+        get ordinal(): 0;
+    };
+    static get LOCAL(): ServiceTransport & {
+        get name(): "LOCAL";
+        get ordinal(): 1;
+    };
+    static get PEER(): ServiceTransport & {
+        get name(): "PEER";
+        get ordinal(): 2;
+    };
+    static get PUBSUB(): ServiceTransport & {
+        get name(): "PUBSUB";
+        get ordinal(): 3;
+    };
+    static get QUEUE(): ServiceTransport & {
+        get name(): "QUEUE";
+        get ordinal(): 4;
+    };
+    static get WORKFLOW(): ServiceTransport & {
+        get name(): "WORKFLOW";
+        get ordinal(): 5;
+    };
+    get name(): "HTTP" | "LOCAL" | "PEER" | "PUBSUB" | "QUEUE" | "WORKFLOW";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<ServiceTransport>;
+    static valueOf(value: string): ServiceTransport;
+}
+export declare namespace ServiceTransport {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceTransport;
+    }
+}
+export declare class ServiceEndpoint {
+    constructor(transport: ServiceTransport, address: string, operation?: string, method?: Nullable<HttpMethod>);
+    get transport(): ServiceTransport;
+    get address(): string;
+    get operation(): string;
+    get method(): Nullable<HttpMethod>;
+    get portKey(): string;
+    get portType(): string;
+    copy(transport?: ServiceTransport, address?: string, operation?: string, method?: Nullable<HttpMethod>): ServiceEndpoint;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ServiceEndpoint {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceEndpoint;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                http(method: HttpMethod, route: string, operation?: string): ServiceEndpoint;
+                local(operation: string): ServiceEndpoint;
+                peer(operation: string): ServiceEndpoint;
+                pubSub(topic: string): ServiceEndpoint;
+                queue(name: string): ServiceEndpoint;
+                workflow(name: string): ServiceEndpoint;
+                private constructor();
+            }
+        }
     }
 }
 export declare abstract class HttpMethod {
@@ -1433,6 +1602,446 @@ export declare namespace TestBasic {
     }
 }
 export declare function useWindowSize(): WindowSize;
+export declare class CloudflareContext {
+    private constructor();
+    d1OrNull(name: string): Nullable<D1Database>;
+    r2OrNull(name: string): Nullable<R2Bucket>;
+    durableObjectOrNull(name: string): Nullable<DurableObjectNamespace>;
+    serviceOrNull(name: string): Nullable<WorkerService>;
+    secretOrNull(name: string): Nullable<string>;
+    requireD1(name: string): D1Database;
+    requireR2(name: string): R2Bucket;
+    requireDurableObjects(name: string): DurableObjectNamespace;
+    requireService(name: string): WorkerService;
+    requireSecret(name: string): string;
+    waitUntil(promise: Promise<Nullable<any>>): void;
+}
+export declare namespace CloudflareContext {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => CloudflareContext;
+    }
+}
+export declare class D1Mutation {
+    private constructor();
+    get success(): boolean;
+    get changedRowCount(): Nullable<number>;
+    get durationMs(): Nullable<number>;
+    get lastRowId(): Nullable<string>;
+}
+export declare namespace D1Mutation {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => D1Mutation;
+    }
+}
+export declare class D1Database {
+    private constructor();
+    executeAsync(template: string, arguments?: Array<Nullable<any>>): Promise<D1Mutation>;
+    rawRowsAsync(template: string, arguments?: Array<Nullable<any>>): Promise<Array<SqlRow>>;
+    rawFirstOrNullAsync(template: string, arguments?: Array<Nullable<any>>): Promise<Nullable<SqlRow>>;
+    stringAsync(columnName: string, template: string, arguments?: Array<Nullable<any>>): Promise<Nullable<string>>;
+}
+export declare namespace D1Database {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => D1Database;
+    }
+}
+export declare class CloudflareResponse {
+    private constructor();
+    get ok(): boolean;
+    get status(): number;
+    textAsync(): Promise<string>;
+    jsonTextAsync(): Promise<string>;
+}
+export declare namespace CloudflareResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => CloudflareResponse;
+    }
+}
+export declare class CloudflareWorkerRequest {
+    private constructor();
+    get method(): string;
+    get url(): string;
+    get path(): string;
+    query(name: string): Nullable<string>;
+    requireQuery(name: string): string;
+    textAsync(): Promise<string>;
+}
+export declare namespace CloudflareWorkerRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => CloudflareWorkerRequest;
+    }
+}
+export declare class DurableObjectId {
+    private constructor();
+    toString(): string;
+}
+export declare namespace DurableObjectId {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DurableObjectId;
+    }
+}
+export declare class DurableObjectNamespace {
+    private constructor();
+    newId(locationHint?: Nullable<string>): DurableObjectId;
+    id(name: string): DurableObjectId;
+    fromString(id: string): DurableObjectId;
+    get(id: DurableObjectId, locationHint?: Nullable<string>): DurableObjectStub;
+    named(name: string): DurableObjectStub;
+}
+export declare namespace DurableObjectNamespace {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DurableObjectNamespace;
+    }
+}
+export declare class DurableObjectStub {
+    private constructor();
+    fetchAsync(url: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<CloudflareResponse>;
+    textAsync(url: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<string>;
+    jsonTextAsync(url: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<string>;
+}
+export declare namespace DurableObjectStub {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DurableObjectStub;
+    }
+}
+export declare class DurableObjectStorage {
+    private constructor();
+    valueAsync(key: string): Promise<Nullable<string>>;
+    putValueAsync(key: string, value: Nullable<any>): Promise<void>;
+    textAsync(key: string): Promise<Nullable<string>>;
+    putTextAsync(key: string, value: string): Promise<void>;
+    getJsonTextAsync(key: string): Promise<Nullable<string>>;
+    putJsonTextAsync(key: string, value: string): Promise<void>;
+    intAsync(key: string): Promise<Nullable<number>>;
+    putIntAsync(key: string, value: number): Promise<void>;
+    deleteAsync(key: string): Promise<boolean>;
+    clearAsync(): Promise<void>;
+}
+export declare namespace DurableObjectStorage {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DurableObjectStorage;
+    }
+}
+export declare class DurableObjectState {
+    private constructor();
+    get id(): DurableObjectId;
+    get storage(): DurableObjectStorage;
+    waitUntil(promise: Promise<Nullable<any>>): void;
+}
+export declare namespace DurableObjectState {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DurableObjectState;
+    }
+}
+export declare class PartyKitMessage {
+    private constructor();
+    get isText(): boolean;
+    textOrNull(): Nullable<string>;
+    requireText(): string;
+    jsonTextOrNull(): Nullable<string>;
+}
+export declare namespace PartyKitMessage {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitMessage;
+    }
+}
+export declare class PartyKitConnection {
+    private constructor();
+    get id(): string;
+    get uri(): Nullable<string>;
+    stateJsonTextOrNull(): Nullable<string>;
+    clearStateJsonText(): Nullable<string>;
+    setStateJsonText(stateJson: Nullable<string>): Nullable<string>;
+    send(message: string): void;
+    sendJsonText(jsonText: string): void;
+    close(code?: Nullable<number>, reason?: Nullable<string>): void;
+}
+export declare namespace PartyKitConnection {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitConnection;
+    }
+}
+export declare class PartyKitConnectionContext {
+    private constructor();
+    get request(): CloudflareWorkerRequest;
+}
+export declare namespace PartyKitConnectionContext {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitConnectionContext;
+    }
+}
+export declare class PartyKitAssets {
+    private constructor();
+    fetchAsync(path: string): Promise<Nullable<CloudflareResponse>>;
+}
+export declare namespace PartyKitAssets {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitAssets;
+    }
+}
+export declare class PartyKitPartyStub {
+    private constructor();
+    fetchAsync(path: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<CloudflareResponse>;
+    textAsync(path: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<string>;
+    jsonTextAsync(path: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<string>;
+    socketAsync(path?: string): Promise<PartyKitSocket>;
+}
+export declare namespace PartyKitPartyStub {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitPartyStub;
+    }
+}
+export declare class PartyKitPartyNamespace {
+    private constructor();
+    room(id: string): PartyKitPartyStub;
+}
+export declare namespace PartyKitPartyNamespace {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitPartyNamespace;
+    }
+}
+export declare class PartyKitParties {
+    private constructor();
+    namespaceOrNull(name: string): Nullable<PartyKitPartyNamespace>;
+    namespace(name: string): PartyKitPartyNamespace;
+    get(name: string): PartyKitPartyNamespace;
+    namesArray(): Array<string>;
+}
+export declare namespace PartyKitParties {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitParties;
+    }
+}
+export declare class PartyKitLobby {
+    private constructor();
+    get id(): string;
+    get cloudflare(): CloudflareContext;
+    get parties(): PartyKitParties;
+    get assets(): PartyKitAssets;
+}
+export declare namespace PartyKitLobby {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitLobby;
+    }
+}
+export declare class PartyKitFetchLobby {
+    private constructor();
+    get cloudflare(): CloudflareContext;
+    get parties(): PartyKitParties;
+    get assets(): PartyKitAssets;
+}
+export declare namespace PartyKitFetchLobby {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitFetchLobby;
+    }
+}
+export declare class PartyKitSocket {
+    private constructor();
+    send(message: string): void;
+    sendJsonText(jsonText: string): void;
+    close(code?: Nullable<number>, reason?: Nullable<string>): void;
+}
+export declare namespace PartyKitSocket {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitSocket;
+    }
+}
+export declare class PartyKitFetchSocket extends PartyKitSocket.$metadata$.constructor {
+    private constructor();
+    get request(): CloudflareWorkerRequest;
+}
+export declare namespace PartyKitFetchSocket {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitFetchSocket;
+    }
+}
+export declare class PartyKitCron {
+    private constructor();
+    get scheduledTimeMillis(): bigint;
+    get expression(): Nullable<string>;
+    get name(): Nullable<string>;
+    noRetry(): void;
+}
+export declare namespace PartyKitCron {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitCron;
+    }
+}
+export declare class PartyKitRoom {
+    private constructor();
+    get id(): string;
+    get internalId(): string;
+    get name(): string;
+    get cloudflare(): CloudflareContext;
+    get storage(): DurableObjectStorage;
+    get parties(): PartyKitParties;
+    get assets(): PartyKitAssets;
+    hasRawDurableObjectState(): boolean;
+    broadcast(message: string): void;
+    broadcastWithout(message: string, without: Array<string>): void;
+    broadcastJsonText(jsonText: string, without?: Array<string>): void;
+    connectionOrNull(id: string): Nullable<PartyKitConnection>;
+    connection(id: string): PartyKitConnection;
+    connectionsArray(tag?: Nullable<string>): Array<PartyKitConnection>;
+    blockConcurrencyWhileAsync(block: () => Promise<Nullable<any>>): Promise<Nullable<any>>;
+}
+export declare namespace PartyKitRoom {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitRoom;
+    }
+}
+export declare class PartyKitServerOptions {
+    constructor(hibernate?: boolean);
+    get hibernate(): boolean;
+    copy(hibernate?: boolean): PartyKitServerOptions;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace PartyKitServerOptions {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitServerOptions;
+    }
+}
+export declare function partyKitOptions(hibernate?: boolean): any;
+export declare function partyKitRequest(value: any): CloudflareWorkerRequest;
+export declare function partyKitLobby(value: any): PartyKitLobby;
+export declare function partyKitFetchLobby(value: any): PartyKitFetchLobby;
+export declare function partyKitSocket(value: any): PartyKitFetchSocket;
+export declare function partyKitCron(value: any): PartyKitCron;
+export declare class PartyKitServer {
+    constructor(room: any);
+    protected get room(): PartyKitRoom;
+    protected get serverOptions(): Nullable<PartyKitServerOptions>;
+    get options(): Nullable<any>;
+    protected handleConnectionTags(connection: PartyKitConnection, context: PartyKitConnectionContext): Promise<Array<string>>;
+    protected handleStart(): Promise<void>;
+    protected handleConnect(connection: PartyKitConnection, context: PartyKitConnectionContext): Promise<void>;
+    protected handleMessage(message: PartyKitMessage, sender: PartyKitConnection): Promise<void>;
+    protected handleClose(connection: PartyKitConnection): Promise<void>;
+    protected handleError(connection: PartyKitConnection, error: Error): Promise<void>;
+    protected handleRequest(request: CloudflareWorkerRequest): Promise<any>;
+    protected handleAlarm(): Promise<void>;
+    getConnectionTags(connectionValue: any, contextValue: any): any;
+    onStart(): any;
+    onConnect(connectionValue: any, contextValue: any): any;
+    onMessage(messageValue: any, senderValue: any): any;
+    onClose(connectionValue: any): any;
+    onError(connectionValue: any, errorValue: any): any;
+    onRequest(requestValue: any): any;
+    onAlarm(): any;
+    protected connection(value: any): PartyKitConnection;
+    protected context(value: any): PartyKitConnectionContext;
+    protected lobby(value: any): PartyKitLobby;
+    protected fetchLobby(value: any): PartyKitFetchLobby;
+    protected socket(value: any): PartyKitFetchSocket;
+    protected cron(value: any): PartyKitCron;
+    protected request(value: any): CloudflareWorkerRequest;
+    protected unauthorized(message?: string): any;
+}
+export declare namespace PartyKitServer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PartyKitServer;
+    }
+}
+export declare class R2Object {
+    private constructor();
+    get key(): string;
+    get size(): bigint;
+    get etag(): string;
+    get contentType(): Nullable<string>;
+    get uploadedAt(): string;
+}
+export declare namespace R2Object {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => R2Object;
+    }
+}
+export declare class R2ObjectBody {
+    private constructor();
+    get objectInfo(): R2Object;
+    textAsync(): Promise<string>;
+    jsonTextAsync(): Promise<string>;
+}
+export declare namespace R2ObjectBody {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => R2ObjectBody;
+    }
+}
+export declare class R2Bucket {
+    private constructor();
+    headAsync(key: string): Promise<Nullable<R2Object>>;
+    getAsync(key: string): Promise<Nullable<R2ObjectBody>>;
+    putTextAsync(key: string, value: string): Promise<R2Object>;
+    putTextWithContentTypeAsync(key: string, value: string, contentType: Nullable<string>): Promise<R2Object>;
+    deleteAsync(key: string): Promise<void>;
+    getTextAsync(key: string): Promise<Nullable<string>>;
+    putJsonTextAsync(key: string, value: string, contentType?: Nullable<string>): Promise<void>;
+    getJsonTextAsync(key: string): Promise<Nullable<string>>;
+}
+export declare namespace R2Bucket {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => R2Bucket;
+    }
+}
+export declare class WorkerService {
+    private constructor();
+    fetchAsync(url: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<CloudflareResponse>;
+    textAsync(url: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<string>;
+    jsonTextAsync(url: string, method?: string, body?: Nullable<string>, headers?: Nullable<any>): Promise<string>;
+}
+export declare namespace WorkerService {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WorkerService;
+    }
+}
+export declare class SqlRow {
+    private constructor();
+    string(columnName: string): Nullable<string>;
+    requireString(columnName: string): string;
+    int(columnName: string): Nullable<number>;
+    requireInt(columnName: string): number;
+    double(columnName: string): Nullable<number>;
+    requireDouble(columnName: string): number;
+    boolean(columnName: string): Nullable<boolean>;
+    requireBoolean(columnName: string): boolean;
+    jsonText(columnName: string): Nullable<string>;
+}
+export declare namespace SqlRow {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SqlRow;
+    }
+}
 export declare abstract class ComponentSize {
     private constructor();
     static get Small(): ComponentSize & {

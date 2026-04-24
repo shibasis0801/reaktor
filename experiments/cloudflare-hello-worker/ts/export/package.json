@@ -1,6 +1,6 @@
 {
   "name": "reaktor-hello-worker-kotlin",
-  "version": "2026.3.10-SNAPSHOT",
+  "version": "2026.4.19-SNAPSHOT",
   "main": "reaktor-experiments-cloudflare-hello-worker.mjs",
   "types": "reaktor-experiments-cloudflare-hello-worker.d.mts",
   "devDependencies": {
@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "hono": "4.9.8",
+    "partykit": "0.0.115",
     "postgres": "3.4.5",
     "@js-joda/core": "3.2.0",
     "ws": "8.18.0",

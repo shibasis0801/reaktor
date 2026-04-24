@@ -228,7 +228,7 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
                     containerNode.graphs.forEachIndexed { index, childGraph ->
                         if (index > 0 && index % childGraphsPerRow == 0) {
                             childX = childStartX
-                            childY = rowBottom + style.region.childRegionGapYPx
+                            childY = rowBottom + style.region.childRegionGapYPx + style.region.boundsInsetTopPx
                         }
                         val childBounds = builder.layoutGraph(
                             graph = childGraph,

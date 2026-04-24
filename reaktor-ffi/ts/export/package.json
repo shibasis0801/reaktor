@@ -1,0 +1,15 @@
+{
+  "name": "reaktor-reaktor-ffi",
+  "version": "2026.4.19-SNAPSHOT",
+  "main": "reaktor-reaktor-ffi.mjs",
+  "types": "reaktor-reaktor-ffi.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "@js-joda/core": "3.2.0"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

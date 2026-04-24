@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.web.*
+import org.gradle.api.tasks.Exec
 
 
 plugins {
@@ -61,4 +62,54 @@ kotlin {
 
 android {
     defaults("dev.shibasis.reaktor.auth")
+}
+
+val normalizeGoogleSignInIosBuildSettings by tasks.registering {
+    dependsOn("podBuildGoogleSignInIos")
+    outputs.upToDateWhen { false }
+
+    doLast {
+        val settingsFile = layout.buildDirectory
+            .file("cocoapods/buildSettings/build-settings-ios-GoogleSignIn.properties")
+            .get()
+            .asFile
+
+        if (!settingsFile.exists()) return@doLast
+
+        val normalized = settingsFile.readText()
+            .replace("Debug-maccatalyst", "Debug-iphoneos")
+            .replace(
+                "GoogleSignIn.framework/Versions/A/Headers",
+                "GoogleSignIn.framework/Headers"
+            )
+
+        settingsFile.writeText(normalized)
+    }
+}
+
+val buildGoogleSignInIosSimulatorWithSdk by tasks.registering(Exec::class) {
+    dependsOn("podSetupBuildGoogleSignInIosSimulator")
+    workingDir = layout.buildDirectory.dir("cocoapods/synthetic/ios/Pods").get().asFile
+    commandLine(
+        "xcodebuild",
+        "-project", "Pods.xcodeproj",
+        "-scheme", "GoogleSignIn",
+        "-sdk", "iphonesimulator",
+        "-configuration", "Debug",
+        "build",
+    )
+    outputs.dir(layout.buildDirectory.dir("cocoapods/synthetic/ios/build/Debug-iphonesimulator/GoogleSignIn"))
+}
+
+tasks.matching { it.name == "podBuildGoogleSignInIosSimulator" }.configureEach {
+    dependsOn(buildGoogleSignInIosSimulatorWithSdk)
+    onlyIf {
+        // Xcode 26 resolves this generated pod scheme as Catalyst-only unless
+        // the simulator SDK is explicit. The replacement task above supplies it.
+        false
+    }
+}
+
+tasks.matching { it.name == "cinteropGoogleSignInIosArm64" }.configureEach {
+    dependsOn(normalizeGoogleSignInIosBuildSettings)
 }

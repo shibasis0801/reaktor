@@ -61,6 +61,7 @@ data class PulledPubSubMessage(
 @Serializable
 data class PubSubSubscriptionOptions(
     val ackDeadlineSeconds: Int = 10,
+    val pushEndpoint: String? = null,
 )
 
 fun interface GoogleAccessTokenProvider {

@@ -74,15 +74,6 @@ function asJsReadonlyMapView() {
 }
 class KtSet {}
 class Companion_0 {
-  fromJsMap_p3spvk_k$(map) {
-    return createMutableMapFrom(map);
-  }
-}
-class KtMutableMap {}
-function asJsMapView() {
-  return createJsMapViewFrom(this);
-}
-class Companion_1 {
   fromJsArray_n3u761_k$(array) {
     return createMutableListFrom(array);
   }
@@ -91,6 +82,15 @@ class MutableIterable {}
 class KtMutableList {}
 function asJsArrayView() {
   return createJsArrayViewFrom(this);
+}
+class Companion_1 {
+  fromJsMap_p3spvk_k$(map) {
+    return createMutableMapFrom(map);
+  }
+}
+class KtMutableMap {}
+function asJsMapView() {
+  return createJsMapViewFrom(this);
 }
 class Companion_2 {}
 class Enum {
@@ -1522,13 +1522,13 @@ class CompletedContinuation {
     var message = 'This continuation is already complete';
     throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
   }
-  resumeWith_b9cu3x_k$(result) {
+  resumeWith_ol1nfv_k$(result) {
     // Inline function 'kotlin.error' call
     var message = 'This continuation is already complete';
     throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
   }
-  resumeWith_dtxwbr_k$(result) {
-    return this.resumeWith_b9cu3x_k$(result);
+  resumeWith_rk9gbt_k$(result) {
+    return this.resumeWith_ol1nfv_k$(result);
   }
   toString() {
     return 'This continuation is already complete';
@@ -1588,7 +1588,7 @@ class GeneratorCoroutineImpl extends InterceptedCoroutine {
     // Inline function 'kotlin.js.asDynamic' call
     this.jsIterators_1.push(iterator);
   }
-  resumeWith_b9cu3x_k$(result) {
+  resumeWith_ol1nfv_k$(result) {
     if (_Result___get_value__impl__bjfvqg(this.unknown_1) === _Result___get_value__impl__bjfvqg(this.savedResult_1))
       this.savedResult_1 = result;
     if (this.isRunning_1)
@@ -1666,22 +1666,22 @@ class GeneratorCoroutineImpl extends InterceptedCoroutine {
           // Inline function 'kotlin.Companion.failure' call
           var exception_0 = currentException;
           var tmp$ret$6 = _Result___init__impl__xyqfz8(createFailure(exception_0));
-          completion.resumeWith_dtxwbr_k$(tmp$ret$6);
+          completion.resumeWith_rk9gbt_k$(tmp$ret$6);
           tmp_3 = Unit_instance;
         } else {
           // Inline function 'kotlin.coroutines.resume' call
           // Inline function 'kotlin.Companion.success' call
           var value = currentResult;
           var tmp$ret$8 = _Result___init__impl__xyqfz8(value);
-          completion.resumeWith_dtxwbr_k$(tmp$ret$8);
+          completion.resumeWith_rk9gbt_k$(tmp$ret$8);
           tmp_3 = Unit_instance;
         }
         return tmp_3;
       }
     }
   }
-  resumeWith_dtxwbr_k$(result) {
-    return this.resumeWith_b9cu3x_k$(result);
+  resumeWith_rk9gbt_k$(result) {
+    return this.resumeWith_ol1nfv_k$(result);
   }
 }
 class SafeContinuation {
@@ -1697,13 +1697,13 @@ class SafeContinuation {
   get_context_h02k06_k$() {
     return this.delegate_1.get_context_h02k06_k$();
   }
-  resumeWith_dtxwbr_k$(result) {
+  resumeWith_rk9gbt_k$(result) {
     var cur = this.result_1;
     if (cur === CoroutineSingletons_UNDECIDED_getInstance()) {
       this.result_1 = _Result___get_value__impl__bjfvqg(result);
     } else if (cur === get_COROUTINE_SUSPENDED()) {
       this.result_1 = CoroutineSingletons_RESUMED_getInstance();
-      this.delegate_1.resumeWith_dtxwbr_k$(result);
+      this.delegate_1.resumeWith_rk9gbt_k$(result);
     } else
       throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$('Already resumed');
   }
@@ -1735,7 +1735,7 @@ class promisify$2$$inlined$Continuation$1 {
   get_context_h02k06_k$() {
     return this.$context_1;
   }
-  resumeWith_b9cu3x_k$(result) {
+  resumeWith_ol1nfv_k$(result) {
     // Inline function 'kotlin.onSuccess' call
     var action = this.$resolve_1;
     if (_Result___get_isSuccess__impl__sndoy8(result)) {
@@ -1753,8 +1753,8 @@ class promisify$2$$inlined$Continuation$1 {
     }
     return Unit_instance;
   }
-  resumeWith_dtxwbr_k$(result) {
-    return this.resumeWith_b9cu3x_k$(result);
+  resumeWith_rk9gbt_k$(result) {
+    return this.resumeWith_ol1nfv_k$(result);
   }
 }
 class Exception extends Error {
@@ -3383,6 +3383,20 @@ class Failure {
     return 'Failure(' + this.exception_1.toString() + ')';
   }
 }
+class Result {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  toString() {
+    return Result__toString_impl_yu5r8k(this.value_1);
+  }
+  hashCode() {
+    return Result__hashCode_impl_d2zufp(this.value_1);
+  }
+  equals(other) {
+    return Result__equals_impl_bxgmep(this.value_1, other);
+  }
+}
 class NotImplementedError extends Error_0 {
   static new_kotlin_NotImplementedError_8rzvsv_k$(message) {
     message = message === VOID ? 'An operation is not implemented.' : message;
@@ -4001,12 +4015,12 @@ class ConsumerPort extends Port {
   close_yn9xrc_k$() {
     var tmp0_safe_receiver = this.edge;
     var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.provider;
-    var tmp2_safe_receiver = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.edges;
-    if (tmp2_safe_receiver == null)
+    if (tmp1_safe_receiver == null)
       null;
-    else
-      tmp2_safe_receiver.remove_gppy8k_k$(this);
-    this.edge = null;
+    else {
+      // Inline function 'kotlin.let' call
+      disconnectInternal(this, tmp1_safe_receiver);
+    }
   }
   toString() {
     var tmp;
@@ -4289,10 +4303,10 @@ class ProviderPort extends Port {
   }
   close_yn9xrc_k$() {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = this.edges.get_keys_wop4xp_k$().iterator_jk1svi_k$();
+    var _iterator__ex2g4s = toList(this.edges.get_keys_wop4xp_k$()).iterator_jk1svi_k$();
     while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
       var element = _iterator__ex2g4s.next_20eer_k$();
-      element.edge = null;
+      disconnectInternal(element, this);
     }
     this.edges.clear_j9egeb_k$();
   }
@@ -4844,15 +4858,15 @@ var Companion_instance_0;
 function Companion_getInstance_0() {
   return Companion_instance_0;
 }
-function fromJsMap(map) {
-  return Companion_instance_0.fromJsMap_p3spvk_k$(map);
+function fromJsArray_0(array) {
+  return Companion_instance_0.fromJsArray_n3u761_k$(array);
 }
 var Companion_instance_1;
 function Companion_getInstance_1() {
   return Companion_instance_1;
 }
-function fromJsArray_0(array) {
-  return Companion_instance_1.fromJsArray_n3u761_k$(array);
+function fromJsMap(map) {
+  return Companion_instance_1.fromJsMap_p3spvk_k$(map);
 }
 var Companion_instance_2;
 function Companion_getInstance_2() {
@@ -5100,6 +5114,15 @@ function createJsReadonlyMapViewFrom(map) {
   var tmp_7 = createJsReadonlyMapViewFrom$lambda_4(map);
   return createJsMapViewWith(tmp, tmp_0, tmp_1, tmp_2, tmp_3, tmp_4, tmp_5, tmp_6, tmp_7, createJsReadonlyMapViewFrom$lambda_5);
 }
+function createJsArrayViewFrom(list) {
+  var tmp = createJsArrayViewFrom$lambda(list);
+  var tmp_0 = createJsArrayViewFrom$lambda_0(list);
+  var tmp_1 = createJsArrayViewFrom$lambda_1(list);
+  var tmp_2 = createJsArrayViewFrom$lambda_2(list);
+  // Inline function 'kotlin.js.asDynamic' call
+  var tmp$ret$0 = UNSUPPORTED_OPERATION$ref_5();
+  return createJsArrayViewWith(tmp, tmp_0, tmp_1, tmp_2, tmp$ret$0);
+}
 function createJsMapViewFrom(map) {
   var tmp = createJsMapViewFrom$lambda(map);
   var tmp_0 = createJsMapViewFrom$lambda_0(map);
@@ -5111,15 +5134,6 @@ function createJsMapViewFrom(map) {
   var tmp_6 = createJsMapViewFrom$lambda_6(map);
   var tmp_7 = createJsMapViewFrom$lambda_7(map);
   return createJsMapViewWith(tmp, tmp_0, tmp_1, tmp_2, tmp_3, tmp_4, tmp_5, tmp_6, tmp_7, createJsMapViewFrom$lambda_8);
-}
-function createJsArrayViewFrom(list) {
-  var tmp = createJsArrayViewFrom$lambda(list);
-  var tmp_0 = createJsArrayViewFrom$lambda_0(list);
-  var tmp_1 = createJsArrayViewFrom$lambda_1(list);
-  var tmp_2 = createJsArrayViewFrom$lambda_2(list);
-  // Inline function 'kotlin.js.asDynamic' call
-  var tmp$ret$0 = UNSUPPORTED_OPERATION$ref_5();
-  return createJsArrayViewWith(tmp, tmp_0, tmp_1, tmp_2, tmp$ret$0);
 }
 function createJsMapViewWith(mapSize, mapGet, mapContains, mapPut, mapRemove, mapClear, keysIterator, valuesIterator, entriesIterator, forEach) {
   // Inline function 'kotlin.also' call
@@ -5269,6 +5283,32 @@ function createJsReadonlyMapViewFrom$lambda_5(callback, map, thisArg) {
   forEach(callback, map, thisArg);
   return Unit_instance;
 }
+function createJsArrayViewFrom$lambda($list) {
+  return () => $list.get_size_woubt6_k$();
+}
+function createJsArrayViewFrom$lambda_0($list) {
+  return (i) => $list.get_c1px32_k$(i);
+}
+function createJsArrayViewFrom$lambda_1($list) {
+  return (i, v) => {
+    $list.set_82063s_k$(i, v);
+    return Unit_instance;
+  };
+}
+function createJsArrayViewFrom$lambda_2($list) {
+  return (size) => {
+    $list.subList_xle3r2_k$($list.get_size_woubt6_k$() - size | 0, $list.get_size_woubt6_k$()).clear_j9egeb_k$();
+    return Unit_instance;
+  };
+}
+function UNSUPPORTED_OPERATION$ref_5() {
+  var l = () => {
+    UNSUPPORTED_OPERATION();
+    return Unit_instance;
+  };
+  l.callableName = 'UNSUPPORTED_OPERATION';
+  return l;
+}
 function createJsMapViewFrom$lambda($map) {
   return () => $map.get_size_woubt6_k$();
 }
@@ -5317,32 +5357,6 @@ function createJsMapViewFrom$lambda_7($map) {
 function createJsMapViewFrom$lambda_8(callback, map, thisArg) {
   forEach(callback, map, thisArg);
   return Unit_instance;
-}
-function createJsArrayViewFrom$lambda($list) {
-  return () => $list.get_size_woubt6_k$();
-}
-function createJsArrayViewFrom$lambda_0($list) {
-  return (i) => $list.get_c1px32_k$(i);
-}
-function createJsArrayViewFrom$lambda_1($list) {
-  return (i, v) => {
-    $list.set_82063s_k$(i, v);
-    return Unit_instance;
-  };
-}
-function createJsArrayViewFrom$lambda_2($list) {
-  return (size) => {
-    $list.subList_xle3r2_k$($list.get_size_woubt6_k$() - size | 0, $list.get_size_woubt6_k$()).clear_j9egeb_k$();
-    return Unit_instance;
-  };
-}
-function UNSUPPORTED_OPERATION$ref_5() {
-  var l = () => {
-    UNSUPPORTED_OPERATION();
-    return Unit_instance;
-  };
-  l.callableName = 'UNSUPPORTED_OPERATION';
-  return l;
 }
 function createJsIteratorFrom$lambda(it) {
   return it;
@@ -5622,6 +5636,10 @@ function equals(obj1, obj2) {
     return tmp;
   }
   return obj1 === obj2;
+}
+function boxIntrinsic(x) {
+  var message = 'Should be lowered';
+  throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
 }
 function unboxIntrinsic(x) {
   var message = 'Should be lowered';
@@ -6535,7 +6553,7 @@ function await$lambda($continuation) {
     var this_0 = $continuation;
     // Inline function 'kotlin.Companion.success' call
     var tmp$ret$0 = _Result___init__impl__xyqfz8(result);
-    this_0.resumeWith_dtxwbr_k$(tmp$ret$0);
+    this_0.resumeWith_rk9gbt_k$(tmp$ret$0);
     return Unit_instance;
   };
 }
@@ -6545,7 +6563,7 @@ function await$lambda_0($continuation) {
     var this_0 = $continuation;
     // Inline function 'kotlin.Companion.failure' call
     var tmp$ret$0 = _Result___init__impl__xyqfz8(createFailure(error));
-    this_0.resumeWith_dtxwbr_k$(tmp$ret$0);
+    this_0.resumeWith_rk9gbt_k$(tmp$ret$0);
     return Unit_instance;
   };
 }
@@ -7439,7 +7457,7 @@ function startCoroutine(_this__u8e3s4, completion) {
   var this_0 = intercepted(createCoroutineUninterceptedGeneratorVersion(_this__u8e3s4, completion));
   // Inline function 'kotlin.Companion.success' call
   var tmp$ret$0 = _Result___init__impl__xyqfz8(Unit_instance);
-  this_0.resumeWith_dtxwbr_k$(tmp$ret$0);
+  this_0.resumeWith_rk9gbt_k$(tmp$ret$0);
 }
 var Key_instance;
 function Key_getInstance() {
@@ -7635,9 +7653,34 @@ function Result__exceptionOrNull_impl_p6xea9($this) {
   }
   return tmp;
 }
+function Result__toString_impl_yu5r8k($this) {
+  var tmp;
+  if (_Result___get_value__impl__bjfvqg($this) instanceof Failure) {
+    tmp = _Result___get_value__impl__bjfvqg($this).toString();
+  } else {
+    tmp = 'Success(' + toString_0(_Result___get_value__impl__bjfvqg($this)) + ')';
+  }
+  return tmp;
+}
 var Companion_instance_9;
 function Companion_getInstance_9() {
   return Companion_instance_9;
+}
+function Result__hashCode_impl_d2zufp($this) {
+  return $this == null ? 0 : hashCode($this);
+}
+function Result__equals_impl_bxgmep($this, other) {
+  if (!(other instanceof Result))
+    return false;
+  var tmp0_other_with_cast = other.value_1;
+  if (!equals($this, tmp0_other_with_cast))
+    return false;
+  return true;
+}
+function throwOnFailure(_this__u8e3s4) {
+  var tmp = _Result___get_value__impl__bjfvqg(_this__u8e3s4);
+  if (tmp instanceof Failure)
+    throw _Result___get_value__impl__bjfvqg(_this__u8e3s4).exception_1;
 }
 function createFailure(exception) {
   return new Failure(exception);
@@ -7741,7 +7784,7 @@ function connect(consumerPort, providerPort) {
   return _Result___init__impl__xyqfz8(value);
 }
 function connectPorts(consumers, providers) {
-  if (consumers.get_size_woubt6_k$() === 1 && providers.get_size_woubt6_k$() === 1 && first(consumers.get_values_ksazhn_k$()).type.equals(first(providers.get_values_ksazhn_k$()).type)) {
+  if (consumers.get_size_woubt6_k$() === 1 && providers.get_size_woubt6_k$() === 1 && first(consumers.get_keys_wop4xp_k$()).equals(first(providers.get_keys_wop4xp_k$())) && first(consumers.get_values_ksazhn_k$()).type.equals(first(providers.get_values_ksazhn_k$()).type)) {
     // Inline function 'kotlin.map' call
     var this_0 = connect(first(consumers.get_values_ksazhn_k$()), first(providers.get_values_ksazhn_k$()));
     var tmp;
@@ -7756,44 +7799,60 @@ function connectPorts(consumers, providers) {
     }
     return tmp;
   }
-  // Inline function 'kotlin.collections.mapNotNull' call
-  var tmp0 = intersect(consumers.get_keys_wop4xp_k$(), providers.get_keys_wop4xp_k$());
-  // Inline function 'kotlin.collections.mapNotNullTo' call
-  var destination = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  // Inline function 'kotlin.collections.mutableListOf' call
+  var failures = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
+  // Inline function 'kotlin.collections.mutableListOf' call
+  var edges = ArrayList.new_kotlin_collections_ArrayList_ony0vx_k$();
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s = tmp0.iterator_jk1svi_k$();
+  // Inline function 'kotlin.collections.iterator' call
+  var _iterator__ex2g4s = consumers.get_entries_p20ztl_k$().iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var element = _iterator__ex2g4s.next_20eer_k$();
-    var tmp_1 = consumers.get_wei43m_k$(element);
-    var consumer = tmp_1 instanceof ConsumerPort ? tmp_1 : THROW_CCE();
-    var tmp_2 = providers.get_wei43m_k$(element);
-    var provider = tmp_2 instanceof ProviderPort ? tmp_2 : THROW_CCE();
-    var tmp_3;
-    if (consumer.type.equals(provider.type)) {
-      // Inline function 'kotlin.Result.getOrNull' call
-      var this_1 = connect(consumer, provider);
-      var tmp_4;
-      if (_Result___get_isFailure__impl__jpiriv(this_1)) {
-        tmp_4 = null;
-      } else {
-        var tmp_5 = _Result___get_value__impl__bjfvqg(this_1);
-        tmp_4 = (tmp_5 == null ? true : !(tmp_5 == null)) ? tmp_5 : THROW_CCE();
-      }
-      tmp_3 = tmp_4;
+    // Inline function 'kotlin.collections.component1' call
+    var key = element.get_key_18j28a_k$();
+    // Inline function 'kotlin.collections.component2' call
+    var consumerPort = element.get_value_j01efc_k$();
+    var providerPort = providers.get_wei43m_k$(key);
+    if (providerPort == null) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_0 = "Missing provider for key='" + key.key + "' type='" + consumerPort.type.type + "'";
+      failures.add_utx5q5_k$(element_0);
+    } else if (!consumerPort.type.equals(providerPort.type)) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_1 = "Type mismatch for key='" + key.key + "': consumer='" + consumerPort.type.type + "' provider='" + providerPort.type.type + "'";
+      failures.add_utx5q5_k$(element_1);
     } else {
-      tmp_3 = null;
-    }
-    var tmp0_safe_receiver = tmp_3;
-    if (tmp0_safe_receiver == null)
-      null;
-    else {
-      // Inline function 'kotlin.let' call
-      destination.add_utx5q5_k$(tmp0_safe_receiver);
+      // Inline function 'kotlin.onSuccess' call
+      var this_1 = connect(consumerPort, providerPort);
+      if (_Result___get_isSuccess__impl__sndoy8(this_1)) {
+        var tmp_1 = _Result___get_value__impl__bjfvqg(this_1);
+        var p0 = (tmp_1 == null ? true : !(tmp_1 == null)) ? tmp_1 : THROW_CCE();
+        edges.add_utx5q5_k$(p0);
+      }
+      // Inline function 'kotlin.onFailure' call
+      var tmp0_safe_receiver = Result__exceptionOrNull_impl_p6xea9(this_1);
+      if (tmp0_safe_receiver == null)
+        null;
+      else {
+        // Inline function 'kotlin.let' call
+        var tmp0_elvis_lhs = tmp0_safe_receiver.message;
+        // Inline function 'kotlin.collections.plusAssign' call
+        var element_2 = tmp0_elvis_lhs == null ? "Failed to connect key='" + key.key + "'" : tmp0_elvis_lhs;
+        failures.add_utx5q5_k$(element_2);
+      }
+      new Result(this_1);
     }
   }
-  var edges = destination;
-  // Inline function 'kotlin.Companion.success' call
-  return _Result___init__impl__xyqfz8(edges);
+  var tmp_2;
+  if (failures.isEmpty_y1axqb_k$()) {
+    // Inline function 'kotlin.Companion.success' call
+    tmp_2 = _Result___init__impl__xyqfz8(edges);
+  } else {
+    // Inline function 'kotlin.Companion.failure' call
+    var exception = IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(joinToString_1(failures, '\n'));
+    tmp_2 = _Result___init__impl__xyqfz8(createFailure(exception));
+  }
+  return tmp_2;
 }
 function connectConsumerProvider(consumerNode, providerNode) {
   var consumerTypes = consumerNode.consumerPorts.get_keys_wop4xp_k$();
@@ -7819,8 +7878,21 @@ function connectConsumerProvider(consumerNode, providerNode) {
     } else {
       tmp_1 = tmp1_elvis_lhs;
     }
-    connectPorts(tmp_0, tmp_1);
+    // Inline function 'kotlin.getOrThrow' call
+    var this_0 = connectPorts(tmp_0, tmp_1);
+    throwOnFailure(this_0);
+    var tmp_2 = _Result___get_value__impl__bjfvqg(this_0);
+    (tmp_2 == null ? true : !(tmp_2 == null)) || THROW_CCE();
   }
+}
+function disconnectInternal(consumerPort, providerPort) {
+  if (consumerPort.edge == null && providerPort.edges.get_wei43m_k$(consumerPort) == null) {
+    return Unit_instance;
+  }
+  consumerPort.edge = null;
+  providerPort.edges.remove_gppy8k_k$(consumerPort);
+  consumerPort.owner.emit(new Disconnected(consumerPort, providerPort));
+  providerPort.owner.emit(new Disconnected(providerPort, consumerPort));
 }
 function *_generator_suspended$suspendBridge__ucnhzs_0($this, fn, $completion) {
   var tmp;
@@ -7850,35 +7922,23 @@ function registerConsumer_0(_this__u8e3s4, key, type) {
   } else {
     tmp = value;
   }
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_1 = tmp;
-  var value_0 = this_1.get_wei43m_k$(key);
-  var tmp_0;
-  if (value_0 == null) {
-    var answer_0 = ConsumerPort.new_dev_shibasis_reaktor_portgraph_port_ConsumerPort_931x6c_k$(_this__u8e3s4, key, type);
-    this_1.put_4fpzoq_k$(key, answer_0);
-    tmp_0 = answer_0;
-  } else {
-    tmp_0 = value_0;
+  var ports = tmp;
+  var tmp_0 = ports.get_wei43m_k$(key);
+  var existing = tmp_0 instanceof ConsumerPort ? tmp_0 : null;
+  if (!(existing == null)) {
+    return existing;
   }
-  var tmp_1 = tmp_0;
-  return tmp_1 instanceof ConsumerPort ? tmp_1 : THROW_CCE();
+  var created = ConsumerPort.new_dev_shibasis_reaktor_portgraph_port_ConsumerPort_931x6c_k$(_this__u8e3s4, key, type);
+  // Inline function 'kotlin.collections.set' call
+  var value_0 = created instanceof ConsumerPort ? created : THROW_CCE();
+  ports.put_4fpzoq_k$(key, value_0);
+  _this__u8e3s4.emit(new Created(created));
+  return created;
 }
 function getConsumer_0(_this__u8e3s4, key, type) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.consumerPorts;
-  var value = this_0.get_wei43m_k$(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
-    this_0.put_4fpzoq_k$(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  var tmp_0 = tmp.get_wei43m_k$(key);
-  return tmp_0 instanceof ConsumerPort ? tmp_0 : null;
+  var tmp0_safe_receiver = _this__u8e3s4.consumerPorts.get_wei43m_k$(type);
+  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.get_wei43m_k$(key);
+  return tmp instanceof ConsumerPort ? tmp : null;
 }
 function get__sequence() {
   _init_properties_Port_kt__lbdmcf();
@@ -7939,35 +7999,28 @@ function registerProvider_0(_this__u8e3s4, key, type, impl) {
   } else {
     tmp = value;
   }
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_1 = tmp;
-  var value_0 = this_1.get_wei43m_k$(key);
-  var tmp_0;
-  if (value_0 == null) {
-    var answer_0 = ProviderPort.new_dev_shibasis_reaktor_portgraph_port_ProviderPort_l7jdif_k$(_this__u8e3s4, key, type, impl);
-    this_1.put_4fpzoq_k$(key, answer_0);
-    tmp_0 = answer_0;
-  } else {
-    tmp_0 = value_0;
+  var ports = tmp;
+  var tmp_0 = ports.get_wei43m_k$(key);
+  var existing = tmp_0 instanceof ProviderPort ? tmp_0 : null;
+  if (!(existing == null)) {
+    // Inline function 'kotlin.require' call
+    if (!(existing.impl === impl)) {
+      var message = "Provider already registered for key='" + key.key + "' type='" + type.type + "' with a different implementation.";
+      throw IllegalArgumentException.new_kotlin_IllegalArgumentException_sfqr8_k$(toString_1(message));
+    }
+    return existing;
   }
-  var tmp_1 = tmp_0;
-  return tmp_1 instanceof ProviderPort ? tmp_1 : THROW_CCE();
+  var created = ProviderPort.new_dev_shibasis_reaktor_portgraph_port_ProviderPort_l7jdif_k$(_this__u8e3s4, key, type, impl);
+  // Inline function 'kotlin.collections.set' call
+  var value_0 = created instanceof ProviderPort ? created : THROW_CCE();
+  ports.put_4fpzoq_k$(key, value_0);
+  _this__u8e3s4.emit(new Created(created));
+  return created;
 }
 function getProvider_0(_this__u8e3s4, key, type) {
-  // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = _this__u8e3s4.providerPorts;
-  var value = this_0.get_wei43m_k$(type);
-  var tmp;
-  if (value == null) {
-    // Inline function 'kotlin.collections.linkedMapOf' call
-    var answer = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
-    this_0.put_4fpzoq_k$(type, answer);
-    tmp = answer;
-  } else {
-    tmp = value;
-  }
-  var tmp_0 = tmp.get_wei43m_k$(key);
-  return tmp_0 instanceof ProviderPort ? tmp_0 : null;
+  var tmp0_safe_receiver = _this__u8e3s4.providerPorts.get_wei43m_k$(type);
+  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.get_wei43m_k$(key);
+  return tmp instanceof ProviderPort ? tmp : null;
 }
 var StructuralSelector_instance;
 function StructuralSelector_getInstance() {
@@ -8085,10 +8138,10 @@ initMetadataForInterface(Entry, 'Entry');
 initMetadataForInterface(KtMap, 'Map');
 initMetadataForInterface(KtSet, 'Set', VOID, VOID, [Collection]);
 initMetadataForCompanion(Companion_0);
-initMetadataForInterface(KtMutableMap, 'MutableMap', VOID, VOID, [KtMap]);
-initMetadataForCompanion(Companion_1);
 initMetadataForInterface(MutableIterable, 'MutableIterable');
 initMetadataForInterface(KtMutableList, 'MutableList', VOID, VOID, [KtList, Collection, MutableIterable]);
+initMetadataForCompanion(Companion_1);
+initMetadataForInterface(KtMutableMap, 'MutableMap', VOID, VOID, [KtMap]);
 initMetadataForCompanion(Companion_2);
 initMetadataForClass(Enum, 'Enum');
 initMetadataForInterface(FunctionAdapter, 'FunctionAdapter');
@@ -8181,6 +8234,7 @@ initMetadataForObject(EmptyCoroutineContext, 'EmptyCoroutineContext');
 initMetadataForClass(CoroutineSingletons, 'CoroutineSingletons');
 initMetadataForCompanion(Companion_9);
 initMetadataForClass(Failure, 'Failure');
+initMetadataForClass(Result, 'Result');
 initMetadataForClass(NotImplementedError, 'NotImplementedError', NotImplementedError.new_kotlin_NotImplementedError_8rzvsv_k$);
 initMetadataForClass(Pair, 'Pair');
 initMetadataForCompanion(Companion_10);
@@ -8249,10 +8303,10 @@ BreadthFirstTraverser_instance = new BreadthFirstTraverser_0();
 //region block: exports
 var KtList_0 = {};
 KtList_0.fromJsArray = fromJsArray;
-var KtMutableMap_0 = {};
-KtMutableMap_0.fromJsMap = fromJsMap;
 var KtMutableList_0 = {};
 KtMutableList_0.fromJsArray = fromJsArray_0;
+var KtMutableMap_0 = {};
+KtMutableMap_0.fromJsMap = fromJsMap;
 defineProp(Type, 'Companion', Companion_getInstance_11, VOID, true);
 KeyType.invoke = invoke;
 defineProp(KeyType, 'Companion', Companion_getInstance_12, VOID, true);
@@ -8265,8 +8319,8 @@ var DepthFirstTraverser = {getInstance: DepthFirstTraverser_getInstance};
 var BreadthFirstTraverser = {getInstance: BreadthFirstTraverser_getInstance};
 export {
   KtList_0 as KtList,
-  KtMutableMap_0 as KtMutableMap,
   KtMutableList_0 as KtMutableList,
+  KtMutableMap_0 as KtMutableMap,
   UniqueImpl as UniqueImpl,
   Edge as Edge,
   PortGraph as PortGraph,

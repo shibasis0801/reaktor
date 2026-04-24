@@ -11,6 +11,11 @@ import kotlin.test.assertTrue
 class WebFileAdapterTest {
     @Test
     fun writesReadsCopiesAndDeletesFilesInBrowser() = runTest {
+        if (!hasOriginPrivateFileSystem()) {
+            println("Skipping WebFileAdapterTest: navigator.storage.getDirectory() is unavailable in this JS runtime.")
+            return@runTest
+        }
+
         val files = WebFileAdapter(
             cacheDirectory = "js-test-cache",
             documentDirectory = "js-test-documents",
@@ -42,4 +47,13 @@ class WebFileAdapterTest {
         assertFalse(files.exists(copy))
         assertNull(files.readTextFile(source))
     }
+
+    private fun hasOriginPrivateFileSystem(): Boolean =
+        js(
+            """
+            typeof globalThis.navigator !== "undefined" &&
+            !!globalThis.navigator.storage &&
+            typeof globalThis.navigator.storage.getDirectory === "function"
+            """,
+        ).unsafeCast<Boolean>()
 }

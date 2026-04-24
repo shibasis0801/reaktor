@@ -782,13 +782,15 @@ export declare abstract class FileAdapter<Controller> /* extends Adapter<Control
     abstract get cacheDirectory(): string;
     abstract get documentDirectory(): string;
     resolvePath(fileName: string, directory?: string): string;
-    exists(path: string): boolean;
-    delete(path: string): void;
-    copy(sourcePath: string, destPath: string): void;
-    readBinaryFile(path: string): Nullable<Int8Array>;
-    readTextFile(path: string): Nullable<string>;
-    writeTextFile(path: string, data: string): void;
-    writeBinaryFile(path: string, data: Int8Array): void;
+    bufferedSink(path: string, actions: (p0: any/* Sink */) => void): Promise<void>;
+    bufferedSource(path: string, actions: (p0: any/* Source */) => void): Promise<void>;
+    exists(path: string): Promise<boolean>;
+    delete(path: string): Promise<void>;
+    copy(sourcePath: string, destPath: string): Promise<void>;
+    readBinaryFile(path: string): Promise<Nullable<Int8Array>>;
+    readTextFile(path: string): Promise<Nullable<string>>;
+    writeTextFile(path: string, data: string): Promise<void>;
+    writeBinaryFile(path: string, data: Int8Array): Promise<void>;
 }
 export declare namespace FileAdapter {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */

@@ -37,17 +37,6 @@ if (typeof Array.prototype.fill === 'undefined') {
     Object.defineProperty(TypedArray.prototype, 'fill', {value: Array.prototype.fill});
   }
 });
-if (typeof Math.trunc === 'undefined') {
-  Math.trunc = function (x) {
-    if (isNaN(x)) {
-      return NaN;
-    }
-    if (x > 0) {
-      return Math.floor(x);
-    }
-    return Math.ceil(x);
-  };
-}
 if (typeof Math.clz32 === 'undefined') {
   Math.clz32 = function (log, LN2) {
     return function (x) {
@@ -58,6 +47,17 @@ if (typeof Math.clz32 === 'undefined') {
       return 31 - (log(asUint) / LN2 | 0) | 0; // the "| 0" acts like math.floor
     };
   }(Math.log, Math.LN2);
+}
+if (typeof Math.trunc === 'undefined') {
+  Math.trunc = function (x) {
+    if (isNaN(x)) {
+      return NaN;
+    }
+    if (x > 0) {
+      return Math.floor(x);
+    }
+    return Math.ceil(x);
+  };
 }
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
@@ -21101,38 +21101,6 @@ function ulongToString(value, base) {
   }
   return toString_2(quotient, base) + toString_2(rem, base);
 }
-function doubleToULong(value) {
-  var tmp;
-  if (isNaN_0(value)) {
-    tmp = _ULong___init__impl__c78o9k(0n);
-  } else {
-    // Inline function 'kotlin.ULong.toDouble' call
-    var this_0 = _ULong___init__impl__c78o9k(0n);
-    if (value <= ulongToDouble(_ULong___get_data__impl__fggpzb(this_0))) {
-      tmp = _ULong___init__impl__c78o9k(0n);
-    } else {
-      // Inline function 'kotlin.ULong.toDouble' call
-      var this_1 = _ULong___init__impl__c78o9k(-1n);
-      if (value >= ulongToDouble(_ULong___get_data__impl__fggpzb(this_1))) {
-        tmp = _ULong___init__impl__c78o9k(-1n);
-      } else {
-        if (value < toNumber_0(9223372036854775807n)) {
-          // Inline function 'kotlin.toULong' call
-          var this_2 = numberToLong(value);
-          tmp = _ULong___init__impl__c78o9k(this_2);
-        } else {
-          // Inline function 'kotlin.toULong' call
-          var this_3 = numberToLong(value - 9.223372036854776E18);
-          var tmp0 = _ULong___init__impl__c78o9k(this_3);
-          // Inline function 'kotlin.ULong.plus' call
-          var other = _ULong___init__impl__c78o9k(-9223372036854775808n);
-          tmp = _ULong___init__impl__c78o9k(add_0(_ULong___get_data__impl__fggpzb(tmp0), _ULong___get_data__impl__fggpzb(other)));
-        }
-      }
-    }
-  }
-  return tmp;
-}
 function doubleToUInt(value) {
   var tmp;
   if (isNaN_0(value)) {
@@ -21161,6 +21129,38 @@ function doubleToUInt(value) {
           // Inline function 'kotlin.UInt.plus' call
           var other = _UInt___init__impl__l7qpdl(this_4);
           tmp = _UInt___init__impl__l7qpdl(_UInt___get_data__impl__f0vqqw(tmp0) + _UInt___get_data__impl__f0vqqw(other) | 0);
+        }
+      }
+    }
+  }
+  return tmp;
+}
+function doubleToULong(value) {
+  var tmp;
+  if (isNaN_0(value)) {
+    tmp = _ULong___init__impl__c78o9k(0n);
+  } else {
+    // Inline function 'kotlin.ULong.toDouble' call
+    var this_0 = _ULong___init__impl__c78o9k(0n);
+    if (value <= ulongToDouble(_ULong___get_data__impl__fggpzb(this_0))) {
+      tmp = _ULong___init__impl__c78o9k(0n);
+    } else {
+      // Inline function 'kotlin.ULong.toDouble' call
+      var this_1 = _ULong___init__impl__c78o9k(-1n);
+      if (value >= ulongToDouble(_ULong___get_data__impl__fggpzb(this_1))) {
+        tmp = _ULong___init__impl__c78o9k(-1n);
+      } else {
+        if (value < toNumber_0(9223372036854775807n)) {
+          // Inline function 'kotlin.toULong' call
+          var this_2 = numberToLong(value);
+          tmp = _ULong___init__impl__c78o9k(this_2);
+        } else {
+          // Inline function 'kotlin.toULong' call
+          var this_3 = numberToLong(value - 9.223372036854776E18);
+          var tmp0 = _ULong___init__impl__c78o9k(this_3);
+          // Inline function 'kotlin.ULong.plus' call
+          var other = _ULong___init__impl__c78o9k(-9223372036854775808n);
+          tmp = _ULong___init__impl__c78o9k(add_0(_ULong___get_data__impl__fggpzb(tmp0), _ULong___get_data__impl__fggpzb(other)));
         }
       }
     }
@@ -27320,6 +27320,50 @@ function _ByteWidth___get_value__impl__bpyvkh($this) {
 function ByteWidth__toString_impl_rkljy5($this) {
   return 'ByteWidth(value=' + $this + ')';
 }
+function isTypedVector(_this__u8e3s4) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return FlexBufferType__compareTo_impl_15pwxs(_this__u8e3s4, get_T_VECTOR_INT()) >= 0 && FlexBufferType__compareTo_impl_15pwxs(_this__u8e3s4, get_T_VECTOR_STRING_DEPRECATED()) <= 0 || _this__u8e3s4 === get_T_VECTOR_BOOL();
+}
+function minus(_this__u8e3s4, width) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return _this__u8e3s4 - _ByteWidth___get_value__impl__bpyvkh(width) | 0;
+}
+function typeToString(_this__u8e3s4) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return _this__u8e3s4 === get_T_NULL() ? 'Null' : _this__u8e3s4 === get_T_INT() ? 'Int' : _this__u8e3s4 === get_T_UINT() ? 'UInt' : _this__u8e3s4 === get_T_FLOAT() ? 'Float' : _this__u8e3s4 === get_T_KEY() ? 'Key' : _this__u8e3s4 === get_T_STRING() ? 'String' : _this__u8e3s4 === get_T_INDIRECT_INT() ? 'IndirectInt' : _this__u8e3s4 === get_T_INDIRECT_UINT() ? 'IndirectUInt' : _this__u8e3s4 === get_T_INDIRECT_FLOAT() ? 'IndirectFloat' : _this__u8e3s4 === get_T_MAP() ? 'Map' : _this__u8e3s4 === get_T_VECTOR() ? 'Vector' : _this__u8e3s4 === get_T_VECTOR_INT() ? 'IntVector' : _this__u8e3s4 === get_T_VECTOR_UINT() ? 'UIntVector' : _this__u8e3s4 === get_T_VECTOR_FLOAT() ? 'FloatVector' : _this__u8e3s4 === get_T_VECTOR_KEY() ? 'KeyVector' : _this__u8e3s4 === get_T_VECTOR_STRING_DEPRECATED() ? 'StringVectorDeprecated' : _this__u8e3s4 === get_T_VECTOR_INT2() ? 'Int2Vector' : _this__u8e3s4 === get_T_VECTOR_UINT2() ? 'UInt2Vector' : _this__u8e3s4 === get_T_VECTOR_FLOAT2() ? 'Float2Vector' : _this__u8e3s4 === get_T_VECTOR_INT3() ? 'Int3Vector' : _this__u8e3s4 === get_T_VECTOR_UINT3() ? 'UInt3Vector' : _this__u8e3s4 === get_T_VECTOR_FLOAT3() ? 'Float3Vector' : _this__u8e3s4 === get_T_VECTOR_INT4() ? 'Int4Vector' : _this__u8e3s4 === get_T_VECTOR_UINT4() ? 'UInt4Vector' : _this__u8e3s4 === get_T_VECTOR_FLOAT4() ? 'Float4Vector' : _this__u8e3s4 === get_T_BLOB() ? 'BlobVector' : _this__u8e3s4 === get_T_BOOL() ? 'BoolVector' : _this__u8e3s4 === get_T_VECTOR_BOOL() ? 'BoolVector' : 'UnknownType';
+}
+function toElementTypedVector(_this__u8e3s4) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return FlexBufferType__plus_impl_r7lkv4(FlexBufferType__minus_impl_vxdtbk(_this__u8e3s4, get_T_VECTOR_INT()), get_T_INT());
+}
+function emptyVector() {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return new Vector(get_emptyBuffer(), 1, _ByteWidth___init__impl__ebgb8b(1));
+}
+function emptyBlob() {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return new Blob(get_emptyBuffer(), 1, _ByteWidth___init__impl__ebgb8b(1));
+}
+function emptyMap_0() {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return new Map_0(ArrayReadWriteBuffer.new_com_google_flatbuffers_kotlin_ArrayReadWriteBuffer_mgs3pj_k$(3), 3, _ByteWidth___init__impl__ebgb8b(1));
+}
+function isIndirectScalar(_this__u8e3s4) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return _this__u8e3s4 === get_T_INDIRECT_INT() || (_this__u8e3s4 === get_T_INDIRECT_UINT() || _this__u8e3s4 === get_T_INDIRECT_FLOAT()) ? true : false;
+}
+function times(_this__u8e3s4, width) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return imul_0(_this__u8e3s4, _ByteWidth___get_value__impl__bpyvkh(width));
+}
+function plus_1(_this__u8e3s4, width) {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return _this__u8e3s4 + _ByteWidth___get_value__impl__bpyvkh(width) | 0;
+}
+function nullReference() {
+  _init_properties_FlexBuffersInternals_kt__gj5dlo();
+  return Reference.new_com_google_flatbuffers_kotlin_Reference_mzl7hh_k$(get_emptyBuffer(), 1, _ByteWidth___init__impl__ebgb8b(0), _FlexBufferType___get_value__impl__ei8hoe(get_T_NULL()));
+}
 function widthInUBits(_this__u8e3s4) {
   _init_properties_FlexBuffersInternals_kt__gj5dlo();
   var tmp;
@@ -27467,50 +27511,6 @@ function isTypedVectorElementType(_this__u8e3s4) {
 function toTypedVector(_this__u8e3s4) {
   _init_properties_FlexBuffersInternals_kt__gj5dlo();
   return FlexBufferType__plus_impl_r7lkv4(FlexBufferType__minus_impl_vxdtbk(_this__u8e3s4, get_T_INT()), get_T_VECTOR_INT());
-}
-function isTypedVector(_this__u8e3s4) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return FlexBufferType__compareTo_impl_15pwxs(_this__u8e3s4, get_T_VECTOR_INT()) >= 0 && FlexBufferType__compareTo_impl_15pwxs(_this__u8e3s4, get_T_VECTOR_STRING_DEPRECATED()) <= 0 || _this__u8e3s4 === get_T_VECTOR_BOOL();
-}
-function minus(_this__u8e3s4, width) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return _this__u8e3s4 - _ByteWidth___get_value__impl__bpyvkh(width) | 0;
-}
-function typeToString(_this__u8e3s4) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return _this__u8e3s4 === get_T_NULL() ? 'Null' : _this__u8e3s4 === get_T_INT() ? 'Int' : _this__u8e3s4 === get_T_UINT() ? 'UInt' : _this__u8e3s4 === get_T_FLOAT() ? 'Float' : _this__u8e3s4 === get_T_KEY() ? 'Key' : _this__u8e3s4 === get_T_STRING() ? 'String' : _this__u8e3s4 === get_T_INDIRECT_INT() ? 'IndirectInt' : _this__u8e3s4 === get_T_INDIRECT_UINT() ? 'IndirectUInt' : _this__u8e3s4 === get_T_INDIRECT_FLOAT() ? 'IndirectFloat' : _this__u8e3s4 === get_T_MAP() ? 'Map' : _this__u8e3s4 === get_T_VECTOR() ? 'Vector' : _this__u8e3s4 === get_T_VECTOR_INT() ? 'IntVector' : _this__u8e3s4 === get_T_VECTOR_UINT() ? 'UIntVector' : _this__u8e3s4 === get_T_VECTOR_FLOAT() ? 'FloatVector' : _this__u8e3s4 === get_T_VECTOR_KEY() ? 'KeyVector' : _this__u8e3s4 === get_T_VECTOR_STRING_DEPRECATED() ? 'StringVectorDeprecated' : _this__u8e3s4 === get_T_VECTOR_INT2() ? 'Int2Vector' : _this__u8e3s4 === get_T_VECTOR_UINT2() ? 'UInt2Vector' : _this__u8e3s4 === get_T_VECTOR_FLOAT2() ? 'Float2Vector' : _this__u8e3s4 === get_T_VECTOR_INT3() ? 'Int3Vector' : _this__u8e3s4 === get_T_VECTOR_UINT3() ? 'UInt3Vector' : _this__u8e3s4 === get_T_VECTOR_FLOAT3() ? 'Float3Vector' : _this__u8e3s4 === get_T_VECTOR_INT4() ? 'Int4Vector' : _this__u8e3s4 === get_T_VECTOR_UINT4() ? 'UInt4Vector' : _this__u8e3s4 === get_T_VECTOR_FLOAT4() ? 'Float4Vector' : _this__u8e3s4 === get_T_BLOB() ? 'BlobVector' : _this__u8e3s4 === get_T_BOOL() ? 'BoolVector' : _this__u8e3s4 === get_T_VECTOR_BOOL() ? 'BoolVector' : 'UnknownType';
-}
-function toElementTypedVector(_this__u8e3s4) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return FlexBufferType__plus_impl_r7lkv4(FlexBufferType__minus_impl_vxdtbk(_this__u8e3s4, get_T_VECTOR_INT()), get_T_INT());
-}
-function emptyVector() {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return new Vector(get_emptyBuffer(), 1, _ByteWidth___init__impl__ebgb8b(1));
-}
-function emptyBlob() {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return new Blob(get_emptyBuffer(), 1, _ByteWidth___init__impl__ebgb8b(1));
-}
-function emptyMap_0() {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return new Map_0(ArrayReadWriteBuffer.new_com_google_flatbuffers_kotlin_ArrayReadWriteBuffer_mgs3pj_k$(3), 3, _ByteWidth___init__impl__ebgb8b(1));
-}
-function isIndirectScalar(_this__u8e3s4) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return _this__u8e3s4 === get_T_INDIRECT_INT() || (_this__u8e3s4 === get_T_INDIRECT_UINT() || _this__u8e3s4 === get_T_INDIRECT_FLOAT()) ? true : false;
-}
-function times(_this__u8e3s4, width) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return imul_0(_this__u8e3s4, _ByteWidth___get_value__impl__bpyvkh(width));
-}
-function plus_1(_this__u8e3s4, width) {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return _this__u8e3s4 + _ByteWidth___get_value__impl__bpyvkh(width) | 0;
-}
-function nullReference() {
-  _init_properties_FlexBuffersInternals_kt__gj5dlo();
-  return Reference.new_com_google_flatbuffers_kotlin_Reference_mzl7hh_k$(get_emptyBuffer(), 1, _ByteWidth___init__impl__ebgb8b(0), _FlexBufferType___get_value__impl__ei8hoe(get_T_NULL()));
 }
 var properties_initialized_FlexBuffersInternals_kt_mufjcu;
 function _init_properties_FlexBuffersInternals_kt__gj5dlo() {

@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-tactile",
-  "version": "2026.3.7-SNAPSHOT",
+  "version": "2026.4.19-SNAPSHOT",
   "main": "reaktor-reaktor-tactile.mjs",
   "types": "reaktor-reaktor-tactile.d.mts",
   "devDependencies": {

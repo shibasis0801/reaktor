@@ -5,6 +5,7 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.dependencies.useKoin
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("org.jetbrains.compose")
@@ -42,4 +43,13 @@ kotlin {
 
 android {
     defaults("dev.shibasis.reaktor.navigation")
+}
+
+tasks.withType<Test>().configureEach {
+    // Kotlin serialization and graph test helpers generate concrete JVM classes in
+    // commonTest. Gradle/JUnit discovery can otherwise try to execute DTOs,
+    // serializers, and private helper classes as tests.
+    setScanForTestClasses(false)
+    include("**/*Test.class", "**/*Tests.class")
+    exclude("**/*\$*")
 }

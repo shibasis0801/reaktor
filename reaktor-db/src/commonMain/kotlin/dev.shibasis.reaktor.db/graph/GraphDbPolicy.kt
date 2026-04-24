@@ -18,13 +18,16 @@ class MandatoryTenantParameterization(
     private val tenantParameterName: String = TenantParameterName,
 ): TenantGraphQueryPolicy {
     private val tenantParameterReference = "\$$tenantParameterName"
+    private val cypherRegexOptions = setOf(RegexOption.IGNORE_CASE)
     private val clauseBoundary = Regex(
-        pattern = """(?is)\bOPTIONAL\s+MATCH\b|\bMATCH\b|\bWHERE\b|\bWITH\b|\bRETURN\b|\bCREATE\b|\bMERGE\b|\bDELETE\b|\bDETACH\s+DELETE\b|\bSET\b|\bUNWIND\b|\bCALL\b|\bFOREACH\b|\bORDER\s+BY\b|\bLIMIT\b|\bSKIP\b|\bUNION\b"""
+        pattern = """\bOPTIONAL\s+MATCH\b|\bMATCH\b|\bWHERE\b|\bWITH\b|\bRETURN\b|\bCREATE\b|\bMERGE\b|\bDELETE\b|\bDETACH\s+DELETE\b|\bSET\b|\bUNWIND\b|\bCALL\b|\bFOREACH\b|\bORDER\s+BY\b|\bLIMIT\b|\bSKIP\b|\bUNION\b""",
+        options = cypherRegexOptions
     )
-    private val matchClause = Regex("""(?is)\b(?:OPTIONAL\s+MATCH|MATCH)\b""")
+    private val matchClause = Regex("""\b(?:OPTIONAL\s+MATCH|MATCH)\b""", cypherRegexOptions)
     private val nodePattern = Regex("""\(([^()]*)\)""")
     private val tenantProperty = Regex(
-        pattern = """(?is)(?:^|[,{])\s*`?tenant_id`?\s*:\s*${Regex.escape(tenantParameterReference)}(?:\s|[,}])"""
+        pattern = """(?:^|[,{])\s*`?tenant_id`?\s*:\s*${Regex.escape(tenantParameterReference)}(?:\s|[,}])""",
+        options = cypherRegexOptions
     )
 
     override fun bind(tenantId: String, query: TenantGraphQuery): TenantGraphQuery {

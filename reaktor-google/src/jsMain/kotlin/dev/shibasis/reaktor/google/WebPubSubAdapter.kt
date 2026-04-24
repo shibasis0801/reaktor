@@ -18,6 +18,7 @@ class WebPubSubAdapter(
                 method = "PUT",
                 path = topic.name,
                 body = "{}",
+                ignoredStatuses = setOf(409),
             )
             topic
         }
@@ -31,13 +32,8 @@ class WebPubSubAdapter(
             request(
                 method = "PUT",
                 path = subscription.name,
-                body =
-                    json.encodeToString(
-                        JsCreateSubscriptionRequest(
-                            topic = topic.name,
-                            ackDeadlineSeconds = options.ackDeadlineSeconds,
-                        ),
-                    ),
+                body = createSubscriptionBody(topic, options),
+                ignoredStatuses = setOf(409),
             )
             subscription
         }
@@ -114,6 +110,7 @@ class WebPubSubAdapter(
         method: String,
         path: String,
         body: String? = null,
+        ignoredStatuses: Set<Int> = emptySet(),
     ): String {
         val init = js("({})")
         init.method = method
@@ -126,17 +123,50 @@ class WebPubSubAdapter(
 
         val response = fetch("$endpoint/$path", init).await()
         val text = response.text().await()
-        if (!response.ok) {
+        if (!response.ok && response.status !in ignoredStatuses) {
             error("Google Pub/Sub request failed (${response.status}): $text")
         }
         return text
     }
+
+    private fun createSubscriptionBody(
+        topic: PubSubTopic,
+        options: PubSubSubscriptionOptions,
+    ): String =
+        options.pushEndpoint
+            ?.let { pushEndpoint ->
+                json.encodeToString(
+                    JsCreatePushSubscriptionRequest(
+                        topic = topic.name,
+                        pushConfig = JsPushConfig(pushEndpoint = pushEndpoint),
+                        ackDeadlineSeconds = options.ackDeadlineSeconds,
+                    ),
+                )
+            }
+            ?: json.encodeToString(
+                JsCreatePullSubscriptionRequest(
+                    topic = topic.name,
+                    ackDeadlineSeconds = options.ackDeadlineSeconds,
+                ),
+            )
 }
 
 @Serializable
-private data class JsCreateSubscriptionRequest(
+private data class JsCreatePullSubscriptionRequest(
     val topic: String,
     val ackDeadlineSeconds: Int,
+)
+
+@Serializable
+private data class JsCreatePushSubscriptionRequest(
+    val topic: String,
+    val pushConfig: JsPushConfig,
+    val ackDeadlineSeconds: Int,
+)
+
+@Serializable
+private data class JsPushConfig(
+    val pushEndpoint: String,
 )
 
 @Serializable

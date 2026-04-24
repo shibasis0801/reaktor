@@ -13,7 +13,13 @@ import kotlin.test.assertEquals
 import kotlin.time.measureTime
 
 /**
- * Performance benchmarks for FlexBuffers V2 (pure Kotlin) encoder/decoder.
+ * Performance benchmark helpers for FlexBuffers V2 (pure Kotlin) encoder/decoder.
+ *
+ * Benchmark methods in this file are intentionally plain functions instead of default
+ * `@Test` methods. They run large warmup/measurement loops and are too slow/noisy for
+ * the normal multiplatform build, especially on JS where Gradle test timeouts are much
+ * tighter. Keep correctness checks under `@Test`; run performance work through the
+ * explicit flame-chart tasks in this module.
  *
  * Methodology:
  * - Warmup phase: 50 iterations to trigger JIT compilation and fill pools
@@ -156,7 +162,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Correctness + Performance: Flat Primitives ====================
 
-    @Test
     fun benchFlatPrimitives() {
         println("=== Flat Primitives (9 fields, no nesting) ===")
         val data = FlatPrimitives()
@@ -193,7 +198,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Correctness + Performance: Collections ====================
 
-    @Test
     fun benchCollectionHeavy() {
         println("=== Collection Heavy (100-element lists, 50-entry maps) ===")
         val data = CollectionHeavy()
@@ -229,7 +233,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Correctness + Performance: Primitive Bulk Fast Path ====================
 
-    @Test
     fun benchPrimitiveBulkCase() {
         println("=== Primitive Bulk Case (blob + typed primitive vectors) ===")
         val data = PrimitiveBulkCase()
@@ -267,7 +270,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Correctness + Performance: Complex Case ====================
 
-    @Test
     fun benchComplexCase() {
         println("=== Complex Case (25 fields, nested objects, maps, collections) ===")
         val data = EncodingComplexCase()
@@ -305,7 +307,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Correctness + Performance: Sophisticated Case ====================
 
-    @Test
     fun benchSophisticatedCase() {
         println("=== Sophisticated Case (maps of maps of lists of complex objects) ===")
         val data = EncodingSophisticatedCase()
@@ -340,7 +341,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Correctness + Performance: Deeply Nested ====================
 
-    @Test
     fun benchDeeplyNested() {
         println("=== Deeply Nested (4 levels deep) ===")
         val data = DeeplyNested()
@@ -376,7 +376,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Throughput: Batch Encoding ====================
 
-    @Test
     fun benchBatchEncoding() {
         println("=== Batch Encoding (1000 ComplexCase objects) ===")
         val data = EncodingComplexCase()
@@ -394,7 +393,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Throughput: Batch Decoding ====================
 
-    @Test
     fun benchBatchDecoding() {
         println("=== Batch Decoding (1000 ComplexCase objects) ===")
         val data = EncodingComplexCase()
@@ -413,7 +411,6 @@ class FlexBuffersV2Benchmarks {
 
     // ==================== Encoded Size Comparison ====================
 
-    @Test
     fun benchEncodedSizes() {
         println("=== Encoded Size Comparison (FlexBuffer vs JSON) ===")
 

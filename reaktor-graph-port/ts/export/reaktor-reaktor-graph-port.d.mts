@@ -9,15 +9,6 @@ export declare interface KtList<E> /* extends Collection<E> */ {
 export declare namespace KtList {
     function fromJsArray<E>(array: ReadonlyArray<E>): KtList<E>;
 }
-export declare interface KtMutableMap<K, V> /* extends KtMap<K, V> */ {
-    asJsMapView(): Map<K, V>;
-    readonly __doNotUseOrImplementIt: {
-        readonly "kotlin.collections.KtMutableMap": unique symbol;
-    };
-}
-export declare namespace KtMutableMap {
-    function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMutableMap<K, V>;
-}
 export declare interface KtMutableList<E> extends KtList<E>/*, MutableCollection<E> */ {
     asJsArrayView(): Array<E>;
     readonly __doNotUseOrImplementIt: {
@@ -26,6 +17,15 @@ export declare interface KtMutableList<E> extends KtList<E>/*, MutableCollection
 }
 export declare namespace KtMutableList {
     function fromJsArray<E>(array: ReadonlyArray<E>): KtMutableList<E>;
+}
+export declare interface KtMutableMap<K, V> /* extends KtMap<K, V> */ {
+    asJsMapView(): Map<K, V>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtMutableMap": unique symbol;
+    };
+}
+export declare namespace KtMutableMap {
+    function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMutableMap<K, V>;
 }
 export declare interface Unique {
     readonly id: any/* Uuid */;

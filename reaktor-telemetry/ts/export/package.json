@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-telemetry",
-  "version": "2026.3.10-SNAPSHOT",
+  "version": "2026.4.19-SNAPSHOT",
   "main": "reaktor-reaktor-telemetry.mjs",
   "types": "reaktor-reaktor-telemetry.d.mts",
   "devDependencies": {

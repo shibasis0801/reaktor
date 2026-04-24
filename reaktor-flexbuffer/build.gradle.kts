@@ -121,6 +121,10 @@ val androidFlameChart by tasks.registering {
     description = "Run Android unit test benchmarks with async-profiler attached"
 }
 
+tasks.withType<Test>().configureEach {
+    exclude("**/*\$*")
+}
+
 // Inject async-profiler into the test JVM when FLAMECHART=true
 if (System.getenv("FLAMECHART") == "true") {
     tasks.withType<Test> {

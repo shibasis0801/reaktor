@@ -1,14 +1,14 @@
 {
   "name": "reaktor-reaktor-media",
-  "version": "2026.3.7-SNAPSHOT",
+  "version": "2026.4.19-SNAPSHOT",
   "main": "reaktor-reaktor-media.mjs",
   "types": "reaktor-reaktor-media.d.mts",
   "devDependencies": {
     "typescript": "5.9.2"
   },
   "dependencies": {
-    "@js-joda/core": "3.2.0",
     "ws": "8.18.0",
+    "@js-joda/core": "3.2.0",
     "@emotion/react": "^11.14.0",
     "@emotion/css": "^11.13.5",
     "@emotion/utils": "^1.4.2",
