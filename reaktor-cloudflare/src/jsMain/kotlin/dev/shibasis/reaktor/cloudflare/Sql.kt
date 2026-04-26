@@ -61,8 +61,10 @@ private fun Any?.asSqlValues(): List<Any?> =
         else -> error("SQL template expected a value list but got ${this?.let { it::class.simpleName } ?: "null"}")
     }
 
-private fun Array<out Any?>.requireArgument(index: Int): Any? =
-    getOrNull(index) ?: error("Missing SQL template argument at index $index")
+private fun Array<out Any?>.requireArgument(index: Int): Any? {
+    require(index < size) { "Missing SQL template argument at index $index" }
+    return get(index)
+}
 
 class SqlStatement internal constructor(
     internal val query: String,
