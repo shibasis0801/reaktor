@@ -354,6 +354,7 @@ private fun valueToJsonElement(value: Any?): JsonElement =
         is Number -> JsonPrimitive(value.toDouble())
         else -> when {
             isJsDate(value) -> JsonPrimitive(jsDateIsoString(value))
+            isJsArray(value) -> dynamicArrayToJson(value)
             isPlainJsObject(value) -> dynamicObjectToJson(value)
             else -> JsonPrimitive(value.toString())
         }
@@ -387,3 +388,12 @@ private fun dynamicObjectToJson(value: Any): JsonObject =
                 valueToJsonElement(nestedValue)
             },
     )
+
+private fun dynamicArrayToJson(value: Any): JsonArray {
+    val length = (value.asDynamic().length as Number).toInt()
+    val items = ArrayList<JsonElement>(length)
+    for (i in 0 until length) {
+        items.add(valueToJsonElement(value.asDynamic()[i]))
+    }
+    return JsonArray(items)
+}
