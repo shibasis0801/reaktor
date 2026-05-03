@@ -105,6 +105,7 @@ abstract class Service(
                 decoded
             }
         }
+        handlers += created
         return created
     }
 }
