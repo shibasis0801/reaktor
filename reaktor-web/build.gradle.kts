@@ -8,9 +8,14 @@ plugins {
     id("dev.shibasis.dependeasy.library")
 }
 kotlin {
-    common {}
+    common {
+        dependencies {
+            api(project(":reaktor-graph"))
+        }
+    }
     droid {}
     darwin {}
+    web {}
     server {}
 }
 

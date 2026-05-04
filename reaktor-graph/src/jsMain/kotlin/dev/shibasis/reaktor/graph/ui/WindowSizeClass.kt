@@ -4,6 +4,7 @@ import js.array.ReadonlyArray
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.w3c.dom.Window
 import org.w3c.dom.events.Event
 import react.Cleanup
@@ -73,6 +74,20 @@ fun<T> MutableStateFlow<T>.toReactState(): StateInstance<T> {
     }
 
     return StateInstance(state, stateSetter)
+}
+
+fun<T> StateFlow<T>.toReactState(): StateInstance<T> {
+    val (state, setState) = useState(value)
+
+    useEffect(Unit) {
+        collect { value ->
+            setState {
+                state -> if (state == value) state else value
+            }
+        }
+    }
+
+    return StateInstance(state, setState)
 }
 
 fun getWindowSizeFlow(): MutableStateFlow<WindowSize> {

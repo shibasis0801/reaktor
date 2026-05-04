@@ -10,12 +10,14 @@ plugins {
 }
 
 val sqldelightVersion: String by project
+val apolloKotlinVersion: String by project
 
 kotlin {
     common {
         dependencies {
             api(project(":reaktor-io"))
             api("app.cash.sqldelight:runtime:$sqldelightVersion")
+            api("com.apollographql.apollo:apollo-runtime:$apolloKotlinVersion")
         }
     }
 

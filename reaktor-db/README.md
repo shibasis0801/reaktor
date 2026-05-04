@@ -11,6 +11,7 @@
 - Cache policies (LRU, TTL)
 - Repository support for offline-first usage (read-through, write-through)
 - Graph database policy helpers for tenant-safe Cypher execution
+- Apollo Kotlin GraphQL client integration for shared KMP callers
 
 ## Platforms
 
@@ -51,10 +52,19 @@ The graph DB surface adds soft multi-tenancy through mandatory parameterization,
 | `SqlAdapter` | SQL adapter pattern |
 | `SyncAdapter` | Synchronization support |
 
+### GraphQL client
+
+| Type | Purpose |
+|---|---|
+| `GraphQlClient` | Reaktor GraphQL client abstraction for generated Apollo operations |
+| `ApolloKmmGraphQlClient` | Apollo Kotlin backed implementation for queries, mutations, and subscriptions |
+| `Feature.GraphQl` | Global feature slot for the configured GraphQL client |
+
 ## Dependencies
 
 - `reaktor-io`
 - SQLDelight (runtime + platform-specific drivers: Android, iOS native, JDBC, SQLite)
+- Apollo Kotlin runtime
 - Neo4j Java driver (server only)
 - kotlinx-coroutines-jdk8 (server)
 

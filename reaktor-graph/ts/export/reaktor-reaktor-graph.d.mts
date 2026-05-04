@@ -9,11 +9,11 @@ export declare interface KtList<E> /* extends Collection<E> */ {
 export declare namespace KtList {
     function fromJsArray<E>(array: ReadonlyArray<E>): KtList<E>;
 }
-export declare interface KtMutableSet<E> /* extends KtSet<E>, MutableCollection<E> */ {
+export declare interface KtMutableSet<E> extends KtSet<E>/*, MutableCollection<E> */ {
     asJsSetView(): Set<E>;
     readonly __doNotUseOrImplementIt: {
         readonly "kotlin.collections.KtMutableSet": unique symbol;
-    };
+    } & KtSet<E>["__doNotUseOrImplementIt"];
 }
 export declare namespace KtMutableSet {
     function fromJsSet<E>(set: ReadonlySet<E>): KtMutableSet<E>;
@@ -26,6 +26,15 @@ export declare interface KtMutableMap<K, V> extends KtMap<K, V> {
 }
 export declare namespace KtMutableMap {
     function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMutableMap<K, V>;
+}
+export declare interface KtSet<E> /* extends Collection<E> */ {
+    asJsReadonlySetView(): ReadonlySet<E>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtSet": unique symbol;
+    };
+}
+export declare namespace KtSet {
+    function fromJsSet<E>(set: ReadonlySet<E>): KtSet<E>;
 }
 export declare interface KtMap<K, V> {
     asJsReadonlyMapView(): ReadonlyMap<K, V>;
@@ -2522,6 +2531,24 @@ export declare namespace WindowSize {
         }
     }
 }
+export declare class WebNavigationBridge {
+    constructor(graph: Graph);
+    resolveCurrentUrl(): boolean;
+    destroy(): void;
+}
+export declare namespace WebNavigationBridge {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebNavigationBridge;
+    }
+}
+export declare function ReactGraphContent(graph: Graph, isFocused?: boolean): Nullable<ReactNode>;
+export declare interface ReactContainer extends View {
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.ui.ReactContainer": unique symbol;
+    } & View["__doNotUseOrImplementIt"];
+}
 export declare const PersonViewDataKey: { get(): KeyType; };
 export declare interface ReactContent extends View {
     Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
@@ -2576,6 +2603,50 @@ export declare namespace TestBasic {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
         const constructor: abstract new () => TestBasic;
+    }
+}
+export declare class WebBottomNavigationContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
+    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string, bottomNavKeys?: KtSet<string>);
+    get children(): KtMap<string, any/* ChildGraph */>;
+    get bottomNavKeys(): KtSet<string>;
+    get selected(): any/* MutableStateFlow<string> */;
+    get controller(): ProviderPort<any/* Controller */>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
+}
+export declare namespace WebBottomNavigationContainer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebBottomNavigationContainer;
+    }
+}
+export declare class WebHost {
+    constructor(graph: Graph);
+    get graph(): Graph;
+    get bridge(): WebNavigationBridge;
+    start(): void;
+    Content(): Nullable<ReactNode>;
+}
+export declare namespace WebHost {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebHost;
+    }
+}
+export declare class WebTabbedContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
+    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string);
+    get children(): KtMap<string, any/* ChildGraph */>;
+    get selected(): any/* MutableStateFlow<string> */;
+    get controller(): ProviderPort<any/* Controller */>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
+}
+export declare namespace WebTabbedContainer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTabbedContainer;
     }
 }
 export declare function useWindowSize(): WindowSize;
