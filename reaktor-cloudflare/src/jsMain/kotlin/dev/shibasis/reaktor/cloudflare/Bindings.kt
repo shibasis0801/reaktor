@@ -181,6 +181,7 @@ class CloudflareContext internal constructor(
 
     fun d1OrNull(name: String): D1Database? = rawBindingOrNull<RawD1Database>(name)?.let(::D1Database)
     fun r2OrNull(name: String): R2Bucket? = rawBindingOrNull<RawR2Bucket>(name)?.let(::R2Bucket)
+    fun kvOrNull(name: String): KvNamespace? = rawBindingOrNull<RawKvNamespace>(name)?.let(::KvNamespace)
     fun durableObjectOrNull(name: String): DurableObjectNamespace? = rawBindingOrNull<RawDurableObjectNamespace>(name)?.let(::DurableObjectNamespace)
     fun serviceOrNull(name: String): WorkerService? = rawBindingOrNull<RawServiceBinding>(name)?.let(::WorkerService)
     fun secretOrNull(name: String): String? = raw(name)?.toString()
@@ -192,6 +193,7 @@ class CloudflareContext internal constructor(
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
     fun requireR2(name: String): R2Bucket = r2OrNull(name) ?: missingBinding(name, "R2Bucket")
+    fun requireKv(name: String): KvNamespace = kvOrNull(name) ?: missingBinding(name, "KvNamespace")
     fun requireDurableObjects(name: String): DurableObjectNamespace = durableObjectOrNull(name) ?: missingBinding(name, "DurableObjectNamespace")
     fun requireService(name: String): WorkerService = serviceOrNull(name) ?: missingBinding(name, "Service")
     fun requireSecret(name: String): String = secretOrNull(name) ?: missingBinding(name, "String")

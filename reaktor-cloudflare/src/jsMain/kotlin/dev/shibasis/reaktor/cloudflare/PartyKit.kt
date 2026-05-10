@@ -133,7 +133,14 @@ class PartyKitConnection internal constructor(
 
     @JsExport.Ignore
     val stateElementOrNull: JsonElement?
-        get() = raw.state?.let(::dynamicToJsonElement)
+        get() {
+            // Don't use `?.let` on a `dynamic` value — Kotlin/JS emits a real
+            // `.let(...)` method call instead of inlining, and plain JS objects
+            // (what PartyKit's runtime returns from `state` / `setState`) don't
+            // have a `.let` method, so this throws "tmp.let is not a function".
+            val raw0 = raw.state
+            return if (raw0 == null) null else dynamicToJsonElement(raw0)
+        }
 
     fun stateJsonTextOrNull(): String? =
         stateElementOrNull?.toJsonText()
@@ -143,15 +150,19 @@ class PartyKitConnection internal constructor(
         stateElementOrNull?.let { state -> runCatching { json.decodeFromJsonElement(kSerializer<T>(), state) }.getOrNull() }
 
     @JsExport.Ignore
-    fun clearState(): JsonElement? =
-        raw.setState(null)?.let(::dynamicToJsonElement)
+    fun clearState(): JsonElement? {
+        val raw0 = raw.setState(null)
+        return if (raw0 == null) null else dynamicToJsonElement(raw0)
+    }
 
     fun clearStateJsonText(): String? =
         clearState()?.toJsonText()
 
     @JsExport.Ignore
-    fun setState(state: JsonElement?): JsonElement? =
-        raw.setState(state?.toDynamic())?.let(::dynamicToJsonElement)
+    fun setState(state: JsonElement?): JsonElement? {
+        val raw0 = raw.setState(state?.toDynamic())
+        return if (raw0 == null) null else dynamicToJsonElement(raw0)
+    }
 
     fun setStateJsonText(stateJson: String?): String? =
         setState(parseJsonTextOrNull(stateJson))?.toJsonText()
