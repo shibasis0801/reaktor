@@ -57,6 +57,14 @@ kotlin {
     }
 }
 
+tasks.withType<Test> {
+    filter {
+        includeTestsMatching("*Test")
+        excludeTestsMatching("*TestUser*")
+        excludeTestsMatching("*TestConfig*")
+    }
+}
+
 android {
     defaults("dev.shibasis.reaktor.db")
 }

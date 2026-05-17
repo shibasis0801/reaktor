@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.db.core
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlCursor
 import app.cash.sqldelight.db.SqlDriver
-import dev.shibasis.reaktor.db.DatabaseEvent
 import dev.shibasis.reaktor.io.serialization.BinarySerializer
 import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import dev.shibasis.reaktor.io.serialization.TextSerializer
@@ -12,227 +11,132 @@ import dev.shibasis.reaktor.db.StoredObject
 import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 
-// hide with factory pattern
 class SqliteObjectDatabase(
     private val driver: SqlDriver,
     name: String,
     objectSerializer: ObjectSerializer<*> = TextSerializer(),
-    cachePolicy: CachePolicy = CachePolicyLRU(100),
-    timestampProvider: TimestampProvider = DefaultTimestampProvider()
-): ObjectDatabase(objectSerializer, cachePolicy, timestampProvider) {
+    private val timestampProvider: TimestampProvider = DefaultTimestampProvider()
+): ObjectDatabase(objectSerializer) {
     private val tableName = "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
 
-    companion object {
-        const val KEY_COLUMN = "key"
-        const val VALUE_COLUMN = "value"
-        const val STORE_NAME_COLUMN = "store_name"
-        const val CREATED_AT_COLUMN = "created_at"
-        const val UPDATED_AT_COLUMN = "updated_at"
-    }
-
-    private fun createTable(tableName: String) {
-        val valueColumnType =  objectSerializer.choose("TEXT", "BLOB")
-
-        driver.execute(
-            null,
-            """
-            CREATE TABLE IF NOT EXISTS $tableName (
-                $KEY_COLUMN TEXT NOT NULL,
-                $VALUE_COLUMN $valueColumnType NOT NULL,
-                $STORE_NAME_COLUMN TEXT NOT NULL,
-                $CREATED_AT_COLUMN INTEGER NOT NULL,
-                $UPDATED_AT_COLUMN INTEGER NOT NULL,
-                PRIMARY KEY ($STORE_NAME_COLUMN, $KEY_COLUMN)
-            )
-            """.trimIndent(),
-            0
-        )
-    }
-
     init {
-        createTable(tableName)
+        val valueType = objectSerializer.choose("TEXT", "BLOB")
+        driver.execute(null, """
+            CREATE TABLE IF NOT EXISTS $tableName (
+                key TEXT NOT NULL,
+                value $valueType NOT NULL,
+                store_name TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (store_name, key)
+            )
+        """.trimIndent(), 0)
     }
 
-    private fun <T : Any> mapToStoredObject(
-        cursor: SqlCursor,
-        serializer: KSerializer<T>
-    ): StoredObject<T>? {
+    private fun <T : Any> readRow(cursor: SqlCursor, serializer: KSerializer<T>): StoredObject<T>? {
         if (!cursor.next().value) return null
-
-        val key = cursor.getString(0)!!
-        val value = when(objectSerializer) {
-            is BinarySerializer -> objectSerializer.deserialize(serializer, cursor.getBytes(1)!!)
-            is TextSerializer -> objectSerializer.deserialize(serializer, cursor.getString(1)!!)
+        val (value, sizeBytes) = when (objectSerializer) {
+            is BinarySerializer -> {
+                val bytes = cursor.getBytes(1)!!
+                objectSerializer.deserialize(serializer, bytes) to bytes.size.toLong()
+            }
+            is TextSerializer -> {
+                val text = cursor.getString(1)!!
+                objectSerializer.deserialize(serializer, text) to (text.length.toLong() * 2)
+            }
         }
-        val storeName = cursor.getString(2)!!
-        val createdAt = cursor.getLong(3)!!
-        val updatedAt = cursor.getLong(4)!!
-
-        return StoredObject(key, value, storeName, createdAt, updatedAt)
+        return StoredObject(
+            key = cursor.getString(0)!!,
+            value = value,
+            storeName = cursor.getString(2)!!,
+            createdAt = cursor.getLong(3)!!,
+            updatedAt = cursor.getLong(4)!!,
+            sizeBytes = sizeBytes
+        )
     }
 
     override suspend fun <T : Any> put(storeName: String, key: String, value: T, serializer: KSerializer<T>): StoredObject<T> {
-        emit(DatabaseEvent.Put(storeName, key))
-
-        val serializedValue = objectSerializer.serialize(serializer, value)
-
+        val serialized = objectSerializer.serialize(serializer, value)
         val now = timestampProvider.getTimestamp()
 
-        driver.execute(
-            null,
-            """
-        INSERT INTO $tableName ($KEY_COLUMN, $VALUE_COLUMN, $STORE_NAME_COLUMN, $CREATED_AT_COLUMN, $UPDATED_AT_COLUMN)
-        VALUES (
-            ?, ?, ?, ?, ?
-        )
-        ON CONFLICT($STORE_NAME_COLUMN, $KEY_COLUMN) DO UPDATE SET
-            $VALUE_COLUMN = excluded.$VALUE_COLUMN,
-            $UPDATED_AT_COLUMN = excluded.$UPDATED_AT_COLUMN
-        """.trimIndent(),
-            5
-        ) {
+        driver.execute(null, """
+            INSERT INTO $tableName (key, value, store_name, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(store_name, key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+        """.trimIndent(), 5) {
             bindString(0, key)
-            when (serializedValue) {
-                is String -> bindString(1, serializedValue)
-                is ByteArray -> bindBytes(1, serializedValue)
+            when (serialized) {
+                is String -> bindString(1, serialized)
+                is ByteArray -> bindBytes(1, serialized)
             }
             bindString(2, storeName)
             bindLong(3, now)
             bindLong(4, now)
         }
 
-        val rowChanges = driver.executeQuery(null, "SELECT changes()", { cursor ->
-            QueryResult.Value(cursor.next().value && cursor.getLong(0) == 1L)
-        }, 0, null).value
-
-        if (rowChanges) {
-            cachePolicy.onItemInsertion(key, storeName)
-        } else {
-            cachePolicy.onItemUpdate(key, storeName)
+        val sizeBytes = when (serialized) {
+            is String -> serialized.length.toLong() * 2
+            is ByteArray -> serialized.size.toLong()
+            else -> 0L
         }
 
-        // Trigger eviction if needed
-        val keysToEvict = cachePolicy.findKeysToEvict(storeName)
-        keysToEvict.forEach { (keyToEvict, storeNameToEvictFrom) ->
-            delete(storeNameToEvictFrom, keyToEvict)
-        }
-
-        return StoredObject(
-            key = key,
-            value = value,
-            storeName = storeName,
-            createdAt = now,
-            updatedAt = now
-        )
+        return StoredObject(key, value, storeName, now, now, sizeBytes)
     }
 
     override suspend fun <T : Any> get(
-        storeName: String,
-        key: String,
-        type: KClass<T>,
-        serializer: KSerializer<T>
+        storeName: String, key: String,
+        type: KClass<T>, serializer: KSerializer<T>
     ): StoredObject<T>? {
-        emit(DatabaseEvent.Get(storeName, key))
-
-        val result = driver.executeQuery(
+        return driver.executeQuery(
             null,
-            "SELECT * FROM $tableName WHERE $KEY_COLUMN = ? AND $STORE_NAME_COLUMN = ?",
-            { cursor ->
-                QueryResult.Value(
-                    mapToStoredObject(
-                        cursor,
-                        serializer
-                    )
-                )
-            },
+            "SELECT * FROM $tableName WHERE key = ? AND store_name = ?",
+            { cursor -> QueryResult.Value(readRow(cursor, serializer)) },
             2
         ) {
             bindString(0, key)
             bindString(1, storeName)
-        }
-
-        val value = result.value ?: return null
-
-        val cached = cachePolicy.onItemAccess(value)
-        return if (cached == null) {
-            delete(storeName, key)
-            null
-        }
-        else cached
+        }.value
     }
 
     override suspend fun <T : Any> getAll(
-        storeName: String,
-        type: KClass<T>,
-        serializer: KSerializer<T>
+        storeName: String, type: KClass<T>, serializer: KSerializer<T>
     ): List<StoredObject<T>> {
-        emit(DatabaseEvent.GetAll(storeName))
-
-        val result = driver.executeQuery(
+        return driver.executeQuery(
             null,
-            "SELECT * FROM $tableName WHERE $STORE_NAME_COLUMN = ?",
+            "SELECT * FROM $tableName WHERE store_name = ?",
             { cursor ->
                 val items = mutableListOf<StoredObject<T>>()
-                var storedObject = mapToStoredObject(
-                    cursor,
-                    serializer
-                )
-                while (storedObject != null) {
-                    items.add(storedObject)
-                    storedObject = mapToStoredObject(
-                        cursor,
-                        serializer
-                    )
+                while (true) {
+                    items.add(readRow(cursor, serializer) ?: break)
                 }
                 QueryResult.Value(items)
             },
             1
         ) {
             bindString(0, storeName)
-        }
-
-        return result.value.mapNotNull {
-            val cached = cachePolicy.onItemAccess(it)
-            if (cached == null) {
-                delete(storeName, it.key)
-                null
-            } else it
-        }
+        }.value
     }
 
     override suspend fun delete(storeName: String, key: String) {
-        emit(DatabaseEvent.Delete(storeName, key))
-
         driver.execute(
             null,
-            "DELETE FROM $tableName WHERE \"$KEY_COLUMN\" = ? AND $STORE_NAME_COLUMN = ?",
+            "DELETE FROM $tableName WHERE key = ? AND store_name = ?",
             2
         ) {
             bindString(0, key)
             bindString(1, storeName)
         }
-        cachePolicy.onItemDeletion(key, storeName)
     }
 
     override suspend fun clear(storeName: String) {
-        emit(DatabaseEvent.Clear(storeName))
-
-        driver.execute(
-            null,
-            "DELETE FROM $tableName WHERE $STORE_NAME_COLUMN = ?",
-            1
-        ) {
+        driver.execute(null, "DELETE FROM $tableName WHERE store_name = ?", 1) {
             bindString(0, storeName)
         }
     }
 
     override suspend fun clear() {
-        emit(DatabaseEvent.ClearAll)
-
-        driver.execute(
-            null,
-            "DELETE FROM $tableName",
-            0
-        )
+        driver.execute(null, "DELETE FROM $tableName", 0)
     }
 }
