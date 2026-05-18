@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.core.EncodingSimpleCase
 import dev.shibasis.reaktor.core.InnerNestedData
 import dev.shibasis.reaktor.core.NestedData
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -27,6 +28,11 @@ class FlexDecoderTests {
         return FlexBuffers.decode(encoded)
     }
 
+    private fun <T> roundTrip(value: T, serializer: KSerializer<T>): T {
+        val encoded = FlexBuffers.encode(serializer, value)
+        return FlexBuffers.decode(serializer, encoded)
+    }
+
     @Serializable
     data class PrimitiveBulkCase(
         val bytes: ByteArray = byteArrayOf(1, 2, 3, 4),
@@ -46,7 +52,7 @@ class FlexDecoderTests {
     @Test
     fun testRoundTripSimpleCase() {
         val original = EncodingSimpleCase()
-        val decoded = roundTrip(original)
+        val decoded = roundTrip(original, EncodingSimpleCase.serializer())
 
         assertEquals(original.mapOfStringToInt, decoded.mapOfStringToInt)
         assertEquals(original.arrayOfInt, decoded.arrayOfInt)
@@ -61,7 +67,7 @@ class FlexDecoderTests {
     @Test
     fun testRoundTripComplexCase() {
         val original = EncodingComplexCase()
-        val decoded = roundTrip(original)
+        val decoded = roundTrip(original, EncodingComplexCase.serializer())
 
         // Primitives
         assertEquals(original.booleanField, decoded.booleanField)
@@ -287,7 +293,7 @@ class FlexDecoderTests {
                 InnerNestedData(2.2, listOf("c", "d", "e"))
             )
         )
-        val decoded = roundTrip(original)
+        val decoded = roundTrip(original, NestedData.serializer())
         assertEquals(original.nestedInt, decoded.nestedInt)
         assertEquals(original.nestedString, decoded.nestedString)
         assertEquals(original.innerNestedData.size, decoded.innerNestedData.size)
@@ -308,17 +314,18 @@ class FlexDecoderTests {
         var avgFlexDecode = 0L
         var avgJsonEncode = 0L
         var avgJsonDecode = 0L
+        val serializer = EncodingComplexCase.serializer()
 
         repeat(times) {
             val flexEncodeTime = measureTime {
-                FlexBuffers.encode(complexCase)
+                FlexBuffers.encode(serializer, complexCase)
             }.inWholeMicroseconds
 
             // Encode once for decode timing
-            val encoded = FlexBuffers.encode(complexCase)
+            val encoded = FlexBuffers.encode(serializer, complexCase)
 
             val flexDecodeTime = measureTime {
-                FlexBuffers.decode<EncodingComplexCase>(encoded)
+                FlexBuffers.decode(serializer, encoded)
             }.inWholeMicroseconds
 
             var json = ""
@@ -350,7 +357,7 @@ class FlexDecoderTests {
         println("Json Total:  ${avgJsonEncode + avgJsonDecode}")
 
         // Sanity: decoded values must match
-        val decoded = roundTrip(complexCase)
+        val decoded = roundTrip(complexCase, serializer)
         assertEquals(complexCase.intField, decoded.intField)
         assertEquals(complexCase.stringField, decoded.stringField)
         assertEquals(complexCase.booleanField, decoded.booleanField)

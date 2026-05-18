@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.auth
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -51,33 +52,30 @@ class WebAppleLogin(
         }
     }
 
-    private suspend fun tryLogin(): AppleUser? = suspendCancellableCoroutine { continuation ->
-        if (currentUser != null) {
-            continuation.resume(currentUser)
-            return@suspendCancellableCoroutine
-        }
+    override suspend fun login(): Result<AppleUser> {
+        currentUser?.let { return succeed(it) }
 
-        try {
-            initializeAppleID()
+        return suspendCancellableCoroutine { continuation ->
+            runCatching {
+                initializeAppleID()
 
-            val promise = AppleID.auth.signIn()
-            promise.then { response ->
-                handleAppleResponse(response, continuation)
-            }.catch { error ->
-                Logger.e { "Apple Sign-In failed: $error" }
-                continuation.resume(null)
+                AppleID.auth.signIn()
+                    .then { response ->
+                        continuation.resumeIfActive(handleAppleResponse(response))
+                    }
+                    .catch { error ->
+                        Logger.e { "Apple Sign-In failed: $error" }
+                        continuation.resumeIfActive(fail("Apple Sign-In failed: $error"))
+                    }
+            }.onFailure {
+                Logger.e(it) { "Apple Sign-In failed" }
+                continuation.resumeIfActive(fail(it))
             }
-        } catch (e: Exception) {
-            Logger.e(e) { "Apple Sign-In failed" }
-            continuation.resume(null)
         }
     }
 
-    private fun handleAppleResponse(
-        response: AppleAuthResponse,
-        continuation: kotlinx.coroutines.CancellableContinuation<AppleUser?>
-    ) {
-        try {
+    private fun handleAppleResponse(response: AppleAuthResponse): Result<AppleUser> {
+        return runCatching {
             val authorization = response.authorization
             val idToken = authorization.id_token
 
@@ -100,45 +98,37 @@ class WebAppleLogin(
                 email = payload?.email
             }
 
-            val user = AppleUser(
+            AppleUser(
                 idToken = idToken,
                 givenName = givenName,
                 familyName = familyName,
                 emailId = email ?: ""
-            )
-
-            currentUser = user
-            Logger.i { "Apple Sign-In successful: ${user.emailId}" }
-            continuation.resume(user)
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to process Apple authorization response" }
-            continuation.resume(null)
-        }
-    }
-
-    override suspend fun getUser(): Result<AppleUser> = runCatching {
-        currentUser ?: throw NoSuchElementException(
-            "No Apple User found. User info must be stored after first login " +
-            "since Apple only provides name once."
-        )
-    }
-
-    override suspend fun login(): Result<AppleUser> {
-        return try {
-            val user = tryLogin()
-            if (user != null) {
-                succeed(user)
-            } else {
-                fail("Apple Sign-In failed or was cancelled by user")
+            ).also {
+                currentUser = it
+                Logger.i { "Apple Sign-In successful: ${it.emailId}" }
             }
-        } catch (e: Exception) {
-            Logger.e(e) { "Apple login error" }
-            fail(e)
+        }.fold(::succeed) { error ->
+            Logger.e(error) { "Failed to process Apple authorization response" }
+            fail(error)
         }
     }
 
-    override suspend fun logout(): Result<Unit> = runCatching {
+    override suspend fun getUser(): Result<AppleUser> {
+        return currentUser?.let(::succeed)
+            ?: fail(
+                NoSuchElementException(
+                    "No Apple User found. User info must be stored after first login since Apple only provides name once."
+                )
+            )
+    }
+
+    override suspend fun logout(): Result<Unit> {
         currentUser = null
         Logger.i { "Apple Sign-In: user logged out locally" }
+        return succeed(Unit)
+    }
+
+    private fun CancellableContinuation<Result<AppleUser>>.resumeIfActive(result: Result<AppleUser>) {
+        if (isActive) resume(result)
     }
 }

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow Analysis — react-flow vs compose-flow vs reaktor-flow</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface-2: #1a2332;
+    --border: #2d3a4f;
+    --text: #e2e8f0;
+    --text-muted: #8b9ab8;
+    --accent: #3b82f6;
+    --accent-dim: #1e3a5f;
+    --green: #34d399;
+    --green-dim: #064e3b;
+    --orange: #fb923c;
+    --orange-dim: #7c2d12;
+    --red: #f87171;
+    --red-dim: #7f1d1d;
+    --purple: #a78bfa;
+    --purple-dim: #3b1f6e;
+    --yellow: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 48px 0 40px;
+  }
+  header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+  header h1 span { color: var(--accent); }
+  header .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+  header .date {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  /* ── TOC ── */
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin: 32px 0;
+  }
+  nav.toc h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  nav.toc ol {
+    list-style: none;
+    counter-reset: toc;
+    columns: 2;
+    column-gap: 32px;
+  }
+  nav.toc li {
+    counter-increment: toc;
+    margin-bottom: 6px;
+    break-inside: avoid;
+  }
+  nav.toc li::before {
+    content: counter(toc, decimal-leading-zero) ".";
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    margin-right: 8px;
+  }
+  nav.toc a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.92rem;
+  }
+  nav.toc a:hover { color: var(--accent); }
+
+  /* ── Sections ── */
+  section {
+    margin: 48px 0;
+  }
+  section h2 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  section h2 .num {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    margin-right: 10px;
+  }
+  section h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 28px 0 12px;
+    color: var(--text);
+  }
+  section h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  p { margin: 10px 0; }
+
+  /* ── Tables ── */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  thead th {
+    background: var(--surface-2);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(59, 130, 246, 0.04); }
+  td code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .badge.done { background: var(--green-dim); color: var(--green); }
+  .badge.partial { background: var(--orange-dim); color: var(--orange); }
+  .badge.missing { background: var(--red-dim); color: var(--red); }
+
+  /* ── Code blocks ── */
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.84rem;
+    line-height: 1.65;
+    margin: 16px 0;
+    color: var(--text-muted);
+  }
+  pre strong { color: var(--text); font-weight: 600; }
+  pre em { color: var(--accent); font-style: normal; }
+
+  /* ── Lists ── */
+  ul, ol {
+    margin: 8px 0 8px 22px;
+  }
+  li { margin: 4px 0; }
+
+  /* ── Cards ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card h4 {
+    margin: 0 0 8px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text);
+    font-size: 1rem;
+  }
+  .card p { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
+  .card .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .card .count.blue { color: var(--accent); }
+  .card .count.green { color: var(--green); }
+  .card .count.orange { color: var(--orange); }
+  .card .count.red { color: var(--red); }
+
+  /* ── Phase blocks ── */
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .phase.p2 { border-left-color: var(--purple); }
+  .phase.p3 { border-left-color: var(--orange); }
+  .phase.p4 { border-left-color: var(--green); }
+  .phase h4 {
+    margin: 0 0 10px;
+    color: var(--text);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 1.05rem;
+  }
+  .phase ol { margin-left: 20px; }
+  .phase li { margin: 4px 0; font-size: 0.9rem; }
+
+  /* ── Diagram ── */
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .diagram .layer {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 8px;
+    margin: 4px;
+    font-weight: 600;
+  }
+  .diagram .layer.graph { background: var(--purple-dim); color: var(--purple); }
+  .diagram .layer.adapter { background: var(--accent-dim); color: var(--accent); }
+  .diagram .layer.model { background: var(--orange-dim); color: var(--orange); }
+  .diagram .layer.editor { background: var(--green-dim); color: var(--green); }
+  .diagram .arrow {
+    display: block;
+    color: var(--border);
+    font-size: 1.3rem;
+    margin: 2px 0;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    background: var(--accent-dim);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 0.9rem;
+  }
+  .callout strong { color: var(--accent); }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    margin-top: 64px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    nav.toc ol { columns: 1; }
+    .card-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════════════ HEADER -->
+<header>
+  <h1>Flow <span>Analysis</span></h1>
+  <p class="subtitle">react-flow (xyflow) vs compose-flow vs reaktor-flow &mdash; architecture, parity, and roadmap</p>
+  <p class="date">2026-05-13 &middot; reaktor framework</p>
+</header>
+
+<!-- ════════════════════════════════════════════════ TOC -->
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#react-flow">React Flow &mdash; The Reference Implementation</a></li>
+    <li><a href="#compose-flow">Compose Flow &mdash; Current State</a></li>
+    <li><a href="#reaktor-flow">Reaktor Flow &mdash; The Bridge Layer</a></li>
+    <li><a href="#parity-snapshot">Parity Snapshot</a></li>
+    <li><a href="#gap-analysis">Detailed Gap Analysis</a></li>
+    <li><a href="#architecture-diagram">Architecture Diagram</a></li>
+    <li><a href="#roadmap">Roadmap to Parity</a></li>
+    <li><a href="#strengths">Architectural Strengths</a></li>
+  </ol>
+</nav>
+
+<!-- ════════════════════════════════════════════════ 1. REACT FLOW -->
+<section id="react-flow">
+  <h2><span class="num">01</span> React Flow &mdash; The Reference Implementation</h2>
+
+  <h3>Architecture</h3>
+  <p>React Flow is built on a <strong>Zustand store</strong> at its core. The <code>&lt;ReactFlow&gt;</code> component wraps a <code>&lt;ReactFlowProvider&gt;</code> which initializes this store. All state &mdash; nodes, edges, viewport, selection, connection-in-progress &mdash; lives in one centralized store. Components subscribe to slices via <code>useStore(selector)</code>.</p>
+  <p><strong>Rendering pipeline:</strong> DOM-based nodes (each node is a positioned <code>&lt;div&gt;</code>), SVG-based edges (rendered in an <code>&lt;svg&gt;</code> layer beneath the node layer). Nodes are real DOM elements, enabling rich HTML content, form inputs, and full accessibility.</p>
+
+  <h3>Data Model</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>Key Fields</th><th>Field Count</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>Node&lt;T&gt;</code></td>
+          <td><code>id</code>, <code>position</code>, <code>data</code>, <code>type</code>, <code>measured</code>, <code>parentId</code>, <code>handles</code>, <code>draggable</code>, <code>selectable</code>, <code>connectable</code>, <code>deletable</code>, <code>dragHandle</code>, <code>extent</code>, <code>expandParent</code>, <code>origin</code>, <code>zIndex</code>, <code>resizing</code>, <code>focusable</code>, <code>ariaRole</code></td>
+          <td>25+</td>
+        </tr>
+        <tr>
+          <td><code>Edge&lt;T&gt;</code></td>
+          <td><code>id</code>, <code>source</code>, <code>target</code>, <code>sourceHandle</code>, <code>targetHandle</code>, <code>type</code>, <code>data</code>, <code>label</code>, <code>animated</code>, <code>markerStart</code>, <code>markerEnd</code>, <code>reconnectable</code>, <code>interactionWidth</code>, <code>selectable</code>, <code>deletable</code></td>
+          <td>18+</td>
+        </tr>
+        <tr>
+          <td><code>Handle</code></td>
+          <td><code>id</code>, <code>type</code>, <code>position</code>, <code>isConnectable</code>, <code>isConnectableStart</code>, <code>isConnectableEnd</code>, <code>isValidConnection</code></td>
+          <td>7+</td>
+        </tr>
+        <tr>
+          <td><code>Connection</code></td>
+          <td><code>source</code>, <code>target</code>, <code>sourceHandle</code>, <code>targetHandle</code></td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td><code>Viewport</code></td>
+          <td><code>x</code>, <code>y</code>, <code>zoom</code></td>
+          <td>3</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Built-in Types</h3>
+  <div class="card-grid">
+    <div class="card">
+      <h4>Node Types</h4>
+      <p><code>default</code> &middot; <code>input</code> &middot; <code>output</code> &middot; <code>group</code></p>
+    </div>
+    <div class="card">
+      <h4>Edge Types</h4>
+      <p><code>default</code> (bezier) &middot; <code>straight</code> &middot; <code>step</code> &middot; <code>smoothstep</code> &middot; <code>simplebezier</code></p>
+    </div>
+  </div>
+
+  <h3>Feature Surface</h3>
+  <div class="card-grid">
+    <div class="card"><div class="count blue">~100</div><p>Props on <code>&lt;ReactFlow&gt;</code></p></div>
+    <div class="card"><div class="count blue">17+</div><p>Hooks exposed</p></div>
+    <div class="card"><div class="count blue">~40</div><p>Event callbacks</p></div>
+    <div class="card"><div class="count blue">12</div><p>Sub-components</p></div>
+  </div>
+
+  <h4>Interaction Features</h4>
+  <ul>
+    <li>Node dragging with configurable threshold, drag handles, auto-pan</li>
+    <li>Edge connection by drag (handle-to-handle) <strong>and</strong> click-to-connect mode</li>
+    <li>Edge reconnection (drag existing edge to new target)</li>
+    <li>Multi-selection (shift+click, rubber-band selection box)</li>
+    <li>Selection box drag, keyboard delete</li>
+    <li>Snap-to-grid, node extent constraints (including <code>"parent"</code>)</li>
+    <li>Auto-pan on drag near canvas edges</li>
+    <li>Pan via drag, scroll, or space+drag</li>
+    <li>Zoom via scroll, pinch, double-click, or ctrl+scroll</li>
+    <li>Full keyboard navigation (tab through nodes/edges)</li>
+  </ul>
+
+  <h4>Components</h4>
+  <ul>
+    <li><code>&lt;ReactFlow&gt;</code>, <code>&lt;ReactFlowProvider&gt;</code></li>
+    <li><code>&lt;Handle&gt;</code> with connection validation</li>
+    <li><code>&lt;Background&gt;</code> (dots, lines, cross)</li>
+    <li><code>&lt;Controls&gt;</code>, <code>&lt;MiniMap&gt;</code>, <code>&lt;Panel&gt;</code></li>
+    <li><code>&lt;ViewportPortal&gt;</code>, <code>&lt;NodeResizer&gt;</code>, <code>&lt;NodeToolbar&gt;</code></li>
+    <li><code>&lt;BaseEdge&gt;</code>, <code>&lt;EdgeLabelRenderer&gt;</code></li>
+  </ul>
+
+  <h4>Hooks</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Hook</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>useReactFlow()</code></td><td>Imperative API: get/set/add nodes &amp; edges, fitView, zoom, viewport, screenToFlowPosition, deleteElements, getIntersectingNodes</td></tr>
+        <tr><td><code>useNodes()</code> / <code>useEdges()</code></td><td>Reactive accessors</td></tr>
+        <tr><td><code>useNodesState()</code> / <code>useEdgesState()</code></td><td>State + setter + onChange bundles</td></tr>
+        <tr><td><code>useViewport()</code></td><td>Current viewport</td></tr>
+        <tr><td><code>useOnViewportChange()</code></td><td>Viewport start/change/end callbacks</td></tr>
+        <tr><td><code>useConnection()</code></td><td>In-progress connection data</td></tr>
+        <tr><td><code>useHandleConnections()</code></td><td>Edges connected to a specific handle</td></tr>
+        <tr><td><code>useNodeId()</code></td><td>Current node context</td></tr>
+        <tr><td><code>useNodesData()</code></td><td>Subscribe to specific node data</td></tr>
+        <tr><td><code>useNodesInitialized()</code></td><td>Measurement readiness signal</td></tr>
+        <tr><td><code>useOnSelectionChange()</code></td><td>Selection events</td></tr>
+        <tr><td><code>useStore()</code> / <code>useStoreApi()</code></td><td>Direct Zustand access</td></tr>
+        <tr><td><code>useKeyPress()</code></td><td>Keyboard state</td></tr>
+        <tr><td><code>useUpdateNodeInternals()</code></td><td>Force re-measure</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Event System (~40 callbacks)</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Category</th><th>Events</th></tr></thead>
+      <tbody>
+        <tr><td>Node</td><td>click, doubleClick, dragStart, drag, dragStop, mouseEnter, mouseMove, mouseLeave, contextMenu, delete</td></tr>
+        <tr><td>Edge</td><td>click, doubleClick, mouseEnter, mouseMove, mouseLeave, contextMenu, reconnect, reconnectStart, reconnectEnd, delete</td></tr>
+        <tr><td>Connection</td><td>connect, connectStart, connectEnd, clickConnectStart, clickConnectEnd, isValidConnection</td></tr>
+        <tr><td>Pane</td><td>click, contextMenu, scroll, mouseMove, mouseEnter, mouseLeave</td></tr>
+        <tr><td>Selection</td><td>change, dragStart, drag, dragStop, start, end, contextMenu</td></tr>
+        <tr><td>Viewport</td><td>move, moveStart, moveEnd</td></tr>
+        <tr><td>Lifecycle</td><td>init, error, delete, beforeDelete</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════ 2. COMPOSE FLOW -->
+<section id="compose-flow">
+  <h2><span class="num">02</span> Compose Flow &mdash; Current State</h2>
+
+  <p><strong>Package:</strong> <code>dev.shibasis.composeflow</code><br>
+  <strong>KMP Targets:</strong> commonMain, Android, iOS/macOS (Darwin), JVM Desktop, JS/Web</p>
+
+  <h3>Rendering Pipeline</h3>
+  <p>Compose <code>graphicsLayer</code> transform for viewport (translate + scale), DOM-positioned nodes via <code>Box</code> + <code>offset</code>, Canvas-drawn edges via <code>DrawScope</code>. This is a good architectural match to react-flow&rsquo;s DOM-nodes + SVG-edges pattern.</p>
+
+  <h3>What&rsquo;s Implemented</h3>
+
+  <h4>Data Model</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>Fields</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td><code>Node</code></td><td><code>id</code>, <code>position</code>, <code>data</code>, <code>type</code>, <code>width</code>, <code>height</code>, <code>measured</code>, <code>handles</code>, <code>sourcePosition</code>, <code>targetPosition</code>, <code>parentId</code>, <code>showDefaultHandles</code>, <code>selected</code>, <code>dragging</code>, <code>hidden</code>, <code>zIndex</code></td><td>model/Model.kt</td></tr>
+        <tr><td><code>Edge</code></td><td><code>id</code>, <code>source</code>, <code>target</code>, <code>sourceHandle</code>, <code>targetHandle</code>, <code>type</code>, <code>data</code>, <code>label</code>, <code>selected</code>, <code>hidden</code>, <code>animated</code>, <code>markerEnd</code>, <code>zIndex</code></td><td>model/Model.kt</td></tr>
+        <tr><td><code>Handle</code></td><td><code>id</code>, <code>type</code>, <code>position</code>, <code>offset</code>, <code>inset</code></td><td>model/Model.kt</td></tr>
+        <tr><td><code>Connection</code></td><td><code>source</code>, <code>target</code>, <code>sourceHandle</code>, <code>targetHandle</code></td><td>model/Model.kt</td></tr>
+        <tr><td><code>Viewport</code></td><td><code>x</code>, <code>y</code>, <code>zoom</code></td><td>model/Model.kt</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Change System</h4>
+  <ul>
+    <li><code>NodeChange</code> sealed interface: <code>NodeAddChange</code>, <code>NodeRemoveChange</code>, <code>NodeReplaceChange</code>, <code>NodeSelectionChange</code>, <code>NodePositionChange</code>, <code>NodeDimensionChange</code></li>
+    <li><code>EdgeChange</code> sealed interface: <code>EdgeAddChange</code>, <code>EdgeRemoveChange</code>, <code>EdgeReplaceChange</code>, <code>EdgeSelectionChange</code></li>
+    <li><code>applyNodeChanges()</code>, <code>applyEdgeChanges()</code>, <code>addEdge()</code> helpers</li>
+  </ul>
+
+  <h4>State Management</h4>
+  <ul>
+    <li><code>NodesState</code> &mdash; <code>nodes</code>, <code>replaceNodes()</code>, <code>updateNodes()</code>, <code>onNodesChange()</code>, destructuring operators</li>
+    <li><code>EdgesState</code> &mdash; <code>edges</code>, <code>replaceEdges()</code>, <code>updateEdges()</code>, <code>onEdgesChange()</code>, destructuring operators</li>
+    <li><code>ReactFlowState</code> &mdash; <code>viewport</code>, <code>canvasSize</code>, <code>selectedNodeIds/EdgeIds</code>, <code>setViewport()</code>, <code>panBy()</code>, <code>screenToFlowPosition()</code>, <code>centerOn()</code>, <code>focusNode()</code>, <code>zoomTo()</code>, <code>zoomBy()</code>, <code>fitView()</code></li>
+    <li><code>ReactFlowProvider</code>, <code>useReactFlowState()</code>, <code>useViewport()</code></li>
+  </ul>
+
+  <h4>Main Composable &mdash; <code>ReactFlow()</code></h4>
+  <p>~25 parameters: <code>nodes</code>, <code>edges</code>, <code>state</code>, <code>nodeTypes</code>, <code>onNodesChange</code>, <code>onConnect</code>, <code>onNodeClick</code>, <code>fitView</code>, <code>fitViewOptions</code>, <code>showBackground</code>, <code>backgroundVariant</code>, <code>showControls</code>, <code>showMiniMap</code>, <code>minZoom</code>, <code>maxZoom</code>, <code>defaultNodeWidth/Height</code>, <code>nodeRenderStyle</code>, <code>edgeRenderStyle</code>, <code>edgePathStyle</code>, <code>handleRenderStyle</code>, <code>onPaneClick</code>, <code>overlay</code>, <code>viewportOverlay</code></p>
+
+  <h4>Components</h4>
+  <ul>
+    <li><code>FlowBackground</code> &mdash; Dots, Lines, Cross patterns</li>
+    <li><code>FlowControls</code> &mdash; zoom in/out/fit with percentage display</li>
+    <li><code>MiniMap</code> &mdash; overview with node/edge rendering</li>
+    <li><code>Panel</code> with <code>PanelPosition</code></li>
+    <li><code>FlowNodeBox</code> &mdash; node container with drag, click, measurement</li>
+    <li><code>Handle</code> composable &mdash; circular handles with source/target styling</li>
+    <li><code>DefaultNode</code> &mdash; label + type display</li>
+  </ul>
+
+  <h4>Interactions</h4>
+  <ul>
+    <li>Wheel/trackpad zoom with ctrl/meta modifier detection</li>
+    <li>Pan via scroll (no modifier) and pointer drag</li>
+    <li>Multi-touch pinch-to-zoom with centroid tracking</li>
+    <li>Right-click detection (no pan on right-click)</li>
+    <li>Node dragging with viewport.zoom compensation and drag threshold</li>
+    <li>macOS trackpad magnification via Apple EAWT reflection (Desktop)</li>
+    <li>Platform bridge abstraction for desktop-specific gestures</li>
+  </ul>
+
+  <h4>Edge Rendering</h4>
+  <ul>
+    <li>Bezier paths with smart tangent distance and collinear bias</li>
+    <li>Orthogonal (step) paths</li>
+    <li>Arrow markers (open + closed)</li>
+    <li>Per-edge render styles (color, width, alpha)</li>
+  </ul>
+
+  <h4>JS/Web Interop</h4>
+  <ul>
+    <li>Karakum-generated TypeScript externals for <code>@xyflow/react</code></li>
+    <li>Bidirectional conversion between common models and react-flow JS objects</li>
+    <li>Full external declarations for all react-flow components</li>
+    <li>Hook wrappers: <code>useNodesState</code>, <code>useEdgesState</code>, <code>useReactFlow</code>, <code>useViewport</code>, <code>useOnViewportChange</code>, <code>useOnSelectionChange</code>, <code>useStore</code></li>
+  </ul>
+
+  <h4>Theme System</h4>
+  <p>Complete dark-theme color token palette (<code>FlowTokens.kt</code>) and comprehensive sizing constants for every element (<code>FlowSizing.kt</code>).</p>
+
+  <h4>Tests &amp; Tracking</h4>
+  <ul>
+    <li><code>FlowChangesTest</code> &mdash; addEdge deduplication, applyNodeChanges, applyEdgeChanges</li>
+    <li><code>parity/features.json</code> with structured parity matrix and Gradle <code>reportParity</code> task</li>
+  </ul>
+</section>
+
+<!-- ════════════════════════════════════════════════ 3. REAKTOR FLOW -->
+<section id="reaktor-flow">
+  <h2><span class="num">03</span> Reaktor Flow &mdash; The Bridge Layer</h2>
+
+  <p><strong>Package:</strong> <code>dev.shibasis.reaktor.flow</code><br>
+  <strong>Dependencies:</strong> <code>compose-flow</code> + <code>reaktor-graph</code></p>
+
+  <p>reaktor-flow is a specialized adapter that transforms <code>reaktor-graph</code> <code>Graph</code> objects into <code>compose-flow</code> visual representations. It has four sub-systems.</p>
+
+  <h3>3a. Adapter Layer</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><code>ReaktorFlowBuilder.kt</code></td><td>Traverses a <code>Graph</code>, creates <code>GraphNodeLayout</code> records with position/size, converts to compose-flow <code>Node</code>/<code>Edge</code> lists</td></tr>
+        <tr><td><code>ReaktorFlowAssembly.kt</code></td><td>Resolves edges from graph semantics: attachment, navigation, data, and containment edges</td></tr>
+        <tr><td><code>ReaktorFlowMeasurement.kt</code></td><td>Text-based width/height measurement (character counting &times; charWidthPx)</td></tr>
+        <tr><td><code>ReaktorFlowPorts.kt</code></td><td>Maps graph node types to <code>ReaktorNodeKind</code>, assigns port colors</td></tr>
+        <tr><td><code>ReaktorFlowLabels.kt</code></td><td>Derives display labels, handles UUID detection</td></tr>
+        <tr><td><code>ReaktorFlowLayoutPolicy.kt</code></td><td>Graph root route detection</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>3b. Layout Engine</h3>
+  <p><code>BlueprintReaktorGraphLayoutStrategy</code> implements a sophisticated lane-based layout:</p>
+  <ul>
+    <li>Services in left column(s)</li>
+    <li>Routes in middle column(s) with attached screens to the right</li>
+    <li>Standalone screens below</li>
+    <li>Containers at bottom with nested child graphs</li>
+    <li>Adaptive column counts based on node count thresholds</li>
+    <li>Region boxes around graph boundaries with recursive layout for nested graphs</li>
+  </ul>
+
+  <h3>3c. Editor / Render Layer</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><code>ReaktorGraphEditor.kt</code></td><td>Top-level editor with keyboard shortcuts (Cmd+/&minus; zoom), focus management</td></tr>
+        <tr><td><code>ReaktorGraphCanvas.kt</code></td><td>Orchestration boundary &mdash; creates <code>ReactFlowState</code>, delegates to scene</td></tr>
+        <tr><td><code>ReaktorGraphScene.kt</code></td><td>Wires everything: nodes/edges state, configures <code>ReactFlow()</code> with graph-specific types, styles, overlays</td></tr>
+        <tr><td><code>ReaktorGraphSceneState.kt</code></td><td>Syncs graph changes, handles initial framing with delay, preserves dragged positions across rebuilds</td></tr>
+        <tr><td><code>ReaktorGraphViewport.kt</code></td><td>Graph-specific fit-view with readable zoom bias, right-inset compensation</td></tr>
+        <tr><td><code>ReaktorGraphOverlays.kt</code></td><td>Chrome composition: toolbar, legend, minimap, region overlays</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Render Components</h4>
+  <ul>
+    <li><code>ReaktorGraphNodeCard</code> &mdash; Rich node cards with kind-colored title bar, port rows with dots/labels, root badge, hidden port counters</li>
+    <li><code>ReaktorGraphToolbar</code> &mdash; Zoom controls, graph label, node/edge counts</li>
+    <li><code>ReaktorGraphLegend</code> &mdash; Filterable node-kind legend with highlight support</li>
+    <li><code>ReaktorGraphMiniMap</code> &mdash; Custom minimap with viewport indicator and kind-colored nodes</li>
+    <li><code>ReaktorGraphRegions</code> &mdash; Dashed-border region boxes with label chips</li>
+  </ul>
+
+  <h3>3d. Type System</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>Values / Fields</th></tr></thead>
+      <tbody>
+        <tr><td><code>ReaktorNodeKind</code></td><td>Screen (green), Route (blue), Container (purple), Service (orange), Node (gray) &mdash; each with title/body/border colors</td></tr>
+        <tr><td><code>ReaktorEdgeKind</code></td><td>Attachment, Navigation, Data, Containment &mdash; each with accent color</td></tr>
+        <tr><td><code>ReaktorGraphNodeData</code></td><td>nodeId, title, subtitle, graphLabel, isRootNode, port lists &amp; counts, kind</td></tr>
+        <tr><td><code>ReaktorGraphEdgeData</code></td><td>kind, label</td></tr>
+        <tr><td><code>ReaktorGraphRegion</code></td><td>label, id, position, dimensions, color, depth</td></tr>
+        <tr><td><code>ReaktorFlowGraph</code></td><td>Complete snapshot: nodes, edges, regions, lookup maps (graphNodes, flowIdsByNode, graphIdsByNode, graphs), style</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>3e. Style System</h3>
+  <p><code>ReaktorGraphStyle</code> is a comprehensive tuning object with nested configs:</p>
+  <div class="card-grid">
+    <div class="card"><h4>Canvas</h4><p>Background, chrome, text colors, fonts</p></div>
+    <div class="card"><h4>Layout</h4><p>Column/row gaps, compact gaps, group gaps</p></div>
+    <div class="card"><h4>Node</h4><p>Min width, title sizing, badge sizing, padding</p></div>
+    <div class="card"><h4>Port</h4><p>Row height, font sizing, handle offsets, preview rows</p></div>
+    <div class="card"><h4>Region</h4><p>Content padding, child gaps, frame insets, label styling</p></div>
+    <div class="card"><h4>Chrome</h4><p>Overlay padding, panel radius, minimap sizing</p></div>
+    <div class="card"><h4>Viewport</h4><p>Zoom bounds, readable zoom bias, startup delay</p></div>
+    <div class="card"><h4>WidthPolicy</h4><p>Per-node-type width multipliers</p></div>
+  </div>
+  <p>~100 tunable parameters in total.</p>
+</section>
+
+<!-- ════════════════════════════════════════════════ 4. PARITY SNAPSHOT -->
+<section id="parity-snapshot">
+  <h2><span class="num">04</span> Parity Snapshot</h2>
+
+  <div class="card-grid">
+    <div class="card"><div class="count green">~35%</div><p>Estimated feature parity with react-flow</p></div>
+    <div class="card"><div class="count blue">25</div><p>Parameters on <code>ReactFlow()</code> composable</p></div>
+    <div class="card"><div class="count orange">5</div><p>Hooks / composable state accessors</p></div>
+    <div class="card"><div class="count red">~60</div><p>Missing react-flow props &amp; callbacks</p></div>
+  </div>
+
+  <div class="callout">
+    <strong>Core insight:</strong> compose-flow today is closer to a flow <em>viewer</em> than a flow <em>editor</em>. The data model and rendering are solid, but the defining editor interactions &mdash; drag-to-connect, edge interaction, multi-selection &mdash; are the critical missing pieces.
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════ 5. GAP ANALYSIS -->
+<section id="gap-analysis">
+  <h2><span class="num">05</span> Detailed Gap Analysis</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Feature</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td rowspan="14"><strong>Node Features</strong></td><td>Core node model (id, position, data, type, handles, zIndex)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Custom node types via <code>nodeTypes</code></td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Node dragging with zoom compensation</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Node click handler</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Node measurement &amp; dimension reporting</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td><code>draggable</code> per-node flag</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>selectable</code> / <code>connectable</code> / <code>deletable</code> per-node</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>extent</code> / <code>"parent"</code> constraint</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>expandParent</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>origin</code> (node anchor point)</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Built-in <code>input</code> / <code>output</code> / <code>group</code> types</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Node resizing</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Keyboard navigation / accessibility</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>All remaining node events (doubleClick, drag start/stop, mouse enter/move/leave, contextMenu)</td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="10"><strong>Edge Features</strong></td><td>Bezier edge rendering</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Orthogonal (step) edge rendering</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Arrow markers (open + closed)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Per-edge render styles</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td><code>straight</code> / <code>smoothstep</code> / <code>simplebezier</code> edge types</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>markerStart</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Edge click / hover / selection interaction</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Edge reconnection</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>interactionWidth</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Rich label content (not just String)</td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="6"><strong>Connection</strong></td><td><code>onConnect</code> callback</td><td><span class="badge partial">Partial</span></td></tr>
+        <tr><td>Drag-to-connect (handle-to-handle)</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Connection line rendering during drag</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>isValidConnection</code> callback</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Click-to-connect mode</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>connectionRadius</code> / <code>connectionMode</code></td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="5"><strong>Selection</strong></td><td>Single node/edge selection tracking</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Multi-select (shift+click)</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Rubber-band selection box</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>onSelectionChange</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Selection drag</td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="3"><strong>Deletion</strong></td><td>Keyboard delete</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>onDelete</code> / <code>onBeforeDelete</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Configurable <code>deleteKeyCode</code></td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="10"><strong>Viewport</strong></td><td>Pan (drag, scroll, wheel)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Zoom (wheel, ctrl+scroll, pinch)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Fit view</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Programmatic zoom/pan/center</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Snap-to-grid</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>translateExtent</code> (viewport bounds)</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Controlled viewport mode</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Viewport culling (<code>onlyRenderVisibleElements</code>)</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Zoom on double-click</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Auto-pan on drag near edge</td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="6"><strong>Components</strong></td><td>Background (dots, lines, cross)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Controls</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>MiniMap</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>Panel</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td><code>NodeResizer</code> / <code>NodeToolbar</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>BaseEdge</code> / <code>EdgeLabelRenderer</code></td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="5"><strong>Hooks / API</strong></td><td>State management (<code>NodesState</code>, <code>EdgesState</code>, <code>ReactFlowState</code>)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td><code>screenToFlowPosition</code></td><td><span class="badge done">Done</span></td></tr>
+        <tr><td><code>flowToScreenPosition</code></td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td>Imperative methods (<code>addNodes</code>, <code>deleteElements</code>, <code>getIntersectingNodes</code>)</td><td><span class="badge missing">Missing</span></td></tr>
+        <tr><td><code>useConnection</code>, <code>useHandleConnections</code>, <code>useNodeId</code>, <code>useKeyPress</code></td><td><span class="badge missing">Missing</span></td></tr>
+
+        <tr><td rowspan="2"><strong>Platform</strong></td><td>Desktop platform bridge (macOS trackpad, AWT scroll anchor)</td><td><span class="badge done">Done</span></td></tr>
+        <tr><td>JS/Web react-flow interop bridge</td><td><span class="badge partial">Partial</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════ 6. ARCHITECTURE DIAGRAM -->
+<section id="architecture-diagram">
+  <h2><span class="num">06</span> Architecture Diagram</h2>
+
+  <div class="diagram">
+    <div class="layer graph">reaktor-graph</div>
+    <div style="font-size: 0.78rem; margin-top: 2px;">Graph, RouteNode, ContainerNode, PortGraph, BackStack</div>
+    <div class="arrow">&darr;</div>
+    <div class="layer adapter">reaktor-flow / adapter</div>
+    <div style="font-size: 0.78rem; margin-top: 2px;">traverse &bull; measure &bull; layout &bull; assemble edges</div>
+    <div class="arrow">&darr;</div>
+    <div class="layer model">ReaktorFlowGraph</div>
+    <div style="font-size: 0.78rem; margin-top: 2px;">compose-flow Node/Edge + ReaktorGraphNodeData + Regions</div>
+    <div class="arrow">&darr;</div>
+    <div class="layer editor">reaktor-flow / editor</div>
+    <div style="font-size: 0.78rem; margin-top: 2px;">ReaktorGraphScene &rarr; compose-flow ReactFlow()</div>
+    <div class="arrow">&darr;</div>
+    <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 4px;">
+      <div class="layer" style="background: var(--green-dim); color: var(--green);">Compose (Android / iOS / Desktop)</div>
+      <div class="layer" style="background: var(--accent-dim); color: var(--accent);">react-flow (Web / JS)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════ 7. ROADMAP -->
+<section id="roadmap">
+  <h2><span class="num">07</span> Roadmap to Parity</h2>
+
+  <div class="phase">
+    <h4>Phase 1 &mdash; Core Interactions <span style="color: var(--text-muted); font-weight: 400;">(Month 1&ndash;2)</span></h4>
+    <ol>
+      <li><strong>Drag-to-connect</strong> &mdash; The defining flow-editor interaction. Connection line rendering during drag, handle hit-testing, <code>isValidConnection</code>, <code>onConnect</code>/<code>onConnectStart</code>/<code>onConnectEnd</code>.</li>
+      <li><strong>Edge interaction</strong> &mdash; Click, hover, selection on edges. Options: hit-test on Canvas paths, invisible wider interaction overlay, or Modifier-based rendering.</li>
+      <li><strong>Multi-selection</strong> &mdash; Shift+click to toggle, rubber-band selection box, <code>onSelectionChange</code>.</li>
+      <li><strong>Keyboard delete</strong> &mdash; Delete/Backspace to remove selected nodes/edges. <code>onDelete</code>/<code>onBeforeDelete</code>.</li>
+      <li><strong>More edge types</strong> &mdash; <code>straight</code>, <code>step</code>, <code>smoothstep</code>. Path generation functions are straightforward.</li>
+    </ol>
+  </div>
+
+  <div class="phase p2">
+    <h4>Phase 2 &mdash; Node Constraints &amp; Polish <span style="color: var(--text-muted); font-weight: 400;">(Month 2&ndash;3)</span></h4>
+    <ol start="6">
+      <li><strong>Per-node flags</strong> &mdash; <code>draggable</code>, <code>selectable</code>, <code>connectable</code>, <code>deletable</code> on individual nodes/edges.</li>
+      <li><strong>Node extent / parent constraints</strong> &mdash; <code>extent: "parent"</code>, <code>expandParent</code>. Critical for sub-flows.</li>
+      <li><strong>Edge reconnection</strong> &mdash; Drag existing edge endpoint to new handle.</li>
+      <li><strong>Snap-to-grid</strong> &mdash; Grid alignment during drag.</li>
+      <li><strong>Auto-pan</strong> &mdash; Pan viewport when dragging near canvas edges.</li>
+    </ol>
+  </div>
+
+  <div class="phase p3">
+    <h4>Phase 3 &mdash; Advanced Features <span style="color: var(--text-muted); font-weight: 400;">(Month 3&ndash;4)</span></h4>
+    <ol start="11">
+      <li><strong>Node resizer</strong> &mdash; Drag handles on node corners/edges to resize.</li>
+      <li><strong>Controlled viewport</strong> &mdash; <code>viewport</code>/<code>onViewportChange</code> pair for external control.</li>
+      <li><strong>Viewport culling</strong> &mdash; Only render visible nodes/edges for large graphs.</li>
+      <li><strong>Full imperative API</strong> &mdash; Match <code>useReactFlow()</code> method surface.</li>
+      <li><strong>Keyboard navigation</strong> &mdash; Tab through nodes/edges, Enter to select.</li>
+    </ol>
+  </div>
+
+  <div class="phase p4">
+    <h4>Phase 4 &mdash; Full Parity <span style="color: var(--text-muted); font-weight: 400;">(Month 4&ndash;5)</span></h4>
+    <ol start="16">
+      <li><code>NodeToolbar</code>, <code>EdgeLabelRenderer</code>, <code>BaseEdge</code> components</li>
+      <li>Connection modes (strict/loose), click-to-connect</li>
+      <li>Z-index modes (basic/group)</li>
+      <li>Color mode (light/dark switching)</li>
+      <li>All remaining event callbacks (~25 missing)</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════ 8. STRENGTHS -->
+<section id="strengths">
+  <h2><span class="num">08</span> Architectural Strengths Already in Place</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>Clean Separation</h4>
+      <p>model (common) &rarr; runtime (common) &rarr; compose rendering (common) &rarr; platform bridges (per-target)</p>
+    </div>
+    <div class="card">
+      <h4>Immutable Data</h4>
+      <p><code>@Immutable</code> annotations on all models. Change-based state updates, not direct mutation.</p>
+    </div>
+    <div class="card">
+      <h4>JS Interop</h4>
+      <p>Karakum-generated externals bridge to real react-flow on web. Bidirectional model conversion.</p>
+    </div>
+    <div class="card">
+      <h4>Platform Bridge</h4>
+      <p>Abstraction for desktop-specific gestures. macOS trackpad already integrated via EAWT reflection.</p>
+    </div>
+    <div class="card">
+      <h4>Parity Tracking</h4>
+      <p><code>parity/features.json</code> with structured matrix and Gradle <code>reportParity</code> task built in.</p>
+    </div>
+    <div class="card">
+      <h4>Comprehensive Theming</h4>
+      <p>Token-based color palette and ~60 sizing constants. Mirrors Fluent/React design-token patterns.</p>
+    </div>
+  </div>
+
+  <h3>What reaktor-flow Needs Next</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Need</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Bidirectional editing</strong></td><td>Currently read-only visualization. Needs to support node creation/deletion, edge creation, and propagate changes back to <code>reaktor-graph</code>.</td></tr>
+        <tr><td><strong>Web parity via JS target</strong></td><td><code>jsMain</code> in compose-flow has react-flow interop, but reaktor-flow doesn&rsquo;t have JS-specific code yet. Needed for Manna&rsquo;s web app.</td></tr>
+        <tr><td><strong>Graph mutation API</strong></td><td><code>ReaktorFlowGraph</code> is a snapshot. Need a mutable controller that can <code>addNode()</code>, <code>removeNode()</code>, <code>addEdge()</code>, <code>removeEdge()</code> and sync back to <code>Graph</code>.</td></tr>
+        <tr><td><strong>Layout algorithm pluggability</strong></td><td>Only <code>BlueprintReaktorGraphLayoutStrategy</code> exists. Need force-directed, hierarchical (dagre-like), and manual layout options.</td></tr>
+        <tr><td><strong>Serialization</strong></td><td>Save/restore graph layouts and viewport state.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div><!-- .container -->
+
+<footer>
+  <div class="container">
+    Generated 2026-05-13 &middot; reaktor framework &middot; compose-flow &times; reaktor-flow analysis
+  </div>
+</footer>
+
+</body>
+</html>

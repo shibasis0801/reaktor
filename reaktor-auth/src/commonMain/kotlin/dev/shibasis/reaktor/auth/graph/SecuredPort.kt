@@ -1,7 +1,10 @@
 package dev.shibasis.reaktor.auth.graph
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.auth.User
+import dev.shibasis.reaktor.auth.kernel.AuthDecision
+import dev.shibasis.reaktor.auth.kernel.AuthRequirement
+import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
+import dev.shibasis.reaktor.auth.kernel.Scope
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
@@ -24,6 +27,7 @@ class UnauthorizedException(
 class SecuredProviderPort<Contract: Any>(
     owner: PortCapability,
     val requiredScopes: List<String>,
+    val requirement: AuthRequirement,
     key: String = "",
     type: Type,
     val contract: Contract
@@ -31,42 +35,50 @@ class SecuredProviderPort<Contract: Any>(
 
     // Ensures the auth session (e.g. hydrated from an AuthNode or the parent Graph Context) possesses the required scopes.
     fun canConnect(session: AuthSession?): Boolean {
-        if (session == null) return false
-        val userScopes = session.scopes ?: emptyList()
-        // Here we simulate an RBAC check. If ALL required scopes are present in the user's scopes:
-        return requiredScopes.all { it in userScopes }
+        return LocalAuthorizer.authorize(session?.toAuthContext(), requirement) is AuthDecision.Allow
     }
 }
 
 class SecuredConsumerPort<Contract: Any>(
     owner: PortCapability,
     val requiredScopes: List<String>,
+    val requirement: AuthRequirement,
     key: String = "",
     type: Type
 ): ConsumerPort<Contract>(owner, Key(key), type) {
     
     fun enforceConnectionSecurity(session: AuthSession?) {
-        if (session == null) {
-            Logger.e { "SecuredConsumerPort denied connection: No active AuthSession found in context." }
-            throw UnauthorizedException("Unauthorized: Missing AuthSession")
-        }
-        val userScopes = session.scopes ?: emptyList()
-        if (!requiredScopes.all { it in userScopes }) {
-            Logger.e { "SecuredConsumerPort denied connection: Missing required scopes $requiredScopes" }
-            throw UnauthorizedException("Unauthorized: Insufficient scopes")
+        when (val decision = LocalAuthorizer.authorize(session?.toAuthContext(), requirement)) {
+            is AuthDecision.Allow -> Unit
+            is AuthDecision.Deny -> {
+                Logger.e { "SecuredConsumerPort denied connection: ${decision.safeMessage}; requiredScopes=$requiredScopes" }
+                throw UnauthorizedException("Unauthorized: ${decision.safeMessage}")
+            }
         }
     }
 }
 
+fun requirementFromScopes(requiredScopes: List<String>): AuthRequirement =
+    AuthRequirement(scopes = requiredScopes.map(::Scope).toSet())
+
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerSecuredProvider(requiredScopes: List<String>, key: Key, type: Type, impl: Functionality): SecuredProviderPort<Functionality> {
+    return registerSecuredProvider(requirementFromScopes(requiredScopes), requiredScopes, key, type, impl)
+}
+
+@Suppress("UNCHECKED_CAST")
+fun <Functionality: Any> PortCapability.registerSecuredProvider(requirement: AuthRequirement, requiredScopes: List<String>, key: Key, type: Type, impl: Functionality): SecuredProviderPort<Functionality> {
     return providerPorts
         .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { SecuredProviderPort(this, requiredScopes, key.key, type, impl) } as SecuredProviderPort<Functionality>
+        .getOrPut(key) { SecuredProviderPort(this, requiredScopes, requirement, key.key, type, impl) } as SecuredProviderPort<Functionality>
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerSecuredProvider(requiredScopes: List<String>, key: String = "", impl: Functionality): SecuredProviderPort<Functionality> {
     return registerSecuredProvider(requiredScopes, Key(key), Type<Functionality>(), impl)
+}
+
+inline fun <reified Functionality: Any> PortCapability.registerSecuredProvider(requirement: AuthRequirement, key: String = "", impl: Functionality): SecuredProviderPort<Functionality> {
+    return registerSecuredProvider(requirement, requirement.scopes.map { it.value }, Key(key), Type<Functionality>(), impl)
 }
 
 inline fun <reified Functionality: Any> PortCapability.providesSecured(requiredScopes: List<String>, impl: Functionality) =
@@ -75,19 +87,40 @@ inline fun <reified Functionality: Any> PortCapability.providesSecured(requiredS
         ReadOnlyProperty { _, _ -> port }
     }
 
+inline fun <reified Functionality: Any> PortCapability.providesSecured(requirement: AuthRequirement, impl: Functionality) =
+    PropertyDelegateProvider<PortCapability, PortDelegate<ProviderPort<Functionality>>> { thisRef, property ->
+        val port = thisRef.registerSecuredProvider(requirement, property.name, impl)
+        ReadOnlyProperty { _, _ -> port }
+    }
+
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerSecuredConsumer(requiredScopes: List<String>, key: Key, type: Type): SecuredConsumerPort<Functionality> {
+    return registerSecuredConsumer(requirementFromScopes(requiredScopes), requiredScopes, key, type)
+}
+
+@Suppress("UNCHECKED_CAST")
+fun <Functionality: Any> PortCapability.registerSecuredConsumer(requirement: AuthRequirement, requiredScopes: List<String>, key: Key, type: Type): SecuredConsumerPort<Functionality> {
     return consumerPorts
         .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { SecuredConsumerPort(this, requiredScopes, key.key, type) } as SecuredConsumerPort<Functionality>
+        .getOrPut(key) { SecuredConsumerPort(this, requiredScopes, requirement, key.key, type) } as SecuredConsumerPort<Functionality>
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerSecuredConsumer(requiredScopes: List<String>, key: String = ""): SecuredConsumerPort<Functionality> {
     return registerSecuredConsumer(requiredScopes, Key(key), Type<Functionality>())
 }
 
+inline fun <reified Functionality: Any> PortCapability.registerSecuredConsumer(requirement: AuthRequirement, key: String = ""): SecuredConsumerPort<Functionality> {
+    return registerSecuredConsumer(requirement, requirement.scopes.map { it.value }, Key(key), Type<Functionality>())
+}
+
 inline fun <reified Functionality: Any> PortCapability.consumesSecured(requiredScopes: List<String>) =
     PropertyDelegateProvider<PortCapability, PortDelegate<ConsumerPort<Functionality>>> { thisRef, property ->
         val port = thisRef.registerSecuredConsumer<Functionality>(requiredScopes, property.name)
+        ReadOnlyProperty { _, _ -> port }
+    }
+
+inline fun <reified Functionality: Any> PortCapability.consumesSecured(requirement: AuthRequirement) =
+    PropertyDelegateProvider<PortCapability, PortDelegate<ConsumerPort<Functionality>>> { thisRef, property ->
+        val port = thisRef.registerSecuredConsumer<Functionality>(requirement, property.name)
         ReadOnlyProperty { _, _ -> port }
     }

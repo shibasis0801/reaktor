@@ -2627,6 +2627,14 @@ export declare class WebHost {
     get bridge(): WebNavigationBridge;
     start(): void;
     Content(): Nullable<ReactNode>;
+    dispatch(command: NavCommand): void;
+    navigate(edge: NavigationEdge<Payload>, payload?: Payload): void;
+    goBack(): void;
+    topEntry(): Nullable<BackStackEntry<any /*UnknownType **/, any /*UnknownType **/>>;
+    topPattern(): string;
+    topParams(): (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */;
+    stackSize(): number;
+    destroy(): void;
 }
 export declare namespace WebHost {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */

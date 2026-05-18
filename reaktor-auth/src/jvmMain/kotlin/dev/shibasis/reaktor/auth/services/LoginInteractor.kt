@@ -4,9 +4,11 @@ import dev.shibasis.reaktor.auth.User
 import dev.shibasis.reaktor.auth.UserStatus
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
+import dev.shibasis.reaktor.auth.api.TokenSet
 import dev.shibasis.reaktor.auth.db.AppRepository
 import dev.shibasis.reaktor.auth.db.UserRepository
 import dev.shibasis.reaktor.auth.jwt.JwtVerifier
+import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import dev.shibasis.reaktor.core.utils.info
 import dev.shibasis.reaktor.core.utils.invoke
@@ -91,6 +93,17 @@ open class LoginInteractor(
 
         val refreshToken = UUID.randomUUID().toString()
         
-        return LoginResponse.Success(user, user.data, accessToken, refreshToken)
+        return LoginResponse.Success(
+            user = user,
+            profile = user.data,
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            tokenSet = TokenSet(
+                accessToken = accessToken,
+                refreshToken = refreshToken,
+                expiresInSeconds = AuthDefaults.LOGIN_ACCESS_TOKEN_TTL_SECONDS,
+                scopes = permissions,
+            ),
+        )
     }
 }

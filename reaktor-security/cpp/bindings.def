@@ -1,0 +1,2 @@
+language = C
+compilerOpts = -std=c11

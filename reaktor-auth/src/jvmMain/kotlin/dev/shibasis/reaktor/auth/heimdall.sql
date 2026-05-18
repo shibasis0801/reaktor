@@ -126,6 +126,20 @@ CREATE TABLE session (
     FOREIGN KEY (app_id) REFERENCES app(id) ON DELETE CASCADE
 ) INHERITS (auditable);
 
+CREATE TABLE personal_access_token (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NULL,
+    name VARCHAR(100) NOT NULL,
+    token_hash VARCHAR(255) UNIQUE NOT NULL,
+    scopes TEXT NOT NULL,
+    context_id UUID NULL,
+    expires_at TIMESTAMPTZ NULL,
+    last_used_at TIMESTAMPTZ NULL,
+    revoked_at TIMESTAMPTZ NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (context_id) REFERENCES context(id) ON DELETE CASCADE
+) INHERITS (auditable);
+
 CREATE INDEX idx_context_app_id ON context(app_id);
 CREATE INDEX idx_user_app_id ON users(app_id);
 CREATE INDEX idx_role_app_id ON role(app_id);
@@ -139,6 +153,10 @@ CREATE INDEX idx_session_user_id ON session(user_id);
 CREATE INDEX idx_session_app_id ON session(app_id);
 CREATE INDEX idx_session_context_id ON session(context_id);
 CREATE INDEX idx_session_expires_at ON session(expires_at);
+CREATE INDEX idx_pat_user_id ON personal_access_token(user_id);
+CREATE INDEX idx_pat_context_id ON personal_access_token(context_id);
+CREATE INDEX idx_pat_token_hash ON personal_access_token(token_hash);
+CREATE INDEX idx_pat_revoked_at ON personal_access_token(revoked_at);
 
 CREATE TRIGGER app_updated BEFORE UPDATE ON app FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER user_updated BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION on_update();
@@ -148,6 +166,7 @@ CREATE TRIGGER permission_updated BEFORE UPDATE ON permission FOR EACH ROW EXECU
 CREATE TRIGGER role_permissions_updated BEFORE UPDATE ON role_permissions FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER user_role_updated BEFORE UPDATE ON user_role FOR EACH ROW EXECUTE FUNCTION on_update();
 CREATE TRIGGER session_updated BEFORE UPDATE ON session FOR EACH ROW EXECUTE FUNCTION on_update();
+CREATE TRIGGER personal_access_token_updated BEFORE UPDATE ON personal_access_token FOR EACH ROW EXECUTE FUNCTION on_update();
 
 
 

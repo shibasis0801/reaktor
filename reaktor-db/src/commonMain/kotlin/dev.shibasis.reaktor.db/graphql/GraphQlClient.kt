@@ -23,10 +23,18 @@ interface GraphQlClient {
 
 class ApolloKmmGraphQlClient(
     override val endpoint: String,
-    val apolloClient: ApolloClient = ApolloClient.Builder()
-        .serverUrl(endpoint)
-        .build(),
+    createApolloClient: () -> ApolloClient = {
+        ApolloClient.Builder()
+            .serverUrl(endpoint)
+            .build()
+    },
 ) : GraphQlClient {
+    private val apolloClientDelegate = lazy(LazyThreadSafetyMode.NONE, createApolloClient)
+
+    val apolloClient: ApolloClient by apolloClientDelegate
+
+    constructor(endpoint: String, apolloClient: ApolloClient) : this(endpoint, { apolloClient })
+
     override suspend fun <D : Query.Data> query(query: Query<D>): ApolloResponse<D> =
         apolloClient.query(query).execute()
 
@@ -38,7 +46,9 @@ class ApolloKmmGraphQlClient(
     ): Flow<ApolloResponse<D>> = apolloClient.subscription(subscription).toFlow()
 
     override fun close() {
-        apolloClient.close()
+        if (apolloClientDelegate.isInitialized()) {
+            apolloClient.close()
+        }
     }
 
     companion object {
@@ -46,11 +56,12 @@ class ApolloKmmGraphQlClient(
             endpoint: String,
             configure: ApolloClient.Builder.() -> Unit = {},
         ): ApolloKmmGraphQlClient {
-            val client = ApolloClient.Builder()
-                .serverUrl(endpoint)
-                .apply(configure)
-                .build()
-            return ApolloKmmGraphQlClient(endpoint, client)
+            return ApolloKmmGraphQlClient(endpoint) {
+                ApolloClient.Builder()
+                    .serverUrl(endpoint)
+                    .apply(configure)
+                    .build()
+            }
         }
     }
 }

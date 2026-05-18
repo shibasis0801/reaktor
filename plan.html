@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaktor Security Implementation Plan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f4f7fb;
+      --paper: #ffffff;
+      --ink: #172026;
+      --muted: #5b6878;
+      --line: #d7dfeb;
+      --strong: #11395f;
+      --accent: #167761;
+      --accent-soft: #e8f6f1;
+      --warn: #9a5b12;
+      --warn-soft: #fff3df;
+      --done: #28654f;
+      --done-soft: #e8f5ed;
+      --planned: #42556d;
+      --planned-soft: #eef3f8;
+      --code: #111820;
+      --code-ink: #edf4fb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      background: #102b45;
+      color: #f8fbff;
+      border-bottom: 4px solid var(--accent);
+    }
+
+    .wrap {
+      width: min(1120px, calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 40px 0 34px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #a7d7cb;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 860px;
+      margin: 0;
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      max-width: 860px;
+      margin: 18px 0 0;
+      color: #d9e8f5;
+      font-size: 18px;
+    }
+
+    main {
+      padding: 32px 0 72px;
+    }
+
+    section {
+      margin: 0 0 26px;
+      padding: 26px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      color: var(--strong);
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    code,
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.94em;
+    }
+
+    pre {
+      margin: 14px 0 0;
+      padding: 16px;
+      overflow: auto;
+      border-radius: 6px;
+      background: var(--code);
+      color: var(--code-ink);
+      font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 12px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--strong);
+      background: #f7f9fc;
+      font-weight: 700;
+    }
+
+    a {
+      color: #0b6b8f;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .panel {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    .panel h3 {
+      margin-top: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      min-width: 82px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .done {
+      background: var(--done-soft);
+      color: var(--done);
+    }
+
+    .active {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .planned {
+      background: var(--planned-soft);
+      color: var(--planned);
+    }
+
+    .callout {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .callout strong {
+      color: var(--strong);
+    }
+
+    .phase-list {
+      counter-reset: phase;
+      display: grid;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .phase {
+      position: relative;
+      padding: 16px 16px 16px 54px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    .phase::before {
+      counter-increment: phase;
+      content: counter(phase);
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--strong);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .phase h3 {
+      margin: 0 0 6px;
+    }
+
+    .references {
+      columns: 2 320px;
+      column-gap: 32px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 720px) {
+      .wrap {
+        width: min(100vw - 28px, 1120px);
+      }
+
+      .hero {
+        padding: 32px 0 28px;
+      }
+
+      section {
+        padding: 20px;
+      }
+
+      th,
+      td {
+        padding: 10px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap hero">
+      <p class="eyebrow">Reaktor Framework</p>
+      <h1>Reaktor Security Implementation Plan</h1>
+      <p class="summary">
+        Build <code>reaktor-security</code> as a high-level MLS conversation layer. The C++ core owns MLS state and cryptographic operations. Kotlin and TypeScript own product ergonomics. Platform APIs protect local secrets. Servers coordinate credentials, key packages, ordering, welcomes, and ciphertext only.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h2>Direction</h2>
+      <p>
+        Use Cisco MLS++ (<code>mlspp</code>) as the only end-to-end encryption protocol engine. Every secure conversation is an MLS group: direct chats, group chats, member changes, new devices, and key rotation all map to MLS group operations.
+      </p>
+      <div class="grid">
+        <div class="panel">
+          <h3>Expose</h3>
+          <ul>
+            <li><code>createDirectConversation(peerUserId)</code></li>
+            <li><code>createGroupConversation(memberUserIds)</code></li>
+            <li><code>encryptMessage(conversationId, plaintext)</code></li>
+            <li><code>processIncoming(envelope)</code></li>
+            <li><code>addMembers(conversationId, users)</code></li>
+            <li><code>removeMembers(conversationId, users)</code></li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Do Not Expose</h3>
+          <ul>
+            <li>Raw MLS state or private tree material</li>
+            <li>Raw private keys, group secrets, or nonces</li>
+            <li>Low-level crypto toolkit APIs</li>
+            <li>Server-side decryption paths</li>
+            <li>Signal provider abstractions</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Current Repository Shape</h2>
+      <p>
+        Keep the module aligned with the rest of Reaktor: Gradle/KMP lives in the normal <code>src/*Main</code> layout, native code lives under <code>cpp/</code>, TypeScript lives under <code>ts/</code>, and generated Kotlin externals are produced through Karakum into <code>ts/import</code>.
+      </p>
+      <pre>reaktor-security/
+  cpp/
+    external/mlspp/
+    external/json/
+    external/googletest/
+    rsec-mls-core/
+    rsec-mls-capi/
+    tests/native/
+  src/
+    commonMain/
+    androidMain/
+    iosMain/
+    jsMain/
+    jvmMain/
+  ts/
+    export/
+    import/
+    package.json
+    karakum.config.json
+  README.md
+  THIRD_PARTY_LOCK.md</pre>
+      <div class="callout">
+        <strong>Documentation and schema policy:</strong> the module-level <code>docs/</code> and <code>schemas/</code> folders are intentionally removed. Keep this implementation plan in repository-root <code>plan.html</code>. Move durable wire contracts into typed Kotlin/TypeScript/C++ sources and generated artifacts rather than parallel markdown schema files.
+      </div>
+    </section>
+
+    <section>
+      <h2>Hard Blocker</h2>
+      <p>
+        Durable MLS state snapshots are the first serious implementation blocker. The engine must prove that a process can create a group, persist encrypted state, restart, reload state, process the next message, and send the next message deterministically.
+      </p>
+      <pre>RsecMlsStateSnapshotV1 must cover:
+  cipher suite
+  group id and epoch
+  public and private tree state
+  transcript hash
+  extensions
+  epoch secrets and message ratchet state
+  own leaf index
+  identity private key references
+  external and resumption PSKs
+  pending proposals and cached update</pre>
+      <p>
+        Preferred path: keep a small audited patch against vendored MLS++ that adds <code>State::export_snapshot()</code> and <code>State::import_snapshot()</code>. That is easier to review than reconstructing state through derived-class access to protected internals.
+      </p>
+    </section>
+
+    <section>
+      <h2>Execution Phases</h2>
+      <div class="phase-list">
+        <div class="phase">
+          <h3>P0 - Native Core and Build Hygiene</h3>
+          <p>Pin MLS++, keep CMake deterministic, keep tests under <code>cpp/tests</code>, maintain the stable C ABI, and keep Gradle sync green across Reaktor, BestBuds, and Manna.</p>
+        </div>
+        <div class="phase">
+          <h3>P1 - Durable State and Credentials</h3>
+          <p>Implement encrypted MLS state snapshots, canonical device credentials, signature verification, and key-package private-material storage.</p>
+        </div>
+        <div class="phase">
+          <h3>P2 - Conversation Operations</h3>
+          <p>Ship direct conversations, group conversations, incoming queue processing, member add/remove, device add/remove, and epoch conflict recovery.</p>
+        </div>
+        <div class="phase">
+          <h3>P3 - Platform Secret Boxes</h3>
+          <p>Implement Android Keystore, Darwin Keychain, Windows DPAPI, Linux Secret Service, and WebCrypto/IndexedDB sealing paths behind one <code>PlatformSecretBox</code> contract.</p>
+        </div>
+        <div class="phase">
+          <h3>P4 - Server Backends</h3>
+          <p>Implement identical protocol behavior for Spring Boot/Postgres and Cloudflare Worker/D1/Durable Objects. Servers store and order ciphertext, credentials, key packages, welcomes, and commit metadata only.</p>
+        </div>
+        <div class="phase">
+          <h3>P5 - Web, WASM, and React Native</h3>
+          <p>Compile the C++ core to WASM for web, expose a TypeScript wrapper, and add a React Native JSI adapter that avoids passing long-term secrets through JavaScript.</p>
+        </div>
+        <div class="phase">
+          <h3>P6 - Hardening and Release</h3>
+          <p>Complete fuzzing, malformed envelope tests, replay tests, credential expiry tests, license allowlist checks, SBOM generation, and state migration tests.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Task Backlog</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Status</th>
+            <th>Scope</th>
+            <th>Acceptance Signal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>RSEC-001</strong><br>Repository skeleton</td>
+            <td><span class="tag done">Done</span></td>
+            <td>Use Reaktor KMP layout, <code>cpp/</code>, and <code>ts/</code>. Consolidate planning in root <code>plan.html</code>.</td>
+            <td>Build graph is obvious, public APIs are MLS-only, no module-local docs/schema drift.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-002</strong><br>Vendor and build MLS++</td>
+            <td><span class="tag active">Active</span></td>
+            <td>Pin Cisco MLS++, nlohmann/json, and GoogleTest. Keep lock and license notes in <code>THIRD_PARTY_LOCK.md</code>.</td>
+            <td>Host native tests and Gradle native def generation pass from a clean checkout.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-003</strong><br>Native C ABI</td>
+            <td><span class="tag active">Active</span></td>
+            <td>Expose engine lifecycle, key packages, group creation, join, encrypt, decrypt, and buffer ownership through <code>rsec.h</code>.</td>
+            <td>C tests cover create/destroy, invalid input, buffer free, and direct conversation round trip.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-004</strong><br>MLS state snapshot</td>
+            <td><span class="tag planned">Next</span></td>
+            <td>Add versioned encrypted snapshot export/import around MLS++ state.</td>
+            <td>Create, persist, restart, reload, decrypt, send, add/remove all pass deterministically.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-005</strong><br>Device credential encoding</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Canonical binary <code>DeviceCredentialV1</code>, auth signature verification, expiry, tenant/app scoping.</td>
+            <td>Identical credentials produce identical bytes; tampering and wrong tenant/app fail.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-006</strong><br>Key package generation</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Generate, seal private material, upload public bytes, track local claimed packages.</td>
+            <td>MLS++ parses packages; reused local package is rejected; low inventory is visible.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-007</strong><br>Direct conversation</td>
+            <td><span class="tag active">Active</span></td>
+            <td>Fetch peer devices/packages, create MLS group, emit welcomes, persist state, exchange messages.</td>
+            <td>Alice and Bob both decrypt after restart; server never sees plaintext.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-008</strong><br>Group conversation</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Claim packages for all active devices and create initial group state/welcomes.</td>
+            <td>Three users with multiple devices can all join and decrypt.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-009</strong><br>Incoming queue</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Process handshakes before application messages, queue missing epochs, dedupe replay.</td>
+            <td>Out-of-order messages decrypt after missing commits arrive; replay does not advance state twice.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-010</strong><br>Members and devices</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Add/remove members, add/remove own device, and verify membership policy proofs.</td>
+            <td>Removed devices cannot decrypt future messages; stale or wrong-conversation proofs fail.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-011</strong><br>Android package</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Kotlin facade, JNI binding, Android Keystore secret box, native library packaging.</td>
+            <td>Instrumented tests cover register, key packages, create, persist/reload, encrypt/decrypt.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-012</strong><br>iOS/macOS package</td>
+            <td><span class="tag active">Active</span></td>
+            <td>Kotlin/Native cinterop, Darwin Keychain secret box, KMP framework output.</td>
+            <td>Simulator/device/macOS paths pass and default to this-device-only secret records.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-013</strong><br>Desktop package</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>JVM facade, native loader, DPAPI, Keychain, Secret Service, explicit Linux passphrase fallback.</td>
+            <td>Local state survives restart and fails under wrong user or missing secret store.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-014</strong><br>Web/WASM package</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>WASM build, TypeScript wrapper, WebCrypto plus IndexedDB secret storage.</td>
+            <td>Browser creates device, joins group, encrypts/decrypts, reloads state, rejects insecure context.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-015</strong><br>React Native JSI</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>C++ JSI adapter and high-level TypeScript facade.</td>
+            <td>React Native app can encrypt/decrypt without JS receiving group state or private key material.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-016</strong><br>Spring server</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Spring Boot, Postgres, migrations, OpenAPI, transactional key-package claims and commit appends.</td>
+            <td>Commit conflicts are handled; all server writes are transactional; no plaintext path exists.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-017</strong><br>Cloudflare server</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Worker service, D1 registry/key packages/welcomes, Durable Object per conversation for ordering.</td>
+            <td>Conflicting commits return a typed conflict; Durable Object serializes appends.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-018</strong><br>Attachments</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Chunked local encryption and MLS-protected content-key delivery.</td>
+            <td>Object stores see ciphertext only; wrong conversation cannot decrypt attachment metadata.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-019</strong><br>Verification primitives</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Device fingerprint, safety number/QR payload, verification state store.</td>
+            <td>Changed device key warns; verification state is tenant/app/user/device scoped.</td>
+          </tr>
+          <tr>
+            <td><strong>RSEC-020</strong><br>Hardening</td>
+            <td><span class="tag planned">Planned</span></td>
+            <td>Native, KMP, Android, iOS, desktop, WASM, server, fuzz, replay, migration, license, and SBOM tests.</td>
+            <td>Malformed envelopes, stale proofs, expired credentials, reused packages, crashes, and conflicts are covered.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Server Protocol Surface</h2>
+      <p>
+        Spring Boot/Postgres and Cloudflare Worker/D1/Durable Objects should implement the same client-visible protocol. The client SDK should not care which backend is deployed.
+      </p>
+      <pre>POST /security/devices/register
+POST /security/key-packages
+POST /security/key-packages/claim
+POST /security/conversations
+POST /security/conversations/{id}/messages
+GET  /security/conversations/{id}/messages
+GET  /security/welcomes
+POST /security/welcomes/{id}/consume</pre>
+      <p>
+        All server-side authorization decisions that affect membership must produce client-verifiable policy proofs. Clients must reject server-added devices or members without valid Reaktor-auth-signed credentials and membership proofs.
+      </p>
+    </section>
+
+    <section>
+      <h2>P0 Completion Bar</h2>
+      <ul>
+        <li>MLS++ native core is pinned and documented in <code>THIRD_PARTY_LOCK.md</code>.</li>
+        <li>C ABI owns stable buffer/result/error behavior and does not leak C++ exceptions.</li>
+        <li>Kotlin common and TypeScript APIs expose conversation operations only.</li>
+        <li>Karakum generates Kotlin externals from <code>reaktor-security/ts</code>.</li>
+        <li>Host C++ tests live under <code>cpp/tests/native</code> and pass through CTest.</li>
+        <li>Gradle sync succeeds when <code>reaktor</code> is consumed from BestBuds and Manna composite builds.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Do Not Implement</h2>
+      <ul>
+        <li>No Signal provider.</li>
+        <li>No low-level crypto API for app developers.</li>
+        <li>No raw key export API.</li>
+        <li>No server-side decrypt API.</li>
+        <li>No plaintext search.</li>
+        <li>No metadata privacy claims beyond what the implementation actually provides.</li>
+        <li>No silent plaintext fallback on Linux or Web.</li>
+        <li>No unpinned MLS++ dependency.</li>
+        <li>No JSON signatures for security-critical credentials or policy proofs.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>References</h2>
+      <ol class="references">
+        <li><a href="https://github.com/cisco/mlspp">Cisco MLS++</a></li>
+        <li><a href="https://datatracker.ietf.org/doc/html/rfc9420">RFC 9420 - Messaging Layer Security</a></li>
+        <li><a href="https://emscripten.org/">Emscripten</a></li>
+        <li><a href="https://developer.android.com/privacy-and-security/keystore">Android Keystore</a></li>
+        <li><a href="https://developer.apple.com/documentation/security/keychain-services">Apple Keychain Services</a></li>
+        <li><a href="https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata">Windows DPAPI CryptProtectData</a></li>
+        <li><a href="https://specifications.freedesktop.org/secret-service/latest-single/">Freedesktop Secret Service API</a></li>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">Web Crypto API</a></li>
+        <li><a href="https://developers.cloudflare.com/d1/">Cloudflare D1</a></li>
+        <li><a href="https://developers.cloudflare.com/durable-objects/">Cloudflare Durable Objects</a></li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>

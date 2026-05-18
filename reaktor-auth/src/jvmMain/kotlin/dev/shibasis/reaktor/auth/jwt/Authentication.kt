@@ -10,6 +10,7 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import com.nimbusds.jwt.proc.DefaultJWTProcessor
 import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.auth.api.LoginRequest
+import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.core.utils.fail
 import kotlinx.serialization.Serializable
 import org.springframework.beans.factory.annotation.Value
@@ -136,14 +137,18 @@ class JwtMinter(
         userId: String,
         appId: String,
         scopes: List<String>,
-        expirationMs: Long = 1000 * 60 * 60 // Default 1 hour
+        expirationMs: Long = AuthDefaults.LOGIN_ACCESS_TOKEN_TTL_SECONDS * 1000L
     ): String {
         val now = Date()
         val claimsSet = JWTClaimsSet.Builder()
             .subject(userId)
-            .issuer("https://reaktor.build/")
+            .issuer(AuthDefaults.ISSUER)
+            .audience(appId)
             .claim("appId", appId)
+            .claim("app_id", appId)
             .claim("scopes", scopes)
+            .claim("scp", scopes)
+            .claim("principal_type", "user")
             .issueTime(now)
             .expirationTime(Date(now.time + expirationMs))
             .build()

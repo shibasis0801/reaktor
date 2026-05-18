@@ -47,7 +47,8 @@ enum class UserStatus {
 @JsExport
 enum class UserProvider {
     GOOGLE,
-    APPLE
+    APPLE,
+    SUPABASE
 }
 
 @JsExport

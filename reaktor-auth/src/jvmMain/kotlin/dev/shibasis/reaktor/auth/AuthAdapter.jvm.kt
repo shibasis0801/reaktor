@@ -6,6 +6,7 @@ class DesktopAuthAdapter(
     authClient: AuthService
 ): AuthAdapter<Unit>(Unit, authClient) {
     override suspend fun logout(): Result<Unit> {
+        resetLoginState()
         return Result.success(Unit)
     }
 }

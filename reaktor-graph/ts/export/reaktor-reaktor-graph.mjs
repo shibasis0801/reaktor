@@ -10332,11 +10332,6 @@ class BufferedChannelIterator {
     }
   }
 }
-class SendChannel {}
-function close$default(cause, $super) {
-  cause = cause === VOID ? null : cause;
-  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
-}
 class ReceiveChannel {}
 function cancel$default_0(cause, $super) {
   cause = cause === VOID ? null : cause;
@@ -10348,6 +10343,11 @@ function cancel$default_0(cause, $super) {
     tmp = $super.cancel_hkmm2i_k$.call(this, cause);
   }
   return tmp;
+}
+class SendChannel {}
+function close$default(cause, $super) {
+  cause = cause === VOID ? null : cause;
+  return $super === VOID ? this.close_ukldxa_k$(cause) : $super.close_ukldxa_k$.call(this, cause);
 }
 class BufferedChannel {
   constructor(capacity, onUndeliveredElement) {
@@ -35793,12 +35793,17 @@ class WindowSize {
   }
 }
 class WebNavigationBridge$observeBackStack$slambda$slambda {
-  constructor(this$0) {
+  constructor(this$0, $initialized) {
     this.this$0__1 = this$0;
+    this.$initialized_1 = $initialized;
   }
   invoke_mfk3bu_k$(entries, $completion) {
     if (this.this$0__1.handlingPopState_1)
       return Unit_instance;
+    if (!this.$initialized_1._v) {
+      this.$initialized_1._v = true;
+      return Unit_instance;
+    }
     var size = entries.get_size_woubt6_k$();
     var tmp0_elvis_lhs = lastOrNull(entries);
     var tmp;
@@ -35811,6 +35816,9 @@ class WebNavigationBridge$observeBackStack$slambda$slambda {
     var url = entryToUrl(this.this$0__1, topEntry);
     if (size > this.this$0__1.lastStackSize_1) {
       window.history.pushState(null, '', url);
+    } else if (size < this.this$0__1.lastStackSize_1) {
+      this.this$0__1.programmaticBack_1 = true;
+      window.history.back();
     } else if (size === this.this$0__1.lastStackSize_1 && size > 0) {
       window.history.replaceState(null, '', url);
     }
@@ -35822,8 +35830,9 @@ class WebNavigationBridge$observeBackStack$slambda$slambda {
   }
 }
 class WebNavigationBridge$observeBackStack$slambda {
-  constructor(this$0) {
+  constructor(this$0, $initialized) {
     this.this$0__1 = this$0;
+    this.$initialized_1 = $initialized;
   }
   invoke_ri3sjx_k$($this$launch, $completion) {
     return suspendOrReturn(/*#__NOINLINE__*/_generator_invoke__zhh2q8_80.bind(VOID, this, $this$launch), $completion);
@@ -35839,11 +35848,14 @@ class WebNavigationBridge {
     // Inline function 'kotlin.collections.mutableMapOf' call
     tmp.routeIndex_1 = LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$();
     this.handlingPopState_1 = false;
-    this.lastStackSize_1 = 0;
-    this.scope_1 = CoroutineScope_0(Dispatchers_getInstance().Default_1);
+    this.programmaticBack_1 = false;
+    this.lastStackSize_1 = this.graph_1.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$();
+    this.scope_1 = CoroutineScope_0(Dispatchers_getInstance().Default_1.plus_s13ygv_k$(SupervisorJob()));
     buildRouteIndex(this, this.graph_1);
     observeBackStack(this);
     listenToPopState(this);
+    var tmp_0 = this;
+    tmp_0.popStateHandler_1 = WebNavigationBridge$popStateHandler$lambda(this);
   }
   resolveCurrentUrl() {
     var path = window.location.pathname;
@@ -35873,6 +35885,8 @@ class WebNavigationBridge {
     return true;
   }
   destroy() {
+    cancel_0(this.scope_1);
+    window.removeEventListener('popstate', this.popStateHandler_1);
   }
 }
 class ReactContainer {}
@@ -36212,6 +36226,59 @@ class WebHost {
   }
   Content() {
     return ReactGraphContent(this.graph);
+  }
+  dispatch(command) {
+    return this.graph.dispatch_ad1g38_k$(command);
+  }
+  navigate_m3v79f_k$(edge, payload) {
+    this.graph.dispatch_ad1g38_k$(Companion_instance_78.construstUnit(edge, payload));
+  }
+  navigate(edge, payload, $super) {
+    payload = payload === VOID ? new Payload() : payload;
+    var tmp;
+    if ($super === VOID) {
+      this.navigate_m3v79f_k$(edge, payload);
+      tmp = Unit_instance;
+    } else {
+      tmp = $super.navigate_m3v79f_k$.call(this, edge, payload);
+    }
+    return tmp;
+  }
+  goBack() {
+    return this.graph.dispatch_ad1g38_k$(Pop_getInstance());
+  }
+  topEntry() {
+    var entries = this.graph.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$();
+    return lastOrNull(entries);
+  }
+  topPattern() {
+    var tmp0_elvis_lhs = this.topEntry();
+    var tmp;
+    if (tmp0_elvis_lhs == null) {
+      return '/';
+    } else {
+      tmp = tmp0_elvis_lhs;
+    }
+    var entry = tmp;
+    return entry.edge.end.pattern.original_1;
+  }
+  topParams() {
+    var tmp0_elvis_lhs = this.topEntry();
+    var tmp;
+    if (tmp0_elvis_lhs == null) {
+      return HashMap.new_kotlin_collections_HashMap_2a5kxx_k$();
+    } else {
+      tmp = tmp0_elvis_lhs;
+    }
+    var entry = tmp;
+    return entry.payload.routeParams;
+  }
+  stackSize() {
+    return this.graph.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$();
+  }
+  destroy() {
+    this.bridge.destroy();
+    this.graph.close();
   }
 }
 class sam$kotlin_properties_ReadOnlyProperty$0_3 {
@@ -86663,13 +86730,13 @@ var dev_shibasis_reaktor_graph_visitor_HierarchyVisitor$stable;
 var dev_shibasis_reaktor_graph_navigation_WebNavigationBridge$stable;
 function *_generator_invoke__zhh2q8_80($this, $this$launch, $completion) {
   var tmp = $this.this$0__1.graph_1.get_backStack_ueublk_k$().entries_1;
-  var tmp_0 = collectLatest(tmp, WebNavigationBridge$observeBackStack$slambda$slambda_0($this.this$0__1), $completion);
+  var tmp_0 = collectLatest(tmp, WebNavigationBridge$observeBackStack$slambda$slambda_0($this.this$0__1, $this.$initialized_1), $completion);
   if (tmp_0 === get_COROUTINE_SUSPENDED())
     tmp_0 = yield tmp_0;
   return Unit_instance;
 }
-function WebNavigationBridge$observeBackStack$slambda$slambda_0(this$0) {
-  var i = new WebNavigationBridge$observeBackStack$slambda$slambda(this$0);
+function WebNavigationBridge$observeBackStack$slambda$slambda_0(this$0, $initialized) {
+  var i = new WebNavigationBridge$observeBackStack$slambda$slambda(this$0, $initialized);
   var l = (entries, $completion) => i.invoke_mfk3bu_k$(entries, $completion);
   l.$arity = 1;
   return l;
@@ -86702,11 +86769,11 @@ function buildRouteIndex($this, graph) {
   }
 }
 function observeBackStack($this) {
-  launch_0($this.scope_1, VOID, VOID, WebNavigationBridge$observeBackStack$slambda_0($this));
+  var initialized = {_v: false};
+  launch_0($this.scope_1, VOID, VOID, WebNavigationBridge$observeBackStack$slambda_0($this, initialized));
 }
 function listenToPopState($this) {
-  var tmp = window;
-  tmp.addEventListener('popstate', WebNavigationBridge$listenToPopState$lambda($this));
+  window.addEventListener('popstate', $this.popStateHandler_1);
 }
 function entryToUrl($this, entry) {
   var pattern = entry.edge.end.pattern;
@@ -86735,18 +86802,26 @@ function matchRoute($this, path) {
   }
   return null;
 }
-function WebNavigationBridge$observeBackStack$slambda_0(this$0) {
-  var i = new WebNavigationBridge$observeBackStack$slambda(this$0);
+function WebNavigationBridge$observeBackStack$slambda_0(this$0, $initialized) {
+  var i = new WebNavigationBridge$observeBackStack$slambda(this$0, $initialized);
   var l = ($this$launch, $completion) => i.invoke_ri3sjx_k$($this$launch, $completion);
   l.$arity = 1;
   return l;
 }
-function WebNavigationBridge$listenToPopState$lambda(this$0) {
-  return (_unused_var__etf5q3) => {
-    this$0.handlingPopState_1 = true;
-    this$0.graph_1.dispatch_ad1g38_k$(Pop_getInstance());
-    this$0.lastStackSize_1 = this$0.graph_1.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$();
-    this$0.handlingPopState_1 = false;
+function WebNavigationBridge$popStateHandler$lambda(this$0) {
+  return (it) => {
+    var tmp;
+    if (this$0.programmaticBack_1) {
+      this$0.programmaticBack_1 = false;
+      this$0.lastStackSize_1 = this$0.graph_1.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$();
+      tmp = Unit_instance;
+    } else {
+      this$0.handlingPopState_1 = true;
+      this$0.graph_1.dispatch_ad1g38_k$(Pop_getInstance());
+      this$0.lastStackSize_1 = this$0.graph_1.get_backStack_ueublk_k$().entries_1.get_value_j01efc_k$().get_size_woubt6_k$();
+      this$0.handlingPopState_1 = false;
+      tmp = Unit_instance;
+    }
     return Unit_instance;
   };
 }
@@ -88047,11 +88122,11 @@ initMetadataForClass(Segment, 'Segment', VOID, VOID, [ConcurrentLinkedListNode, 
 initMetadataForClass(ChannelSegment, 'ChannelSegment');
 initMetadataForClass(SendBroadcast, 'SendBroadcast', VOID, VOID, [Waiter]);
 initMetadataForClass(BufferedChannelIterator, 'BufferedChannelIterator', VOID, VOID, [Waiter], [0, 3]);
-initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
 initMetadataForInterface(ReceiveChannel, 'ReceiveChannel', VOID, VOID, VOID, [0]);
+initMetadataForInterface(SendChannel, 'SendChannel', VOID, VOID, VOID, [1]);
 protoOf(BufferedChannel).close$default_kcbl7u_k$ = close$default;
 protoOf(BufferedChannel).cancel$default_880p35_k$ = cancel$default_0;
-initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [SendChannel, ReceiveChannel], [1, 4, 0, 3]);
+initMetadataForClass(BufferedChannel, 'BufferedChannel', VOID, VOID, [ReceiveChannel, SendChannel], [1, 4, 0, 3]);
 initMetadataForClass(WaiterEB, 'WaiterEB');
 initMetadataForClass(ReceiveCatching, 'ReceiveCatching', VOID, VOID, [Waiter]);
 initMetadataForObject(Factory, 'Factory');
@@ -88062,7 +88137,7 @@ initMetadataForClass(ChannelResult, 'ChannelResult');
 initMetadataForClass(ClosedReceiveChannelException, 'ClosedReceiveChannelException');
 initMetadataForClass(ClosedSendChannelException, 'ClosedSendChannelException');
 protoOf(ChannelCoroutine).close$default_kcbl7u_k$ = close$default;
-initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, SendChannel, ReceiveChannel], [1, 0]);
+initMetadataForClass(ChannelCoroutine, 'ChannelCoroutine', VOID, VOID, [AbstractCoroutine, ReceiveChannel, SendChannel], [1, 0]);
 initMetadataForClass(ConflatedBufferedChannel, 'ConflatedBufferedChannel', VOID, VOID, VOID, [1, 0]);
 initMetadataForInterface(ProducerScope, 'ProducerScope', VOID, VOID, [CoroutineScope, SendChannel], [1]);
 initMetadataForClass(ProducerCoroutine, 'ProducerCoroutine', VOID, VOID, [ChannelCoroutine, ProducerScope], [1, 0]);
@@ -88104,7 +88179,7 @@ initMetadataForClass(ContextScope, 'ContextScope', VOID, VOID, [CoroutineScope])
 initMetadataForClass(Symbol_0, 'Symbol');
 initMetadataForInterface(SelectInstance, 'SelectInstance');
 initMetadataForClass(ClauseData, 'ClauseData', VOID, VOID, VOID, [1]);
-initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, SelectInstance, Waiter], [0, 2]);
+initMetadataForClass(SelectImplementation, 'SelectImplementation', VOID, VOID, [CancelHandler, Waiter, SelectInstance], [0, 2]);
 initMetadataForClass(TrySelectDetailedResult, 'TrySelectDetailedResult');
 initMetadataForClass(SetTimeoutBasedDispatcher, 'SetTimeoutBasedDispatcher', VOID, VOID, [CoroutineDispatcher, Delay], [1]);
 initMetadataForObject(NodeDispatcher, 'NodeDispatcher', VOID, VOID, VOID, [1]);

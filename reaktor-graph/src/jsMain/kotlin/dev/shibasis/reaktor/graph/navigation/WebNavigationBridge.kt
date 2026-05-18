@@ -3,15 +3,15 @@ package dev.shibasis.reaktor.graph.navigation
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import org.w3c.dom.PopStateEvent
 import org.w3c.dom.events.Event
 import kotlin.js.JsExport
 
@@ -19,8 +19,9 @@ import kotlin.js.JsExport
 class WebNavigationBridge(private val graph: Graph) {
     private val routeIndex = mutableMapOf<RoutePattern, RouteNode<*, *>>()
     private var handlingPopState = false
-    private var lastStackSize = 0
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private var programmaticBack = false
+    private var lastStackSize = graph.backStack.entries.value.size
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     init {
         buildRouteIndex(graph)
@@ -42,9 +43,14 @@ class WebNavigationBridge(private val graph: Graph) {
     }
 
     private fun observeBackStack() {
+        var initialized = false
         scope.launch {
             graph.backStack.entries.collectLatest { entries ->
                 if (handlingPopState) return@collectLatest
+                if (!initialized) {
+                    initialized = true
+                    return@collectLatest
+                }
 
                 val size = entries.size
                 val topEntry = entries.lastOrNull() ?: return@collectLatest
@@ -52,6 +58,10 @@ class WebNavigationBridge(private val graph: Graph) {
 
                 when {
                     size > lastStackSize -> window.history.pushState(null, "", url)
+                    size < lastStackSize -> {
+                        programmaticBack = true
+                        window.history.back()
+                    }
                     size == lastStackSize && size > 0 -> window.history.replaceState(null, "", url)
                 }
                 lastStackSize = size
@@ -59,13 +69,20 @@ class WebNavigationBridge(private val graph: Graph) {
         }
     }
 
-    private fun listenToPopState() {
-        window.addEventListener("popstate") { _: Event ->
+    private val popStateHandler: (Event) -> Unit = {
+        if (programmaticBack) {
+            programmaticBack = false
+            lastStackSize = graph.backStack.entries.value.size
+        } else {
             handlingPopState = true
             graph.dispatch(Pop)
             lastStackSize = graph.backStack.entries.value.size
             handlingPopState = false
         }
+    }
+
+    private fun listenToPopState() {
+        window.addEventListener("popstate", popStateHandler)
     }
 
     fun resolveCurrentUrl(): Boolean {
@@ -96,6 +113,7 @@ class WebNavigationBridge(private val graph: Graph) {
     }
 
     fun destroy() {
-        // popstate listener is cleaned up when the window is unloaded
+        scope.cancel()
+        window.removeEventListener("popstate", popStateHandler)
     }
 }

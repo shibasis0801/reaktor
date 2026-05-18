@@ -17,6 +17,7 @@ class AndroidAuthAdapter(
     override suspend fun logout(): Result<Unit> = suspended {
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            resetLoginState()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -31,5 +32,3 @@ class AndroidAuthAdapter(
         register(UserProvider.APPLE, AndroidAppleLogin(this))
     }
 }
-
-

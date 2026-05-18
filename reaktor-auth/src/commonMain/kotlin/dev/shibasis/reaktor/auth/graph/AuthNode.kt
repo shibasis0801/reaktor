@@ -1,12 +1,19 @@
 package dev.shibasis.reaktor.auth.graph
 
 import co.touchlab.kermit.Logger
+import dev.shibasis.reaktor.auth.AccountType
 import dev.shibasis.reaktor.auth.User
+import dev.shibasis.reaktor.auth.kernel.AuthContext
+import dev.shibasis.reaktor.auth.kernel.AuthDefaults
+import dev.shibasis.reaktor.auth.kernel.AuthMethod
+import dev.shibasis.reaktor.auth.kernel.PermissionRef
+import dev.shibasis.reaktor.auth.kernel.PrincipalKind
+import dev.shibasis.reaktor.auth.kernel.PrincipalRef
+import dev.shibasis.reaktor.auth.kernel.Scope
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.auth.db.AuthObjectStore
 import dev.shibasis.reaktor.db.Database
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.provides
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,8 +28,30 @@ data class AuthSession(
     val user: User,
     val scopes: List<String>?,
     val accessToken: String? = null,
-    val refreshToken: String? = null
-)
+    val refreshToken: String? = null,
+    val authContext: AuthContext? = null
+) {
+    fun toAuthContext(): AuthContext {
+        authContext?.let { return it }
+        val principalKind = when (user.accountType) {
+            AccountType.SERVICE_ACCOUNT -> PrincipalKind.SERVICE
+            AccountType.USER -> PrincipalKind.USER
+        }
+        val scopeSet = scopes.orEmpty().map(::Scope).toSet()
+        return AuthContext(
+            principal = PrincipalRef(user.id, principalKind),
+            identityId = null,
+            appId = user.appId,
+            tenantId = null,
+            contextId = null,
+            issuer = AuthDefaults.ISSUER,
+            audience = user.appId,
+            scopes = scopeSet,
+            permissions = scopeSet.map { PermissionRef(name = it.value) }.toSet(),
+            method = AuthMethod.ACCESS_TOKEN,
+        )
+    }
+}
 
 /**
  * A headless node instantiated near the Root Graph responsible for providing Auth state to the rest of the application.

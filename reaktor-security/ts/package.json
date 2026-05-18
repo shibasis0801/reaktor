@@ -1,0 +1,20 @@
+{
+  "name": "dev-shibasis-reaktor-security-karakum",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prebuild": "node scripts/link-self.mjs",
+    "build": "tsc -b",
+    "postbuild": "karakum --config karakum.config.json"
+  },
+  "dependencies": {
+    "reaktor-reaktor-security": "file://./export"
+  },
+  "devDependencies": {
+    "karakum": "1.0.0-alpha.103",
+    "typescript": "^5.9.3"
+  }
+}

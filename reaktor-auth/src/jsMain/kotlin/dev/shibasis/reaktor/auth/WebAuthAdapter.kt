@@ -17,13 +17,13 @@ import dev.shibasis.reaktor.core.utils.succeed
 class WebAuthAdapter(
     authService: String
 ): AuthAdapter<Unit>(Unit, authClient = AuthServiceClient(authService)) {
-
     override suspend fun logout(): Result<Unit> {
         providers.forEach { (provider, authProvider) ->
             authProvider.logout().onFailure {
                 Logger.e { "Logout failed for $provider: $it" }
             }
         }
+        resetLoginState()
         return succeed(Unit)
     }
 

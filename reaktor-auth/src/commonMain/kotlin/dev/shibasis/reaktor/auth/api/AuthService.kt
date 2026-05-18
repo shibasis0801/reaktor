@@ -14,6 +14,7 @@ import dev.shibasis.reaktor.graph.service.RequestHandler
 import dev.shibasis.reaktor.graph.service.Service
 import io.ktor.client.call.body
 import io.ktor.client.request.setBody
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -29,6 +30,10 @@ data class LoginRequest(
     val idToken: String,
     val appId: String,
     val provider: UserProvider = UserProvider.GOOGLE,
+    val nonce: String? = null,
+    val state: String? = null,
+    val tenantHint: String? = null,
+    val contextHint: String? = null,
     val givenName: String? = null, // apple does not send it in JWT, and will only send it only once. (wtf)
     val familyName: String? = null, // apple does not send it in JWT, and will only send it only once. (wtf)
     val newUserProfile: JsonElement = JsonObject(mapOf(
@@ -52,6 +57,18 @@ data class LoginRequest(
 
 @JsExport
 @Serializable
+data class TokenSet(
+    val accessToken: String,
+    val refreshToken: String? = null,
+    val tokenType: String = "Bearer",
+    val expiresInSeconds: Int = 0,
+    val sessionId: String? = null,
+    val audience: String? = null,
+    val scopes: List<String> = emptyList()
+)
+
+@JsExport
+@Serializable
 sealed class LoginResponse(
     override var statusCode: StatusCode = StatusCode.OK,
     override val headers: MutableMap<String, String> = mutableMapOf()
@@ -61,7 +78,11 @@ sealed class LoginResponse(
         val user: User, 
         val profile: JsonElement,
         val accessToken: String,
-        val refreshToken: String
+        val refreshToken: String,
+        val tokenSet: TokenSet = TokenSet(
+            accessToken = accessToken,
+            refreshToken = refreshToken
+        )
     ): LoginResponse(StatusCode.OK)
 
     @Serializable
@@ -93,10 +114,11 @@ sealed class LoginResponse(
 @Serializable
 data class MintPatRequest(
     val name: String,
+    val scopes: List<String> = listOf("mcp:read"),
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
-    override var environment: Environment
+    override var environment: Environment = Environment.PROD
 ): Request() {
     companion object {
         @OptIn(ExperimentalJsStatic::class)
@@ -120,7 +142,7 @@ data class VerifyPatRequest(
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
-    override var environment: Environment
+    override var environment: Environment = Environment.PROD
 ): Request() {
     companion object {
         @OptIn(ExperimentalJsStatic::class)
@@ -133,6 +155,70 @@ data class VerifyPatRequest(
 @Serializable
 data class VerifyPatResponse(
     val isValid: Boolean,
+    val tokenId: String? = null,
+    val name: String? = null,
+    val scopes: List<String> = emptyList(),
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf()
+): Response()
+
+@JsExport
+@Serializable
+data class ExchangePatRequest(
+    val rawToken: String = "",
+    val audience: String = "manna-mcp",
+    val ttlSeconds: Int = 15 * 60,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment = Environment.PROD
+): Request() {
+    companion object {
+        @OptIn(ExperimentalJsStatic::class)
+        @JsStatic
+        fun Create(rawToken: String, environment: Environment) =
+            ExchangePatRequest(rawToken, environment = environment)
+    }
+}
+
+@JsExport
+@Serializable
+data class ExchangePatResponse(
+    val accessToken: String,
+    val tokenType: String = "Bearer",
+    val expiresInSeconds: Int = 0,
+    val tokenId: String? = null,
+    val scopes: List<String> = emptyList(),
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf()
+): Response()
+
+@JsExport
+@Serializable
+data class TokenRequest(
+    @SerialName("grant_type")
+    val grantType: String = "pat",
+    val rawToken: String = "",
+    val clientId: String? = null,
+    val clientSecret: String? = null,
+    val audience: String = "manna-mcp",
+    val scopes: List<String> = emptyList(),
+    val subjectToken: String? = null,
+    val ttlSeconds: Int = 15 * 60,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment = Environment.PROD
+): Request()
+
+@JsExport
+@Serializable
+data class TokenResponse(
+    val accessToken: String,
+    val tokenType: String = "Bearer",
+    val expiresInSeconds: Int = 0,
+    val tokenId: String? = null,
+    val scopes: List<String> = emptyList(),
     override var statusCode: StatusCode = StatusCode.OK,
     override val headers: MutableMap<String, String> = mutableMapOf()
 ): Response()
@@ -140,8 +226,10 @@ data class VerifyPatResponse(
 @JsExport
 abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val login: PostHandler<LoginRequest, LoginResponse>
+    abstract val token: PostHandler<TokenRequest, TokenResponse>
     abstract val mintPat: PostHandler<MintPatRequest, MintPatResponse>
     abstract val verifyPat: PostHandler<VerifyPatRequest, VerifyPatResponse>
+    abstract val exchangePat: PostHandler<ExchangePatRequest, ExchangePatResponse>
 }
 
 @JsExport
@@ -154,11 +242,19 @@ open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
             )
     }
 
-    override val mintPat = PostHandler<MintPatRequest, MintPatResponse>("/auth/test-mint-pat") {
+    override val mintPat = PostHandler<MintPatRequest, MintPatResponse>("/auth/pat/mint") {
         http.Post(route) { setBody(it) }.fold({ it.body() }, { MintPatResponse("") })
     }
 
-    override val verifyPat = PostHandler<VerifyPatRequest, VerifyPatResponse>("/auth/test-verify-pat") {
+    override val token = PostHandler<TokenRequest, TokenResponse>("/auth/token") {
+        http.Post(route) { setBody(it) }.fold({ it.body() }, { TokenResponse("") })
+    }
+
+    override val verifyPat = PostHandler<VerifyPatRequest, VerifyPatResponse>("/auth/pat/verify") {
         http.Post(route) { setBody(it) }.fold({ it.body() }, { VerifyPatResponse(false) })
+    }
+
+    override val exchangePat = PostHandler<ExchangePatRequest, ExchangePatResponse>("/auth/pat/exchange") {
+        http.Post(route) { setBody(it) }.fold({ it.body() }, { ExchangePatResponse("") })
     }
 }

@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.auth
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -21,122 +22,80 @@ class WebGoogleLogin(
 ): GoogleAuthProvider<WebAuthAdapter>(adapter) {
 
     private var currentUser: GoogleUser? = null
-    private var isInitialized = false
 
-    private fun initializeGIS() {
-        if (isInitialized) return
-
-        try {
-            google.accounts.id.initialize(js("""({
-                client_id: audience,
-                callback: undefined,
-                auto_select: false,
-                cancel_on_tap_outside: true
-            })""").unsafeCast<IdConfiguration>().apply {
-                client_id = audience
-                auto_select = false
-                cancel_on_tap_outside = true
-            })
-
-            isInitialized = true
-            Logger.i { "Google Identity Services initialized with client_id: $audience" }
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to initialize Google Identity Services" }
-            throw e
-        }
+    private fun initializeGIS(callback: (CredentialResponse) -> Unit) {
+        google.accounts.id.initialize(js("({})").unsafeCast<IdConfiguration>().apply {
+            client_id = audience
+            this.callback = callback
+            auto_select = false
+            cancel_on_tap_outside = true
+        })
     }
 
-    private suspend fun tryLogin(): GoogleUser? = suspendCancellableCoroutine { continuation ->
-        if (currentUser != null) {
-            continuation.resume(currentUser)
-            return@suspendCancellableCoroutine
-        }
+    override suspend fun login(): Result<GoogleUser> {
+        currentUser?.let { return succeed(it) }
 
-        try {
-            initializeGIS()
-
-            google.accounts.id.initialize(js("""({
-                client_id: audience,
-                callback: undefined
-            })""").unsafeCast<IdConfiguration>().apply {
-                client_id = audience
-                callback = { response ->
-                    handleCredentialResponse(response, continuation)
+        return suspendCancellableCoroutine { continuation ->
+            runCatching {
+                initializeGIS { response ->
+                    continuation.resumeIfActive(handleCredentialResponse(response))
                 }
-            })
 
-            google.accounts.id.prompt { notification ->
-                if (notification.isNotDisplayed()) {
-                    val reason = notification.getNotDisplayedReason()
-                    Logger.e { "Google One Tap not displayed: $reason" }
-                    continuation.resume(null)
-                } else if (notification.isSkippedMoment()) {
-                    val reason = notification.getSkippedReason()
-                    Logger.e { "Google One Tap skipped: $reason" }
-                    continuation.resume(null)
+                google.accounts.id.prompt { notification ->
+                    if (notification.isNotDisplayed()) {
+                        continuation.resumeIfActive(
+                            fail("Google One Tap not displayed: ${notification.getNotDisplayedReason()}")
+                        )
+                    } else if (notification.isSkippedMoment()) {
+                        continuation.resumeIfActive(
+                            fail("Google One Tap skipped: ${notification.getSkippedReason()}")
+                        )
+                    }
                 }
+            }.onFailure {
+                Logger.e(it) { "Google Sign-In failed" }
+                continuation.resumeIfActive(fail(it))
             }
-        } catch (e: Exception) {
-            Logger.e(e) { "Google Sign-In failed" }
-            continuation.resume(null)
         }
     }
 
-    private fun handleCredentialResponse(
-        response: CredentialResponse,
-        continuation: kotlinx.coroutines.CancellableContinuation<GoogleUser?>
-    ) {
-        try {
+    private fun handleCredentialResponse(response: CredentialResponse): Result<GoogleUser> {
+        return runCatching {
             val idToken = response.credential
             Logger.i { "Received Google credential via: ${response.select_by}" }
 
             val payload = decodeGoogleJwt(idToken)
-            if (payload == null) {
-                Logger.e { "Failed to decode Google JWT" }
-                continuation.resume(null)
-                return
-            }
+                ?: throw IllegalArgumentException("Failed to decode Google JWT")
 
-            val user = GoogleUser(
+            GoogleUser(
                 idToken = idToken,
                 givenName = payload.given_name,
                 familyName = payload.family_name,
                 emailId = payload.email ?: "",
                 imageUrl = payload.picture ?: ""
-            )
-
-            currentUser = user
-            Logger.i { "Google Sign-In successful: ${user.emailId}" }
-            continuation.resume(user)
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to process Google credential response" }
-            continuation.resume(null)
-        }
-    }
-
-    override suspend fun getUser(): Result<GoogleUser> = runCatching {
-        currentUser ?: throw NoSuchElementException("No Google User found")
-    }
-
-    override suspend fun login(): Result<GoogleUser> {
-        return try {
-            val user = tryLogin()
-            if (user != null) {
-                succeed(user)
-            } else {
-                fail("Google Sign-In failed or was cancelled by user")
+            ).also {
+                currentUser = it
+                Logger.i { "Google Sign-In successful: ${it.emailId}" }
             }
-        } catch (e: Exception) {
-            Logger.e(e) { "Google login error" }
-            fail(e)
+        }.fold(::succeed) { error ->
+            Logger.e(error) { "Failed to process Google credential response" }
+            fail(error)
         }
     }
 
-    override suspend fun logout(): Result<Unit> = runCatching {
+    override suspend fun getUser(): Result<GoogleUser> {
+        return currentUser?.let(::succeed)
+            ?: fail(NoSuchElementException("No Google User found"))
+    }
+
+    override suspend fun logout(): Result<Unit> {
         currentUser = null
-        if (isInitialized) {
-            google.accounts.id.disableAutoSelect()
-            Logger.i { "Google Sign-In: auto-select disabled after logout" }
-        }
+        google.accounts.id.disableAutoSelect()
+        Logger.i { "Google Sign-In: auto-select disabled after logout" }
+        return succeed(Unit)
+    }
+
+    private fun CancellableContinuation<Result<GoogleUser>>.resumeIfActive(result: Result<GoogleUser>) {
+        if (isActive) resume(result)
     }
 }

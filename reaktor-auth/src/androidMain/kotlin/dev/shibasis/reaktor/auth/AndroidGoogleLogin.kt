@@ -5,6 +5,8 @@ import androidx.credentials.exceptions.NoCredentialException
 import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import dev.shibasis.reaktor.core.utils.fail
+import dev.shibasis.reaktor.core.utils.succeed
 
 class AndroidGoogleLogin(
     adapter: AndroidAuthAdapter,
@@ -18,33 +20,35 @@ class AndroidGoogleLogin(
         .addCredentialOption(googleIdOption)
         .build()
 
-
     private var current: GoogleUser? = null
-    private suspend fun tryLogin(): GoogleUser? = adapter.suspended {
-        if (current != null) return@suspended current
 
-        try {
+    override suspend fun login(): Result<GoogleUser> = runCatching {
+        adapter.suspended {
+            current?.let { return@suspended it }
+
             val result = adapter.credentialManager.getCredential(this, request)
-            if (result.credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                current = GoogleIdTokenCredential.createFrom(result.credential.data).toGoogleUser()
-                current
-            } else null
-        } catch (e: NoCredentialException) {
-            Logger.e(e) { "Missing credentials" }
-            null
-        } catch (e: Exception) {
-            Logger.e { e.message ?: "Unknown Exception" }
-            null
-        }
+            if (result.credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                throw NoCredentialException("No Google ID token credential returned")
+            }
+
+            GoogleIdTokenCredential.createFrom(result.credential.data)
+                .toGoogleUser()
+                .also { current = it }
+        } ?: throw IllegalStateException("Android activity controller is no longer available")
+    }.onFailure {
+        Logger.e(it) { "Google Sign-In failed" }
     }
 
-    override suspend fun getUser() = runCatching {
-        tryLogin() ?: throw NoCredentialException("No Google User found")
+    override suspend fun getUser(): Result<GoogleUser> {
+        return current?.let(::succeed)
+            ?: fail(NoCredentialException("No Google User found"))
     }
 
-    override suspend fun login() = getUser()
+    override suspend fun logout(): Result<Unit> {
+        current = null
+        return succeed(Unit)
+    }
 }
-
 
 fun GoogleIdTokenCredential.toGoogleUser(): GoogleUser {
     return GoogleUser(
@@ -52,6 +56,6 @@ fun GoogleIdTokenCredential.toGoogleUser(): GoogleUser {
         givenName = givenName,
         familyName = familyName,
         emailId = id,
-        imageUrl = profilePictureUri?.path ?: "INVALID"
+        imageUrl = profilePictureUri?.toString() ?: "INVALID"
     )
 }

@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.cloudflare
 import dev.shibasis.reaktor.core.cloudflare.R2Bucket as RawR2Bucket
 import dev.shibasis.reaktor.core.cloudflare.R2Object as RawR2Object
 import dev.shibasis.reaktor.core.cloudflare.R2ObjectBody as RawR2ObjectBody
+import dev.shibasis.reaktor.core.cloudflare.R2Objects as RawR2Objects
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
 import kotlinx.coroutines.await
@@ -176,7 +177,38 @@ class R2Bucket internal constructor(
     @JsExport.Ignore
     suspend inline fun <reified T> getJson(key: String): T? =
         getText(key)?.let(dev.shibasis.reaktor.core.framework.json::decodeFromString)
+
+    @JsExport.Ignore
+    suspend fun list(prefix: String? = null, limit: Int? = null): R2ListResult {
+        val options: dynamic = js("({})")
+        if (prefix != null) options.prefix = prefix
+        if (limit != null) options.limit = limit
+        val result: RawR2Objects = raw.list(options).await()
+        val objects = result.objects.map { R2Object(it) }
+        return R2ListResult(objects, result.truncated, result.cursor)
+    }
+
+    @JsExport.Ignore
+    suspend fun listAll(prefix: String): List<R2Object> {
+        val all = mutableListOf<R2Object>()
+        var cursor: String? = null
+        do {
+            val options: dynamic = js("({})")
+            options.prefix = prefix
+            if (cursor != null) options.cursor = cursor
+            val result: RawR2Objects = raw.list(options).await()
+            all.addAll(result.objects.map { R2Object(it) })
+            cursor = result.cursor
+        } while (result.truncated && cursor != null)
+        return all
+    }
 }
+
+class R2ListResult(
+    val objects: List<R2Object>,
+    val truncated: Boolean,
+    val cursor: String?,
+)
 
 private fun ByteArray.toUint8Array(): dynamic {
     val length = size

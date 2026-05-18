@@ -13,9 +13,10 @@ class DarwinAuthAdapter(
     AuthServiceClient(authService)
 ) {
     override suspend fun logout(): Result<Unit> {
-        providers.map { (_, provider) ->
+        providers.forEach { (_, provider) ->
             provider.logout().onFailure { Logger.e { "Logout failed for ${provider::class.simpleName}: $it" } }
         }
+        resetLoginState()
         return succeed(Unit)
     }
 
@@ -23,9 +24,7 @@ class DarwinAuthAdapter(
         register(UserProvider.APPLE, DarwinAppleLogin(this))
     }
 
-    fun registerGoogleLogin() {
-        register(UserProvider.GOOGLE, DarwinGoogleLogin(this))
+    fun registerGoogleLogin(serverClientId: String? = null, clientId: String? = null) {
+        register(UserProvider.GOOGLE, DarwinGoogleLogin(this, serverClientId, clientId))
     }
 }
-
-

@@ -448,14 +448,22 @@ class FlexBuffersV2Benchmarks {
 
         // Simple case
         val simple = EncodingSimpleCase()
-        val simpleDecoded = FlexBuffers.decode<EncodingSimpleCase>(FlexBuffers.encode(simple))
+        val simpleSerializer = EncodingSimpleCase.serializer()
+        val simpleDecoded = FlexBuffers.decode(
+            simpleSerializer,
+            FlexBuffers.encode(simpleSerializer, simple)
+        )
         assertEquals(simple.mapOfStringToInt, simpleDecoded.mapOfStringToInt)
         assertEquals(simple.arrayOfInt, simpleDecoded.arrayOfInt)
         println("  EncodingSimpleCase: PASS")
 
         // Complex case
         val complex = EncodingComplexCase()
-        val complexDecoded = FlexBuffers.decode<EncodingComplexCase>(FlexBuffers.encode(complex))
+        val complexSerializer = EncodingComplexCase.serializer()
+        val complexDecoded = FlexBuffers.decode(
+            complexSerializer,
+            FlexBuffers.encode(complexSerializer, complex)
+        )
         assertEquals(complex.booleanField, complexDecoded.booleanField)
         assertEquals(complex.intField, complexDecoded.intField)
         assertEquals(complex.longField, complexDecoded.longField)
@@ -473,8 +481,10 @@ class FlexBuffersV2Benchmarks {
 
         // Sophisticated case
         val sophisticated = EncodingSophisticatedCase()
-        val sophisticatedDecoded = FlexBuffers.decode<EncodingSophisticatedCase>(
-            FlexBuffers.encode(sophisticated)
+        val sophisticatedSerializer = EncodingSophisticatedCase.serializer()
+        val sophisticatedDecoded = FlexBuffers.decode(
+            sophisticatedSerializer,
+            FlexBuffers.encode(sophisticatedSerializer, sophisticated)
         )
         assertEquals(sophisticated.field.intField, sophisticatedDecoded.field.intField)
         assertEquals(sophisticated.field.stringField, sophisticatedDecoded.field.stringField)
