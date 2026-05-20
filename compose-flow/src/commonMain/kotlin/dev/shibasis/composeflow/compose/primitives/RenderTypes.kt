@@ -34,6 +34,9 @@ data class EdgeRenderStyle(
 enum class EdgePathStyle {
     Bezier,
     Orthogonal,
+    Straight,
+    SmoothStep,
+    SimpleBezier,
 }
 
 data class HandleRenderStyle(

@@ -10,6 +10,10 @@ import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.graph.navigation.NavCommand
+import dev.shibasis.reaktor.graph.navigation.Pop
+import dev.shibasis.reaktor.graph.navigation.Push
+import dev.shibasis.reaktor.graph.navigation.Replace
+import dev.shibasis.reaktor.graph.navigation.Return
 import dev.shibasis.reaktor.io.network.RoutePattern
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -23,6 +27,24 @@ open class RouteBinding<P: Payload>(
     val payload = MutableStateFlow(initial)
     var dispatch: (NavCommand) -> Unit = {}
         internal set
+
+    fun<T: Payload> NavigationEdge<T>.push(payload: T) {
+        dispatch(Push(this, payload))
+    }
+
+    fun<T: Payload> NavigationEdge<T>.replace(payload: T) {
+        dispatch(Replace(this, payload))
+    }
+
+    @JsName("pop")
+    fun back() {
+        dispatch(Pop)
+    }
+
+    @JsName("backWithResult")
+    fun<R> back(result: R) {
+        dispatch(Return(result))
+    }
 }
 
 typealias Binding = RouteBinding<Payload>

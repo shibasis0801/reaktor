@@ -18,6 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onSizeChanged
@@ -30,30 +35,43 @@ import dev.shibasis.composeflow.compose.components.MiniMap
 import dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformGestureEffect
 import dev.shibasis.composeflow.compose.interaction.FlowViewportGestureConfig
 import dev.shibasis.composeflow.compose.interaction.LocalFlowViewportPlatformBridge
+import dev.shibasis.composeflow.compose.interaction.SelectionBoxState
 import dev.shibasis.composeflow.compose.interaction.flowPointerViewportGestures
 import dev.shibasis.composeflow.compose.interaction.flowViewportPointerTracking
 import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
 import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
 import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
+import dev.shibasis.composeflow.compose.primitives.EdgeHitAreaOverlay
 import dev.shibasis.composeflow.compose.primitives.EdgePathStyle
 import dev.shibasis.composeflow.compose.primitives.EdgeRenderStyle
+import dev.shibasis.composeflow.compose.primitives.FlowAnchor
 import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeTypes
+import dev.shibasis.composeflow.compose.primitives.anchorFor
+import dev.shibasis.composeflow.compose.primitives.drawConnectionLine
 import dev.shibasis.composeflow.compose.primitives.drawFlowEdge
 import dev.shibasis.composeflow.model.BackgroundVariant
 import dev.shibasis.composeflow.model.Connection
 import dev.shibasis.composeflow.model.Edge
+import dev.shibasis.composeflow.model.EdgeChange
+import dev.shibasis.composeflow.model.EdgeSelectionChange
 import dev.shibasis.composeflow.model.FitViewOptions
 import dev.shibasis.composeflow.model.Handle
+import dev.shibasis.composeflow.model.HandleType
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.NodeChange
+import dev.shibasis.composeflow.model.NodeSelectionChange
+import dev.shibasis.composeflow.runtime.ConnectionController
+import dev.shibasis.composeflow.runtime.LocalConnectionController
 import dev.shibasis.composeflow.runtime.LocalReactFlowState
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
+import dev.shibasis.composeflow.runtime.rememberConnectionController
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.compose.theme.FlowCanvasBackground
+import dev.shibasis.composeflow.compose.theme.FlowSelection
 
 // Compose best-practice note:
 // keep viewport state and gesture handling above the node content tree. This mirrors
@@ -67,8 +85,15 @@ fun ReactFlow(
     state: ReactFlowState = LocalReactFlowState.current ?: rememberReactFlowState(),
     nodeTypes: NodeTypes = emptyMap(),
     onNodesChange: ((List<NodeChange>) -> Unit)? = null,
+    onEdgesChange: ((List<EdgeChange>) -> Unit)? = null,
     onConnect: ((Connection) -> Unit)? = null,
     onNodeClick: ((Node) -> Unit)? = null,
+    onEdgeClick: ((Edge) -> Unit)? = null,
+    isValidConnection: ((Connection) -> Boolean)? = null,
+    onConnectStart: (() -> Unit)? = null,
+    onConnectEnd: (() -> Unit)? = null,
+    onDelete: ((nodes: List<Node>, edges: List<Edge>) -> Unit)? = null,
+    onSelectionChange: ((nodes: List<Node>, edges: List<Edge>) -> Unit)? = null,
     fitView: Boolean = true,
     fitViewOptions: FitViewOptions = FitViewOptions(),
     showBackground: Boolean = true,
@@ -77,6 +102,11 @@ fun ReactFlow(
     showMiniMap: Boolean = false,
     minZoom: Double = FlowRuntimeDefaults.minZoom,
     maxZoom: Double = FlowRuntimeDefaults.maxZoom,
+    panOnDrag: Boolean = true,
+    selectionOnDrag: Boolean = false,
+    snapToGrid: Boolean = false,
+    snapGrid: Pair<Double, Double> = Pair(15.0, 15.0),
+    autoPanOnNodeDrag: Boolean = true,
     defaultNodeWidth: androidx.compose.ui.unit.Dp = FlowSizing.defaultNodeWidth,
     defaultNodeHeight: androidx.compose.ui.unit.Dp = FlowSizing.defaultNodeHeight,
     nodeRenderStyle: (Node) -> NodeRenderStyle = { NodeRenderStyle() },
@@ -111,7 +141,13 @@ fun ReactFlow(
         state.selectedEdgeIds = edges.filter(Edge::selected).mapTo(linkedSetOf(), Edge::id)
     }
 
-    CompositionLocalProvider(LocalReactFlowState provides state) {
+    val connectionController = rememberConnectionController()
+    val selectionBoxState = remember { SelectionBoxState() }
+
+    CompositionLocalProvider(
+        LocalReactFlowState provides state,
+        LocalConnectionController provides connectionController,
+    ) {
         FlowViewportPlatformGestureEffect(
             state = state,
             interactionState = interactionState,
@@ -135,7 +171,21 @@ fun ReactFlow(
                     interactionState = interactionState,
                     config = gestureConfig,
                     platformBridge = platformBridge,
-                ),
+                )
+                .onPreviewKeyEvent { keyEvent ->
+                    if (onDelete != null &&
+                        keyEvent.type == KeyEventType.KeyDown &&
+                        (keyEvent.key == Key.Delete ||
+                            keyEvent.key == Key.Backspace)
+                    ) {
+                        val selectedNodes = nodes.filter { it.selected && it.deletable }
+                        val selectedEdges = edges.filter { it.selected && it.deletable }
+                        if (selectedNodes.isNotEmpty() || selectedEdges.isNotEmpty()) {
+                            onDelete(selectedNodes, selectedEdges)
+                            true
+                        } else false
+                    } else false
+                },
         ) {
             if (showBackground) {
                 FlowBackground(Modifier.fillMaxSize(), state.viewport, backgroundVariant)
@@ -151,7 +201,15 @@ fun ReactFlow(
                             state = state,
                             interactionState = interactionState,
                             config = gestureConfig,
-                            onPaneClick = onPaneClick,
+                            onPaneClick = {
+                                onNodesChange?.invoke(
+                                    nodes.filter { it.selected }.map { NodeSelectionChange(it.id, false) },
+                                )
+                                onEdgesChange?.invoke(
+                                    edges.filter { it.selected }.map { EdgeSelectionChange(it.id, false) },
+                                )
+                                onPaneClick?.invoke()
+                            },
                         ),
                 )
 
@@ -171,7 +229,56 @@ fun ReactFlow(
                             val target = nodeById[edge.target] ?: return@forEach
                             drawFlowEdge(source, target, edge, edgeRenderStyle(edge), edgePathStyle, defaultWidthPx, defaultHeightPx)
                         }
+
+                        if (connectionController.isConnecting) {
+                            val srcNodeId = connectionController.sourceNodeId
+                            val srcHandleId = connectionController.sourceHandleId
+                            val srcHandleType = connectionController.sourceHandleType
+                            val srcNode = srcNodeId?.let(nodeById::get)
+                            if (srcNode != null && srcHandleType != null) {
+                                val startAnchor = anchorFor(
+                                    srcNode, srcHandleId, srcHandleType, defaultWidthPx, defaultHeightPx,
+                                )
+                                val endScreen = connectionController.connectionLineEnd
+                                val endFlow = androidx.compose.ui.geometry.Offset(
+                                    ((endScreen.x - state.viewport.x) / state.viewport.zoom).toFloat(),
+                                    ((endScreen.y - state.viewport.y) / state.viewport.zoom).toFloat(),
+                                )
+                                drawConnectionLine(startAnchor, endFlow, edgePathStyle, FlowSelection)
+                            }
+                        }
+
+                        if (selectionBoxState.isSelecting) {
+                            val rect = selectionBoxState.selectionRect
+                            val flowStart = androidx.compose.ui.geometry.Offset(
+                                ((rect.left - state.viewport.x) / state.viewport.zoom).toFloat(),
+                                ((rect.top - state.viewport.y) / state.viewport.zoom).toFloat(),
+                            )
+                            val flowEnd = androidx.compose.ui.geometry.Offset(
+                                ((rect.right - state.viewport.x) / state.viewport.zoom).toFloat(),
+                                ((rect.bottom - state.viewport.y) / state.viewport.zoom).toFloat(),
+                            )
+                            drawRect(
+                                color = FlowSelection.copy(alpha = 0.08f),
+                                topLeft = flowStart,
+                                size = androidx.compose.ui.geometry.Size(flowEnd.x - flowStart.x, flowEnd.y - flowStart.y),
+                            )
+                            drawRect(
+                                color = FlowSelection.copy(alpha = 0.4f),
+                                topLeft = flowStart,
+                                size = androidx.compose.ui.geometry.Size(flowEnd.x - flowStart.x, flowEnd.y - flowStart.y),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f),
+                            )
+                        }
                     }
+
+                    EdgeHitAreaOverlay(
+                        edges = edges,
+                        nodeById = nodeById,
+                        defaultNodeWidth = defaultWidthPx,
+                        defaultNodeHeight = defaultHeightPx,
+                        onEdgeClick = onEdgeClick,
+                    )
 
                     nodes.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { node ->
                         FlowNodeBox(
@@ -185,6 +292,14 @@ fun ReactFlow(
                             handleRenderStyle = { handle -> handleRenderStyle(node, handle) },
                             defaultNodeWidthPx = defaultWidthPx,
                             defaultNodeHeightPx = defaultHeightPx,
+                            snapToGrid = snapToGrid,
+                            snapGrid = snapGrid,
+                            autoPanOnDrag = autoPanOnNodeDrag,
+                            canvasSize = canvasSize,
+                            onPanBy = state::panBy,
+                            isValidConnection = isValidConnection,
+                            onConnectStart = onConnectStart,
+                            onConnectEnd = onConnectEnd,
                         )
                     }
 

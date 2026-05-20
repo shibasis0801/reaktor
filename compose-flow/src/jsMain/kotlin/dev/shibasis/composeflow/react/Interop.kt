@@ -68,6 +68,10 @@ fun CommonNode.toReactFlow(): Node<Any?> = jso {
     zIndex = this@toReactFlow.zIndex.toDouble()
     sourcePosition = position(this@toReactFlow.sourcePosition)
     targetPosition = position(this@toReactFlow.targetPosition)
+    draggable = this@toReactFlow.draggable
+    selectable = this@toReactFlow.selectable
+    connectable = this@toReactFlow.connectable
+    deletable = this@toReactFlow.deletable
 }
 
 fun CommonEdge.toReactFlow(): Edge<Any?> = jso {
@@ -82,8 +86,13 @@ fun CommonEdge.toReactFlow(): Edge<Any?> = jso {
     selected = this@toReactFlow.selected
     hidden = this@toReactFlow.hidden
     animated = this@toReactFlow.animated
+    markerStart = this@toReactFlow.markerStart?.toReactFlow()
     markerEnd = this@toReactFlow.markerEnd?.toReactFlow()
     zIndex = this@toReactFlow.zIndex.toDouble()
+    selectable = this@toReactFlow.selectable
+    deletable = this@toReactFlow.deletable
+    reconnectable = this@toReactFlow.reconnectable
+    interactionWidth = this@toReactFlow.interactionWidth
 }
 
 fun List<CommonNode>.toReactFlowNodes(): ReadonlyArray<Node<Any?>> =

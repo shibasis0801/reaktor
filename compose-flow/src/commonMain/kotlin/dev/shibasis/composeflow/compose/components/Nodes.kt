@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
 import dev.shibasis.composeflow.compose.primitives.Handle
 import dev.shibasis.composeflow.compose.theme.FlowSelection
@@ -44,8 +45,11 @@ import dev.shibasis.composeflow.model.HandleType
 import dev.shibasis.composeflow.model.Dimensions
 import dev.shibasis.composeflow.model.Handle
 import dev.shibasis.composeflow.model.NodeDimensionChange
+import dev.shibasis.composeflow.model.NodeSelectionChange
 import dev.shibasis.composeflow.model.Viewport
+import dev.shibasis.composeflow.runtime.ConnectionController
 import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
+import dev.shibasis.composeflow.runtime.LocalConnectionController
 import kotlin.collections.get
 import kotlin.math.roundToInt
 
@@ -64,7 +68,16 @@ internal fun FlowNodeBox(
     handleRenderStyle: (Handle) -> HandleRenderStyle,
     defaultNodeWidthPx: Double,
     defaultNodeHeightPx: Double,
+    snapToGrid: Boolean = false,
+    snapGrid: Pair<Double, Double> = Pair(15.0, 15.0),
+    autoPanOnDrag: Boolean = false,
+    canvasSize: IntSize = IntSize.Zero,
+    onPanBy: ((Double, Double) -> Unit)? = null,
+    isValidConnection: ((Connection) -> Boolean)? = null,
+    onConnectStart: (() -> Unit)? = null,
+    onConnectEnd: (() -> Unit)? = null,
 ) {
+    val connectionController = LocalConnectionController.current
     val density = LocalDensity.current
     val width = node.measured?.width ?: node.width ?: defaultNodeWidthPx
     val height = node.measured?.height ?: node.height ?: defaultNodeHeightPx
@@ -97,7 +110,7 @@ internal fun FlowNodeBox(
                     onNodesChange?.invoke(listOf(NodeDimensionChange(id = node.id, dimensions = dimensions)))
                 }
             }
-            .pointerInput(node.id, viewport.zoom) {
+            .pointerInput(node.id, viewport.zoom, node.draggable, node.selectable) {
                 awaitPointerEventScope {
                     while (true) {
                         val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
@@ -110,13 +123,15 @@ internal fun FlowNodeBox(
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
-                                if (!dragged) {
+                                if (!dragged && node.selectable) {
                                     onNodeClick?.invoke(node)
-                                } else {
+                                } else if (dragged) {
                                     onNodesChange?.invoke(listOf(NodePositionChange(id = node.id, position = currentPosition, dragging = false)))
                                 }
                                 break
                             }
+
+                            if (!node.draggable) continue
 
                             val delta = change.position - change.previousPosition
                             if (!dragged) {
@@ -126,13 +141,40 @@ internal fun FlowNodeBox(
                                     continue
                                 }
                                 dragged = true
-                                onNodeClick?.invoke(node)
+                                if (node.selectable) {
+                                    onNodeClick?.invoke(node)
+                                }
                             }
 
-                            currentPosition = XYPosition(
-                                x = currentPosition.x + delta.x / viewport.zoom,
-                                y = currentPosition.y + delta.y / viewport.zoom,
-                            )
+                            var newX = currentPosition.x + delta.x / viewport.zoom
+                            var newY = currentPosition.y + delta.y / viewport.zoom
+
+                            if (snapToGrid) {
+                                newX = (kotlin.math.round(newX / snapGrid.first) * snapGrid.first)
+                                newY = (kotlin.math.round(newY / snapGrid.second) * snapGrid.second)
+                            }
+
+                            node.extent?.let { (min, max) ->
+                                newX = newX.coerceIn(min.x, max.x)
+                                newY = newY.coerceIn(min.y, max.y)
+                            }
+
+                            currentPosition = XYPosition(x = newX, y = newY)
+
+                            if (autoPanOnDrag && canvasSize.width > 0 && onPanBy != null) {
+                                val edgeMargin = 40f
+                                val panSpeed = 10.0
+                                val screenX = change.position.x
+                                val screenY = change.position.y
+                                var panDx = 0.0
+                                var panDy = 0.0
+                                if (screenX < edgeMargin) panDx = -panSpeed
+                                else if (screenX > canvasSize.width - edgeMargin) panDx = panSpeed
+                                if (screenY < edgeMargin) panDy = -panSpeed
+                                else if (screenY > canvasSize.height - edgeMargin) panDy = panSpeed
+                                if (panDx != 0.0 || panDy != 0.0) onPanBy(panDx, panDy)
+                            }
+
                             onNodesChange?.invoke(listOf(NodePositionChange(id = node.id, position = currentPosition, dragging = true)))
                             change.consume()
                         }
@@ -151,22 +193,52 @@ internal fun FlowNodeBox(
         )
         if (nodeContent != null) nodeContent(props) else DefaultNode(props)
 
-        handles.forEach { handle ->
-            Handle(
-                modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle)),
-                type = handle.type,
-                style = handleRenderStyle(handle),
-                onConnect = {
-                    onConnect?.invoke(
-                        Connection(
-                            source = if (handle.type == HandleType.Source) node.id else null,
-                            target = if (handle.type == HandleType.Target) node.id else null,
-                            sourceHandle = handle.id.takeIf { handle.type == HandleType.Source },
-                            targetHandle = handle.id.takeIf { handle.type == HandleType.Target },
-                        )
-                    )
-                },
-            )
+        if (node.connectable) {
+            handles.forEach { handle ->
+                Handle(
+                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle))
+                        .pointerInput(node.id, handle.id, handle.type, connectionController) {
+                            if (connectionController == null) return@pointerInput
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
+                                    connectionController.startConnection(
+                                        nodeId = node.id,
+                                        handleId = handle.id,
+                                        type = handle.type,
+                                        startPosition = down.position,
+                                    )
+                                    onConnectStart?.invoke()
+                                    down.consume()
+
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                        if (!change.pressed) {
+                                            connectionController.completeConnection(isValidConnection, onConnect)
+                                            onConnectEnd?.invoke()
+                                            break
+                                        }
+                                        connectionController.updateConnectionEnd(change.position)
+                                        change.consume()
+                                    }
+                                }
+                            }
+                        },
+                    type = handle.type,
+                    style = handleRenderStyle(handle),
+                    onConnect = null,
+                )
+            }
+        } else {
+            handles.forEach { handle ->
+                Handle(
+                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle)),
+                    type = handle.type,
+                    style = handleRenderStyle(handle),
+                    onConnect = null,
+                )
+            }
         }
     }
 }

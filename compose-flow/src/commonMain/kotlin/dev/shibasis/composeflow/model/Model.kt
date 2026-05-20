@@ -103,6 +103,11 @@ data class Node(
     val dragging: Boolean = false,
     val hidden: Boolean = false,
     val zIndex: Int = 0,
+    val draggable: Boolean = true,
+    val selectable: Boolean = true,
+    val connectable: Boolean = true,
+    val deletable: Boolean = true,
+    val extent: Pair<XYPosition, XYPosition>? = null,
 )
 
 @Immutable
@@ -118,8 +123,13 @@ data class Edge(
     val selected: Boolean = false,
     val hidden: Boolean = false,
     val animated: Boolean = false,
+    val markerStart: EdgeMarker? = null,
     val markerEnd: EdgeMarker? = null,
     val zIndex: Int = 0,
+    val selectable: Boolean = true,
+    val deletable: Boolean = true,
+    val reconnectable: Boolean = false,
+    val interactionWidth: Double = 20.0,
 )
 
 sealed interface NodeChange {

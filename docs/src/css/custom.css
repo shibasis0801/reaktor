@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Lora:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;700&display=swap');
+
+/**
+ * Reaktor Design System v1.0
+ * Theme: Industrial Technical Manual
+ */
+
+:root {
+  /* --- Visual System Tokens --- */
+  --blueprint-ink: #1e3a8a;
+  --blueprint-ink-muted: rgba(30, 58, 138, 0.6);
+  --blueprint-paper: #f4f4f0;
+  --blueprint-paper-white: #ffffff;
+  --blueprint-highlight: #dbeafe;
+  --blueprint-border: #cbd5e1;
+  --industrial-orange: #f97316;
+  --grid-color: rgba(30, 58, 138, 0.05);
+
+  /* --- Docusaurus Overrides --- */
+  --ifm-color-primary: var(--blueprint-ink);
+  --ifm-background-color: var(--blueprint-paper);
+  --ifm-font-color-base: #1a1a1a;
+  
+  --ifm-font-family-base: 'Lora', serif;
+  --ifm-heading-font-family: 'Space Mono', monospace;
+  --ifm-code-font-family: 'JetBrains Mono', monospace;
+  
+  --ifm-global-radius: 0;
+  --ifm-navbar-background-color: var(--blueprint-paper);
+  --ifm-navbar-shadow: none;
+  --ifm-footer-background-color: #0f172a;
+  
+  --ifm-code-font-size: 90%;
+  --ifm-pre-background: var(--blueprint-paper-white);
+}
+
+[data-theme='dark'] {
+  --blueprint-ink: #e2e8f0;
+  --blueprint-ink-muted: rgba(226, 232, 240, 0.4);
+  --blueprint-paper: #0f172a;
+  --blueprint-paper-white: #1e293b;
+  --blueprint-highlight: #1e293b;
+  --blueprint-border: #334155;
+  --industrial-orange: #fb923c;
+  --grid-color: rgba(255, 255, 255, 0.03);
+
+  --ifm-color-primary: #38bdf8;
+  --ifm-background-color: var(--blueprint-paper);
+  --ifm-font-color-base: #f8fafc;
+  --ifm-pre-background: var(--blueprint-paper-white);
+}
+
+/* --- Base --- */
+
+body {
+  background-image: 
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 25px 25px;
+}
+
+h1, h2, h3, h4 {
+  color: var(--blueprint-ink);
+  text-transform: uppercase;
+}
+
+/* --- Responsive Layout --- */
+
+.home-container {
+  display: flex;
+  flex-direction: row;
+}
+
+@media (max-width: 768px) {
+  .home-container {
+    flex-direction: column;
+  }
+}
+
+.side-banner {
+  background-color: var(--industrial-orange);
+  width: 80px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .side-banner {
+    width: 100%;
+    min-height: auto;
+    padding: 1rem 0;
+  }
+  .side-banner span {
+    transform: none !important;
+  }
+}
+
+.side-banner span {
+  transform: rotate(-90deg);
+  white-space: nowrap;
+  color: #fff;
+  font-family: 'Space Mono', monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+  letter-spacing: 0.5em;
+}
+
+.main-content {
+  flex-grow: 1;
+}
+
+.industrial-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1px;
+  background-color: var(--blueprint-border);
+  border-top: 1px solid var(--blueprint-border);
+}
+
+.grid-item {
+  background-color: var(--blueprint-paper);
+  padding: clamp(1.5rem, 5vw, 3rem);
+}
+
+.span-12 { grid-column: span 12; }
+.span-8 { grid-column: span 8; }
+.span-6 { grid-column: span 6; }
+.span-4 { grid-column: span 4; }
+
+@media (max-width: 996px) {
+  .span-8, .span-6, .span-4 { grid-column: span 12; }
+}
+
+/* --- Hero & Components --- */
+
+.hero-box {
+  padding: clamp(3rem, 10vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+}
+
+.hero-title {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(2.5rem, 10vw, 5.5rem);
+  font-weight: 800;
+  line-height: 0.9;
+  margin-bottom: 2rem;
+}
+
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.spec-table th {
+  background-color: var(--blueprint-ink);
+  color: var(--blueprint-paper);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.spec-table td {
+  border: 1px solid var(--blueprint-border);
+  padding: 0.5rem;
+  background-color: var(--blueprint-paper-white);
+  color: var(--ifm-font-color-base);
+}
+
+.label-box {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--blueprint-ink);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  margin-bottom: 1rem;
+  color: var(--blueprint-ink);
+}
+
+/* --- Blueprint Component --- */
+
+.blueprint-container {
+  border: 1px solid var(--blueprint-ink);
+  background: var(--blueprint-paper-white);
+  padding: 2rem;
+  margin: 2rem 0;
+  position: relative;
+  box-shadow: 10px 10px 0px var(--blueprint-highlight);
+}
+
+.blueprint-badge {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: var(--blueprint-ink);
+  color: var(--blueprint-paper);
+  padding: 0 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+}
+
+.blueprint-footer {
+  margin-top: 1rem;
+  border-top: 1px dashed var(--blueprint-border);
+  padding-top: 1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--blueprint-ink-muted);
+  text-align: right;
+}
+
+/* --- Documentation Styles --- */
+
+.markdown {
+  max-width: 850px;
+}
+
+.markdown code {
+  background-color: var(--blueprint-highlight);
+  border: 1px solid var(--blueprint-border);
+  color: var(--ifm-color-primary);
+}
+
+.markdown pre {
+  border: 1px solid var(--blueprint-border);
+  border-left: 4px solid var(--ifm-color-primary);
+}

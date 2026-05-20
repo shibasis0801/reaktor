@@ -17,8 +17,10 @@ import dev.shibasis.composeflow.model.Position
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.sign
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 internal fun DrawScope.drawFlowEdge(
     source: Node,
@@ -37,6 +39,9 @@ internal fun DrawScope.drawFlowEdge(
     val pathData = when (pathStyle) {
         EdgePathStyle.Bezier -> bezierEdgePath(start, end)
         EdgePathStyle.Orthogonal -> orthogonalEdgePath(start, end)
+        EdgePathStyle.Straight -> straightEdgePath(start, end)
+        EdgePathStyle.SmoothStep -> smoothStepEdgePath(start, end)
+        EdgePathStyle.SimpleBezier -> simpleBezierEdgePath(start, end)
     }
 
     drawPath(
@@ -50,6 +55,18 @@ internal fun DrawScope.drawFlowEdge(
             }
         ),
     )
+
+    edge.markerStart?.let { marker ->
+        val dir = end.point - start.point
+        val len = sqrt(dir.x * dir.x + dir.y * dir.y).coerceAtLeast(1f)
+        val markerAnchor = Offset(start.point.x + dir.x / len * 20f, start.point.y + dir.y / len * 20f)
+        drawMarker(
+            end = start.point,
+            start = markerAnchor,
+            marker = marker,
+            color = (renderStyle.color ?: FlowEdge).copy(alpha = renderStyle.alpha),
+        )
+    }
 
     edge.markerEnd?.let { marker ->
         drawMarker(
@@ -113,6 +130,65 @@ internal fun orthogonalEdgePath(start: FlowAnchor, end: FlowAnchor): FlowEdgePat
         }
     }
     return FlowEdgePath(path = path, markerStart = markerStart)
+}
+
+internal fun straightEdgePath(start: FlowAnchor, end: FlowAnchor): FlowEdgePath {
+    val path = Path().apply {
+        moveTo(start.point.x, start.point.y)
+        lineTo(end.point.x, end.point.y)
+    }
+    return FlowEdgePath(path = path, markerStart = start.point)
+}
+
+internal fun smoothStepEdgePath(
+    start: FlowAnchor,
+    end: FlowAnchor,
+    borderRadius: Float = 5f,
+): FlowEdgePath {
+    val horizontalSource = start.position == Position.Left || start.position == Position.Right
+    val markerStart: Offset
+    val path = Path().apply {
+        moveTo(start.point.x, start.point.y)
+        if (horizontalSource) {
+            val midX = (start.point.x + end.point.x) / 2f
+            val dy = end.point.y - start.point.y
+            val r = min(borderRadius, abs(dy) / 2f).let { min(it, abs(midX - start.point.x)) }
+            val dirX = if (midX > start.point.x) 1f else -1f
+            val dirY = if (dy > 0f) 1f else -1f
+
+            lineTo(midX - dirX * r, start.point.y)
+            quadraticTo(midX, start.point.y, midX, start.point.y + dirY * r)
+            lineTo(midX, end.point.y - dirY * r)
+            quadraticTo(midX, end.point.y, midX + dirX * r, end.point.y)
+            markerStart = Offset(midX + dirX * r, end.point.y)
+            lineTo(end.point.x, end.point.y)
+        } else {
+            val midY = (start.point.y + end.point.y) / 2f
+            val dx = end.point.x - start.point.x
+            val r = min(borderRadius, abs(dx) / 2f).let { min(it, abs(midY - start.point.y)) }
+            val dirX = if (dx > 0f) 1f else -1f
+            val dirY = if (midY > start.point.y) 1f else -1f
+
+            lineTo(start.point.x, midY - dirY * r)
+            quadraticTo(start.point.x, midY, start.point.x + dirX * r, midY)
+            lineTo(end.point.x - dirX * r, midY)
+            quadraticTo(end.point.x, midY, end.point.x, midY + dirY * r)
+            markerStart = Offset(end.point.x, midY + dirY * r)
+            lineTo(end.point.x, end.point.y)
+        }
+    }
+    return FlowEdgePath(path = path, markerStart = markerStart)
+}
+
+internal fun simpleBezierEdgePath(start: FlowAnchor, end: FlowAnchor): FlowEdgePath {
+    val midX = (start.point.x + end.point.x) / 2f
+    val midY = (start.point.y + end.point.y) / 2f
+    val controlPoint = Offset(midX, midY)
+    val path = Path().apply {
+        moveTo(start.point.x, start.point.y)
+        quadraticTo(controlPoint.x, controlPoint.y, end.point.x, end.point.y)
+    }
+    return FlowEdgePath(path = path, markerStart = controlPoint)
 }
 
 internal fun DrawScope.drawMarker(

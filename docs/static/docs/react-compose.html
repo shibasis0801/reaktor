@@ -1,0 +1,1824 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reaktor React × Compose Interop Implementation Blueprint</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg2: #0d1730;
+      --panel: rgba(18, 27, 50, 0.82);
+      --panel2: rgba(31, 43, 78, 0.72);
+      --ink: #f7fbff;
+      --muted: #b7c3dc;
+      --soft: #8ea0c2;
+      --line: rgba(255,255,255,.13);
+      --accent: #7dd3fc;
+      --accent2: #c084fc;
+      --accent3: #86efac;
+      --warn: #fbbf24;
+      --danger: #fb7185;
+      --code: #061020;
+      --shadow: 0 22px 80px rgba(0,0,0,.38);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 7% 3%, rgba(125, 211, 252, .24), transparent 33rem),
+        radial-gradient(circle at 89% 8%, rgba(192, 132, 252, .22), transparent 35rem),
+        radial-gradient(circle at 50% 100%, rgba(134, 239, 172, .12), transparent 34rem),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .shell { max-width: 1240px; margin: 0 auto; padding: 32px 20px 86px; }
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background: linear-gradient(135deg, rgba(18, 27, 50, .95), rgba(31, 43, 78, .70));
+      box-shadow: var(--shadow);
+      padding: clamp(28px, 5vw, 54px);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero:after {
+      content: "";
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 999px;
+      right: -145px;
+      bottom: -190px;
+      background: radial-gradient(circle, rgba(125,211,252,.22), transparent 67%);
+    }
+    .eyebrow { color: var(--accent3); text-transform: uppercase; letter-spacing: .16em; font-weight: 800; font-size: 12px; }
+    h1 { margin: 12px 0 0; font-size: clamp(34px, 6vw, 72px); line-height: 1.02; letter-spacing: -.055em; max-width: 1040px; }
+    .subtitle { margin-top: 20px; max-width: 950px; color: var(--muted); font-size: 18px; }
+    .hero-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-top: 32px; }
+    .stat { border: 1px solid var(--line); border-radius: 18px; padding: 18px; background: rgba(255,255,255,.045); }
+    .stat b { display: block; color: var(--ink); font-size: 25px; line-height: 1.05; }
+    .stat span { display: block; color: var(--soft); font-size: 13px; margin-top: 7px; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 24px; margin-top: 26px; }
+    nav { position: sticky; top: 18px; align-self: start; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(15, 24, 45, .82); backdrop-filter: blur(18px); box-shadow: var(--shadow); padding: 16px; max-height: calc(100vh - 36px); overflow: auto; }
+    nav h2 { margin: 0 0 10px; color: var(--soft); font-size: 13px; text-transform: uppercase; letter-spacing: .14em; }
+    nav a { display: block; color: var(--ink); padding: 8px 10px; border-radius: 12px; font-size: 13.5px; }
+    nav a:hover { background: rgba(255,255,255,.07); text-decoration: none; }
+    main { min-width: 0; }
+    section { margin-top: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+    .section-inner { padding: clamp(22px, 4vw, 34px); }
+    h2 { margin: 0 0 14px; font-size: 30px; line-height: 1.15; letter-spacing: -.035em; }
+    h3 { margin: 28px 0 10px; font-size: 21px; line-height: 1.25; letter-spacing: -.02em; }
+    h4 { margin: 22px 0 8px; font-size: 14px; color: var(--accent3); text-transform: uppercase; letter-spacing: .11em; }
+    p { color: var(--muted); margin: 10px 0; }
+    ul, ol { color: var(--muted); padding-left: 22px; }
+    li { margin: 6px 0; }
+    strong { color: var(--ink); }
+    .callout { margin: 18px 0; padding: 18px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 18px; background: rgba(125,211,252,.08); }
+    .callout.success { border-left-color: var(--accent3); background: rgba(134,239,172,.08); }
+    .callout.warn { border-left-color: var(--warn); background: rgba(251,191,36,.08); }
+    .callout.danger { border-left-color: var(--danger); background: rgba(251,113,133,.08); }
+    .diagram { overflow: auto; margin: 18px 0; padding: 20px; border-radius: 18px; background: var(--code); border: 1px solid var(--line); color: #dbeafe; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; white-space: pre; line-height: 1.45; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .card { border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.045); padding: 18px; }
+    .card h3 { margin-top: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .pill, .chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: rgba(255,255,255,.045); padding: 6px 10px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; font-size: 14px; }
+    th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { text-align: left; color: var(--ink); background: rgba(255,255,255,.07); }
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    code { color: #bfdbfe; background: rgba(255,255,255,.075); padding: 2px 6px; border-radius: 8px; }
+    pre { overflow: auto; margin: 0 0 18px; padding: 20px; border-radius: 0 0 18px 18px; background: var(--code); border: 1px solid var(--line); color: #e5e7eb; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; line-height: 1.55; }
+    .code-title { margin-top: 18px; padding: 10px 14px; border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0; background: rgba(255,255,255,.07); color: var(--accent3); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .phase { border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,.045); margin: 16px 0; overflow: hidden; }
+    .phase-head { display: flex; justify-content: space-between; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.05); }
+    .phase-title { color: var(--ink); font-weight: 800; font-size: 17px; }
+    .phase-meta { color: var(--accent); font-size: 13px; white-space: nowrap; }
+    .phase-body { padding: 18px; }
+    .small { font-size: 13px; }
+    .footer { color: var(--soft); text-align: center; margin-top: 34px; font-size: 13px; }
+    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } nav { position: static; max-height: none; } .hero-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .hero-grid { grid-template-columns: 1fr; } .phase-head { flex-direction: column; } }
+    @media print { body { background: #fff; color: #111827; } .hero, section, nav, .card, .phase { box-shadow: none; background: #fff; color: #111827; } nav { display: none; } .layout { display: block; } p, li, td { color: #374151; } pre, .diagram { background: #f3f4f6; color: #111827; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="eyebrow">Reaktor implementation blueprint</div>
+      <h1>React × Compose Interop as a Native UI Kernel</h1>
+      <p class="subtitle">
+        A layered design and implementation plan for Reaktor: React as an OTA/control-plane language over native Compose rendering,
+        Compose-authored UI rendered through React DOM on the web, and a shared HostTree/ShadowTree runtime that makes both directions one system.
+      </p>
+      <div class="hero-grid">
+        <div class="stat"><b>React → Compose</b><span>JS bundles control native Compose primitives without becoming React Native.</span></div>
+        <div class="stat"><b>Compose → React DOM</b><span>KMP component model can land on mature web rendering and libraries.</span></div>
+        <div class="stat"><b>1 HostTree</b><span>Stable ids, typed props/events, boundaries, snapshots, tooling.</span></div>
+        <div class="stat"><b>Hermes FFI</b><span>Batched binary RPC, no per-mutation bridge chatter.</span></div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav>
+        <h2>Contents</h2>
+        <a href="#pitch">1. Product thesis</a>
+        <a href="#killer-apps">2. Killer apps</a>
+        <a href="#architecture">3. Conceptual architecture</a>
+        <a href="#modules">4. Libraries and modules</a>
+        <a href="#public-api">5. Public authoring APIs</a>
+        <a href="#ffi">6. reaktor-ffi RPC shape</a>
+        <a href="#mutation-protocol">7. Mutation protocol</a>
+        <a href="#react-renderer">8. React renderer internals</a>
+        <a href="#compose-applier">9. Compose Applier internals</a>
+        <a href="#host-tree">10. HostTree internals</a>
+        <a href="#shadow-tree">11. ShadowTree and rendering</a>
+        <a href="#interop-systems">12. Seamless interop systems</a>
+        <a href="#ota">13. OTA and server-driven UI</a>
+        <a href="#web">14. Web renderer</a>
+        <a href="#benchmarks">15. Benchmarks</a>
+        <a href="#roadmap">16. Roadmap</a>
+        <a href="#references">17. References</a>
+      </nav>
+
+      <main>
+        <section id="pitch"><div class="section-inner">
+          <h2>1. Product thesis</h2>
+          <div class="callout success">
+            <strong>Pitch:</strong> React gives Reaktor distribution, dynamism, and a massive developer base. Compose gives Reaktor native rendering quality and platform-correct UI. Reaktor is the kernel that lets both ecosystems mutate, render, inspect, and schedule against one typed runtime tree.
+          </div>
+          <p>
+            The core mistake to avoid is building a fake universal component framework. React and Compose should keep doing what they are excellent at: React reconciles JavaScript component trees and hook state; Compose composes Kotlin UI with snapshot state and platform-aware rendering. Reaktor sits below both as a retained, typed, inspectable host runtime.
+          </p>
+          <div class="diagram">React components/hooks                 Compose functions/remember/snapshots
+          │                                         │
+          ▼                                         ▼
+React custom renderer HostConfig        Compose Runtime + ReaktorApplier
+          │                                         │
+          └──────────── batched TreeOps ────────────┘
+                            │
+                            ▼
+                  reaktor-ffi over Hermes/JSI
+                            │
+                            ▼
+                Native arena-backed HostTree
+                            │
+                            ▼
+       Incremental double-buffered ShadowSnapshot
+                            │
+       ┌────────────────────┼────────────────────┐
+       ▼                    ▼                    ▼
+Compose renderer       React DOM renderer       Inspector/AI/Blueprint</div>
+          <h3>Hard invariants</h3>
+          <div class="grid-2">
+            <div class="card"><h3>No private internals</h3><p>Use React at the custom renderer boundary and Compose at the Applier/ComposeNode boundary. Do not depend on private Fiber fields or the Compose SlotTable layout.</p></div>
+            <div class="card"><h3>One structural owner per subtree</h3><p>React, Compose, server UI, and Blueprint each own explicit runtime boundaries. Parents may mount or pass props into child boundaries, not mutate their internals directly.</p></div>
+            <div class="card"><h3>Batch then cross runtime</h3><p>Hermes/native RPC receives frame-sized mutation batches, not one call per node operation or prop update.</p></div>
+            <div class="card"><h3>Native tree is canonical</h3><p>HostTree is source of truth. ShadowTree is an incremental derived view for layout metadata, event routing, accessibility, rendering, profiling, and tools.</p></div>
+          </div>
+        </div></section>
+
+        <section id="killer-apps"><div class="section-inner">
+          <h2>2. Killer apps and natural extensions</h2>
+          <h3>A. React control plane over Compose components</h3>
+          <p>
+            This is the most commercially direct use case. Business logic, layout composition, A/B variants, campaign cards, feature flags, eligibility rules, and personalization ship as signed React/Hermes bundles. The rendered primitives are still native Compose primitives, so the app keeps native platform behavior, accessibility, input, and rendering.
+          </p>
+          <div class="callout warn">
+            <strong>Policy framing:</strong> this is not an App Store bypass claim. Treat OTA as constrained interpreted business/UI logic with signed bundles, declared capabilities, schema compatibility checks, kill switches, and app-review notes. Do not use remote bundles to materially change the submitted app’s primary purpose.
+          </div>
+          <h3>B. Compose driving React for web</h3>
+          <p>
+            Compose Multiplatform can remain the authoring model for shared screens, but the web renderer can project the HostTree into React DOM. That gives the web target mature layout, hydration, browser APIs, and the existing React ecosystem for charts, maps, rich text, video, editors, analytics wrappers, and design-system infrastructure.
+          </p>
+          <h3>C. What falls out naturally</h3>
+          <div class="grid-3">
+            <div class="card"><h3>Gradual migration</h3><p>React Native or React-heavy teams can add Compose screens without a big-bang rewrite. Compose shell and React islands share a tree, events, state cells, and navigation boundaries.</p></div>
+            <div class="card"><h3>Platform-expert rendering</h3><p>Author primitives once: <code>RText</code>, <code>RBox</code>, <code>RButton</code>. Render with Compose on native, React DOM on web, and custom targets for embedded/TV.</p></div>
+            <div class="card"><h3>Server-driven UI that is not JSON garbage</h3><p>Server chooses signed React bundles or TreeOps with real control flow, state, error handling, animation hooks, and typed capabilities.</p></div>
+            <div class="card"><h3>AI-agent-driven UI</h3><p>Agents can inspect HostTree/ShadowTree snapshots and emit typed mutations instead of generating raw platform source code.</p></div>
+            <div class="card"><h3>Blueprint design tool</h3><p>A visual editor manipulates the same tree as React and Compose. Selection maps to NodeId, bounds, props schema, and source boundary.</p></div>
+            <div class="card"><h3>Composable deployment</h3><p>Individual runtime islands can be released, rolled back, or disabled independently while preserving native shell state.</p></div>
+          </div>
+          <h3>Alternative comparison</h3>
+          <table>
+            <thead><tr><th>Approach</th><th>Primary problem</th><th>Reaktor position</th></tr></thead>
+            <tbody>
+              <tr><td>JSON SDUI</td><td>No real language, weak state/error handling, one-off DSL per company.</td><td>React bundles or typed TreeOps provide real logic over native rendering.</td></tr>
+              <tr><td>React Native alone</td><td>Does not give native Compose ownership and inherits RN platform architecture choices.</td><td>React is the dynamic authoring layer; Compose remains the native renderer.</td></tr>
+              <tr><td>Compose Multiplatform alone</td><td>Web target and ecosystem reuse remain weaker than React DOM for many products.</td><td>Compose model can render to React DOM on web.</td></tr>
+              <tr><td>Flutter</td><td>Separate ecosystem and renderer; cannot reuse React or Compose authoring directly.</td><td>Renderer swap via HostTree, not wholesale rewrite.</td></tr>
+              <tr><td>Reaktor</td><td>Requires kernel engineering and careful lifecycle boundaries.</td><td>Native rendering + OTA control plane + web ecosystem bridge.</td></tr>
+            </tbody>
+          </table>
+        </div></section>
+
+        <section id="architecture"><div class="section-inner">
+          <h2>3. Conceptual architecture</h2>
+          <h3>Runtime layers</h3>
+          <table>
+            <thead><tr><th>Layer</th><th>Responsibility</th><th>Primary artifacts</th></tr></thead>
+            <tbody>
+              <tr><td>Authoring frontends</td><td>Idiomatic React, Compose, server, AI, Blueprint entry points.</td><td>React components, composables, bundle manifests, graph specs.</td></tr>
+              <tr><td>Runtime adapters</td><td>Translate reconciler-specific operations to Reaktor TreeOps.</td><td>React HostConfig, Compose Applier, server compiler.</td></tr>
+              <tr><td>reaktor-ffi</td><td>Typed RPC/ABI over Hermes/JSI with low-copy ArrayBuffer batches.</td><td>HostRpc, event batch callback, state cell RPC.</td></tr>
+              <tr><td>Mutation engine</td><td>Validate, compact, order, and apply TreeOps.</td><td>Batch reader/writer, op coalescer, invariant checker.</td></tr>
+              <tr><td>HostTree</td><td>Canonical retained tree with stable identity and ownership.</td><td>NodeArena, HostNode, ChildBuffer, PropsRef, EventRef.</td></tr>
+              <tr><td>Shadow pipeline</td><td>Incrementally derive renderer-facing snapshots.</td><td>ShadowNode, dirty propagation, layout cache, hit-test index.</td></tr>
+              <tr><td>Renderers</td><td>Project snapshots to platform UI.</td><td>Compose renderer, React DOM renderer, headless renderer.</td></tr>
+              <tr><td>Interop services</td><td>Make mixed runtime screens seamless.</td><td>StateCell, event router, animation clock, focus/accessibility, lifecycle.</td></tr>
+              <tr><td>Tooling</td><td>Make runtime complexity visible.</td><td>Inspector protocol, Perfetto traces, Blueprint bridge, AI mutation API.</td></tr>
+            </tbody>
+          </table>
+          <h3>Ownership island model</h3>
+          <div class="diagram">ReaktorSurface(surfaceId=checkout)
+├── ComposeBoundary(C1): native shell
+│   ├── RColumn / RText / RButton
+│   ├── ReactBoundary(R1): campaign-card@1
+│   │   ├── RBox
+│   │   ├── RImage
+│   │   └── RButton(onPress = EventRef#17)
+│   └── ComposeBoundary(C2): payment footer
+├── ServerBoundary(S1): legal disclosure modal
+└── BlueprintBoundary(B1): generated form section</div>
+          <p>
+            Boundaries are not only logical markers. They own scheduling, event sinks, resource scopes, error handling, lifecycle cleanup, and hot-reload replacement. A boundary can be mounted by a parent but is internally mutated only by its owner runtime.
+          </p>
+        </div></section>
+
+        <section id="modules"><div class="section-inner">
+          <h2>4. Actual libraries and module map</h2>
+          <h3>JavaScript/React packages</h3>
+          <div class="code-title">package.json for @reaktor/react</div><pre><code class="language-json">{
+  &quot;name&quot;: &quot;@reaktor/react&quot;,
+  &quot;version&quot;: &quot;0.1.0&quot;,
+  &quot;private&quot;: false,
+  &quot;peerDependencies&quot;: {
+    &quot;react&quot;: &quot;^19.0.0&quot;
+  },
+  &quot;dependencies&quot;: {
+    &quot;react-reconciler&quot;: &quot;0.34.x&quot;,
+    &quot;scheduler&quot;: &quot;^0.27.0&quot;,
+    &quot;zod&quot;: &quot;^4.0.0&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;typescript&quot;: &quot;^5.8.0&quot;,
+    &quot;@types/react&quot;: &quot;^19.0.0&quot;,
+    &quot;vite&quot;: &quot;^6.0.0&quot;
+  }
+}</code></pre>
+          <h3>Kotlin/Compose setup</h3>
+          <div class="code-title">build.gradle.kts module skeleton</div><pre><code class="language-kotlin">plugins {
+    kotlin(&quot;multiplatform&quot;) version &quot;2.1.20&quot;
+    id(&quot;com.android.library&quot;) version &quot;8.8.0&quot;
+    id(&quot;org.jetbrains.compose&quot;) version &quot;1.8.0&quot;
+    kotlin(&quot;plugin.serialization&quot;) version &quot;2.1.20&quot;
+}
+
+kotlin {
+    androidTarget()
+    iosArm64()
+    iosSimulatorArm64()
+    jvm(&quot;desktop&quot;)
+    wasmJs { browser() }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(&quot;org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2&quot;)
+            implementation(&quot;org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1&quot;)
+        }
+        androidMain.dependencies {
+            implementation(compose.ui)
+            implementation(&quot;androidx.tracing:tracing-ktx:1.3.0&quot;)
+        }
+    }
+}</code></pre>
+          <h3>Reaktor modules</h3>
+          <table>
+            <thead><tr><th>Module</th><th>Responsibility</th><th>Public?</th></tr></thead>
+            <tbody>
+              <tr><td><code>reaktor-tree-core</code></td><td>NodeId, HostType, TreeOp, TreeCommit, BoundaryId, DirtyFlags.</td><td>Mostly stable</td></tr>
+              <tr><td><code>reaktor-tree-storage</code></td><td>Arena, child buffers, props tables, batch pools, invariant checks.</td><td>Internal</td></tr>
+              <tr><td><code>reaktor-ffi</code></td><td>Hermes/JSI RPC install, ArrayBuffer transport, native event callbacks.</td><td>Internal ABI</td></tr>
+              <tr><td><code>@reaktor/react</code></td><td>React primitives, hooks, custom renderer, bundle registration.</td><td>Public</td></tr>
+              <tr><td><code>reaktor-compose-authoring</code></td><td>Compose primitives, Applier, ReactIsland/BoundaryHostNode.</td><td>Public</td></tr>
+              <tr><td><code>reaktor-compose-renderer</code></td><td>ShadowSnapshot to Compose UI projection.</td><td>Public-ish</td></tr>
+              <tr><td><code>@reaktor/react-dom-renderer</code></td><td>Shadow/Host snapshots to React DOM projection.</td><td>Public web</td></tr>
+              <tr><td><code>reaktor-runtime-interop</code></td><td>StateCell, event routing, focus/accessibility, animation clock.</td><td>Stable contracts</td></tr>
+              <tr><td><code>reaktor-devtools</code></td><td>Inspector protocol, visual tree, traces, hot reload.</td><td>Public tooling</td></tr>
+            </tbody>
+          </table>
+        </div></section>
+
+        <section id="public-api"><div class="section-inner">
+          <h2>5. Public authoring APIs</h2>
+          <p>
+            Public APIs should feel boring. React developers write React. Compose developers write composables. Reaktor primitives hide the HostTree, FFI, event refs, and binary batch format.
+          </p>
+          <h3>React island authoring</h3>
+          <div class="code-title">campaign-card.tsx</div><pre><code class="language-tsx">import * as React from &quot;react&quot;;
+import {
+  RBox,
+  RText,
+  RButton,
+  RImage,
+  ReactBoundaryProps,
+  useBoundaryProps,
+  useReaktorState,
+  registerReaktorComponent,
+} from &quot;@reaktor/react&quot;;
+
+type CampaignCardProps = ReactBoundaryProps&lt;{
+  campaignId: string;
+  title: string;
+  subtitle: string;
+  imageUrl?: string;
+  cta: string;
+  accentToken: string;
+  initialExpanded?: boolean;
+}&gt;;
+
+function CampaignCard() {
+  const props = useBoundaryProps&lt;CampaignCardProps&gt;();
+  const [expanded, setExpanded] = React.useState(!!props.initialExpanded);
+
+  // Shared state cell can be read by Compose and React in the same frame.
+  const [cart, setCart] = useReaktorState&lt;{ count: number }&gt;(&quot;cart.summary&quot;);
+
+  return (
+    &lt;RBox
+      testId=&quot;campaign-card&quot;
+      role=&quot;button&quot;
+      style={{
+        direction: &quot;column&quot;,
+        padding: 16,
+        radius: 20,
+        gap: 10,
+        background: { token: &quot;surface.elevated&quot; },
+        borderColor: { token: props.accentToken },
+      }}
+      onPress={() =&gt; setExpanded((x) =&gt; !x)}
+    &gt;
+      {props.imageUrl ? (
+        &lt;RImage source={{ uri: props.imageUrl }} style={{ height: 144, radius: 16 }} /&gt;
+      ) : null}
+
+      &lt;RText variant=&quot;titleMedium&quot; text={props.title} /&gt;
+      &lt;RText variant=&quot;body&quot; color={{ token: &quot;text.secondary&quot; }} text={props.subtitle} /&gt;
+
+      {expanded ? (
+        &lt;RBox style={{ direction: &quot;row&quot;, gap: 8, align: &quot;center&quot; }}&gt;
+          &lt;RButton
+            label={props.cta}
+            onPress={() =&gt; setCart({ count: cart.count + 1 })}
+          /&gt;
+          &lt;RText variant=&quot;caption&quot; text={`Cart: ${cart.count}`} /&gt;
+        &lt;/RBox&gt;
+      ) : null}
+    &lt;/RBox&gt;
+  );
+}
+
+registerReaktorComponent(&quot;campaign-card@1&quot;, CampaignCard);</code></pre>
+          <h3>Compose shell embedding a React island</h3>
+          <div class="code-title">CheckoutScreen.kt</div><pre><code class="language-kotlin">@Composable
+fun CheckoutScreen(orderId: String, campaignId: String) {
+    val cart by rememberReaktorState&lt;CartSummary&gt;(&quot;cart.summary&quot;)
+
+    ReaktorSurface(
+        surfaceKey = &quot;checkout:$orderId&quot;,
+        renderer = ReaktorRenderer.ComposeNative,
+    ) {
+        RColumn(
+            modifier = RModifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .gap(12.dp)
+        ) {
+            RText(&quot;Checkout&quot;, variant = RTextVariant.Headline)
+            RText(&quot;Items in cart: ${cart.count}&quot;, variant = RTextVariant.Body)
+
+            // React controls the subtree; Compose owns the parent shell.
+            ReactIsland(
+                module = &quot;campaign-card@1&quot;,
+                key = &quot;campaign:$campaignId&quot;,
+                props = CampaignCardProps(
+                    campaignId = campaignId,
+                    title = &quot;Members save 20% today&quot;,
+                    subtitle = &quot;A/B tested copy can ship as a JS bundle.&quot;,
+                    cta = &quot;Apply offer&quot;,
+                    accentToken = &quot;brand.purple&quot;,
+                ),
+                fallback = {
+                    RBox(RModifier.height(96.dp).skeleton())
+                }
+            )
+
+            RButton(&quot;Pay now&quot;) {
+                // Native Compose business flow continues normally.
+            }
+        }
+    }
+}</code></pre>
+          <h3>Compose model rendered through React DOM on web</h3>
+          <div class="code-title">Compose-authored web target</div><pre><code class="language-kotlin">// shared-ui/src/main/kotlin/MarketingPage.kt
+@Composable
+fun MarketingPage(plan: PricingPlan) {
+    RColumn(RModifier.maxWidth(960.dp).gap(24.dp)) {
+        RText(&quot;Choose a plan&quot;, variant = RTextVariant.Display)
+        RRow(RModifier.gap(16.dp)) {
+            plan.tiers.forEach { tier -&gt;
+                PricingCard(tier)
+            }
+        }
+
+        // Web-only capability: project a typed host node into a React library.
+        ReactDomLibrarySlot(
+            component = &quot;recharts:RevenueChart&quot;,
+            props = mapOf(&quot;series&quot; to plan.chartSeries)
+        )
+    }
+}
+
+// web/src/main.ts
+import { createRoot } from &quot;react-dom/client&quot;;
+import { createReaktorWebSurface } from &quot;@reaktor/web&quot;;
+import { ReactDomRenderer } from &quot;@reaktor/react-dom-renderer&quot;;
+
+const root = createRoot(document.getElementById(&quot;root&quot;)!);
+const surface = createReaktorWebSurface({ renderer: new ReactDomRenderer(root) });
+
+// Kotlin/JS or Kotlin/Wasm Compose authoring emits HostTree mutations.
+window.ReaktorWebBoot.mountMarketingPage(surface.id, window.__BOOTSTRAP_PLAN__);</code></pre>
+        </div></section>
+
+        <section id="ffi"><div class="section-inner">
+          <h2>6. reaktor-ffi RPC shape over Hermes</h2>
+          <div class="callout success">
+            <strong>FFI design rule:</strong> make the ABI fit UI interop, not generic RPC. The hot path is <code>commitBatch(meta, ArrayBuffer)</code>; all events and state changes are batched or versioned.
+          </div>
+          <h3>TypeScript ABI exposed to React/Hermes</h3>
+          <div class="code-title">@reaktor/ffi HostRpc</div><pre><code class="language-ts">// @reaktor/ffi: installed into Hermes as globalThis.__ReaktorHost.
+// Values use numbers for ids because Hermes/JSI can pass them cheaply.
+
+export type SurfaceId = number &amp; { readonly __surface: unique symbol };
+export type BoundaryId = number &amp; { readonly __boundary: unique symbol };
+export type NodeId = number &amp; { readonly __node: unique symbol };
+export type Revision = number &amp; { readonly __revision: unique symbol };
+export type EventRef = number &amp; { readonly __event: unique symbol };
+export type StateCellId = number &amp; { readonly __stateCell: unique symbol };
+
+export type ReaktorPriority =
+  | &quot;ImmediateInput&quot;
+  | &quot;Animation&quot;
+  | &quot;VisibleUi&quot;
+  | &quot;BackgroundUi&quot;
+  | &quot;Data&quot;
+  | &quot;Idle&quot;;
+
+export interface BatchMeta {
+  surfaceId: SurfaceId;
+  boundaryId: BoundaryId;
+  baseRevision: Revision;
+  priority: ReaktorPriority;
+  opCount: number;
+  stringTableSize: number;
+  propsTableSize: number;
+  traceId?: string;
+}
+
+export interface CommitResult {
+  accepted: boolean;
+  revision: Revision;
+  rejectedReason?: string;
+  serverTimeNanos: number;
+}
+
+export interface ReaktorHostRpc {
+  createSurface(options: {
+    renderer: &quot;compose-native&quot; | &quot;react-dom&quot; | &quot;headless&quot;;
+    rootKey: string;
+    capabilities: string[];
+  }): SurfaceId;
+
+  createBoundary(options: {
+    surfaceId: SurfaceId;
+    parentNodeId: NodeId | 0;
+    owner: &quot;react&quot; | &quot;compose&quot; | &quot;server&quot; | &quot;blueprint&quot;;
+    key: string;
+    module?: string;
+  }): BoundaryId;
+
+  destroyBoundary(boundaryId: BoundaryId, reason: &quot;unmount&quot; | &quot;hot-reload&quot; | &quot;error&quot;): void;
+
+  commitBatch(meta: BatchMeta, encodedOps: ArrayBuffer): CommitResult;
+
+  registerEventHandler(boundaryId: BoundaryId, localHandlerId: number): EventRef;
+  unregisterEventHandler(eventRef: EventRef): void;
+
+  // Native -&gt; JS delivery is batched. This avoids one callback per pointer movement.
+  setEventBatchCallback(boundaryId: BoundaryId, callback: (batch: ArrayBuffer) =&gt; void): void;
+
+  createStateCell(schemaId: string, initialValue: ArrayBuffer): StateCellId;
+  readStateCell(cellId: StateCellId): ArrayBuffer;
+  writeStateCell(cellId: StateCellId, expectedVersion: number, value: ArrayBuffer): number;
+  subscribeStateCell(cellId: StateCellId, callback: (version: number) =&gt; void): () =&gt; void;
+
+  getSnapshot(surfaceId: SurfaceId, kind: &quot;host&quot; | &quot;shadow&quot;, revision?: Revision): ArrayBuffer;
+  reportBoundaryError(boundaryId: BoundaryId, encodedError: ArrayBuffer): void;
+}
+
+declare global {
+  // Installed by reaktor-ffi when the Hermes runtime starts.
+  // It is intentionally not a generic bridge; it is the UI kernel ABI.
+  var __ReaktorHost: ReaktorHostRpc;
+}</code></pre>
+          <h3>Kotlin endpoint implemented by native runtime</h3>
+          <div class="code-title">ReaktorFfiEndpoint.kt</div><pre><code class="language-kotlin">interface ReaktorFfiEndpoint {
+    fun createSurface(options: SurfaceOptions): SurfaceId
+    fun createBoundary(options: BoundaryOptions): BoundaryId
+    fun destroyBoundary(boundaryId: BoundaryId, reason: DestroyReason)
+
+    fun commitBatch(meta: BatchMeta, encodedOps: ByteBuffer): CommitResult
+
+    fun registerEventHandler(boundaryId: BoundaryId, localHandlerId: Int): EventRef
+    fun unregisterEventHandler(eventRef: EventRef)
+    fun setEventBatchSink(boundaryId: BoundaryId, sink: EventBatchSink?)
+
+    fun createStateCell(schemaId: String, initialValue: ByteBuffer): StateCellId
+    fun readStateCell(cellId: StateCellId): ByteBuffer
+    fun writeStateCell(cellId: StateCellId, expectedVersion: Int, value: ByteBuffer): Int
+    fun subscribeStateCell(cellId: StateCellId, observer: StateObserver): Subscription
+
+    fun snapshot(surfaceId: SurfaceId, kind: SnapshotKind, revision: Long?): ByteBuffer
+    fun reportBoundaryError(boundaryId: BoundaryId, error: BoundaryError)
+}
+
+data class BatchMeta(
+    val surfaceId: SurfaceId,
+    val boundaryId: BoundaryId,
+    val baseRevision: Long,
+    val priority: ReaktorPriority,
+    val opCount: Int,
+    val stringTableSize: Int,
+    val propsTableSize: Int,
+    val traceId: String? = null,
+)</code></pre>
+          <h3>C++/JSI installation sketch</h3>
+          <div class="code-title">ReaktorHostObject.cpp</div><pre><code class="language-cpp">// reaktor-ffi/hermes/ReaktorHostObject.cpp
+class ReaktorHostObject final : public facebook::jsi::HostObject {
+public:
+  explicit ReaktorHostObject(std::shared_ptr&lt;ReaktorRuntime&gt; runtime)
+      : runtime_(std::move(runtime)) {}
+
+  facebook::jsi::Value get(
+      facebook::jsi::Runtime&amp; rt,
+      const facebook::jsi::PropNameID&amp; name) override {
+    auto method = name.utf8(rt);
+
+    if (method == &quot;commitBatch&quot;) {
+      return facebook::jsi::Function::createFromHostFunction(
+        rt,
+        name,
+        2,
+        [this](facebook::jsi::Runtime&amp; rt,
+               const facebook::jsi::Value&amp;,
+               const facebook::jsi::Value* args,
+               size_t count) -&gt; facebook::jsi::Value {
+          auto meta = decodeBatchMeta(rt, args[0].asObject(rt));
+          auto bytes = arrayBufferView(rt, args[1].asObject(rt));
+          CommitResult result = runtime_-&gt;commitBatch(meta, bytes);
+          return encodeCommitResult(rt, result);
+        }
+      );
+    }
+
+    if (method == &quot;registerEventHandler&quot;) {
+      return makeRegisterEventHandler(rt, name);
+    }
+
+    if (method == &quot;readStateCell&quot;) {
+      return makeReadStateCell(rt, name);
+    }
+
+    return facebook::jsi::Value::undefined();
+  }
+
+private:
+  std::shared_ptr&lt;ReaktorRuntime&gt; runtime_;
+};
+
+void installReaktorFfi(
+    facebook::jsi::Runtime&amp; rt,
+    std::shared_ptr&lt;ReaktorRuntime&gt; runtime) {
+  auto host = std::make_shared&lt;ReaktorHostObject&gt;(std::move(runtime));
+  auto object = facebook::jsi::Object::createFromHostObject(rt, host);
+  rt.global().setProperty(rt, &quot;__ReaktorHost&quot;, std::move(object));
+}</code></pre>
+          <h3>Why this shape</h3>
+          <ul>
+            <li><strong>ArrayBuffer mutation batches</strong> reduce per-op serialization and native call overhead.</li>
+            <li><strong>Opaque ids</strong> keep callbacks, state cells, resources, and nodes out of ad-hoc JS object graphs.</li>
+            <li><strong>Event batch callbacks</strong> let native deliver pointer/focus/keyboard events in groups by boundary.</li>
+            <li><strong>StateCell versioning</strong> gives React and Compose ordering guarantees without forcing one runtime scheduler.</li>
+            <li><strong>Snapshot RPC</strong> powers DevTools, Blueprint, AI inspection, and deterministic tests.</li>
+          </ul>
+        </div></section>
+
+        <section id="mutation-protocol"><div class="section-inner">
+          <h2>7. Mutation protocol and batch format</h2>
+          <h3>Binary batch v0</h3>
+          <div class="code-title">TreeOps binary layout</div><pre><code class="language-cpp">// Batch v0: little-endian, 8-byte aligned where possible.
+// Header is fixed. Variable tables follow.
+
+struct BatchHeaderV0 {
+  uint32 magic;          // &#x27;RKTB&#x27;
+  uint16 version;        // 0
+  uint16 flags;          // compression, checksum, debug-symbols
+  uint32 opCount;
+  uint32 stringBytes;
+  uint32 propsBytes;
+  uint32 eventBytes;
+  uint64 baseRevision;
+}
+
+enum OpCode : uint8 {
+  CreateNode      = 1,
+  DeleteNode      = 2,
+  InsertChild     = 3,
+  MoveChild       = 4,
+  RemoveChild     = 5,
+  UpdateProps     = 6,
+  UpdateEventRef  = 7,
+  MarkBoundary    = 8,
+  BoundaryError   = 9,
+}
+
+// Hot op records are fixed width to keep native decoding branch-light.
+struct InsertChildOp {
+  uint8  opcode;
+  uint8  reserved[7];
+  uint64 parentNodeId;
+  uint64 childNodeId;
+  uint32 index;
+  uint32 ownerBoundaryId;
+}
+
+struct UpdatePropsOp {
+  uint8  opcode;
+  uint8  patchKind;      // full, sparse, generated-schema-patch
+  uint16 schemaId;
+  uint32 patchOffset;    // into props table
+  uint32 patchLength;
+  uint64 nodeId;
+}</code></pre>
+          <h3>TypeScript batch writer</h3>
+          <div class="code-title">MutationBatchWriter.ts</div><pre><code class="language-ts">export const enum OpCode {
+  CreateNode = 1,
+  DeleteNode = 2,
+  InsertChild = 3,
+  MoveChild = 4,
+  RemoveChild = 5,
+  UpdateProps = 6,
+  UpdateEventRef = 7,
+  MarkBoundary = 8,
+  BoundaryError = 9,
+}
+
+export class MutationBatchWriter {
+  private buf = new ArrayBuffer(64 * 1024);
+  private view = new DataView(this.buf);
+  private offset = 32; // header space
+  private opCount = 0;
+
+  constructor(
+    private readonly surfaceId: SurfaceId,
+    private readonly boundaryId: BoundaryId,
+    private readonly baseRevision: Revision,
+  ) {}
+
+  createNode(id: NodeId, typeId: number, owner: BoundaryId) {
+    this.ensure(32);
+    this.view.setUint8(this.offset, OpCode.CreateNode);
+    this.view.setUint32(this.offset + 4, typeId, true);
+    this.setU64(this.offset + 8, id as number);
+    this.setU64(this.offset + 16, owner as number);
+    this.offset += 32;
+    this.opCount++;
+  }
+
+  insertChild(parent: NodeId, child: NodeId, index: number) {
+    this.ensure(32);
+    this.view.setUint8(this.offset, OpCode.InsertChild);
+    this.setU64(this.offset + 8, parent as number);
+    this.setU64(this.offset + 16, child as number);
+    this.view.setUint32(this.offset + 24, index, true);
+    this.offset += 32;
+    this.opCount++;
+  }
+
+  updateProps(node: NodeId, schemaId: number, encodedPatch: Uint8Array) {
+    const alignedPatchOffset = this.writeBlob(encodedPatch);
+    this.ensure(32);
+    this.view.setUint8(this.offset, OpCode.UpdateProps);
+    this.view.setUint16(this.offset + 2, schemaId, true);
+    this.view.setUint32(this.offset + 4, alignedPatchOffset, true);
+    this.view.setUint32(this.offset + 8, encodedPatch.byteLength, true);
+    this.setU64(this.offset + 16, node as number);
+    this.offset += 32;
+    this.opCount++;
+  }
+
+  finish(priority: ReaktorPriority): { meta: BatchMeta; bytes: ArrayBuffer } {
+    this.view.setUint32(0, 0x42544b52, true); // RKTB
+    this.view.setUint16(4, 0, true);
+    this.view.setUint32(8, this.opCount, true);
+    this.setU64(24, this.baseRevision as number);
+
+    return {
+      meta: {
+        surfaceId: this.surfaceId,
+        boundaryId: this.boundaryId,
+        baseRevision: this.baseRevision,
+        priority,
+        opCount: this.opCount,
+        stringTableSize: 0,
+        propsTableSize: 0,
+      },
+      bytes: this.buf.slice(0, this.offset),
+    };
+  }
+
+  reset(nextRevision: Revision) {
+    this.offset = 32;
+    this.opCount = 0;
+    // Caller updates baseRevision through a new writer instance or a mutable field.
+  }
+
+  private writeBlob(bytes: Uint8Array): number {
+    const start = this.align(this.offset, 8);
+    this.ensure(start - this.offset + bytes.byteLength);
+    new Uint8Array(this.buf, start, bytes.byteLength).set(bytes);
+    this.offset = this.align(start + bytes.byteLength, 8);
+    return start;
+  }
+
+  private ensure(bytes: number) {
+    if (this.offset + bytes &lt;= this.buf.byteLength) return;
+    const bigger = new ArrayBuffer(this.buf.byteLength * 2 + bytes);
+    new Uint8Array(bigger).set(new Uint8Array(this.buf));
+    this.buf = bigger;
+    this.view = new DataView(this.buf);
+  }
+
+  private align(n: number, boundary: number) {
+    return (n + boundary - 1) &amp; ~(boundary - 1);
+  }
+
+  private setU64(offset: number, value: number) {
+    this.view.setBigUint64(offset, BigInt(value), true);
+  }
+}</code></pre>
+          <h3>Commit application inside the native tree store</h3>
+          <div class="code-title">TreeStore.apply</div><pre><code class="language-kotlin">class TreeStore(
+    private val arena: NodeArena,
+    private val boundaries: BoundaryRegistry,
+) {
+    fun apply(batch: DecodedBatch): TreeCommit {
+        val dirty = LongArraySet()
+        val layoutRoots = LongArraySet()
+
+        for (op in batch.ops) {
+            when (op) {
+                is TreeOp.CreateNode -&gt; {
+                    val node = arena.allocate(op.type, op.owner)
+                    check(node.id == op.id) { &quot;JS/native NodeId allocation drift&quot; }
+                    dirty.add(node.id.raw)
+                }
+                is TreeOp.InsertChild -&gt; {
+                    val parent = arena.get(op.parent)
+                    val child = arena.get(op.child)
+                    check(parent.owner.canAdopt(child.owner, boundaries))
+                    parent.children.insert(op.index, child.id)
+                    child.parent = parent.id
+                    markDirty(parent, DirtyFlags.Structure or DirtyFlags.Layout, dirty, layoutRoots)
+                }
+                is TreeOp.UpdateProps -&gt; {
+                    val node = arena.get(op.id)
+                    val changed = propsStore.applyPatch(node.props, op.patch)
+                    node.dirty = node.dirty or changed.toDirtyFlags()
+                    markDirty(node, node.dirty, dirty, layoutRoots)
+                }
+                is TreeOp.RemoveChild -&gt; removeChild(op, dirty, layoutRoots)
+                is TreeOp.MoveChild -&gt; moveChild(op, dirty, layoutRoots)
+                is TreeOp.DeleteNode -&gt; arena.freeSubtree(op.id) { node -&gt;
+                    eventRegistry.releaseForNode(node.id)
+                    propsStore.release(node.props)
+                }
+            }
+        }
+
+        return TreeCommit(
+            revision = revisions.next(),
+            dirtyNodeIds = dirty.toNodeIds(),
+            layoutRoots = layoutRoots.toNodeIds(),
+            sourceBoundary = batch.meta.boundaryId,
+        )
+    }
+}</code></pre>
+          <h3>Operation compaction rules</h3>
+          <table>
+            <thead><tr><th>Pattern</th><th>Compaction</th><th>Safety rule</th></tr></thead>
+            <tbody>
+              <tr><td>Repeated prop updates on same node/key in one frame</td><td>Keep only final value.</td><td>Do not collapse event registration side effects until old refs are released.</td></tr>
+              <tr><td>Remove + insert same node under same parent</td><td>Convert to <code>MoveChild</code>.</td><td>Only when ownership boundary is unchanged.</td></tr>
+              <tr><td>Create + delete before commit</td><td>Drop entire subtree.</td><td>Release event refs and props allocations.</td></tr>
+              <tr><td>Large adjacent inserts</td><td>Use range insert record.</td><td>Require contiguous child ids or side table.</td></tr>
+            </tbody>
+          </table>
+        </div></section>
+
+        <section id="react-renderer"><div class="section-inner">
+          <h2>8. React custom renderer internals</h2>
+          <p>
+            The React adapter is a custom renderer. The exact HostConfig signature is version-pinned to the chosen <code>react-reconciler</code> release, but the design does not depend on private Fiber fields. It only consumes host lifecycle callbacks and flushes Reaktor batches at commit boundaries.
+          </p>
+          <div class="code-title">Reaktor React HostConfig</div><pre><code class="language-tsx">import Reconciler from &quot;react-reconciler&quot;;
+import { DefaultEventPriority } from &quot;react-reconciler/constants&quot;;
+import { MutationBatchWriter } from &quot;./MutationBatchWriter&quot;;
+import { encodePropsPatch, diffProps } from &quot;./props&quot;;
+import { events } from &quot;./events&quot;;
+
+type Type = &quot;RBox&quot; | &quot;RText&quot; | &quot;RButton&quot; | &quot;RImage&quot; | &quot;RTextInput&quot;;
+
+type Instance = {
+  nodeId: NodeId;
+  type: Type;
+  boundaryId: BoundaryId;
+  childCount: number;
+};
+
+type TextInstance = Instance &amp; { type: &quot;RText&quot; };
+
+type RootContainer = {
+  surfaceId: SurfaceId;
+  boundaryId: BoundaryId;
+  rootNodeId: NodeId;
+  revision: Revision;
+  writer: MutationBatchWriter;
+  priority: ReaktorPriority;
+};
+
+function allocNode(container: RootContainer, type: Type): Instance {
+  const id = ids.nextNodeId();
+  container.writer.createNode(id, hostTypeRegistry.idFor(type), container.boundaryId);
+  return { nodeId: id, type, boundaryId: container.boundaryId, childCount: 0 };
+}
+
+const hostConfig = {
+  supportsMutation: true,
+  isPrimaryRenderer: false,
+  supportsPersistence: false,
+  supportsHydration: false,
+
+  now: Date.now,
+  getCurrentEventPriority: () =&gt; DefaultEventPriority,
+  getPublicInstance: (instance: Instance) =&gt; instance,
+  getRootHostContext: () =&gt; null,
+  getChildHostContext: () =&gt; null,
+  shouldSetTextContent: () =&gt; false,
+  prepareForCommit: () =&gt; null,
+
+  resetAfterCommit(container: RootContainer) {
+    const { meta, bytes } = container.writer.finish(container.priority);
+    const result = globalThis.__ReaktorHost.commitBatch(meta, bytes);
+    if (!result.accepted) throw new Error(result.rejectedReason ?? &quot;Reaktor commit rejected&quot;);
+    container.revision = result.revision;
+    container.writer = new MutationBatchWriter(
+      container.surfaceId,
+      container.boundaryId,
+      result.revision,
+    );
+  },
+
+  createInstance(type: Type, props: any, root: RootContainer): Instance {
+    const instance = allocNode(root, type);
+    const patch = encodePropsPatch(type, {}, props, events.forBoundary(root.boundaryId));
+    root.writer.updateProps(instance.nodeId, schemaRegistry.idFor(type), patch);
+    return instance;
+  },
+
+  createTextInstance(text: string, root: RootContainer): TextInstance {
+    const instance = allocNode(root, &quot;RText&quot;) as TextInstance;
+    const patch = encodePropsPatch(&quot;RText&quot;, {}, { text }, events.forBoundary(root.boundaryId));
+    root.writer.updateProps(instance.nodeId, schemaRegistry.idFor(&quot;RText&quot;), patch);
+    return instance;
+  },
+
+  appendInitialChild(parent: Instance, child: Instance) {
+    // React calls this while the child is still local to the in-progress tree.
+    currentRoot().writer.insertChild(parent.nodeId, child.nodeId, parent.childCount++);
+  },
+
+  appendChild(parent: Instance, child: Instance) {
+    currentRoot().writer.insertChild(parent.nodeId, child.nodeId, parent.childCount++);
+  },
+
+  appendChildToContainer(container: RootContainer, child: Instance) {
+    container.writer.insertChild(container.rootNodeId, child.nodeId, 0);
+  },
+
+  insertBefore(parent: Instance, child: Instance, beforeChild: Instance) {
+    const index = hostChildren.indexOf(parent.nodeId, beforeChild.nodeId);
+    currentRoot().writer.insertChild(parent.nodeId, child.nodeId, index);
+  },
+
+  removeChild(parent: Instance, child: Instance) {
+    const index = hostChildren.indexOf(parent.nodeId, child.nodeId);
+    currentRoot().writer.removeChild(parent.nodeId, index, 1);
+    currentRoot().writer.deleteNode(child.nodeId);
+  },
+
+  removeChildFromContainer(container: RootContainer, child: Instance) {
+    container.writer.removeChild(container.rootNodeId, 0, 1);
+    container.writer.deleteNode(child.nodeId);
+  },
+
+  prepareUpdate(instance: Instance, type: Type, oldProps: any, newProps: any) {
+    // Generated schema diff short-circuits identity-equal nested style objects.
+    return diffProps(type, oldProps, newProps);
+  },
+
+  commitUpdate(instance: Instance, updatePayload: any, type: Type) {
+    if (!updatePayload || updatePayload.isEmpty) return;
+    const patch = encodePropsPatch(type, updatePayload.oldProps, updatePayload.newProps, events);
+    currentRoot().writer.updateProps(instance.nodeId, schemaRegistry.idFor(type), patch);
+  },
+
+  commitTextUpdate(textInstance: TextInstance, oldText: string, newText: string) {
+    if (oldText === newText) return;
+    const patch = encodePropsPatch(&quot;RText&quot;, { text: oldText }, { text: newText }, events);
+    currentRoot().writer.updateProps(textInstance.nodeId, schemaRegistry.idFor(&quot;RText&quot;), patch);
+  },
+
+  clearContainer(container: RootContainer) {
+    container.writer.clearBoundary(container.boundaryId);
+    return false;
+  },
+};
+
+export const ReaktorReactReconciler = Reconciler(hostConfig as any);
+
+export function renderReactBoundary(
+  element: React.ReactNode,
+  container: RootContainer,
+) {
+  const root = ReaktorReactReconciler.createContainer(
+    container,
+    0,          // LegacyRoot/ConcurrentRoot depends on pinned reconciler build.
+    null,
+    false,
+    null,
+    &quot;&quot;,
+    console.error,
+    null,
+  );
+  ReaktorReactReconciler.updateContainer(element, root, null, null);
+  return root;
+}</code></pre>
+          <h3>Generated prop diffing</h3>
+          <div class="code-title">RBox generated diff</div><pre><code class="language-ts">// Generated per HostType; generic object diff is fallback only.
+export function diffRBoxProps(oldProps: RBoxProps, nextProps: RBoxProps): RBoxPatch | EmptyPatch {
+  if (oldProps === nextProps) return EMPTY_PATCH;
+
+  let mask = 0;
+  const out: Partial&lt;RBoxProps&gt; = {};
+
+  if (oldProps.testId !== nextProps.testId) {
+    mask |= RBoxMask.TestId;
+    out.testId = nextProps.testId;
+  }
+
+  // Style objects are expected to be immutable and structurally shared.
+  if (oldProps.style !== nextProps.style) {
+    mask |= RBoxMask.Style;
+    out.style = diffStyle(oldProps.style, nextProps.style);
+  }
+
+  if (oldProps.role !== nextProps.role) {
+    mask |= RBoxMask.Role;
+    out.role = nextProps.role;
+  }
+
+  // Functions are not serialized. They become small EventRef ids.
+  if (oldProps.onPress !== nextProps.onPress) {
+    mask |= RBoxMask.OnPress;
+    out.onPress = eventRegistry.refFor(nextProps.onPress);
+  }
+
+  return mask === 0 ? EMPTY_PATCH : { schemaId: Schema.RBox, mask, out };
+}</code></pre>
+          <h3>React renderer responsibilities</h3>
+          <ul>
+            <li>Allocate NodeIds from a boundary-scoped id allocator or request a native id range.</li>
+            <li>Encode props with generated schema-aware diff functions.</li>
+            <li>Convert callbacks to EventRef ids stored in a JS event registry.</li>
+            <li>Flush one batch in <code>resetAfterCommit</code>, not during every host call.</li>
+            <li>Unmount boundaries explicitly so React effects clean up before arena nodes are recycled.</li>
+          </ul>
+        </div></section>
+
+        <section id="compose-applier"><div class="section-inner">
+          <h2>9. Compose Applier internals</h2>
+          <p>
+            Compose authoring uses public Compose Runtime concepts: <code>ComposeNode</code> creates Reaktor nodes and <code>ReaktorApplier</code> receives insert/remove/move/clear callbacks. The Applier opens a Reaktor transaction in <code>onBeginChanges</code> and commits in <code>onEndChanges</code>.
+          </p>
+          <div class="code-title">ReaktorApplier.kt</div><pre><code class="language-kotlin">class ReaktorNode internal constructor(
+    val nodeId: NodeId,
+    val type: HostType,
+    val boundaryId: BoundaryId,
+    private val buffer: NativeMutationBuffer,
+) {
+    fun setProp(key: PropKey, value: Any?) {
+        buffer.updateProp(nodeId, type.schemaId, key, value)
+    }
+
+    fun setEvent(key: EventKey, handler: EventHandler?) {
+        val ref = handler?.let { buffer.events.register(boundaryId, it) }
+        buffer.updateEventRef(nodeId, key, ref)
+    }
+}
+
+class ReaktorApplier(
+    root: ReaktorNode,
+    private val transaction: ComposeTransactionScope,
+) : AbstractApplier&lt;ReaktorNode&gt;(root) {
+
+    override fun onBeginChanges() {
+        transaction.begin(priority = ReaktorPriority.VisibleUi)
+    }
+
+    override fun insertTopDown(index: Int, instance: ReaktorNode) {
+        transaction.buffer.insertChild(
+            parent = current.nodeId,
+            child = instance.nodeId,
+            index = index,
+        )
+    }
+
+    // HostTree is cheaper top-down; children will be attached as Compose descends.
+    override fun insertBottomUp(index: Int, instance: ReaktorNode) = Unit
+
+    override fun remove(index: Int, count: Int) {
+        transaction.buffer.removeChild(current.nodeId, index, count)
+    }
+
+    override fun move(from: Int, to: Int, count: Int) {
+        transaction.buffer.moveChild(current.nodeId, from, to, count)
+    }
+
+    override fun onClear() {
+        transaction.buffer.clearBoundary(current.boundaryId)
+    }
+
+    override fun onEndChanges() {
+        transaction.commit()
+    }
+}</code></pre>
+          <div class="code-title">Compose primitives and ReactIsland</div><pre><code class="language-kotlin">@Composable
+fun RText(
+    text: String,
+    modifier: RModifier = RModifier,
+    variant: RTextVariant = RTextVariant.Body,
+    color: RColorRef = RColorRef.Token(&quot;text.primary&quot;),
+) {
+    val runtime = LocalReaktorRuntime.current
+    ComposeNode&lt;ReaktorNode, ReaktorApplier&gt;(
+        factory = { runtime.createComposeNode(HostType.Text) },
+        update = {
+            set(text) { setProp(PropKey.Text, it) }
+            set(modifier) { setProp(PropKey.Modifier, it) }
+            set(variant) { setProp(PropKey.TextVariant, it) }
+            set(color) { setProp(PropKey.Color, it) }
+        }
+    )
+}
+
+@Composable
+fun RButton(
+    label: String,
+    modifier: RModifier = RModifier,
+    onPress: () -&gt; Unit,
+) {
+    val runtime = LocalReaktorRuntime.current
+    ComposeNode&lt;ReaktorNode, ReaktorApplier&gt;(
+        factory = { runtime.createComposeNode(HostType.Button) },
+        update = {
+            set(label) { setProp(PropKey.Label, it) }
+            set(modifier) { setProp(PropKey.Modifier, it) }
+            update { setEvent(EventKey.Press, onPress) }
+        }
+    )
+}
+
+@Composable
+fun ReactIsland(
+    module: String,
+    key: String,
+    props: Any,
+    fallback: @Composable () -&gt; Unit = {},
+) {
+    val runtime = LocalReaktorRuntime.current
+    val parentBoundary = LocalReaktorBoundary.current
+    val boundary = remember(module, key) {
+        runtime.createBoundary(
+            owner = RuntimeOwner.React,
+            module = module,
+            key = key,
+            parent = parentBoundary,
+        )
+    }
+
+    DisposableEffect(boundary) {
+        runtime.mountReactBoundary(boundary, module, props)
+        onDispose {
+            // React effects dispose before nodes are returned to the arena free list.
+            runtime.destroyBoundary(boundary, DestroyReason.Unmount)
+        }
+    }
+
+    BoundaryHostNode(boundary = boundary, fallback = fallback)
+}</code></pre>
+          <h3>Compose adapter responsibilities</h3>
+          <ul>
+            <li>Use top-down insertion because HostTree parent attachment is cheap and dirty propagation can be incremental.</li>
+            <li>Map composable primitive props into the same generated schemas used by React.</li>
+            <li>Register event handlers through native EventRef ids, not raw lambda storage in HostNodes.</li>
+            <li>Dispose React child boundaries before freeing the parent subtree.</li>
+          </ul>
+        </div></section>
+
+        <section id="host-tree"><div class="section-inner">
+          <h2>10. HostTree internals</h2>
+          <h3>Generational NodeId and arena</h3>
+          <div class="code-title">NodeArena.kt</div><pre><code class="language-kotlin">@JvmInline
+value class NodeId(val raw: Long) {
+    val index: Int get() = (raw and 0xffffffffL).toInt()
+    val generation: Int get() = (raw ushr 32).toInt()
+
+    companion object {
+        fun of(index: Int, generation: Int): NodeId {
+            return NodeId((generation.toLong() shl 32) or (index.toLong() and 0xffffffffL))
+        }
+    }
+}
+
+data class HostNode(
+    val id: NodeId,
+    var type: HostType,
+    var parent: NodeId?,
+    var owner: BoundaryId,
+    var props: PropsRef = PropsRef.Empty,
+    var eventMask: Int = 0,
+    var dirty: DirtyFlags = DirtyFlags.Structure,
+    val children: ChildBuffer&lt;NodeId&gt; = ChildBuffer.empty(),
+)
+
+class NodeArena(initialCapacity: Int = 4096) {
+    private var nodes = arrayOfNulls&lt;HostNode&gt;(initialCapacity)
+    private var generations = IntArray(initialCapacity)
+    private val free = IntArrayStack()
+    private var size = 0
+
+    fun allocate(type: HostType, owner: BoundaryId): HostNode {
+        val index = if (free.isNotEmpty()) free.pop() else size++
+        ensureCapacity(index + 1)
+        val id = NodeId.of(index, generations[index])
+        return HostNode(id = id, type = type, parent = null, owner = owner).also {
+            nodes[index] = it
+        }
+    }
+
+    fun get(id: NodeId): HostNode {
+        val node = nodes.getOrNull(id.index)
+            ?: error(&quot;Unknown node: $id&quot;)
+        check(generations[id.index] == id.generation) { &quot;Stale NodeId: $id&quot; }
+        return node
+    }
+
+    fun freeSubtree(root: NodeId, visitor: (HostNode) -&gt; Unit = {}) {
+        val node = get(root)
+        node.children.forEach { child -&gt; freeSubtree(child, visitor) }
+        visitor(node)
+        nodes[root.index] = null
+        generations[root.index]++
+        free.push(root.index)
+    }
+}</code></pre>
+          <h3>Adaptive child buffers with hysteresis</h3>
+          <div class="code-title">ChildBufferPolicy.kt</div><pre><code class="language-kotlin">interface ChildBuffer&lt;T&gt; {
+    val size: Int
+    fun get(index: Int): T
+    fun insert(index: Int, value: T): ChildBuffer&lt;T&gt;
+    fun remove(index: Int, count: Int): ChildBuffer&lt;T&gt;
+    fun move(from: Int, to: Int, count: Int): ChildBuffer&lt;T&gt;
+
+    companion object {
+        fun &lt;T&gt; empty(): ChildBuffer&lt;T&gt; = EmptyChildren
+    }
+}
+
+object ChildBufferPolicy {
+    // Hysteresis avoids oscillation around a boundary.
+    const val INLINE_PROMOTE_AT = 5
+    const val INLINE_DEMOTE_AT = 2
+    const val GAP_PROMOTE_AT = 129
+    const val GAP_DEMOTE_AT = 80
+
+    fun &lt;T&gt; normalize(buffer: ChildBuffer&lt;T&gt;): ChildBuffer&lt;T&gt; = when (buffer) {
+        is EmptyChildren -&gt; buffer
+        is InlineChildren -&gt; if (buffer.size &gt;= INLINE_PROMOTE_AT) GapChildren.from(buffer) else buffer
+        is GapChildren -&gt; when {
+            buffer.size &lt;= INLINE_DEMOTE_AT -&gt; InlineChildren.from(buffer)
+            buffer.size &gt;= GAP_PROMOTE_AT &amp;&amp; buffer.nonLocalEditRatio &gt; 0.25 -&gt; ChunkedChildren.from(buffer)
+            else -&gt; buffer
+        }
+        is ChunkedChildren -&gt; if (buffer.size &lt;= GAP_DEMOTE_AT) GapChildren.from(buffer) else buffer
+        else -&gt; buffer
+    }
+}</code></pre>
+          <h3>Batch memory pool and frame ring</h3>
+          <div class="code-title">MutationBatchPool.kt</div><pre><code class="language-kotlin">class MutationBatchPool(
+    private val bufferSize: Int = 64 * 1024,
+    private val poolSize: Int = 8,
+) {
+    private val pool = ArrayDeque&lt;NativeMutationBuffer&gt;(poolSize)
+
+    fun borrow(surfaceId: SurfaceId, boundaryId: BoundaryId, baseRevision: Long): NativeMutationBuffer {
+        val buffer = if (pool.isEmpty()) {
+            NativeMutationBuffer(ByteBuffer.allocateDirect(bufferSize))
+        } else {
+            pool.removeFirst()
+        }
+        return buffer.reset(surfaceId, boundaryId, baseRevision)
+    }
+
+    fun recycle(buffer: NativeMutationBuffer) {
+        buffer.clearForReuse()
+        if (pool.size &lt; poolSize) pool.addLast(buffer)
+    }
+}
+
+class FrameCommitRing(capacity: Int = 3) {
+    // One frame can be rendering, one can be deriving ShadowTree, one can receive commits.
+    private val slots = Array(capacity) { CommitSlot() }
+    private val writeIndex = AtomicInteger(0)
+
+    fun nextWritable(): CommitSlot = slots[writeIndex.getAndUpdate { (it + 1) % slots.size }]
+}</code></pre>
+          <h3>Storage policy</h3>
+          <table>
+            <thead><tr><th>Concern</th><th>Implementation</th><th>Reason</th></tr></thead>
+            <tbody>
+              <tr><td>Node identity</td><td>Index + generation packed into 64-bit NodeId.</td><td>Compact references and stale-handle detection.</td></tr>
+              <tr><td>Children</td><td>Empty, inline, gap, chunked, virtual.</td><td>Different edit patterns need different sequence structures.</td></tr>
+              <tr><td>Props</td><td>Schema-aware props table with patches.</td><td>Avoid hot-path generic maps and expensive nested object walks.</td></tr>
+              <tr><td>Batches</td><td>Direct ByteBuffer pool and ring of commit slots.</td><td>Avoid per-frame allocation churn and renderer contention.</td></tr>
+              <tr><td>Dirty state</td><td>Bitsets for structure, props, style, measure, layout, paint, semantics, events, hit-test.</td><td>Allows incremental ShadowTree derivation.</td></tr>
+            </tbody>
+          </table>
+        </div></section>
+
+        <section id="shadow-tree"><div class="section-inner">
+          <h2>11. ShadowTree, rendering, and event routing</h2>
+          <div class="callout success">
+            <strong>Incorporated review point:</strong> ShadowTree is not rebuilt wholesale. Commits feed dirty node ids into an incremental derivation pipeline, and renderers read immutable committed snapshots while the next working snapshot is prepared.
+          </div>
+          <div class="code-title">Incremental double-buffered ShadowPipeline</div><pre><code class="language-kotlin">class ShadowPipeline(
+    private val hostTree: HostTree,
+    private val styleResolver: StyleResolver,
+    private val layoutCache: LayoutCache,
+    private val hitIndex: SpatialHitIndex,
+) {
+    private var committed: ShadowSnapshot = ShadowSnapshot.empty()
+    private var working: MutableShadowSnapshot = committed.mutableCopy()
+
+    fun applyCommit(commit: TreeCommit): ShadowSnapshot {
+        trace(&quot;ShadowPipeline.applyCommit&quot;, commit.revision) {
+            // 1. Update only nodes touched by this commit or marked dirty by propagation.
+            val dirtyQueue = DirtyQueue(commit.dirtyNodeIds)
+            while (dirtyQueue.isNotEmpty()) {
+                val nodeId = dirtyQueue.removeFirst()
+                val host = hostTree[nodeId]
+                val oldShadow = working[nodeId]
+                val nextShadow = deriveShadowNode(host, oldShadow)
+                working[nodeId] = nextShadow
+
+                if (nextShadow.requiresParentLayoutInvalidation(oldShadow)) {
+                    host.parent?.let { dirtyQueue.add(it, DirtyFlags.Layout) }
+                }
+                if (nextShadow.hitTestChanged(oldShadow)) {
+                    hitIndex.update(nextShadow)
+                }
+            }
+
+            // 2. Layout only affected subtrees.
+            layoutCache.recompute(commit.layoutRoots, working)
+
+            // 3. Swap snapshots atomically. Renderers read committed without locking.
+            committed = working.freeze(revision = commit.revision)
+            working = committed.mutableCopy(copyDirtyOnly = true)
+            return committed
+        }
+    }
+
+    fun currentSnapshot(): ShadowSnapshot = committed
+}
+
+data class ShadowNode(
+    val source: NodeId,
+    val type: HostType,
+    val resolvedStyle: ResolvedStyle,
+    val layout: LayoutBox,
+    val eventMask: Int,
+    val semantics: SemanticsNode?,
+    val owner: BoundaryId,
+    val dirty: DirtyFlags,
+)</code></pre>
+          <h3>Compose renderer v1</h3>
+          <div class="code-title">ShadowSnapshot → Compose UI</div><pre><code class="language-kotlin">@Composable
+fun ReaktorComposeRenderer(surfaceId: SurfaceId) {
+    val runtime = LocalReaktorNativeRuntime.current
+    val snapshot by runtime.shadowSnapshots(surfaceId).collectAsState()
+
+    CompositionLocalProvider(
+        LocalReaktorEventDispatcher provides runtime.eventDispatcher,
+        LocalReaktorAccessibilityTree provides snapshot.accessibilityTree,
+    ) {
+        RenderNode(snapshot = snapshot, nodeId = snapshot.root)
+    }
+}
+
+@Composable
+private fun RenderNode(snapshot: ShadowSnapshot, nodeId: NodeId) {
+    val node = snapshot[nodeId]
+    val modifier = node.resolvedStyle.toComposeModifier(node.source)
+
+    when (node.type) {
+        HostType.Box -&gt; Box(modifier = modifier.reaktorPointerInput(node)) {
+            node.children.forEach { RenderNode(snapshot, it) }
+        }
+        HostType.Row -&gt; Row(modifier = modifier) {
+            node.children.forEach { RenderNode(snapshot, it) }
+        }
+        HostType.Column -&gt; Column(modifier = modifier) {
+            node.children.forEach { RenderNode(snapshot, it) }
+        }
+        HostType.Text -&gt; Text(
+            text = node.props.text,
+            style = node.resolvedStyle.textStyle.toComposeTextStyle(),
+            modifier = modifier.semanticsFrom(node),
+        )
+        HostType.Button -&gt; Button(
+            onClick = { LocalReaktorEventDispatcher.current.dispatchPress(node.source) },
+            modifier = modifier.semanticsFrom(node),
+        ) { Text(node.props.label) }
+        HostType.BoundaryHost -&gt; BoundaryPlaceholder(node.boundaryId, modifier)
+    }
+}</code></pre>
+          <h3>Fast event routing</h3>
+          <div class="code-title">EventRouter and spatial hit index</div><pre><code class="language-kotlin">class EventRouter(
+    private val shadow: ShadowPipeline,
+    private val hitIndex: SpatialHitIndex,
+    private val boundaryRegistry: BoundaryRegistry,
+) {
+    private var lastPointerTarget: CachedTarget? = null
+
+    fun onPointerEvent(event: PointerEvent) {
+        val target = when {
+            lastPointerTarget?.matches(event) == true -&gt; lastPointerTarget!!.target
+            else -&gt; hitIndex.findTopMost(event.x, event.y, event.kind).also {
+                lastPointerTarget = CachedTarget(event.pointerId, event.sequenceId, it)
+            }
+        }
+
+        val route = shadow.currentSnapshot().eventRoute(target.nodeId, event.kind)
+        val batches = EventBatchBuilder.groupByBoundary(route, event)
+        batches.forEach { batch -&gt;
+            boundaryRegistry.sink(batch.boundaryId).enqueue(batch)
+        }
+    }
+
+    fun onFocusEvent(nodeId: NodeId, event: FocusEvent) {
+        // No hit-test. Focus and keyboard events use direct ref routing.
+        val route = shadow.currentSnapshot().focusRoute(nodeId)
+        boundaryRegistry.sink(route.boundaryId).enqueue(EventBatch.focus(route, event))
+    }
+}
+
+class GridSpatialHitIndex(
+    private val cellSizePx: Int = 96,
+) : SpatialHitIndex {
+    private val cells = Long2ObjectOpenHashMap&lt;MutableList&lt;NodeId&gt;&gt;()
+
+    override fun update(node: ShadowNode) {
+        remove(node.source)
+        if (!node.eventMask.hasPointerEvents()) return
+        for (cell in cellsFor(node.layout.bounds)) {
+            cells.getOrPut(cell.key) { mutableListOf() }.add(node.source)
+        }
+    }
+
+    override fun findTopMost(x: Float, y: Float, kind: PointerKind): HitTarget {
+        val candidates = cells[cellKey(x, y)].orEmpty()
+        return candidates
+            .asSequence()
+            .map { shadowNode(it) }
+            .filter { it.layout.bounds.contains(x, y) &amp;&amp; it.eventMask.accepts(kind) }
+            .maxByOrNull { it.layout.zIndex }
+            ?.let { HitTarget(it.source) }
+            ?: HitTarget.Root
+    }
+}</code></pre>
+          <h3>Dirty propagation matrix</h3>
+          <table>
+            <thead><tr><th>Change</th><th>Dirty flags</th><th>Renderer effect</th></tr></thead>
+            <tbody>
+              <tr><td>Text content changed</td><td>Props, measure, layout, paint, semantics</td><td>Remeasure text and affected layout roots only.</td></tr>
+              <tr><td>Color changed</td><td>Props, paint</td><td>No layout recompute.</td></tr>
+              <tr><td>Child inserted</td><td>Structure, layout, semantics, hit-test</td><td>Parent subtree layout and spatial index update.</td></tr>
+              <tr><td>Event handler changed</td><td>Events</td><td>Update EventRef route only.</td></tr>
+              <tr><td>Visibility changed</td><td>Style, layout, paint, hit-test, semantics</td><td>Remove/insert from hit-test and accessibility projections.</td></tr>
+            </tbody>
+          </table>
+        </div></section>
+
+        <section id="interop-systems"><div class="section-inner">
+          <h2>12. Seamless interop systems</h2>
+          <h3>Shared StateCell API</h3>
+          <p>
+            StateCell is the cross-runtime state primitive. React subscribes with <code>useSyncExternalStore</code>; Compose observes a Flow/State. Writes are versioned and batched so both runtimes see a single frame-level update when multiple writes happen in one frame.
+          </p>
+          <div class="code-title">React useReaktorState</div><pre><code class="language-ts">import { useSyncExternalStore } from &quot;react&quot;;
+
+const snapshots = new Map&lt;StateCellId, { version: number; value: unknown }&gt;();
+
+export function useReaktorState&lt;T&gt;(key: string): [T, (next: T | ((prev: T) =&gt; T)) =&gt; void] {
+  const cell = stateRegistry.cellForKey(key);
+
+  const value = useSyncExternalStore(
+    (notify) =&gt; globalThis.__ReaktorHost.subscribeStateCell(cell, () =&gt; notify()),
+    () =&gt; readCachedSnapshot&lt;T&gt;(cell),
+    () =&gt; readCachedSnapshot&lt;T&gt;(cell),
+  );
+
+  const setValue = (next: T | ((prev: T) =&gt; T)) =&gt; {
+    const current = snapshots.get(cell)!;
+    const resolved = typeof next === &quot;function&quot; ? (next as any)(current.value) : next;
+    const encoded = stateCodecs.encode(key, resolved);
+    const newVersion = globalThis.__ReaktorHost.writeStateCell(cell, current.version, encoded);
+    snapshots.set(cell, { version: newVersion, value: resolved });
+  };
+
+  return [value, setValue];
+}
+
+function readCachedSnapshot&lt;T&gt;(cell: StateCellId): T {
+  const cached = snapshots.get(cell);
+  const version = stateRegistry.version(cell);
+  if (cached &amp;&amp; cached.version === version) return cached.value as T;
+
+  const bytes = globalThis.__ReaktorHost.readStateCell(cell);
+  const decoded = stateCodecs.decodeCell&lt;T&gt;(cell, bytes);
+  snapshots.set(cell, { version, value: decoded });
+  return decoded;
+}</code></pre>
+          <div class="code-title">Compose rememberReaktorState</div><pre><code class="language-kotlin">@Composable
+inline fun &lt;reified T : Any&gt; rememberReaktorState(key: String): State&lt;T&gt; {
+    val runtime = LocalReaktorRuntime.current
+    val cell = remember(key) { runtime.stateCells.cellForKey&lt;T&gt;(key) }
+    return cell.flow.collectAsState(initial = cell.read())
+}
+
+class StateCell&lt;T : Any&gt;(
+    val id: StateCellId,
+    val schema: Schema&lt;T&gt;,
+    initialValue: T,
+) {
+    private val mutex = Mutex()
+    private val _flow = MutableStateFlow(StateVersioned(0, initialValue))
+    val flow: StateFlow&lt;T&gt; = _flow.map { it.value }.stateInCellScope(initialValue)
+
+    suspend fun write(expectedVersion: Int, transform: (T) -&gt; T): Int = mutex.withLock {
+        val current = _flow.value
+        check(expectedVersion == current.version) {
+            &quot;StateCell conflict: expected=$expectedVersion actual=${current.version}&quot;
+        }
+        val next = StateVersioned(current.version + 1, transform(current.value))
+        _flow.value = next
+        next.version
+    }
+
+    fun read(): T = _flow.value.value
+}</code></pre>
+          <h3>Shared animation clock</h3>
+          <div class="code-title">Cross-boundary animation tokens</div><pre><code class="language-kotlin">data class AnimationToken(
+    val id: String,
+    val sourceBoundary: BoundaryId,
+    val targetBoundary: BoundaryId,
+    val sourceNode: NodeId,
+    val targetNode: NodeId,
+    val kind: AnimationKind,
+)
+
+class ReaktorAnimationClock(
+    private val frameClock: MonotonicFrameClock,
+) {
+    private val active = mutableMapOf&lt;String, CrossBoundaryAnimation&gt;()
+
+    suspend fun run() {
+        while (true) {
+            frameClock.withFrameNanos { now -&gt;
+                val mutations = active.values.mapNotNull { it.tick(now) }
+                if (mutations.isNotEmpty()) {
+                    // Animation mutations are high-priority prop/layout overlays.
+                    overlayStore.apply(mutations, priority = ReaktorPriority.Animation)
+                }
+            }
+        }
+    }
+}
+
+// React side
+export function useReaktorTransition(tokenId: string) {
+  return {
+    start: (from: NodeId, to: NodeId) =&gt;
+      globalThis.__ReaktorHost.startAnimationToken({ tokenId, from, to }),
+    cancel: () =&gt; globalThis.__ReaktorHost.cancelAnimationToken(tokenId),
+  };
+}</code></pre>
+          <h3>Lifecycle and hot reload</h3>
+          <div class="code-title">BoundaryRuntime disposal/replacement</div><pre><code class="language-kotlin">class BoundaryRuntime(
+    val id: BoundaryId,
+    val owner: RuntimeOwner,
+    val rootNode: NodeId,
+    val scheduler: BoundaryScheduler,
+    val resources: ResourceScope,
+    val events: EventSink,
+) {
+    suspend fun dispose(reason: DestroyReason) {
+        scheduler.stopAcceptingWork()
+
+        when (owner) {
+            RuntimeOwner.React -&gt; reactRuntime.unmountBoundary(id) // flush useEffect cleanup
+            RuntimeOwner.Compose -&gt; composeRuntime.disposeComposition(id) // DisposableEffect/RememberObserver
+            RuntimeOwner.Server, RuntimeOwner.Blueprint -&gt; Unit
+        }
+
+        events.close()
+        resources.closeAll()
+        hostTree.freeSubtree(rootNode)
+    }
+
+    suspend fun replaceForHotReload(newModule: String) {
+        scheduler.pause()
+        val preservedState = stateCells.snapshotForBoundary(id)
+        reactRuntime.unmountBoundary(id)
+        hostTree.clearBoundaryChildren(rootNode)
+        reactRuntime.mountBoundary(id, newModule, preservedState)
+        scheduler.resume()
+    }
+}</code></pre>
+          <h3>Error handling</h3>
+          <div class="code-title">Reaktor-level boundary errors</div><pre><code class="language-tsx">class ReaktorBoundaryErrorHandler(
+    private val runtime: ReaktorRuntime,
+) {
+    fun onReactRenderError(boundaryId: BoundaryId, error: Throwable, componentStack: String?) {
+        runtime.reportBoundaryError(
+            BoundaryError(
+                boundaryId = boundaryId,
+                source = RuntimeOwner.React,
+                message = error.message ?: error::class.simpleName ?: &quot;Unknown error&quot;,
+                stack = componentStack,
+            )
+        )
+
+        runtime.replaceBoundarySubtree(
+            boundaryId,
+            PlaceholderSpec.ErrorCard(
+                title = &quot;This card failed to load&quot;,
+                retryEvent = runtime.events.retryBoundary(boundaryId),
+            )
+        )
+    }
+}
+
+// React authoring can still use normal React error boundaries inside the island.
+export class ReaktorReactErrorBoundary extends React.Component&lt;
+  { boundaryId: BoundaryId; children: React.ReactNode },
+  { failed: boolean }
+&gt; {
+  state = { failed: false };
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    this.setState({ failed: true });
+    globalThis.__ReaktorHost.reportBoundaryError(
+      this.props.boundaryId,
+      encodeError(error, info.componentStack),
+    );
+  }
+  render() {
+    return this.state.failed ? &lt;RText text=&quot;Card unavailable&quot; /&gt; : this.props.children;
+  }
+}</code></pre>
+          <h3>Focus and accessibility</h3>
+          <table>
+            <thead><tr><th>Problem</th><th>Reaktor owner</th><th>Implementation</th></tr></thead>
+            <tbody>
+              <tr><td>Tab/focus order across React and Compose</td><td>ShadowTree semantics projection</td><td>Build a unified focus graph from ShadowNodes, not from runtime ownership.</td></tr>
+              <tr><td>Screen reader traversal</td><td>Accessibility tree</td><td>Merge semantics nodes across boundaries using layout order and explicit traversal hints.</td></tr>
+              <tr><td>Keyboard/focus events</td><td>EventRouter</td><td>Direct route to focused EventRef; skip pointer hit-testing.</td></tr>
+              <tr><td>Shared element transition</td><td>Animation clock</td><td>AnimationToken connects source and target nodes across boundaries.</td></tr>
+              <tr><td>Resource cleanup mismatch</td><td>BoundaryRuntime</td><td>Dispose owner runtime first, then release event refs/resources, then recycle HostTree nodes.</td></tr>
+            </tbody>
+          </table>
+        </div></section>
+
+        <section id="ota"><div class="section-inner">
+          <h2>13. OTA, server-driven UI, and compliance guardrails</h2>
+          <p>
+            Reaktor should treat remotely delivered React as a signed, capability-scoped UI bundle. The native app should declare the categories of dynamic content it can render, enforce schema compatibility, and expose kill switches and rollout controls. This preserves the product advantage without relying on vague “code push is always allowed” assumptions.
+          </p>
+          <div class="code-title">Signed bundle manifest</div><pre><code class="language-json">{
+  &quot;bundleId&quot;: &quot;campaign-card&quot;,
+  &quot;version&quot;: &quot;2026.05.20-4&quot;,
+  &quot;entry&quot;: &quot;campaign-card@1&quot;,
+  &quot;reactVersion&quot;: &quot;19.2.0&quot;,
+  &quot;hostSchemaVersion&quot;: 3,
+  &quot;allowedCapabilities&quot;: [
+    &quot;ui.readTheme&quot;,
+    &quot;state.cart.summary.read&quot;,
+    &quot;state.cart.summary.write&quot;,
+    &quot;events.press&quot;
+  ],
+  &quot;nativeHostTypes&quot;: [&quot;RBox&quot;, &quot;RText&quot;, &quot;RButton&quot;, &quot;RImage&quot;],
+  &quot;integrity&quot;: {
+    &quot;algorithm&quot;: &quot;ed25519+sha256&quot;,
+    &quot;signature&quot;: &quot;base64...&quot;,
+    &quot;sha256&quot;: &quot;base64...&quot;
+  },
+  &quot;rollout&quot;: {
+    &quot;channel&quot;: &quot;production&quot;,
+    &quot;percentage&quot;: 10,
+    &quot;killSwitchKey&quot;: &quot;campaign-card.disable&quot;
+  }
+}</code></pre>
+          <div class="code-title">BundleInstaller.kt</div><pre><code class="language-kotlin">class BundleInstaller(
+    private val policy: OtaPolicy,
+    private val verifier: SignatureVerifier,
+    private val hermes: HermesBundleRuntime,
+) {
+    suspend fun install(manifest: BundleManifest, bytecode: ByteArray): InstallResult {
+        policy.check(manifest)
+        verifier.verify(manifest.integrity, bytecode)
+
+        check(manifest.hostSchemaVersion &lt;= HostSchema.Current) {
+            &quot;Bundle requires newer Reaktor host schema&quot;
+        }
+
+        val sandbox = hermes.createSandbox(
+            bundleId = manifest.bundleId,
+            capabilities = manifest.allowedCapabilities,
+        )
+
+        sandbox.loadBytecode(bytecode)
+        registry.register(manifest.entry, sandbox.export(manifest.entry))
+        return InstallResult.Ready(manifest.entry)
+    }
+}</code></pre>
+          <h3>Server-driven UI modes</h3>
+          <table>
+            <thead><tr><th>Mode</th><th>What server sends</th><th>Best for</th></tr></thead>
+            <tbody>
+              <tr><td>Manifest + React bundle</td><td>Signed Hermes bytecode/JS bundle plus capability manifest.</td><td>Campaigns, A/B tests, personalization, cards with real logic.</td></tr>
+              <tr><td>Typed TreeOps</td><td>Precompiled binary mutation stream with no JS execution.</td><td>Simple banners, static legal copy, generated forms.</td></tr>
+              <tr><td>Blueprint graph</td><td>Design tool graph compiled client-side or server-side to TreeOps.</td><td>Visual editor workflows and AI edits.</td></tr>
+            </tbody>
+          </table>
+          <h3>Guardrails</h3>
+          <ul>
+            <li>Bundle signing and integrity verification before execution.</li>
+            <li>Capability manifest: no arbitrary native calls, no filesystem/network unless explicitly granted.</li>
+            <li>Host schema compatibility: bundles declare host primitive/schema versions.</li>
+            <li>Kill switch and percentage rollout per bundle.</li>
+            <li>Boundary-level error fallback so a failed JS island cannot tear down the native screen.</li>
+            <li>App-review notes documenting the dynamic UI category and constraints.</li>
+          </ul>
+        </div></section>
+
+        <section id="web"><div class="section-inner">
+          <h2>14. Compose-authored UI rendered through React DOM</h2>
+          <p>
+            The web path uses the same HostTree model but swaps the renderer. Compose/Kotlin emits TreeOps into a web HostTree; React DOM subscribes to host snapshots and renders standard DOM nodes or registered React library slots.
+          </p>
+          <div class="code-title">React DOM renderer</div><pre><code class="language-tsx">export function HostNodeView({ surface, nodeId }: { surface: SurfaceStore; nodeId: NodeId }) {
+  const node = useHostNode(surface, nodeId);
+  const children = node.children.map((id) =&gt; &lt;HostNodeView key={id} surface={surface} nodeId={id} /&gt;);
+
+  switch (node.type) {
+    case &quot;RBox&quot;:
+      return &lt;div data-rid={node.id} style={toCss(node.style)} {...toDomEvents(node)}&gt;{children}&lt;/div&gt;;
+    case &quot;RRow&quot;:
+      return &lt;div data-rid={node.id} style={{ ...toCss(node.style), display: &quot;flex&quot;, flexDirection: &quot;row&quot; }}&gt;{children}&lt;/div&gt;;
+    case &quot;RColumn&quot;:
+      return &lt;div data-rid={node.id} style={{ ...toCss(node.style), display: &quot;flex&quot;, flexDirection: &quot;column&quot; }}&gt;{children}&lt;/div&gt;;
+    case &quot;RText&quot;:
+      return &lt;span data-rid={node.id} style={toCss(node.style)}&gt;{node.props.text}&lt;/span&gt;;
+    case &quot;RButton&quot;:
+      return &lt;button data-rid={node.id} onClick={() =&gt; surface.dispatchPress(node.id)}&gt;{node.props.label}&lt;/button&gt;;
+    case &quot;ReactDomLibrarySlot&quot;:
+      return renderRegisteredLibrary(node.props.component, node.props.props);
+  }
+}
+
+export class ReactDomRenderer {
+  constructor(private root: import(&quot;react-dom/client&quot;).Root) {}
+
+  render(surface: SurfaceStore) {
+    this.root.render(&lt;HostNodeView surface={surface} nodeId={surface.rootNodeId} /&gt;);
+  }
+}</code></pre>
+          <h3>Web renderer capabilities</h3>
+          <div class="grid-2">
+            <div class="card"><h3>DOM-first layout</h3><p>Use CSS/flex/grid where it is superior to canvas-style web rendering. Avoid duplicating browser layout unless a primitive truly needs custom measurement.</p></div>
+            <div class="card"><h3>React ecosystem slots</h3><p>Expose typed <code>ReactDomLibrarySlot</code> nodes for maps, charts, editors, and video players without reimplementing them in Compose.</p></div>
+            <div class="card"><h3>Hydration path</h3><p>Server can serialize HostTree snapshots, then React DOM hydrates the projected DOM and reconnects EventRefs.</p></div>
+            <div class="card"><h3>Same DevTools</h3><p>Inspector still shows NodeId, boundary owner, props schema, layout, dirty flags, and event routing.</p></div>
+          </div>
+        </div></section>
+
+        <section id="benchmarks"><div class="section-inner">
+          <h2>15. Benchmarks and exit criteria</h2>
+          <table>
+            <thead><tr><th>Benchmark</th><th>Scenario</th><th>Metric</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td>React batch commit</td><td>React campaign feed mutates 1k nodes.</td><td>JS render time, FFI commit time, native apply time.</td><td>Validate batching and prop diff.</td></tr>
+              <tr><td>Compose Applier commit</td><td>Compose form recomposes 500 fields.</td><td>Recomposition time, mutation count, commit time.</td><td>Validate Applier and dirty flags.</td></tr>
+              <tr><td>Shadow incremental derivation</td><td>One prop/style/event change in 50k-node tree.</td><td>Derived nodes count, layout roots count.</td><td>Prove no full shadow walk.</td></tr>
+              <tr><td>Event routing</td><td>Pointer move over 500 touch targets.</td><td>p50/p95 route latency.</td><td>Validate spatial index and target cache.</td></tr>
+              <tr><td>StateCell contention</td><td>React and Compose write same cell in one frame.</td><td>Conflict rate, observer notifications.</td><td>Validate versioning and batching.</td></tr>
+              <tr><td>Boundary teardown</td><td>Unmount React island from Compose parent.</td><td>Effect cleanup order, leaked refs/resources.</td><td>Validate lifecycle protocol.</td></tr>
+              <tr><td>Web renderer</td><td>Compose-authored page rendered through React DOM.</td><td>Hydration time, DOM node count, update time.</td><td>Validate inverse direction.</td></tr>
+            </tbody>
+          </table>
+          <h3>Instrumentation</h3>
+          <ul>
+            <li>Trace slices: <code>ReactRender</code>, <code>ReactCommit</code>, <code>ComposeApply</code>, <code>FfiCommit</code>, <code>TreeApply</code>, <code>ShadowDerive</code>, <code>Layout</code>, <code>Render</code>, <code>EventDispatch</code>.</li>
+            <li>Attach NodeId, BoundaryId, revision, opCount, bytes, dirty node count, and layout roots to spans.</li>
+            <li>Use JMH/Kotlin benchmarks for HostTree/ChildBuffer and Android Macrobenchmark/Perfetto for device traces.</li>
+            <li>Run Hermes-side benchmark scripts for batch encoding and event delivery.</li>
+          </ul>
+        </div></section>
+
+        <section id="roadmap"><div class="section-inner">
+          <h2>16. Build roadmap</h2>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 0 — Probes and version pinning</div><div class="phase-meta">1–2 weeks</div></div><div class="phase-body"><p>Spike React custom renderer lifecycle, Compose Applier lifecycle, and Hermes FFI installation. Pin React/reconciler and Compose versions. Define forbidden private dependencies.</p><div class="chips"><span class="pill">React HostConfig log renderer</span><span class="pill">Compose Applier log tree</span><span class="pill">Hermes FFI hello batch</span></div></div></div>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 1 — HostTree + mutation protocol</div><div class="phase-meta">3–5 weeks</div></div><div class="phase-body"><p>Build NodeArena, ChildBuffer policy, TreeOps, batch pool, validation, fuzz tests, and snapshots.</p><div class="chips"><span class="pill">100k node benchmark</span><span class="pill">1M op fuzz test</span><span class="pill">snapshot export</span></div></div></div>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 2 — Compose authoring + Compose renderer</div><div class="phase-meta">4–6 weeks</div></div><div class="phase-body"><p>Implement ReaktorApplier, Compose primitives, ShadowPipeline v1, and Compose renderer. Native-only end-to-end first.</p><div class="chips"><span class="pill">RText/RBox/RButton</span><span class="pill">incremental shadow</span><span class="pill">native render demo</span></div></div></div>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 3 — React renderer over Hermes FFI</div><div class="phase-meta">5–8 weeks</div></div><div class="phase-body"><p>Implement React HostConfig, generated prop diffing, EventRef registry, batch writer, and ReactBoundary mounting from Compose.</p><div class="chips"><span class="pill">campaign card demo</span><span class="pill">signed bundle load</span><span class="pill">event roundtrip</span></div></div></div>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 4 — Seamlessness layer</div><div class="phase-meta">4–7 weeks</div></div><div class="phase-body"><p>StateCell, focus/accessibility graph, animation tokens, error boundaries, lifecycle disposal order, and hot reload.</p><div class="chips"><span class="pill">shared cart state</span><span class="pill">focus traversal</span><span class="pill">boundary hot reload</span></div></div></div>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 5 — Web renderer</div><div class="phase-meta">4–6 weeks</div></div><div class="phase-body"><p>Render Compose-authored HostTree snapshots through React DOM and register React library slots.</p><div class="chips"><span class="pill">React DOM projection</span><span class="pill">chart/map slot</span><span class="pill">web inspector</span></div></div></div>
+          <div class="phase"><div class="phase-head"><div class="phase-title">Phase 6 — Tooling and productization</div><div class="phase-meta">ongoing</div></div><div class="phase-body"><p>DevTools protocol, Blueprint integration, AI mutation API, Perfetto trace export, docs, templates, and public SDK boundaries.</p><div class="chips"><span class="pill">DevTools tree</span><span class="pill">Blueprint bridge</span><span class="pill">public alpha</span></div></div></div>
+        </div></section>
+
+        <section id="references"><div class="section-inner">
+          <h2>17. References and design anchors</h2>
+          <p>This blueprint is aligned to the following public integration surfaces and architecture documents.</p>
+          <table>
+            <thead><tr><th>Topic</th><th>Source</th><th>Used for</th></tr></thead>
+            <tbody>
+              <tr><td>React custom renderer</td><td><a href="https://github.com/facebook/react/blob/main/packages/react-reconciler/README.md">React reconciler README</a></td><td>HostConfig as the renderer boundary.</td></tr>
+              <tr><td>React external store hook</td><td><a href="https://react.dev/reference/react/useSyncExternalStore">React useSyncExternalStore</a></td><td>React StateCell subscription API.</td></tr>
+              <tr><td>Compose Applier</td><td><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Applier">Android Compose Runtime Applier reference</a></td><td>Compose custom target tree operations.</td></tr>
+              <tr><td>React Native JSI/Fabric</td><td><a href="https://reactnative.dev/architecture/landing-page">React Native New Architecture</a>, <a href="https://reactnative.dev/architecture/fabric-renderer">Fabric renderer</a>, <a href="https://reactnative.dev/architecture/glossary">Glossary</a></td><td>JSI, ShadowTree, host platform interoperability patterns.</td></tr>
+              <tr><td>Hermes</td><td><a href="https://github.com/facebook/hermes">facebook/hermes</a></td><td>Hermes as the JS runtime target for FFI and bytecode bundles.</td></tr>
+              <tr><td>App Store OTA guardrails</td><td><a href="https://developer.apple.com/app-store/review/guidelines/">Apple App Review Guidelines</a></td><td>Policy-safe framing of remote interpreted UI logic.</td></tr>
+            </tbody>
+          </table>
+          <div class="callout success"><strong>North star:</strong> React Fiber and Compose Runtime remain independent reconcilers, but their host-level mutations are compiled into the same native Reaktor mutation buffer, applied to an arena-backed HostTree, and projected through incremental ShadowSnapshots to native Compose, React DOM, tools, Blueprint, and AI agents.</div>
+        </div></section>
+      </main>
+    </div>
+    <div class="footer">Generated for Reaktor. Public APIs are intentionally separated from internal kernel mechanics.</div>
+  </div>
+</body>
+</html>
