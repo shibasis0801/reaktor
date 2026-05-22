@@ -18,7 +18,6 @@ dependeasy {
 kotlin {
     common {
         dependencies {
-            api(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
         }
     }
@@ -58,6 +57,16 @@ kotlin {
 
 dependencies {
     add("kspCommonMainMetadata", project(":reaktor-compiler"))
+}
+
+kotlin.sourceSets.commonMain {
+    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
 }
 
 android {
@@ -123,6 +132,11 @@ val androidFlameChart by tasks.registering {
 
 tasks.withType<Test>().configureEach {
     exclude("**/*\$*")
+    exclude("**/*Coder*")
+    exclude("**/*ImplsKt*")
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 // Inject async-profiler into the test JVM when FLAMECHART=true

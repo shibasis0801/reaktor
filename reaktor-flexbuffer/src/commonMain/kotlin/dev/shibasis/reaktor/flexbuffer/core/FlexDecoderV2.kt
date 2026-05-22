@@ -2,11 +2,11 @@
 
 package dev.shibasis.reaktor.flexbuffer.core
 
-import com.google.flatbuffers.kotlin.ArrayReadBuffer
-import com.google.flatbuffers.kotlin.ReadBuffer
-import com.google.flatbuffers.kotlin.Reference
-import com.google.flatbuffers.kotlin.Vector
-import com.google.flatbuffers.kotlin.getRoot
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -18,7 +18,7 @@ import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 
-internal typealias FlexMap = com.google.flatbuffers.kotlin.Map
+internal typealias FlexMap = dev.shibasis.reaktor.flexbuffer.flatbuffers.Map
 
 /**
  * FlexBuffer decoder using kotlinx.serialization's AbstractDecoder.

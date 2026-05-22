@@ -23,7 +23,7 @@ class FlexDecoderTests {
 
     // ---- Helper ----
 
-    private inline fun <reified T> roundTrip(value: T): T {
+    private inline fun <reified T : Any> roundTrip(value: T): T {
         val encoded = FlexBuffers.encode(value)
         return FlexBuffers.decode(encoded)
     }

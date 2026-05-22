@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.flexbuffer.core
 
-import com.google.flatbuffers.kotlin.FlexBuffersBuilder
-import com.google.flatbuffers.kotlin.ReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
 import kotlin.concurrent.Volatile
 
 /**

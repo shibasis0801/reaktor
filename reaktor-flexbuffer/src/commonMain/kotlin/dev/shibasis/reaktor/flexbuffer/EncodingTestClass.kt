@@ -1,13 +1,16 @@
 package dev.shibasis.reaktor.core
 
+import dev.shibasis.reaktor.flexbuffer.core.Struct
 import kotlinx.serialization.Serializable
 
+@Struct
 @Serializable
 data class InnerNestedData(
     val innerValue: Double,
     val innerList: List<String>
 )
 
+@Struct
 @Serializable
 data class NestedData(
     val nestedInt: Int,
@@ -46,6 +49,7 @@ val contextualCase = mapOf(
 )
 
 
+@Struct
 @Serializable
 data class EncodingComplexCase(
     val booleanField: Boolean = true,

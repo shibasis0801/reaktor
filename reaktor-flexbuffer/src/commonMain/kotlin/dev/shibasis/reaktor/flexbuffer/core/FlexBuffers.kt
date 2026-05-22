@@ -1,9 +1,9 @@
 package dev.shibasis.reaktor.flexbuffer.core
 
-import com.google.flatbuffers.kotlin.ArrayReadBuffer
-import com.google.flatbuffers.kotlin.FlexBuffersBuilder
-import com.google.flatbuffers.kotlin.ReadBuffer
-import com.google.flatbuffers.kotlin.getRoot
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.serializer
@@ -35,11 +35,27 @@ object FlexBuffers {
 
     // ==================== Encoding ====================
 
-    inline fun <reified T> encode(value: T): ByteArray {
+    inline fun <reified T : Any> encode(value: T): ByteArray {
+        FlexCoderRegistry.get<T>()?.let { coder ->
+            return encodeDirect(coder, value)
+        }
         return encode(serializer<T>(), value)
     }
 
+    @PublishedApi
+    internal fun <T : Any> encodeDirect(coder: FlexCoder<T>, value: T): ByteArray {
+        return FlexBufferPool.encode {
+            coder.encode(this, value)
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
     fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
+        // Accelerate: if a FlexCoder is registered for this type, bypass serialization entirely
+        val coder = FlexCoderRegistry.getBySerialName<Any>(serializer.descriptor.serialName)
+        if (coder != null) {
+            return encodeDirect(coder as FlexCoder<Any>, value as Any)
+        }
         return FlexEncoderV2.encode(serializer, value)
     }
 
@@ -67,11 +83,27 @@ object FlexBuffers {
 
     // ==================== Decoding ====================
 
-    inline fun <reified T> decode(bytes: ByteArray): T {
+    inline fun <reified T : Any> decode(bytes: ByteArray): T {
+        FlexCoderRegistry.get<T>()?.let { coder ->
+            return decodeDirect(coder, bytes)
+        }
         return decode(serializer<T>(), bytes)
     }
 
+    @PublishedApi
+    internal fun <T : Any> decodeDirect(coder: FlexCoder<T>, bytes: ByteArray): T {
+        val buffer = ArrayReadBuffer(bytes)
+        val root = getRoot(buffer)
+        return coder.decode(root)
+    }
+
+    @Suppress("UNCHECKED_CAST")
     fun <T> decode(deserializer: DeserializationStrategy<T>, bytes: ByteArray): T {
+        // Accelerate: if a FlexCoder is registered for this type, bypass deserialization entirely
+        val coder = FlexCoderRegistry.getBySerialName<Any>(deserializer.descriptor.serialName)
+        if (coder != null) {
+            return decodeDirect(coder as FlexCoder<Any>, bytes) as T
+        }
         return FlexDecoderV2.decode(deserializer, bytes)
     }
 
@@ -85,7 +117,7 @@ object FlexBuffers {
         return FlexDecoderV2.decode(deserializer, buffer)
     }
 
-    fun getRoot(bytes: ByteArray): com.google.flatbuffers.kotlin.Reference {
+    fun getRoot(bytes: ByteArray): dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference {
         return getRoot(ArrayReadBuffer(bytes))
     }
 
@@ -118,10 +150,10 @@ object FlexBuffers {
 
 // ==================== Extension Functions ====================
 
-inline fun <reified T> T.toFlexBuffer(): ByteArray {
+inline fun <reified T : Any> T.toFlexBuffer(): ByteArray {
     return FlexBuffers.encode(this)
 }
 
-inline fun <reified T> ByteArray.fromFlexBuffer(): T {
+inline fun <reified T : Any> ByteArray.fromFlexBuffer(): T {
     return FlexBuffers.decode(this)
 }
