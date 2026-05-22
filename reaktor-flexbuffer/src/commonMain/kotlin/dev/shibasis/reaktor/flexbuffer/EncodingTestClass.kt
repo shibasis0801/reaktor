@@ -18,6 +18,17 @@ data class NestedData(
     val innerNestedData: List<InnerNestedData>
 )
 
+@Struct
+@Serializable
+data class NullableTestStruct(
+    val name: String,
+    val age: Int? = null,
+    val bio: String? = null,
+    val scores: List<Int>? = null,
+    val metadata: Map<String, String>? = null,
+    val nested: InnerNestedData? = null
+)
+
 @Serializable
 data class EncodingSimpleCase(
     val mapOfStringToInt: Map<String, Int> = mapOf("one" to 1, "two" to 2, "three" to 3),

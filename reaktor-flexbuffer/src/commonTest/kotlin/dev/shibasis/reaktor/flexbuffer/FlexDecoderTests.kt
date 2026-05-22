@@ -4,6 +4,8 @@ import dev.shibasis.reaktor.core.EncodingComplexCase
 import dev.shibasis.reaktor.core.EncodingSimpleCase
 import dev.shibasis.reaktor.core.InnerNestedData
 import dev.shibasis.reaktor.core.NestedData
+import dev.shibasis.reaktor.core.NullableTestStruct
+import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -301,6 +303,42 @@ class FlexDecoderTests {
             assertEquals(inner.innerValue, decoded.innerNestedData[i].innerValue)
             assertEquals(inner.innerList, decoded.innerNestedData[i].innerList)
         }
+    }
+
+    // ---- Nullable field support ----
+
+    @Test
+    fun nullableFieldsWithNulls() {
+        registerGeneratedFlexCoders()
+        val data = NullableTestStruct(name = "test")
+        val decoded = roundTrip(data)
+        assertEquals("test", decoded.name)
+        assertEquals(null, decoded.age)
+        assertEquals(null, decoded.bio)
+        assertEquals(null, decoded.scores)
+        assertEquals(null, decoded.metadata)
+        assertEquals(null, decoded.nested)
+    }
+
+    @Test
+    fun nullableFieldsWithValues() {
+        registerGeneratedFlexCoders()
+        val nested = InnerNestedData(innerValue = 42.0, innerList = listOf("a", "b"))
+        val data = NullableTestStruct(
+            name = "full",
+            age = 30,
+            bio = "hello",
+            scores = listOf(1, 2, 3),
+            metadata = mapOf("k" to "v"),
+            nested = nested
+        )
+        val decoded = roundTrip(data)
+        assertEquals("full", decoded.name)
+        assertEquals(30, decoded.age)
+        assertEquals("hello", decoded.bio)
+        assertEquals(listOf(1, 2, 3), decoded.scores)
+        assertEquals(mapOf("k" to "v"), decoded.metadata)
+        assertEquals(nested, decoded.nested)
     }
 
     // ---- Performance: encode-decode vs JSON ----

@@ -405,42 +405,67 @@ class FlexCoderProcessor(
         val nullable = type.isMarkedNullable
         val mapAccess = "map[$index]"
 
+        // For nullable fields, wrap with isNullAt check
+        if (nullable) {
+            builder.beginControlFlow("val _$fieldName = if (map.isNullAt($index))")
+            builder.addStatement("null")
+            builder.nextControlFlow("else")
+            generateDecodeFieldInner(builder, fieldName, typeName, type, index, mapAccess)
+            builder.endControlFlow()
+        } else {
+            generateDecodeFieldInner(builder, fieldName, typeName, type, index, mapAccess)
+        }
+    }
+
+    private fun generateDecodeFieldInner(
+        builder: FunSpec.Builder,
+        fieldName: String,
+        typeName: String,
+        type: KSType,
+        index: Int,
+        mapAccess: String
+    ) {
+        // When called from nullable context, we don't prefix "val _$fieldName ="
+        // because the outer if/else expression handles it
+        val isInNullableBlock = type.isMarkedNullable
+        val prefix = if (isInNullableBlock) "" else "val _$fieldName = "
+
         when (typeName) {
-            "kotlin.Boolean" -> builder.addStatement("val _$fieldName = map.getBoolean($index)")
-            "kotlin.Byte" -> builder.addStatement("val _$fieldName = map.getInt($index).toByte()")
-            "kotlin.Short" -> builder.addStatement("val _$fieldName = map.getInt($index).toShort()")
-            "kotlin.Int" -> builder.addStatement("val _$fieldName = map.getInt($index)")
-            "kotlin.Long" -> builder.addStatement("val _$fieldName = map.getLong($index)")
-            "kotlin.Float" -> builder.addStatement("val _$fieldName = map.getFloat($index)")
-            "kotlin.Double" -> builder.addStatement("val _$fieldName = map.getDouble($index)")
-            "kotlin.Char" -> builder.addStatement("val _$fieldName = map.getInt($index).toChar()")
-            "kotlin.String" -> builder.addStatement("val _$fieldName = map.getString($index)")
-            "kotlin.ByteArray" -> builder.addStatement("val _$fieldName = $mapAccess.toBlob().toByteArray()")
+            "kotlin.Boolean" -> builder.addStatement("${prefix}map.getBoolean($index)")
+            "kotlin.Byte" -> builder.addStatement("${prefix}map.getInt($index).toByte()")
+            "kotlin.Short" -> builder.addStatement("${prefix}map.getInt($index).toShort()")
+            "kotlin.Int" -> builder.addStatement("${prefix}map.getInt($index)")
+            "kotlin.Long" -> builder.addStatement("${prefix}map.getLong($index)")
+            "kotlin.Float" -> builder.addStatement("${prefix}map.getFloat($index)")
+            "kotlin.Double" -> builder.addStatement("${prefix}map.getDouble($index)")
+            "kotlin.Char" -> builder.addStatement("${prefix}map.getInt($index).toChar()")
+            "kotlin.String" -> builder.addStatement("${prefix}map.getString($index)")
+            "kotlin.ByteArray" -> builder.addStatement("${prefix}$mapAccess.toBlob().toByteArray()")
             "kotlin.IntArray" -> {
                 builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("val _$fieldName = IntArray(_${fieldName}_vec.size) { _${fieldName}_vec.readInt(it) }")
+                builder.addStatement("${prefix}IntArray(_${fieldName}_vec.size) { _${fieldName}_vec.readInt(it) }")
             }
             "kotlin.LongArray" -> {
                 builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("val _$fieldName = LongArray(_${fieldName}_vec.size) { _${fieldName}_vec.readLong(it) }")
+                builder.addStatement("${prefix}LongArray(_${fieldName}_vec.size) { _${fieldName}_vec.readLong(it) }")
             }
             "kotlin.FloatArray" -> {
                 builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("val _$fieldName = FloatArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it).toFloat() }")
+                builder.addStatement("${prefix}FloatArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it).toFloat() }")
             }
             "kotlin.DoubleArray" -> {
                 builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("val _$fieldName = DoubleArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it) }")
+                builder.addStatement("${prefix}DoubleArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it) }")
             }
             "kotlin.collections.List", "kotlin.collections.MutableList", "kotlin.collections.ArrayList" -> {
-                generateDecodeList(builder, fieldName, type, index)
+                generateDecodeList(builder, fieldName, type, index, isInNullableBlock)
             }
             "kotlin.collections.Set", "kotlin.collections.MutableSet", "kotlin.collections.LinkedHashSet" -> {
-                generateDecodeSet(builder, fieldName, type, index)
+                generateDecodeSet(builder, fieldName, type, index, isInNullableBlock)
             }
             "kotlin.collections.Map", "kotlin.collections.MutableMap",
             "kotlin.collections.LinkedHashMap", "kotlin.collections.HashMap" -> {
-                generateDecodeMap(builder, fieldName, type, index)
+                generateDecodeMap(builder, fieldName, type, index, isInNullableBlock)
             }
             else -> {
                 val decl = type.declaration
@@ -449,80 +474,85 @@ class FlexCoderProcessor(
                         decl.packageName.asString(),
                         "${decl.simpleName.asString()}FlexCoder"
                     )
-                    builder.addStatement("val _$fieldName = %T.decodeMap(map.getMap($index))", coderName)
+                    builder.addStatement("${prefix}%T.decodeMap(map.getMap($index))", coderName)
                 } else {
                     builder.addComment("TODO: unsupported type $typeName for field $fieldName")
-                    builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported type $typeName")
+                    builder.addStatement("${prefix}error(%S)", "unsupported type $typeName")
                 }
             }
         }
     }
 
-    private fun generateDecodeList(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int) {
+    private fun generateDecodeList(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int, skipPrefix: Boolean = false) {
         val elemType = type.arguments.firstOrNull()?.type?.resolve() ?: return
         val elemName = elemType.declaration.qualifiedName?.asString() ?: return
+        val prefix = if (skipPrefix) "" else "val _$fieldName = "
 
         builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
 
         when (elemName) {
-            "kotlin.Int" -> builder.addStatement("val _$fieldName = ArrayList<Int>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i)) }")
-            "kotlin.Long" -> builder.addStatement("val _$fieldName = ArrayList<Long>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readLong(i)) }")
-            "kotlin.Float" -> builder.addStatement("val _$fieldName = ArrayList<Float>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readDouble(i).toFloat()) }")
-            "kotlin.Double" -> builder.addStatement("val _$fieldName = ArrayList<Double>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readDouble(i)) }")
-            "kotlin.String" -> builder.addStatement("val _$fieldName = ArrayList<String>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readString(i)) }")
-            "kotlin.Short" -> builder.addStatement("val _$fieldName = ArrayList<Short>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i).toShort()) }")
-            "kotlin.Char" -> builder.addStatement("val _$fieldName = ArrayList<Char>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i).toChar()) }")
+            "kotlin.Int" -> builder.addStatement("${prefix}ArrayList<Int>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i)) }")
+            "kotlin.Long" -> builder.addStatement("${prefix}ArrayList<Long>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readLong(i)) }")
+            "kotlin.Float" -> builder.addStatement("${prefix}ArrayList<Float>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readDouble(i).toFloat()) }")
+            "kotlin.Double" -> builder.addStatement("${prefix}ArrayList<Double>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readDouble(i)) }")
+            "kotlin.String" -> builder.addStatement("${prefix}ArrayList<String>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readString(i)) }")
+            "kotlin.Short" -> builder.addStatement("${prefix}ArrayList<Short>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i).toShort()) }")
+            "kotlin.Char" -> builder.addStatement("${prefix}ArrayList<Char>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i).toChar()) }")
             else -> {
                 val elemDecl = elemType.declaration
                 if (elemDecl is KSClassDeclaration && hasStruct(elemDecl)) {
                     val coderName = ClassName(elemDecl.packageName.asString(), "${elemDecl.simpleName.asString()}FlexCoder")
-                    builder.addStatement("val _$fieldName = ArrayList<${elemDecl.simpleName.asString()}>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(%T.decodeMap(_${fieldName}_vec.readMap(i))) }", coderName)
+                    builder.addStatement("${prefix}ArrayList<${elemDecl.simpleName.asString()}>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(%T.decodeMap(_${fieldName}_vec.readMap(i))) }", coderName)
                 } else if (elemName.startsWith("kotlin.collections.List")) {
                     val innerType = elemType.arguments.firstOrNull()?.type?.resolve()
                     val innerName = innerType?.declaration?.qualifiedName?.asString()
                     when (innerName) {
-                        "kotlin.Int" -> builder.addStatement("val _$fieldName = ArrayList<List<Int>>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) { val inner = _${fieldName}_vec.readVector(i); list.add(ArrayList<Int>(inner.size).also { il -> for (j in 0 until inner.size) il.add(inner.readInt(j)) }) } }")
+                        "kotlin.Int" -> builder.addStatement("${prefix}ArrayList<List<Int>>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) { val inner = _${fieldName}_vec.readVector(i); list.add(ArrayList<Int>(inner.size).also { il -> for (j in 0 until inner.size) il.add(inner.readInt(j)) }) } }")
                         else -> builder.addComment("TODO: unsupported List<List<$innerName>> for $fieldName")
                     }
                 } else {
                     builder.addComment("TODO: unsupported list element $elemName for $fieldName")
-                    builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                    if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                    else builder.addStatement("error(%S)", "unsupported")
                 }
             }
         }
     }
 
-    private fun generateDecodeSet(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int) {
+    private fun generateDecodeSet(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int, skipPrefix: Boolean = false) {
         val elemType = type.arguments.firstOrNull()?.type?.resolve() ?: return
         val elemName = elemType.declaration.qualifiedName?.asString() ?: return
+        val prefix = if (skipPrefix) "" else "val _$fieldName = "
 
         builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
 
         when (elemName) {
-            "kotlin.Int" -> builder.addStatement("val _$fieldName = LinkedHashSet<Int>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readInt(i)) }")
-            "kotlin.Float" -> builder.addStatement("val _$fieldName = LinkedHashSet<Float>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readDouble(i).toFloat()) }")
-            "kotlin.String" -> builder.addStatement("val _$fieldName = LinkedHashSet<String>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readString(i)) }")
+            "kotlin.Int" -> builder.addStatement("${prefix}LinkedHashSet<Int>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readInt(i)) }")
+            "kotlin.Float" -> builder.addStatement("${prefix}LinkedHashSet<Float>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readDouble(i).toFloat()) }")
+            "kotlin.String" -> builder.addStatement("${prefix}LinkedHashSet<String>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readString(i)) }")
             else -> {
                 if (elemName.startsWith("kotlin.collections.Set")) {
                     val innerType = elemType.arguments.firstOrNull()?.type?.resolve()
                     val innerName = innerType?.declaration?.qualifiedName?.asString()
                     when (innerName) {
-                        "kotlin.Float" -> builder.addStatement("val _$fieldName = LinkedHashSet<Set<Float>>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) { val inner = _${fieldName}_vec.readVector(i); s.add(LinkedHashSet<Float>(inner.size).also { is2 -> for (j in 0 until inner.size) is2.add(inner.readDouble(j).toFloat()) }) } }")
+                        "kotlin.Float" -> builder.addStatement("${prefix}LinkedHashSet<Set<Float>>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) { val inner = _${fieldName}_vec.readVector(i); s.add(LinkedHashSet<Float>(inner.size).also { is2 -> for (j in 0 until inner.size) is2.add(inner.readDouble(j).toFloat()) }) } }")
                         else -> builder.addComment("TODO: unsupported Set<Set<$innerName>>")
                     }
                 } else {
                     builder.addComment("TODO: unsupported set element $elemName for $fieldName")
-                    builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                    if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                    else builder.addStatement("error(%S)", "unsupported")
                 }
             }
         }
     }
 
-    private fun generateDecodeMap(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int) {
+    private fun generateDecodeMap(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int, skipPrefix: Boolean = false) {
         val keyType = type.arguments.getOrNull(0)?.type?.resolve() ?: return
         val valueType = type.arguments.getOrNull(1)?.type?.resolve() ?: return
         val keyTypeName = keyType.declaration.qualifiedName?.asString() ?: return
         val valueTypeName = valueType.declaration.qualifiedName?.asString() ?: return
+        val prefix = if (skipPrefix) "" else "val _$fieldName = "
 
         builder.addStatement("val _${fieldName}_map = map.getMap($index)")
 
@@ -534,31 +564,33 @@ class FlexCoderProcessor(
         }
 
         when (valueTypeName) {
-            "kotlin.Boolean" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, Boolean>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getBoolean(i) }")
-            "kotlin.Int" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, Int>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getInt(i) }")
-            "kotlin.Long" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, Long>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getLong(i) }")
-            "kotlin.Float" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, Float>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getFloat(i) }")
-            "kotlin.String" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, String>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getString(i) }")
-            "kotlin.Double" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, Double>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getDouble(i) }")
+            "kotlin.Boolean" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Boolean>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getBoolean(i) }")
+            "kotlin.Int" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Int>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getInt(i) }")
+            "kotlin.Long" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Long>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getLong(i) }")
+            "kotlin.Float" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Float>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getFloat(i) }")
+            "kotlin.String" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, String>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getString(i) }")
+            "kotlin.Double" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Double>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getDouble(i) }")
             else -> {
                 val valueDecl = valueType.declaration
                 if (valueDecl is KSClassDeclaration && hasStruct(valueDecl)) {
                     val coderName = ClassName(valueDecl.packageName.asString(), "${valueDecl.simpleName.asString()}FlexCoder")
-                    builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, ${valueDecl.simpleName.asString()}>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = %T.decodeMap(_${fieldName}_map.getMap(i)) }", coderName)
+                    builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, ${valueDecl.simpleName.asString()}>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = %T.decodeMap(_${fieldName}_map.getMap(i)) }", coderName)
                 } else if (valueTypeName.startsWith("kotlin.collections.List")) {
                     val innerType = valueType.arguments.firstOrNull()?.type?.resolve()
                     val innerName = innerType?.declaration?.qualifiedName?.asString()
                     when (innerName) {
-                        "kotlin.Double" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, List<Double>>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) { val vec = _${fieldName}_map.getVector(i); m[$keyConvert] = ArrayList<Double>(vec.size).also { list -> for (j in 0 until vec.size) list.add(vec.readDouble(j)) } } }")
-                        "kotlin.Int" -> builder.addStatement("val _$fieldName = LinkedHashMap<${keyType.toSimpleType()}, List<Int>>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) { val vec = _${fieldName}_map.getVector(i); m[$keyConvert] = ArrayList<Int>(vec.size).also { list -> for (j in 0 until vec.size) list.add(vec.readInt(j)) } } }")
+                        "kotlin.Double" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, List<Double>>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) { val vec = _${fieldName}_map.getVector(i); m[$keyConvert] = ArrayList<Double>(vec.size).also { list -> for (j in 0 until vec.size) list.add(vec.readDouble(j)) } } }")
+                        "kotlin.Int" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, List<Int>>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) { val vec = _${fieldName}_map.getVector(i); m[$keyConvert] = ArrayList<Int>(vec.size).also { list -> for (j in 0 until vec.size) list.add(vec.readInt(j)) } } }")
                         else -> {
                             builder.addComment("TODO: unsupported Map value List<$innerName>")
-                            builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                            if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                            else builder.addStatement("error(%S)", "unsupported")
                         }
                     }
                 } else {
                     builder.addComment("TODO: unsupported map value $valueTypeName for $fieldName")
-                    builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                    if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
+                    else builder.addStatement("error(%S)", "unsupported")
                 }
             }
         }
@@ -619,35 +651,29 @@ class FlexCoderProcessor(
         index: Int
     ): PropertySpec? {
         val typeName = type.declaration.qualifiedName?.asString() ?: return null
+        val nullable = type.isMarkedNullable
+
+        // Helper to build a nullable or non-nullable property with appropriate getter
+        fun scalarProp(propType: TypeName, readExpr: String): PropertySpec {
+            val actualType = if (nullable) propType.copy(nullable = true) else propType
+            val getter = if (nullable) {
+                FunSpec.getterBuilder().addStatement("return if (map.isNullAt($index)) null else $readExpr").build()
+            } else {
+                FunSpec.getterBuilder().addStatement("return $readExpr").build()
+            }
+            return PropertySpec.builder(name, actualType).getter(getter).build()
+        }
 
         return when (typeName) {
-            "kotlin.Boolean" -> PropertySpec.builder(name, Boolean::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getBoolean($index)").build())
-                .build()
-            "kotlin.Byte" -> PropertySpec.builder(name, Byte::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getInt($index).toByte()").build())
-                .build()
-            "kotlin.Short" -> PropertySpec.builder(name, Short::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getInt($index).toShort()").build())
-                .build()
-            "kotlin.Int" -> PropertySpec.builder(name, Int::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getInt($index)").build())
-                .build()
-            "kotlin.Long" -> PropertySpec.builder(name, Long::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getLong($index)").build())
-                .build()
-            "kotlin.Float" -> PropertySpec.builder(name, Float::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getFloat($index)").build())
-                .build()
-            "kotlin.Double" -> PropertySpec.builder(name, Double::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getDouble($index)").build())
-                .build()
-            "kotlin.Char" -> PropertySpec.builder(name, Char::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getInt($index).toChar()").build())
-                .build()
-            "kotlin.String" -> PropertySpec.builder(name, String::class)
-                .getter(FunSpec.getterBuilder().addStatement("return map.getString($index)").build())
-                .build()
+            "kotlin.Boolean" -> scalarProp(Boolean::class.asTypeName(), "map.getBoolean($index)")
+            "kotlin.Byte" -> scalarProp(Byte::class.asTypeName(), "map.getInt($index).toByte()")
+            "kotlin.Short" -> scalarProp(Short::class.asTypeName(), "map.getInt($index).toShort()")
+            "kotlin.Int" -> scalarProp(Int::class.asTypeName(), "map.getInt($index)")
+            "kotlin.Long" -> scalarProp(Long::class.asTypeName(), "map.getLong($index)")
+            "kotlin.Float" -> scalarProp(Float::class.asTypeName(), "map.getFloat($index)")
+            "kotlin.Double" -> scalarProp(Double::class.asTypeName(), "map.getDouble($index)")
+            "kotlin.Char" -> scalarProp(Char::class.asTypeName(), "map.getInt($index).toChar()")
+            "kotlin.String" -> scalarProp(String::class.asTypeName(), "map.getString($index)")
             "kotlin.collections.List", "kotlin.collections.MutableList", "kotlin.collections.ArrayList" -> {
                 buildAccessorListProperty(name, type, index)
             }
@@ -665,11 +691,17 @@ class FlexCoderProcessor(
                         decl.packageName.asString(),
                         "${decl.simpleName.asString()}Accessor"
                     )
-                    PropertySpec.builder(name, nestedAccessor)
-                        .getter(FunSpec.getterBuilder()
+                    val propType = if (nullable) nestedAccessor.copy(nullable = true) else nestedAccessor
+                    val getter = if (nullable) {
+                        FunSpec.getterBuilder()
+                            .addStatement("return if (map.isNullAt($index)) null else %T(map.getMap($index))", nestedAccessor)
+                            .build()
+                    } else {
+                        FunSpec.getterBuilder()
                             .addStatement("return %T(map.getMap($index))", nestedAccessor)
-                            .build())
-                        .build()
+                            .build()
+                    }
+                    PropertySpec.builder(name, propType).getter(getter).build()
                 } else null
             }
         }
@@ -682,26 +714,26 @@ class FlexCoderProcessor(
     ): PropertySpec? {
         val elemType = type.arguments.firstOrNull()?.type?.resolve() ?: return null
         val elemName = elemType.declaration.qualifiedName?.asString() ?: return null
+        val nullable = type.isMarkedNullable
+
+        // Helper to build nullable-aware collection property
+        fun collProp(propType: TypeName, readExpr: String, vararg args: Any): PropertySpec {
+            val actualType = if (nullable) propType.copy(nullable = true) else propType
+            val getter = if (nullable) {
+                FunSpec.getterBuilder().addStatement("return if (map.isNullAt($index)) null else $readExpr", *args).build()
+            } else {
+                FunSpec.getterBuilder().addStatement("return $readExpr", *args).build()
+            }
+            return PropertySpec.builder(name, actualType).getter(getter).build()
+        }
 
         return when (elemName) {
-            "kotlin.Int" -> PropertySpec.builder(name, FLEX_INT_LIST)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getVector($index))", FLEX_INT_LIST).build())
-                .build()
-            "kotlin.Long" -> PropertySpec.builder(name, FLEX_LONG_LIST)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getVector($index))", FLEX_LONG_LIST).build())
-                .build()
-            "kotlin.Double" -> PropertySpec.builder(name, FLEX_DOUBLE_LIST)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getVector($index))", FLEX_DOUBLE_LIST).build())
-                .build()
-            "kotlin.Float" -> PropertySpec.builder(name, FLEX_FLOAT_LIST)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getVector($index))", FLEX_FLOAT_LIST).build())
-                .build()
-            "kotlin.String" -> PropertySpec.builder(name, FLEX_STRING_LIST)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getVector($index))", FLEX_STRING_LIST).build())
-                .build()
-            "kotlin.Boolean" -> PropertySpec.builder(name, FLEX_BOOLEAN_LIST)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getVector($index))", FLEX_BOOLEAN_LIST).build())
-                .build()
+            "kotlin.Int" -> collProp(FLEX_INT_LIST, "%T(map.getVector($index))", FLEX_INT_LIST)
+            "kotlin.Long" -> collProp(FLEX_LONG_LIST, "%T(map.getVector($index))", FLEX_LONG_LIST)
+            "kotlin.Double" -> collProp(FLEX_DOUBLE_LIST, "%T(map.getVector($index))", FLEX_DOUBLE_LIST)
+            "kotlin.Float" -> collProp(FLEX_FLOAT_LIST, "%T(map.getVector($index))", FLEX_FLOAT_LIST)
+            "kotlin.String" -> collProp(FLEX_STRING_LIST, "%T(map.getVector($index))", FLEX_STRING_LIST)
+            "kotlin.Boolean" -> collProp(FLEX_BOOLEAN_LIST, "%T(map.getVector($index))", FLEX_BOOLEAN_LIST)
             else -> {
                 val elemDecl = elemType.declaration
                 if (elemDecl is KSClassDeclaration && hasStruct(elemDecl)) {
@@ -709,11 +741,8 @@ class FlexCoderProcessor(
                         elemDecl.packageName.asString(),
                         "${elemDecl.simpleName.asString()}Accessor"
                     )
-                    PropertySpec.builder(name, FLEX_ACCESSOR_LIST.parameterizedBy(nestedAccessor))
-                        .getter(FunSpec.getterBuilder()
-                            .addStatement("return %T(map.getVector($index)) { %T(it) }", FLEX_ACCESSOR_LIST, nestedAccessor)
-                            .build())
-                        .build()
+                    collProp(FLEX_ACCESSOR_LIST.parameterizedBy(nestedAccessor),
+                        "%T(map.getVector($index)) { %T(it) }", FLEX_ACCESSOR_LIST, nestedAccessor)
                 } else null
             }
         }
@@ -726,20 +755,23 @@ class FlexCoderProcessor(
     ): PropertySpec? {
         val valueType = type.arguments.getOrNull(1)?.type?.resolve() ?: return null
         val valueTypeName = valueType.declaration.qualifiedName?.asString() ?: return null
+        val nullable = type.isMarkedNullable
+
+        fun mapProp(propType: TypeName, readExpr: String, vararg args: Any): PropertySpec {
+            val actualType = if (nullable) propType.copy(nullable = true) else propType
+            val getter = if (nullable) {
+                FunSpec.getterBuilder().addStatement("return if (map.isNullAt($index)) null else $readExpr", *args).build()
+            } else {
+                FunSpec.getterBuilder().addStatement("return $readExpr", *args).build()
+            }
+            return PropertySpec.builder(name, actualType).getter(getter).build()
+        }
 
         return when (valueTypeName) {
-            "kotlin.Int" -> PropertySpec.builder(name, FLEX_STRING_INT_MAP)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getMap($index))", FLEX_STRING_INT_MAP).build())
-                .build()
-            "kotlin.Double" -> PropertySpec.builder(name, FLEX_STRING_DOUBLE_MAP)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getMap($index))", FLEX_STRING_DOUBLE_MAP).build())
-                .build()
-            "kotlin.String" -> PropertySpec.builder(name, FLEX_STRING_STRING_MAP)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getMap($index))", FLEX_STRING_STRING_MAP).build())
-                .build()
-            "kotlin.Boolean" -> PropertySpec.builder(name, FLEX_STRING_BOOLEAN_MAP)
-                .getter(FunSpec.getterBuilder().addStatement("return %T(map.getMap($index))", FLEX_STRING_BOOLEAN_MAP).build())
-                .build()
+            "kotlin.Int" -> mapProp(FLEX_STRING_INT_MAP, "%T(map.getMap($index))", FLEX_STRING_INT_MAP)
+            "kotlin.Double" -> mapProp(FLEX_STRING_DOUBLE_MAP, "%T(map.getMap($index))", FLEX_STRING_DOUBLE_MAP)
+            "kotlin.String" -> mapProp(FLEX_STRING_STRING_MAP, "%T(map.getMap($index))", FLEX_STRING_STRING_MAP)
+            "kotlin.Boolean" -> mapProp(FLEX_STRING_BOOLEAN_MAP, "%T(map.getMap($index))", FLEX_STRING_BOOLEAN_MAP)
             else -> {
                 val valueDecl = valueType.declaration
                 if (valueDecl is KSClassDeclaration && hasStruct(valueDecl)) {
@@ -747,11 +779,8 @@ class FlexCoderProcessor(
                         valueDecl.packageName.asString(),
                         "${valueDecl.simpleName.asString()}Accessor"
                     )
-                    PropertySpec.builder(name, FLEX_ACCESSOR_MAP.parameterizedBy(nestedAccessor))
-                        .getter(FunSpec.getterBuilder()
-                            .addStatement("return %T(map.getMap($index)) { %T(it) }", FLEX_ACCESSOR_MAP, nestedAccessor)
-                            .build())
-                        .build()
+                    mapProp(FLEX_ACCESSOR_MAP.parameterizedBy(nestedAccessor),
+                        "%T(map.getMap($index)) { %T(it) }", FLEX_ACCESSOR_MAP, nestedAccessor)
                 } else null
             }
         }
