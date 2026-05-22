@@ -718,6 +718,21 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
     return Vector(buffer, buffer.indirect(objEnd, byteWidth), bw)
   }
 
+  /**
+   * Bulk read all ints. TypedVector overrides with a more efficient path.
+   */
+  open fun toIntArray(): IntArray = IntArray(size) { readInt(it) }
+
+  /**
+   * Bulk read all longs. TypedVector overrides with a more efficient path.
+   */
+  open fun toLongArray(): LongArray = LongArray(size) { readLong(it) }
+
+  /**
+   * Bulk read all doubles. TypedVector overrides with a more efficient path.
+   */
+  open fun toDoubleArray(): DoubleArray = DoubleArray(size) { readDouble(it) }
+
   // ─── End direct scalar reads ───
 
   // overrides from Collection<Reference>
@@ -795,6 +810,52 @@ public open class TypedVector(
     val start = buffer.indirect(childPos, byteWidth)
     val strSize = buffer.readULong(start - byteWidth, byteWidth).toInt()
     return buffer.getString(start, strSize)
+  }
+
+  /**
+   * Bulk read all ints into an IntArray. Avoids per-element virtual dispatch
+   * by hoisting the byteWidth outside the loop.
+   */
+  override fun toIntArray(): IntArray {
+    val n = size
+    val result = IntArray(n)
+    val bw = byteWidth
+    var pos = end
+    for (i in 0 until n) {
+      result[i] = buffer.readULong(pos, bw).toInt()
+      pos += bw
+    }
+    return result
+  }
+
+  /**
+   * Bulk read all longs into a LongArray.
+   */
+  override fun toLongArray(): LongArray {
+    val n = size
+    val result = LongArray(n)
+    val bw = byteWidth
+    var pos = end
+    for (i in 0 until n) {
+      result[i] = buffer.readULong(pos, bw).toLong()
+      pos += bw
+    }
+    return result
+  }
+
+  /**
+   * Bulk read all doubles into a DoubleArray.
+   */
+  override fun toDoubleArray(): DoubleArray {
+    val n = size
+    val result = DoubleArray(n)
+    val bw = byteWidth
+    var pos = end
+    for (i in 0 until n) {
+      result[i] = buffer.readFloat(pos, bw)
+      pos += bw
+    }
+    return result
   }
 }
 

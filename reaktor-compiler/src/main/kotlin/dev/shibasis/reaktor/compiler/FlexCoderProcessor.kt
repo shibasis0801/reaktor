@@ -442,20 +442,17 @@ class FlexCoderProcessor(
             "kotlin.String" -> builder.addStatement("${prefix}map.getString($index)")
             "kotlin.ByteArray" -> builder.addStatement("${prefix}$mapAccess.toBlob().toByteArray()")
             "kotlin.IntArray" -> {
-                builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("${prefix}IntArray(_${fieldName}_vec.size) { _${fieldName}_vec.readInt(it) }")
+                builder.addStatement("${prefix}map.getVector($index).toIntArray()")
             }
             "kotlin.LongArray" -> {
-                builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("${prefix}LongArray(_${fieldName}_vec.size) { _${fieldName}_vec.readLong(it) }")
+                builder.addStatement("${prefix}map.getVector($index).toLongArray()")
             }
             "kotlin.FloatArray" -> {
                 builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
                 builder.addStatement("${prefix}FloatArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it).toFloat() }")
             }
             "kotlin.DoubleArray" -> {
-                builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("${prefix}DoubleArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it) }")
+                builder.addStatement("${prefix}map.getVector($index).toDoubleArray()")
             }
             "kotlin.collections.List", "kotlin.collections.MutableList", "kotlin.collections.ArrayList" -> {
                 generateDecodeList(builder, fieldName, type, index, isInNullableBlock)
