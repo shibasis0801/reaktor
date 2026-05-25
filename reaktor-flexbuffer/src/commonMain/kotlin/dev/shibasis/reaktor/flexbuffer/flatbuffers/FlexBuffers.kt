@@ -764,6 +764,12 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
    */
   open fun toDoubleArray(): DoubleArray = DoubleArray(size) { readDouble(it) }
 
+  /**
+   * Bulk read all floats. Reads doubles and narrows to Float; this matches the
+   * `List<Float>` decode emitted by KSP.
+   */
+  open fun toFloatArray(): FloatArray = FloatArray(size) { readDouble(it).toFloat() }
+
   // ─── End direct scalar reads ───
 
   // overrides from Collection<Reference>

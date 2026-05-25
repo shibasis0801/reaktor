@@ -125,6 +125,48 @@ class MicroBench {
         val gsLen2Ns = ns { map.getString(1) }
         println("getString(1) [len ${s1.length}]      : $gsLen2Ns ns")
 
+        // 11) Vector read perf (TimeSeries hot loop)
+        val tsBytes = FlexBuffers.encode(BenchmarkData.timeSeriesChunk())
+        val tsMap = getRoot(ArrayReadBuffer(tsBytes)).toMap()
+        val timestampsVec = tsMap.getVector(7)  // timestamps field
+        val valuesVec = tsMap.getVector(8)      // values field
+        println("timestamps vec size: ${timestampsVec.size}, values vec size: ${valuesVec.size}")
+
+        val readLongNs = ns { timestampsVec.readLong(0) }
+        println("vec.readLong(0)               : $readLongNs ns")
+
+        val readDoubleNs = ns { valuesVec.readDouble(0) }
+        println("vec.readDouble(0)             : $readDoubleNs ns")
+
+        val toLongArrayNs = ns { timestampsVec.toLongArray() }
+        println("vec.toLongArray() [256 longs] : $toLongArrayNs ns")
+
+        val toDoubleArrayNs = ns { valuesVec.toDoubleArray() }
+        println("vec.toDoubleArray() [256 dbls]: $toDoubleArrayNs ns")
+
+        // Cost of boxing 256 longs into ArrayList (what generated code currently does)
+        val boxedListNs = ns {
+            ArrayList<Long>(timestampsVec.size).also { list ->
+                for (i in 0 until timestampsVec.size) list.add(timestampsVec.readLong(i))
+            }
+        }
+        println("ArrayList<Long>(256, boxed)   : $boxedListNs ns")
+
+        val boxedListDoubleNs = ns {
+            ArrayList<Double>(valuesVec.size).also { list ->
+                for (i in 0 until valuesVec.size) list.add(valuesVec.readDouble(i))
+            }
+        }
+        println("ArrayList<Double>(256, boxed) : $boxedListDoubleNs ns")
+
+        // Cost of just allocating 256 boxed Longs
+        val boxLongOnly = ns {
+            val list = ArrayList<Long>(256)
+            for (i in 0 until 256) list.add(i.toLong())
+            list
+        }
+        println("ArrayList<Long>(256) box only : $boxLongOnly ns")
+
         // Whole-decode timings to anchor
         val fullDecodeUpNs = ns { FlexBuffers.decode<BenchUserProfile>(bytes) }
         println("FlexBuffers.decode<UserProfile>(): $fullDecodeUpNs ns  (= ${fullDecodeUpNs / 1000.0}us)")
