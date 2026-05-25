@@ -100,3 +100,27 @@ internal actual fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: 
     val written = Utf8.encodeUtf8Array(input.subSequence(i, n), out, j, out.size - j)
     return written
 }
+
+/**
+ * UTF-8 byte length, ASCII fast-path.
+ *
+ * iOS sample profile: the stock `Utf8.encodedLength` was 6.9% of CPU and drove
+ * `Kotlin_String_get` to 15.2% because it walks every character even for ASCII.
+ * A tight loop that bails on the first non-ASCII char eliminates most of that
+ * — for ASCII strings (the common case), byte_length == char_count.
+ *
+ * For non-ASCII, defer to the stock encoder which already has the correct
+ * variable-byte-width logic.
+ */
+internal actual fun fastEncodedLength(input: CharSequence): Int {
+    val n = input.length
+    var i = 0
+    // Pure-ASCII fast path: one compare per char, no .also{} captures.
+    while (i < n) {
+        if (input[i].code >= 0x80) break
+        i++
+    }
+    if (i == n) return n
+    // Has non-ASCII: tail-encode via the stock UTF-8 length walker.
+    return Utf8.encodedLength(input)
+}

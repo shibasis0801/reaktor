@@ -26,7 +26,13 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @OptIn(ExperimentalUnsignedTypes::class)
 object FlexBufferPool {
     private const val DEFAULT_POOL_SIZE = 16
-    private const val DEFAULT_BUFFER_SIZE = 4096
+    // 16 KB initial buffer: pre-grown so ApiResponse-sized payloads (7.5 KB) and
+    // smaller never trigger a buffer resize during encode. The iOS sample profile
+    // showed ArrayReadWriteBuffer.requestCapacity at 12.1% of CPU — most of that
+    // was bounds-check overhead, not real resizes. Pre-growing also means the
+    // builder amortises one allocation across thousands of encodes (pool reuse).
+    // Memory cost is negligible: 16 pool slots × 16 KB = 256 KB resident.
+    private const val DEFAULT_BUFFER_SIZE = 16 * 1024
     private const val POOL_MASK = DEFAULT_POOL_SIZE - 1
 
     private val pool = Array(DEFAULT_POOL_SIZE) { AtomicReference<FlexBuffersBuilder?>(null) }

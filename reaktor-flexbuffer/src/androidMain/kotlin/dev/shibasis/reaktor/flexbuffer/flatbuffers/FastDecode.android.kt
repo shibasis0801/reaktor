@@ -8,3 +8,6 @@ internal actual fun fastDecodeUtf8(bytes: ByteArray, startIndex: Int, endIndex: 
 
 internal actual fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: Int): Int =
     Utf8.encodeUtf8Array(input, out, offset, out.size - offset)
+
+internal actual fun fastEncodedLength(input: CharSequence): Int =
+    Utf8.encodedLength(input)

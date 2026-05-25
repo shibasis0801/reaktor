@@ -53,6 +53,20 @@ kotlin {
         }
     }
 
+    // iOS-sim long-running benchmark executable for external profiling
+    // (sample, xctrace, Instruments). Runs ApiResponse decode in a tight loop
+    // so a sampler can capture meaningful stack traces.
+    // Build:  ./gradlew :reaktor-flexbuffer:linkBenchReleaseExecutableIosSimulatorArm64
+    // Run:    ./reaktor-flexbuffer/build/bin/iosSimulatorArm64/benchReleaseExecutable/bench.kexe
+    iosSimulatorArm64 {
+        binaries {
+            executable("bench", listOf(org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE)) {
+                entryPoint = "dev.shibasis.reaktor.flexbuffer.bench.iosBenchMain"
+                freeCompilerArgs += listOf("-opt")
+            }
+        }
+    }
+
     sourceSets {
         compilerOptions {
             freeCompilerArgs.addAll(

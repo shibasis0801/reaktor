@@ -25,3 +25,16 @@ internal expect fun fastDecodeUtf8(bytes: ByteArray, startIndex: Int, endIndex: 
  * A cleaner direct loop is measurably faster.
  */
 internal expect fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: Int): Int
+
+/**
+ * Per-platform fast UTF-8 byte-length computation for a CharSequence.
+ *
+ * iOS sample profile showed Utf8.encodedLength taking 6.9% of CPU and driving
+ * Kotlin_String_get to 15.2% (it walks every char of the string). For pure-ASCII
+ * strings (the majority of serialised data — URLs, names, codes), the byte length
+ * equals the character count and we can skip the character-by-character walk.
+ *
+ * Per-platform implementations can use intrinsics: JVM uses a tight `if (c < 0x80)`
+ * loop that JIT vectorises; Native uses CFString/NSString byte-length APIs.
+ */
+internal expect fun fastEncodedLength(input: CharSequence): Int

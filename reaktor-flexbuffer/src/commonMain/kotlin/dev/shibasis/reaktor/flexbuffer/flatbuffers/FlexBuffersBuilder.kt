@@ -733,7 +733,7 @@ public class FlexBuffersBuilder(
     return if ((shareFlag and SHARE_KEYS) != 0) {
       stringKeyPool.getOrPut(key) {
         val pos: Int = buffer.writePosition
-        val encodedKeySize = Utf8.encodedLength(key)
+        val encodedKeySize = fastEncodedLength(key)
         buffer.requestAdditionalCapacity(encodedKeySize + 1)
         buffer.put(key, encodedKeySize)
         buffer.put(ZeroByte)
@@ -741,7 +741,7 @@ public class FlexBuffersBuilder(
       }
     } else {
       val pos: Int = buffer.writePosition
-      val encodedKeySize = Utf8.encodedLength(key)
+      val encodedKeySize = fastEncodedLength(key)
       buffer.requestAdditionalCapacity(encodedKeySize + 1)
       buffer.put(key, encodedKeySize)
       buffer.put(ZeroByte)
@@ -750,7 +750,7 @@ public class FlexBuffersBuilder(
   }
 
   private fun writeString(key: Int, s: String): Value {
-    val encodedSize = Utf8.encodedLength(s)
+    val encodedSize = fastEncodedLength(s)
     val bitWidth = encodedSize.toULong().widthInUBits()
     val byteWidth = align(bitWidth)
 
