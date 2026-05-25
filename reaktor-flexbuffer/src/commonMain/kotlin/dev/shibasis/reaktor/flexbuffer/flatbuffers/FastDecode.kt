@@ -1,0 +1,27 @@
+package dev.shibasis.reaktor.flexbuffer.flatbuffers
+
+/**
+ * Per-platform fast UTF-8 → String decoder.
+ *
+ * Micro-bench finding: Kotlin/Native's stdlib `ByteArray.decodeToString(start, end)`
+ * is ~10× slower per byte than JVM's. For a 62-byte avatar URL, JVM took ~30 ns,
+ * iOS took ~270 ns — and ApiResponse hits this 100+ times per decode.
+ *
+ * This expect/actual lets each platform pick the fastest UTF-8 decode path:
+ *   - JVM: just delegate to stdlib (already calls into highly optimised native code)
+ *   - Native: use ASCII fast-path with NSString fallback
+ *   - JS: stdlib is also fine on V8
+ */
+internal expect fun fastDecodeUtf8(bytes: ByteArray, startIndex: Int, endIndex: Int): String
+
+/**
+ * Per-platform fast String → UTF-8 byte writer.
+ *
+ * Writes the UTF-8 encoding of [input] into [out] starting at [offset].
+ * Returns the new write position (offset + bytes written).
+ *
+ * On Native, the existing `Utf8.encodeUtf8Array` ASCII fast path has a tight loop
+ * with `.also { cc = it }` capture that the AOT compiler doesn't fully eliminate.
+ * A cleaner direct loop is measurably faster.
+ */
+internal expect fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: Int): Int

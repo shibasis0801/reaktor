@@ -958,15 +958,30 @@ public data class Key(
 public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: ByteWidth) :
   Sized(buffer, end, byteWidth), kotlin.collections.Map<Key, Reference> {
 
-  // used for accessing the key vector elements
-  private var keyVectorEnd: Int
-  private var keyVectorByteWidth: ByteWidth
+  // Key-vector state is computed on first access. Index-based field reads
+  // (Map.getInt/getString/getMap/getVector with an Int index) NEVER touch the
+  // key vector — they only need (end, byteWidth, size). KSP-generated FlexCoder
+  // code is index-based, so for those decodes we save 2 buffer reads + 2 field
+  // writes per Map construction. Only string-keyed binarySearch and key iteration
+  // pay the cost, lazily, when first needed.
+  //
+  // -1 is the sentinel: keyVectorEnd is always > 0 in a valid map.
+  private var _keyVectorEnd: Int = -1
+  private var _keyVectorByteWidth: ByteWidth = ByteWidth(0)
 
-  init {
-    val keysOffset = end - (3 * byteWidth) // 3 is number of prefixed fields
-    keyVectorEnd = buffer.indirect(keysOffset, byteWidth)
-    keyVectorByteWidth = ByteWidth(buffer.readInt(keysOffset + byteWidth, byteWidth))
+  private inline fun ensureKeyVector() {
+    if (_keyVectorEnd < 0) {
+      val keysOffset = end - (3 * byteWidth) // 3 is number of prefixed fields
+      _keyVectorEnd = buffer.indirect(keysOffset, byteWidth)
+      _keyVectorByteWidth = ByteWidth(buffer.readInt(keysOffset + byteWidth, byteWidth))
+    }
   }
+
+  private val keyVectorEnd: Int
+    get() { ensureKeyVector(); return _keyVectorEnd }
+
+  private val keyVectorByteWidth: ByteWidth
+    get() { ensureKeyVector(); return _keyVectorByteWidth }
 
   /**
    * Returns a [Reference] from the [Map] at position [index]. Returns a null reference
