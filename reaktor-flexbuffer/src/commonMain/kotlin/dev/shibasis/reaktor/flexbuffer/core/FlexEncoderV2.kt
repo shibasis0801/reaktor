@@ -4,6 +4,8 @@ package dev.shibasis.reaktor.flexbuffer.core
 
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
+import kotlin.jvm.JvmField
+import kotlin.jvm.JvmStatic
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -31,18 +33,35 @@ import kotlinx.serialization.serializer
  * Ref: "Game Programming Patterns" (Nystrom, ch.19) — Object Pool pattern for StructureStack
  */
 @OptIn(ExperimentalSerializationApi::class)
-class FlexEncoderV2 private constructor(
-    private val builder: FlexBuffersBuilder,
-    override val serializersModule: SerializersModule
-) : AbstractEncoder() {
+class FlexEncoderV2 private constructor() : AbstractEncoder() {
+
+    // Mutable state — reset() before each top-level encode.
+    private var builder: FlexBuffersBuilder = SENTINEL_BUILDER
+    override val serializersModule: SerializersModule = EmptySerializersModule()
 
     private val structureStack = StructureStack()
     private var pendingKey: String? = null
 
+    private fun reset(builder: FlexBuffersBuilder) {
+        this.builder = builder
+        this.structureStack.clear()
+        this.pendingKey = null
+    }
+
     companion object {
-        // Reusable module instance — EmptySerializersModule() returns a singleton internally,
-        // but caching the reference avoids the function call overhead in tight loops.
-        private val MODULE = EmptySerializersModule()
+        // Singleton sentinel used as the initial value of `builder` before reset(). Never
+        // actually written to — every encode resets the builder before use.
+        private val SENTINEL_BUILDER = FlexBuffersBuilder(8)
+
+        // Per-platform pool: JVM/Android = ThreadLocal, Native = volatile, JS = plain.
+        @JvmStatic
+        private val pool = PerPlatformPool { FlexEncoderV2() }
+
+        @JvmStatic
+        private fun acquire(): FlexEncoderV2 = pool.acquire()
+
+        @JvmStatic
+        private fun release(e: FlexEncoderV2) = pool.release(e)
 
         inline fun <reified T> encode(value: T): ByteArray {
             return encode(serializer(), value)
@@ -50,23 +69,22 @@ class FlexEncoderV2 private constructor(
 
         /**
          * Encode using pooled FlexBuffersBuilder. The pool amortizes builder allocation.
-         * After encoding, finish() returns a ReadBuffer pointing to the builder's internal
-         * storage, which is then copied to a new ByteArray via toByteArray().
-         *
-         * If you want to avoid this final copy, use encodeToBuffer() with your own builder.
          */
         fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
             return FlexBufferPool.withEncoder { builder ->
-                val encoder = FlexEncoderV2(builder, MODULE)
-                encoder.encodeSerializableValue(serializer, value)
-                builder.finish().toByteArray()
+                val encoder = acquire()
+                encoder.reset(builder)
+                try {
+                    encoder.encodeSerializableValue(serializer, value)
+                    builder.finish().toByteArray()
+                } finally {
+                    release(encoder)
+                }
             }
         }
 
         /**
          * Encode into a caller-owned builder for zero-copy scenarios.
-         * The returned ReadBuffer points directly into the builder's byte buffer.
-         * Valid only until the builder is cleared or reused.
          */
         fun <T> encodeToBuffer(
             serializer: SerializationStrategy<T>,
@@ -74,9 +92,14 @@ class FlexEncoderV2 private constructor(
             builder: FlexBuffersBuilder
         ): ReadBuffer {
             builder.clear()
-            val encoder = FlexEncoderV2(builder, MODULE)
-            encoder.encodeSerializableValue(serializer, value)
-            return builder.finish()
+            val encoder = acquire()
+            encoder.reset(builder)
+            try {
+                encoder.encodeSerializableValue(serializer, value)
+                return builder.finish()
+            } finally {
+                release(encoder)
+            }
         }
     }
 
@@ -111,7 +134,12 @@ class FlexEncoderV2 private constructor(
         value: T
     ) {
         val descriptor = serializer.descriptor
-        if (descriptor.kind == StructureKind.LIST || descriptor.serialName.endsWith("Array")) {
+        // Registry acceleration: skip the String hash entirely if no coders are registered.
+        if (FlexCoderRegistry.codersBySerialName.isNotEmpty() &&
+            tryEncodeRegisteredCoder(descriptor.serialName, value)
+        ) return
+        // Bulk-array fast paths only apply to LIST-kind descriptors.
+        if (descriptor.kind == StructureKind.LIST) {
             if (tryEncodeBulkValue(descriptor, value)) return
         }
         serializer.serialize(this, value)
@@ -297,6 +325,17 @@ class FlexEncoderV2 private constructor(
         return key
     }
 
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> tryEncodeRegisteredCoder(serialName: String, value: T): Boolean {
+        if (value == null) return false
+        val current = structureStack.peek()
+        if (current != null && current.kind == StructureType.MAP && current.expectingKey) return false
+
+        val coder = FlexCoderRegistry.getBySerialName<Any>(serialName) ?: return false
+        coder.encode(builder, value as Any, resolveKeyFrom(current))
+        return true
+    }
+
     private fun tryEncodeBulkValue(descriptor: SerialDescriptor, value: Any?): Boolean {
         val current = structureStack.peek()
         if (current != null && current.kind == StructureType.MAP && current.expectingKey) return false
@@ -379,21 +418,21 @@ class FlexEncoderV2 private constructor(
                 true
             }
             "kotlin.Int" -> {
-                val array = values.toNonNegativeIntArray() ?: return false
-                builder.set(resolveKeyFrom(current), array)
+                val ints = values.asNonNegativeIntCollection() ?: return false
+                builder.setIntCollection(resolveKeyFrom(current), ints)
                 true
             }
             "kotlin.Long" -> {
-                val array = values.toNonNegativeLongArray() ?: return false
-                builder.set(resolveKeyFrom(current), array)
+                val longs = values.asNonNegativeLongCollection() ?: return false
+                builder.setLongCollection(resolveKeyFrom(current), longs)
                 true
             }
             "kotlin.Float" -> {
-                builder.set(resolveKeyFrom(current), values.toFloatArrayOrNull() ?: return false)
+                builder.setFloatCollection(resolveKeyFrom(current), values.asFloatCollection() ?: return false)
                 true
             }
             "kotlin.Double" -> {
-                builder.set(resolveKeyFrom(current), values.toDoubleArrayOrNull() ?: return false)
+                builder.setDoubleCollection(resolveKeyFrom(current), values.asDoubleCollection() ?: return false)
                 true
             }
             "kotlin.Char" -> {
@@ -429,12 +468,12 @@ enum class StructureType {
  * Mutable entry on the structure stack. Reused via reset() to avoid allocation.
  */
 class StructureEntry(
-    var kind: StructureType = StructureType.CLASS,
-    var position: Int = 0,
-    var key: String? = null,
-    var elementIndex: Int = 0,
-    var expectingKey: Boolean = false,
-    var capturedKey: String? = null
+    @JvmField var kind: StructureType = StructureType.CLASS,
+    @JvmField var position: Int = 0,
+    @JvmField var key: String? = null,
+    @JvmField var elementIndex: Int = 0,
+    @JvmField var expectingKey: Boolean = false,
+    @JvmField var capturedKey: String? = null
 ) {
     fun reset(kind: StructureType, position: Int, key: String?) {
         this.kind = kind
@@ -454,22 +493,15 @@ class StructureEntry(
  * Ref: "Introduction to Algorithms" (CLRS, §17.4) — amortized analysis of doubling arrays
  * Ref: "Game Programming Patterns" (Nystrom, ch.19) — Object Pool pattern
  */
-class StructureStack(initialCapacity: Int = 16) {
+class StructureStack(initialCapacity: Int = 4) {
     private val entries = ArrayList<StructureEntry>(initialCapacity)
     private var size = 0
-
-    init {
-        repeat(initialCapacity) {
-            entries.add(StructureEntry())
-        }
-    }
+    // Lazy allocation: pre-filling 16 entries showed up as 23% of allocs in raw-encode
+    // flamegraph. Allocate on first push instead. Steady-state depth is 2-4.
 
     fun push(kind: StructureType, position: Int, key: String? = null) {
         if (size >= entries.size) {
-            val growBy = entries.size
-            repeat(growBy) {
-                entries.add(StructureEntry())
-            }
+            entries.add(StructureEntry())
         }
         entries[size].reset(kind, position, key)
         size++
@@ -524,48 +556,34 @@ private fun Collection<*>.toNonNegativeShortArray(): ShortArray? {
     return result
 }
 
-private fun Collection<*>.toNonNegativeIntArray(): IntArray? {
-    val result = IntArray(size)
-    var index = 0
+@Suppress("UNCHECKED_CAST")
+private fun Collection<*>.asNonNegativeIntCollection(): Collection<Int>? {
     for (value in this) {
-        val number = value as? Number ?: return null
-        val intValue = number.toInt()
+        val intValue = value as? Int ?: return null
         if (intValue < 0) return null
-        result[index++] = intValue
     }
-    return result
+    return this as Collection<Int>
 }
 
-private fun Collection<*>.toNonNegativeLongArray(): LongArray? {
-    val result = LongArray(size)
-    var index = 0
+@Suppress("UNCHECKED_CAST")
+private fun Collection<*>.asNonNegativeLongCollection(): Collection<Long>? {
     for (value in this) {
-        val number = value as? Number ?: return null
-        val longValue = number.toLong()
+        val longValue = value as? Long ?: return null
         if (longValue < 0L) return null
-        result[index++] = longValue
     }
-    return result
+    return this as Collection<Long>
 }
 
-private fun Collection<*>.toFloatArrayOrNull(): FloatArray? {
-    val result = FloatArray(size)
-    var index = 0
-    for (value in this) {
-        val number = value as? Number ?: return null
-        result[index++] = number.toFloat()
-    }
-    return result
+@Suppress("UNCHECKED_CAST")
+private fun Collection<*>.asFloatCollection(): Collection<Float>? {
+    for (value in this) if (value !is Float) return null
+    return this as Collection<Float>
 }
 
-private fun Collection<*>.toDoubleArrayOrNull(): DoubleArray? {
-    val result = DoubleArray(size)
-    var index = 0
-    for (value in this) {
-        val number = value as? Number ?: return null
-        result[index++] = number.toDouble()
-    }
-    return result
+@Suppress("UNCHECKED_CAST")
+private fun Collection<*>.asDoubleCollection(): Collection<Double>? {
+    for (value in this) if (value !is Double) return null
+    return this as Collection<Double>
 }
 
 private fun Collection<*>.toCharCodeArray(): IntArray? {

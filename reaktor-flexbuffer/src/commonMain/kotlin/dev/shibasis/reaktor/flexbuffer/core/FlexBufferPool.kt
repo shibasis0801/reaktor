@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package dev.shibasis.reaktor.flexbuffer.core
 
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
-import kotlin.concurrent.Volatile
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * Object pool for FlexBuffersBuilder instances.
@@ -11,33 +15,30 @@ import kotlin.concurrent.Volatile
  * In steady state (pool warm), acquire() returns a pre-allocated builder with zero
  * allocation — only the clear() call resets internal write position.
  *
- * Concurrency model: best-effort reuse with @Volatile hint on poolHead.
- * Concurrent acquire/release may occasionally miss a slot (benign — a new builder
- * is allocated or the returned one is dropped). This is acceptable because:
- * - Pool misses only cost one FlexBuffersBuilder allocation (~4KB)
- * - True lock-free CAS requires kotlinx.atomicfu (platform-specific)
- * - The pool is bounded, so memory stays capped regardless of races
+ * Concurrency model: bounded CAS slots. A builder is claimed with compare-and-set
+ * before reuse, so concurrent encoders cannot receive the same mutable builder.
+ * Contention may still miss a slot and allocate a fresh builder, which is acceptable
+ * because misses only cost one FlexBuffersBuilder allocation and the pool is bounded.
  *
- * Ref: "Java Concurrency in Practice" (Goetz, §11.4) — lock-free object pools
+ * Ref: "Java Concurrency in Practice" (Goetz, §11.4) — object pools and contention
  * Ref: https://shipilev.net/talks/jpoint-April2015-pools.pdf — pool sizing
  */
 @OptIn(ExperimentalUnsignedTypes::class)
 object FlexBufferPool {
     private const val DEFAULT_POOL_SIZE = 16
     private const val DEFAULT_BUFFER_SIZE = 4096
+    private const val POOL_MASK = DEFAULT_POOL_SIZE - 1
 
-    private val pool = arrayOfNulls<FlexBuffersBuilder>(DEFAULT_POOL_SIZE)
-
-    @Volatile
-    private var poolHead = 0
+    private val pool = Array(DEFAULT_POOL_SIZE) { AtomicReference<FlexBuffersBuilder?>(null) }
+    private val poolHead = AtomicInt(0)
 
     fun acquire(): FlexBuffersBuilder {
+        val start = poolHead.load()
         for (i in 0 until DEFAULT_POOL_SIZE) {
-            val idx = (poolHead + i) % DEFAULT_POOL_SIZE
-            val builder = pool[idx]
-            if (builder != null) {
-                pool[idx] = null
-                poolHead = (idx + 1) % DEFAULT_POOL_SIZE
+            val idx = (start + i) and POOL_MASK
+            val builder = pool[idx].load()
+            if (builder != null && pool[idx].compareAndSet(builder, null)) {
+                poolHead.store((idx + 1) and POOL_MASK)
                 builder.clear()
                 return builder
             }
@@ -46,9 +47,10 @@ object FlexBufferPool {
     }
 
     fun release(builder: FlexBuffersBuilder) {
+        val start = poolHead.load()
         for (i in 0 until DEFAULT_POOL_SIZE) {
-            if (pool[i] == null) {
-                pool[i] = builder
+            val idx = (start + i) and POOL_MASK
+            if (pool[idx].compareAndSet(null, builder)) {
                 return
             }
         }
@@ -74,9 +76,9 @@ object FlexBufferPool {
 
     fun clearPool() {
         for (i in 0 until DEFAULT_POOL_SIZE) {
-            pool[i] = null
+            pool[i].store(null)
         }
-        poolHead = 0
+        poolHead.store(0)
     }
 }
 

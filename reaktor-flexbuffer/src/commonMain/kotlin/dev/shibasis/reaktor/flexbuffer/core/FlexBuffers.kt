@@ -25,7 +25,7 @@ import kotlinx.serialization.serializer
  *   - Primitive reads (toInt, toLong, etc.) are zero-copy from the buffer
  *
  * Thread safety: each encode/decode creates its own encoder/decoder instance.
- * The FlexBuffersBuilder is acquired from a thread-safe pool (FlexBufferPool).
+ * The FlexBuffersBuilder is acquired from a bounded CAS-backed pool.
  *
  * Ref: https://flatbuffers.dev/flexbuffers.html — format specification
  * Ref: https://google.github.io/flatbuffers/ — FlatBuffers documentation
@@ -53,8 +53,8 @@ object FlexBuffers {
     fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
         // Accelerate: if a FlexCoder is registered for this type, bypass serialization entirely
         val coder = FlexCoderRegistry.getBySerialName<Any>(serializer.descriptor.serialName)
-        if (coder != null) {
-            return encodeDirect(coder as FlexCoder<Any>, value as Any)
+        if (coder != null && value != null) {
+            return encodeDirect(coder, value as Any)
         }
         return FlexEncoderV2.encode(serializer, value)
     }
@@ -70,7 +70,43 @@ object FlexBuffers {
         value: T,
         builder: FlexBuffersBuilder
     ): ReadBuffer {
+        val coder = FlexCoderRegistry.getBySerialName<Any>(serializer.descriptor.serialName)
+        if (coder != null && value != null) {
+            builder.clear()
+            coder.encode(builder, value as Any)
+            return builder.finish()
+        }
         return FlexEncoderV2.encodeToBuffer(serializer, value, builder)
+    }
+
+    /**
+     * Reified copy-free encode path. Uses a generated FlexCoder when registered,
+     * otherwise falls back to the serializer path, and returns the caller-owned
+     * builder's internal [ReadBuffer] without copying to a new ByteArray.
+     */
+    inline fun <reified T : Any> encodeToBuffer(
+        value: T,
+        builder: FlexBuffersBuilder
+    ): ReadBuffer {
+        FlexCoderRegistry.get<T>()?.let { coder ->
+            builder.clear()
+            coder.encode(builder, value)
+            return builder.finish()
+        }
+        return encodeToBuffer(serializer<T>(), value, builder)
+    }
+
+    /**
+     * Build a FlexBuffer into a caller-owned builder without the final ByteArray copy.
+     * The returned buffer is valid until [builder] is cleared or reused.
+     */
+    inline fun buildToBuffer(
+        builder: FlexBuffersBuilder,
+        block: FlexBuffersBuilder.() -> Unit
+    ): ReadBuffer {
+        builder.clear()
+        builder.block()
+        return builder.finish()
     }
 
     inline fun <T> withEncoder(block: (FlexBuffersBuilder) -> T): T {
@@ -102,7 +138,7 @@ object FlexBuffers {
         // Accelerate: if a FlexCoder is registered for this type, bypass deserialization entirely
         val coder = FlexCoderRegistry.getBySerialName<Any>(deserializer.descriptor.serialName)
         if (coder != null) {
-            return decodeDirect(coder as FlexCoder<Any>, bytes) as T
+            return decodeDirect(coder, bytes) as T
         }
         return FlexDecoderV2.decode(deserializer, bytes)
     }
@@ -114,6 +150,11 @@ object FlexBuffers {
      * No intermediate ByteArray allocation.
      */
     fun <T> decode(deserializer: DeserializationStrategy<T>, buffer: ReadBuffer): T {
+        val coder = FlexCoderRegistry.getBySerialName<Any>(deserializer.descriptor.serialName)
+        if (coder != null) {
+            @Suppress("UNCHECKED_CAST")
+            return coder.decode(getRoot(buffer)) as T
+        }
         return FlexDecoderV2.decode(deserializer, buffer)
     }
 

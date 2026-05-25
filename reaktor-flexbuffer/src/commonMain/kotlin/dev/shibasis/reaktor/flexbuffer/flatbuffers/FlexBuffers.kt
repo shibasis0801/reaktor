@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 @file:Suppress("NOTHING_TO_INLINE")
+@file:OptIn(ExperimentalUnsignedTypes::class)
 
 package dev.shibasis.reaktor.flexbuffer.flatbuffers
 
@@ -702,6 +703,14 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
     return buffer.getString(start, strSize)
   }
 
+  public fun readStringByteLength(index: Int): Int {
+    val objEnd = vecObjEndAt(index)
+    val packedType = vecPackedTypeAt(index)
+    val bw = ByteWidth(1 shl (packedType and 3))
+    val start = buffer.indirect(objEnd, byteWidth)
+    return buffer.readULong(start - bw, bw).toInt()
+  }
+
   public open fun readBoolean(index: Int): Boolean = buffer.getBoolean(vecObjEndAt(index))
 
   public fun readMap(index: Int): Map {
@@ -716,6 +725,28 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
     val packedType = vecPackedTypeAt(index)
     val bw = ByteWidth(1 shl (packedType and 3))
     return Vector(buffer, buffer.indirect(objEnd, byteWidth), bw)
+  }
+
+  public inline fun forEachInt(block: (Int) -> Unit) {
+    for (i in 0 until size) block(readInt(i))
+  }
+
+  public inline fun forEachLong(block: (Long) -> Unit) {
+    for (i in 0 until size) block(readLong(i))
+  }
+
+  public inline fun forEachDouble(block: (Double) -> Unit) {
+    for (i in 0 until size) block(readDouble(i))
+  }
+
+  public inline fun forEachString(block: (String) -> Unit) {
+    for (i in 0 until size) block(readString(i))
+  }
+
+  public inline fun foldLong(initial: Long, operation: (acc: Long, value: Long) -> Long): Long {
+    var acc = initial
+    for (i in 0 until size) acc = operation(acc, readLong(i))
+    return acc
   }
 
   /**
@@ -997,6 +1028,44 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
     return buffer.getString(start, strSize)
   }
 
+  public fun getStringByteLength(index: Int): Int {
+    val packedType = packedTypeAt(index)
+    val bw = ByteWidth(1 shl (packedType and 3))
+    val objEnd = objEndAt(index)
+    val start = buffer.indirect(objEnd, byteWidth)
+    return buffer.readULong(start - bw, bw).toInt()
+  }
+
+  public fun getInt(key: String, default: Int = 0): Int {
+    val index = binarySearch(key)
+    return if (index >= 0 && !isNullAt(index)) getInt(index) else default
+  }
+
+  public fun getLong(key: String, default: Long = 0L): Long {
+    val index = binarySearch(key)
+    return if (index >= 0 && !isNullAt(index)) getLong(index) else default
+  }
+
+  public fun getDouble(key: String, default: Double = 0.0): Double {
+    val index = binarySearch(key)
+    return if (index >= 0 && !isNullAt(index)) getDouble(index) else default
+  }
+
+  public fun getBoolean(key: String, default: Boolean = false): Boolean {
+    val index = binarySearch(key)
+    return if (index >= 0 && !isNullAt(index)) getBoolean(index) else default
+  }
+
+  public fun getString(key: String, default: String = ""): String {
+    val index = binarySearch(key)
+    return if (index >= 0 && !isNullAt(index)) getString(index) else default
+  }
+
+  public fun getStringByteLength(key: String, default: Int = -1): Int {
+    val index = binarySearch(key)
+    return if (index >= 0 && !isNullAt(index)) getStringByteLength(index) else default
+  }
+
   public fun getVector(index: Int): Vector {
     val objEnd = objEndAt(index)
     val packedType = packedTypeAt(index)
@@ -1063,6 +1132,14 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
   public operator fun contains(key: String): Boolean = binarySearch(key) >= 0
 
   /**
+   * Returns the sorted map index for [key], or a negative insertion point when absent.
+   *
+   * Generated and fallback decoders use this to keep scalar reads on the O(1) indexed
+   * map path instead of allocating a [Reference] just to discover the position.
+   */
+  public fun indexOf(key: String): Int = binarySearch(key)
+
+  /**
    * Returns a [Key] for a given position [index] in the [Map].
    *
    * @param index of the key in the map
@@ -1086,13 +1163,72 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
     return if (end > start) buffer.getString(start, end - start) else ""
   }
 
+  public fun keyByteLength(index: Int): Int {
+    val childPos: Int = keyVectorEnd + index * keyVectorByteWidth
+    val start = buffer.indirect(childPos, keyVectorByteWidth)
+    val end = buffer.findFirst(ZeroByte, start)
+    return if (end > start) end - start else 0
+  }
+
+  public fun keyEquals(index: Int, other: CharSequence): Boolean {
+    val childPos: Int = keyVectorEnd + index * keyVectorByteWidth
+    val start = buffer.indirect(childPos, keyVectorByteWidth)
+    var bufferPos = start
+    var otherPos = 0
+    while (otherPos < other.length) {
+      val c = other[otherPos]
+      if (c.code >= 0x80) return keyAsString(index) == other.toString()
+      val b = buffer[bufferPos]
+      if (b == ZeroByte || b < 0 || b != c.code.toByte()) return false
+      bufferPos++
+      otherPos++
+    }
+    return buffer[bufferPos] == ZeroByte
+  }
+
+  public inline fun forEachStringInt(block: (key: String, value: Int) -> Unit) {
+    for (i in 0 until size) block(keyAsString(i), getInt(i))
+  }
+
+  public inline fun forEachStringLong(block: (key: String, value: Long) -> Unit) {
+    for (i in 0 until size) block(keyAsString(i), getLong(i))
+  }
+
+  public inline fun forEachStringDouble(block: (key: String, value: Double) -> Unit) {
+    for (i in 0 until size) block(keyAsString(i), getDouble(i))
+  }
+
+  public inline fun forEachStringString(block: (key: String, value: String) -> Unit) {
+    for (i in 0 until size) block(keyAsString(i), getString(i))
+  }
+
+  public inline fun forEachStringBoolean(block: (key: String, value: Boolean) -> Unit) {
+    for (i in 0 until size) block(keyAsString(i), getBoolean(i))
+  }
+
   // Overrides from kotlin.collections.Map<Key, Reference>
 
   public data class Entry(override val key: Key, override val value: Reference) :
     kotlin.collections.Map.Entry<Key, Reference>
 
   override val entries: Set<kotlin.collections.Map.Entry<Key, Reference>>
-    get() = keys.map { Entry(it, get(it.toString())) }.toSet()
+    get() = object : AbstractSet<kotlin.collections.Map.Entry<Key, Reference>>() {
+      override val size: Int
+        get() = this@Map.size
+
+      override fun iterator(): Iterator<kotlin.collections.Map.Entry<Key, Reference>> =
+        object : Iterator<kotlin.collections.Map.Entry<Key, Reference>> {
+          private var index = 0
+
+          override fun hasNext(): Boolean = index < this@Map.size
+
+          override fun next(): kotlin.collections.Map.Entry<Key, Reference> {
+            if (!hasNext()) throw NoSuchElementException()
+            val current = index++
+            return Entry(keyAt(current), get(current))
+          }
+        }
+    }
 
   override val keys: Set<Key>
     get() {
@@ -1185,10 +1321,15 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
       ++bufferPos
       ++otherPos
     }
-    if (bufferPos < limit) return 0
+
+    if (otherPos == otherLimit) {
+      if (bufferPos >= limit) return 0
+      val b = buffer[bufferPos]
+      return if (b == ZeroByte) 0 else b.toInt()
+    }
 
     val comparisonBuffer = ByteArray(4)
-    while (bufferPos < limit) {
+    while (otherPos < otherLimit && bufferPos < limit) {
       val sizeInBuff = Utf8.encodeUtf8CodePoint(other, otherPos, comparisonBuffer)
       if (sizeInBuff == 0) {
         return buffer[bufferPos].toInt()
@@ -1203,6 +1344,10 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
       }
       otherPos += if (sizeInBuff == 4) 2 else 1
     }
-    return 0
+
+    if (otherPos < otherLimit) return -other[otherPos].code
+    if (bufferPos >= limit) return 0
+    val b = buffer[bufferPos]
+    return if (b == ZeroByte) 0 else b.toInt()
   }
 }

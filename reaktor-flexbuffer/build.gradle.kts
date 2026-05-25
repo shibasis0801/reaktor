@@ -43,6 +43,16 @@ kotlin {
     }
 
     darwin()
+
+    // Add -opt to the default debug test binaries so iOS benchmark numbers
+    // reflect optimised compilation (close to what apps ship). Default Kotlin/Native
+    // test binaries are built with -g and no optimisations — orders of magnitude slower.
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget> {
+        binaries.withType<org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable> {
+            freeCompilerArgs += listOf("-opt")
+        }
+    }
+
     sourceSets {
         compilerOptions {
             freeCompilerArgs.addAll(
@@ -83,6 +93,12 @@ val jvmFlameChart by tasks.registering(JavaExec::class) {
 
     dependsOn("jvmMainClasses")
 
+    // Match the jvmToolchain (Java 25) used to compile the main classes
+    javaLauncher.set(
+        project.extensions.getByType<JavaToolchainService>()
+            .launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) }
+    )
+
     mainClass.set("dev.shibasis.reaktor.flexbuffer.bench.JvmFlameChartKt")
 
     val jvmCompilation = kotlin.jvm().compilations["main"]
@@ -120,6 +136,45 @@ val jvmFlameChart by tasks.registering(JavaExec::class) {
             println("  Install: brew install async-profiler")
             println("  Or set ASPROF_LIB=/path/to/libasyncProfiler.dylib")
         }
+    }
+}
+
+// Per-phase profiler — captures separate CPU and alloc flamegraphs for each tier × payload
+// Run with: ./gradlew :reaktor-flexbuffer:phaseProfile
+val phaseProfile by tasks.registering(JavaExec::class) {
+    group = "benchmark"
+    description = "Run per-phase CPU + alloc profiling with async-profiler"
+
+    dependsOn("jvmMainClasses")
+
+    javaLauncher.set(
+        project.extensions.getByType<JavaToolchainService>()
+            .launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) }
+    )
+
+    mainClass.set("dev.shibasis.reaktor.flexbuffer.bench.PhaseProfilerKt")
+
+    val jvmCompilation = kotlin.jvm().compilations["main"]
+    val asprofJar = file("/opt/homebrew/Cellar/async-profiler/4.3/libexec/async-profiler.jar")
+    classpath = files(
+        jvmCompilation.output.allOutputs,
+        jvmCompilation.runtimeDependencyFiles,
+        // Test runtime so we can reach the BenchmarkData fixtures
+        kotlin.jvm().compilations["test"].output.allOutputs,
+        kotlin.jvm().compilations["test"].runtimeDependencyFiles,
+        asprofJar
+    )
+
+    jvmArgs(
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:+DebugNonSafepoints"
+    )
+
+    val phaseOutDir = project.file("flamechart/output/phase").absolutePath
+    environment("PHASE_OUT", phaseOutDir)
+
+    doFirst {
+        project.file(phaseOutDir).mkdirs()
     }
 }
 
