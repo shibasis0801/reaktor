@@ -6,13 +6,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Reaktor',
-  tagline: 'The Unreal Engine of App & Server Development',
+  tagline: 'Reaktor documentation map',
   favicon: 'img/favicon.svg',
-
-  // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
-  future: {
-    v4: true, // Improve compatibility with the upcoming Docusaurus v4
-  },
 
   // Set the production url of your site here
   url: 'https://docs.reaktor.build',
@@ -22,8 +17,8 @@ const config: Config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'reaktor', // Usually your GitHub org/user name.
-  projectName: 'reaktor-docs', // Usually your repo name.
+  organizationName: 'reaktor',
+  projectName: 'reaktor-docs',
 
   onBrokenLinks: 'throw',
 
@@ -39,41 +34,14 @@ const config: Config = {
     mermaid: true,
   },
   themes: ['@docusaurus/theme-mermaid'],
-  plugins: [
-    [
-      require.resolve("@cmfcmf/docusaurus-search-local"),
-      {
-        // Options here
-      },
-    ],
-  ],
+  plugins: [],
 
   presets: [
     [
       'classic',
       {
-        docs: {
-          sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/reaktor/reaktor-docs/tree/main/',
-        },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/reaktor/reaktor-docs/tree/main/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        docs: false,
+        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -82,16 +50,15 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
     image: 'img/logo.svg',
     metadata: [
-      {name: 'keywords', content: 'reaktor, kotlin multiplatform, kmp, app engine, distributed systems, zero-copy, flexbuffers, blueprint editor, ai agents, software architecture'},
+      {name: 'keywords', content: 'reaktor, documentation, roadmap, architecture, implementation, workbench, graph kernel'},
       {name: 'twitter:card', content: 'summary_large_image'},
-      {name: 'twitter:title', content: 'Reaktor | The Unreal Engine of App Development'},
-      {name: 'twitter:description', content: 'Directed graphs, zero-copy data, and AI-native intelligence for modern application development.'},
+      {name: 'twitter:title', content: 'Reaktor Docs'},
+      {name: 'twitter:description', content: 'Find the right Reaktor document.'},
       {name: 'og:type', content: 'website'},
-      {name: 'og:title', content: 'Reaktor | System Specification'},
-      {name: 'og:description', content: 'A revolutionary Kotlin Multiplatform framework that models apps and services as directed graphs.'},
+      {name: 'og:title', content: 'Reaktor Docs'},
+      {name: 'og:description', content: 'The docs are grouped by decision type so you can start with the roadmap, pressure-test the idea, dive into architecture, or execute a specific subsystem.'},
     ],
     colorMode: {
       respectPrefersColorScheme: true,
@@ -104,12 +71,10 @@ const config: Config = {
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          to: '/',
           position: 'left',
           label: 'Documentation',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
         {
           href: 'https://github.com/reaktor/reaktor',
           label: 'GitHub',
@@ -119,48 +84,8 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
-      links: [
-        {
-          title: 'Docs',
-          items: [
-            {
-              label: 'Introduction',
-              to: '/docs/intro',
-            },
-            {
-              label: 'Architecture',
-              to: '/docs/architecture/three-layers',
-            },
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Discord',
-              href: 'https://discord.gg/reaktor',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com/reaktor',
-            },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'Blog',
-              to: '/blog',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/reaktor/reaktor',
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Bestbuds Ventures. Built with Docusaurus.`,
+      links: [],
+      copyright: `Copyright © ${new Date().getFullYear()} Bestbuds Ventures.`,
     },
     prism: {
       theme: prismThemes.github,

@@ -43,6 +43,18 @@ class WebHost(val graph: Graph) {
 
     fun stackSize(): Int = graph.backStack.entries.value.size
 
+    @Suppress("UNCHECKED_CAST")
+    fun navigateToPattern(pattern: String, params: HashMap<String, String> = HashMap()) {
+        val route = graph.nodes
+            .filterIsInstance<dev.shibasis.reaktor.graph.core.node.RouteNode<Payload, *>>()
+            .firstOrNull { it.pattern.original == pattern }
+            ?: return
+
+        val payload = Payload(params)
+        val edge = graph.sentinel.edge(route)
+        graph.dispatch(Push(edge, payload))
+    }
+
     fun destroy() {
         bridge.destroy()
         graph.close()

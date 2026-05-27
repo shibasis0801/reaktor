@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Reaktor Notifications Design - Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+  <style>
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin: 18px 0;
+    }
+    .pipe-step {
+      position: relative;
+      min-height: 138px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.035);
+      padding: 14px;
+    }
+    .pipe-step::after {
+      content: "\2192";
+      position: absolute;
+      top: 50%;
+      right: -12px;
+      transform: translateY(-50%);
+      color: var(--faint);
+      font-family: var(--mono);
+    }
+    .pipe-step:last-child::after { display: none; }
+    .pipe-step .num {
+      display: inline-flex;
+      margin-bottom: 8px;
+      color: var(--cyan);
+      font: 800 12px/1.3 var(--mono);
+    }
+    .pipe-step strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .pipe-step span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255,255,255,.035);
+      color: var(--muted);
+      padding: 5px 8px;
+      font: 800 11px/1.35 var(--mono);
+      text-transform: uppercase;
+    }
+    @media (max-width: 980px) {
+      .pipeline { grid-template-columns: 1fr; }
+      .pipe-step { min-height: auto; }
+      .pipe-step::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Platform services</span><span>Codex</span></div>
+      <p class="eyebrow">Platform services - Codex</p>
+      <h1>Codex Reaktor Notifications Design</h1>
+      <p class="subtitle">
+        A full-stack design for turning today&apos;s thin <code>reaktor-notification</code> adapter placeholder into a graph-native
+        notification runtime: permissions, endpoint registration, push delivery, local rendering, policy, receipts, typed
+        graph routing, and optional hosted delivery.
+      </p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Designing or implementing the Reaktor notification module and BestBuds notification migration.</span></div>
+        <div class="stat"><b>Current state</b><span>Framework module is a placeholder with one common adapter class.</span></div>
+        <div class="stat"><b>Route</b><span>/docs/codex-reaktor-notifications-design</span></div>
+      </div>
+    </header>
+
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div>
+        <div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div>
+        <div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/reaktor-graph-migration-plan">Reaktor Graph Migration Plan</a><a href="/docs/reaktor-graph-refinement-plan">Reaktor Graph Refinement Plan</a><a href="/docs/reaktor_graph_visitors_design">Reaktor Graph Visitors</a><a href="/docs/reaktor-actor-model">Reaktor Actor Model</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div>
+        <div class="side-group"><h3>Platform services</h3><a aria-current="page" href="/docs/codex-reaktor-notifications-design">Codex Reaktor Notifications Design</a></div>
+        <div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a><a href="/docs/engine-website-implementation-report">Engine and Website Implementation Report</a></div>
+        <div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React x Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React x Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div>
+        <div class="side-group"><h3>BestBuds</h3><a href="/docs/bestbuds-ui-migration-plan">BestBuds UI Migration Plan</a><a href="/docs/bestbuds-market-readiness-ux-audit">BestBuds UX Audit</a><a href="/docs/bestbuds-architecture-refactor-plan">BestBuds Architecture Refactor Plan</a></div>
+        <div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <div class="side-group"><h3>Performance</h3><a href="/docs/flexbuffer-implementation">FlexBuffer Binary Serialization</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc">
+          <a href="#where-we-are">1. Where we are</a>
+          <a href="#expo-lessons">2. Expo lessons</a>
+          <a href="#requirements">3. Requirements</a>
+          <a href="#reaktor-alignment">4. Reaktor alignment</a>
+          <a href="#architecture">5. Architecture</a>
+          <a href="#domain-model">6. Domain model</a>
+          <a href="#workflow">7. Workflow</a>
+          <a href="#data-store">8. Data store</a>
+          <a href="#source-sets">9. Source sets</a>
+          <a href="#providers">10. Providers</a>
+          <a href="#routing">11. Graph routing</a>
+          <a href="#policy">12. Policy</a>
+          <a href="#security">13. Security</a>
+          <a href="#observability">14. Observability</a>
+          <a href="#roadmap">15. Roadmap</a>
+          <a href="#references">16. References</a>
+        </nav>
+      </aside>
+
+      <main id="content" class="doc-content">
+        <section id="where-we-are"><div class="section-inner">
+          <h2>1. Where We Are Today</h2>
+          <p>
+            The actual Reaktor framework module is named <code>:reaktor-notification</code> in Gradle. The strategic document and
+            product language often call the product surface <code>reaktor-notifications</code>; this design treats that plural name
+            as the product capability, while preserving the current module name unless the team chooses a rename before publication.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Current implementation</th><th>Status</th><th>Design implication</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Framework module</strong></td>
+                  <td><code>reaktor-notification/build.gradle.kts</code> configures common, Android, Darwin, web, and server targets; it currently depends on <code>:reaktor-ui</code> and applies Koin through Dependeasy.</td>
+                  <td>Skeleton</td>
+                  <td>Good KMP target shape exists; dependencies should become core, graph, IO, and provider-specific source-set dependencies.</td>
+                </tr>
+                <tr>
+                  <td><strong>Common source</strong></td>
+                  <td><code>NotificationAdapter&lt;Controller&gt;</code> extends the core <code>Adapter</code> pattern and is empty.</td>
+                  <td>Placeholder</td>
+                  <td>Keep the adapter bridge, but add domain models, client contracts, service contracts, and a <code>Feature.Notifications</code> slot.</td>
+                </tr>
+                <tr>
+                  <td><strong>README</strong></td>
+                  <td>Explicitly says the module is in brainstorming state and exists as a shared seam for future platform implementations.</td>
+                  <td>Honest</td>
+                  <td>The design can be implemented without compatibility debt because no public behavior has shipped.</td>
+                </tr>
+                <tr>
+                  <td><strong>BestBuds Cloudflare worker</strong></td>
+                  <td>Product-specific <code>NotificationService</code> has only a health route returning <code>NotImplemented</code>.</td>
+                  <td>Stub</td>
+                  <td>This should migrate to Reaktor intake once the framework owns endpoint registration and notification creation.</td>
+                </tr>
+                <tr>
+                  <td><strong>BestBuds Android/iOS</strong></td>
+                  <td>Android has an empty <code>FirebaseMessagingService</code>; iOS has delegate logging for foreground/tap and FCM token refresh.</td>
+                  <td>Platform probes</td>
+                  <td>These are useful proof points, but should become Reaktor platform clients instead of product-local plumbing.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            <strong>Current-state verdict:</strong> this is effectively a greenfield module with one important existing constraint:
+            follow Reaktor&apos;s adapter, feature-slot, graph-node, service-handler, and source-set patterns instead of introducing
+            a standalone notification SDK inside product code.
+          </div>
+        </div></section>
+
+        <section id="expo-lessons"><div class="section-inner">
+          <h2>2. What To Take From Expo Notifications</h2>
+          <p>
+            Expo is useful as a product-shape reference because it separates the client library from the push relay service.
+            The client requests permissions, gets a project-scoped push token, receives and responds to notifications, and can
+            schedule local notifications. The service accepts server requests, forwards them to FCM/APNs, and reports tickets
+            and receipts.
+          </p>
+          <div class="grid-2">
+            <div class="card"><h3>Client API shape</h3><p>Match the ergonomics: permission state, request permission, token acquisition, token rollover listener, received listener, response listener, local scheduling, categories/actions, and channel/category registration.</p></div>
+            <div class="card"><h3>Push relay shape</h3><p>Keep a relay interface like Expo Push Service, but make it one provider among several. Reaktor should support direct FCM/APNs for platform depth and an optional Expo provider for React Native/Expo tenants or early hosted mode.</p></div>
+            <div class="card"><h3>Receipts are mandatory</h3><p>Expo&apos;s ticket/receipt flow is the right operating model: accepted by relay is not delivered. Reaktor should persist provider attempts and receipts, invalidate dead endpoints, and expose retry/DLQ state.</p></div>
+            <div class="card"><h3>Limits become contracts</h3><p>Expo documents concrete limits such as 100 notifications per request, 1000 receipts per request, and 600 notifications per second per project. Reaktor should express provider limits as typed rate-limit policies.</p></div>
+          </div>
+          <div class="callout">
+            <strong>Where Reaktor goes beyond Expo:</strong> Expo stops at a capable delivery primitive. Reaktor should own the typed
+            notification workflow, user preference policy, graph routing, tenant isolation, observability, and deployment shape.
+          </div>
+        </div></section>
+
+        <section id="requirements"><div class="section-inner">
+          <h2>3. Requirements And Boundaries</h2>
+          <div class="grid-3">
+            <div class="card"><h3>Must have</h3><p>Endpoint registration, token refresh, local notifications, foreground handling, tap/action handling, FCM delivery, durable attempts, receipts, endpoint invalidation, typed graph routes, and telemetry.</p></div>
+            <div class="card"><h3>Should have</h3><p>Android channels/conversation support, iOS categories, quiet hours, category mutes, frequency caps, Cloudflare D1 stores, hosted and embedded deployment, and Expo provider compatibility.</p></div>
+            <div class="card"><h3>Later</h3><p>APNs direct for Live Activities and critical iOS features, Web Push, campaign sequences, segmentation, A/B testing, in-app inbox, and multi-channel orchestration through separate modules.</p></div>
+          </div>
+          <h3>Non-goals</h3>
+          <ul>
+            <li>No visual journey builder in the first release.</li>
+            <li>No attempt to hide platform affordances behind a lowest-common-denominator API.</li>
+            <li>No foreground-service notification ownership; those belong to media, call, navigation, and long-running work modules.</li>
+            <li>No product-specific notification worker in BestBuds once the Reaktor service exists.</li>
+          </ul>
+        </div></section>
+
+        <section id="reaktor-alignment"><div class="section-inner">
+          <h2>4. Alignment With Existing Reaktor Docs</h2>
+          <p>
+            The existing Reaktor docs frame the framework as a composition kernel: graph structure is the runtime source of truth,
+            modules contribute typed capabilities and contracts, visitors interpret the graph, commands mutate it safely, and
+            auth/security policy is part of the runtime context. Notifications should follow that model directly.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Existing doc theme</th><th>Notification design consequence</th><th>Concrete artifact</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Graph kernel</strong></td>
+                  <td>Notifications are not an external SDK bolted onto products. They are graph-visible capabilities, facets, ports, and routes.</td>
+                  <td><code>NotificationCapability</code>, <code>NotificationFacet</code>, <code>NotificationRouteFacet</code>, <code>NotificationsNode</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Visitor system</strong></td>
+                  <td>Validation, documentation, endpoint health, policy coverage, and workbench export should be graph passes with deterministic diagnostics.</td>
+                  <td><code>NotificationCoveragePass</code>, <code>NotificationPolicyPass</code>, <code>NotificationFlowDocumentPass</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Actor model</strong></td>
+                  <td>Fanout, delivery, receipt polling, retry state, and campaign sequences are serialized workflows with one owner and ordered mutation.</td>
+                  <td><code>NotificationActorKey</code>, <code>DeliveryActor</code>, Durable Object adapter for edge deployments</td>
+                </tr>
+                <tr>
+                  <td><strong>Auth kernel</strong></td>
+                  <td>Every API receives an <code>AuthContext</code>; delivery workers use service principals rather than fake users.</td>
+                  <td><code>AuthRequirement</code> on endpoint registration, intake, preference update, and receipt replay</td>
+                </tr>
+                <tr>
+                  <td><strong>Security plan</strong></td>
+                  <td>Encrypted conversation notifications must not create a plaintext server-side bypass around MLS-protected content.</td>
+                  <td>Opaque route ids, minimized provider payloads, optional iOS service extension display decrypt</td>
+                </tr>
+                <tr>
+                  <td><strong>FlexBuffer runtime</strong></td>
+                  <td>Internal rich payloads can use generated FlexCoders and accessors; tiny public/provider payloads can stay JSON.</td>
+                  <td>Format policy on bus envelopes, records, graph documents, and provider translators</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Runtime planes</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Plane</th><th>Notification responsibility</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Capability / environment</strong></td><td>Platform adapters expose permission state, token registration, local scheduling, channel/category registration, and receive/response listeners.</td></tr>
+                <tr><td><strong>Graph / action</strong></td><td>Notification taps become <code>OpenPath</code> or <code>GraphAction</code> events dispatched through the app graph and action registry.</td></tr>
+                <tr><td><strong>Transport / messaging</strong></td><td>Intent, fanout, delivery, receipt, and interaction events move through typed bus kinds with correlation and causation ids.</td></tr>
+                <tr><td><strong>Data / persistence</strong></td><td>Endpoint registry, attempts, receipts, idempotency, and interactions are operational stores, not product business tables.</td></tr>
+                <tr><td><strong>UI / interaction</strong></td><td>Android channels, iOS categories, direct replies, foreground presentation, and local notifications stay platform-native.</td></tr>
+                <tr><td><strong>Intelligence / tooling</strong></td><td>Workbench panels inspect notification topology, policy gaps, DLQ depth, endpoint hygiene, and conversion analytics through graph documents.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h3>Module contribution contract</h3>
+              <p>
+                <code>reaktor-notification</code> should contribute facets for notification intents, endpoints, policy, providers,
+                categories, routes, and interactions. These facets make routes and nodes inspectable without pushing notification
+                semantics into graph core.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Command surface</h3>
+              <p>
+                Workbench and agents should mutate notification configuration through commands such as
+                <code>RegisterNotificationCategory</code>, <code>UpdateNotificationPolicy</code>, <code>ReplayReceipt</code>, and
+                <code>InvalidateEndpoint</code>, with validations returning findings before patches are applied.
+              </p>
+            </div>
+          </div>
+        </div></section>
+
+        <section id="architecture"><div class="section-inner">
+          <h2>5. Target Architecture</h2>
+          <p>
+            The key design choice is to model notifications as a typed workflow rather than as a push-send helper. A product
+            service creates a <code>NotificationIntent</code>. Reaktor persists it, fans it out to endpoints, applies policy, delivers
+            through a provider, records receipts, and turns client interactions into graph actions.
+          </p>
+          <div class="diagram"><pre><code>Product service or graph node
+  |
+  | NotificationIntent
+  v
+NotificationsService intake
+  |-- idempotency check
+  |-- persist NotificationRecord
+  |-- publish notifications.fanout.requested
+  v
+FanoutService
+  |-- resolve target to endpoints
+  |-- apply quiet hours, category mutes, frequency caps
+  |-- publish notifications.delivery.task
+  v
+DeliveryWorker
+  |-- select provider: FCM, APNS_DIRECT, WEB_PUSH, EXPO
+  |-- retry/circuit-breaker
+  |-- publish notifications.delivery.receipt
+  v
+ReceiptWorker
+  |-- update attempts and receipts
+  |-- invalidate dead endpoints
+  v
+Client NotificationsNode
+  |-- received listener
+  |-- response listener
+  |-- NotificationInteractionEvent -> route or graph action</code></pre></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Purpose</th><th>Owner</th></tr></thead>
+              <tbody>
+                <tr><td><code>Feature.Notifications</code></td><td>Global slot for platform/client notification adapter, matching Auth, File, Database, and PubSub patterns.</td><td><code>commonMain</code></td></tr>
+                <tr><td><code>NotificationsClient</code></td><td>Client-side permission, token, local schedule, receive, and response contract.</td><td><code>commonMain</code> with platform implementations</td></tr>
+                <tr><td><code>NotificationsService</code></td><td>Server/intake API for endpoint registration, preferences, notification creation, reads, and interaction recording.</td><td><code>commonMain</code></td></tr>
+                <tr><td><code>NotificationsNode</code></td><td>Graph integration point that installs listeners, registers endpoints after auth, and dispatches interactions.</td><td><code>reaktor-graph</code> integration</td></tr>
+                <tr><td><code>PushProvider</code></td><td>Provider-neutral delivery abstraction with provider-specific batching, rate limiting, and error classification.</td><td><code>jvmMain</code>, <code>jsMain</code></td></tr>
+                <tr><td><code>DeliveryPolicy</code></td><td>Pure policy function for category mutes, quiet hours, and frequency caps.</td><td><code>commonMain</code></td></tr>
+                <tr><td><code>NotificationFacet</code></td><td>Graph metadata for notification categories, required permissions, route targets, provider needs, and policy coverage.</td><td><code>commonMain</code></td></tr>
+                <tr><td><code>NotificationCapability</code></td><td>Runtime capability descriptor for unavailable, local-only, remote push, direct reply, rich media, and critical alert support.</td><td><code>commonMain</code> with platform detection</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div></section>
+
+        <section id="domain-model"><div class="section-inner">
+          <h2>6. Common Domain Model</h2>
+          <p>Domain classes stay semantic and provider-neutral. FCM, APNs, Web Push, and Expo-specific fields belong in provider translators, not in the product-facing intent.</p>
+          <pre><code>@Serializable
+data class NotificationIntent(
+    val tenantId: String,
+    val appId: String,
+    val type: String,
+    val target: NotificationTarget,
+    val content: NotificationContent,
+    val route: NotificationRoute,
+    val priority: NotificationPriority = NotificationPriority.Normal,
+    val category: String? = null,
+    val scheduledAt: Instant? = null,
+    val idempotencyKey: String? = null,
+    val correlationId: String? = null,
+)
+
+@Serializable
+sealed class NotificationTarget {
+    data class User(val userId: String) : NotificationTarget()
+    data class Users(val userIds: List&lt;String&gt;) : NotificationTarget()
+    data class Installation(val installationId: String) : NotificationTarget()
+    data class Installations(val installationIds: List&lt;String&gt;) : NotificationTarget()
+    data class Segment(val segmentId: String) : NotificationTarget() // Phase 2
+    data class Topic(val topic: String) : NotificationTarget()       // Phase 2
+}
+
+@Serializable
+data class NotificationContent(
+    val title: String,
+    val subtitle: String? = null,
+    val body: String,
+    val imageUrl: String? = null,
+    val categoryId: String? = null,
+    val threadId: String? = null,
+    val person: NotificationPerson? = null,
+    val badge: Int? = null,
+    val sound: NotificationSound = NotificationSound.Default,
+    val interruptionLevel: InterruptionLevel = InterruptionLevel.Active,
+    val data: Map&lt;String, String&gt; = emptyMap(),
+)
+
+@Serializable
+sealed class NotificationRoute {
+    data class OpenPath(val path: String) : NotificationRoute()
+    data class GraphAction(val type: String, val payloadJson: String) : NotificationRoute()
+    data object None : NotificationRoute()
+}</code></pre>
+        </div></section>
+
+        <section id="workflow"><div class="section-inner">
+          <h2>7. Typed Workflow And Bus Kinds</h2>
+          <p>Every asynchronous hop should be explicit, idempotent, and observable. The notification pipeline uses Reaktor service handlers and bus envelopes rather than ad hoc queues.</p>
+          <div class="pipeline">
+            <div class="pipe-step"><span class="num">01</span><strong>Intent</strong><span>Product emits typed notification intent with idempotency key.</span></div>
+            <div class="pipe-step"><span class="num">02</span><strong>Intake</strong><span>D1/Postgres record and outbox row are written atomically.</span></div>
+            <div class="pipe-step"><span class="num">03</span><strong>Fanout</strong><span>Target is expanded to active endpoints and policy is applied.</span></div>
+            <div class="pipe-step"><span class="num">04</span><strong>Delivery</strong><span>Provider worker sends, retries, and emits receipt events.</span></div>
+            <div class="pipe-step"><span class="num">05</span><strong>Interaction</strong><span>Client tap or action becomes a graph route/action.</span></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Bus kind</th><th>Producer</th><th>Consumer</th><th>Payload</th></tr></thead>
+              <tbody>
+                <tr><td><code>notifications.intent.accepted</code></td><td>Intake</td><td>Telemetry, optional dashboards</td><td>Accepted record metadata</td></tr>
+                <tr><td><code>notifications.fanout.requested</code></td><td>Outbox relay</td><td>FanoutService</td><td><code>FanoutRequest</code></td></tr>
+                <tr><td><code>notifications.delivery.task</code></td><td>FanoutService</td><td>DeliveryWorker</td><td><code>DeliveryTask</code></td></tr>
+                <tr><td><code>notifications.delivery.receipt</code></td><td>DeliveryWorker or Expo receipt poller</td><td>ReceiptWorker</td><td><code>ProviderReceipt</code></td></tr>
+                <tr><td><code>notifications.endpoint.invalidated</code></td><td>ReceiptWorker</td><td>Analytics, endpoint cleanup</td><td>Endpoint id and reason</td></tr>
+                <tr><td><code>notifications.interaction.recorded</code></td><td>Client/API</td><td>Analytics, conversion funnels</td><td><code>NotificationInteractionEvent</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div></section>
+
+        <section id="data-store"><div class="section-inner">
+          <h2>8. Operational Data Store</h2>
+          <p>Notification truth is operational truth, not product business truth. D1 is the default for Cloudflare edge deployments; Postgres is the default for Spring-first deployments.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Table</th><th>Purpose</th><th>Retention</th><th>Indexes</th></tr></thead>
+              <tbody>
+                <tr><td><code>notification_endpoints</code></td><td>Installation/provider token registry plus preferences and status.</td><td>Until unregister or invalidation TTL.</td><td>User lookup, status lookup, unique installation/provider.</td></tr>
+                <tr><td><code>notification_records</code></td><td>One row per accepted notification intent.</td><td>30 to 180 days by tenant policy.</td><td>Tenant/app/created, correlation id.</td></tr>
+                <tr><td><code>notification_attempts</code></td><td>Each endpoint delivery attempt, provider id, and error.</td><td>Shorter retention, often 14 to 30 days.</td><td>Notification id, endpoint id.</td></tr>
+                <tr><td><code>notification_receipts</code></td><td>Accepted, failed, delivered/opened/dismissed where available.</td><td>Analytics window.</td><td>Notification id, endpoint id.</td></tr>
+                <tr><td><code>notification_idempotency</code></td><td>Maps idempotency keys to notification ids.</td><td>Expires on workflow TTL.</td><td>Primary key.</td></tr>
+                <tr><td><code>notification_interactions</code></td><td>Tap/action/open records used for graph routing and conversion analytics.</td><td>Analytics window.</td><td>Notification id.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre><code>CREATE TABLE notification_endpoints (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    app_id TEXT NOT NULL,
+    user_id TEXT,
+    installation_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    token TEXT NOT NULL,
+    environment TEXT NOT NULL,
+    locale TEXT,
+    timezone TEXT,
+    device_info_json TEXT NOT NULL,
+    preferences_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    last_seen_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    UNIQUE(tenant_id, app_id, installation_id, provider)
+);</code></pre>
+          <div class="callout">
+            <strong>Format policy:</strong> use generated FlexCoders for rich internal workflow payloads, endpoint snapshots,
+            graph/workbench documents, and cache-heavy notification inbox records. Keep JSON for provider APIs, tiny public
+            payloads, webhook compatibility, and debugging surfaces where self-description matters more than hot-path speed.
+          </div>
+        </div></section>
+
+        <section id="source-sets"><div class="section-inner">
+          <h2>9. Module Layout And Source Sets</h2>
+          <p>Keep the module as one KMP package. Platform-specific implementation belongs in source sets; orchestration contracts stay in <code>commonMain</code>.</p>
+          <pre><code>reaktor-notification/
+  src/commonMain/kotlin/dev/shibasis/reaktor/notification/
+    domain/               NotificationIntent, Target, Content, Route, Endpoint
+    client/               NotificationsClient, Permission, Listeners
+    service/              NotificationsService, Orchestrator, Stores
+    policy/               DeliveryPolicy, QuietHours, FrequencyCap
+    provider/             PushProvider, ProviderErrorClassifier
+    graph/                NotificationsNode, GraphNotificationRouteDispatcher
+  src/androidMain/
+    AndroidNotificationsClient, FcmTokenProvider, AndroidChannelRegistry
+    AndroidNotificationRenderer, ReaktorFirebaseMessagingService
+  src/iosMain/
+    IosNotificationsClient, ApnsRegistrationProvider, AppleCategoryRegistry
+    IosNotificationInteractionBridge, CommunicationNotificationBuilder
+  src/jsMain/
+    DurableObjectIntake, D1NotificationStore, FanoutService, WebPushProvider
+  src/jvmMain/
+    FirebasePushProvider, ApnsDirectPushProvider, FirebaseDeliveryWorker
+    PostgresNotificationStore, ReceiptWorker</code></pre>
+          <h3>First API cut</h3>
+          <pre><code>var Feature.Notifications by CreateSlot&lt;NotificationsClient&gt;()
+
+interface NotificationsClient {
+    suspend fun getPermissions(): NotificationPermissionStatus
+    suspend fun requestPermissions(options: NotificationPermissionOptions): NotificationPermissionStatus
+    suspend fun getDeviceToken(): DevicePushToken?
+    suspend fun registerRemoteEndpoint(userId: String?): RegisterEndpointResult
+    suspend fun scheduleLocal(request: LocalNotificationRequest): LocalNotificationId
+    fun addReceivedListener(listener: suspend (NotificationEnvelope) -&gt; Unit): ListenerHandle
+    fun addResponseListener(listener: suspend (NotificationResponseEvent) -&gt; Unit): ListenerHandle
+}
+
+enum class NotificationCapabilityLevel {
+    Unavailable,
+    LocalOnly,
+    RemotePush,
+    RemotePushWithActions,
+    RemotePushWithRichMedia,
+}</code></pre>
+        </div></section>
+
+        <section id="providers"><div class="section-inner">
+          <h2>10. Provider Strategy</h2>
+          <p>Provider support should be explicit. The product-facing intent is stable, while providers translate it into FCM, APNs, Web Push, or Expo-specific requests and classify errors into common retry decisions.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Provider</th><th>Phase</th><th>Use case</th><th>Important behavior</th></tr></thead>
+              <tbody>
+                <tr><td><strong>FCM</strong></td><td>Phase 1</td><td>Android delivery and initial iOS delivery through Firebase.</td><td>Data and notification messages, token refresh, Admin SDK error classification, endpoint invalidation.</td></tr>
+                <tr><td><strong>APNs direct</strong></td><td>Phase 2</td><td>iOS-specific features not fully covered by FCM: Live Activities, critical alerts, direct APNs headers.</td><td>HTTP/2 provider auth, push type, collapse id, expiration, environment separation.</td></tr>
+                <tr><td><strong>Expo Push</strong></td><td>Bridge</td><td>Tenants already using Expo/React Native or hosted mode with Expo push tokens.</td><td>Ticket persistence, 15-minute receipt polling, batch limits, access-token support.</td></tr>
+                <tr><td><strong>Web Push</strong></td><td>Later</td><td>Browser and PWA notifications.</td><td>VAPID keys, service workers, encrypted payloads, subscription rotation.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre><code>sealed class RetryDecision {
+    data class Retryable(val delay: Duration? = null) : RetryDecision()
+    data class InvalidateEndpoint(val reason: String) : RetryDecision()
+    data object Terminal : RetryDecision()
+}
+
+interface ProviderErrorClassifier {
+    fun classify(error: Throwable): RetryDecision
+}</code></pre>
+        </div></section>
+
+        <section id="routing"><div class="section-inner">
+          <h2>11. Typed Routing Into The Graph</h2>
+          <p>A notification tap is a graph event, not a deep-link string. The route is serialized into the provider payload and restored into <code>NotificationInteractionEvent</code> when the app receives a tap, action button, direct reply, or foreground response.</p>
+          <pre><code>class GraphNotificationRouteDispatcher(
+    private val graph: Graph,
+    private val actionRegistry: TactileActionRegistry,
+) : NotificationRouteDispatcher {
+    override suspend fun dispatch(event: NotificationInteractionEvent) {
+        when (val route = event.route) {
+            is NotificationRoute.OpenPath -&gt; graph.dispatchPath(route.path)
+            is NotificationRoute.GraphAction -&gt; {
+                val action = ActionRef(route.type, payloadSchema = route.type)
+                actionRegistry.dispatch(action, TactileValue.fromJson(route.payloadJson))
+            }
+            NotificationRoute.None -&gt; Unit
+        }
+    }
+}</code></pre>
+          <div class="callout success">
+            <strong>Reaktor differentiator:</strong> this connects notification interactions directly to the same action registry,
+            graph lifecycle, route parsing, telemetry, and replay model used by the rest of the app.
+          </div>
+        </div></section>
+
+        <section id="policy"><div class="section-inner">
+          <h2>12. Policy Engine</h2>
+          <p>Policy runs during fanout before provider delivery. It is a pure function of intent, endpoint, and time so it can be unit tested without Cloudflare, Firebase, APNs, or a device.</p>
+          <div class="grid-3">
+            <div class="card"><h3>Category mutes</h3><p>Per-category settings such as messages, campaigns, social updates, product alerts, and marketing.</p></div>
+            <div class="card"><h3>Quiet hours</h3><p>Endpoint time-zone aware suppression, with priority overrides for urgent or time-sensitive intents.</p></div>
+            <div class="card"><h3>Frequency caps</h3><p>Tenant and category caps over a rolling window, backed by the attempts/receipts store.</p></div>
+          </div>
+          <pre><code>interface DeliveryPolicy {
+    fun permits(intent: NotificationIntent, endpoint: NotificationEndpoint, now: Instant): PolicyDecision
+}
+
+sealed class PolicyDecision {
+    data object Send : PolicyDecision()
+    data class Suppress(val reason: String) : PolicyDecision()
+    data class DelayUntil(val at: Instant, val reason: String) : PolicyDecision()
+}</code></pre>
+        </div></section>
+
+        <section id="security"><div class="section-inner">
+          <h2>13. Security And Privacy</h2>
+          <ul>
+            <li><strong>Tenant isolation:</strong> all records and endpoints carry <code>tenantId</code> and <code>appId</code>; hosted mode should use per-tenant D1 bindings or strict tenant partitioning.</li>
+            <li><strong>Credential isolation:</strong> FCM service accounts, APNs keys, Expo access tokens, and VAPID keys are tenant secrets, never product payload fields.</li>
+            <li><strong>Payload minimization:</strong> provider payloads should carry display text plus opaque ids. Sensitive content should be fetched after graph route resolution or decrypted by an iOS service extension where needed.</li>
+            <li><strong>Auth integration:</strong> hosted APIs require <code>reaktor-auth</code> tenant API keys or service credentials. Product-local embedded mode still verifies user and app context before registering endpoints.</li>
+            <li><strong>Service principals:</strong> intake, fanout, delivery, receipt polling, and DLQ replay run as service principals with explicit scopes, not as synthetic users.</li>
+            <li><strong>E2EE boundary:</strong> for MLS-backed conversations, provider payloads should carry opaque conversation/message ids and safe preview policy. The server should not gain a plaintext decrypt path; rich display can be delegated to a platform service extension when the product requires it.</li>
+            <li><strong>Replay safety:</strong> idempotency keys are required for domain-triggered sends such as chat mentions and payment events.</li>
+          </ul>
+        </div></section>
+
+        <section id="observability"><div class="section-inner">
+          <h2>14. Observability</h2>
+          <p>Notifications should never be a black box. Every accepted intent, fanout decision, provider attempt, receipt, endpoint invalidation, and interaction should emit telemetry with shared correlation ids.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Metric or span attribute</th><th>Why it matters</th></tr></thead>
+              <tbody>
+                <tr><td><code>notification.correlation_id</code></td><td>Joins original domain event, intake, delivery, and client interaction.</td></tr>
+                <tr><td><code>notification.provider</code></td><td>Separates FCM/APNs/Expo/Web Push behavior.</td></tr>
+                <tr><td><code>notification.delivery.latency_ms</code></td><td>Tracks slow provider paths and queue backlog.</td></tr>
+                <tr><td><code>notification.error_code</code></td><td>Drives retry, endpoint invalidation, and operator alerts.</td></tr>
+                <tr><td><code>notification.policy.suppressed</code></td><td>Shows quiet-hours, mute, and frequency-cap effects.</td></tr>
+                <tr><td><code>notification.interaction_type</code></td><td>Converts delivery into product analytics: tap, direct reply, dismiss, action.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Workbench views</h3>
+          <div class="grid-3">
+            <div class="card"><h3>Topology</h3><p>Show which graph routes declare notification entry points, categories, required permissions, and provider capabilities.</p></div>
+            <div class="card"><h3>Operations</h3><p>Track endpoint health, fanout backlog, retry counts, provider circuit state, DLQ depth, and invalidation reasons.</p></div>
+            <div class="card"><h3>Product impact</h3><p>Join interactions to graph actions so delivery, open, dismiss, direct reply, and conversion can be inspected from the same trace.</p></div>
+          </div>
+        </div></section>
+
+        <section id="roadmap"><div class="section-inner">
+          <h2>15. Implementation Roadmap</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Phase</th><th>Scope</th><th>Exit criteria</th></tr></thead>
+              <tbody>
+                <tr><td><strong>0. Align module</strong></td><td>Decide naming, add <code>Feature.Notifications</code>, add common domain/client/service contracts, facets, capability descriptors, validators, and README.</td><td>Module compiles across current targets with no product dependency.</td></tr>
+                <tr><td><strong>1. Client foundation</strong></td><td>Android/iOS permission checks, token acquisition, token refresh listeners, local notifications, response listeners, endpoint registration contract.</td><td>BestBuds can register endpoints and route a local notification tap through the graph.</td></tr>
+                <tr><td><strong>2. FCM delivery</strong></td><td>D1/Postgres stores, AuthContext-aware intake service, actor-backed fanout, JVM Firebase provider, attempts, receipts, FCM classifier, endpoint invalidation.</td><td>Cloudflare intake can send a notification to a real Android device through FCM with persisted receipt state.</td></tr>
+                <tr><td><strong>3. Platform depth</strong></td><td>Android channels/conversations/direct reply, iOS categories/actions, rich media, foreground behavior, optional Expo provider.</td><td>Chat mention notification renders natively and tap/direct-reply interactions enter the app graph.</td></tr>
+                <tr><td><strong>4. APNs and web</strong></td><td>APNs direct provider, Web Push provider, service extension helpers, Live Activity controller behind feature flag.</td><td>Provider selection works per endpoint and per notification capability.</td></tr>
+                <tr><td><strong>5. Workbench integration</strong></td><td>Notification graph passes, policy diagnostics, endpoint health panels, DLQ replay commands, and trace-to-action navigation.</td><td>Operators can inspect why a notification was sent, suppressed, retried, invalidated, or converted.</td></tr>
+                <tr><td><strong>6. Engagement layer</strong></td><td>Scheduled campaigns, event-triggered campaigns, simple segments, A/B variants, dashboard panels.</td><td>Basic retention campaign can be run without buying an external engagement platform.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            <strong>Important sequencing:</strong> do not build campaign tooling before Phase 2 delivery and receipts are solid.
+            A campaign engine without reliable endpoint hygiene and delivery telemetry will create product noise and operational debt.
+          </div>
+        </div></section>
+
+        <section id="references"><div class="section-inner">
+          <h2>16. References Used</h2>
+          <p>This design was produced from the local Reaktor strategic assessment document, the current repository implementation, the existing reaktorWeb docs, and current official documentation for Expo, Firebase, Android, and Apple notification primitives.</p>
+          <ul>
+            <li><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a></li>
+            <li><a href="/docs/reaktor_graph_visitors_design">Reaktor Graph Visitors Design</a></li>
+            <li><a href="/docs/reaktor-actor-model">Reaktor Actor Model</a></li>
+            <li><a href="/docs/reaktor-implementation-plan">Reaktor Implementation Plan</a></li>
+            <li><a href="/docs/auth-analysis">Auth Architecture and Redesign</a></li>
+            <li><a href="/docs/security-plan">Security Implementation Plan</a></li>
+            <li><a href="/docs/flexbuffer-implementation">FlexBuffer Binary Serialization</a></li>
+            <li><a href="/docs/react-compose">React x Compose Blueprint</a></li>
+            <li><a href="https://docs.expo.dev/push-notifications/push-notifications-setup/">Expo push notifications setup</a></li>
+            <li><a href="https://docs.expo.dev/push-notifications/sending-notifications/">Send notifications with the Expo Push Service</a></li>
+            <li><a href="https://docs.expo.dev/versions/latest/sdk/notifications/">Expo Notifications SDK</a></li>
+            <li><a href="https://docs.expo.dev/push-notifications/what-you-need-to-know/">Expo notification types and behaviors</a></li>
+            <li><a href="https://firebase.google.com/docs/cloud-messaging/customize-messages/set-message-type">Firebase Cloud Messaging message types</a></li>
+            <li><a href="https://firebase.google.com/docs/cloud-messaging/error-codes">Firebase Cloud Messaging error codes</a></li>
+            <li><a href="https://developer.android.com/develop/ui/views/notifications/notification-permission">Android notification runtime permission</a></li>
+            <li><a href="https://developer.android.com/reference/android/app/NotificationChannel">Android NotificationChannel API reference</a></li>
+            <li><a href="https://developer.apple.com/documentation/usernotifications/unusernotificationcenter">Apple UNUserNotificationCenter</a></li>
+            <li><a href="https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns">Apple APNs provider API</a></li>
+          </ul>
+          <div class="badge-row">
+            <span class="badge">Generated May 26 2026</span>
+            <span class="badge">Target reaktorWeb public docs</span>
+            <span class="badge">Module :reaktor-notification</span>
+          </div>
+        </div></section>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor Notifications design brief. Static HTML for the reaktorWeb docs target.</footer>
+  </div>
+</body>
+</html>

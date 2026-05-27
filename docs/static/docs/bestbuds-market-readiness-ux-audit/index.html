@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BestBuds Market Readiness UX Audit - Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>BestBuds</span><span>Market Readiness</span></div>
+      <p class="eyebrow">BestBuds - Product UX</p>
+      <h1>BestBuds Market Readiness UX Audit</h1>
+      <p class="subtitle">Expanded screen-by-screen audit of the real BestBuds app after the prototype-style migration, grounded in the app graph and broader research on messaging, events, real-world social coordination, trust, and retention.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Polishing the actual Android, iOS, and desktop app UI for a public-quality release.</span></div>
+        <div class="stat"><b>Source</b><span>Codex scan of <code>modules/app</code>, <code>modules/design</code>, <code>prototype</code>, <code>targets/appWeb</code>, and visual reference apps.</span></div>
+        <div class="stat"><b>Route</b><span>/docs/bestbuds-market-readiness-ux-audit</span></div>
+      </div>
+    </header>
+
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div>
+        <div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div>
+        <div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div>
+        <div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div>
+        <div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div>
+        <div class="side-group"><h3>BestBuds</h3><a href="/docs/bestbuds-ui-migration-plan">UI Migration Plan</a><a aria-current="page" href="/docs/bestbuds-market-readiness-ux-audit">Market Readiness UX Audit</a></div>
+        <div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc">
+          <a href="#executive-summary">Executive Summary</a>
+          <a href="#product-loop">Product Loop</a>
+          <a href="#experience-principles">Experience Principles</a>
+          <a href="#research-map">Research Map</a>
+          <a href="#reference-apps">Reference Apps</a>
+          <a href="#screen-inventory">Screen Inventory</a>
+          <a href="#app-architecture-findings">App Architecture Findings</a>
+          <a href="#screen-recommendations">Screen Recommendations</a>
+          <a href="#deep-screen-specs">Deep Screen Specs</a>
+          <a href="#data-contracts">Data Contracts</a>
+          <a href="#analytics-metrics">Analytics And Metrics</a>
+          <a href="#component-system">Component System</a>
+          <a href="#motion-polish">Motion And Polish</a>
+          <a href="#visual-qa">Visual QA Matrix</a>
+          <a href="#market-readiness">Market Readiness Checklist</a>
+          <a href="#build-backlog">Prioritized Backlog</a>
+          <a href="#roadmap">Execution Roadmap</a>
+          <a href="#sources">Sources</a>
+        </nav>
+      </aside>
+
+      <main id="content" class="doc-content">
+        <div id="executive-summary">
+          <h2>Executive Summary</h2>
+          <p class="lead">BestBuds is no longer a generic chat shell. The migration has moved the app toward a warm editorial social product with staged campaigns, real-world events, friend profiles, palette switching, and a scoped design component system. The next step is to make every screen express the product promise: meet compatible people, build trust in a small circle, do something in the real world, and keep the right people.</p>
+          <div class="grid three">
+            <div class="card bar green">
+              <h3>What works now</h3>
+              <p>The core app graph is coherent. Chat, campaign, discover, events, friends, profile, palette, and dev routes are visible in the app. Shared tokens and scoped components give us a real foundation for a consistent visual system.</p>
+            </div>
+            <div class="card bar amber">
+              <h3>What still feels pre-market</h3>
+              <p>Several CTAs are placeholders, profile creation and edit routes are empty states, event creation is not wired, campaign details are shallow, and the first-time experience does not yet explain why BestBuds is different in the first 30 seconds.</p>
+            </div>
+            <div class="card bar cyan">
+              <h3>What will make it memorable</h3>
+              <p>Turn the app into a living social cockpit: day-by-day reveal, Budbot prompts, stronger event cards, beautiful group profiles, micro-animations, expressive avatar stacks, explicit trust signals, and end-to-end chat-to-event-to-friend loops.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Market bar:</strong> a first-time user should understand "this creates real circles, not another infinite feed" before they reach the chat list. A returning user should immediately see what changed, who needs a reply, and what real-world action is next.
+          </div>
+        </div>
+
+        <div id="product-loop">
+          <h2>Product Loop</h2>
+          <p>BestBuds should not compete as a prettier messaging app. It should own a loop that ordinary social products do not complete well.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Loop stage</th><th>What the app must make obvious</th><th>Primary screens</th><th>Current gap</th></tr></thead>
+              <tbody>
+                <tr><td>Enter</td><td>BestBuds creates small, time-boxed circles for real-world connection.</td><td>Start, onboarding</td><td>Login is functional, but the value proposition is mostly hidden behind auth.</td></tr>
+                <tr><td>Reveal</td><td>Trust grows over days, with identities and context unlocking progressively.</td><td>Chat, group profile, campaign</td><td>The prototype has reveal schedule and lock cards; the real app has only light stage language.</td></tr>
+                <tr><td>Bond</td><td>Conversation should have prompts, reactions, replies, photos, stickers, and social context.</td><td>Chat, chat list</td><td>Chat is much improved, but Budbot and group context need more presence.</td></tr>
+                <tr><td>Meet</td><td>The app should convert conversation energy into plans and events.</td><td>Public events, private events, create event</td><td>Events look better, but add/create/join flows are mostly placeholders.</td></tr>
+                <tr><td>Keep</td><td>Good connections become permanent friends with memory and continuity.</td><td>Friends, profiles, campaign history</td><td>Friends list exists, but profile history and proof of relationship are thin.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Experience North Star</h3>
+          <p>Every screen should answer one of three questions: "Who should I connect with?", "What should I say or do next?", and "Why should I trust this person or circle?" If a screen cannot answer one of those, it should be redesigned or removed from the main path.</p>
+        </div>
+
+        <div id="experience-principles">
+          <h2>Experience Principles</h2>
+          <p class="lead">BestBuds should feel like a small-circle social operating system, not a feed, dating app, or generic chat wrapper. These principles should be used as review criteria for every new screen and component.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>1. Small Circle First</h3>
+              <p>The main unit is a circle with a purpose, not a post. Every home surface should make the circle, its members, and its next shared action visible.</p>
+            </div>
+            <div class="card">
+              <h3>2. Real-World Bias</h3>
+              <p>The product should keep pushing conversations toward plans, events, walks, meals, classes, games, or meetups. Engagement is useful only when it becomes shared time.</p>
+            </div>
+            <div class="card">
+              <h3>3. Trust Is Interface</h3>
+              <p>Trust cannot live only in policy. Reveal levels, permission explanations, relationship sources, mutuals, safety controls, and data-use copy must be visible in the product surface.</p>
+            </div>
+            <div class="card">
+              <h3>4. Pacing Beats Volume</h3>
+              <p>BestBuds should avoid infinite-scroll pressure. Daily reveal, limited prompts, and timed plans can create anticipation without making the app feel addictive in the wrong way.</p>
+            </div>
+            <div class="card">
+              <h3>5. Actionable Beauty</h3>
+              <p>Every beautiful card needs a next action. A poster, profile, campaign, or group card should let the user reply, RSVP, save, plan, react, or refine the recommendation.</p>
+            </div>
+            <div class="card">
+              <h3>6. Failure Feels Human</h3>
+              <p>Failed sends, empty circles, denied permissions, no RSVP, or missing profile data need carefully written states with recovery actions, not generic errors.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Design review rule:</strong> if a screen is visually beautiful but does not advance trust, conversation, or a real-world plan, it is not finished.
+          </div>
+        </div>
+
+        <div id="research-map">
+          <h2>Research Map</h2>
+          <p>Broader research supports the BestBuds premise: people already use social platforms daily, but the opportunity is to turn that frequency into healthier, smaller, real-world connection. The product should synthesize the best mechanics from social, event, and coordination products without inheriting their worst incentives.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Research area</th><th>Relevant finding</th><th>BestBuds design implication</th></tr></thead>
+              <tbody>
+                <tr><td>Social connection as health infrastructure</td><td>The U.S. Surgeon General frames social connection as critical to individual and community health, with digital environments explicitly called out as one lever.</td><td>Position BestBuds around meaningful connection and local social infrastructure, not follower growth. Product metrics should measure plans, friendships, and healthy participation.</td></tr>
+                <tr><td>Teen and young-adult social frequency</td><td>Pew's 2025 teen platform data shows high daily usage across YouTube, TikTok, Snapchat, and Instagram, with major platforms competing for habitual attention.</td><td>BestBuds cannot win only by being another daily app. It needs a different reward: "I met people I actually want to keep seeing."</td></tr>
+                <tr><td>Connection and pressure tradeoff</td><td>Pew's 2022 social media report shows teens credit platforms with connection, creativity, and support, while also reporting pressure, drama, and personal-data concern.</td><td>Use prompt-led expression and small groups, but avoid public popularity mechanics. Add visible privacy control and keep performance pressure low.</td></tr>
+                <tr><td>Event planning systems</td><td>OutWithFriendz studied 500+ users and 300+ group events and identified mobility, individual preferences, host preferences, and group voting as important planning factors.</td><td>Events need availability, venue, distance, host preference, and group voting primitives. A static event card is not enough.</td></tr>
+                <tr><td>Group coordination products</td><td>Products like Let’s and Plandra make polls, checklists, expense splitting, photo sharing, calendar conflict, and group chat part of the planning surface.</td><td>BestBuds should make planning inside chat feel native: poll, date, venue, checklist, memory, and post-event recap should be message-native objects.</td></tr>
+                <tr><td>Activity communities</td><td>Strava turns real-world actions into social proof through goals, challenges, routes, clubs, feeds, privacy controls, and grouped activities.</td><td>BestBuds should create social proof around actual meetups and shared moments, with privacy boundaries clear enough for location-sensitive experiences.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            <strong>Anti-pattern to avoid:</strong> a beautiful feed that still leaves users alone. BestBuds should optimize for circles that meet, not content that scrolls.
+          </div>
+        </div>
+
+        <div id="reference-apps">
+          <h2>Reference Apps</h2>
+          <p>These are not competitors to copy one-to-one. They are references for interaction quality, emotional pacing, and product mechanics that map to BestBuds.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Reference</th><th>What to study</th><th>BestBuds application</th></tr></thead>
+              <tbody>
+                <tr><td>Hinge</td><td>Profiles are structured around prompts and specific content interactions, not only a swipe stack. Roses and Standouts also show how one high-intent signal can be visually elevated.</td><td>Make profile and friend screens prompt-first. Let users react to a specific prompt, campaign memory, photo, or event preference instead of only tapping "Message".</td></tr>
+                <tr><td>Bumble BFF / Bumble For Friends</td><td>Friend discovery now leans into group connection and real plans, including group meetup mechanics.</td><td>BestBuds should make "join a plan" and "create a small hang" first-class across chat, events, and group profiles.</td></tr>
+                <tr><td>Partiful</td><td>Events feel expressive, aesthetic, shareable, and socially alive through invite pages, RSVP visibility, comments, photos, and updates.</td><td>Public and private events need poster-level visual design, guest energy, RSVP state, comments, updates, and post-event photo memory.</td></tr>
+                <tr><td>Apple Invites</td><td>Events become richer when invitation, RSVP, shared photo album, music playlist, web access, and memory capture are treated as one product surface.</td><td>BestBuds event detail should connect the plan, the group, the guest list, the playlist/photo memory, and the after-event recap instead of ending at RSVP.</td></tr>
+                <tr><td>Meetup</td><td>Interest-based groups and local events are discoverable through categories, search, map, RSVP, organizer tools, discussion, and direct messaging.</td><td>Discover should combine "who you might like" with "what you can do together this week." The map/category layer matters once events become real inventory.</td></tr>
+                <tr><td>Instagram DMs</td><td>Messaging retention comes from fast replies, presence, rich media, pinned chats, themes, reactions, edits, scheduling, and low-friction sharing.</td><td>BestBuds chat should gain edit/delete, voice notes, pinned prompts, event shares, richer attachment composer, and persistent thread identity.</td></tr>
+                <tr><td>Discord</td><td>Communities work because text, voice, events, permissions, polls, roles, and embeds are all native primitives inside one server context.</td><td>Group profile should own permissions, event links, polls, member state, and rich shared objects. Chat should not be only text bubbles.</td></tr>
+                <tr><td>Geneva</td><td>Group chat works when chat, events, calendar, polls, pins, attachments, reactions, and rooms coexist.</td><td>Group profile should become the circle hub: members, pinned plan, prompts, events, polls, memory wall, and safety/trust controls.</td></tr>
+                <tr><td>Let’s / Plandra</td><td>Social coordination products reduce planning friction with voting, suggestions, conflict detection, checklists, expense splitting, and shared photos.</td><td>Add event polls and planning objects directly into BestBuds chat, then turn accepted plans into event detail pages automatically.</td></tr>
+                <tr><td>Strava</td><td>Real-world actions become repeatable social loops through goals, group challenges, clubs, activity feeds, and privacy controls.</td><td>Translate activity proof into social proof: completed events, shared moments, recurring plans, and circle milestones should become profile and group memories.</td></tr>
+                <tr><td>Locket and BeReal</td><td>Close-circle social products feel intimate by limiting audience, reducing performance pressure, and emphasizing authentic moments.</td><td>Do not turn BestBuds into a public feed. Use small-circle constraints, candid moments, and low-pressure daily check-ins.</td></tr>
+                <tr><td>CRED</td><td>Premium perception comes from consistency, motion, tactile components, and a complete design language that can support many product surfaces.</td><td>BestBuds needs a custom visual language for cards, menus, inputs, event posters, stage badges, and rewards rather than default Material surfaces.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="screen-inventory">
+          <h2>Screen Inventory</h2>
+          <p>The app graph currently exposes the following market-facing surfaces. This audit treats dev/admin as a release hygiene item, not a consumer feature.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Area</th><th>Files scanned</th><th>Current quality</th><th>Market risk</th></tr></thead>
+              <tbody>
+                <tr><td>Start / login</td><td><code>StartScreen.kt</code></td><td>Functional and visually lighter; typewriter moment gives some brand personality.</td><td>Does not yet sell the product before login. Dev impersonation avatars must be hidden in release builds.</td></tr>
+                <tr><td>Onboarding</td><td><code>OnboardingScreen.kt</code>, <code>OnboardingViews.kt</code></td><td>Question flow works with custom controls.</td><td>Too questionnaire-like. Needs profile preview, trust copy, privacy explanations, and completion reward.</td></tr>
+                <tr><td>Chat list</td><td><code>ChatsScreen.kt</code>, <code>ChatViews.kt</code></td><td>Good structural upgrade: hero, filters, sections, unread state, relation chips.</td><td>Needs stronger visual hierarchy, day/reveal states, pinned plan, archived section, search/new chat actions.</td></tr>
+                <tr><td>Chat thread</td><td><code>ChatScreen.kt</code>, <code>ChatViews.kt</code>, <code>MessageView.kt</code></td><td>Best current surface. Custom composer, reply, reactions, stickers, images, forwarding, presence, and member rail exist.</td><td>Still missing the prototype's campaign reveal system, Budbot assistant panel, event cards, richer composer, and polished media message layouts.</td></tr>
+                <tr><td>Campaigns</td><td><code>CampaignScreen.kt</code>, <code>CampaignComponents.kt</code></td><td>Stage tokens, trust ring, member stack, and stage track are strong.</td><td>No detail route or story depth. CTAs are mostly TODO. Current screen can feel like a static list.</td></tr>
+                <tr><td>Discover</td><td><code>DiscoverScreen.kt</code></td><td>Search and campaign cards are present.</td><td>Needs recommendation explanation, map/local context, filters, "why this circle", and join confirmation.</td></tr>
+                <tr><td>Events</td><td><code>PublicEventsScreen.kt</code>, <code>PrivateEventsScreen.kt</code>, <code>CreateEventScreen.kt</code></td><td>Public screen has hero, modes, search, event rows. Private screen uses shared event cards.</td><td>Create/add flows are not connected. Public events need poster art, RSVP state, details, sharing, and social proof.</td></tr>
+                <tr><td>Friends</td><td><code>FriendsScreen.kt</code></td><td>Simple permanent friends list with profile navigation.</td><td>Needs search, groups, relationship memory, recent activity, and "plan again" actions.</td></tr>
+                <tr><td>Profiles</td><td><code>ProfileScreen.kt</code>, <code>FriendProfileScreen.kt</code>, <code>GroupProfileScreen.kt</code></td><td>Personal and group profiles are visually upgraded; friend profile is simpler.</td><td>Create/edit profile routes are empty. Profile screens need media, prompts, campaign history, trust, privacy, and clearer CTAs.</td></tr>
+                <tr><td>Palette / menu / navigation</td><td><code>PaletteScreen.kt</code>, <code>BestBudsTopBar.kt</code>, <code>BestBudsContainers.kt</code></td><td>Palette selector is useful for design work; top bar and bottom nav are functional.</td><td>Overflow menu is still utilitarian. Navigation should feel like part of the brand and avoid release-only dead ends.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="app-architecture-findings">
+          <h2>App Architecture Findings</h2>
+          <p class="lead">The app is further along than a pure visual shell. The market work should use the existing graph, repositories, realtime chat state, analytics hooks, and shared design components instead of rebuilding those layers again.</p>
+          <div class="grid three">
+            <div class="card bar green">
+              <h3>Strong foundation</h3>
+              <p>The route graph already covers start, onboarding, chat list, chat thread, profiles, campaigns, discover, events, friends, palette, and dev surfaces. The migrated design components are used broadly across consumer screens.</p>
+            </div>
+            <div class="card bar cyan">
+              <h3>Hidden leverage</h3>
+              <p><code>ChatInteractor</code> already has optimistic sends, retry/discard, reactions, replies, forwarding, typing, presence, pagination, participants, cache-first loading, and WebSocket updates.</p>
+            </div>
+            <div class="card bar amber">
+              <h3>Market blockers</h3>
+              <p>Several paths still stop at TODO callbacks: campaign open/join/detail, private event action/card, event image picker, profile save, create/edit profile completion, and chat call action.</p>
+            </div>
+          </div>
+
+          <h3>Route Graph Reality</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Route</th><th>Consumer meaning</th><th>Release implication</th></tr></thead>
+              <tbody>
+                <tr><td><code>/</code></td><td>Start/auth entry.</td><td>Must become the premium first impression and hide debug impersonation in release.</td></tr>
+                <tr><td><code>/onboarding</code></td><td>Profile and matching setup.</td><td>Must become a social passport builder, not a form sequence.</td></tr>
+                <tr><td><code>/home</code></td><td>Main tab container.</td><td>Must avoid dead tabs and surface the most valuable daily action first.</td></tr>
+                <tr><td><code>/chats</code>, <code>/chats/{id}</code></td><td>Daily social cockpit and message thread.</td><td>Highest retention surface; needs reveal, planning, Budbot, richer shared objects, and polished failure states.</td></tr>
+                <tr><td><code>/chats/profile/friend/{id}</code>, <code>/chats/profile/group/{id}</code></td><td>Friend/group context from chat.</td><td>Group icon tap should open a preview sheet first, then full profile with members, plan, memory, and safety.</td></tr>
+                <tr><td><code>/profiles/user</code>, <code>/profiles/create</code>, <code>/profiles/user/edit</code></td><td>Personal identity and setup.</td><td>Create/edit cannot remain empty or placeholder; either finish the flow or remove from release nav.</td></tr>
+                <tr><td><code>/campaigns/current</code>, <code>/campaigns/discover</code></td><td>Circle lifecycle and discovery.</td><td>Needs detail route, join state, recommendation explanations, and route-to-chat/profile wiring.</td></tr>
+                <tr><td><code>/events/private</code>, <code>/events/public</code>, <code>/events</code></td><td>IRL conversion surface.</td><td>Needs event detail, create, RSVP, guest, map, share, reminder, and memory states.</td></tr>
+                <tr><td><code>/friends</code>, <code>/friends/{id}</code></td><td>Permanent social graph.</td><td>Needs relationship memory, plan-again CTA, and recent shared activity.</td></tr>
+                <tr><td><code>/palette</code>, <code>/dev</code></td><td>Design/user mood and internal tooling.</td><td>Palette can be an "App mood" feature; dev must be release-gated.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Implementation Leverage Already Present</h3>
+          <ul>
+            <li><strong>Cache-first repositories:</strong> <code>MessageRepository</code> and <code>SocialRepository</code> can support offline shells, skeletons, and stale-while-revalidate UI.</li>
+            <li><strong>Realtime chat state:</strong> typing, presence, message send, retry, reaction, reply, forwarding, participants, and pagination are already modeled enough for premium UI states.</li>
+            <li><strong>Analytics hooks:</strong> <code>TrackScreenView</code>, search tracking, chat opened, message sent, reactions, onboarding, campaigns, events, and profile events are already instrumented enough to extend.</li>
+            <li><strong>Shared design scope:</strong> the design module is the right place for product-grade primitives: card, poster, prompt, avatar stack, chips, menu sheet, composer shell, event controls, and profile media.</li>
+            <li><strong>Feature flags:</strong> existing flag plumbing can gate incomplete surfaces and run A/B tests for onboarding, reveal pacing, palette, and event flows.</li>
+          </ul>
+
+          <h3>Dead-End Inventory</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Dead end</th><th>Current code signal</th><th>Fix direction</th></tr></thead>
+              <tbody>
+                <tr><td>Start sends directly to chat during testing.</td><td><code>StartScreen.kt</code> has a TODO to route to onboarding.</td><td>Route new users to onboarding, returning users to the daily cockpit, and hide debug chooser in release.</td></tr>
+                <tr><td>Campaign card actions do not navigate.</td><td><code>CampaignScreen.kt</code> open chat/card click TODOs.</td><td>Wire current campaign card to chat and group detail; add a campaign detail route for deep state.</td></tr>
+                <tr><td>Discover join/detail are placeholders.</td><td><code>DiscoverScreen.kt</code> join/details TODOs.</td><td>Add join intent state, confirmation, waitlist/matching copy, and detail preview sheet.</td></tr>
+                <tr><td>Private event actions are placeholders.</td><td><code>PrivateEventsScreen.kt</code> action/card TODOs.</td><td>Route to event detail; add manage/message guests for host-owned events.</td></tr>
+                <tr><td>Create event lacks media picker.</td><td><code>CreateEventScreen.kt</code> image picker TODO.</td><td>Add image selection, preview, validation, upload, and submit result.</td></tr>
+                <tr><td>Profile save is not wired.</td><td><code>ProfileScreen.kt</code> save TODO; create/edit routes are incomplete.</td><td>Finish profile create/edit or remove route entry until backed by service endpoints.</td></tr>
+                <tr><td>Call action does nothing.</td><td><code>ChatScreen.kt</code> call TODO.</td><td>Either hide call or replace with a plan/event CTA until voice/video is a committed feature.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="screen-recommendations">
+          <h2>Screen Recommendations</h2>
+
+          <h3>1. Start And First Impression</h3>
+          <div class="grid two">
+            <div class="card"><h3>Problem</h3><p>The start screen is mostly auth plus a typewriter visual. It does not yet make the next-generation social premise tangible before the user signs in.</p></div>
+            <div class="card"><h3>Target</h3><p>A cinematic but restrained welcome that shows the loop: small circle, daily reveal, shared prompt, real event, permanent friend.</p></div>
+          </div>
+          <ul>
+            <li>Add a first-viewport brand scene with a live mini timeline: "Day 1: anonymous circle", "Day 4: plan unlocked", "Day 7: keep your people".</li>
+            <li>Replace raw impersonation avatars with a dev-only drawer or compile-time debug gate.</li>
+            <li>Use a custom Apple/Google sign-in treatment that respects platform rules but feels visually integrated with BestBuds.</li>
+            <li>Show privacy and trust microcopy before asking for profile/location/photo permissions.</li>
+            <li>Add a graceful returning-user transition: app logo resolves into the chat list, not a hard navigation jump.</li>
+          </ul>
+
+          <h3>2. Onboarding</h3>
+          <p>Current onboarding is functionally sound but reads as a form. Market-quality onboarding should feel like building a social passport.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Improve</th><th>Implementation idea</th><th>Why it matters</th></tr></thead>
+              <tbody>
+                <tr><td>Context before questions</td><td>Each prompt gets a one-line "why we ask" note and a privacy icon.</td><td>Trust-sensitive social apps need explainability before data collection.</td></tr>
+                <tr><td>Live profile preview</td><td>Show a mini profile card that updates as interests/personality answers arrive.</td><td>Users feel progress and understand output.</td></tr>
+                <tr><td>Richer controls</td><td>Use custom prompt cards, photo tiles, interest chips, and scale sliders with labels.</td><td>Feels like product craft, not a survey.</td></tr>
+                <tr><td>Completion moment</td><td>Finish with "Your first circle is being assembled" and a tasteful animation.</td><td>Creates anticipation and frames the wait as matching intelligence.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>3. Chat List</h3>
+          <p>The chat list should be the daily command center. It currently has the right sections but still needs a stronger "what changed" layer.</p>
+          <ul>
+            <li>Add composite avatars for group/campaign chats instead of a single entity image when the chat is a circle.</li>
+            <li>Bring back prototype cues: pinned chats, live dot, fresh/new label, day pill, unread count badge, and archived section.</li>
+            <li>Add top actions for search and new plan/chat. Keep the overflow menu for secondary destinations.</li>
+            <li>Make section headers uppercase, tiny, and editorial, matching the prototype's "Active circles" and "Permanent friends" feel.</li>
+            <li>For every circle row, show one next action: "answer prompt", "3 people typing", "event vote open", or "picks tonight".</li>
+          </ul>
+
+          <h3>4. Chat Thread</h3>
+          <p>This is the screen with the highest retention leverage. It should feel better than Instagram DM for the specific purpose of building a real circle.</p>
+          <div class="grid three">
+            <div class="card"><h3>Composer</h3><p>Keep the custom input, then add expandable actions: camera, voice note, location/event share, prompt answer, poll, and Budbot suggestion. The collapsed state should remain light and thumb-friendly.</p></div>
+            <div class="card"><h3>Messages</h3><p>Upgrade media with rounded photo cards, upload state, failed state, captions, sender color accents, grouped consecutive bubbles, and subtle send/reaction animations.</p></div>
+            <div class="card"><h3>Circle context</h3><p>Add the day reveal banner, next unlock card, Budbot insight panel, pinned plan, and member anonymity rules from the prototype.</p></div>
+          </div>
+          <ul>
+            <li>Make tapping the group icon open a beautiful group profile preview sheet before full navigation: hero, stage, members, prompt, event, safety controls.</li>
+            <li>Add message edit/delete for own text messages and better copy feedback after long-press actions.</li>
+            <li>Add reply swipe hint and haptic feedback on threshold crossing.</li>
+            <li>Use typing and presence with restraint: "Priya is typing" is useful; "everyone is always online" is noisy.</li>
+            <li>Budbot should not be a generic chatbot. It should propose concrete social actions: "Ask this", "Plan this", "Invite these two", "Today unlocks neighborhoods".</li>
+          </ul>
+
+          <h3>5. Group Profile</h3>
+          <p>The current group profile has a good hero and member list. It should become the memory and planning hub for a circle.</p>
+          <ul>
+            <li>Add a stage timeline: Matched, Milestone, BestBuds, Wrapped.</li>
+            <li>Add pinned event/plan and RSVP status above the member list.</li>
+            <li>Add group prompt history and "best moments" cards.</li>
+            <li>Show member reveal level: anonymous, initial, name, bio, photo, permanent friend.</li>
+            <li>Add safety/admin controls behind a small menu: report, leave circle, mute, notification settings.</li>
+          </ul>
+
+          <h3>6. Personal And Friend Profiles</h3>
+          <p>Profiles are the trust surface. The personal profile is visually stronger than the friend profile, but both need more human proof.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Profile area</th><th>Needed improvement</th></tr></thead>
+              <tbody>
+                <tr><td>Hero</td><td>Use real photos when available, location/neighborhood, verification, age, and relationship source ("met in Tuesday Ramen Club").</td></tr>
+                <tr><td>Prompts</td><td>Add Hinge-style prompt cards: concise answers that invite conversation and can be reacted to.</td></tr>
+                <tr><td>Personality</td><td>Replace generic progress bars with labeled scales, answer text, and "used for matching" explanation.</td></tr>
+                <tr><td>History</td><td>Add past campaigns, mutual events, shared chats, and permanent-friend milestones.</td></tr>
+                <tr><td>Edit/create</td><td>Remove empty states before release. Build full forms or hide the routes.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>7. Campaigns And Discover</h3>
+          <p>The campaign card language is promising. The missing piece is depth: why this group exists, what day it is, and what the user should do.</p>
+          <ul>
+            <li>Add campaign detail route with hero, day schedule, Budbot insight, members, active prompt, suggested event, and picks preview.</li>
+            <li>For discover, add "why this circle" explanations: shared interest, neighborhood, age band, event intent, availability overlap.</li>
+            <li>Use a richer card stack with one large recommended campaign and smaller alternatives, rather than an undifferentiated list.</li>
+            <li>Make joining a campaign a stateful flow: intent, confirmation, waitlist/matchmaking, notification expectation.</li>
+            <li>Add quality controls: not interested, report, hide, and preference refinement.</li>
+          </ul>
+
+          <h3>8. Events</h3>
+          <p>Events are where BestBuds becomes more than an app. They must look like something people want to send to friends.</p>
+          <ul>
+            <li>Public events need poster-like cards, not only rows. Use venue image/color, date slab, attendee stack, source circle, and RSVP state.</li>
+            <li>Add event detail screen: poster hero, why suggested, who is going, comments/updates, map/address, schedule, RSVP controls, share link.</li>
+            <li>Private events should show host status, invited/going/maybe counts, and a clear "message guests" or "manage" path.</li>
+            <li>Create event needs image picker, date/time picker, location picker, privacy selector, invite selector, preview, validation, and submit result.</li>
+            <li>Floating add buttons should route to create event and then return into the new event detail.</li>
+          </ul>
+
+          <h3>9. Friends</h3>
+          <p>The friends list should feel like earned social graph, not contacts.</p>
+          <ul>
+            <li>Add relationship context: "from Coffee Crawl", "3 plans together", "last replied yesterday".</li>
+            <li>Add fast actions: message, plan again, invite to circle.</li>
+            <li>Add search and filters: recent, nearby, permanent, quiet, host-worthy.</li>
+            <li>Add empty state that explains how permanent friends are earned through campaigns.</li>
+          </ul>
+
+          <h3>10. Palette, Settings, Top Bar, And Navigation</h3>
+          <p>The palette screen is useful internally and can be a delightful user setting if positioned as "App mood". For release, it should not expose unfinished design tooling language.</p>
+          <ul>
+            <li>Rename "Palette" to "App mood" for consumers, or keep Palette behind dev tools.</li>
+            <li>Persist palette selection per user and sync it across sessions.</li>
+            <li>Replace default dropdown visuals with a custom menu sheet that matches the BestBuds card language.</li>
+            <li>Bottom navigation should use custom icon/action styling rather than raw Material navigation item language where possible.</li>
+            <li>Dev tab must be hidden for release users and all dev-only affordances must be inaccessible by accidental navigation.</li>
+          </ul>
+        </div>
+
+        <div id="deep-screen-specs">
+          <h2>Deep Screen Specs</h2>
+          <p class="lead">These specs translate the audit into implementation-level expectations. Each surface lists the user job, the market-quality target, the components needed, the service dependency, and the tests that should prove the work.</p>
+
+          <h3>Start, Auth, And Onboarding</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Market target</th><th>Components</th><th>Data/service</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr><td>Start</td><td>Explain small circles, timed reveal, and real-world plans before auth.</td><td>Hero timeline, trust copy strip, social proof mini cards, custom sign-in cluster, debug gate.</td><td>Feature flags, auth provider state, first-run flag.</td><td>Maestro cold launch, login, returning user; screenshot check for no dev avatars in release.</td></tr>
+                <tr><td>Onboarding</td><td>Build a social passport with visible progress and profile preview.</td><td>Question card, profile preview, answer chips, slider, photo tile, privacy explainer, completion reveal.</td><td><code>/onboarding/questions</code>, <code>/onboarding/responses</code>, <code>/onboarding/complete</code>, profile draft cache.</td><td>Answer, skip, resume, offline cache, validation, completion route.</td></tr>
+                <tr><td>Create profile</td><td>Finish setup when onboarding is incomplete or auth profile is thin.</td><td>Photo grid, prompt editor, interest chips, location permission card, preview sheet.</td><td>Profile create/update endpoint; media upload endpoint.</td><td>Create profile from empty state; deny permission; save and reopen profile.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Chat Cockpit</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Market target</th><th>Components</th><th>Data/service</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr><td>Chat list</td><td>Show what changed, who needs a reply, and the next real-world action.</td><td>Composite avatar row, day/reveal pill, unread badge, pinned plan preview, filter chips, search, new plan action.</td><td><code>/topMessages</code> plus chat metadata: unread, pinned plan, reveal day, next action, archived/muted.</td><td>Maestro chat list scan; screenshot for active/permanent/archived sections; empty/offline states.</td></tr>
+                <tr><td>Chat thread</td><td>Best-in-class social conversation for building a circle.</td><td>Custom composer, media bubble, reply preview, reaction tray, voice note, event share card, poll card, Budbot panel, reveal banner.</td><td>Existing <code>/messages/{chatId}</code>, WebSocket frames, plus new attachments, edit/delete, poll, receipts, event share.</td><td>Send text/photo/sticker; reply; react; retry failed send; forward; typing/presence; pagination; attachment mode.</td></tr>
+                <tr><td>Group profile preview</td><td>Tapping group icon opens a beautiful, fast sheet before full navigation.</td><td>Hero, stage timeline, member stack, pinned plan, active prompt, safety menu, full-profile CTA.</td><td>Group detail endpoint or enriched <code>/groups</code>; campaign relationship; event summary.</td><td>Tap icon from chat; open sheet; navigate full profile; report/mute/leave guarded paths.</td></tr>
+                <tr><td>Budbot</td><td>Suggest context-aware social actions, not generic chatbot output.</td><td>Insight card, prompt suggestion, plan suggestion, invite suggestion, dismiss/accept feedback.</td><td>Bot endpoint, chat context, campaign stage, participant metadata, event inventory.</td><td>Show suggestion; accept into composer/event; dismiss; analytics for usefulness.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Campaigns, Discover, And Matching</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Market target</th><th>Components</th><th>Data/service</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr><td>Current campaigns</td><td>Make the circle lifecycle feel alive and time-boxed.</td><td>Stage card, reveal timeline, member lock states, active prompt, suggested event, CTA rail.</td><td><code>/currentCampaigns</code> enriched with stage, day, reveal policy, prompt, plan, and member state.</td><td>Open chat; open detail; locked/unlocked member state; stage transition visual.</td></tr>
+                <tr><td>Discover campaigns</td><td>Explain why a recommendation exists and reduce join anxiety.</td><td>Recommended hero card, filter chips, "why this circle" facts, trust badges, waitlist/join confirmation.</td><td><code>/discoverCampaigns</code>, join intent/join endpoints, not-interested endpoint, preference refinement.</td><td>Search; filter; join intent; confirmation; hide/not interested; empty local area.</td></tr>
+                <tr><td>Campaign detail</td><td>Tell the story of the group before the user commits.</td><td>Poster hero, compatibility facts, day schedule, member silhouettes, rules, safety copy, join CTA.</td><td>New campaign detail endpoint; analytics for card/detail/join conversion.</td><td>Open from discover/current; join; back to discover; route deep link.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Events And Real-World Loop</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Market target</th><th>Components</th><th>Data/service</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr><td>Public events</td><td>Discoverable local plans that look worth joining.</td><td>Poster cards, date slab, venue image, attendee stack, saved/RSVP state, map filter, recommendation reason.</td><td>Event list/search endpoint with location, time, capacity, attendees, source circle, saved state.</td><td>Search; save/unsave; RSVP; empty city; image loading; map/list mode.</td></tr>
+                <tr><td>Private events</td><td>Manage plans created by a circle.</td><td>Host card, guest list, going/maybe/waitlist counts, message guests, edit/cancel, reminder state.</td><td>User event list endpoint; RSVP mutation; host permission fields.</td><td>Host event; guest event; RSVP state change; manage path; notification reminder.</td></tr>
+                <tr><td>Create event</td><td>Fast, beautiful, validated event creation with a shareable preview.</td><td>Poster picker, date/time picker, venue picker, privacy selector, invite selector, preview, sticky submit.</td><td>Event create endpoint, media upload, location search, group/friend invite list.</td><td>Create with image; create without image; validation errors; upload failure; returns to detail.</td></tr>
+                <tr><td>Event detail</td><td>The canonical plan page before, during, and after the meetup.</td><td>Poster hero, RSVP control, guest stack, comments, map, weather, playlist/photo memory, share link, post-event recap.</td><td>Event detail, comments/updates, RSVP, media, reminders, calendar integration.</td><td>Deep link; RSVP; comment; share; calendar; post-event photo upload.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Profiles, Friends, And Memory</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Surface</th><th>Market target</th><th>Components</th><th>Data/service</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr><td>Personal profile</td><td>Feels like identity, preferences, privacy, and social proof in one place.</td><td>Photo grid, prompt cards, edit chips, privacy controls, palette/mood entry, campaign history.</td><td><code>/profile</code>, profile update, media, preferences, privacy settings.</td><td>Edit field; save; reopen; privacy controls; no placeholder route.</td></tr>
+                <tr><td>Friend profile</td><td>Trust and continuity for a permanent friend.</td><td>Relationship source, shared events, prompt reactions, plan-again CTA, message CTA, memory cards.</td><td><code>/friends/{friendId}</code> enriched with history, mutual circles, shared plans, profile prompts.</td><td>Open from friends and chat; message; plan again; report/block path.</td></tr>
+                <tr><td>Friends list</td><td>Earned social graph with context and next actions.</td><td>Search, filters, friend row, recent activity, plan-again chips, empty-state explainer.</td><td><code>/friends</code> plus last interaction, source campaign, plan count, mute/favorite.</td><td>Search; open friend; empty; plan again; offline cached list.</td></tr>
+                <tr><td>Group profile</td><td>Circle hub with members, memory, events, prompts, and trust controls.</td><td>Hero, reveal timeline, member grid, pinned event, memory wall, polls, safety/admin sheet.</td><td><code>/groups</code> enriched or detail endpoint, group events, group prompts, memories, admin state.</td><td>Open from chat; member tap; event tap; leave/mute/report; locked member state.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="data-contracts">
+          <h2>Data Contracts</h2>
+          <p class="lead">Visual parity can be finished with current mock and cached data, but market parity needs richer contracts. The UI should not fake real states that the services cannot eventually support.</p>
+
+          <h3>Current Contract Coverage</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Service area</th><th>Current support</th><th>What it enables</th><th>Market gap</th></tr></thead>
+              <tbody>
+                <tr><td>Messaging</td><td><code>/topMessages</code>, <code>/messages/{chatId}</code>, send, bot, reactions, WebSocket payloads.</td><td>Chat list, message thread, optimistic send, reply, reactions, typing, presence, cache-first thread.</td><td>No formal edit/delete, receipts, voice notes, event cards, polls, pinned messages, schedule-send, or rich attachment lifecycle.</td></tr>
+                <tr><td>Social</td><td><code>/friends</code>, <code>/groups</code>, <code>/currentCampaigns</code>, <code>/discoverCampaigns</code>, <code>/profile</code>, <code>/friends/{friendId}</code>.</td><td>Friends, group list, campaign cards, profile, friend profile.</td><td>No join/leave campaign mutation, group detail, relationship memory, profile update/create, recommendation explanation, or safety action contract.</td></tr>
+                <tr><td>Onboarding</td><td>Questions, responses, completion endpoints.</td><td>Question flow and matching setup.</td><td>Needs draft resume, answer quality, profile preview, permission state, and "why we ask" metadata.</td></tr>
+                <tr><td>Events</td><td>UI screens exist, but app-level service contract is thin or absent in the scanned KMP layer.</td><td>Static event exploration and saved-state UI.</td><td>Needs event CRUD, RSVP, detail, comments, attendee list, share link, media, location, reminders, and post-event memory.</td></tr>
+                <tr><td>Media</td><td>Separate media service exists in the worker topology.</td><td>Profile/event/chat images can be backed by uploads.</td><td>Needs typed attachment lifecycle, upload progress, moderation state, thumbnails, and fallback assets.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>New Product Models To Add</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Model</th><th>Fields that matter for UI</th><th>Why it matters</th></tr></thead>
+              <tbody>
+                <tr><td><code>CampaignRevealState</code></td><td>day, stage, lockedFields, nextUnlockAt, revealCopy, memberRevealLevels.</td><td>Turns prototype reveal mechanics into deterministic app UI.</td></tr>
+                <tr><td><code>ChatAttachment</code></td><td>type, uploadState, previewUrl, duration, pollOptions, eventId, location, failureReason.</td><td>Lets one composer support image, voice, event, poll, location, and future objects cleanly.</td></tr>
+                <tr><td><code>EventDetail</code></td><td>poster, venue, dateTime, host, sourceCircle, RSVP, capacity, guests, comments, map, weather, memoryAlbum.</td><td>Events become the IRL conversion surface, not static rows.</td></tr>
+                <tr><td><code>RelationshipMemory</code></td><td>sourceCampaign, firstMetAt, sharedEvents, mutualGroups, moments, lastInteraction, planAgainSuggestion.</td><td>Friends feel earned and specific.</td></tr>
+                <tr><td><code>ProfilePrompt</code></td><td>question, answer, visibility, reactionCount, lastUpdated, matchingWeight.</td><td>Profiles become conversational and explainable.</td></tr>
+                <tr><td><code>SafetyState</code></td><td>canReport, canBlock, canMute, canLeave, moderationStatus, verifiedSignals, permissionRationale.</td><td>Trust and safety must be visible and testable.</td></tr>
+                <tr><td><code>PlanningPoll</code></td><td>question, options, multiSelect, closesAt, voters, winningOption, sourceChatId.</td><td>Bridges chat energy into real plans.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="analytics-metrics">
+          <h2>Analytics And Metrics</h2>
+          <p>The current analytics layer is a useful start. The next pass should measure whether BestBuds is creating connection quality, not only screen traffic.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>Already Instrumented</h3>
+              <p>Screen views, onboarding started/answered/skipped/completed, search, campaign card/join intent, event save, chat open/message/reaction, friend profile, profile view, and profile field updates.</p>
+            </div>
+            <div class="card">
+              <h3>Missing Market Signals</h3>
+              <p>First circle seen, reveal card viewed, prompt answered in chat, event shared from chat, RSVP conversion, plan created, friend converted, failed send retry, palette changed, safety actions, and Budbot accepted/dismissed.</p>
+            </div>
+          </div>
+
+          <h3>North-Star Metrics</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Metric</th><th>Definition</th><th>Why it matters</th></tr></thead>
+              <tbody>
+                <tr><td>First circle activation</td><td>New user completes onboarding and opens a matched circle/chat within the first session.</td><td>Measures whether the premise becomes tangible quickly.</td></tr>
+                <tr><td>Meaningful reply rate</td><td>Percent of active users who send or receive a reply in a circle within 24 hours of reveal/prompt.</td><td>Stronger than message count because it measures mutual conversation.</td></tr>
+                <tr><td>Plan conversion</td><td>Chat or campaign sessions that produce event RSVP, plan poll, or accepted plan suggestion.</td><td>Captures the real-world differentiation.</td></tr>
+                <tr><td>Show-up/memory rate</td><td>Events that receive post-event confirmation, comment, photo, or memory card.</td><td>Measures whether events create lasting social graph value.</td></tr>
+                <tr><td>Permanent friend conversion</td><td>Campaign participants who become friends or continue conversation after the campaign ends.</td><td>Measures actual social value beyond one temporary group.</td></tr>
+                <tr><td>Trust friction</td><td>Permission denial, report, block, leave, mute, failed send, no-show, and churn after sensitive prompts.</td><td>Finds safety or anxiety points before they become retention failures.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Instrumentation Additions</h3>
+          <ul>
+            <li><code>first_circle_viewed</code>, <code>circle_reveal_card_viewed</code>, <code>circle_next_action_clicked</code></li>
+            <li><code>chat_composer_mode_opened</code>, <code>chat_attachment_added</code>, <code>chat_message_failed</code>, <code>chat_message_retry</code></li>
+            <li><code>budbot_suggestion_viewed</code>, <code>budbot_suggestion_accepted</code>, <code>budbot_suggestion_dismissed</code></li>
+            <li><code>event_detail_viewed</code>, <code>event_rsvp_changed</code>, <code>event_shared</code>, <code>event_created_success</code>, <code>event_memory_added</code></li>
+            <li><code>profile_prompt_reacted</code>, <code>profile_save_success</code>, <code>friend_plan_again_clicked</code></li>
+            <li><code>safety_menu_opened</code>, <code>report_submitted</code>, <code>mute_changed</code>, <code>leave_circle_confirmed</code></li>
+            <li><code>palette_changed</code>, with palette id and source screen.</li>
+          </ul>
+        </div>
+
+        <div id="component-system">
+          <h2>Component System</h2>
+          <p class="lead">The scoped component pattern is the correct direction. The next component pass should make default Material almost invisible at the product layer.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Component family</th><th>Current state</th><th>Next market-quality component</th></tr></thead>
+              <tbody>
+                <tr><td>Inputs</td><td>Custom text field/search/composer now exist.</td><td>Build multi-mode composer, date/time/location fields, chip input, photo picker field, prompt answer field, and validation/error states.</td></tr>
+                <tr><td>Cards</td><td>Surface cards and campaign cards are reusable.</td><td>Add poster cards, chat rows, profile prompt cards, plan cards, memory cards, and skeleton states.</td></tr>
+                <tr><td>Avatars</td><td>Single avatar and initials exist.</td><td>Add group composite avatars, reveal-locked avatars, status rings, avatar stacks, and verified/safety overlays.</td></tr>
+                <tr><td>Buttons</td><td>Primary/secondary/join/action/floating/icon actions exist.</td><td>Add destructive, loading, disabled with reason, split action, sticky bottom CTA, and reaction/action chips.</td></tr>
+                <tr><td>Navigation</td><td>Top bar, tab row, bottom nav are functional.</td><td>Add custom bottom nav shell, branded overflow sheet, animated route transitions, and screen-specific contextual top actions.</td></tr>
+                <tr><td>Feedback</td><td>Loading and empty states exist.</td><td>Add toast/snackbar, copy confirmation, send status, upload progress, no network state, permission rationale, and retry cards.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            Component quality rule: if a component appears on three screens, it belongs in <code>modules/design</code>. If it encodes product behavior or repository state, keep it in <code>modules/app</code> and compose shared primitives inside it.
+          </div>
+        </div>
+
+        <div id="motion-polish">
+          <h2>Motion And Polish</h2>
+          <p>BestBuds needs motion, but it should be social and tactile, not decorative. Follow Apple and Material guidance: motion should provide feedback, preserve spatial context, and guide attention.</p>
+          <div class="grid three">
+            <div class="card"><h3>First session</h3><p>Soft launch animation, progressive onboarding card transitions, completion reveal, and first circle assembly state.</p></div>
+            <div class="card"><h3>Chat</h3><p>Send compression/release, reaction burst, reply swipe threshold, upload progress, message highlight, and bottom-sheet spring transitions.</p></div>
+            <div class="card"><h3>Real-world loop</h3><p>RSVP state transition, event poster expansion, calendar confirmation, and post-event memory/photo upload celebration.</p></div>
+          </div>
+          <h3>Visual Polish Standards</h3>
+          <ul>
+            <li>Use a real font asset strategy instead of platform default serif/sans where licensing permits.</li>
+            <li>Use custom icon decisions for product concepts: reveal, circle, plan, trust, pick, prompt, event, safety.</li>
+            <li>Use photography and generated/curated poster imagery for events and profiles. Avoid generic blank cards where a person or venue should be visible.</li>
+            <li>Keep color palettes varied. The default warm palette should not collapse into beige-only UI.</li>
+            <li>All touch targets should feel intentionally sized, and state changes should have visual plus haptic feedback on mobile.</li>
+          </ul>
+        </div>
+
+        <div id="visual-qa">
+          <h2>Visual QA Matrix</h2>
+          <p class="lead">The UI is now broad enough that manual inspection is not sufficient. Market readiness should require visual regression, Maestro flow validation, accessibility checks, and performance gates across Android, iOS, desktop, and web/prototype where relevant.</p>
+
+          <h3>Golden Screen Set</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Area</th><th>Golden states</th><th>Devices</th><th>Checks</th></tr></thead>
+              <tbody>
+                <tr><td>Start/auth</td><td>cold launch, signed out, returning user, debug hidden.</td><td>iPhone small/large, Android small/large, desktop.</td><td>No clipped hero, auth buttons readable, release build has no dev affordances.</td></tr>
+                <tr><td>Onboarding</td><td>first question, multi-choice, slider, skipped answer, completion.</td><td>iPhone, Android, desktop.</td><td>Keyboard-safe, progress visible, privacy copy readable, controls have accessible names.</td></tr>
+                <tr><td>Chat list</td><td>loading, active chats, unread, empty, offline, archived.</td><td>iPhone, Android, desktop.</td><td>Rows stable, avatars not distorted, unread/action labels do not overflow.</td></tr>
+                <tr><td>Chat thread</td><td>text, image, sticker, reply, reaction, failed send, typing, group profile sheet, composer expanded.</td><td>iPhone small keyboard, Android keyboard, desktop wide.</td><td>No keyboard overlap, composer stays usable, bubble grouping stable, sheet height correct.</td></tr>
+                <tr><td>Campaigns/discover</td><td>current, empty, recommended, search, join confirmation, detail.</td><td>Mobile and desktop.</td><td>Stage badges readable, member locks clear, CTA state obvious.</td></tr>
+                <tr><td>Events</td><td>public list, event detail, saved, RSVP, create form, validation error, image upload.</td><td>Mobile and desktop.</td><td>Poster aspect ratio stable, date/time fields legible, CTA sticky state correct.</td></tr>
+                <tr><td>Profiles/friends</td><td>personal, edit, friend, group, empty friend list, relationship memory.</td><td>Mobile and desktop.</td><td>Photos crop correctly, prompt cards readable, safety menu reachable.</td></tr>
+                <tr><td>Palette/settings</td><td>default, alternate palette, dropdown/menu sheet, dev hidden.</td><td>Mobile and desktop.</td><td>Contrast passes in every palette; palette persistence works.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Release QA Gates</h3>
+          <ul>
+            <li><strong>Maestro:</strong> Android and iOS flows must cover all market routes after migration: onboarding, chat list, chat, group profile, public/private/create events, discover/current campaigns, friends, personal/friend profiles, palette, and release-hidden dev routes.</li>
+            <li><strong>Screenshot regression:</strong> store golden PNGs for the golden screen set and compare before merging major UI changes.</li>
+            <li><strong>Accessibility:</strong> every icon-only button has a content description, text contrast passes for each palette, focus order is logical, and all touch targets are mobile-appropriate.</li>
+            <li><strong>Keyboard and bottom sheets:</strong> chat composer, profile edit, onboarding, and create event forms must survive keyboard open/close on small screens.</li>
+            <li><strong>Performance:</strong> chat list and chat thread scroll smoothly with 100+ rows, image placeholders prevent jumps, and opening composer/sheets does not stutter.</li>
+            <li><strong>Offline and failure:</strong> cached chat/profile/campaign/friends screens open without network; failed sends, failed RSVP, failed profile save, and failed event create show recovery actions.</li>
+          </ul>
+        </div>
+
+        <div id="market-readiness">
+          <h2>Market Readiness Checklist</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Gate</th><th>Acceptance criteria</th></tr></thead>
+              <tbody>
+                <tr><td>First impression</td><td>Cold launch, login, and onboarding explain the product promise without external context. No dev-only avatars or debug controls are visible in release builds.</td></tr>
+                <tr><td>End-to-end flow</td><td>A real user can sign in, complete onboarding, see chats/campaigns/events/friends/profile, send text/photo/sticker, create or join an event, and navigate profile/group surfaces without dead CTAs.</td></tr>
+                <tr><td>Visual completeness</td><td>No placeholder empty routes for create/edit profile. No raw generic Material controls on consumer-critical surfaces. All primary cards have loading, empty, failure, and offline states.</td></tr>
+                <tr><td>Trust and safety</td><td>Report, mute, leave, block, permission rationale, profile verification state, and data-use explanation are present where needed.</td></tr>
+                <tr><td>Performance</td><td>Chat list and chat thread scroll smoothly on target devices. Image loading uses placeholders and caching. Sheets and transitions do not jank during keyboard open/close.</td></tr>
+                <tr><td>Testing</td><td>Android and iOS Maestro suites cover all migrated flows. Add screenshot regression for key screens and accessibility checks for labels/contrast/touch target size.</td></tr>
+                <tr><td>Store readiness</td><td>Store screenshots show the actual release UI: onboarding, chat cockpit, event poster, group profile, and permanent friend profile. Privacy disclosures match app behavior.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="build-backlog">
+          <h2>Prioritized Backlog</h2>
+          <p class="lead">This backlog is ordered by release risk and user-visible impact. The goal is not to add more surfaces; it is to make the existing graph feel complete, beautiful, and trustworthy.</p>
+
+          <h3>P0 - Release Blockers</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Work item</th><th>Why it blocks market readiness</th><th>Primary files/contracts</th></tr></thead>
+              <tbody>
+                <tr><td>Gate dev tools and debug impersonation.</td><td>Consumer builds cannot expose test identities or dev navigation.</td><td><code>StartScreen.kt</code>, <code>DevScreen.kt</code>, navigation/menu components, feature flags.</td></tr>
+                <tr><td>Finish create/edit profile or remove routes.</td><td>Empty profile routes break trust immediately.</td><td><code>CreateProfileScreen.kt</code>, <code>EditProfileScreen.kt</code>, <code>ProfileScreen.kt</code>, profile update/create endpoint.</td></tr>
+                <tr><td>Wire campaign and discover CTAs.</td><td>Campaigns are the core concept; dead join/open actions make the product feel fake.</td><td><code>CampaignScreen.kt</code>, <code>DiscoverScreen.kt</code>, campaign detail/join APIs.</td></tr>
+                <tr><td>Build event detail and connect event actions.</td><td>BestBuds differentiation depends on real-world conversion.</td><td><code>PublicEventsScreen.kt</code>, <code>PrivateEventsScreen.kt</code>, <code>CreateEventScreen.kt</code>, event service contract.</td></tr>
+                <tr><td>Complete chat group profile preview.</td><td>The user specifically expects a beautiful variant when tapping the main group icon.</td><td><code>ChatScreen.kt</code>, <code>GroupProfileScreen.kt</code>, group detail data.</td></tr>
+                <tr><td>Run full Android and iOS Maestro after every blocker.</td><td>The migration is only finished when tests validate the updated UI in real apps.</td><td><code>tests/bestbudsAndroid</code>, <code>tests/bestbudsDarwin</code>, app build scripts.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>P1 - Impression And Retention</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Work item</th><th>User impact</th><th>Primary files/contracts</th></tr></thead>
+              <tbody>
+                <tr><td>Daily chat cockpit polish.</td><td>Users immediately know who replied, what changed, and what to do next.</td><td><code>ChatsScreen.kt</code>, <code>ChatViews.kt</code>, top message metadata.</td></tr>
+                <tr><td>Richer composer modes.</td><td>Chat can produce photos, voice notes, polls, event shares, and prompts without feeling like a primitive input.</td><td><code>ChatViews.kt</code>, <code>MessageView.kt</code>, <code>MessagingService.kt</code>.</td></tr>
+                <tr><td>Event creation with poster preview.</td><td>Users can turn conversation into a shareable plan.</td><td><code>CreateEventScreen.kt</code>, media service, event create endpoint.</td></tr>
+                <tr><td>Prompt-first profiles.</td><td>Profiles become specific and conversation-worthy like high-quality social/dating products.</td><td>Profile screens, <code>UserProfile</code>, new <code>ProfilePrompt</code> model.</td></tr>
+                <tr><td>Budbot action cards.</td><td>AI becomes a social facilitator instead of a novelty.</td><td><code>BotService.kt</code>, <code>ChatInteractor.kt</code>, chat UI cards.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>P2 - Market Differentiators</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Work item</th><th>Why it matters</th><th>Primary files/contracts</th></tr></thead>
+              <tbody>
+                <tr><td>Post-event memory system.</td><td>Turns real-world plans into durable social graph value.</td><td>Event detail, media, profile/group memory models.</td></tr>
+                <tr><td>Relationship memory on friend profiles.</td><td>Permanent friends feel earned, contextual, and emotionally specific.</td><td><code>FriendProfileScreen.kt</code>, friend detail endpoint.</td></tr>
+                <tr><td>Availability and venue voting.</td><td>Solves real coordination pain instead of only displaying event cards.</td><td>Planning poll model, chat attachments, event service.</td></tr>
+                <tr><td>Palette as App mood.</td><td>Can become a delightful personalization feature if polished and persisted.</td><td><code>PaletteScreen.kt</code>, theme persistence, account settings.</td></tr>
+                <tr><td>Store-ready visual asset pass.</td><td>App Store and Play Store screenshots should show the actual differentiated product loop.</td><td>All golden screens, event/profile/campaign imagery.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="roadmap">
+          <h2>Execution Roadmap</h2>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Phase 1 - First Impression Pack</span><span class="phase-meta">Release blocker</span></div>
+            <div class="phase-body">
+              <p>Upgrade start/login, onboarding, profile creation, release gating for dev tools, and permission rationale. The first 30 seconds must sell the product.</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Phase 2 - Chat Cockpit</span><span class="phase-meta">Retention blocker</span></div>
+            <div class="phase-body">
+              <p>Add campaign reveal schedule, Budbot insight panel, pinned plan/event share, group profile preview sheet, voice/photo/event composer modes, and polished message states.</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Phase 3 - Events And IRL Loop</span><span class="phase-meta">Differentiation blocker</span></div>
+            <div class="phase-body">
+              <p>Build event detail, create event, RSVP states, guest visibility, updates, event share cards, map/location affordances, and post-event memory capture.</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Phase 4 - Trust Profiles</span><span class="phase-meta">Safety and conversion</span></div>
+            <div class="phase-body">
+              <p>Complete personal, friend, and group profiles with prompt cards, campaign history, verification, privacy controls, relationship source, and direct plan/message actions.</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Phase 5 - Motion, Accessibility, Store Polish</span><span class="phase-meta">Market finish</span></div>
+            <div class="phase-body">
+              <p>Apply motion system, haptics, contrast/touch QA, screenshot regression, store screenshots, launch icon polish, dark/mood palettes, and final Maestro validation.</p>
+            </div>
+          </div>
+          <div class="callout success">
+            <strong>Definition of done:</strong> the app should be demonstrably better than the prototype in every consumer path, while preserving the prototype's emotional intent. A user should remember the circle, the people, and the next real-world action after one session.
+          </div>
+        </div>
+
+        <div id="sources">
+          <h2>Sources</h2>
+          <p>External references used for product and interaction comparison.</p>
+          <ul>
+            <li><a href="https://help.hinge.co/hc/en-us/articles/36311352171539-How-do-I-edit-my-Prompts">Hinge Help - profile prompts</a></li>
+            <li><a href="https://help.hinge.co/hc/en-us/articles/36311177115027-Roses">Hinge Help - Roses and Standouts interaction</a></li>
+            <li><a href="https://support.bumble.com/hc/en-us/articles/30781191036317-Changes-to-Bumble-For-Friends-and-Bumble-BFF-Mode">Bumble Support - BFF transition and group friendship positioning</a></li>
+            <li><a href="https://bumble.com/bff/join-plans">Bumble For Friends - Plans</a></li>
+            <li><a href="https://partiful.com/">Partiful - event invitation product reference</a></li>
+            <li><a href="https://help.partiful.com/hc/en-us/articles/26526377667739-Why-use-Partiful">Partiful Help - RSVP, text blasts, and event memories</a></li>
+            <li><a href="https://www.apple.com/uk/newsroom/2025/02/introducing-apple-invites-a-new-app-that-brings-people-together/">Apple Newsroom - Apple Invites</a></li>
+            <li><a href="https://apps.apple.com/us/app/meetup-social-events-groups/id375990038">Meetup App Store - local groups and events</a></li>
+            <li><a href="https://about.fb.com/news/2022/03/introducing-new-instagram-messaging-features/">Meta - Instagram messaging features</a></li>
+            <li><a href="https://support.discord.com/hc/en-us/articles/22163184112407-Polls-FAQ">Discord Support - Polls</a></li>
+            <li><a href="https://support.discord.com/hc/en-us/articles/4409494125719-Scheduled-Events">Discord Support - Scheduled Events</a></li>
+            <li><a href="https://www.geneva.com/about">Geneva - group chat, events, polls, rooms, and group coordination</a></li>
+            <li><a href="https://www.yeahlets.com/">Let's - group planning, voting, and calendar coordination</a></li>
+            <li><a href="https://plandra.com/">Plandra - group planning and memory features</a></li>
+            <li><a href="https://arxiv.org/abs/1710.02609">OutWithFriendz research - group event scheduling</a></li>
+            <li><a href="https://support.strava.com/hc/en-us/articles/216917657-Strava-Subscription-Features">Strava Support - group challenges and route/activity features</a></li>
+            <li><a href="https://support.strava.com/hc/en-us/articles/5999524455053-My-Activities-Are-Set-to-Everyone-Where-Does-That-Data-Go-on-Strava">Strava Support - feeds, challenges, clubs, and privacy considerations</a></li>
+            <li><a href="https://apps.apple.com/gb/app/locket-widget/id1600525061">Locket Widget App Store - close friends photo sharing reference</a></li>
+            <li><a href="https://cred.club/design">CRED Design - NeoPOP design language</a></li>
+            <li><a href="https://www.hhs.gov/sites/default/files/surgeon-general-social-connection-advisory.pdf">U.S. Surgeon General Advisory - Social Connection and Community</a></li>
+            <li><a href="https://www.pewresearch.org/internet/fact-sheet/teens-and-social-media-fact-sheet/">Pew Research Center - Teens and Social Media Fact Sheet</a></li>
+            <li><a href="https://www.pewresearch.org/wp-content/uploads/sites/20/2022/11/PI_2022.11.16_Teens-Social-Media-Connection_FINAL.pdf">Pew Research Center - Connection, Creativity and Drama: Teen Life on Social Media</a></li>
+            <li><a href="https://developer.apple.com/design/Human-Interface-Guidelines/motion">Apple Human Interface Guidelines - Motion</a></li>
+            <li><a href="https://m1.material.io/motion/material-motion.html">Material Design - Motion</a></li>
+          </ul>
+        </div>
+      </main>
+    </div>
+    <footer class="doc-footer">This audit is grounded in the current BestBuds app graph and should be refreshed after each major UI implementation pass.</footer>
+  </div>
+</body>
+</html>

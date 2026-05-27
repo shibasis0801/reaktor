@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graph Kernel Analysis · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Architecture</span><span>Claude</span></div>
+      <p class="eyebrow">Architecture · Claude</p>
+      <h1>Graph Kernel Analysis</h1>
+      <p class="subtitle">Universal composition architecture for the graph runtime, modules, visitors, and command model.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use to understand the smallest kernel that should stay stable.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/graph-kernel-analysis</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a aria-current="page" href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#the-refined-thesis">The refined thesis</a><a href="#kernel-ontology">Kernel ontology</a><a href="#kernel-laws">Kernel laws</a><a href="#module-model">Module model</a><a href="#canonical-runtime-planes">Canonical runtime planes</a><a href="#targets-and-languages">Targets and languages</a><a href="#minimum-extension-vocabulary">Minimum extension vocabulary</a><a href="#dominant-graph-shapes">Dominant graph shapes</a><a href="#representative-application-set">Representative application set</a><a href="#coverage-matrix">Coverage matrix</a><a href="#implementation-plan">Implementation plan</a><a href="#final-design-heuristic">Final design heuristic</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<section><h2 id="the-refined-thesis">The refined thesis</h2><p class="lead">Reaktor is not primarily a framework full of features. It is a universal composition kernel. Modules provide focused capabilities. The graph combines them. Visitors interpret them. Capabilities adapt them. Commands mutate them safely. AI works productively because the whole system speaks one structured language.</p><div class="quote">Reaktor’s goal is not to be the best specialized tool for every individual concern. The goal is to be the best common language for composing most concerns.</div><div class="grid cols-3"><div class="card"><h3>Modules</h3><p>Focused primitives: auth, layout, design, actors, pub/sub, permissions, chat, geo, notifications, queues, DB, APIs, deployment, analytics, telemetry, AI.</p></div><div class="card"><h3>Graph</h3><p>The common language that combines modules into apps, servers, workers, workflows, native bridges, tools, deployments, and AI-readable systems.</p></div><div class="card"><h3>Tools & AI</h3><p>DevTools, Blueprint, deployment planners, validators, and AI agents operate on snapshots, events, visitors, and commands instead of guessing from raw code.</p></div></div></section>
+
+      <section id="kernel"><h2 id="kernel-ontology">Kernel ontology</h2><p>The kernel should remain tiny. It should provide only the primitives needed to describe, inspect, validate, mutate, and deploy application structure. Everything else is module vocabulary.</p><div class="diagram"><div class="node">Graph</div><div class="node">Node</div><div class="node">Port</div><div class="node">Edge</div><div class="node">Facet</div><div class="node">Capability</div><div class="node">Visitor</div><div class="node">Snapshot</div><div class="node">Command</div></div><div class="table-wrap"><table><thead><tr><th>Primitive</th><th>Responsibility</th><th>Why it matters</th></tr></thead><tbody><tr><td><strong>Graph</strong></td><td>Owns nodes, indexes, scope, lifecycle, and events. It is the composition boundary.</td><td>Lets a product, feature, service, subsystem, deployment unit, or runtime island be represented as one coherent structure.</td></tr><tr><td><strong>Node</strong></td><td>Owns ports, lifecycle, capabilities, and facets. It is the unit of application structure.</td><td>Anything important can be a node: screen, route, service, actor, worker, repository, queue, native operation, AI tool.</td></tr><tr><td><strong>Port</strong></td><td>Declares a typed contract.</td><td>Ports make dependencies explicit, inspectable, replaceable, testable, deployable, and polyglot.</td></tr><tr><td><strong>Edge</strong></td><td>Connects a consumer contract to a provider contract.</td><td>Edges become the unit of wiring, tracing, replacement, transport, and deployment cuts.</td></tr><tr><td><strong>Facet</strong></td><td>Adds meaning without changing the kernel.</td><td>Navigation, services, actors, workflows, queues, React, Compose, deployment, and AI can all be plugins.</td></tr><tr><td><strong>Capability</strong></td><td>Describes what a runtime, platform, device, or environment can do.</td><td>Modules can gracefully upgrade or degrade across Android, iOS, Web, Workers, Spring, native, and React.</td></tr><tr><td><strong>Visitor</strong></td><td>Interprets the graph without changing the kernel.</td><td>Validation, deployment partitioning, AI context, telemetry, performance analysis, graphify, and source maps become visitors.</td></tr><tr><td><strong>Event</strong></td><td>Tells tools and runtimes what changed.</td><td>Blueprint, DevTools, telemetry, Shadow, performance panels, and AI diagnosis all consume graph events.</td></tr><tr><td><strong>Snapshot</strong></td><td>Gives tools and AI a read-only view.</td><td>Safe inspection, replay, comparison, prompt context, visual tooling, and remote debugging all use snapshots.</td></tr><tr><td><strong>Command</strong></td><td>Gives tools and AI a safe mutation language.</td><td>DevTools and AI do not poke runtime internals; they propose typed, validated graph commands.</td></tr></tbody></table></div><h3>Target kernel sketch</h3><pre><code>class Graph(
+    val id: GraphId,
+    val label: String,
+    val runtime: ReaktorRuntime,
+) {
+    val nodes: NodeSet
+    val edges: EdgeSet
+    val facets: FacetSet
+
+    val index: GraphIndex
+    val lifecycle: LifecycleState
+    val scope: GraphScope
+    val events: GraphEventBus
+
+    fun attach(node: Node): AttachResult
+    fun detach(node: Node): DetachResult
+
+    fun &lt;C : Any&gt; connect(
+        consumer: ConsumerPort&lt;C&gt;,
+        provider: ProviderPort&lt;C&gt;,
+        facets: List&lt;Facet&gt; = emptyList(),
+    ): Result&lt;Edge&lt;C&gt;&gt;
+
+    fun snapshot(): GraphSnapshot
+    fun execute(command: GraphCommand): CommandResult
+}</code></pre><pre><code>open class Node(
+    val graph: Graph,
+    val id: NodeId,
+    val label: String = "",
+) {
+    val ports: PortSet
+    val facets: FacetSet
+    val capabilities: CapabilityRequirements
+    val lifecycle: LifecycleState
+}</code></pre></section>
+
+      <section id="laws"><h2 id="kernel-laws">Kernel laws</h2><p>The kernel should enforce a small number of hard laws. These laws keep the graph powerful without turning it into a monolith.</p><div class="grid cols-2"><div class="card"><h4>1. Identity is stable</h4><p>Graphs, nodes, ports, edges, contracts, facets, capabilities, and commands need stable IDs. Runtime UUIDs are activation identities, not source/deployment identities.</p></div><div class="card"><h4>2. Ports connect by contract</h4><p>Local Kotlin types are implementation details. <code>ContractId</code> is the universal identity for polyglot and distributed boundaries.</p></div><div class="card"><h4>3. Edges are explicit</h4><p>Architecturally meaningful dependencies should appear as edges or facets. Hidden wiring should not matter for the graph model.</p></div><div class="card"><h4>4. Facets add meaning</h4><p>The kernel never learns “auth,” “route,” “actor,” “queue,” “React,” or “Cloudflare.” Modules attach facets.</p></div><div class="card"><h4>5. Capabilities are observed</h4><p>Modules do not branch on platform strings. They use capability profiles and strategy selection.</p></div><div class="card"><h4>6. Visitors interpret</h4><p>Validation, AI context, deployment, telemetry, source maps, documentation, and optimization are visitors.</p></div><div class="card"><h4>7. Commands mutate</h4><p>DevTools and AI emit typed graph commands. Runtime mutation happens through validation, not direct object poking.</p></div><div class="card"><h4>8. Snapshots are read-only</h4><p>Tools inspect snapshots and events. They modify graphs through commands and patches.</p></div><div class="card"><h4>9. Code remains truth</h4><p>The graph is projected from code/manifests and can be edited through structured commands, but visual editing must not become opaque truth.</p></div><div class="card"><h4>10. Modules cannot bloat the kernel</h4><p>New concerns register facets, validators, renderers, adapters, codegen, and command handlers.</p></div></div></section>
+
+      <section id="modules"><h2 id="module-model">Module model</h2><p>A Reaktor module should do one concern well. It should contribute vocabulary to the graph, not expand the kernel.</p><pre><code>interface ReaktorModule {
+    val id: ModuleId
+    val version: SemVer
+
+    fun facets(): List&lt;FacetSpec&lt;*&gt;&gt;
+    fun capabilities(): List&lt;CapabilitySpec&lt;*&gt;&gt;
+    fun contracts(): List&lt;ContractSpec&lt;*&gt;&gt;
+
+    fun validators(): List&lt;GraphValidator&gt;
+    fun visitors(): List&lt;GraphVisitor&lt;*&gt;&gt;
+    fun commandHandlers(): List&lt;GraphCommandHandler&lt;*&gt;&gt;
+
+    fun renderers(): List&lt;GraphRendererContribution&gt;
+    fun inspectors(): List&lt;InspectorContribution&gt;
+
+    fun codegen(): List&lt;CodegenContribution&gt;
+    fun runtimeAdapters(): List&lt;RuntimeAdapter&gt;
+}</code></pre><div class="grid cols-3"><div class="card"><h3>Module vocabulary</h3><p>AuthFacet, RouteFacet, ServiceFacet, ActorFacet, QueueFacet, DeploymentFacet, ActionFacet, TelemetryFacet.</p></div><div class="card"><h3>Runtime behavior</h3><p>Modules install adapters, policies, codecs, transports, validators, inspectors, codegen, and command handlers.</p></div><div class="card"><h3>Tooling surface</h3><p>Modules contribute render hints, inspector panels, graph commands, source maps, validation messages, and AI schemas.</p></div></div><h3>Example modules</h3><div><span class="pill">reaktor-auth</span><span class="pill">reaktor-navigation</span><span class="pill">reaktor-tactile</span><span class="pill">reaktor-service</span><span class="pill">reaktor-db</span><span class="pill">reaktor-bus</span><span class="pill">reaktor-actor</span><span class="pill">reaktor-work</span><span class="pill">reaktor-notifications</span><span class="pill">reaktor-media</span><span class="pill">reaktor-location</span><span class="pill">reaktor-cloudflare</span><span class="pill">reaktor-google</span><span class="pill">reaktor-ffi</span><span class="pill">reaktor-telemetry</span><span class="pill">reaktor-devops</span><span class="pill">reaktor-ai</span><span class="pill">reaktor-mcp</span><span class="pill">reaktor-desktop</span></div></section>
+
+      <section id="planes"><h2 id="canonical-runtime-planes">Canonical runtime planes</h2><p>Planes describe ownership boundaries. They prevent the runtime from collapsing into a monolith where every class knows too much.</p><div class="table-wrap"><table><thead><tr><th>Plane</th><th>Owns</th><th>Typical modules</th></tr></thead><tbody><tr><td>Capability / environment</td><td>Device, platform, execution, network, renderer, permission, power, thermal, storage.</td><td>core, capability, permissions, media, location, notification adapters.</td></tr><tr><td>Graph / action</td><td>Routes, panes, payloads, lifecycle, ports, services, repositories, actions.</td><td>graph, graph-port, navigation, action, auth policy.</td></tr><tr><td>Transport / messaging</td><td>HTTP, WebSocket, queues, Pub/Sub, mesh, FFI, envelopes, retries, DLQ, idempotency.</td><td>service, io, bus, cloudflare, google, ffi.</td></tr><tr><td>Data / persistence</td><td>Local cache, object store, SQL, CRDTs, blobs, sync, archival, tenant isolation.</td><td>db, cloudflare D1/R2/KV, Supabase, Memgraph adapters.</td></tr><tr><td>UI / interaction</td><td>Compose, React, design tokens, tactile state, adaptive layouts, components, accessibility.</td><td>tactile, ui, compose, react host, layout, design.</td></tr><tr><td>Intelligence / tooling</td><td>Compiler, graphify, shadow, devtools, deployment, telemetry, MCP, AI copilot.</td><td>compiler, graphify, shadow, devops, flow, desktop, ai, mcp.</td></tr></tbody></table></div></section>
+
+      <section id="targets"><h2 id="targets-and-languages">Targets and languages</h2><div class="split"><div class="card"><h3>Primary runtime targets</h3><p>These should be first-class targets in the Reaktor runtime and deployment model:</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span><span class="pill green">JS Worker</span><span class="pill green">Spring Boot Server</span><span class="pill green">Compose Multiplatform</span><span class="pill green">Kotlin Multiplatform</span><span class="pill green">React</span></div></div><div class="card"><h3>Language tiers</h3><p><strong>Native:</strong> Kotlin</p><p><strong>First-class:</strong> C++, TypeScript</p><p><strong>Second layer:</strong> Dart, Go, Python, C#</p><p class="small">The graph should not care about language-specific details. It should care about contracts, schemas, operation IDs, transport facets, runtime targets, capability profiles, and codecs.</p></div></div><h3>Universal distributed/polyglot boundary</h3><pre><code>data class OperationId(
+    val namespace: String,
+    val name: String,
+    val version: Int,
+)
+
+data class OperationContract(
+    val id: OperationId,
+    val request: SchemaId,
+    val response: SchemaId,
+    val effects: Set&lt;EffectKind&gt;,
+)</code></pre><pre><code>Android ConsumerPort&lt;Auth.SignIn&gt;
+    -- Edge + TransportFacet(HTTP) --&gt;
+Spring ProviderPort&lt;Auth.SignIn&gt;
+
+Worker ConsumerPort&lt;Webhook.Process&gt;
+    -- Edge + TransportFacet(QUEUE) --&gt;
+JVM ProviderPort&lt;Webhook.Process&gt;
+
+Kotlin ConsumerPort&lt;Image.Encode&gt;
+    -- Edge + FfiFacet(C++) --&gt;
+C++ ProviderPort&lt;Image.Encode&gt;</code></pre></section>
+
+      <section id="vocabulary"><h2 id="minimum-extension-vocabulary">Minimum extension vocabulary</h2><p>These facets and capabilities cover most applications without requiring the kernel to understand any specific domain.</p><div class="grid cols-3"><div class="card"><h3>Structural facets</h3><p>RouteFacet, UiFacet, ContainerFacet, PaneFacet, ServiceFacet, RepositoryFacet, ActorFacet, WorkflowFacet, QueueFacet, PubSubFacet, NativeFacet, ExternalFacet, DeploymentFacet, TelemetryFacet, PolicyFacet, ActionFacet, StateFacet, DataFacet, CapabilityRequirementFacet.</p></div><div class="card"><h3>Edge facets</h3><p>NavigationFacet, AttachmentFacet, InvocationFacet, TransportFacet, AsyncMessageFacet, FfiFacet, DataReadFacet, DataWriteFacet, AuthPolicyFacet, RetryFacet, CacheFacet, CircuitBreakerFacet, BackpressureFacet, TraceFacet, DeploymentCutFacet.</p></div><div class="card"><h3>Capability facets</h3><p>Camera, MediaPicker, Location, Maps, PushNotification, LocalNotification, Haptics, CredentialAuth, SecureStorage, OfflineDb, ObjectStorage, RealtimeSocket, Queue, PubSub, Workflow, DurableState, EdgeCompute, ServerCompute, NativeCompute, AiInference, VectorSearch, Payment, Analytics, Telemetry.</p></div></div></section>
+
+      <section id="graph-shapes"><h2 id="dominant-graph-shapes">Dominant graph shapes</h2><p>Most applications reduce to combinations of a small number of graph shapes. If these are first-class, Reaktor covers the majority of real applications.</p><div class="grid cols-2"><div class="card"><h3>1. Route + Screen + State</h3><pre><code>RouteNode
+    -&gt; ScreenNode
+    -&gt; ControllerState
+    -&gt; Repository</code></pre><p>Covers mobile apps, web apps, desktop apps, dashboards, and CRUD apps.</p></div><div class="card"><h3>2. Service + Repository</h3><pre><code>Controller
+    -&gt; ServiceOperation
+    -&gt; Repository
+    -&gt; Database</code></pre><p>Covers APIs, server apps, admin tools, and client/server apps.</p></div><div class="card"><h3>3. Offline-first sync</h3><pre><code>LocalRepository
+    -&gt; MutationQueue
+    -&gt; SyncService
+    -&gt; RemoteRepository</code></pre><p>Covers field apps, consumer apps, mobile-first SaaS, and disconnected workflows.</p></div><div class="card"><h3>4. Async workflow</h3><pre><code>ServiceRequest
+    -&gt; Queue
+    -&gt; Worker
+    -&gt; WorkflowStep
+    -&gt; Retry / DLQ</code></pre><p>Covers commerce, notifications, media processing, automation, and document processing.</p></div><div class="card"><h3>5. Realtime room / actor</h3><pre><code>RoomRoute
+    -&gt; ActorRef
+    -&gt; Mailbox
+    -&gt; PubSub/WebSocket
+    -&gt; Persistence</code></pre><p>Covers chat, collaboration, presence, multiplayer, and live dashboards.</p></div><div class="card"><h3>6. Capability strategy</h3><pre><code>FeatureNode
+    -&gt; CapabilityRequirement
+    -&gt; StrategySelector
+    -&gt; Native / Emulated / Fallback</code></pre><p>Covers camera, location, push, haptics, storage, native compute, offline, and network quality.</p></div><div class="card"><h3>7. Deployment cut</h3><pre><code>ConsumerPort
+    -&gt; Edge + DeploymentCutFacet
+    -&gt; ProxyNode
+    -&gt; ProviderPort</code></pre><p>Covers mobile/server, server/worker, Kotlin/C++, React/Kotlin, and edge/origin boundaries.</p></div><div class="card"><h3>8. AI command loop</h3><pre><code>GraphSnapshot
+    -&gt; AI Visitor Context
+    -&gt; GraphCommand
+    -&gt; Validator
+    -&gt; PatchPlanner
+    -&gt; Compile/Test</code></pre><p>Covers DevTools, copilots, agents, generated UI, deployment assistants, and automation.</p></div></div></section>
+
+      <section id="examples"><h2 id="representative-application-set">Representative application set</h2><p>These examples provide a representative, near-exhaustive sample suite. They are not just demos; they are acceptance tests for whether the kernel can cover 80% of application types.</p><div class="grid">
+<h3><span class="number">1</span> Notes / Personal Knowledge App</h3><p><strong>Category:</strong> basic CRUD + offline-first + sync.</p><p><strong>Representative apps:</strong> notes, tasks, habit tracker, personal CRM, journaling, bookmark manager.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span><span class="pill green">Desktop</span></div><pre><code>RouteFacet:
+    /notes
+    /notes/{id}
+    /search
+    /settings
+
+RepositoryFacet:
+    NotesRepository
+    TagRepository
+
+ServiceFacet:
+    SyncService
+
+DataFacet:
+    Local ObjectStore
+    Remote sync endpoint</code></pre><p><strong>Key concerns:</strong> offline-first cache, local mutation queue, conflict resolution, search, adaptive layout, optional auth.</p><p><strong>Proves:</strong> Reaktor can be lightweight. A small app should feel simpler than combining navigation, SQLite, DI, sync, and platform adapters manually.</p>
+<h3><span class="number">2</span> Consumer Mobile App with Auth and Profile</h3><p><strong>Category:</strong> mainstream mobile app shell.</p><p><strong>Representative apps:</strong> fitness app, dating app, personal finance, travel app, food app.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span></div><pre><code>AuthGraph:
+    OnboardingRoute
+    LoginRoute
+    ProfileSetupRoute
+
+MainGraph:
+    HomeRoute
+    ProfileRoute
+    SettingsRoute
+    NotificationsRoute
+
+ServiceGraph:
+    AuthService
+    UserService
+    ProfileService
+
+CapabilityGraph:
+    CredentialAuth
+    PushNotification
+    SecureStorage</code></pre><p><strong>Key concerns:</strong> auth state gates routes, onboarding result flows into main graph, capability fallback, push opens typed graph route, telemetry links actions to routes/services.</p><p><strong>Proves:</strong> Reaktor can replace navigation + auth flow + capability handling for mainstream mobile apps.</p>
+<h3><span class="number">3</span> Offline Field-Service App</h3><p><strong>Category:</strong> offline-first enterprise mobile.</p><p><strong>Representative apps:</strong> inspection app, field sales, delivery ops, utility repair, health worker app.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Spring Boot</span></div><pre><code>AssignmentGraph:
+    JobListRoute
+    JobDetailRoute
+    ChecklistRoute
+    SignatureRoute
+    MediaCaptureRoute
+
+RepositoryGraph:
+    JobRepository
+    ChecklistRepository
+    PhotoRepository
+
+WorkGraph:
+    SyncWork
+    UploadMediaWork
+    RetryFailedReportsWork
+
+CapabilityGraph:
+    Camera
+    Location
+    OfflineDb
+    NetworkQuality</code></pre><p><strong>Key concerns:</strong> offline for days, images/signatures, sync retry, conflict resolution, geotagging, audit trail.</p><p><strong>Proves:</strong> Capability profiles and graceful degradation are not optional; they are core to serious apps.</p>
+<h3><span class="number">4</span> Social / Messaging App</h3><p><strong>Category:</strong> real-time consumer social.</p><p><strong>Representative apps:</strong> BestBuds, chat apps, communities, dating chat, event social.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span><span class="pill green">JS Worker</span><span class="pill green">Spring Boot</span></div><pre><code>ClientGraph:
+    ChatListRoute
+    ChatRoute
+    FriendProfileRoute
+    GroupProfileRoute
+    MediaPickerRoute
+
+ActorGraph:
+    ChatRoomActor
+    PresenceActor
+    TypingIndicatorActor
+
+BusGraph:
+    MessagePublished
+    MessageDelivered
+    NotificationRequested
+
+NotificationGraph:
+    PushFanoutWorkflow
+    ReceiptHandler</code></pre><p><strong>Key concerns:</strong> WebSocket/PartySocket, actor-per-room, offline message cache, typing/presence, media upload, notification fanout, route from notification.</p><p><strong>Proves:</strong> Realtime, offline, notifications, media, and actors can compose visibly instead of becoming ten separate frameworks.</p>
+<h3><span class="number">5</span> Event / Wedding Media App</h3><p><strong>Category:</strong> event + media + roles + AI image processing.</p><p><strong>Representative apps:</strong> Mehmaan, weddings, conferences, school events, sports tournaments, creator galleries.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span><span class="pill green">Worker</span><span class="pill green">Server</span></div><pre><code>EventGraph:
+    EventListRoute
+    EventDetailRoute
+    AlbumRoute
+    UploadRoute
+    RSVPRoute
+    VendorRoute
+    GuestManagementRoute
+
+MediaGraph:
+    LocalImagePicker
+    UploadQueue
+    FaceRecognitionService
+    AlbumIndexService
+    R2StorageNode
+
+RoleGraph:
+    HostRole
+    GuestRole
+    VendorRole
+    ManagerRole</code></pre><p><strong>Key concerns:</strong> role-based navigation, module pricing, upload/indexing, face recognition, vendor/guest workflows, notifications.</p><p><strong>Proves:</strong> Modular app concerns and role-specific flows can be graph-native.</p>
+<h3><span class="number">6</span> Marketplace / Ecommerce / Inventory</h3><p><strong>Category:</strong> transactions + catalog + inventory + workflows.</p><p><strong>Representative apps:</strong> Nexergy, Shopify-like stores, B2B ordering, restaurant ordering, warehouse apps.</p><div><span class="pill green">Web</span><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Spring Boot</span><span class="pill green">Worker</span></div><pre><code>CatalogGraph:
+    ProductListRoute
+    ProductDetailRoute
+    SearchRoute
+
+CartGraph:
+    CartRoute
+    CheckoutRoute
+    PaymentRoute
+
+OrderGraph:
+    CreateOrderService
+    InventoryReservationService
+    PaymentService
+    OrderWorkflow
+    FulfillmentQueue
+
+AdminGraph:
+    InventoryDashboard
+    PricingDashboard
+    VendorDashboard</code></pre><p><strong>Key concerns:</strong> transactional flow, inventory consistency, payment orchestration, async fulfillment, audit trail, admin dashboards.</p><p><strong>Proves:</strong> Reaktor can model business workflows, not just app UI.</p>
+<h3><span class="number">7</span> SaaS Admin Dashboard</h3><p><strong>Category:</strong> web/backend CRUD + permissions + analytics.</p><p><strong>Representative apps:</strong> CRM, HR dashboards, internal tools, admin portals, analytics dashboards.</p><div><span class="pill green">React</span><span class="pill green">Web</span><span class="pill green">Spring Boot</span><span class="pill green">Worker</span></div><pre><code>AdminShellGraph:
+    DashboardRoute
+    UserManagementRoute
+    RoleManagementRoute
+    AuditLogRoute
+    SettingsRoute
+
+ServiceGraph:
+    UserAdminService
+    RoleService
+    AuditService
+    MetricsService
+
+PolicyGraph:
+    RBACPolicy
+    AuditPolicy
+    TenantIsolationPolicy</code></pre><p><strong>Key concerns:</strong> RBAC, tenant isolation, audit logs, search/filter/table layouts, exports, analytics, AI query assistant.</p><p><strong>Proves:</strong> React/Web/Spring systems can adopt graph-native services, policies, actions, and AI context.</p>
+<h3><span class="number">8</span> Collaborative Realtime Editor</h3><p><strong>Category:</strong> multiplayer real-time + CRDT + presence.</p><p><strong>Representative apps:</strong> docs, whiteboards, design tools, coding rooms, Figma-like tools.</p><div><span class="pill green">Web</span><span class="pill green">React</span><span class="pill green">JS Worker</span><span class="pill green">Durable Objects</span></div><pre><code>DocumentGraph:
+    DocumentRoute
+    EditorRoute
+    PresencePane
+    CommentsPane
+
+ActorGraph:
+    DocumentRoomActor
+    PresenceActor
+    CursorActor
+
+SyncGraph:
+    CRDTSyncService
+    SnapshotService
+    ConflictResolver</code></pre><p><strong>Key concerns:</strong> room identity, WebSockets, CRDT state, presence/cursors, comments, storage snapshots, concurrent editing.</p><p><strong>Proves:</strong> PartyKit/Durable Object-style rooms can become graph-visible actors.</p>
+<h3><span class="number">9</span> Notification and Campaign System</h3><p><strong>Category:</strong> messaging infrastructure.</p><p><strong>Representative apps:</strong> push notification service, marketing campaigns, engagement engine, alerting platform.</p><div><span class="pill green">Worker</span><span class="pill green">Spring Boot</span><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span></div><pre><code>IntakeGraph:
+    NotificationRequestService
+    CampaignTriggerService
+    WebhookReceiver
+
+BusGraph:
+    NotificationRequestedQueue
+    FanoutQueue
+    ReceiptQueue
+    DeadLetterQueue
+
+DeliveryGraph:
+    AndroidFcmSender
+    IosApnsSender
+    WebPushSender
+    RetryClassifier
+
+ClientGraph:
+    NotificationActionRouter
+    OpenRouteAction
+    MarkReadAction</code></pre><p><strong>Key concerns:</strong> fanout, retry classification, receipts, invalid endpoint cleanup, campaign scheduling, typed route/action on click.</p><p><strong>Proves:</strong> Backend messaging concerns can be graphs, not just screens.</p>
+<h3><span class="number">10</span> IoT / Geo / Logistics System</h3><p><strong>Category:</strong> device telemetry + location + routing + real-time map.</p><p><strong>Representative apps:</strong> fleet tracking, delivery tracking, sensor monitoring, logistics, smart city dashboards.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Worker</span><span class="pill green">Spring Boot</span><span class="pill green">Web Dashboard</span></div><pre><code>DeviceGraph:
+    LocationCollectorNode
+    SensorCollectorNode
+    UploadBatchWork
+
+EdgeGraph:
+    TelemetryIngestWorker
+    RateLimiter
+    GeoPartitionActor
+
+ServerGraph:
+    DeviceRegistryService
+    TripService
+    AlertService
+    AnalyticsService
+
+DashboardGraph:
+    MapRoute
+    VehicleDetailRoute
+    AlertRoute</code></pre><p><strong>Key concerns:</strong> streaming telemetry, location permissions, batching, edge ingestion, geo partitioning, alerting, live dashboard.</p><p><strong>Proves:</strong> Edge ingestion, real-time dashboards, location, queue/pubsub, and alerts can compose.</p>
+<h3><span class="number">11</span> AI Tutor / Learning Platform</h3><p><strong>Category:</strong> AI app + knowledge graph + adaptive UI.</p><p><strong>Representative apps:</strong> Manna, course tutor, coding coach, onboarding assistant, study aid.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">Web</span><span class="pill green">Spring Boot</span><span class="pill green">Worker</span><span class="pill green">AI Providers</span></div><pre><code>LearningGraph:
+    CourseRoute
+    LessonRoute
+    QuizRoute
+    ReviewRoute
+    ProgressRoute
+
+KnowledgeGraph:
+    ConceptNode
+    PrerequisiteEdge
+    MasteryStateRepository
+
+AiGraph:
+    TutorAgent
+    QuestionGenerator
+    FeedbackService
+    RetrievalService
+
+WorkGraph:
+    SpacedReviewScheduler
+    ProgressAggregator</code></pre><p><strong>Key concerns:</strong> personalized learning state, AI tutor, retrieval, spaced repetition, quiz generation, feedback, analytics, provenance.</p><p><strong>Proves:</strong> AI works better with structured graph context than raw app code.</p>
+<h3><span class="number">12</span> AI Agent Operations / Workflow Automation</h3><p><strong>Category:</strong> durable workflows + AI tools + humans-in-the-loop.</p><p><strong>Representative apps:</strong> support automation, sales ops, deployment agent, moderation queue, document processing.</p><div><span class="pill green">Spring Boot</span><span class="pill green">Worker</span><span class="pill green">Web Dashboard</span><span class="pill green">AI Services</span></div><pre><code>TriggerGraph:
+    IncomingTicketWebhook
+    FileUploadedEvent
+    ScheduledScan
+
+AgentGraph:
+    TriageAgent
+    SummarizerAgent
+    PolicyChecker
+    HumanApprovalRoute
+
+WorkflowGraph:
+    ExtractDataStep
+    ClassifyStep
+    ApproveStep
+    ExecuteStep
+    CompensateStep
+
+ToolGraph:
+    EmailTool
+    CRMTool
+    PaymentTool
+    DeploymentTool</code></pre><p><strong>Key concerns:</strong> tool permissions, human approval, durable state, retries, audit logs, prompt/tool schemas, MCP exposure.</p><p><strong>Proves:</strong> AI agents become graph-governed workers, not uncontrolled scripts.</p>
+<h3><span class="number">13</span> Edge API Platform</h3><p><strong>Category:</strong> serverless APIs + workers + queues.</p><p><strong>Representative apps:</strong> API gateway, webhook router, BFF, ingestion layer, SaaS edge platform.</p><div><span class="pill green">JS Worker</span><span class="pill green">Spring Boot</span><span class="pill green">D1/R2/KV</span><span class="pill green">External Services</span></div><pre><code>EdgeGraph:
+    AuthMiddlewareNode
+    RateLimiterNode
+    RouterNode
+    CacheNode
+    WebhookReceiver
+
+ServiceGraph:
+    UserServiceProxy
+    BillingServiceProxy
+    SearchServiceProxy
+
+QueueGraph:
+    WebhookQueue
+    RetryQueue
+    DeadLetterQueue
+
+StorageGraph:
+    D1Node
+    R2Node
+    KVNode</code></pre><p><strong>Key concerns:</strong> edge routing, auth, cache, queue buffering, retries, dead letters, worker deployment, service proxying.</p><p><strong>Proves:</strong> Workers/queues/storage can be modeled as first-class graph modules.</p>
+<h3><span class="number">14</span> Native C++ Media / Compute Pipeline</h3><p><strong>Category:</strong> native high-performance subsystem.</p><p><strong>Representative apps:</strong> image/video processing, face recognition, game-engine bridge, ML preprocessing, audio pipeline.</p><div><span class="pill green">Android</span><span class="pill green">iOS</span><span class="pill green">C++</span><span class="pill green">Kotlin</span><span class="pill green">Web/WASM optional</span></div><pre><code>ClientGraph:
+    MediaPickerRoute
+    PreviewRoute
+    ProcessingRoute
+
+NativeGraph:
+    FaceDetectorNativeNode
+    ImageCompressorNativeNode
+    VideoTranscoderNativeNode
+
+ServiceGraph:
+    UploadService
+    ModerationService
+    MetadataService
+
+CapabilityGraph:
+    NativeCompute
+    GpuAcceleration
+    MemoryBudget</code></pre><p><strong>Key concerns:</strong> FFI boundary, binary schemas, memory ownership, native acceleration, fallback if native unavailable, latency/memory telemetry.</p><p><strong>Proves:</strong> C++ can be a first-class provider through contracts and FFI.</p>
+<h3><span class="number">15</span> Brownfield React + Spring Incremental Adoption</h3><p><strong>Category:</strong> migration path.</p><p><strong>Representative apps:</strong> existing SaaS products, enterprise portals, legacy web apps.</p><div><span class="pill green">React</span><span class="pill green">Spring Boot</span><span class="pill green">Web</span><span class="pill green">JVM</span></div><pre><code>BrownfieldGraph:
+    ReactRouteProjection
+    SpringControllerProjection
+    ServiceOperationCatalog
+    AuthPolicyProjection
+    TelemetryProjection
+
+ReaktorIslandGraph:
+    NewFeatureRoute
+    NewFeatureService
+    NewFeatureRepository</code></pre><p><strong>Key concerns:</strong> no rewrite, graphify existing routes/services, wrap Spring endpoints, expose React actions, gradually replace one feature.</p><p><strong>Proves:</strong> Reaktor can be adopted incrementally, not only in greenfield systems.</p>
+<h3><span class="number">16</span> Reaktor Desktop / Developer Tooling App</h3><p><strong>Category:</strong> control plane + live runtime + visual editing.</p><p><strong>Representative apps:</strong> Reaktor Desktop itself, deployment console, monitoring console, visual editor.</p><div><span class="pill green">Compose Desktop</span><span class="pill green">JVM</span><span class="pill green">Remote Debug Targets</span><span class="pill green">Web optional</span></div><pre><code>AppRunnerGraph:
+    RunAppAction
+    DeviceTargetSelector
+    RuntimeBridge
+
+GraphEditorGraph:
+    GraphCanvas
+    NodeInspector
+    EdgeInspector
+    PatchPreview
+
+DevToolsGraph:
+    LayoutInspector
+    StateWatch
+    ServiceTracer
+    PerformancePanel
+
+DeploymentGraph:
+    PartitionPreview
+    DeployAction
+    RollbackAction
+
+AiGraph:
+    BlueprintCopilot
+    GraphQueryTool
+    PatchPlannerTool</code></pre><p><strong>Key concerns:</strong> live graph inspection, component layout inspector, runtime mutation, patch persistence, deployment partitioning, AI assistance, graph event timeline.</p><p><strong>Proves:</strong> The engine can build its own editor.</p>
+</div></section>
+
+      <section id="coverage"><h2 id="coverage-matrix">Coverage matrix</h2><p>The examples cover the dominant concerns across roughly 80% of application systems. They should be treated as an architectural acceptance matrix for the kernel.</p><div class="table-wrap"><table><thead><tr><th>Concern</th><th>Covered by examples</th></tr></thead><tbody><tr><td>Navigation</td><td>1, 2, 3, 4, 5, 6, 7, 11, 15, 16</td></tr><tr><td>Auth / RBAC</td><td>2, 3, 4, 5, 6, 7, 12, 13, 15</td></tr><tr><td>Offline-first data</td><td>1, 3, 4, 5, 10, 11</td></tr><tr><td>Server APIs</td><td>2, 3, 4, 6, 7, 10, 13, 15</td></tr><tr><td>Async queues / PubSub</td><td>3, 4, 6, 9, 10, 12, 13</td></tr><tr><td>Notifications</td><td>2, 3, 4, 5, 6, 9, 10</td></tr><tr><td>Media</td><td>5, 14</td></tr><tr><td>Geo / maps</td><td>3, 10</td></tr><tr><td>Realtime / WebSocket</td><td>4, 8, 10</td></tr><tr><td>Actors</td><td>4, 8, 10</td></tr><tr><td>Workflows</td><td>6, 9, 12</td></tr><tr><td>Payments / transactions</td><td>6, 12</td></tr><tr><td>Admin dashboards</td><td>7, 9, 10, 13, 16</td></tr><tr><td>AI / agents</td><td>11, 12, 16</td></tr><tr><td>DevTools / inspection</td><td>16, plus all examples through snapshots/events</td></tr><tr><td>Deployment partitioning</td><td>4, 6, 8, 9, 10, 13, 16</td></tr><tr><td>Polyglot / FFI</td><td>14, 15</td></tr><tr><td>React integration</td><td>7, 8, 15</td></tr><tr><td>Cloudflare Workers</td><td>4, 8, 9, 10, 13</td></tr><tr><td>Spring Boot</td><td>3, 4, 6, 7, 10, 12, 15</td></tr><tr><td>Brownfield adoption</td><td>15</td></tr></tbody></table></div></section>
+
+      <section id="implementation"><h2 id="implementation-plan">Implementation plan</h2><div class="callout"><strong>Highest leverage move:</strong> turn the current object graph into a manifest-backed, contract-identified, evented, facet-based graph runtime.</div><h3>Build next</h3><div class="grid cols-2"><div class="card"><h4>1. ContractId + SchemaId</h4><p>Required for polyglot services, FFI, AI, deployment partitioning, TypeScript/C++ clients, and schema evolution.</p></div><div class="card"><h4>2. FacetSet</h4><p>Add typed meaning to Graph, Node, Port, and Edge without subclass explosion.</p></div><div class="card"><h4>3. CapabilityProfile</h4><p>Make platform/runtime availability first-class and strategy-driven.</p></div><div class="card"><h4>4. GraphSnapshot</h4><p>Evolve current graph JSON into a typed runtime snapshot model for tools and AI.</p></div><div class="card"><h4>5. GraphEventBus</h4><p>Emit node/edge/facet/lifecycle changes for DevTools, telemetry, Shadow, and AI diagnosis.</p></div><div class="card"><h4>6. GraphCommand v0</h4><p>Add generic commands: AddNode, RemoveNode, AddPort, ConnectPorts, SetFacet, RemoveFacet.</p></div><div class="card"><h4>7. GraphValidator</h4><p>Core validates IDs, contracts, edges, and facets. Modules validate routes, services, deployment, auth, and bus rules.</p></div><div class="card"><h4>8. ModuleRegistry</h4><p>Modules register facets, capabilities, validators, visitors, renderers, inspectors, codegen, and adapters.</p></div><div class="card"><h4>9. Route attachment roles</h4><p>Replace “first attached node” with PrimaryView, Controller, Guard, Loader, Prefetcher, Analytics, ErrorBoundary.</p></div><div class="card"><h4>10. Transport-neutral services</h4><p>Operation identity must be separate from endpoint and transport.</p></div></div><h3>Golden samples</h3><ol><li><strong>sample-notes</strong> — small CRUD/offline-first app.</li><li><strong>sample-mobile-shell</strong> — auth, navigation, profile, capability fallback.</li><li><strong>sample-social</strong> — real-time, offline, actors, notifications, media.</li><li><strong>sample-edge-api</strong> — Workers, queues, storage, service proxying.</li><li><strong>sample-brownfield-react-spring</strong> — incremental adoption.</li><li><strong>sample-reaktor-desktop-devtools</strong> — the engine builds its own editor.</li></ol></section>
+
+      <section id="heuristic"><h2 id="final-design-heuristic">Final design heuristic</h2><pre><code>Can this be expressed as:
+    a contract,
+    a facet,
+    a capability,
+    a visitor,
+    an event,
+    a snapshot field,
+    or a command?
+
+If yes:
+    it belongs in a module.
+
+If no:
+    either the kernel is missing a primitive,
+    or the feature is trying to smuggle a framework into the kernel.</code></pre><div class="quote">Reaktor is the graph-native composition language for application concerns. Kotlin is the native implementation. C++ and TypeScript are first-class peers. Other languages enter through contracts. Modules provide primitives. The graph combines them. Visitors interpret them. Capabilities adapt them. Tools inspect them. AI modifies them safely.</div><div class="warning"><strong>Do not build 80 frameworks in a trench coat.</strong> Build a small kernel, a huge vocabulary, and an ecosystem where every concern can become a node, port, edge, facet, capability, event, snapshot, command, and visitor interpretation.</div></section>
+
+      <div class="footer">Reaktor Graph Kernel Architecture · Generated HTML brief</div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

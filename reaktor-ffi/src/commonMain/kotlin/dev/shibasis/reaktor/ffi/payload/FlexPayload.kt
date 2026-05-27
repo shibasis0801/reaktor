@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.ffi.payload
 
-import com.google.flatbuffers.kotlin.ArrayReadBuffer
-import com.google.flatbuffers.kotlin.Vector
-import com.google.flatbuffers.kotlin.getRoot
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
 // import dev.shibasis.reaktor.core.serialization.decodeFromFlexBuffer
 
 typealias FlexPayload = Vector

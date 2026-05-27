@@ -56,8 +56,9 @@ kotlin {
     }
 }
 
-tasks.withType(Jar::class.java).configureEach {
+tasks.named<Jar>("jar") {
     archiveFileName.set("dependeasy.jar")
+    from(sourceSets.main.get().output)
 }
 
 apply(from = "$rootDir/../publishing.gradle.kts")

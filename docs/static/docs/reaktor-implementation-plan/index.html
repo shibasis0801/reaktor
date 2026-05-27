@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Implementation Plan · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Start here</span><span>Claude</span></div>
+      <p class="eyebrow">Start here · Claude</p>
+      <h1>Implementation Plan</h1>
+      <p class="subtitle">Execution plan for moving from prototype to production workbench and Compose/web target.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use when converting roadmap intent into engineering tracks.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/reaktor-implementation-plan</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a aria-current="page" href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#inventory">&amp;#x2713; 1. Inventory &amp;mdash; What Already Exists</a><a href="#architecture">&amp;#x25CE; 2. Target Architecture</a><a href="#mapping">&amp;#x21C4; 14. Feature Mapping &amp;mdash; Prototype &amp;rarr; Compose</a><a href="#schedule">&amp;#x23F1; 15. Implementation Schedule</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<p class="subtitle">Web prototype &rarr; Compose Multiplatform (Desktop + Web) &mdash; unified Blueprint Editor</p>
+
+
+
+
+
+
+
+
+<h2 id="inventory"><span class="icon" style="background:rgba(63,191,120,0.15); color:var(--ok)">&#x2713;</span> 1. Inventory &mdash; What Already Exists</h2>
+
+<h3>Reaktor Modules (production-quality)</h3>
+<table>
+  <tr><th>Module</th><th>Status</th><th>Role in Blueprint Editor</th></tr>
+  <tr>
+    <td><code>reaktor-graph-port</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Port, Edge, Visitor/Selector/Traverser foundation. Type-safe <code>ConsumerPort&lt;T&gt;</code> / <code>ProviderPort&lt;T&gt;</code> with events.</td>
+  </tr>
+  <tr>
+    <td><code>reaktor-graph</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Graph runtime: 6 node types, lifecycle, autoWire, navigation, DI, service layer. The single source of truth for all editor data.</td>
+  </tr>
+  <tr>
+    <td><code>reaktor-flow</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Compose graph canvas: <code>ReaktorGraphEditor</code>, blueprint layout, minimap, legend, toolbar, region overlays. Built on <code>compose-flow</code>.</td>
+  </tr>
+  <tr>
+    <td><code>compose-flow</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Compose Multiplatform port of React Flow. Rendering, pan/zoom, handle connections, node dragging.</td>
+  </tr>
+  <tr>
+    <td><code>reaktor-ui</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Compose UI primitives, ComposeNode, ComposeRenderer for live preview.</td>
+  </tr>
+  <tr>
+    <td><code>reaktor-io</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Network + serialization. Will power Deploy screen CI API calls and telemetry fetches.</td>
+  </tr>
+  <tr>
+    <td><code>reaktor-db</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>SQLite runtime. Stores command history, workspace state, cached manifests.</td>
+  </tr>
+  <tr>
+    <td><code>reaktor-auth</code></td>
+    <td><span class="badge done">Complete</span></td>
+    <td>Auth for cloud service connections (GitHub, Cloudflare, analytics providers).</td>
+  </tr>
+</table>
+
+<h3>Engine Module (bestbuds/modules/engine)</h3>
+<table>
+  <tr><th>Component</th><th>Status</th><th>Description</th></tr>
+  <tr>
+    <td><code>ReaktorWorkbench</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>Main shell: header, sidebar, resizable panels, Graph/App mode toggle. Foundation for the full shell.</td>
+  </tr>
+  <tr>
+    <td><code>ReaktorWorkbenchGraphPane</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>Wraps <code>ReaktorGraphEditor</code> from reaktor-flow. Pan, zoom, node selection, edge rendering all working.</td>
+  </tr>
+  <tr>
+    <td><code>ReaktorWorkbenchTreePanel</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>Recursive graph/node tree view with expand/collapse. Maps to the web prototype's LeftSidebar.</td>
+  </tr>
+  <tr>
+    <td><code>ReaktorWorkbenchInspectorPanel</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>Node detail inspector: ID, type, ports as chips, route attachments, navigation targets. Partial coverage of the web's 13 type-aware inspectors.</td>
+  </tr>
+  <tr>
+    <td><code>ReaktorWorkbenchPreviewPanel</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>Live Compose preview of selected node's <code>Content()</code>. Foundation for the Run screen.</td>
+  </tr>
+  <tr>
+    <td><code>ReaktorComposeSemanticsInspector</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>2300+ line Compose runtime semantics inspector. Reads <code>CompositionData</code> for click-to-inspect. This is UNIQUE &mdash; no equivalent in the web prototype.</td>
+  </tr>
+  <tr>
+    <td><code>ReaktorGraphDocument</code></td>
+    <td><span class="badge done">Done</span></td>
+    <td>JSON export of graph for LLM consumption. Foundation for the agent/command pattern integration.</td>
+  </tr>
+</table>
+
+<h3>What the web prototype has that the engine does NOT</h3>
+<div class="card">
+  <table>
+    <tr><th>Web Feature</th><th>Engine Status</th><th>Gap</th></tr>
+    <tr><td>5-mode toolbar (Graph, Run, DevTools, Deploy, Insights)</td><td>2 modes (Graph, App)</td><td><span class="badge new">Build 3 screens</span></td></tr>
+    <tr><td>Bottom drawer (Traces, Logs, Agent, Diagnostics, Commands, Queue, CodeDiff)</td><td>None</td><td><span class="badge new">Build drawer system</span></td></tr>
+    <tr><td>Command palette (Cmd+K)</td><td>None</td><td><span class="badge new">Build search/command UI</span></td></tr>
+    <tr><td>13 type-aware inspectors with sparklines</td><td>1 generic inspector</td><td><span class="badge partial">Extend inspector</span></td></tr>
+    <tr><td>Deploy topology (CloudFormation-style)</td><td>None</td><td><span class="badge new">Build deploy screen</span></td></tr>
+    <tr><td>Insights dashboard (timelines, heatmaps)</td><td>None</td><td><span class="badge new">Build insights screen</span></td></tr>
+    <tr><td>Drilldown causal trace (waterfall)</td><td>None</td><td><span class="badge new">Build devtools screen</span></td></tr>
+    <tr><td>Status strip (bottom bar)</td><td>None</td><td><span class="badge new">Build status bar</span></td></tr>
+    <tr><td>WYSIWYG device preview with frame</td><td>Live Compose preview (no frame)</td><td><span class="badge partial">Add device frame</span></td></tr>
+    <tr><td>Command queue + CodeDiff viewer</td><td>Graph document JSON export</td><td><span class="badge partial">Build command pattern</span></td></tr>
+    <tr><td>Edge type overlay filters</td><td>Legend with kind filter chips</td><td><span class="badge done">Mostly done in reaktor-flow</span></td></tr>
+    <tr><td>Cross-mode navigation (entity &rarr; any screen)</td><td>Single-mode selection</td><td><span class="badge new">Build navigation model</span></td></tr>
+  </table>
+</div>
+
+
+
+<h2 id="architecture"><span class="icon" style="background:rgba(75,123,255,0.15); color:var(--accent)">&#x25CE;</span> 2. Target Architecture</h2>
+
+<h3>Module Dependency Chain</h3>
+<div class="dep-chain">
+  <span class="mod">reaktor-graph-port</span><span class="arr">&rarr;</span>
+  <span class="mod">reaktor-graph</span><span class="arr">&rarr;</span>
+  <span class="mod">reaktor-flow</span><span class="arr">&rarr;</span>
+  <span class="mod" style="border-color:var(--accent)">reaktor-workbench</span><span class="arr">&rarr;</span>
+  <span class="mod" style="border-color:var(--ok)">engine / reaktorDesktop / reaktorWeb</span>
+</div>
+
+<h3>New Module: <code>reaktor-workbench</code></h3>
+<p>A <strong>commonMain</strong> Compose Multiplatform module that contains <em>all</em> the shared Blueprint Editor UI. Both the Desktop target (<code>reaktorDesktop</code>) and the Web target (<code>reaktorWeb-compose</code>) depend on this single module. No screen logic lives in target-specific code.</p>
+
+<div class="card">
+<h4>Directory Structure</h4>
+<pre class="file-tree">
+<span class="dir">reaktor-workbench/</span>
+  <span class="dir">src/commonMain/kotlin/dev/shibasis/reaktor/workbench/</span>
+    <span class="dir">shell/</span>
+      WorkbenchShell.kt          <span class="new">// Main shell: top bar, mode toolbar, panels, drawer, status</span>
+      WorkbenchMode.kt           <span class="new">// enum: Graph, Run, DevTools, Deploy, Insights</span>
+      WorkbenchState.kt          <span class="new">// ViewModel: selected entity, mode, drawer state, panel sizes</span>
+      TopBar.kt                  <span class="new">// Project name, branch, env indicator, search trigger</span>
+      ModeToolbar.kt             <span class="new">// 5-mode tab bar with keyboard shortcuts</span>
+      StatusStrip.kt             <span class="new">// Bottom status bar: mode label, entity count, build status</span>
+    <span class="dir">sidebar/</span>
+      LeftSidebar.kt             <span class="modify">// Extend existing TreePanel: mode-aware content, search</span>
+      SidebarSearch.kt           <span class="new">// Filter entities by name/type/module/tag</span>
+    <span class="dir">inspector/</span>
+      InspectorPanel.kt          <span class="modify">// Extend existing InspectorPanel with type dispatch</span>
+      InspectorState.kt          <span class="new">// Scroll-linked section tabs, section visibility tracking</span>
+      <span class="dir">bodies/</span>
+        RouteInspector.kt        <span class="new">// Route: status, screens, trace sparkline</span>
+        ScreenInspector.kt       <span class="new">// Screen: render preview, crash rate, session count</span>
+        ContainerInspector.kt    <span class="new">// Container: child graph list, nav targets</span>
+        UiInspector.kt           <span class="new">// UI element: props, click chain, design overlay</span>
+        ActionInspector.kt       <span class="new">// Action/Interactor: signature, downstream chain</span>
+        ServiceInspector.kt      <span class="new">// Service: endpoints, p95, error rate</span>
+        EdgeInspector.kt         <span class="new">// Edge: latency histogram, deploy target, cert status</span>
+        DbInspector.kt           <span class="new">// DB: schema, row count, query performance</span>
+        ReleaseInspector.kt      <span class="new">// Release: CI pipeline, artifacts, promote CTA</span>
+    <span class="dir">drawer/</span>
+      DrawerPanel.kt             <span class="new">// Bottom drawer with resize handle and tab bar</span>
+      DrawerTab.kt               <span class="new">// enum: Traces, Logs, Agent, Diagnostics, Commands, Queue, CodeDiff</span>
+      TraceViewer.kt             <span class="new">// Recent traces with timing, status, provider</span>
+      LogViewer.kt               <span class="new">// Filterable log stream</span>
+      AgentChat.kt               <span class="new">// LLM agent chat interface (Claude Code model)</span>
+      DiagnosticsPanel.kt        <span class="new">// Graph health, port wiring status</span>
+      CommandQueue.kt            <span class="new">// Pending GraphCommand list with preview</span>
+      CodeDiffViewer.kt          <span class="new">// Side-by-side diff preview for generated code</span>
+    <span class="dir">screens/</span>
+      <span class="dir">graph/</span>
+        GraphScreen.kt           <span class="modify">// Wraps ReaktorGraphEditor + edge filter controls</span>
+        GraphModeControls.kt     <span class="new">// Overlay toggles, edge type filters</span>
+      <span class="dir">run/</span>
+        RunScreen.kt             <span class="new">// WYSIWYG preview with device frame</span>
+        DeviceFrame.kt           <span class="new">// Phone/tablet/desktop frame with notch, status bar</span>
+        ComponentTree.kt         <span class="new">// Compose semantics tree (bidirectional selection)</span>
+        RunModeControls.kt       <span class="new">// Device type, theme, network mode pills</span>
+      <span class="dir">devtools/</span>
+        DevToolsScreen.kt        <span class="new">// Causal trace drilldown</span>
+        TraceRail.kt             <span class="new">// Vertical waterfall with duration bars</span>
+        BlastRadiusPanel.kt      <span class="new">// Computed blast radius from graph edges</span>
+        TestImpactPanel.kt       <span class="new">// Test coverage for selected entity</span>
+      <span class="dir">deploy/</span>
+        DeployScreen.kt          <span class="new">// Topology view + CI pipeline</span>
+        DeployTopology.kt        <span class="new">// Visual partition map (edge, db, kv, queue, bucket)</span>
+        CIPipeline.kt            <span class="new">// CI steps with status indicators</span>
+        DeployModeControls.kt    <span class="new">// Local/Staging/Production env switcher</span>
+      <span class="dir">insights/</span>
+        InsightsScreen.kt        <span class="new">// Analytics dashboard</span>
+        InsightsTimeline.kt      <span class="new">// Time series chart with deploy markers</span>
+        InsightsHeatmap.kt       <span class="new">// Route x Metric heatmap grid</span>
+        InsightsModeControls.kt  <span class="new">// Time range (1h/24h/7d/30d), route filter</span>
+    <span class="dir">search/</span>
+      CommandPalette.kt          <span class="new">// Cmd+K modal: entity search, command search</span>
+      SearchResult.kt            <span class="new">// Result item: type badge, title, source, module</span>
+    <span class="dir">commands/</span>
+      GraphCommand.kt            <span class="new">// Sealed hierarchy: AddNode, ConnectPorts, SetProperty, etc.</span>
+      CommandExecutor.kt         <span class="new">// Apply command to graph, record in history</span>
+      CommandHistory.kt          <span class="new">// Undo/redo stack, persistence to SQLite</span>
+    <span class="dir">agent/</span>
+      AgentInterface.kt          <span class="new">// Agent chat protocol, tool invocations</span>
+      GraphTool.kt               <span class="new">// Tools: read_graph, select_entity, navigate_to, etc.</span>
+      CodeGenBridge.kt           <span class="new">// Bridge: command batch &rarr; LLM &rarr; CodeDiff</span>
+    <span class="dir">theme/</span>
+      WorkbenchTheme.kt          <span class="new">// Dark/light theme tokens matching prototype palette</span>
+      WorkbenchTypography.kt     <span class="new">// Font scales, mono font for code sections</span>
+  <span class="dir">src/jvmMain/</span>
+    PlatformBridge.kt            <span class="new">// Desktop: file system, process launch (IntelliJ/VSCode)</span>
+  <span class="dir">src/jsMain/</span>
+    PlatformBridge.kt            <span class="new">// Web: clipboard, URL routing, service worker</span>
+</pre>
+</div>
+
+<h3>Data Flow</h3>
+<div class="flow-row">
+  <div class="flow-box"><strong>GraphManifest</strong><div class="sub">Compile-time JSON</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>reaktor-graph</strong><div class="sub">Live Graph runtime</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>reaktor-flow</strong><div class="sub">Visual layout + canvas</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box" style="border-color:var(--accent)"><strong>Workbench Shell</strong><div class="sub">5 screens + inspector</div></div>
+</div>
+<div class="flow-row">
+  <div class="flow-box" style="border-color:var(--warn)"><strong>User interaction</strong><div class="sub">Click, edit, drag</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>GraphCommand</strong><div class="sub">Typed command object</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>CommandQueue</strong><div class="sub">Preview + batch</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box" style="border-color:var(--ok)"><strong>LLM Agent</strong><div class="sub">Generate CodeDiff</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>IDE</strong><div class="sub">Apply to project</div></div>
+</div>
+
+
+
+<div class="phase-header" id="phase0">
+  <div class="num">P0</div>
+  <div><div class="title">Foundation &mdash; reaktor-flow Stabilization</div>
+  <div class="desc">Prerequisite: ensure the graph canvas is production-ready</div></div>
+</div>
+
+<p>The existing <a href="file:///Users/ovd/dev/reaktor/reaktor-flow/analysis.html">reaktor-flow analysis</a> identifies fixes needed. We assume these will be completed before Phase 1. Key items:</p>
+<ul>
+  <li><strong>compose-flow edge rendering</strong> &mdash; ensure bezier edges respect handle positions and edge types render with distinct colors/dash patterns</li>
+  <li><strong>Node drag position persistence</strong> &mdash; <code>mergeGraphNodes()</code> already preserves drag positions across model rebuilds; verify this works reliably</li>
+  <li><strong>Selection events</strong> &mdash; <code>onNodeClick</code> / <code>onEdgeClick</code> callbacks must propagate to the workbench shell for inspector wiring</li>
+  <li><strong>Kind filter chips</strong> &mdash; <code>GraphKindLegend</code> already implements clickable filter chips; verify they filter nodes in the canvas</li>
+  <li><strong>Zoom controls</strong> &mdash; <code>GraphViewportToolbar</code> has fit/100%/zoom buttons; verify they call the correct viewport APIs</li>
+</ul>
+<p><strong>Deliverable:</strong> All 10 <code>GraphFlowIntegrationTest</code> tests pass, and manual verification in the Desktop app shows interactive graph editing.</p>
+
+
+
+<div class="phase-header" id="phase1">
+  <div class="num">P1</div>
+  <div><div class="title">Workbench Shell &amp; Navigation</div>
+  <div class="desc">The outermost frame that hosts all 5 screens</div></div>
+</div>
+
+<h3>1.1 WorkbenchState ViewModel</h3>
+<p>Central state holder replacing the web prototype's <code>ScenarioContext</code>. Lives in commonMain, consumed by all screens.</p>
+<pre>
+class WorkbenchState {
+    val mode: MutableStateFlow&lt;WorkbenchMode&gt;           // Graph, Run, DevTools, Deploy, Insights
+    val selectedEntityId: MutableStateFlow&lt;String?&gt;     // Currently inspected entity
+    val drawerOpen: MutableStateFlow&lt;Boolean&gt;
+    val drawerTab: MutableStateFlow&lt;DrawerTab&gt;
+    val searchOpen: MutableStateFlow&lt;Boolean&gt;
+    val leftCollapsed: MutableStateFlow&lt;Boolean&gt;
+    val rightCollapsed: MutableStateFlow&lt;Boolean&gt;
+    val leftWidth: MutableStateFlow&lt;Float&gt;              // dp
+    val rightWidth: MutableStateFlow&lt;Float&gt;             // dp
+    val drawerHeight: MutableStateFlow&lt;Float&gt;           // dp
+    val deployEnv: MutableStateFlow&lt;DeployEnv&gt;          // Local, Staging, Production
+    val deviceMode: MutableStateFlow&lt;DeviceMode&gt;        // Phone, Tablet, Desktop
+    val themeMode: MutableStateFlow&lt;ThemeMode&gt;          // Light, Dark
+    val commandQueue: MutableStateFlow&lt;List&lt;GraphCommand&gt;&gt;
+
+    fun navigateTo(mode: WorkbenchMode, entityId: String?)  // Cross-mode navigation
+    fun openDrawerTab(tab: DrawerTab)                        // Open drawer to specific tab
+    fun pushCommand(cmd: GraphCommand)                       // Enqueue a graph command
+}
+</pre>
+
+<h3>1.2 WorkbenchShell Composable</h3>
+<p>Port of <code>AppShell</code> from <code>app.jsx</code>. Uses Compose <code>BoxWithConstraints</code> for responsive layout.</p>
+<ul>
+  <li><strong>Top bar:</strong> Project name, branch indicator, env badge, Cmd+K trigger</li>
+  <li><strong>Mode toolbar:</strong> 5 icon+label tabs, Cmd+1&ndash;5 shortcuts</li>
+  <li><strong>Three-column layout:</strong> Left sidebar + center screen + right inspector, with draggable resize handles</li>
+  <li><strong>Bottom drawer:</strong> Collapsible panel with 7 tabs, draggable height</li>
+  <li><strong>Status strip:</strong> Mode label, entity count, build status, clock</li>
+  <li><strong>Responsive collapse:</strong> Auto-collapse panels when window is narrow (< 1200dp right, < 900dp both)</li>
+</ul>
+
+<h3>1.3 Cross-Mode Navigation</h3>
+<p>The web prototype's <code>navigateTo(sc, mode, entityId)</code> becomes <code>WorkbenchState.navigateTo()</code>. Every "Open in Graph" / "Follow action chain" / "View in Deploy" button calls this. The selected entity is preserved across mode switches.</p>
+
+<h3>1.4 Keyboard Shortcuts</h3>
+<table>
+  <tr><th>Shortcut</th><th>Action</th><th>Web equivalent</th></tr>
+  <tr><td><code>Cmd+K</code></td><td>Toggle command palette</td><td>Same</td></tr>
+  <tr><td><code>Cmd+1..5</code></td><td>Switch mode</td><td>Same</td></tr>
+  <tr><td><code>Escape</code></td><td>Close palette / deselect</td><td>Same</td></tr>
+  <tr><td><code>\</code></td><td>Toggle drawer</td><td>Same</td></tr>
+  <tr><td><code>Arrow Up/Down</code></td><td>Walk active path</td><td>Same</td></tr>
+  <tr><td><code>Cmd+Shift+O</code></td><td>Open in IDE</td><td>New</td></tr>
+</table>
+
+<h3>1.5 Porting from Existing Engine Code</h3>
+<p>The current <code>ReaktorWorkbench</code> already has:</p>
+<ul>
+  <li>Header with mode toggle (Graph/App) &rarr; <strong>extend</strong> to 5 modes</li>
+  <li>Resizable panels with sidebar &rarr; <strong>reuse</strong> panel infrastructure</li>
+  <li>App switcher &rarr; <strong>keep</strong> for multi-project support</li>
+</ul>
+<p>Migration: refactor <code>ReaktorWorkbench</code> to accept a <code>WorkbenchState</code> and delegate screen rendering to the mode-specific composable.</p>
+
+
+
+<div class="phase-header" id="phase2">
+  <div class="num">P2</div>
+  <div><div class="title">Graph Screen (Blueprint Editor)</div>
+  <div class="desc">The primary editing surface &mdash; already 80% done via reaktor-flow</div></div>
+</div>
+
+<h3>Existing in reaktor-flow</h3>
+<ul>
+  <li><span class="badge done">Done</span> <strong>Canvas with pan/zoom</strong> &mdash; <code>ReaktorGraphEditor</code> wraps compose-flow with keyboard zoom shortcuts</li>
+  <li><span class="badge done">Done</span> <strong>Blueprint layout</strong> &mdash; <code>BlueprintReaktorGraphLayoutStrategy</code> with semantic lanes, multi-column, regions</li>
+  <li><span class="badge done">Done</span> <strong>Node cards</strong> &mdash; <code>ReaktorGraphNodeCard</code> with title bar, port columns, badge</li>
+  <li><span class="badge done">Done</span> <strong>Edge rendering</strong> &mdash; via compose-flow with kind-based color/width</li>
+  <li><span class="badge done">Done</span> <strong>Minimap</strong> &mdash; <code>GraphMiniMap</code> with click-to-pan and viewport rect</li>
+  <li><span class="badge done">Done</span> <strong>Legend</strong> &mdash; <code>GraphKindLegend</code> with clickable filter chips</li>
+  <li><span class="badge done">Done</span> <strong>Zoom toolbar</strong> &mdash; <code>GraphViewportToolbar</code> with fit/100%/zoom controls</li>
+  <li><span class="badge done">Done</span> <strong>Region overlays</strong> &mdash; <code>GraphRegionsOverlay</code> with dashed borders and labels</li>
+</ul>
+
+<h3>To add</h3>
+<ul>
+  <li><span class="badge new">New</span> <strong>Overlay toggle dropdown</strong> &mdash; The prototype has an "Overlays" button that shows/hides edge types (route, parent, consumes, invokes, writes, emits, deploys). Wire this to the existing <code>GraphKindLegend</code> filter or add an explicit overlay popover.</li>
+  <li><span class="badge new">New</span> <strong>Node hover tooltip</strong> &mdash; On hover, show a floating card with type badge, title, source file, p95/error rate. Only show if not already selected (don't overlap with inspector).</li>
+  <li><span class="badge new">New</span> <strong>Container node rendering</strong> &mdash; Container nodes should have dashed borders and transparent backgrounds. The <code>reaktorNodeKind()</code> classifier already identifies containers; extend <code>ReaktorGraphNodeCard</code> to render them distinctly.</li>
+  <li><span class="badge new">New</span> <strong>Port-anchored edge endpoints</strong> &mdash; Edges currently connect center-to-center. Route edges from <code>handleOffset()</code> in <code>ReaktorFlowMeasurement</code>. Connect same-row edges horizontally, parent edges right&rarr;left.</li>
+  <li><span class="badge new">New</span> <strong>Selection &rarr; WorkbenchState sync</strong> &mdash; When a node is clicked in the graph, set <code>workbenchState.selectedEntityId</code>. The inspector panel reacts to this change.</li>
+</ul>
+
+<h3>Effort estimate</h3>
+<p>~20% new code on top of existing reaktor-flow. Most work is wiring, not building.</p>
+
+
+
+<div class="phase-header" id="phase3">
+  <div class="num">P3</div>
+  <div><div class="title">Run Screen (WYSIWYG Preview)</div>
+  <div class="desc">Live app preview with device framing and click-to-inspect</div></div>
+</div>
+
+<h3>Existing in Engine</h3>
+<ul>
+  <li><span class="badge done">Done</span> <strong>Live Compose preview</strong> &mdash; <code>ScreenPreviewPanel</code> renders selected node's <code>Content()</code> composable with parameterized route guard</li>
+  <li><span class="badge done">Done</span> <strong>Compose semantics inspector</strong> &mdash; <code>ReaktorComposeSemanticsInspector</code> reads <code>CompositionData</code> for component tree, click-to-inspect (Desktop only)</li>
+</ul>
+
+<h3>To build</h3>
+<div class="card">
+  <h4>DeviceFrame composable</h4>
+  <p>Wraps the live preview in a phone/tablet/desktop chrome frame. Purely visual &mdash; uses Compose <code>Canvas</code> for the notch, status bar, rounded corners. Dimensions from <code>WorkbenchState.deviceMode</code>:</p>
+  <ul>
+    <li>Phone: 312 x 624 dp, radius 36, notch</li>
+    <li>Tablet: 500 x 700 dp, radius 24</li>
+    <li>Desktop: 680 x 440 dp, radius 10</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h4>RunModeControls</h4>
+  <p>Pill bar at top of center area: device type toggle, theme toggle (light/dark invert), network mode (online/slow/offline overlay badge).</p>
+</div>
+
+<div class="card">
+  <h4>Bidirectional Component Tree &harr; Entity Selection</h4>
+  <p>When a composable is clicked in the preview, the semantics inspector identifies it &rarr; map to a graph entity via source location &rarr; update <code>selectedEntityId</code>. Conversely, selecting a UI entity in the graph highlights the corresponding composable in the preview.</p>
+  <p><strong>Desktop:</strong> Full semantics inspector with <code>CompositionData</code> access.</p>
+  <p><strong>Web:</strong> Compose/JS doesn't expose <code>LocalInspectionTables</code>. Use a <code>Modifier.semantics</code>-based approach: tag each composable with its graph entity ID, then use <code>PointerInputScope</code> hit testing.</p>
+</div>
+
+<div class="card">
+  <h4>Floating Graph Link Card</h4>
+  <p>When a UI element is selected in the preview, show a floating card (like the prototype's <code>FloatingGraphLink</code>) with: type pill, entity name, source file, action chain strip, latest trace, and "Open in Graph" / "Follow action chain" / "Open in IDE" buttons.</p>
+</div>
+
+<h3>Platform difference</h3>
+<table>
+  <tr><th>Feature</th><th>Desktop (JVM)</th><th>Web (JS)</th></tr>
+  <tr><td>Live preview</td><td>Full Compose rendering via <code>Content()</code></td><td>Full Compose rendering via Compose/JS canvas</td></tr>
+  <tr><td>Click-to-inspect</td><td><code>CompositionData</code> + <code>LocalInspectionTables</code></td><td><code>Modifier.semantics</code> tag-based hit test</td></tr>
+  <tr><td>Network simulation</td><td>Interceptor on <code>reaktor-io</code> OkHttp client</td><td>Interceptor on fetch/XHR</td></tr>
+</table>
+
+
+
+<div class="phase-header" id="phase4">
+  <div class="num">P4</div>
+  <div><div class="title">DevTools Screen (Causal Trace)</div>
+  <div class="desc">Chrome DevTools-style waterfall for tracing request flow through the graph</div></div>
+</div>
+
+<h3>Data source</h3>
+<p>Every port invocation emits a <code>PortInvocationEvent</code> (from <code>reaktor-graph-port</code>). The DevTools screen collects these into a trace timeline. For the MVP, use mock trace data (like the web prototype's <code>DRILLDOWN_SPANS</code>). The real integration will wire <code>PortInvocationEvent</code> listeners.</p>
+
+<h3>Components</h3>
+<div class="card">
+  <h4>TraceRail</h4>
+  <p>Vertical waterfall with one card per span. Each card shows:</p>
+  <ul>
+    <li>Colored left border by entity type</li>
+    <li>Type pill + entity name + source file</li>
+    <li>Duration bar (proportional to total trace time)</li>
+    <li>Timing text (offset from trace start)</li>
+    <li>Click &rarr; select entity &rarr; update inspector</li>
+    <li>Hover action buttons: "Open in Graph", "Open in IDE"</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h4>BlastRadiusPanel</h4>
+  <p>Starting from selected entity, walk N hops through edges, count unique entities and modules. Show a summary card ("14 entities across 6 modules") with expandable list. Computed from the real graph via <code>Traverser</code>.</p>
+</div>
+
+<div class="card">
+  <h4>TestImpactPanel</h4>
+  <p>Find all commands/entities that depend on the selected entity. Cross-reference with test fixtures. Show "12 tests (Maestro 4, Unit 8)" with clickable test names.</p>
+</div>
+
+<h3>Connection to graph runtime</h3>
+<p>The <code>Visitor</code> pattern in <code>reaktor-graph-port</code> provides exactly the traversal needed. Use <code>ConnectivitySelector</code> with <code>BreadthFirstTraverser</code> to compute blast radius. The causal trace is a specialized visitor that collects <code>PortInvocationEvent</code>s in order.</p>
+
+
+
+<div class="phase-header" id="phase5">
+  <div class="num">P5</div>
+  <div><div class="title">Deploy Screen (Topology + CI)</div>
+  <div class="desc">Visualize deployment targets and CI pipeline status</div></div>
+</div>
+
+<h3>Components</h3>
+<div class="card">
+  <h4>DeployTopology</h4>
+  <p>Visual partition map showing all deployment targets extracted from the graph. The prototype's <code>DEPLOY_PARTITIONS</code> (edge, db, kv, queue, bucket) are derived from node types and <code>deploys</code> edge relationships.</p>
+  <p><strong>Data source:</strong> Walk graph edges with type <code>deploys</code>. Group by target platform (Cloudflare Workers, D1, R2, KV, Queue). Each partition shows resource name, status indicator, endpoint URL.</p>
+  <p><strong>Click interaction:</strong> Clicking a partition item sets <code>selectedEntityId</code> to the corresponding edge/db entity &rarr; inspector shows deployment-specific details.</p>
+</div>
+
+<div class="card">
+  <h4>CIPipeline</h4>
+  <p>CI step visualization with status indicators (passed/running/queued/failed). Steps derived from a <code>BuildManifest</code> or fetched from CI API (GitHub Actions, Cloudflare Pages).</p>
+  <p><strong>Environment switching:</strong> Local (all green) / Staging (mixed) / Production (gated promote). <code>WorkbenchState.deployEnv</code> controls which pipeline view is shown.</p>
+</div>
+
+<div class="card">
+  <h4>DeployModeControls</h4>
+  <p>Three pill buttons: Local, Staging, Production. Plus a "Deploy" primary action button that changes label per environment.</p>
+</div>
+
+<h3>Real integration path</h3>
+<p>MVP: Static topology from <code>GraphManifest</code>. Phase 2: Wire <code>reaktor-io</code> to poll GitHub Actions API and Cloudflare API for live status. Phase 3: Trigger deploys from the workbench.</p>
+
+
+
+<div class="phase-header" id="phase6">
+  <div class="num">P6</div>
+  <div><div class="title">Insights Screen (Analytics + Telemetry)</div>
+  <div class="desc">App analytics, performance metrics, and telemetry dashboard</div></div>
+</div>
+
+<h3>Components</h3>
+<div class="card">
+  <h4>InsightsTimeline</h4>
+  <p>Time-series chart with deploy markers (vertical dashed lines). Shows request volume, error rate, or custom metric. Time range controlled by <code>WorkbenchState.insightsRange</code> (1h/24h/7d/30d). Rendered using Compose <code>Canvas</code> with polyline + filled area.</p>
+</div>
+
+<div class="card">
+  <h4>InsightsHeatmap</h4>
+  <p>Route &times; Metric grid. Rows = routes from graph, columns = metrics (p50, p95, p99, error rate, volume). Cell color = green&rarr;yellow&rarr;red gradient. Click cell &rarr; select route entity + open inspector with performance section.</p>
+  <p><strong>Data source:</strong> Routes from graph navigation edges. Metrics from telemetry API or mock data.</p>
+</div>
+
+<div class="card">
+  <h4>Metric Cards</h4>
+  <p>Top-level summary cards: Active Users, Avg Response Time, Error Rate, Deployment Frequency. Each with sparkline and trend indicator.</p>
+</div>
+
+<h3>Platform data sources</h3>
+<table>
+  <tr><th>Provider</th><th>Data</th><th>Integration</th></tr>
+  <tr><td>Cloudflare Analytics</td><td>Request volume, error rate, latency</td><td><code>reaktor-io</code> REST API</td></tr>
+  <tr><td>Supabase</td><td>Database query metrics</td><td><code>reaktor-io</code> REST API</td></tr>
+  <tr><td>Custom telemetry</td><td>App-specific events via <code>PortInvocationEvent</code></td><td>Graph runtime events</td></tr>
+</table>
+
+
+
+<div class="phase-header" id="phase7">
+  <div class="num">P7</div>
+  <div><div class="title">Inspector System</div>
+  <div class="desc">13 type-aware inspectors, mode-sensitive sections, sparklines</div></div>
+</div>
+
+<h3>Type dispatch</h3>
+<p>The existing <code>NodeDetailPanel</code> in the engine module is a generic inspector. Replace it with a type-dispatching system:</p>
+<pre>
+@Composable
+fun TypeAwareInspector(state: WorkbenchState, graph: Graph) {
+    val entityId = state.selectedEntityId.collectAsState().value ?: return
+    val entity = graph.findEntity(entityId) ?: return
+
+    when (entity) {
+        is RouteNode   -&gt; RouteInspector(entity, state)
+        is ComposeNode -&gt; when {
+            entity.isScreen() -&gt; ScreenInspector(entity, state)
+            entity.isUi()     -&gt; UiInspector(entity, state)
+        }
+        is ContainerNode    -&gt; ContainerInspector(entity, state)
+        is ControllerNode   -&gt; ActionInspector(entity, state) // actions + interactors
+        is ServiceNode      -&gt; ServiceInspector(entity, state)
+        is BasicNode        -&gt; BasicInspector(entity, state)
+        // Edge types dispatched separately
+    }
+}
+</pre>
+
+<h3>Inspector body structure (each type)</h3>
+<p>Every inspector follows the same pattern from the web prototype:</p>
+<ol>
+  <li><strong>Header:</strong> Type pill + entity name + source file link</li>
+  <li><strong>Section tabs:</strong> Scrollable tab bar that tracks which section is in view (IntersectionObserver equivalent via <code>LaunchedEffect</code> + scroll state)</li>
+  <li><strong>Sections:</strong> Overview &rarr; Metrics (sparklines) &rarr; Connections (port list) &rarr; Source &rarr; Actions</li>
+  <li><strong>Footer actions:</strong> "Open in Graph" / "Open in IDE" / "Follow action chain" buttons</li>
+</ol>
+
+<h3>Mode-sensitive sections</h3>
+<p>The inspector adds extra sections based on the current mode:</p>
+<ul>
+  <li><strong>Insights mode:</strong> Performance section with flamegraph placeholder, correlation with deploy markers</li>
+  <li><strong>Deploy mode:</strong> Deployment target section with status, endpoint, cert info</li>
+  <li><strong>DevTools mode:</strong> Recent traces section with timing details</li>
+</ul>
+
+<h3>Sparkline composable</h3>
+<p>Reusable <code>Sparkline</code> composable using Compose <code>Canvas</code>. Replaces the web prototype's SVG sparklines. Auto-sizes to container width (no hardcoded pixel widths).</p>
+
+
+
+<div class="phase-header" id="phase8">
+  <div class="num">P8</div>
+  <div><div class="title">Command Palette &amp; Agent Interface</div>
+  <div class="desc">Cmd+K search + Claude Code-style agent chat</div></div>
+</div>
+
+<h3>Command Palette (Cmd+K)</h3>
+<div class="card">
+  <p>Modal overlay with:</p>
+  <ul>
+    <li><strong>Text input</strong> with autofocus, fuzzy matching</li>
+    <li><strong>Entity search</strong> &mdash; filter by title, type, module, source, tag. Results grouped by type with color badges.</li>
+    <li><strong>Command search</strong> &mdash; search graph commands by operation/target</li>
+    <li><strong>Navigation</strong> &mdash; Arrow keys to move selection, Enter to navigate, Escape to close</li>
+    <li><strong>Action shortcuts</strong> &mdash; ">" prefix for commands ("&gt; deploy staging", "&gt; add node", "&gt; run tests")</li>
+  </ul>
+  <p><strong>Data source:</strong> All entities from <code>Graph</code>, all commands from <code>CommandHistory</code>. Fuzzy match using Levenshtein or prefix matching.</p>
+</div>
+
+<h3>Agent Chat Interface</h3>
+<div class="card">
+  <p>The drawer's "Agent" tab hosts a Claude Code-style chat interface. The agent has access to the full graph via <code>ReaktorGraphDocument</code> and can:</p>
+  <ul>
+    <li><strong>Read the graph:</strong> <code>read_graph()</code> returns the JSON document of all entities, edges, ports</li>
+    <li><strong>Select entities:</strong> <code>select_entity(id)</code> navigates to an entity</li>
+    <li><strong>Navigate modes:</strong> <code>navigate_to(mode, entityId)</code> switches screen + selection</li>
+    <li><strong>Create commands:</strong> <code>push_command(cmd)</code> adds to the command queue</li>
+    <li><strong>Generate code:</strong> <code>generate_code(commands[])</code> sends batch to LLM for CodeDiff</li>
+    <li><strong>Open in IDE:</strong> <code>open_in_ide(filePath, line)</code> launches IntelliJ/VS Code</li>
+    <li><strong>Query telemetry:</strong> <code>query_metrics(entityId, timeRange)</code> fetches performance data</li>
+  </ul>
+  <p>This mirrors the web prototype's "Ask Code Agent" button but with real tool invocations against the graph runtime.</p>
+</div>
+
+
+
+<div class="phase-header" id="phase9">
+  <div class="num">P9</div>
+  <div><div class="title">Command Pattern &amp; LLM Integration</div>
+  <div class="desc">The core differentiator &mdash; typed graph commands &rarr; LLM code generation</div></div>
+</div>
+
+<h3>GraphCommand Hierarchy</h3>
+<pre>
+sealed interface GraphCommand {
+    val id: String
+    val timestamp: Instant
+    val description: String
+
+    data class AddNode(val type: NodeType, val name: String, val parent: String?) : GraphCommand
+    data class RemoveNode(val nodeId: String) : GraphCommand
+    data class ConnectPorts(val consumer: PortRef, val provider: PortRef) : GraphCommand
+    data class DisconnectPorts(val consumer: PortRef, val provider: PortRef) : GraphCommand
+    data class SetProperty(val entityId: String, val key: String, val value: JsonElement) : GraphCommand
+    data class CreateSubgraph(val name: String, val nodes: List&lt;String&gt;) : GraphCommand
+    data class MoveToContainer(val nodeId: String, val containerId: String) : GraphCommand
+    data class SetRoute(val routeId: String, val pattern: String) : GraphCommand
+    data class SetTransport(val edgeId: String, val transport: TransportMode) : GraphCommand
+    data class SetDeployTarget(val nodeId: String, val target: DeployTarget) : GraphCommand
+}
+</pre>
+
+<h3>Command Lifecycle</h3>
+<div class="flow-row">
+  <div class="flow-box"><strong>User Action</strong><div class="sub">Click, drag, edit in UI</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>GraphCommand</strong><div class="sub">Typed, serializable</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>Preview</strong><div class="sub">Show in Queue tab</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>Batch</strong><div class="sub">Group related cmds</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box" style="border-color:var(--ok)"><strong>LLM</strong><div class="sub">Generate CodeDiff</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>Review</strong><div class="sub">CodeDiff tab</div></div>
+  <span class="flow-arrow">&rarr;</span>
+  <div class="flow-box"><strong>Apply</strong><div class="sub">Write to project</div></div>
+</div>
+
+<h3>LLM Integration</h3>
+<div class="card">
+  <h4>Context Assembly</h4>
+  <p>When the user triggers "Apply" on a command batch:</p>
+  <ol>
+    <li>Serialize the command batch as JSON</li>
+    <li>Include <code>ReaktorGraphDocument</code> (full graph context)</li>
+    <li>Include relevant source files (from entity <code>source</code> metadata)</li>
+    <li>Send to Claude API with system prompt describing Reaktor's conventions</li>
+    <li>Receive <code>CodeDiff</code> (unified diff format per file)</li>
+    <li>Show in CodeDiff viewer tab for user review</li>
+    <li>On approval, write diffs to project via file system (Desktop) or send to IDE plugin (Web)</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h4>IDE Bridge</h4>
+  <p><strong>Desktop:</strong> Use <code>ProcessBuilder</code> to invoke <code>idea</code> / <code>code</code> CLI for "Open in IDE". Write files directly to project directory.</p>
+  <p><strong>Web:</strong> Communicate with IDE via:</p>
+  <ul>
+    <li>VS Code: <code>vscode://</code> URI scheme for file open</li>
+    <li>IntelliJ: <code>jetbrains://</code> URI scheme for file open</li>
+    <li>Plugin: HTTP localhost server in IDE plugin for bidirectional communication</li>
+  </ul>
+</div>
+
+<h3>Persistence</h3>
+<p>Commands are persisted to <code>reaktor-db</code> SQLite. Table: <code>graph_commands(id, type, payload_json, timestamp, applied, batch_id)</code>. Enables undo/redo and command history across sessions.</p>
+
+
+
+<div class="phase-header" id="phase10">
+  <div class="num">P10</div>
+  <div><div class="title">Web Target (Compose Multiplatform JS)</div>
+  <div class="desc">Deploy the same workbench to the web via Compose/JS</div></div>
+</div>
+
+<h3>Strategy</h3>
+<p>Compose Multiplatform supports Kotlin/JS with canvas rendering. The <code>reaktor-workbench</code> module is <strong>commonMain</strong>, so it compiles to both JVM and JS without changes. The web target adds:</p>
+
+<div class="card">
+  <h4>reaktorWeb-compose target</h4>
+  <ul>
+    <li><strong>Entry point:</strong> <code>fun main() = CanvasBasedWindow { WorkbenchShell(state) }</code></li>
+    <li><strong>Hosting:</strong> Cloudflare Workers (same as current prototype) or CDN static</li>
+    <li><strong>Service Worker:</strong> Offline support, caching of graph manifest and static assets</li>
+    <li><strong>URL routing:</strong> <code>window.location.hash</code> maps to <code>WorkbenchMode</code> + selected entity</li>
+    <li><strong>IDE bridge:</strong> <code>vscode://</code> and <code>jetbrains://</code> URI schemes for "Open in IDE"</li>
+  </ul>
+</div>
+
+<h3>Platform-specific code (jsMain)</h3>
+<table>
+  <tr><th>Feature</th><th>Desktop (jvmMain)</th><th>Web (jsMain)</th></tr>
+  <tr><td>File system</td><td><code>java.io.File</code></td><td>Not available (IDE plugin bridge)</td></tr>
+  <tr><td>Process launch</td><td><code>ProcessBuilder("idea", ...)</code></td><td><code>window.open("jetbrains://...")</code></td></tr>
+  <tr><td>Clipboard</td><td><code>Toolkit.getDefaultToolkit().systemClipboard</code></td><td><code>navigator.clipboard</code></td></tr>
+  <tr><td>Compose inspection</td><td><code>CompositionData</code> + <code>LocalInspectionTables</code></td><td>Modifier.semantics tag approach</td></tr>
+  <tr><td>Network interception</td><td>OkHttp interceptor</td><td>Fetch wrapper</td></tr>
+  <tr><td>SQLite</td><td>Native SQLite via <code>reaktor-db</code></td><td>IndexedDB or sql.js WASM</td></tr>
+  <tr><td>LLM API</td><td>Direct HTTPS to Claude API</td><td>Proxy via Cloudflare Worker (CORS)</td></tr>
+</table>
+
+<h3>Transition from current web prototype</h3>
+<p>The current React/Vite prototype at <code>reaktor.build</code> will be <strong>replaced</strong> by the Compose/JS build once it reaches feature parity. During transition, both can coexist at different subdomains (e.g., <code>reaktor.build</code> = Compose, <code>legacy.reaktor.build</code> = React).</p>
+
+
+
+<h2 id="mapping"><span class="icon" style="background:rgba(240,169,58,0.15); color:var(--warn)">&#x21C4;</span> 14. Feature Mapping &mdash; Prototype &rarr; Compose</h2>
+
+<p>Every file in the web prototype maps to a specific composable in <code>reaktor-workbench</code>:</p>
+
+<table>
+  <tr><th>Web Prototype File</th><th>Lines</th><th>Compose Target</th><th>Status</th></tr>
+  <tr><td><code>scenario.jsx</code></td><td>~300</td><td><code>WorkbenchState.kt</code></td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>lib.jsx</code></td><td>~200</td><td><code>WorkbenchTheme.kt</code> + <code>WorkbenchTypography.kt</code></td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>app.jsx</code></td><td>~135</td><td><code>WorkbenchShell.kt</code></td><td><span class="badge partial">Extend ReaktorWorkbench</span></td></tr>
+  <tr><td><code>shell.jsx</code></td><td>~600</td><td><code>TopBar.kt</code> + <code>ModeToolbar.kt</code> + <code>LeftSidebar.kt</code> + mode controls</td><td><span class="badge partial">Extend TreePanel</span></td></tr>
+  <tr><td><code>screen-graph.jsx</code></td><td>~350</td><td><code>GraphScreen.kt</code> wrapping <code>ReaktorGraphEditor</code></td><td><span class="badge done">80% done</span></td></tr>
+  <tr><td><code>screen-run.jsx</code></td><td>~245</td><td><code>RunScreen.kt</code> + <code>DeviceFrame.kt</code></td><td><span class="badge partial">Extend PreviewPanel</span></td></tr>
+  <tr><td><code>screen-drilldown.jsx</code></td><td>~300</td><td><code>DevToolsScreen.kt</code> + <code>TraceRail.kt</code></td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>screen-deploy.jsx</code></td><td>~250</td><td><code>DeployScreen.kt</code> + <code>DeployTopology.kt</code> + <code>CIPipeline.kt</code></td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>screen-insights.jsx</code></td><td>~280</td><td><code>InsightsScreen.kt</code> + <code>InsightsTimeline.kt</code> + <code>InsightsHeatmap.kt</code></td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>inspector-common.jsx</code></td><td>~200</td><td><code>InspectorPanel.kt</code> + <code>InspectorState.kt</code></td><td><span class="badge partial">Extend NodeDetailPanel</span></td></tr>
+  <tr><td><code>inspector-bodies.jsx</code></td><td>~900</td><td><code>bodies/*.kt</code> (9 files)</td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>bottom.jsx</code></td><td>~350</td><td><code>drawer/*.kt</code> (7 files)</td><td><span class="badge new">New</span></td></tr>
+  <tr><td><code>data.jsx</code></td><td>~500</td><td>Not needed &mdash; real graph runtime provides all data</td><td><span class="badge done">N/A</span></td></tr>
+  <tr><td><code>styles.css</code></td><td>~1400</td><td><code>WorkbenchTheme.kt</code> (Compose theme tokens)</td><td><span class="badge new">New</span></td></tr>
+</table>
+
+
+
+<h2 id="schedule"><span class="icon" style="background:rgba(54,196,212,0.15); color:var(--cloud)">&#x23F1;</span> 15. Implementation Schedule</h2>
+
+<h3>Dependency Graph</h3>
+<pre>
+P0 (reaktor-flow fixes)
+ &darr;
+P1 (Shell + Navigation) ──────────────────────┐
+ &darr;                                           &darr;
+P2 (Graph Screen) ── P3 (Run Screen)    P7 (Inspector System)
+ &darr;                    &darr;                    &darr;
+P4 (DevTools)        P8 (Cmd Palette)   P9 (Command Pattern + LLM)
+ &darr;                    &darr;
+P5 (Deploy)          P6 (Insights)
+ &darr;
+P10 (Web Target)
+</pre>
+
+<h3>Estimated Effort</h3>
+<table>
+  <tr><th>Phase</th><th>Description</th><th>New Code</th><th>Reuse</th><th>Effort</th><th>Priority</th></tr>
+  <tr><td>P0</td><td>reaktor-flow stabilization</td><td>~200 lines</td><td>High</td><td>3 days</td><td><span class="badge critical">Blocker</span></td></tr>
+  <tr><td>P1</td><td>Shell + Navigation</td><td>~800 lines</td><td>High (ReaktorWorkbench)</td><td>5 days</td><td><span class="badge critical">Critical</span></td></tr>
+  <tr><td>P2</td><td>Graph Screen</td><td>~300 lines</td><td>Very High (reaktor-flow)</td><td>3 days</td><td><span class="badge critical">Critical</span></td></tr>
+  <tr><td>P7</td><td>Inspector System</td><td>~1200 lines</td><td>Medium (NodeDetailPanel)</td><td>5 days</td><td><span class="badge critical">Critical</span></td></tr>
+  <tr><td>P3</td><td>Run Screen</td><td>~600 lines</td><td>High (PreviewPanel + SemanticsInspector)</td><td>4 days</td><td>High</td></tr>
+  <tr><td>P8</td><td>Command Palette</td><td>~400 lines</td><td>Low</td><td>3 days</td><td>High</td></tr>
+  <tr><td>P4</td><td>DevTools Screen</td><td>~500 lines</td><td>Medium (Visitor/Traverser)</td><td>4 days</td><td>Medium</td></tr>
+  <tr><td>P5</td><td>Deploy Screen</td><td>~500 lines</td><td>Low</td><td>4 days</td><td>Medium</td></tr>
+  <tr><td>P6</td><td>Insights Screen</td><td>~500 lines</td><td>Low</td><td>4 days</td><td>Medium</td></tr>
+  <tr><td>P9</td><td>Command Pattern + LLM</td><td>~800 lines</td><td>Medium (GraphDocument)</td><td>6 days</td><td>High</td></tr>
+  <tr><td>P10</td><td>Web Target</td><td>~300 lines (platform)</td><td>Very High (all commonMain)</td><td>5 days</td><td>Medium</td></tr>
+</table>
+
+<h3>Timeline</h3>
+<div class="timeline">
+  <div class="item done">
+    <div class="t-label">Completed</div>
+    <div class="t-desc"><strong>reaktor-graph-port</strong>, <strong>reaktor-graph</strong>, <strong>reaktor-flow</strong>, <strong>compose-flow</strong>, engine workbench, semantics inspector</div>
+  </div>
+  <div class="item">
+    <div class="t-label">Week 1-2</div>
+    <div class="t-desc"><strong>P0</strong> reaktor-flow stabilization + <strong>P1</strong> Shell &amp; Navigation + <strong>P2</strong> Graph Screen wiring</div>
+  </div>
+  <div class="item">
+    <div class="t-label">Week 2-3</div>
+    <div class="t-desc"><strong>P7</strong> Inspector System (13 type-aware inspectors) + <strong>P3</strong> Run Screen with device frame</div>
+  </div>
+  <div class="item">
+    <div class="t-label">Week 3-4</div>
+    <div class="t-desc"><strong>P8</strong> Command Palette + <strong>P4</strong> DevTools Screen (causal trace)</div>
+  </div>
+  <div class="item">
+    <div class="t-label">Week 4-5</div>
+    <div class="t-desc"><strong>P5</strong> Deploy Screen + <strong>P6</strong> Insights Screen</div>
+  </div>
+  <div class="item">
+    <div class="t-label">Week 5-7</div>
+    <div class="t-desc"><strong>P9</strong> Command Pattern + LLM Integration (the core differentiator)</div>
+  </div>
+  <div class="item">
+    <div class="t-label">Week 7-8</div>
+    <div class="t-desc"><strong>P10</strong> Web Target &mdash; compile to JS, deploy to Cloudflare Workers</div>
+  </div>
+</div>
+
+<h3>Key Risk: Compose/JS Maturity</h3>
+<div class="card" style="border-left: 3px solid var(--warn);">
+  <p><strong>Risk:</strong> Compose Multiplatform for Web (Kotlin/JS + canvas) is less mature than Desktop. Some composables may need platform-specific adjustments.</p>
+  <p><strong>Mitigation:</strong> Build everything in <code>commonMain</code>. Keep <code>expect</code>/<code>actual</code> declarations minimal (file I/O, process launch, clipboard). Test on Web early in P1 to surface issues before heavy development.</p>
+  <p><strong>Fallback:</strong> If Compose/JS canvas performance is insufficient for the full workbench, the current React prototype can serve as the web target while the Desktop app uses Compose. The agent/command/graph model remains shared via <code>reaktor-graph</code> &rarr; JSON &rarr; web frontend.</p>
+</div>
+
+<h3>Key Advantage: Real Data</h3>
+<div class="card" style="border-left: 3px solid var(--ok);">
+  <p>The biggest upgrade from the web prototype is that <strong>every data point is live</strong>. The prototype uses 38 hardcoded entities and 39 hardcoded edges. The Compose workbench reads the real <code>Graph</code> runtime:</p>
+  <ul>
+    <li><strong>Entities &amp; edges</strong> from live <code>Graph</code> instance (not mock data)</li>
+    <li><strong>Port invocation events</strong> from running app (not hardcoded traces)</li>
+    <li><strong>Lifecycle state</strong> from real node lifecycle (not fake status badges)</li>
+    <li><strong>Navigation</strong> from actual backstack (not display-only arrows)</li>
+    <li><strong>autoWire results</strong> from real DI resolution (not hardcoded connections)</li>
+  </ul>
+  <p>The web prototype was a specification. The Compose workbench is the real thing.</p>
+</div>
+
+
+<div style="margin-top:64px; padding-top:24px; border-top:1px solid #1a2031; color:var(--t-4); font-size:12px;">
+  Reaktor Desktop Porting Plan &mdash; Generated 2026-05-16 &mdash; Source: reaktor-graph, reaktor-flow, engine module scan + web prototype analysis
+</div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

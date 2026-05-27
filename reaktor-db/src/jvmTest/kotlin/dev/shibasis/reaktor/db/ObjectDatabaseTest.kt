@@ -1,12 +1,26 @@
 package dev.shibasis.reaktor.db
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import dev.shibasis.reaktor.db.core.*
-import kotlinx.coroutines.flow.first
+import dev.shibasis.reaktor.db.core.ExpireAfter
+import dev.shibasis.reaktor.db.core.KeepForever
+import dev.shibasis.reaktor.db.core.LruObjectCache
+import dev.shibasis.reaktor.db.core.SqliteObjectDatabase
+import dev.shibasis.reaktor.db.core.TimestampProvider
+import dev.shibasis.reaktor.io.serialization.TextSerializer
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlin.test.*
+import kotlin.reflect.KClass
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
 @Serializable
@@ -15,28 +29,143 @@ private data class TestUser(val name: String, val age: Int)
 @Serializable
 private data class TestConfig(val debug: Boolean, val version: Int)
 
-class ObjectDatabaseTest {
+private class FixedTimestampProvider(
+    var now: Long = 1_000L,
+) : TimestampProvider {
+    override fun getTimestamp(): Long = now
+}
 
-    private fun createDb(): SqliteObjectDatabase {
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        return SqliteObjectDatabase(driver, "test")
+private class MapObjectDatabase : ObjectDatabase(TextSerializer()) {
+    private val rows = mutableMapOf<ObjectAddress, StoredObject<*>>()
+    private var now = 1_000L
+
+    fun <T : Any> mutateRaw(
+        storeName: String,
+        key: String,
+        value: T,
+    ) {
+        val address = ObjectAddress(storeName, key)
+        val previous = rows[address]
+        rows[address] = StoredObject(
+            key = key,
+            value = value,
+            storeName = storeName,
+            createdAt = previous?.createdAt ?: ++now,
+            updatedAt = ++now,
+        )
     }
 
-    private fun now() = System.currentTimeMillis()
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun <T : Any> putRaw(
+        storeName: String,
+        key: String,
+        value: T,
+        serializer: KSerializer<T>,
+    ): StoredObject<T> {
+        mutateRaw(storeName, key, value)
+        return getRaw(storeName, key, value::class as KClass<T>, serializer)!!
+    }
 
-    // ── Basic CRUD ──
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun <T : Any> getRaw(
+        storeName: String,
+        key: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+    ): StoredObject<T>? {
+        return rows[ObjectAddress(storeName, key)] as? StoredObject<T>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun <T : Any> getAllRaw(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+    ): List<StoredObject<T>> {
+        return rows.values
+            .filter { it.storeName == storeName && type.isInstance(it.value) }
+            .map { it as StoredObject<T> }
+    }
+
+    override suspend fun deleteRaw(storeName: String, key: String) {
+        rows.remove(ObjectAddress(storeName, key))
+    }
+
+    override suspend fun clearRaw(storeName: String) {
+        rows.keys
+            .filter { it.storeName == storeName }
+            .forEach { rows.remove(it) }
+    }
+
+    override suspend fun clearRaw() {
+        rows.clear()
+    }
+}
+
+class ObjectDatabaseTest {
+
+    private fun createDb(
+        timestampProvider: TimestampProvider = FixedTimestampProvider(),
+    ): SqliteObjectDatabase {
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        return SqliteObjectDatabase(driver, "test", timestampProvider = timestampProvider)
+    }
 
     @Test
-    fun `put and get round-trips a value`() = runTest {
+    fun `store is a singleton per name and state is a singleton per key and type`() {
         val db = createDb()
-        val store = db.store("users")
+        val users = db.store("users")
 
-        store.put("alice", TestUser("Alice", 30))
-        val result = store.get<TestUser>("alice")
+        assertSame(users, db.store("users"))
+        assertSame(users.state<TestUser>("me"), users.state<TestUser>("me"))
+    }
+
+    @Test
+    fun `same store key cannot be opened as incompatible types`() {
+        val db = createDb()
+        val users = db.store("users")
+
+        users.state<TestUser>("me")
+
+        assertFailsWith<IllegalArgumentException> {
+            users.state<TestConfig>("me")
+        }
+    }
+
+    @Test
+    fun `state set load update and delete keep StateFlow consistent`() = runTest {
+        val db = createDb()
+        val state = db.store("users").state<TestUser>("alice")
+
+        assertNull(state.value)
+
+        state.set(TestUser("Alice", 30))
+        assertEquals(TestUser("Alice", 30), state.value)
+        assertEquals(TestUser("Alice", 30), state.load()?.value)
+
+        state.update { it.copy(age = it.age + 1) }
+        assertEquals(31, state.value?.age)
+
+        state.delete()
+        assertNull(state.value)
+
+        state.set(TestUser("Alice", 32))
+        assertEquals(32, state.value?.age)
+    }
+
+    @Test
+    fun `store convenience methods delegate through object state`() = runTest {
+        val db = createDb()
+        val users = db.store("users")
+
+        users.put("alice", TestUser("Alice", 30))
+        users.update<TestUser>("alice") { it.copy(age = 31) }
+
+        val result = users.get<TestUser>("alice")
 
         assertNotNull(result)
         assertEquals("Alice", result.value.name)
-        assertEquals(30, result.value.age)
+        assertEquals(31, result.value.age)
         assertEquals("alice", result.key)
         assertEquals("users", result.storeName)
     }
@@ -44,59 +173,23 @@ class ObjectDatabaseTest {
     @Test
     fun `get returns null for missing key`() = runTest {
         val db = createDb()
-        val store = db.store("users")
-        assertNull(store.get<TestUser>("nobody"))
-    }
-
-    @Test
-    fun `put overwrites existing value`() = runTest {
-        val db = createDb()
-        val store = db.store("users")
-
-        store.put("alice", TestUser("Alice", 30))
-        store.put("alice", TestUser("Alice", 31))
-
-        assertEquals(31, store.get<TestUser>("alice")?.value?.age)
-    }
-
-    @Test
-    fun `delete removes a key`() = runTest {
-        val db = createDb()
-        val store = db.store("users")
-
-        store.put("alice", TestUser("Alice", 30))
-        store.delete("alice")
-        assertNull(store.get<TestUser>("alice"))
-    }
-
-    @Test
-    fun `clear removes all keys in a store`() = runTest {
-        val db = createDb()
-        val store = db.store("users")
-
-        store.put("alice", TestUser("Alice", 30))
-        store.put("bob", TestUser("Bob", 25))
-        store.clear()
-
-        assertNull(store.get<TestUser>("alice"))
-        assertNull(store.get<TestUser>("bob"))
+        assertNull(db.store("users").get<TestUser>("nobody"))
     }
 
     @Test
     fun `getAll returns all entries in a store`() = runTest {
         val db = createDb()
-        val store = db.store("users")
+        val users = db.store("users")
 
-        store.put("alice", TestUser("Alice", 30))
-        store.put("bob", TestUser("Bob", 25))
+        users.put("alice", TestUser("Alice", 30))
+        users.put("bob", TestUser("Bob", 25))
 
-        val all = store.getAll<TestUser>()
+        val all = users.getAll<TestUser>()
+
         assertEquals(2, all.size)
         assertTrue(all.any { it.value.name == "Alice" })
         assertTrue(all.any { it.value.name == "Bob" })
     }
-
-    // ── Store isolation ──
 
     @Test
     fun `stores are isolated from each other`() = runTest {
@@ -119,6 +212,7 @@ class ObjectDatabaseTest {
 
         users.put("a", TestUser("A", 1))
         config.put("b", TestConfig(debug = false, version = 2))
+
         users.clear()
 
         assertNull(users.get<TestUser>("a"))
@@ -126,248 +220,133 @@ class ObjectDatabaseTest {
     }
 
     @Test
-    fun `store is a singleton per name`() {
+    fun `database clear wipes all stores and live states`() = runTest {
         val db = createDb()
-        assertSame(db.store("x"), db.store("x"))
-    }
+        val a = db.store("a").state<String>("x")
+        val b = db.store("b").state<String>("y")
 
-    // ── L1 memory cache ──
+        a.set("v1")
+        b.set("v2")
 
-    @Test
-    fun `cache serves reads without hitting db`() = runTest {
-        val db = createDb()
-        val store = db.store("users")
+        db.clear()
 
-        store.put("alice", TestUser("Alice", 30))
-
-        val r1 = store.get<TestUser>("alice")
-        val r2 = store.get<TestUser>("alice")
-        assertEquals(r1?.value, r2?.value)
+        assertNull(a.value)
+        assertNull(b.value)
+        assertNull(a.refresh())
+        assertNull(b.refresh())
     }
 
     @Test
-    fun `delete invalidates L1 cache`() = runTest {
+    fun `LruObjectCache evicts memory only`() = runTest {
         val db = createDb()
-        val store = db.store("users")
-
-        store.put("alice", TestUser("Alice", 30))
-        store.get<TestUser>("alice")
-        store.delete("alice")
-        assertNull(store.get<TestUser>("alice"))
-    }
-
-    @Test
-    fun `clear invalidates L1 cache`() = runTest {
-        val db = createDb()
-        val store = db.store("users")
-
-        store.put("alice", TestUser("Alice", 30))
-        store.get<TestUser>("alice")
-        store.clear()
-        assertNull(store.get<TestUser>("alice"))
-    }
-
-    @Test
-    fun `NoEviction policy always allows reads`() = runTest {
-        val db = createDb()
-        val store = db.store("nocache").apply { eviction = NoEviction }
-
-        store.put("alice", TestUser("Alice", 30))
-        val result = store.get<TestUser>("alice")
-        assertNotNull(result)
-        assertEquals("Alice", result.value.name)
-    }
-
-    // ── L2 SQLite eviction (TTL) ──
-
-    @Test
-    fun `stale SQLite data is evicted on read`() = runTest {
-        val db = createDb()
-        val store = db.store("users").apply {
-            eviction = LruEviction(ttl = 100.milliseconds)
+        val users = db.store("users") {
+            cache = LruObjectCache(maxEntries = 1)
         }
 
-        store.put("alice", TestUser("Alice", 30))
-        store.memory.clear()
-        Thread.sleep(150)
+        users.put("alice", TestUser("Alice", 30))
+        users.put("bob", TestUser("Bob", 25))
 
-        assertNull(store.get<TestUser>("alice"))
+        assertNull(users.cache.get(ObjectAddress("users", "alice"), TestUser::class))
+        assertNotNull(users.cache.get(ObjectAddress("users", "bob"), TestUser::class))
+        assertEquals("Alice", users.state<TestUser>("alice").refresh()?.value?.name)
     }
 
     @Test
-    fun `NoEviction always returns true - no SQLite eviction`() = runTest {
-        val db = createDb()
-        val store = db.store("auth").apply { eviction = NoEviction }
-
-        store.put("token", "abc123")
-        val result = store.get<String>("token")
-        assertNotNull(result)
-    }
-
-    // ── MemoryCache unit tests ──
-
-    @Test
-    fun `MemoryCache evicts oldest entry when capacity exceeded`() {
-        val t = now()
-        val cache = MemoryCache(capacity = 2)
+    fun `cache access promotes entry`() {
+        val t = 1_000L
+        val cache = LruObjectCache(maxEntries = 2)
 
         cache.put(StoredObject("a", "va", "s", t, t))
         cache.put(StoredObject("b", "vb", "s", t, t))
+
+        cache.get(ObjectAddress("s", "a"), String::class)
         cache.put(StoredObject("c", "vc", "s", t, t))
 
-        assertNull(cache.get<String>("a"))
-        assertNotNull(cache.get<String>("b"))
-        assertNotNull(cache.get<String>("c"))
+        assertNotNull(cache.get(ObjectAddress("s", "a"), String::class))
+        assertNull(cache.get(ObjectAddress("s", "b"), String::class))
+        assertNotNull(cache.get(ObjectAddress("s", "c"), String::class))
     }
 
     @Test
-    fun `MemoryCache access promotes entry`() {
-        val t = now()
-        val cache = MemoryCache(capacity = 2)
-
-        cache.put(StoredObject("a", "va", "s", t, t))
-        cache.put(StoredObject("b", "vb", "s", t, t))
-
-        cache.get<String>("a") // promote "a"
-        cache.put(StoredObject("c", "vc", "s", t, t)) // evicts "b"
-
-        assertNotNull(cache.get<String>("a"))
-        assertNull(cache.get<String>("b"))
-        assertNotNull(cache.get<String>("c"))
-    }
-
-    @Test
-    fun `MemoryCache remove and clear work`() {
-        val t = now()
-        val cache = MemoryCache()
-        cache.put(StoredObject("a", "v", "s", t, t))
-        cache.put(StoredObject("b", "v", "s", t, t))
-
-        cache.remove("a")
-        assertNull(cache.get<String>("a"))
-        assertNotNull(cache.get<String>("b"))
-
-        cache.clear()
-        assertNull(cache.get<String>("b"))
-    }
-
-    // ── LruEviction unit tests ──
-
-    @Test
-    fun `LruEviction isValid checks TTL`() {
-        val t = now()
-        val eviction = LruEviction(ttl = 100.milliseconds)
-
-        assertTrue(eviction.isValid(StoredObject("k", "v", "s", t, t)))
-        assertFalse(eviction.isValid(StoredObject("k", "v", "s", t - 200, t - 200)))
-    }
-
-    @Test
-    fun `LruEviction evicts when maxEntries exceeded`() {
-        val eviction = LruEviction(maxEntries = 2)
-
-        assertTrue(eviction.onWrite("a", 10).isEmpty())
-        assertTrue(eviction.onWrite("b", 10).isEmpty())
-        val evicted = eviction.onWrite("c", 10)
-
-        assertEquals(listOf("a"), evicted)
-    }
-
-    @Test
-    fun `LruEviction evicts when maxBytes exceeded`() {
-        val eviction = LruEviction(maxBytes = 100)
-
-        assertTrue(eviction.onWrite("a", 40).isEmpty())
-        assertTrue(eviction.onWrite("b", 40).isEmpty())
-        val evicted = eviction.onWrite("c", 40)
-
-        assertEquals(listOf("a"), evicted)
-    }
-
-    @Test
-    fun `LruEviction onDelete frees tracked bytes`() {
-        val eviction = LruEviction(maxBytes = 100)
-
-        eviction.onWrite("a", 60)
-        eviction.onWrite("b", 30)
-        eviction.onDelete("a")
-        // totalBytes now 30, adding 60 should fit
-        val evicted = eviction.onWrite("c", 60)
-        assertTrue(evicted.isEmpty())
-    }
-
-    // ── ObjectFlow ──
-
-    @Test
-    fun `flow reflects puts`() = runTest {
+    fun `KeepForever always allows reads`() = runTest {
         val db = createDb()
-        val store = db.store("users")
+        val store = db.store("auth") {
+            retention = KeepForever
+        }
 
-        val flow = store.flow<TestUser>("alice")
-        assertNull(flow.value)
+        store.put("token", "abc123")
 
-        store.put("alice", TestUser("Alice", 30))
-        assertEquals("Alice", flow.value?.name)
-
-        store.put("alice", TestUser("Alice", 31))
-        assertEquals(31, flow.value?.age)
+        assertEquals("abc123", store.get<String>("token")?.value)
     }
 
     @Test
-    fun `flow StateFlow emits updates`() = runTest {
-        val db = createDb()
-        val store = db.store("users")
-        val flow = store.flow<TestUser>("alice")
+    fun `ExpireAfter deletes stale persisted data on read`() = runTest {
+        val clock = FixedTimestampProvider(now = 1_000L)
+        val db = createDb(clock)
+        val sessions = db.store("sessions") {
+            retention = ExpireAfter(100.milliseconds) { clock.now }
+        }
+        val token = sessions.state<String>("token")
 
-        store.put("alice", TestUser("Alice", 30))
+        token.set("abc123")
+        clock.now = 1_200L
 
-        val emitted = flow.flow.first { it != null }
-        assertEquals("Alice", emitted?.value?.name)
+        assertNull(token.refresh())
+        assertNull(token.value)
+        assertNull(token.refresh())
     }
 
     @Test
-    fun `flow load populates from database`() = runTest {
+    fun `delete does not detach live state`() = runTest {
         val db = createDb()
-        val store = db.store("users")
+        val users = db.store("users")
+        val state = users.state<TestUser>("alice")
 
-        store.put("alice", TestUser("Alice", 30))
-        store.memory.clear()
+        state.set(TestUser("Alice", 30))
+        users.delete("alice")
+        assertNull(state.value)
 
-        val flow = store.flow<TestUser>("alice")
-        assertNull(flow.value)
-
-        flow.load()
-        assertEquals("Alice", flow.value?.name)
+        users.put("alice", TestUser("Alice", 31))
+        assertEquals(31, state.value?.age)
+        assertSame(state, users.state<TestUser>("alice"))
     }
 
     @Test
-    fun `flow is singleton per key`() {
-        val db = createDb()
-        val store = db.store("users")
-        assertSame(store.flow<TestUser>("alice"), store.flow<TestUser>("alice"))
+    fun `invalidate refreshes live state from backend`() = runTest {
+        val db = MapObjectDatabase()
+        val users = db.store("users")
+        val state = users.state<TestUser>("alice")
+
+        state.set(TestUser("Alice", 30))
+        db.mutateRaw("users", "alice", TestUser("Alicia", 31))
+
+        assertEquals("Alice", state.value?.name)
+
+        db.invalidate("users", "alice")
+
+        assertEquals("Alicia", state.value?.name)
+        assertEquals(31, state.value?.age)
     }
 
-    // ── Events ──
-
     @Test
-    fun `events are emitted after successful operations`() = kotlinx.coroutines.runBlocking {
+    fun `events are emitted after successful operations`() = runTest {
         val db = createDb()
-        val store = db.store("users")
+        val users = db.store("users")
+        val state = users.state<TestUser>("alice")
         val events = mutableListOf<DatabaseEvent>()
 
         val job = launch {
             db.events.collect { events.add(it) }
         }
-        kotlinx.coroutines.yield()
+        yield()
 
-        store.put("alice", TestUser("Alice", 30))
-        store.memory.clear()
-        store.get<TestUser>("alice")
-        store.delete("alice")
-        store.clear()
-        kotlinx.coroutines.yield()
+        state.set(TestUser("Alice", 30))
+        state.refresh()
+        state.delete()
+        users.clear()
+        yield()
 
-        assertTrue(events.any { it is DatabaseEvent.Put }, "Expected Put event")
+        assertTrue(events.any { it is DatabaseEvent.Put<*> && it.stored.value == TestUser("Alice", 30) })
         assertTrue(events.any { it is DatabaseEvent.Get }, "Expected Get event")
         assertTrue(events.any { it is DatabaseEvent.Delete }, "Expected Delete event")
         assertTrue(events.any { it is DatabaseEvent.Clear }, "Expected Clear event")
@@ -375,34 +354,18 @@ class ObjectDatabaseTest {
         job.cancel()
     }
 
-    // ── String values ──
-
     @Test
-    fun `stores and retrieves simple string values`() = runTest {
-        val db = createDb()
-        val store = db.store("kv")
+    fun `sqlite upsert returns preserved createdAt and latest updatedAt`() = runTest {
+        val clock = FixedTimestampProvider(now = 1_000L)
+        val db = createDb(clock)
+        val user = db.store("users").state<TestUser>("alice")
 
-        store.put("token", "abc123")
-        assertEquals("abc123", store.get<String>("token")?.value)
-    }
+        val first = user.set(TestUser("Alice", 30))
+        clock.now = 2_000L
+        val second = user.set(TestUser("Alice", 31))
 
-    // ── Database-level clear ──
-
-    @Test
-    fun `database clear wipes all stores`() = runTest {
-        val db = createDb()
-        val s1 = db.store("a")
-        val s2 = db.store("b")
-
-        s1.put("x", "v1")
-        s2.put("y", "v2")
-
-        s1.memory.clear()
-        s2.memory.clear()
-
-        db.clear()
-
-        assertNull(s1.get<String>("x"))
-        assertNull(s2.get<String>("y"))
+        assertEquals(first.createdAt, second.createdAt)
+        assertEquals(2_000L, second.updatedAt)
+        assertFalse(second.createdAt == second.updatedAt)
     }
 }

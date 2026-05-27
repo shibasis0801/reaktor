@@ -28,4 +28,8 @@ var hidden: Boolean?
 var zIndex: Double?
 var sourcePosition: String?
 var targetPosition: String?
+var draggable: Boolean?
+var selectable: Boolean?
+var connectable: Boolean?
+var deletable: Boolean?
 }

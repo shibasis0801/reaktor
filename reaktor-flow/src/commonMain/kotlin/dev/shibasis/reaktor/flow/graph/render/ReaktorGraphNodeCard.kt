@@ -18,6 +18,7 @@ import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
 import dev.shibasis.reaktor.flow.graph.style.spOf
 import kotlin.math.max
+import kotlin.math.min
 
 @Composable
 internal fun BoxScope.ReaktorGraphNodeCard(
@@ -25,7 +26,10 @@ internal fun BoxScope.ReaktorGraphNodeCard(
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     val data = props.data as? ReaktorGraphNodeData ?: return
-    val rowCount = max(1, max(data.consumerPorts.size, data.providerPorts.size))
+    val previewRows = style.port.previewRows.coerceAtLeast(1)
+    val visibleConsumerPorts = data.consumerPorts.take(previewRows)
+    val visibleProviderPorts = data.providerPorts.take(previewRows)
+    val rowCount = min(max(1, max(data.consumerPorts.size, data.providerPorts.size)), previewRows)
     val density = LocalDensity.current
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -58,8 +62,8 @@ internal fun BoxScope.ReaktorGraphNodeCard(
                 }
             } else {
                 ReaktorNodePorts(
-                    consumerPorts = data.consumerPorts,
-                    providerPorts = data.providerPorts,
+                    consumerPorts = visibleConsumerPorts,
+                    providerPorts = visibleProviderPorts,
                     style = style,
                 )
             }

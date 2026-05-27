@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Competitive Landscape · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Critique</span><span>Claude</span></div>
+      <p class="eyebrow">Critique · Claude</p>
+      <h1>Competitive Landscape</h1>
+      <p class="subtitle">Positioning against visual builders, node editors, and AI-native tooling.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use when clarifying differentiation and market pressure.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/reaktor-competitive-analysis</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a aria-current="page" href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#actual">&amp;#x2694; 1. Direct Competitors &amp;mdash; Visual App Builders</a><a href="#spiritual">&amp;#x25C8; 2. Spiritual Competitors &amp;mdash; Node-Based Editors</a><a href="#upcoming">&amp;#x26A1; 3. Emerging Competitors &amp;mdash; AI-Native Tools</a><a href="#matrix">&amp;#x25A6; 4. Feature Matrix &amp;mdash; Side-by-Side</a><a href="#gaps">&amp;#x2605; 5. Market Gaps &amp;mdash; What Nobody Does</a><a href="#positioning">&amp;#x25CE; 6. Reaktor's Positioning &amp;mdash; The Unoccupied Space</a><a href="#strategy">&amp;#x2691; 7. Strategic Implications</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<div class="doc-prose-block"><p class="subtitle">Who we're up against, where they fall short, and where Reaktor fills the void &mdash; May 2026</p>
+
+
+
+
+
+
+
+
+
+<h2 id="actual"><span class="icon" style="background:rgba(239,91,91,0.15); color:var(--error)">&#x2694;</span> 1. Direct Competitors &mdash; Visual App Builders</h2>
+
+<div class="comp-grid">
+
+  
+  <div class="comp-card">
+    <div class="name">FlutterFlow</div>
+    <div class="tagline">Visual Flutter app builder &mdash; $39-80/mo per seat</div>
+    <div class="props">
+      <span class="badge green">Visual UI</span>
+      <span class="badge yellow">Firebase/Supabase</span>
+      <span class="badge blue">Code Export</span>
+      <span class="badge purple">Flutter/Dart</span>
+    </div>
+    <p style="font-size:13px">Drag-and-drop Flutter UI builder. Generates clean Dart code. 50 AI "prompt-to-page" requests/month on Basic plan. Deploys to iOS/Android/Web.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Scope</span><span>Frontend UI + basic backend</span></div>
+    <div class="row"><span class="label">Backend</span><span>Firebase or Supabase (external)</span></div>
+    <div class="row"><span class="label">Architecture model</span><span>Widget tree, no graph</span></div>
+    <div class="row"><span class="label">IDE integration</span><span>Code export only</span></div>
+    <div class="row"><span class="label">Deploy</span><span>App stores, web</span></div>
+    <div class="row"><span class="label">Analytics</span><span>None built-in</span></div>
+    <div class="strength">+ Mature, large community, clean code output, regional pricing</div>
+    <div class="weakness">- Frontend-only thinking. No business logic graph. No backend visibility. No DevOps. No telemetry. Can't follow a button click to the API to the database.</div>
+  </div>
+
+  
+  <div class="comp-card">
+    <div class="name">Emergent</div>
+    <div class="tagline">AI multi-agent fullstack app generator &mdash; emergent.sh</div>
+    <div class="props">
+      <span class="badge green">AI-first</span>
+      <span class="badge yellow">Full Stack</span>
+      <span class="badge blue">Multi-agent</span>
+      <span class="badge cyan">Deploy included</span>
+    </div>
+    <p style="font-size:13px">Describe an app in natural language, image, or voice. Multi-agent system (architecture, coding, testing, deployment agents) generates React/Next.js + Node.js/FastAPI + MongoDB. Ships in ~10 minutes. Self-diagnoses and fixes.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Scope</span><span>Full stack generation</span></div>
+    <div class="row"><span class="label">Backend</span><span>Generated (Node.js/FastAPI)</span></div>
+    <div class="row"><span class="label">Architecture model</span><span>None visible &mdash; black box</span></div>
+    <div class="row"><span class="label">IDE integration</span><span>None &mdash; built-in editor</span></div>
+    <div class="row"><span class="label">Deploy</span><span>Managed hosting</span></div>
+    <div class="row"><span class="label">Analytics</span><span>None</span></div>
+    <div class="strength">+ Fastest 0-to-deployed. Multi-agent is genuinely powerful. Handles iOS/Android.</div>
+    <div class="weakness">- Complete black box. No architectural visibility. No way to understand or trace the generated system. Opinionated stack (React/Node/Mongo). No iteration on internals &mdash; regenerate, don't refine.</div>
+  </div>
+
+  
+  <div class="comp-card">
+    <div class="name">Rork</div>
+    <div class="tagline">AI mobile app builder &mdash; Free to $200/mo</div>
+    <div class="props">
+      <span class="badge green">AI-first</span>
+      <span class="badge purple">React Native</span>
+      <span class="badge yellow">Rork Max: Swift</span>
+      <span class="badge cyan">$15M seed</span>
+    </div>
+    <p style="font-size:13px">Prompt &rarr; native mobile app. Original product uses React Native (Expo). Rork Max (Feb 2026) generates native Swift for Apple platforms including Watch, TV, Vision Pro. Acquired Paperline. $15M seed from Left Lane Capital.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Scope</span><span>Mobile frontend only</span></div>
+    <div class="row"><span class="label">Backend</span><span>None &mdash; external APIs</span></div>
+    <div class="row"><span class="label">Architecture model</span><span>None visible</span></div>
+    <div class="row"><span class="label">IDE integration</span><span>None</span></div>
+    <div class="row"><span class="label">Deploy</span><span>App stores</span></div>
+    <div class="row"><span class="label">Analytics</span><span>None</span></div>
+    <div class="strength">+ Rork Max taps native Apple APIs (AR, Metal, HealthKit, Widgets) that no other AI builder can reach. Fast iteration with iPhone companion.</div>
+    <div class="weakness">- Mobile-only. No backend. No architecture model. No way to manage complexity beyond a single screen. Generated code is a one-shot &mdash; limited structured iteration.</div>
+  </div>
+
+</div>
+
+
+
+<h2 id="spiritual"><span class="icon" style="background:rgba(160,117,240,0.15); color:var(--container)">&#x25C8;</span> 2. Spiritual Competitors &mdash; Node-Based Editors</h2>
+
+<div class="comp-grid">
+
+  
+  <div class="comp-card">
+    <div class="name">Unreal Engine Blueprints</div>
+    <div class="tagline">Visual scripting for game development &mdash; Free (5% royalty)</div>
+    <div class="props">
+      <span class="badge green">Node Graph</span>
+      <span class="badge purple">Full Runtime</span>
+      <span class="badge blue">C++ Nativize</span>
+      <span class="badge yellow">Industry Standard</span>
+    </div>
+    <p style="font-size:13px">The gold standard for visual programming. Node-based graphs represent gameplay logic, AI behavior, UI interactions, physics. Bidirectional with C++ &mdash; can nativize Blueprints to C++ for production performance. Event Graph + Components + Viewport.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Graph model</span><span>Execution flow graph (events &rarr; functions &rarr; variables)</span></div>
+    <div class="row"><span class="label">Scope</span><span>Game logic, UI, AI, physics &mdash; everything in-engine</span></div>
+    <div class="row"><span class="label">Bidirectional</span><span>Yes &mdash; Blueprint &harr; C++</span></div>
+    <div class="row"><span class="label">Live preview</span><span>Yes &mdash; Play-in-Editor</span></div>
+    <div class="strength">+ Proves that professional developers will use visual graphs when they're powerful enough. The node-to-code bridge (nativize) is exactly what Reaktor needs. Decades of UX refinement.</div>
+    <div class="weakness">- Game-only domain. Execution flow model (imperative), not architectural model (declarative). No backend/API/database awareness. No deployment pipeline. No analytics.</div>
+  </div>
+
+  
+  <div class="comp-card">
+    <div class="name">n8n</div>
+    <div class="tagline">AI workflow automation &mdash; $2.5B valuation, $240M raised</div>
+    <div class="props">
+      <span class="badge green">Node Graph</span>
+      <span class="badge cyan">500+ Integrations</span>
+      <span class="badge blue">Self-hosted</span>
+      <span class="badge yellow">AI Agents</span>
+    </div>
+    <p style="font-size:13px">Visual workflow builder with 500+ integrations. 70+ AI nodes with LangChain. MCP client/server nodes expose workflows as tools to external agents. 220 executions/sec. Enterprise customers include Microsoft, KPMG. $40M ARR with 10x YoY growth.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Graph model</span><span>Data flow graph (trigger &rarr; transform &rarr; action)</span></div>
+    <div class="row"><span class="label">Scope</span><span>Backend automation &amp; integration</span></div>
+    <div class="row"><span class="label">Bidirectional</span><span>No &mdash; visual only, JS/Python inline</span></div>
+    <div class="row"><span class="label">Live preview</span><span>Node-by-node execution</span></div>
+    <div class="strength">+ Proves massive market for visual backend graphs. MCP integration is forward-thinking. Self-hosted option. AI agent orchestration built-in.</div>
+    <div class="weakness">- Automation-only &mdash; no UI, no app architecture, no deployment of app code. The graph is a pipeline, not an application model. Can't represent UI components, screens, navigation.</div>
+  </div>
+
+  
+  <div class="comp-card">
+    <div class="name">Stately (XState)</div>
+    <div class="tagline">Visual state machine editor &mdash; stately.ai</div>
+    <div class="props">
+      <span class="badge green">State Machines</span>
+      <span class="badge blue">VS Code Ext</span>
+      <span class="badge purple">Code Gen</span>
+      <span class="badge yellow">AI Assist</span>
+    </div>
+    <p style="font-size:13px">Visual editor for state machines and statecharts. Generates XState code. Sequence diagrams for actor communication. Auto-visualizes Redux/Zustand. AI-assisted flow creation. VS Code extension for bidirectional editing.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Graph model</span><span>State machine / statechart (states &rarr; events &rarr; transitions)</span></div>
+    <div class="row"><span class="label">Scope</span><span>Application state logic only</span></div>
+    <div class="row"><span class="label">Bidirectional</span><span>Yes &mdash; visual &harr; XState code via VS Code</span></div>
+    <div class="row"><span class="label">Live preview</span><span>Simulate mode</span></div>
+    <div class="strength">+ Best-in-class for state logic visualization. Actor model with sequence diagrams. VS Code integration is genuinely bidirectional. Auto-test generation.</div>
+    <div class="weakness">- Extremely narrow scope &mdash; state machines only. No UI editing, no backend, no deployment, no analytics. The graph models behavior, not architecture. Small market.</div>
+  </div>
+
+</div>
+
+
+
+<h2 id="upcoming"><span class="icon" style="background:rgba(54,196,212,0.15); color:var(--cloud)">&#x26A1;</span> 3. Emerging Competitors &mdash; AI-Native Tools</h2>
+
+<div class="comp-grid">
+
+  
+  <div class="comp-card" style="border-color: rgba(75,123,255,0.3);">
+    <div class="name">Claude Code</div>
+    <div class="tagline">Anthropic's agentic coding system &mdash; Pro/Max/Team/Enterprise</div>
+    <div class="props">
+      <span class="badge blue">Agentic</span>
+      <span class="badge green">Multi-Agent Teams</span>
+      <span class="badge cyan">Full Codebase</span>
+      <span class="badge purple">Outcomes</span>
+    </div>
+    <p style="font-size:13px">Reads full codebase, plans across files, executes changes, runs tests, iterates on failures. Agent Teams: multiple instances work on different parts, coordinated by a lead agent. Outcomes: separate grading agent scores and re-runs tasks. Memory across sessions. Desktop app, CLI, IDE extensions, web app.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Scope</span><span>Full codebase editing + testing</span></div>
+    <div class="row"><span class="label">Architecture model</span><span>None &mdash; reads code, no visual model</span></div>
+    <div class="row"><span class="label">Visual UI</span><span>None &mdash; terminal / chat</span></div>
+    <div class="row"><span class="label">Deploy</span><span>Can run deploy commands</span></div>
+    <div class="strength">+ Most capable code reasoning. Multi-agent teams are production-ready. Memory and outcomes create a learning loop. MCP for external system access.</div>
+    <div class="weakness">- No visual representation of the application. No graph. No UI preview. No deployment dashboard. No analytics. The developer still needs to hold the architecture in their head.</div>
+  </div>
+
+  
+  <div class="comp-card" style="border-color: rgba(63,191,120,0.3);">
+    <div class="name">OpenAI Codex</div>
+    <div class="tagline">Multi-agent coding with worktrees &mdash; ChatGPT Pro/Plus/Team</div>
+    <div class="props">
+      <span class="badge green">Parallel Agents</span>
+      <span class="badge blue">Worktrees</span>
+      <span class="badge yellow">Skills</span>
+      <span class="badge cyan">Automations</span>
+    </div>
+    <p style="font-size:13px">Command center for managing multiple coding agents in parallel. Built-in worktrees for conflict-free parallel work. Skills for specialized tasks (prototyping, docs). Automations for unprompted work (issue triage, CI monitoring). In-app browser for frontend verification. Memory across sessions. Scheduled future work.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Scope</span><span>Full codebase + CI/CD automation</span></div>
+    <div class="row"><span class="label">Architecture model</span><span>None visual &mdash; code understanding</span></div>
+    <div class="row"><span class="label">Visual UI</span><span>In-app browser (verification only)</span></div>
+    <div class="row"><span class="label">Deploy</span><span>Can run commands + CI monitoring</span></div>
+    <div class="strength">+ Automations (unprompted CI triage, monitoring) are unique. Parallel worktrees are genuinely useful. Scheduled self-work is novel. In-app browser for visual verification.</div>
+    <div class="weakness">- Same gap as Claude Code: no architectural model, no visual graph, no application-aware dashboard. The browser is for verification, not editing. No analytics integration.</div>
+  </div>
+
+  
+  <div class="comp-card" style="border-color: rgba(240,169,58,0.3);">
+    <div class="name">Cursor 3</div>
+    <div class="tagline">Agent-first IDE &mdash; $20/mo Pro, $200/mo Ultra</div>
+    <div class="props">
+      <span class="badge green">IDE</span>
+      <span class="badge blue">Background Agents</span>
+      <span class="badge yellow">Browser E2E</span>
+      <span class="badge cyan">MCP</span>
+    </div>
+    <p style="font-size:13px">VS Code fork with agent-first UI. Agent Mode: reads codebase, edits files, runs terminal, iterates. Background/Cloud agents for parallel work. Built-in browser for E2E testing (navigates, clicks, fills forms). MCP for external systems (Postgres, GitHub, Sentry, Linear, Slack). Multi-repo layout.</p>
+    <div class="sep"></div>
+    <div class="row"><span class="label">Scope</span><span>Code editing + testing + external systems via MCP</span></div>
+    <div class="row"><span class="label">Architecture model</span><span>None &mdash; VS Code file tree</span></div>
+    <div class="row"><span class="label">Visual UI</span><span>Browser for E2E only</span></div>
+    <div class="row"><span class="label">Deploy</span><span>Terminal commands</span></div>
+    <div class="strength">+ Best developer experience. MCP integration gives access to real systems. Browser E2E testing is powerful. Cloud agents can work while you sleep.</div>
+    <div class="weakness">- Still a text editor at heart. No architectural model. No visual graph of the application. MCP is plumbing, not a product &mdash; the developer configures each integration manually.</div>
+  </div>
+
+</div>
+
+<h3>AI App Generators (Bolt.new, Lovable, v0)</h3>
+<div class="card">
+  <p>These are the fastest-growing tools in the space, but they share a fundamental limitation:</p>
+  <table>
+    <tr><th>Tool</th><th>Speed</th><th>Stack</th><th>Backend</th><th>Limitation</th></tr>
+    <tr><td><strong>Bolt.new</strong></td><td>$40M ARR in 6mo</td><td>Any JS framework</td><td>Bolt Cloud (new)</td><td>Web-only. No mobile. No architecture model. Token-limited.</td></tr>
+    <tr><td><strong>Lovable</strong></td><td>$20M ARR in 2mo</td><td>React + Supabase</td><td>Supabase built-in</td><td>Web-first. Backend is Supabase-only. No graph, no tracing.</td></tr>
+    <tr><td><strong>v0</strong></td><td>Vercel ecosystem</td><td>Next.js/React</td><td>None</td><td>Frontend components only. No backend. No deploy (use Vercel).</td></tr>
+  </table>
+  <p><strong>Common gap:</strong> All three are <em>generators</em>, not <em>understanding tools</em>. They produce code but provide no model of what they produced. You can't click a button and trace the action to the database. You can't see your CI pipeline. You can't view telemetry. They're disposable prototyping tools, not professional development environments.</p>
+</div>
+
+
+
+<h2 id="matrix"><span class="icon" style="background:rgba(240,169,58,0.15); color:var(--warn)">&#x25A6;</span> 4. Feature Matrix &mdash; Side-by-Side</h2>
+
+<table class="matrix">
+  <tr>
+    <th>Capability</th>
+    <th>Reaktor</th>
+    <th>Flutter<br>Flow</th>
+    <th>Emergent</th>
+    <th>Rork</th>
+    <th>Unreal<br>BP</th>
+    <th>n8n</th>
+    <th>Stately</th>
+    <th>Claude<br>Code</th>
+    <th>Codex</th>
+    <th>Cursor</th>
+    <th>Bolt/<br>Lovable</th>
+  </tr>
+  <tr>
+    <td>Typed architecture graph</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="p">~</td><td class="p">~</td><td class="p">~</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Visual UI editing</td>
+    <td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="p">~</td><td class="p">~</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="p">~</td>
+  </tr>
+  <tr>
+    <td>Business logic graph</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="y">&#x2713;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Backend/API visibility</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="p">~</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="y">&#x2713;</td><td class="n">&mdash;</td>
+    <td class="p">~</td><td class="p">~</td><td class="p">MCP</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Database visibility</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="p">~</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="p">MCP</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>UI &rarr; Logic &rarr; Backend tracing</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Deploy / CI dashboard</td>
+    <td class="y">&#x2713;</td><td class="p">~</td><td class="y">&#x2713;</td><td class="p">~</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="p">~</td><td class="p">~</td><td class="n">&mdash;</td><td class="p">~</td>
+  </tr>
+  <tr>
+    <td>Analytics / Telemetry</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Professional IDE integration</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">own</td><td class="n">&mdash;</td><td class="y">&#x2713;</td>
+    <td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="y">IS IDE</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>AI code generation</td>
+    <td class="y">&#x2713;</td><td class="p">~</td><td class="y">&#x2713;</td><td class="y">&#x2713;</td>
+    <td class="n">&mdash;</td><td class="p">~</td><td class="p">~</td>
+    <td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="y">&#x2713;</td>
+  </tr>
+  <tr>
+    <td>Command pattern (structured edits)</td>
+    <td class="y">&#x2713;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="p">~</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+    <td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Cross-platform (Mobile + Web + Server)</td>
+    <td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="p">Mobile</td>
+    <td class="n">PC</td><td class="n">Server</td><td class="n">&mdash;</td>
+    <td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="y">&#x2713;</td><td class="p">Web</td>
+  </tr>
+  <tr>
+    <td>Native performance</td>
+    <td class="y">KMP</td><td class="y">Flutter</td><td class="n">RN/Web</td><td class="p">RN/Swift</td>
+    <td class="y">C++</td><td class="n">N/A</td><td class="n">N/A</td>
+    <td class="y">Any</td><td class="y">Any</td><td class="y">Any</td><td class="n">Web</td>
+  </tr>
+</table>
+
+<p style="font-size:12px; color:var(--t-4)">
+  <span class="y">&#x2713;</span> = full support &nbsp;&nbsp;
+  <span class="p">~</span> = partial/limited &nbsp;&nbsp;
+  <span class="n">&mdash;</span> = absent
+</p>
+
+<div class="quote-block">
+  Reaktor is the only tool with a checkmark in every row. This is not a coincidence &mdash; it's the design thesis. The graph is what connects all these capabilities into a single coherent experience.
+</div>
+
+
+
+<h2 id="gaps"><span class="icon" style="background:rgba(63,191,120,0.15); color:var(--ok)">&#x2605;</span> 5. Market Gaps &mdash; What Nobody Does</h2>
+
+<div class="gap-card">
+  <h4>Gap 1: Full-Stack Traceability</h4>
+  <p>No tool lets you click a UI button and trace the causal chain through business logic, API calls, backend services, and database writes in a single connected view. Reaktor's typed directed graph with <code>PortInvocationEvent</code> tracing makes this possible. The DevTools screen already shows this.</p>
+</div>
+
+<div class="gap-card">
+  <h4>Gap 2: Architecture-Aware AI</h4>
+  <p>Claude Code, Codex, and Cursor all read code as flat text. They don't know that <code>AuthService</code> connects to <code>cf.workers/auth</code> which writes to <code>d1.sessions</code>. Reaktor's <code>GraphManifest</code> + <code>ReaktorGraphDocument</code> gives the LLM a typed, navigable architectural model. The AI can reason about the application structurally, not just textually.</p>
+</div>
+
+<div class="gap-card">
+  <h4>Gap 3: Structured Change Protocol</h4>
+  <p>Every other tool produces raw code diffs. Reaktor produces typed <code>GraphCommand</code> objects (<code>AddNode</code>, <code>ConnectPorts</code>, <code>SetProperty</code>) that are reviewable, undoable, batchable, and auditable before being sent to the LLM for code generation. This is the missing layer between "what the user wants" and "what code to write."</p>
+</div>
+
+<div class="gap-card">
+  <h4>Gap 4: Visual + Professional</h4>
+  <p>Visual builders (FlutterFlow, Rork) target non-developers. Professional tools (Cursor, Claude Code) are text-only. No tool gives professional developers a visual architectural view that connects to their real IDE. Unreal Blueprints proved this works for games; nobody has done it for applications.</p>
+</div>
+
+<div class="gap-card">
+  <h4>Gap 5: Unified Lifecycle Dashboard</h4>
+  <p>Developers currently context-switch between: Figma (design) &rarr; IDE (code) &rarr; terminal (build) &rarr; GitHub Actions (CI) &rarr; Cloudflare dashboard (deploy) &rarr; Grafana (telemetry) &rarr; Amplitude (analytics) &rarr; Sentry (errors). Reaktor puts all five screens (Graph, Run, DevTools, Deploy, Insights) in one tool, connected by the same graph.</p>
+</div>
+
+<div class="gap-card">
+  <h4>Gap 6: Non-Developer Access to the Graph</h4>
+  <p>Product managers, designers, and marketing teams have no visibility into application architecture. They file tickets, wait for developers, and never see the structural impact of their requests. Reaktor's visual graph, analytics dashboard, and deployment view give these stakeholders read access to the living system.</p>
+</div>
+
+
+
+<h2 id="positioning"><span class="icon" style="background:rgba(75,123,255,0.15); color:var(--accent)">&#x25CE;</span> 6. Reaktor's Positioning &mdash; The Unoccupied Space</h2>
+
+<div class="card">
+  <h4>What Reaktor is NOT</h4>
+  <ul>
+    <li><strong>Not a no-code builder.</strong> FlutterFlow, Rork, and Bolt target people who can't code. Reaktor targets professional KMP developers who want a better <em>view</em> of their application.</li>
+    <li><strong>Not an IDE replacement.</strong> Cursor and Claude Code are editors. Reaktor always delegates to IntelliJ/VS Code for code editing. It's a <em>control panel</em>, not an editor.</li>
+    <li><strong>Not a workflow tool.</strong> n8n automates backend tasks. Reaktor models the entire application architecture, not just the automation layer.</li>
+    <li><strong>Not a prompt-to-app generator.</strong> Emergent and Bolt produce throwaway prototypes. Reaktor manages production applications that evolve over years.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h4>What Reaktor IS</h4>
+  <p style="font-size: 15px; color: var(--t-1); line-height: 1.7;">
+    <strong>Reaktor is a typed-graph-native control panel for the entire application lifecycle.</strong> It's what you get when you combine:
+  </p>
+  <table>
+    <tr><td style="width:50%"><strong>Unreal Blueprints</strong> &mdash; node-based architectural graph</td><td>+ the <strong>Graph Screen</strong></td></tr>
+    <tr><td><strong>FlutterFlow</strong> &mdash; visual WYSIWYG preview</td><td>+ the <strong>Run Screen</strong></td></tr>
+    <tr><td><strong>Chrome DevTools</strong> &mdash; causal trace + performance</td><td>+ the <strong>DevTools Screen</strong></td></tr>
+    <tr><td><strong>Cloudflare/Vercel Dashboard</strong> &mdash; deploy + CI</td><td>+ the <strong>Deploy Screen</strong></td></tr>
+    <tr><td><strong>Grafana/Amplitude</strong> &mdash; analytics + telemetry</td><td>+ the <strong>Insights Screen</strong></td></tr>
+    <tr><td><strong>Claude Code</strong> &mdash; AI agent with full context</td><td>+ the <strong>Agent Chat + Commands</strong></td></tr>
+  </table>
+  <p style="margin-top: 16px">...all connected by a single <strong>typed directed graph</strong> that IS the application.</p>
+</div>
+
+<h3>Audience Spectrum</h3>
+<table>
+  <tr><th>Persona</th><th>What they use Reaktor for</th><th>What they use today</th></tr>
+  <tr><td><strong>KMP Developer</strong></td><td>Graph editor, DevTools tracing, command &rarr; LLM &rarr; code, IDE bridge</td><td>IntelliJ + terminal + multiple dashboards</td></tr>
+  <tr><td><strong>Tech Lead / Architect</strong></td><td>Architecture graph overview, blast radius analysis, deploy topology</td><td>Diagrams in Miro/FigJam, manually maintained</td></tr>
+  <tr><td><strong>Product Manager</strong></td><td>Read-only graph exploration, analytics dashboard, feature impact</td><td>Jira + Amplitude + asking engineers</td></tr>
+  <tr><td><strong>QA Engineer</strong></td><td>Causal trace, test impact analysis, blast radius</td><td>Manual trace through code + Sentry</td></tr>
+  <tr><td><strong>DevOps</strong></td><td>Deploy screen, CI pipeline, infrastructure topology</td><td>Cloudflare dashboard + GitHub Actions + kubectl</td></tr>
+  <tr><td><strong>Marketing / Analytics</strong></td><td>Insights dashboard, user flow analytics, conversion funnels</td><td>Amplitude + Mixpanel + custom SQL</td></tr>
+</table>
+
+
+
+<h2 id="strategy"><span class="icon" style="background:rgba(239,91,91,0.15); color:var(--error)">&#x2691;</span> 7. Strategic Implications</h2>
+
+<h3>Defend against AI coding agents</h3>
+<div class="card">
+  <p>Claude Code, Codex, and Cursor are coming for every development tool. Their weakness is the same: <strong>they don't model the application</strong>. They read code as text. Reaktor's defense is the <strong>typed graph</strong>:</p>
+  <ul>
+    <li>The graph is a <em>semantic layer</em> that no amount of code-reading can replicate. It knows that <code>AppleButton</code> triggers <code>loginWithApple</code> which invokes <code>AuthInteractor</code> which calls <code>AuthService</code> which hits <code>cf.workers/auth</code> which writes to <code>d1.sessions</code>. An AI reading flat code would need to trace through 8 files and 4 indirection layers to reconstruct this.</li>
+    <li>The graph <em>feeds</em> the AI. Reaktor doesn't compete with Claude Code &mdash; it gives Claude Code a <code>GraphManifest</code> that makes it 10x more effective. The agent in Reaktor's drawer tab has full architectural context that no other tool provides.</li>
+    <li>The graph survives the shift to AI-generated code. When most code is AI-written, the human's role is to <em>understand and direct the architecture</em>. The graph is the human's handle on the system.</li>
+  </ul>
+</div>
+
+<h3>Learn from what's working</h3>
+<div class="card">
+  <table>
+    <tr><th>From</th><th>Lesson</th><th>Apply to Reaktor</th></tr>
+    <tr><td><strong>n8n</strong></td><td>$2.5B valuation proves massive demand for visual graphs of backend logic. MCP integration is the right interface layer.</td><td>Reaktor's graph already covers n8n's scope (services, edges, databases) plus UI, navigation, and client-side logic. Add MCP server to expose graph to external agents.</td></tr>
+    <tr><td><strong>Unreal Blueprints</strong></td><td>Professional developers WILL use visual graphs if they're powerful enough and bidirectional with code.</td><td>The <code>GraphCommand &rarr; LLM &rarr; CodeDiff</code> pipeline is the app-dev equivalent of Blueprint nativization. Invest heavily in making this seamless.</td></tr>
+    <tr><td><strong>Cursor 3</strong></td><td>MCP + background agents + browser E2E is the new standard. Agent-first UI, not editor-first.</td><td>Reaktor should expose itself as an MCP server so Cursor/Claude Code can navigate the graph, select entities, and push commands. Be the architectural layer that AI IDEs lack.</td></tr>
+    <tr><td><strong>Codex</strong></td><td>Automations (unprompted work) and scheduled tasks are a killer feature. Memory matters.</td><td>Reaktor's agent should monitor CI, telemetry, and deploy status proactively. Surface anomalies without being asked. "Your p95 on /onboarding spiked after the last deploy."</td></tr>
+    <tr><td><strong>Lovable/Bolt</strong></td><td>Speed wins. $40M ARR in 6 months = people will pay for fast prototyping.</td><td>Reaktor's "zero to scaffold" story needs to match. The graph should be auto-generated from a natural language description of the app, with all nodes, edges, routes, and services pre-wired.</td></tr>
+  </table>
+</div>
+
+<h3>Moat: The Graph IS the Product</h3>
+<div class="card" style="border-left: 3px solid var(--accent);">
+  <p style="font-size: 15px; color: var(--t-1);">Every other tool is a <em>view</em> of code. Reaktor is a <em>view of the graph</em>, and the graph is the application's source of truth. This creates three moats:</p>
+  <ol>
+    <li><strong>Network effect within the org:</strong> Once the graph exists, every role (dev, PM, QA, ops, marketing) has a reason to look at it. The more people use Reaktor, the more valuable the graph becomes.</li>
+    <li><strong>Lock-in through understanding:</strong> The graph accumulates knowledge that doesn't exist in code &mdash; deployment topology, trace history, blast radius calculations, telemetry correlations. Switching away means losing this layer.</li>
+    <li><strong>AI leverage:</strong> The graph is the richest context you can give an LLM about an application. As AI gets better, the graph gets more valuable, not less. Reaktor gets <em>better</em> as AI improves, while tools that compete on code generation get <em>commoditized</em>.</li>
+  </ol>
+</div>
+
+
+<div style="margin-top:64px; padding-top:24px; border-top:1px solid #1a2031; color:var(--t-4); font-size:12px;">
+  Reaktor Desktop Competitive Landscape &mdash; Generated 2026-05-16 &mdash; Sources: FlutterFlow, Emergent, Rork, Unreal Engine, n8n, Stately, Anthropic, OpenAI, Cursor, Bolt.new, Lovable, v0
+</div></div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

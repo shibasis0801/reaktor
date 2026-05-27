@@ -1,68 +1,123 @@
 package dev.shibasis.reaktor.db.core
 
+import dev.shibasis.reaktor.core.structs.ConcurrentHashMap
 import dev.shibasis.reaktor.db.DatabaseEvent
+import dev.shibasis.reaktor.db.ObjectAddress
 import dev.shibasis.reaktor.db.ObjectDatabase
+import dev.shibasis.reaktor.db.ObjectStateKey
+import dev.shibasis.reaktor.db.Origin
 import dev.shibasis.reaktor.db.StoredObject
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
+import kotlin.reflect.KClass
 
-class ObjectStore(
+class ObjectStoreConfig {
+    var cache: ObjectCache = LruObjectCache()
+    var retention: RetentionPolicy = KeepForever
+    var lockStripes: Int = 64
+}
+
+class KeyedGate<K>(
+    stripes: Int = 64,
+) {
+    private val locks = Array(stripes.coerceAtLeast(1)) {
+        Mutex()
+    }
+
+    suspend fun <R> withKey(
+        key: K,
+        block: suspend () -> R,
+    ): R {
+        val index = (key.hashCode() and Int.MAX_VALUE) % locks.size
+        return locks[index].withLock {
+            block()
+        }
+    }
+}
+
+class ObjectStore internal constructor(
     val database: ObjectDatabase,
     val storeName: String,
-    var eviction: EvictionPolicy = NoEviction,
-    val memory: MemoryCache = MemoryCache()
+    config: ObjectStoreConfig,
 ) {
-    inline fun <reified T> serializer(): KSerializer<T> {
+    val cache: ObjectCache = config.cache
+    val retention: RetentionPolicy = config.retention
+
+    private val states = ConcurrentHashMap<ObjectStateKey, ObjectState<*>>()
+    private val stateTypesByKey = ConcurrentHashMap<String, KClass<*>>()
+    private val gate = KeyedGate<String>(config.lockStripes)
+
+    inline fun <reified T : Any> serializer(): KSerializer<T> {
         return database.objectSerializer.serializersModule.serializer()
     }
 
-    @PublishedApi
-    internal val flows = hashMapOf<String, ObjectFlow<*>>()
+    inline fun <reified T : Any> state(key: String): ObjectState<T> =
+        state(key, T::class, serializer())
 
-    suspend inline fun <reified T: Any> put(key: String, value: T): StoredObject<T> {
-        val stored = database.put(storeName, key, value, serializer())
-        database.emit(DatabaseEvent.Put(storeName, key))
-        memory.put(stored)
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> state(
+        key: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+    ): ObjectState<T> {
+        val previousType = stateTypesByKey.putIfAbsent(key, type)
 
-        val evictions = eviction.onWrite(key, stored.sizeBytes)
-        for (evictKey in evictions) {
-            database.delete(storeName, evictKey)
-            memory.remove(evictKey)
-            flows.remove(evictKey)
+        require(previousType == null || previousType == type) {
+            "Object '$storeName/$key' is already opened as ${previousType?.simpleName}, " +
+                "cannot open as ${type.simpleName}."
         }
 
-        // Update existing flow if present; don't create one just for the write
-        existingFlow<T>(key)?.update(stored)
-        return stored
+        val stateKey = ObjectStateKey(key, type)
+
+        return states.getOrPut(stateKey) {
+            ObjectState(
+                store = this,
+                key = key,
+                type = type,
+                serializer = serializer,
+            )
+        } as ObjectState<T>
     }
 
-    suspend inline fun <reified T: Any> get(key: String): StoredObject<T>? {
-        memory.get<T>(key)?.let { return it }
+    suspend inline fun <reified T : Any> read(key: String): StoredObject<T>? =
+        state<T>(key).load()
 
-        val stored = database.get(storeName, key, T::class, serializer()) ?: return null
+    suspend inline fun <reified T : Any> write(
+        key: String,
+        value: T,
+    ): StoredObject<T> =
+        state<T>(key).set(value)
 
-        if (!eviction.isValid(stored)) {
-            database.delete(storeName, key)
-            eviction.onDelete(key)
-            return null
-        }
+    suspend inline fun <reified T : Any> update(
+        key: String,
+        noinline transform: (T) -> T,
+    ): StoredObject<T> =
+        state<T>(key).update(transform)
 
-        database.emit(DatabaseEvent.Get(storeName, key))
-        memory.put(stored)
-        return stored
-    }
+    suspend inline fun <reified T : Any> put(
+        key: String,
+        value: T,
+    ): StoredObject<T> =
+        write(key, value)
 
-    suspend inline fun <reified T: Any> getAll(): List<StoredObject<T>> {
-        val results = database.getAll(storeName, T::class, serializer())
-        database.emit(DatabaseEvent.GetAll(storeName))
+    suspend inline fun <reified T : Any> get(key: String): StoredObject<T>? =
+        read(key)
 
-        return results.filter { stored ->
-            if (eviction.isValid(stored)) {
-                memory.put(stored)
+    suspend inline fun <reified T : Any> getAll(): List<StoredObject<T>> {
+        val values = database.getAll(
+            storeName = storeName,
+            type = T::class,
+            serializer = serializer(),
+        )
+
+        return values.filter { stored ->
+            if (retention.isValid(stored)) {
+                applyLoaded(stored)
                 true
             } else {
                 database.delete(storeName, stored.key)
-                eviction.onDelete(stored.key)
                 false
             }
         }
@@ -70,30 +125,71 @@ class ObjectStore(
 
     suspend fun delete(key: String) {
         database.delete(storeName, key)
-        database.emit(DatabaseEvent.Delete(storeName, key))
-        memory.remove(key)
-        eviction.onDelete(key)
-        flows.remove(key)
     }
 
     suspend fun clear() {
         database.clear(storeName)
-        database.emit(DatabaseEvent.Clear(storeName))
-        memory.clear()
-        eviction.clear()
-        flows.clear()
     }
 
-    @Suppress("UNCHECKED_CAST")
+    internal suspend fun <R> serial(
+        key: String,
+        block: suspend () -> R,
+    ): R = gate.withKey(key, block)
+
     @PublishedApi
-    internal fun <T: Any> existingFlow(key: String): ObjectFlow<T>? {
-        return flows[key] as? ObjectFlow<T>
+    internal suspend fun applyLoaded(stored: StoredObject<*>) {
+        cache.put(stored)
+        states.entries()
+            .filter { it.first.key == stored.key }
+            .forEach { it.second.applyDatabaseEvent(DatabaseEvent.Put(storeName, stored.key, stored, Origin.Local)) }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    inline fun <reified T: Any> flow(key: String): ObjectFlow<T> {
-        return flows.getOrPut(key) {
-            ObjectFlow<T>(this, key) { get<T>(key) }
-        } as ObjectFlow<T>
+    internal suspend fun onDatabaseEvent(event: DatabaseEvent) {
+        when (event) {
+            is DatabaseEvent.Put<*> -> {
+                cache.put(event.stored)
+
+                states.entries()
+                    .filter { it.first.key == event.key }
+                    .forEach { it.second.applyDatabaseEvent(event) }
+            }
+
+            is DatabaseEvent.Invalidated -> {
+                cache.remove(ObjectAddress(storeName, event.key))
+
+                states.entries()
+                    .filter { it.first.key == event.key }
+                    .forEach { it.second.applyDatabaseEvent(event) }
+            }
+
+            is DatabaseEvent.Delete -> {
+                cache.remove(ObjectAddress(storeName, event.key))
+
+                states.entries()
+                    .filter { it.first.key == event.key }
+                    .forEach { it.second.applyDatabaseEvent(event) }
+            }
+
+            is DatabaseEvent.Clear -> {
+                cache.clear(storeName)
+
+                states.values().forEach {
+                    it.applyDatabaseEvent(event)
+                }
+            }
+
+            DatabaseEvent.ClearAll -> {
+                cache.clear()
+
+                states.values().forEach {
+                    it.applyDatabaseEvent(event)
+                }
+            }
+
+            is DatabaseEvent.Get,
+            is DatabaseEvent.GetAll -> {
+                // Read events are telemetry only.
+            }
+        }
     }
 }

@@ -2,10 +2,9 @@ package dev.shibasis.reaktor.auth.db
 
 import dev.shibasis.reaktor.auth.User
 import dev.shibasis.reaktor.db.ObjectDatabase
-import dev.shibasis.reaktor.db.core.NoEviction
 
 class AuthObjectStore(database: ObjectDatabase) {
-    private val store = database.store("auth").apply { eviction = NoEviction }
+    private val store = database.store("auth")
 
     suspend fun getUser() = store.get<User>("user")?.value
     suspend fun setUser(user: User) = store.put("user", user)

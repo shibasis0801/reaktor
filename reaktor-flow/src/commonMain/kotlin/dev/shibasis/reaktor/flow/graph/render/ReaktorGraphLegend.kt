@@ -53,7 +53,12 @@ internal fun BoxScope.GraphKindLegend(
             ),
             verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
         ) {
-            ReaktorNodeKind.entries.forEach { kind ->
+            // Hide kinds that aren't present in the current graph (count == 0).
+            // Always keep the currently highlighted kind visible so the user can clear it.
+            val visibleKinds = ReaktorNodeKind.entries.filter { kind ->
+                (counts[kind] ?: 0) > 0 || highlightedKind == kind
+            }
+            visibleKinds.forEach { kind ->
                 val selected = highlightedKind == kind
                 Row(
                     modifier = Modifier

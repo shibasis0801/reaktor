@@ -13,6 +13,10 @@ abstract class ControllerNode<State>(
     abstract val state: MutableStateFlow<State>
 //    abstract val routeBinding: ConsumerPort<out RouteBinding<out Payload>>
 
+    fun update(transform: (State) -> State) {
+        state.value = transform(state.value)
+    }
+
     override fun toString(): String {
         return "${super.toString()} [Controller]"
     }

@@ -20,7 +20,6 @@ dependeasy {
 kotlin {
     common {
         dependencies {
-            implementation(project(":flatbuffers-kotlin"))
             api(project(":reaktor-core"))
             api(project(":reaktor-flexbuffer"))
         }

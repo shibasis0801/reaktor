@@ -7,8 +7,8 @@
 ## Responsibilities
 
 - Object database abstraction for app-side persistence
-- Object stores and observable flows
-- Cache policies (LRU, TTL)
+- Object stores and singleton observable object states
+- Memory-only object cache and persisted-object retention policies
 - Repository support for offline-first usage (read-through, write-through)
 - Graph database policy helpers for tenant-safe Cypher execution
 - Apollo Kotlin GraphQL client integration for shared KMP callers
@@ -23,18 +23,20 @@ Android, iOS (Darwin), JVM, JavaScript/Web
 
 | Type | Purpose |
 |---|---|
-| `ObjectDatabase` | Abstract persistence base with event emission (Put, Get, Delete, Clear) |
-| `ObjectStore` | Typed object access with read/write semantics |
-| `ObjectFlow<T>` | Observable reactive flows for stored objects |
+| `ObjectDatabase` | Consistency boundary with final public operations, backend raw operations, and event emission |
+| `ObjectStore` | Singleton namespace with typed object access and singleton `ObjectState<T>` handles |
+| `ObjectState<T>` | Live `StateFlow` backed handle for one stored object; writes go through suspend `set`, `update`, and `delete` |
 | `StoredObject<T>` | Wrapper with key, value, storeName, timestamps |
 | `JsonSqliteObjectDatabase` | Concrete implementation: JSON + SQLite storage |
 
-### Cache policies
+### Cache and retention
 
 | Type | Purpose |
 |---|---|
-| `CachePolicy` | Interface for cache eviction strategies |
-| `CachePolicyLRU` | LRU implementation with time-based expiration (TTL) |
+| `ObjectCache` | Memory-only object cache interface |
+| `LruObjectCache` | LRU memory cache with entry and byte limits; eviction never deletes persisted data |
+| `RetentionPolicy` | Persisted object validity policy |
+| `KeepForever` / `ExpireAfter` | Built-in retention policies |
 
 ### Graph database policy
 

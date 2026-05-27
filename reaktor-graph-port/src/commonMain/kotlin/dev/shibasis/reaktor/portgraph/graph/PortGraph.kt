@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.portgraph.graph
 
+import dev.shibasis.reaktor.core.structs.ConcurrentHashMap
 import dev.shibasis.reaktor.portgraph.Unique
 import dev.shibasis.reaktor.portgraph.node.PortNode
 import dev.shibasis.reaktor.portgraph.visitor.Visitable
@@ -11,27 +12,34 @@ open class PortGraph<Self: PortGraph<Self, N>, N: PortNode<Self>>(
     override val id: Uuid = Uuid.random(),
     override val label: String = ""
 ): Unique, Visitable {
-    val nodes = arrayListOf<N>()
+    private val nodesById = ConcurrentHashMap<Uuid, N>()
+
+    val nodes: Collection<N>
+        get() = nodesById.values()
 
     open fun attach(node: N): Boolean {
-        if (nodes.any { it.id == node.id }) {
-            return false
-        }
-        nodes += node
-        return true
+        return nodesById.putIfAbsent(node.id, node) == null
     }
 
     open fun detach(node: N): Boolean {
-        return nodes.remove(node)
+        val existing = nodesById[node.id] ?: return false
+        if (existing !== node) return false
+        nodesById.remove(node.id)
+        return true
     }
 
     open fun close() {
-        nodes.toList().forEach {
-            it.close()
-            detach(it)
+        nodes.toList().forEach { node ->
+            node.close()
+            detach(node)
         }
-        nodes.clear()
     }
+
+    fun node(id: Uuid): N? = nodesById[id]
+
+    @JsExport.Ignore
+    inline fun<reified T : N> nodesByType(): List<T> =
+        nodes.filterIsInstance<T>()
 
     override fun toString(): String {
         return "[PortGraph] label='$label' id='$id' nodes=${nodes.size}"

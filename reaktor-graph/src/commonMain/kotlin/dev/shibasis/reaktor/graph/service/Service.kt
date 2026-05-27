@@ -100,7 +100,7 @@ abstract class Service(
                 val decoded = json.decodeFromString(responseSerializer, response.bodyAsText())
                 decoded.applyTransportMetadata(
                     headers = response.headers.entries().associate { (key, values) -> key to values.joinToString(", ") },
-                    statusCode = StatusCode.invoke(response.status.value),
+                    statusCode = StatusCode(response.status.value),
                 )
                 decoded
             }

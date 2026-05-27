@@ -1,8 +1,8 @@
 //@file:Suppress("KotlinJniMissingFunction")
 package dev.shibasis.reaktor.core
 
-import com.google.flatbuffers.kotlin.ArrayReadWriteBuffer
-import com.google.flatbuffers.kotlin.ReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadWriteBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
 import java.nio.ByteBuffer
 
 fun ReadBuffer.toByteBuffer(): ByteBuffer {

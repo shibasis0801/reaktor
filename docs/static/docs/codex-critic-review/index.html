@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Critic Review · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Critique</span><span>Codex</span></div>
+      <p class="eyebrow">Critique · Codex</p>
+      <h1>Codex Critic Review</h1>
+      <p class="subtitle">Skeptical counterarguments against the full Reaktor control-plane vision.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Read before expanding scope or trusting a broad roadmap.</span></div>
+        <div class="stat"><b>Source</b><span>Codex</span></div>
+        <div class="stat"><b>Route</b><span>/docs/codex-critic-review</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a aria-current="page" href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#1-executive-verdict">1. Executive Verdict</a><a href="#2-core-counterarguments">2. Core Counterarguments</a><a href="#3-code-grounded-objections">3. Code-Grounded Objections</a><a href="#4-security-and-operational-critique">4. Security And Operational Critique</a><a href="#5-agents-and-command-queue-critique">5. Agents And Command Queue Critique</a><a href="#6-testing-critique">6. Testing Critique</a><a href="#7-product-and-adoption-risk">7. Product And Adoption Risk</a><a href="#8-safer-narrow-path">8. Safer Narrow Path</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<div id="verdict">
+      <h2 id="1-executive-verdict">1. Executive Verdict</h2>
+      <p class="lead">
+        The strongest criticism is that Reaktor is trying to become a framework, runtime, cross-platform app architecture, DB/auth/service substrate, deploy plane, observability product, visual workbench, and agent command system at the same time. That ambition may be correct long term, but the current evidence does not yet justify trusting the full control-plane vision.
+      </p>
+
+      <div class="grid four">
+        <div class="card bar">
+          <div class="score">8/10</div>
+          <h3>Scope Risk</h3>
+          <p>The roadmap expands every visible prototype tab into a production subsystem before one narrow loop has proven itself end to end.</p>
+        </div>
+        <div class="card bar">
+          <div class="score">9/10</div>
+          <h3>Trust Risk</h3>
+          <p>The workbench wants to inspect, edit, test, deploy, query data, manage auth, and run agents. That is dangerous until identity, audit, rollback, and permissions are hard guarantees.</p>
+        </div>
+        <div class="card bar amber">
+          <div class="score">7/10</div>
+          <h3>Architecture Risk</h3>
+          <p>A graph-first runtime can become a useful abstraction, but it can also become a private platform tax that makes normal app behavior harder to reason about.</p>
+        </div>
+        <div class="card bar green">
+          <div class="score">5/10</div>
+          <h3>Salvageability</h3>
+          <p>The idea is not invalid. The codebase has real graph, port, service, auth, DB, worker, and desktop-engine substrate. The issue is sequence and proof.</p>
+        </div>
+      </div>
+
+      <div class="quote">
+        The critic's version of the roadmap is simple: stop proving that the workbench can display a beautiful universe; prove that it can safely explain and change one real production-shaped flow better than existing tools.
+      </div>
+
+      <h3>What would change this verdict</h3>
+      <ul>
+        <li>A live <code>WorkbenchManifest</code> generated from BestBuds source/runtime without static scenario data.</li>
+        <li>One traced flow from UI click to graph route, interactor, cache, service, worker, DB, telemetry, and test result.</li>
+        <li>Security posture moved from "known TODO" to enforced: signed service identity, worker auth, session lifecycle, redaction, audit.</li>
+        <li>A command queue that can preview and apply one low-risk change with deterministic source diffs, tests, rollback, and commit linkage.</li>
+        <li>A ruthless reduction of workbench tabs until the first end-to-end proof is real.</li>
+      </ul>
+    </div>
+
+    <div id="theses">
+      <h2 id="2-core-counterarguments">2. Core Counterarguments</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Claim in favor of Reaktor</th>
+            <th>Devil's advocate response</th>
+            <th>How to answer the criticism</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Graph-first app composition makes systems visible and controllable."</td>
+            <td>Graph-first can also hide normal program flow behind custom ports, routes, and lifecycle conventions. If only the framework author can debug it fluently, the abstraction has failed.</td>
+            <td>Show that a new contributor can trace and modify one BestBuds flow faster with Reaktor than with normal IDE search, logs, and tests.</td>
+          </tr>
+          <tr>
+            <td>"The workbench can become the control plane for apps."</td>
+            <td>A control plane is not a UI. It is a trust boundary. The prototype currently demonstrates layout, not safe authority over code, data, auth, tests, or deploys.</td>
+            <td>Implement read-only first. Then add commands with explicit capability scopes, dry runs, audit logs, rollbacks, and approvals.</td>
+          </tr>
+          <tr>
+            <td>"AI agents can operate through a command queue."</td>
+            <td>The command queue can create the illusion of safety while moving risk into command generation, validation, and review. Bad commands with good formatting are still bad changes.</td>
+            <td>Restrict early agent output to scout reports and test suggestions. Allow writes only for narrow command types with deterministic validators.</td>
+          </tr>
+          <tr>
+            <td>"Reaktor unifies Kotlin, JS, C++, Cloudflare, desktop, web, mobile, DB, auth, and deploy."</td>
+            <td>Unification is only valuable if it reduces operational complexity. Today it risks multiplying build, runtime, and debugging failure modes across too many stacks.</td>
+            <td>Prove a smaller unification boundary first: graph plus typed services plus telemetry for BestBuds chat.</td>
+          </tr>
+          <tr>
+            <td>"The prototype already shows the desired product."</td>
+            <td>The prototype can anchor product direction, but it can also bias the team toward implementing every screen instead of validating the highest-risk assumptions.</td>
+            <td>Keep the prototype as a vision artifact; use production-readiness gates to remove or label every fake surface.</td>
+          </tr>
+          <tr>
+            <td>"BestBuds can dogfood Reaktor."</td>
+            <td>BestBuds itself has unfinished flows and security gaps. A dogfood app with unresolved product behavior can hide whether Reaktor is helping or merely adding more moving parts.</td>
+            <td>Pick one mature BestBuds slice and freeze it as the dogfood target. Do not use every incomplete product area as proof.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>The biggest conceptual challenge</h3>
+      <p>
+        Reaktor wants to be both the abstraction layer and the tool that explains the abstraction layer. That creates a circular risk: the workbench may look uniquely useful because the framework introduces concepts that require a workbench to understand. The product needs to prove it also improves work on code that did not create the need for a custom visual explanation.
+      </p>
+    </div>
+
+    <div id="code">
+      <h2 id="3-code-grounded-objections">3. Code-Grounded Objections</h2>
+      <p class="lead">
+        The current codebase has real substance, but several details cut against the idea that the production workbench is near. These are not fatal; they are evidence that the roadmap must be sequenced much more conservatively.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Observed source reality</th>
+            <th>Critical read</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Graph export</td>
+            <td><code>ReaktorGraphDocument.kt</code> exports visible nodes and containment/navigation/data edges, but omits route nodes as first-class entities, source ownership, port types, service catalogs, stores, auth requirements, deploy targets, telemetry links, and test links.</td>
+            <td>The current export is a graph sketch, not a workbench manifest. Building a production UI on top of it would force the web layer to invent missing meaning.</td>
+            <td><span class="status high">High</span></td>
+          </tr>
+          <tr>
+            <td>Source of truth</td>
+            <td>The web prototype depends on <code>scenario*.jsx</code>, global <code>window.ENTITIES</code>, and <code>window.BUNDLE</code>; the server has <code>/apps/{appId}/graph</code>; the desktop engine has runtime graph state.</td>
+            <td>There are already multiple competing truths: static scenario, runtime graph, source code, generated build output, and desired command state.</td>
+            <td><span class="status high">High</span></td>
+          </tr>
+          <tr>
+            <td>Feature slots</td>
+            <td>Global <code>Feature</code> slots initialize auth, database, dependency adapter, theme, telemetry, and other runtime capabilities.</td>
+            <td>Global slots are pragmatic, but a control plane needs isolation. Multiple app sessions, tests, previews, and agents can interfere if global state is not scoped carefully.</td>
+            <td><span class="status medium">Medium</span></td>
+          </tr>
+          <tr>
+            <td>Lifecycle and navigation</td>
+            <td><code>Graph.dispatch</code> handles cross-graph navigation through containers; <code>RouteNode</code> has TODOs around only allowing one stateful node to connect.</td>
+            <td>The runtime has powerful behavior, but the edge cases are exactly where a visual workbench must be trustworthy. TODOs in navigation semantics undermine edit/apply confidence.</td>
+            <td><span class="status medium">Medium</span></td>
+          </tr>
+          <tr>
+            <td>Compiler metadata</td>
+            <td><code>ReaktorProcessor.kt</code> returns immediately, disabling the KSP metadata path.</td>
+            <td>Without source metadata, the workbench will struggle to map runtime entities to precise files, ownership, codegen targets, and affected tests.</td>
+            <td><span class="status high">High</span></td>
+          </tr>
+          <tr>
+            <td>Cloudflare worker auth</td>
+            <td><code>BestBudsWorker.kt</code> rejects enabled auth with a message that worker auth is not wired yet.</td>
+            <td>A deploy/control plane over workers cannot be production-ready while service authentication is explicitly disabled at the worker wrapper layer.</td>
+            <td><span class="status high">High</span></td>
+          </tr>
+          <tr>
+            <td>Auth parity</td>
+            <td>Auth has meaningful kernel/server code, but Android Apple login is still TODO and session refresh/revoke/audit lifecycle is not fully unified.</td>
+            <td>The auth system is promising but uneven. The workbench must not present provider health, session controls, or RBAC editing as mature before parity and lifecycle are enforced.</td>
+            <td><span class="status high">High</span></td>
+          </tr>
+          <tr>
+            <td>BestBuds flows</td>
+            <td>Chat has real orchestration, but profile edit, campaign joins/details, event actions, image picking, call actions, and some user state flow work remain partial or TODO.</td>
+            <td>Using all of BestBuds as proof overstates maturity. Use the strongest slice, not the whole product surface.</td>
+            <td><span class="status medium">Medium</span></td>
+          </tr>
+          <tr>
+            <td>Telemetry</td>
+            <td><code>GraphTelemetry</code> observes lifecycle/backstack/port listeners for existing nodes and BestBuds has analytics contracts.</td>
+            <td>This is a start, not an observability product. The hard work is correlation, retention, sampling, query APIs, cost, privacy, and release comparison.</td>
+            <td><span class="status medium">Medium</span></td>
+          </tr>
+          <tr>
+            <td>Build complexity</td>
+            <td>The stack spans Gradle/KMP, Karakum, TypeScript, Vite, Cloudflare, Wrangler, CMake, C++, iOS, Android, desktop, and server.</td>
+            <td>The tooling matrix is a strategic liability unless the workbench demonstrably reduces it. Otherwise Reaktor becomes a platform maintenance project before it becomes a product.</td>
+            <td><span class="status high">High</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Counterargument to the counterargument</h3>
+      <p>
+        The codebase is not empty. The graph runtime, typed service model, object DB, auth kernel, Cloudflare bridge, desktop semantics inspector, and BestBuds chat orchestration are legitimate foundations. The critic's point is that legitimacy at the substrate layer does not automatically make the full workbench product legitimate. The next proof has to be narrower and harder.
+      </p>
+    </div>
+
+    <div id="security">
+      <h2 id="4-security-and-operational-critique">4. Security And Operational Critique</h2>
+
+      <div class="callout">
+        <strong>Primary concern:</strong> Reaktor's most attractive capabilities are also its most dangerous. A tool that can inspect data, edit auth, run agents, deploy workers, and apply code commands must be treated as privileged infrastructure, not as a frontend project.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Why it matters</th>
+            <th>Minimum acceptable posture</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Trust-on-header identity</td>
+            <td>BestBuds service clients pass serialized user headers, and workers read the current user from request context. This is not a production identity boundary unless the header is signed and verified upstream.</td>
+            <td>Access tokens only. Worker middleware validates issuer, audience, expiry, tenant, app id, and required scopes. Dev impersonation must be isolated and labeled.</td>
+          </tr>
+          <tr>
+            <td>Raw chat socket identity</td>
+            <td>Chat WebSocket connection passes <code>userId</code> and <code>userName</code> in query params. The code comments already call out the need for signed auth.</td>
+            <td>Short-lived room tokens, server verification, replay protection, expiry tests, and no user-controlled display identity without server trust.</td>
+          </tr>
+          <tr>
+            <td>Secrets in config/scripts</td>
+            <td>Hardcoded database connection details and command-line deploy tokens have appeared in configuration/scripts. A workbench that indexes and deploys this system can accidentally expose them.</td>
+            <td>Secret scanner in CI and deploy gates, manifest redaction, no secret values in UI, and config moved to proper secret stores.</td>
+          </tr>
+          <tr>
+            <td>DB console temptation</td>
+            <td>A database tab that can query Postgres, D1, R2, Durable Objects, SQLite, and Memgraph is an exfiltration and destructive-write surface.</td>
+            <td>Read-only by default, scoped credentials, query allowlists, tenant enforcement, result redaction, row limits, audit logs, and write operations only through migrations/commands.</td>
+          </tr>
+          <tr>
+            <td>Deploy button risk</td>
+            <td>A polished deploy UI can make dangerous deploys feel routine. Without policy gates, it centralizes blast radius.</td>
+            <td>Dry-run first, environment locks, required tests, migration checks, approvals, rollback plan, health checks, and explicit production capability grants.</td>
+          </tr>
+          <tr>
+            <td>Agent authority</td>
+            <td>Agents that can propose or apply changes become privileged contributors. Their mistakes can be subtle and pass shallow UI tests.</td>
+            <td>Read-only scouting at first. Later, constrained command types, deterministic validators, mandatory diff review, source ownership checks, and test gates.</td>
+          </tr>
+          <tr>
+            <td>Audit gaps</td>
+            <td>A control plane without a complete audit trail cannot be trusted after an incident.</td>
+            <td>Every read of sensitive data, every command, every deploy, every auth change, every agent action, and every secret check must produce immutable audit records.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Red-line rule</h3>
+      <p>
+        Do not allow the workbench to mutate production code, data, auth, or deploy state until it can prove who initiated the action, what capability authorized it, what exact diff or query ran, what tests guarded it, how to revert it, and where the audit record lives.
+      </p>
+    </div>
+
+    <div id="agents">
+      <h2 id="5-agents-and-command-queue-critique">5. Agents And Command Queue Critique</h2>
+      <p class="lead">
+        The command queue is the most important idea in the agent story, but it is not automatically safe. A queue can serialize bad ideas as efficiently as good ones.
+      </p>
+
+      <div class="grid three">
+        <div class="card bar">
+          <h3>Command shape is not semantic safety</h3>
+          <p>A typed command like <code>ConnectPortsCommand</code> can be syntactically valid and still be architecturally wrong. The validator needs domain checks, not just schema checks.</p>
+        </div>
+        <div class="card bar amber">
+          <h3>Agent scouting can become noise</h3>
+          <p>Gemini-style codebase scouting for dead code, coverage, inefficiencies, and harness tightening is useful only if findings are deduplicated, ranked, reproducible, and tied to commands/tests.</p>
+        </div>
+        <div class="card bar">
+          <h3>Commit linkage can create false confidence</h3>
+          <p>Showing which commit followed which commands is necessary, but not sufficient. The UI also needs to show uncommitted drift, failed commands, reverted commands, and tests skipped.</p>
+        </div>
+      </div>
+
+      <h3>Hard questions for the agent model</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Why it is uncomfortable</th>
+            <th>Good answer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Who owns a command authored by an AI agent?</td>
+            <td>Blame and review cannot be delegated to a model. Production changes need accountable human ownership.</td>
+            <td>Every agent command has a human approver, source owner, and audit actor distinct from model identity.</td>
+          </tr>
+          <tr>
+            <td>Can an agent make changes outside the graph abstraction?</td>
+            <td>Many important changes are not graph nodes: build scripts, secrets, migrations, tests, CI, native code, generated artifacts.</td>
+            <td>Commands must support non-graph scopes explicitly, or the UI must admit those changes are outside Reaktor's safe edit model.</td>
+          </tr>
+          <tr>
+            <td>What happens when a command partially applies?</td>
+            <td>Real code edits can leave build output, generated files, lockfiles, and DB migrations out of sync.</td>
+            <td>Command application must be transactional at the worktree level, with rollback and dirty-state detection.</td>
+          </tr>
+          <tr>
+            <td>Can scout jobs see secrets or private production data?</td>
+            <td>Broad codebase scans can collect sensitive config, logs, or environment output.</td>
+            <td>Read scopes, path allowlists, secret redaction, and result filtering are required before scout jobs run automatically.</td>
+          </tr>
+          <tr>
+            <td>How are duplicate or contradictory agent proposals handled?</td>
+            <td>Codex, Claude, Gemini, and human commands may overlap or conflict.</td>
+            <td>Queue-level conflict detection using file ownership, graph entity IDs, migration targets, and source spans.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="testing">
+      <h2 id="6-testing-critique">6. Testing Critique</h2>
+      <p>
+        Playwright and Maestro are appropriate tools, but UI test quantity is not the same as correctness. The risk is building a large suite that proves the facade stays clickable while the real system remains unverified.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Testing claim</th>
+            <th>Critical response</th>
+            <th>Better standard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Every tab and flow has Playwright coverage."</td>
+            <td>This can still test static scenario data. It proves rendering and crash-free behavior, not integration truth.</td>
+            <td>Tests must run against live or recorded production-shaped API fixtures generated from the same manifest builder.</td>
+          </tr>
+          <tr>
+            <td>"Maestro covers mobile-like web flows."</td>
+            <td>Maestro can exercise browser/device workflows indirectly, but it is not a replacement for browser-native assertions, network mocking, accessibility checks, and visual regression.</td>
+            <td>Use Playwright for web correctness and Maestro where it adds cross-device or app-shell value. Do not force one tool to own everything.</td>
+          </tr>
+          <tr>
+            <td>"Regression tests protect command execution."</td>
+            <td>Tests that run after a command are only useful if the command-to-test mapping is correct and failure blocks apply/deploy.</td>
+            <td>Affected-test mapping must be part of the manifest. Unknown impact should widen the test set, not skip tests.</td>
+          </tr>
+          <tr>
+            <td>"Crash-free is production-ready."</td>
+            <td>Crash-free is the floor. A control plane can be crash-free and still authorize the wrong user, leak data, deploy the wrong artifact, or show stale graph state.</td>
+            <td>Add security, freshness, audit, stale-state, concurrency, permission, and rollback tests.</td>
+          </tr>
+          <tr>
+            <td>"Mock data lets us test all states."</td>
+            <td>Mock data can encode false assumptions. It often tests what designers expect, not what systems produce.</td>
+            <td>Recorded fixtures should be generated from real services and schema-versioned. Hand-authored mocks should be labeled design-only.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Tests the critic would require before expanding scope</h3>
+      <ul>
+        <li>Manifest freshness test: source/runtime change appears in the workbench without hand-editing scenario files.</li>
+        <li>Auth negative tests: invalid token, expired token, wrong audience, missing scope, and cross-tenant access fail everywhere.</li>
+        <li>Command rollback test: failed command leaves the worktree, manifest, queue, and UI in a consistent state.</li>
+        <li>Deploy dry-run test: production deploy cannot start with failing tests, missing secrets, or pending migrations.</li>
+        <li>DB redaction test: sensitive fields are masked in the UI and never appear in logs.</li>
+        <li>Agent scout reproducibility test: the same input produces a stable finding ID and no duplicate queue spam.</li>
+      </ul>
+    </div>
+
+    <div id="product">
+      <h2 id="7-product-and-adoption-risk">7. Product And Adoption Risk</h2>
+
+      <div class="grid two">
+        <div class="card bar">
+          <h3>The buyer may not exist yet</h3>
+          <p>It is unclear whether Reaktor is primarily an internal development workbench, a framework for building apps, a low-code/visual architecture tool, an AI engineering control plane, or an observability/deploy console. Each buyer has different willingness to adopt a new runtime.</p>
+        </div>
+        <div class="card bar">
+          <h3>The adoption cost is high</h3>
+          <p>To get the full value, teams may need to adopt graph nodes, ports, Feature slots, typed service contracts, command queues, telemetry conventions, and deploy adapters. That is a lot before value is obvious.</p>
+        </div>
+        <div class="card bar amber">
+          <h3>Existing toolchains are good enough in pieces</h3>
+          <p>IDE search, GitHub, CI, Datadog-style observability, Backstage-style catalogs, Postman-style API tools, deploy dashboards, and DB consoles already solve parts of this. Reaktor must prove the integration is worth switching costs.</p>
+        </div>
+        <div class="card bar amber">
+          <h3>Dogfood can mislead</h3>
+          <p>BestBuds can prove Reaktor works for the author's architecture, but it may not prove broader market fit. A second app or external repo should eventually validate that Reaktor can model unfamiliar systems.</p>
+        </div>
+      </div>
+
+      <h3>Positioning critique</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Possible positioning</th>
+            <th>Critic's concern</th>
+            <th>Sharper version</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Framework</td>
+            <td>Frameworks compete on simplicity, stability, docs, ecosystem, and migration path. Reaktor is currently too broad and internally evolving.</td>
+            <td>"A graph runtime for KMP apps with typed service and port introspection."</td>
+          </tr>
+          <tr>
+            <td>Workbench</td>
+            <td>A workbench without a stable runtime contract becomes a UI chasing internal implementation details.</td>
+            <td>"A read-only graph and trace explorer for Reaktor apps, with safe commands later."</td>
+          </tr>
+          <tr>
+            <td>AI coding control plane</td>
+            <td>This is the highest-risk and most crowded framing. It also requires strong command validation and trust infrastructure.</td>
+            <td>"A constrained command queue where agents can propose changes against a live app manifest."</td>
+          </tr>
+          <tr>
+            <td>Internal platform</td>
+            <td>Internal tools can tolerate rough edges, but that may hide product weaknesses.</td>
+            <td>"Dogfood-only until one BestBuds flow is objectively easier to operate through Reaktor."</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="path">
+      <h2 id="8-safer-narrow-path">8. Safer Narrow Path</h2>
+      <p class="lead">
+        The critic is not saying "stop." The critic is saying "compress the ambition into a proof that can fail." If the proof succeeds, the broader roadmap becomes much more credible.
+      </p>
+
+      <h3>Recommended constraint</h3>
+      <div class="callout">
+        <strong>For the next milestone, Reaktor should be read-only except for one low-risk command type.</strong> The workbench should focus on truth, traceability, and trust before edit power.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Milestone</th>
+            <th>Scope</th>
+            <th>Proof required</th>
+            <th>Do not do yet</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Live manifest</td>
+            <td>BestBuds graph, routes, nodes, ports, services, stores, source paths, tests, deploy targets.</td>
+            <td>Graph/Search/Drawer render from <code>/workbench/apps/{appId}/manifest</code>; static scenarios are test fixtures only.</td>
+            <td>Do not build DB editing, auth editing, deploy execution, or agent writes.</td>
+          </tr>
+          <tr>
+            <td>2. One traced flow</td>
+            <td>BestBuds chat send or login flow.</td>
+            <td>Trace includes UI event, route, node, interactor, cache, service, worker, DB, telemetry, and tests.</td>
+            <td>Do not trace every route until one trace is complete and trusted.</td>
+          </tr>
+          <tr>
+            <td>3. Security baseline</td>
+            <td>Worker auth, token verification, redaction, audit skeleton, secret scanning.</td>
+            <td>Negative auth tests pass and sensitive data cannot be displayed or logged by default.</td>
+            <td>Do not expose production DB or deploy actions.</td>
+          </tr>
+          <tr>
+            <td>4. Command preview</td>
+            <td>One safe command, such as adding metadata or generating a test stub.</td>
+            <td>Preview, apply, rollback, tests, and commit linkage work in an isolated worktree.</td>
+            <td>Do not let agents apply arbitrary diffs.</td>
+          </tr>
+          <tr>
+            <td>5. Read-only deploy and DB</td>
+            <td>Catalogs, status, dry-runs, schema introspection, redacted sample reads.</td>
+            <td>No direct production writes; all sensitive access audited.</td>
+            <td>Do not add write consoles or one-click production deploy.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Kill criteria</h3>
+      <ul>
+        <li>If the workbench cannot generate a live manifest without hand-authored scenario data, pause UI expansion.</li>
+        <li>If source mapping remains unreliable, do not implement agent writes or command apply.</li>
+        <li>If worker auth and signed identity are not enforced, do not expose production service controls.</li>
+        <li>If one traced flow cannot beat normal IDE/log/test debugging, reconsider the value proposition.</li>
+        <li>If every new feature requires bespoke adapters and exceptions, reduce the abstraction surface.</li>
+      </ul>
+
+      <h3>Most constructive critique</h3>
+      <p>
+        Reaktor should stop trying to prove that the whole future exists. It should prove that one real BestBuds flow becomes explainable, testable, and safely changeable in a way that normal tools do not match. That proof would make the rest of the roadmap much easier to believe.
+      </p>
+    </div>
+
+    <div class="footer">
+      This review is intentionally adversarial. It is meant to strengthen execution by identifying where the roadmap could overreach, not to dismiss the underlying idea.
+    </div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

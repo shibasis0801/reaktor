@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Strategic Roadmap · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Start here</span><span>Claude</span></div>
+      <p class="eyebrow">Start here · Claude</p>
+      <h1>Strategic Roadmap</h1>
+      <p class="subtitle">Product and platform roadmap covering phases, modules, moats, risks, and success metrics.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use for strategic framing and product sequencing.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/reaktor-workbench-roadmap</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a aria-current="page" href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#current">&amp;#x2713; 1. Current State &amp;mdash; What Exists Today</a><a href="#pillars">&amp;#x25B2; 2. Three Strategic Pillars</a><a href="#modules">&amp;#x25A6; 9. Module Roadmap &amp;mdash; All 27+ Modules</a><a href="#personas">&amp;#x263A; 10. Persona Journeys</a><a href="#competitive">&amp;#x2694; 11. Competitive Moats Over Time</a><a href="#gtm">&amp;#x1F680; 12. Go-to-Market Strategy</a><a href="#risks">&amp;#x26A0; 13. Risks &amp; Mitigations</a><a href="#success">&amp;#x2605; 14. Success Metrics</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<p class="subtitle">From framework to the most comprehensive app development control panel &mdash; the plan to get there</p>
+
+
+
+
+
+
+
+
+
+<h2 id="current"><span class="icon" style="background:rgba(63,191,120,0.15); color:var(--ok)">&#x2713;</span> 1. Current State &mdash; What Exists Today</h2>
+
+<div class="two-col">
+  <div class="card card-ok">
+    <h4>Framework (Production-Ready)</h4>
+    <table>
+      <tr><td><code>reaktor-graph-port</code></td><td><span class="badge done">Complete</span></td><td>Typed ports, edges, visitors, selectors, traversers</td></tr>
+      <tr><td><code>reaktor-graph</code></td><td><span class="badge done">Complete</span></td><td>6 node types, lifecycle, autoWire, navigation, DI, services</td></tr>
+      <tr><td><code>reaktor-flow</code></td><td><span class="badge done">Complete</span></td><td>Compose graph canvas, blueprint layout, minimap, legend, regions</td></tr>
+      <tr><td><code>compose-flow</code></td><td><span class="badge done">Complete</span></td><td>CMP port of React Flow &mdash; pan, zoom, drag, handles</td></tr>
+      <tr><td><code>reaktor-ui</code></td><td><span class="badge done">Complete</span></td><td>ComposeNode, ComposeRenderer, UI primitives</td></tr>
+      <tr><td><code>reaktor-io</code></td><td><span class="badge done">Complete</span></td><td>Network + serialization, 6 transport modes</td></tr>
+      <tr><td><code>reaktor-db</code></td><td><span class="badge done">Complete</span></td><td>SQLite runtime, 5-tier data model</td></tr>
+      <tr><td><code>reaktor-auth</code></td><td><span class="badge done">Complete</span></td><td>Auth services</td></tr>
+      <tr><td><code>reaktor-core</code></td><td><span class="badge done">Complete</span></td><td>Foundation layer</td></tr>
+    </table>
+  </div>
+  <div class="card card-warn">
+    <h4>Workbench (Partial)</h4>
+    <table>
+      <tr><td>Graph editor pane</td><td><span class="badge done">Done</span></td><td>ReaktorGraphEditor in engine module</td></tr>
+      <tr><td>Tree panel</td><td><span class="badge done">Done</span></td><td>Recursive graph/node tree</td></tr>
+      <tr><td>Node inspector</td><td><span class="badge done">Done</span></td><td>Generic &mdash; not type-aware yet</td></tr>
+      <tr><td>Live preview</td><td><span class="badge done">Done</span></td><td>ScreenPreviewPanel with Content()</td></tr>
+      <tr><td>Semantics inspector</td><td><span class="badge done">Done</span></td><td>2300+ line CompositionData inspector</td></tr>
+      <tr><td>Graph document export</td><td><span class="badge done">Done</span></td><td>JSON for LLM consumption</td></tr>
+      <tr><td>5-mode shell</td><td><span class="badge wip">WIP</span></td><td>Web prototype done, Compose port needed</td></tr>
+      <tr><td>DevTools / Deploy / Insights</td><td><span class="badge next">Not started</span></td><td>Web prototype only</td></tr>
+      <tr><td>Command palette</td><td><span class="badge next">Not started</span></td><td>Web prototype only</td></tr>
+      <tr><td>Drawer system</td><td><span class="badge next">Not started</span></td><td>Web prototype only</td></tr>
+      <tr><td>Command pattern + LLM</td><td><span class="badge next">Not started</span></td><td>Design only</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card card-accent">
+  <h4>The Web Prototype (reaktor.build)</h4>
+  <p>A 6,100-line React prototype that serves as the <strong>specification</strong> for the real tool. 5 screens, 13 type-aware inspectors, command palette, drawer with 7 tabs, deployment topology, analytics dashboard. Every pixel of this prototype defines what the Compose Multiplatform tool must become. It is live at <strong>reaktor.build</strong> alongside these analysis documents.</p>
+</div>
+
+
+
+<h2 id="pillars"><span class="icon" style="background:rgba(75,123,255,0.15); color:var(--accent)">&#x25B2;</span> 2. Three Strategic Pillars</h2>
+
+<div class="pillar-grid">
+  <div class="pillar">
+    <div class="num">I</div>
+    <h4>The Graph Is Everything</h4>
+    <p style="font-size:13px; color:var(--t-2)">The typed directed graph is the single source of truth. Every screen, every inspector, every AI interaction, every deployment decision reads from or writes to the graph. The <code>GraphManifest</code> is generated at compile time. The live <code>Graph</code> runtime emits <code>PortInvocationEvent</code>s. The workbench is just the best view of this graph.</p>
+    <p style="font-size:12px; color:var(--t-3); margin-top:8px"><strong>Implication:</strong> Every new feature starts with "what does this add to the graph?" If it doesn't touch the graph, it doesn't belong in Reaktor.</p>
+  </div>
+  <div class="pillar" style="border-top-color: var(--ok);">
+    <div class="num" style="color:var(--ok)">II</div>
+    <h4>Commands, Not Code</h4>
+    <p style="font-size:13px; color:var(--t-2)">Users never write code inside Reaktor. They produce typed <code>GraphCommand</code> objects (AddNode, ConnectPorts, SetProperty) through visual interactions. Commands are previewed, batched, and sent to an LLM for code generation. Code editing happens in IntelliJ/VS Code. This is the fundamental difference from every competitor.</p>
+    <p style="font-size:12px; color:var(--t-3); margin-top:8px"><strong>Implication:</strong> The command schema is the API contract with AI. It must be rich enough to express any architectural change and stable enough to be a reliable interface.</p>
+  </div>
+  <div class="pillar" style="border-top-color: var(--container);">
+    <div class="num" style="color:var(--container)">III</div>
+    <h4>Every Persona, One Graph</h4>
+    <p style="font-size:13px; color:var(--t-2)">The same graph serves the developer (edit + trace), the architect (visualize + analyze), the PM (understand + measure), the QA engineer (test impact + blast radius), the DevOps (deploy + monitor), and the analyst (metrics + funnels). Different views, same truth.</p>
+    <p style="font-size:12px; color:var(--t-3); margin-top:8px"><strong>Implication:</strong> Every screen must be useful to at least 2 personas. Role-based access controls what you can <em>modify</em>, not what you can <em>see</em>.</p>
+  </div>
+</div>
+
+
+
+<div class="phase-header" id="p1" style="border-left: 3px solid var(--ok);">
+  <div class="num" style="color:var(--ok)">P1</div>
+  <div>
+    <div class="title">The Living Graph</div>
+    <div class="desc">Make the graph real, live, and navigable &mdash; the foundation everything else builds on</div>
+    <div class="timeline">Weeks 0-8 &bull; <span class="badge critical">Critical path</span></div>
+  </div>
+</div>
+
+<div class="quote-block">
+  If P1 ships and nothing else does, you still have something no competitor has: a live, typed, navigable architectural graph of a running application, with a professional visual editor and IDE bridge.
+</div>
+
+<h3>1.1 GraphManifest Generation</h3>
+<div class="card">
+  <p><strong>What:</strong> KSP (Kotlin Symbol Processing) plugin that scans the codebase at compile time and generates a <code>GraphManifest.json</code> containing all nodes, edges, ports, routes, metadata, source locations, and module boundaries.</p>
+  <p><strong>Why:</strong> This is the bridge between the code and the visual tool. Without it, the graph is manually maintained. With it, the graph is always in sync with reality.</p>
+  <p><strong>Deliverable:</strong> <code>reaktor-graph-ksp</code> module. Run <code>./gradlew :app:kspKotlin</code> &rarr; generates <code>build/graph-manifest.json</code> with every node, edge, port, route, and source file location in the BestBuds app.</p>
+  <div class="work-item">
+    <div class="wi-status" style="background:var(--ok)"></div>
+    <div><div class="wi-title">Node scanner</div><div class="wi-desc">Find all classes extending Node subtypes, extract type, name, module, source file, line number</div><div class="wi-module">reaktor-graph-ksp</div></div>
+  </div>
+  <div class="work-item">
+    <div class="wi-status" style="background:var(--ok)"></div>
+    <div><div class="wi-title">Port scanner</div><div class="wi-desc">Find all <code>provides()</code>/<code>consumes()</code> delegate declarations, extract Key, Type, name</div><div class="wi-module">reaktor-graph-ksp</div></div>
+  </div>
+  <div class="work-item">
+    <div class="wi-status" style="background:var(--accent)"></div>
+    <div><div class="wi-title">Edge resolver</div><div class="wi-desc">Resolve port connections from <code>autoWire()</code> calls, manual <code>connect()</code> calls, and Graph builder DSLs</div><div class="wi-module">reaktor-graph-ksp</div></div>
+  </div>
+  <div class="work-item">
+    <div class="wi-status" style="background:var(--accent)"></div>
+    <div><div class="wi-title">Route mapper</div><div class="wi-desc">Extract navigation routes from RouteNode patterns, build route tree</div><div class="wi-module">reaktor-graph-ksp</div></div>
+  </div>
+  <div class="work-item">
+    <div class="wi-status" style="background:var(--cloud)"></div>
+    <div><div class="wi-title">Manifest serializer</div><div class="wi-desc">Serialize to JSON + generate Kotlin data classes for type-safe access at runtime</div><div class="wi-module">reaktor-graph-ksp</div></div>
+  </div>
+</div>
+
+<h3>1.2 reaktor-flow Stabilization</h3>
+<div class="card">
+  <p><strong>What:</strong> Close the remaining issues identified in the <a href="file:///Users/ovd/dev/reaktor/reaktor-flow/analysis.html">reaktor-flow analysis</a>. Ensure edge rendering, node selection events, kind filtering, and zoom controls all work reliably.</p>
+  <p><strong>Deliverable:</strong> All 10 <code>GraphFlowIntegrationTest</code> tests pass. Manual verification in Desktop app shows fully interactive graph editing with selection &rarr; inspector wiring.</p>
+</div>
+
+<h3>1.3 Workbench Shell (5-mode)</h3>
+<div class="card">
+  <p><strong>What:</strong> Extend <code>ReaktorWorkbench</code> from 2 modes (Graph/App) to 5 modes (Graph/Run/DevTools/Deploy/Insights). Add mode toolbar, keyboard shortcuts (Cmd+1-5), responsive panel collapse.</p>
+  <p><strong>Deliverable:</strong> <code>WorkbenchState</code> ViewModel in commonMain. All 5 modes accessible via toolbar and keyboard. Graph screen is fully functional (powered by reaktor-flow). Other 4 screens show placeholder content with correct layout.</p>
+</div>
+
+<h3>1.4 IDE Bridge v1</h3>
+<div class="card">
+  <p><strong>What:</strong> "Open in IDE" buttons throughout the workbench. Click a node &rarr; open its source file in IntelliJ/VS Code at the exact line.</p>
+  <p><strong>Deliverable:</strong> <code>ProcessBuilder("idea", "--line", lineNum, filePath)</code> on Desktop. <code>jetbrains://</code> and <code>vscode://</code> URI schemes on Web. Every entity with a <code>source</code> field in the manifest gets an "Open in IDE" action.</p>
+</div>
+
+<h3>P1 Exit Criteria</h3>
+<div class="card card-ok">
+  <ul>
+    <li>BestBuds app compiles and generates a <code>GraphManifest.json</code> with all nodes, edges, ports, routes</li>
+    <li>Reaktor Desktop loads the manifest and renders the full graph with blueprint layout</li>
+    <li>Clicking a node selects it, shows info in the inspector panel, and "Open in IDE" opens the file</li>
+    <li>5 mode tabs are visible and keyboard-navigable</li>
+    <li>Graph screen is fully interactive (pan, zoom, select, filter by kind)</li>
+  </ul>
+</div>
+
+
+
+<div class="phase-header" id="p2" style="border-left: 3px solid var(--accent);">
+  <div class="num" style="color:var(--accent)">P2</div>
+  <div>
+    <div class="title">The Control Panel</div>
+    <div class="desc">Build all 5 screens, the inspector system, and the drawer &mdash; the full visual experience</div>
+    <div class="timeline">Weeks 8-16 &bull; <span class="badge next">High priority</span></div>
+  </div>
+</div>
+
+<h3>2.1 Type-Aware Inspector System</h3>
+<div class="card">
+  <p><strong>What:</strong> Replace the generic <code>NodeDetailPanel</code> with a type-dispatching system that renders specialized inspectors for each of the 8 node types + edge types. Port the 13 inspector bodies from the web prototype.</p>
+  <table>
+    <tr><th>Inspector</th><th>Entity Type</th><th>Key Sections</th></tr>
+    <tr><td>RouteInspector</td><td>RouteNode</td><td>Route pattern, attached screens, trace sparkline, navigation targets</td></tr>
+    <tr><td>ScreenInspector</td><td>ComposeNode (screen)</td><td>Live preview thumbnail, crash rate, session count, components list</td></tr>
+    <tr><td>UiInspector</td><td>ComposeNode (element)</td><td>Props editor, click action chain, design overlay dimensions</td></tr>
+    <tr><td>ContainerInspector</td><td>ContainerNode</td><td>Child graphs, active graph, navigation targets, tab/nav config</td></tr>
+    <tr><td>ActionInspector</td><td>ControllerNode</td><td>Function signature, downstream chain, invocation count</td></tr>
+    <tr><td>ServiceInspector</td><td>ServiceNode</td><td>Endpoints, transport mode, p95, error rate, interceptor chain</td></tr>
+    <tr><td>EdgeInspector</td><td>Edge entities</td><td>Latency histogram, deploy target, cert status, endpoint URL</td></tr>
+    <tr><td>DbInspector</td><td>DB entities</td><td>Schema preview, row count, query performance, tier (T0-T4)</td></tr>
+    <tr><td>ReleaseInspector</td><td>Release entities</td><td>CI steps, artifacts, promote CTA, rollback history</td></tr>
+  </table>
+  <p>Each inspector follows the pattern: <strong>Header</strong> (type pill + name + source) &rarr; <strong>Section tabs</strong> (scroll-linked) &rarr; <strong>Sections</strong> (overview, metrics, connections, source, actions) &rarr; <strong>Footer actions</strong> (Open in Graph / IDE / Follow chain).</p>
+</div>
+
+<h3>2.2 Run Screen</h3>
+<div class="card">
+  <p><strong>What:</strong> WYSIWYG preview with device frame. Extend existing <code>ScreenPreviewPanel</code> with <code>DeviceFrame</code> composable (phone/tablet/desktop chrome), bidirectional click-to-inspect via <code>ReaktorComposeSemanticsInspector</code>, and <code>FloatingGraphLink</code> card connecting selected UI element to its graph entity.</p>
+  <p><strong>Unique advantage:</strong> The semantics inspector reads live <code>CompositionData</code> &mdash; no other tool can do this. You literally click a button in the running app and see its full action chain through the graph.</p>
+</div>
+
+<h3>2.3 DevTools Screen</h3>
+<div class="card">
+  <p><strong>What:</strong> Causal trace waterfall. Collect <code>PortInvocationEvent</code>s from the running graph and display as a Chrome DevTools-style trace rail. Each span shows entity type, name, duration bar, and is clickable to navigate to the graph node.</p>
+  <p><strong>Data source:</strong> <code>PortInvocationEvent</code> listeners on the live graph. Initially mock data from the manifest; real events once the app is running in the preview panel.</p>
+  <p><strong>Blast radius:</strong> Use <code>BreadthFirstTraverser</code> with <code>ConnectivitySelector</code> to compute N-hop blast radius from selected entity. Show entity count, module count, expandable list.</p>
+</div>
+
+<h3>2.4 Deploy Screen</h3>
+<div class="card">
+  <p><strong>What:</strong> Topology view showing all deployment targets extracted from the graph's <code>deploys</code> edges. Partitioned by platform (Cloudflare Workers, D1, R2, KV, Queue, App Stores, JVM Server). CI pipeline visualization. Environment switcher (Local/Staging/Production).</p>
+  <p><strong>Data source P2:</strong> Static topology from <code>GraphManifest</code>. CI status from mock data. Real integrations come in P4.</p>
+</div>
+
+<h3>2.5 Insights Screen</h3>
+<div class="card">
+  <p><strong>What:</strong> Analytics dashboard. Timeline chart with deploy markers. Route &times; metric heatmap. Metric summary cards (active users, response time, error rate). Time range selector (1h/24h/7d/30d).</p>
+  <p><strong>Data source P2:</strong> Mock data. Real integrations come in P4.</p>
+</div>
+
+<h3>2.6 Command Palette (Cmd+K)</h3>
+<div class="card">
+  <p><strong>What:</strong> Modal search across all entities, commands, and navigation targets. Fuzzy matching on name, type, module, source, tags. Arrow key navigation, Enter to select, Escape to close. ">" prefix for command mode.</p>
+  <p><strong>Why now:</strong> This is the highest-impact single feature for making the tool feel professional. Every user (developer, PM, QA) uses search as their primary navigation.</p>
+</div>
+
+<h3>2.7 Drawer System</h3>
+<div class="card">
+  <p><strong>What:</strong> Bottom drawer with 7 tabs: Traces, Logs, Agent, Diagnostics, Commands, Queue, CodeDiff. Resizable height. Tab switching via keyboard. The "Agent" tab is a placeholder in P2 &mdash; becomes the AI chat in P3.</p>
+</div>
+
+<h3>P2 Exit Criteria</h3>
+<div class="card card-accent">
+  <ul>
+    <li>All 5 screens are fully rendered with real data from the manifest + live graph events</li>
+    <li>Click any entity anywhere &rarr; inspector shows the correct type-aware body</li>
+    <li>Cross-mode navigation works: "Open in Graph" from Run screen switches to Graph and selects the entity</li>
+    <li>Command palette finds any entity in the graph within 2 keystrokes</li>
+    <li>Drawer opens with Traces tab showing live <code>PortInvocationEvent</code>s</li>
+    <li>The tool looks and feels like the web prototype at reaktor.build, but powered by real data</li>
+  </ul>
+</div>
+
+
+
+<div class="phase-header" id="p3" style="border-left: 3px solid var(--container);">
+  <div class="num" style="color:var(--container)">P3</div>
+  <div>
+    <div class="title">The AI Bridge</div>
+    <div class="desc">Command pattern, LLM integration, and the agent interface &mdash; the core differentiator</div>
+    <div class="timeline">Weeks 16-24 &bull; <span class="badge future">Differentiator</span></div>
+  </div>
+</div>
+
+<h3>3.1 GraphCommand Schema</h3>
+<div class="card">
+  <p><strong>What:</strong> The typed command hierarchy that represents every structural change to the application.</p>
+<pre>sealed interface GraphCommand {
+    val id: String; val timestamp: Instant; val description: String
+
+    data class AddNode(val type: NodeType, val name: String, val parent: String?)
+    data class RemoveNode(val nodeId: String)
+    data class ConnectPorts(val consumer: PortRef, val provider: PortRef)
+    data class DisconnectPorts(val consumer: PortRef, val provider: PortRef)
+    data class SetProperty(val entityId: String, val key: String, val value: JsonElement)
+    data class CreateSubgraph(val name: String, val nodes: List&lt;String&gt;)
+    data class MoveToContainer(val nodeId: String, val containerId: String)
+    data class SetRoute(val routeId: String, val pattern: String)
+    data class SetTransport(val edgeId: String, val transport: TransportMode)
+    data class SetDeployTarget(val nodeId: String, val target: DeployTarget)
+    data class AddInterceptor(val serviceId: String, val interceptor: InterceptorDef)
+    data class SetUiProperty(val elementId: String, val prop: String, val value: JsonElement)
+}</pre>
+  <p><strong>Why this matters:</strong> This is the structured protocol between the human/UI and the AI. Instead of "change the button color" &rarr; raw code, you get <code>SetUiProperty(elementId="apple_button", prop="backgroundColor", value="#3fbf78")</code> &rarr; the LLM knows <em>exactly</em> what to change, in which file, and can generate a precise diff.</p>
+</div>
+
+<h3>3.2 Command Queue + Preview</h3>
+<div class="card">
+  <p><strong>What:</strong> The Queue drawer tab shows pending commands. Each command shows: type badge, description, affected entity, preview of what changes. Commands can be reordered, grouped into batches, or discarded. "Apply Batch" sends to LLM.</p>
+  <p><strong>Persistence:</strong> Commands stored in <code>reaktor-db</code> SQLite: <code>graph_commands(id, type, payload_json, timestamp, applied, batch_id)</code>. Full undo/redo history.</p>
+</div>
+
+<h3>3.3 LLM Code Generation Pipeline</h3>
+<div class="card">
+  <p><strong>What:</strong> When the user clicks "Apply" on a command batch:</p>
+  <ol>
+    <li><strong>Context assembly:</strong> Serialize command batch + <code>ReaktorGraphDocument</code> + relevant source files (from entity <code>source</code> metadata)</li>
+    <li><strong>LLM call:</strong> Send to Claude API with a system prompt describing Reaktor's conventions, node types, port patterns, and the project's coding style</li>
+    <li><strong>CodeDiff generation:</strong> Receive unified diffs per file</li>
+    <li><strong>Review UI:</strong> Show in CodeDiff drawer tab with syntax highlighting, accept/reject per hunk</li>
+    <li><strong>Apply:</strong> Write approved diffs to project via file system (Desktop) or IDE bridge (Web)</li>
+    <li><strong>Manifest regeneration:</strong> Trigger incremental rebuild of <code>GraphManifest</code> to reflect changes</li>
+  </ol>
+</div>
+
+<h3>3.4 Agent Chat Interface</h3>
+<div class="card">
+  <p><strong>What:</strong> The drawer's "Agent" tab. A Claude Code-style chat interface where the agent has full graph context via tools:</p>
+  <table>
+    <tr><th>Tool</th><th>Description</th></tr>
+    <tr><td><code>read_graph()</code></td><td>Returns the full <code>ReaktorGraphDocument</code> JSON</td></tr>
+    <tr><td><code>select_entity(id)</code></td><td>Navigates to an entity in the current screen</td></tr>
+    <tr><td><code>navigate_to(mode, id)</code></td><td>Switches screen + selects entity</td></tr>
+    <tr><td><code>push_command(cmd)</code></td><td>Adds a GraphCommand to the queue</td></tr>
+    <tr><td><code>query_traces(entityId, n)</code></td><td>Returns last N PortInvocationEvent traces</td></tr>
+    <tr><td><code>blast_radius(entityId, hops)</code></td><td>Computes N-hop blast radius via graph traversal</td></tr>
+    <tr><td><code>open_in_ide(file, line)</code></td><td>Opens file in IntelliJ/VS Code</td></tr>
+    <tr><td><code>generate_code(commands[])</code></td><td>Sends command batch through the LLM pipeline</td></tr>
+  </table>
+  <p><strong>Conversation flow:</strong> "Add a caching layer to the AuthService" &rarr; agent reads graph, identifies AuthService and its downstream edges, generates <code>[AddNode(type=ServiceNode, name="AuthCache"), ConnectPorts(AuthService.output, AuthCache.input), SetProperty(AuthCache, "ttl", 300)]</code> &rarr; user reviews in Queue tab &rarr; Apply &rarr; LLM generates code &rarr; Review &rarr; Write to project.</p>
+</div>
+
+<h3>3.5 MCP Server</h3>
+<div class="card">
+  <p><strong>What:</strong> Expose the graph as an MCP server so external tools (Cursor, Claude Code, Codex) can query and navigate it.</p>
+  <p><strong>Why:</strong> This is the <em>platform play</em>. Instead of competing with AI IDEs, you <em>feed</em> them. A developer using Cursor can ask "what calls AuthService?" and Cursor queries Reaktor's MCP server to get the full connection graph. This makes Reaktor the architectural layer that all AI tools lack.</p>
+  <p><strong>Endpoints:</strong> <code>read_graph</code>, <code>find_entity</code>, <code>get_connections</code>, <code>get_blast_radius</code>, <code>get_traces</code>, <code>push_command</code></p>
+</div>
+
+<h3>P3 Exit Criteria</h3>
+<div class="card card-accent">
+  <ul>
+    <li>User can click a UI element in Run screen &rarr; modify a property &rarr; see the command in Queue &rarr; Apply &rarr; LLM generates code &rarr; Review diff &rarr; Accept &rarr; code written to project</li>
+    <li>Agent chat can answer "what happens when the user taps Apple login?" by traversing the graph and showing the full action chain</li>
+    <li>Agent can generate a command batch from a natural language request</li>
+    <li>External tools (Cursor/Claude Code) can query the graph via MCP</li>
+    <li>Command history is persistent with undo/redo</li>
+  </ul>
+</div>
+
+
+
+<div class="phase-header" id="p4" style="border-left: 3px solid var(--cloud);">
+  <div class="num" style="color:var(--cloud)">P4</div>
+  <div>
+    <div class="title">The Ops Layer</div>
+    <div class="desc">Connect to real infrastructure &mdash; CI/CD, monitoring, analytics, telemetry</div>
+    <div class="timeline">Weeks 24-32 &bull; <span class="badge next">High impact</span></div>
+  </div>
+</div>
+
+<h3>4.1 CI/CD Integration</h3>
+<div class="card">
+  <p><strong>What:</strong> The Deploy screen shows live CI pipeline status from real providers.</p>
+  <table>
+    <tr><th>Provider</th><th>Integration</th><th>Data</th></tr>
+    <tr><td>GitHub Actions</td><td>REST API via <code>reaktor-io</code></td><td>Workflow runs, step status, logs, artifacts</td></tr>
+    <tr><td>Cloudflare Pages/Workers</td><td>REST API</td><td>Deployment status, preview URLs, analytics</td></tr>
+    <tr><td>Gradle Build</td><td>Local process + build scan API</td><td>Compilation status, test results, build time</td></tr>
+  </table>
+  <p><strong>Deploy actions:</strong> "Push to Staging" triggers a real Cloudflare Workers deployment. "Promote to Production" triggers a production deploy with confirmation. Status updates stream into the drawer's Logs tab.</p>
+</div>
+
+<h3>4.2 Telemetry Integration</h3>
+<div class="card">
+  <p><strong>What:</strong> The Insights screen shows real metrics from production infrastructure.</p>
+  <table>
+    <tr><th>Source</th><th>Metrics</th><th>Integration</th></tr>
+    <tr><td>Cloudflare Analytics</td><td>Request volume, error rate, latency per worker</td><td>GraphQL API</td></tr>
+    <tr><td>Supabase</td><td>Database query metrics, row counts, slow queries</td><td>Management API</td></tr>
+    <tr><td>Custom telemetry</td><td>App-level events (screen views, actions, errors)</td><td><code>PortInvocationEvent</code> &rarr; telemetry sink</td></tr>
+    <tr><td>Crash reporting</td><td>Crash-free rate, stack traces linked to graph entities</td><td>Sentry/Crashlytics API</td></tr>
+  </table>
+  <p><strong>Graph-linked metrics:</strong> Every metric is attached to a graph entity. "cf.workers/auth has a p95 of 340ms" links to the edge entity in the graph. Click it &rarr; see the EdgeInspector &rarr; see the trace &rarr; see the downstream impact.</p>
+</div>
+
+<h3>4.3 Proactive Agent Monitoring</h3>
+<div class="card">
+  <p><strong>What:</strong> The agent doesn't just respond to questions &mdash; it monitors the system and surfaces anomalies. Like Codex's Automations, but graph-aware.</p>
+  <ul>
+    <li>"Your p95 on /onboarding spiked 40% after deploy rc-813. The change touched AuthInteractor &rarr; AuthService. Want me to trace it?"</li>
+    <li>"3 new crash reports on OnboardingScreen since yesterday. All in the Apple login flow. AuthService.loginWithApple has a 12% error rate."</li>
+    <li>"Your d1.sessions table grew 340% this week. Want me to add TTL-based cleanup to the sessions service?"</li>
+  </ul>
+  <p><strong>How:</strong> Background polling of telemetry APIs + threshold alerts + graph context to explain <em>why</em> something changed, not just that it changed.</p>
+</div>
+
+<h3>P4 Exit Criteria</h3>
+<div class="card card-accent">
+  <ul>
+    <li>Deploy screen shows real GitHub Actions pipeline status, not mock data</li>
+    <li>"Push to Staging" button triggers a real Cloudflare Workers deployment</li>
+    <li>Insights screen shows real Cloudflare Analytics data (request volume, latency, errors)</li>
+    <li>Agent proactively surfaces a performance regression after a deploy</li>
+    <li>Click a metric anomaly &rarr; navigate to the graph entity &rarr; see the trace &rarr; see what changed</li>
+  </ul>
+</div>
+
+
+
+<div class="phase-header" id="p5" style="border-left: 3px solid var(--warn);">
+  <div class="num" style="color:var(--warn)">P5</div>
+  <div>
+    <div class="title">The Platform</div>
+    <div class="desc">Multi-persona access, web target, collaboration, and the scaffold-from-prompt experience</div>
+    <div class="timeline">Weeks 32-44 &bull; <span class="badge future">Growth</span></div>
+  </div>
+</div>
+
+<h3>5.1 Compose Multiplatform Web Target</h3>
+<div class="card">
+  <p><strong>What:</strong> Compile <code>reaktor-workbench</code> (commonMain) to Kotlin/JS + Compose canvas. Deploy to Cloudflare Workers. Same codebase, same features, accessible in a browser. Replaces the current React prototype at reaktor.build.</p>
+  <p><strong>Platform-specific (jsMain):</strong> IndexedDB for SQLite, fetch wrapper for network, <code>vscode://</code>/<code>jetbrains://</code> URI schemes for IDE bridge, Cloudflare Worker proxy for LLM API (CORS).</p>
+</div>
+
+<h3>5.2 Scaffold from Prompt</h3>
+<div class="card">
+  <p><strong>What:</strong> "Describe your app" &rarr; generate a full <code>GraphManifest</code> with nodes, edges, routes, services, screens, and deploy targets. The user sees the graph immediately, reviews it, and refines through the command pattern. Then "Apply" generates the entire project skeleton.</p>
+  <p><strong>Why:</strong> This is Reaktor's answer to Bolt/Lovable/Emergent. But instead of a black box that produces code, you get a <em>visible, editable graph</em> that produces code. You understand what was generated. You can modify individual parts. You can trace it.</p>
+  <p><strong>Flow:</strong></p>
+  <div class="flow-row">
+    <div class="flow-box"><strong>Prompt</strong><div class="sub">"Social app with auth, chat, profiles"</div></div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box"><strong>LLM</strong><div class="sub">Generates GraphManifest</div></div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box"><strong>Graph View</strong><div class="sub">User reviews architecture</div></div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box"><strong>Refine</strong><div class="sub">Commands to adjust</div></div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-box" style="border-color:var(--ok)"><strong>Apply</strong><div class="sub">Generate full project</div></div>
+  </div>
+</div>
+
+<h3>5.3 Role-Based Views</h3>
+<div class="card">
+  <table>
+    <tr><th>Role</th><th>Can see</th><th>Can modify</th><th>Primary screens</th></tr>
+    <tr><td><strong>Developer</strong></td><td>Everything</td><td>Everything (via commands)</td><td>Graph, Run, DevTools</td></tr>
+    <tr><td><strong>Architect</strong></td><td>Everything</td><td>Architecture commands only</td><td>Graph, Deploy</td></tr>
+    <tr><td><strong>Product Manager</strong></td><td>Graph (read-only), Insights, Deploy status</td><td>Nothing &mdash; can create tickets from entities</td><td>Insights, Graph (read-only)</td></tr>
+    <tr><td><strong>QA Engineer</strong></td><td>Graph, DevTools, Run</td><td>Nothing &mdash; can create bug reports from traces</td><td>DevTools, Run</td></tr>
+    <tr><td><strong>DevOps</strong></td><td>Deploy, Insights, Graph</td><td>Deploy commands only</td><td>Deploy, Insights</td></tr>
+    <tr><td><strong>Marketing/Analyst</strong></td><td>Insights, Graph (simplified)</td><td>Nothing</td><td>Insights</td></tr>
+  </table>
+</div>
+
+<h3>5.4 Team Collaboration</h3>
+<div class="card">
+  <ul>
+    <li><strong>Shared graph state:</strong> Multiple users viewing the same graph, selections visible to others (like Figma cursors)</li>
+    <li><strong>Command review flow:</strong> Developer creates command batch &rarr; architect reviews &rarr; approve/reject &rarr; LLM generates code</li>
+    <li><strong>Entity annotations:</strong> Any user can annotate a graph entity with notes, screenshots, links. Annotations visible to all roles.</li>
+    <li><strong>Activity feed:</strong> "Alice deployed v812 to production" / "Bob modified AuthService" / "Agent detected p95 spike on /chat"</li>
+  </ul>
+</div>
+
+<h3>P5 Exit Criteria</h3>
+<div class="card card-accent">
+  <ul>
+    <li>reaktor.build serves the Compose/JS build, fully functional in Chrome/Safari/Firefox</li>
+    <li>"Describe your app" &rarr; generates a navigable graph &rarr; user refines &rarr; Apply &rarr; full project skeleton</li>
+    <li>PM can log into reaktor.build, see the application graph read-only, and view analytics</li>
+    <li>Multiple users see each other's selections in real-time</li>
+  </ul>
+</div>
+
+
+
+<div class="phase-header" id="p6" style="border-left: 3px solid var(--container);">
+  <div class="num" style="color:var(--container)">P6</div>
+  <div>
+    <div class="title">The Ecosystem</div>
+    <div class="desc">Plugin system, marketplace, enterprise features, and the self-reinforcing flywheel</div>
+    <div class="timeline">Weeks 44-60 &bull; <span class="badge future">Scale</span></div>
+  </div>
+</div>
+
+<h3>6.1 Plugin Architecture</h3>
+<div class="card">
+  <p><strong>What:</strong> A plugin API that lets third parties add: new node types, new inspector bodies, new drawer tabs, new deploy targets, new telemetry sources, new MCP tools.</p>
+  <p><strong>Examples:</strong></p>
+  <ul>
+    <li><strong>Firebase plugin:</strong> Adds Firestore/RTDB node types, Firebase Analytics telemetry source, Firebase Hosting deploy target</li>
+    <li><strong>AWS plugin:</strong> Adds Lambda/DynamoDB/S3 node types, CloudWatch telemetry, CDK deploy target</li>
+    <li><strong>Stripe plugin:</strong> Adds Payment node type with Stripe-specific inspector showing revenue metrics</li>
+    <li><strong>Sentry plugin:</strong> Adds crash reporting telemetry source, links stack traces to graph entities</li>
+  </ul>
+</div>
+
+<h3>6.2 Template Marketplace</h3>
+<div class="card">
+  <p><strong>What:</strong> Curated <code>GraphManifest</code> templates for common app patterns: social app, e-commerce, SaaS dashboard, chat app, marketplace. Each template is a pre-built graph with all nodes, edges, routes, services, and deploy targets. User selects template &rarr; sees graph &rarr; customizes via commands &rarr; Apply.</p>
+</div>
+
+<h3>6.3 Enterprise Features</h3>
+<div class="card">
+  <ul>
+    <li><strong>SSO/SAML:</strong> Enterprise auth integration</li>
+    <li><strong>Audit log:</strong> Every command, every deploy, every agent interaction logged</li>
+    <li><strong>Compliance view:</strong> Which entities handle PII? Which services are exposed externally? Which databases store credentials?</li>
+    <li><strong>Custom deploy policies:</strong> "Production deploys require 2 approvals" enforced at the graph level</li>
+    <li><strong>Self-hosted option:</strong> Run the full workbench on-prem for regulated industries</li>
+  </ul>
+</div>
+
+<h3>6.4 The Flywheel</h3>
+<div class="card card-ok">
+  <p style="font-size: 15px; color: var(--t-1);">Each phase compounds:</p>
+  <ol style="color: var(--t-1);">
+    <li><strong>The graph attracts developers</strong> (P1-P2) &mdash; "I can finally see my app's architecture"</li>
+    <li><strong>The AI bridge retains them</strong> (P3) &mdash; "I can modify the app through typed commands + AI"</li>
+    <li><strong>The ops layer makes it indispensable</strong> (P4) &mdash; "I can't work without seeing deploys and metrics in context"</li>
+    <li><strong>The platform brings the team</strong> (P5) &mdash; "My PM, QA, and DevOps all use this too"</li>
+    <li><strong>The ecosystem locks in the org</strong> (P6) &mdash; "Our custom plugins and templates are worth more than the tool itself"</li>
+  </ol>
+  <p style="margin-top:12px; color: var(--t-2)">By P6, switching away from Reaktor means losing: the graph (accumulated knowledge), the command history (every architectural decision), the telemetry correlations (months of data), the plugins (custom integrations), and the team workflows (PM/QA/DevOps access). The moat deepens with every month of use.</p>
+</div>
+
+
+
+<h2 id="modules"><span class="icon" style="background:rgba(240,169,58,0.15); color:var(--warn)">&#x25A6;</span> 9. Module Roadmap &mdash; All 27+ Modules</h2>
+
+<table>
+  <tr><th>Layer</th><th>Module</th><th>Status</th><th>Phase</th><th>Role in Roadmap</th></tr>
+  <tr><td rowspan="3">Foundation</td><td><code>reaktor-core</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>Base utilities, expect/actual</td></tr>
+  <tr><td><code>reaktor-io</code></td><td><span class="badge done">Done</span></td><td>P4</td><td>Network for CI/telemetry API calls</td></tr>
+  <tr><td><code>reaktor-db</code></td><td><span class="badge done">Done</span></td><td>P3</td><td>Command history persistence</td></tr>
+
+  <tr><td rowspan="5">Engine</td><td><code>reaktor-graph-port</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>Port/Edge/Visitor foundation</td></tr>
+  <tr><td><code>reaktor-graph</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>Runtime graph, all node types</td></tr>
+  <tr><td><code>reaktor-graph-ksp</code></td><td><span class="badge next">New</span></td><td>P1</td><td>Compile-time manifest generation</td></tr>
+  <tr><td><code>reaktor-ui</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>ComposeNode, renderer for preview</td></tr>
+  <tr><td><code>reaktor-auth</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>Auth for cloud API connections</td></tr>
+
+  <tr><td rowspan="4">Tooling</td><td><code>compose-flow</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>Compose port of React Flow</td></tr>
+  <tr><td><code>reaktor-flow</code></td><td><span class="badge wip">Stabilize</span></td><td>P1</td><td>Graph canvas, layout, overlays</td></tr>
+  <tr><td><code>reaktor-workbench</code></td><td><span class="badge next">New</span></td><td>P1-P5</td><td>All 5 screens, inspector, drawer, agent</td></tr>
+  <tr><td><code>reaktor-mcp</code></td><td><span class="badge next">New</span></td><td>P3</td><td>MCP server exposing graph to external tools</td></tr>
+
+  <tr><td rowspan="3">Platform</td><td><code>reaktor-media</code></td><td><span class="badge done">Done</span></td><td>&mdash;</td><td>Media handling</td></tr>
+  <tr><td><code>reaktor-tactile</code></td><td><span class="badge wip">WIP</span></td><td>&mdash;</td><td>Design system for the workbench UI itself</td></tr>
+  <tr><td><code>reaktor-analytics</code></td><td><span class="badge next">New</span></td><td>P4</td><td>Telemetry collection + correlation</td></tr>
+
+  <tr><td rowspan="3">Applications</td><td><code>bestbuds/engine</code></td><td><span class="badge done">Done</span></td><td>P1-P2</td><td>Desktop workbench entry point</td></tr>
+  <tr><td><code>bestbuds/reaktorDesktop</code></td><td><span class="badge done">Done</span></td><td>P1</td><td>JVM Desktop target</td></tr>
+  <tr><td><code>bestbuds/reaktorWeb-compose</code></td><td><span class="badge next">New</span></td><td>P5</td><td>Compose/JS web target</td></tr>
+</table>
+
+
+
+<h2 id="personas"><span class="icon" style="background:rgba(63,191,120,0.15); color:var(--ok)">&#x263A;</span> 10. Persona Journeys</h2>
+
+<div class="card">
+  <h4>KMP Developer &mdash; "I need to add Apple Pay to the checkout flow"</h4>
+  <ol>
+    <li>Open Reaktor Desktop. Graph screen shows the full BestBuds architecture.</li>
+    <li>Cmd+K &rarr; "checkout" &rarr; selects <code>screen:CheckoutScreen</code>.</li>
+    <li>Inspector shows: CheckoutScreen &rarr; PaymentInteractor &rarr; PaymentService &rarr; cf.workers/payment &rarr; stripe.api.</li>
+    <li>Click "Ask Agent" &rarr; "Add Apple Pay as a payment method alongside Stripe".</li>
+    <li>Agent reads graph, generates commands: <code>AddNode(ServiceNode, "ApplePayService")</code>, <code>ConnectPorts(PaymentInteractor.output, ApplePayService.input)</code>, <code>AddNode(EdgeNode, "apple.pay.api")</code>, etc.</li>
+    <li>Review commands in Queue tab. Approve. Agent generates CodeDiff.</li>
+    <li>Review diff in CodeDiff tab. Accept. Code written to project. IntelliJ auto-refreshes.</li>
+    <li>Switch to Run screen. Preview shows new Apple Pay button. Click it &rarr; trace shows the full new action chain.</li>
+    <li>Switch to Deploy. CI shows tests passing. Click "Push to Staging".</li>
+    <li>Switch to Insights. 30 minutes later, see Apple Pay adoption rate in the heatmap.</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h4>Product Manager &mdash; "Why is onboarding conversion dropping?"</h4>
+  <ol>
+    <li>Open reaktor.build in browser (read-only PM view).</li>
+    <li>Insights screen shows: onboarding funnel conversion dropped 8% after deploy v812.</li>
+    <li>Click the deploy marker on the timeline &rarr; sees which entities changed in v812.</li>
+    <li>Click <code>screen:OnboardingScreen</code> &rarr; inspector shows crash-free rate dropped to 94%.</li>
+    <li>DevTools trace shows: <code>loginWithApple</code> action is timing out for 12% of users.</li>
+    <li>PM annotates the entity: "Investigate Apple login timeout &mdash; blocking 8% conversion drop".</li>
+    <li>Annotation appears in the developer's Reaktor Desktop immediately.</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h4>DevOps &mdash; "Is it safe to promote v813 to production?"</h4>
+  <ol>
+    <li>Open Deploy screen. See staging environment: all CI steps passed, 3 workers updated.</li>
+    <li>Click "cf.workers/auth" in topology &rarr; EdgeInspector shows: p95 on staging = 142ms (within SLA), error rate = 0.3% (below threshold).</li>
+    <li>Click "Blast radius" &rarr; shows 14 entities across 6 modules affected by this deploy.</li>
+    <li>Check Insights for staging metrics: all green after 2 hours of soak time.</li>
+    <li>Click "Promote to Production" &rarr; confirms &rarr; production deploy starts &rarr; status streams into Logs tab.</li>
+  </ol>
+</div>
+
+
+
+<h2 id="competitive"><span class="icon" style="background:rgba(239,91,91,0.15); color:var(--error)">&#x2694;</span> 11. Competitive Moats Over Time</h2>
+
+<table>
+  <tr><th>Phase</th><th>What Ships</th><th>Moat Created</th><th>Competitor Gap</th></tr>
+  <tr>
+    <td><strong>P1</strong></td>
+    <td>Live navigable graph + IDE bridge</td>
+    <td>Only tool that shows the full architecture of a KMP app</td>
+    <td>No competitor has a typed graph. Cursor/Claude Code read code as text.</td>
+  </tr>
+  <tr>
+    <td><strong>P2</strong></td>
+    <td>5 screens + inspector + drawer</td>
+    <td>Only tool where UI, logic, backend, deploy, and analytics are in one view</td>
+    <td>FlutterFlow: UI only. n8n: backend only. Grafana: metrics only. All separate tools.</td>
+  </tr>
+  <tr>
+    <td><strong>P3</strong></td>
+    <td>Command pattern + LLM + MCP server</td>
+    <td>Structured change protocol beats raw code diffs. MCP makes Reaktor the brain for other AI tools.</td>
+    <td>Bolt/Lovable generate code but can't explain it. Claude Code generates diffs but has no architecture model.</td>
+  </tr>
+  <tr>
+    <td><strong>P4</strong></td>
+    <td>Real CI/CD + telemetry + proactive agent</td>
+    <td>Only tool that correlates deploys with metrics with graph changes. Agent monitors proactively.</td>
+    <td>Codex has Automations but no graph context. Grafana has dashboards but no code awareness.</td>
+  </tr>
+  <tr>
+    <td><strong>P5</strong></td>
+    <td>Multi-persona + web + scaffold-from-prompt</td>
+    <td>Network effect: every persona in the org uses the same tool. Template marketplace creates switching cost.</td>
+    <td>No competitor serves PM, QA, DevOps, and marketing alongside developers.</td>
+  </tr>
+  <tr>
+    <td><strong>P6</strong></td>
+    <td>Plugins + enterprise + ecosystem</td>
+    <td>Custom plugins, accumulated command history, team workflows make switching impossible.</td>
+    <td>n8n has plugin ecosystem ($2.5B) but only for automation. Reaktor covers the full application.</td>
+  </tr>
+</table>
+
+
+
+<h2 id="gtm"><span class="icon" style="background:rgba(54,196,212,0.15); color:var(--cloud)">&#x1F680;</span> 12. Go-to-Market Strategy</h2>
+
+<div class="card">
+  <h4>Phase 1-2: Developer-First (Weeks 0-16)</h4>
+  <ul>
+    <li><strong>Target:</strong> KMP developers (growing community, ~100K developers by 2026)</li>
+    <li><strong>Channel:</strong> Open-source the graph modules (<code>reaktor-graph</code>, <code>reaktor-graph-port</code>, <code>reaktor-flow</code>). The workbench is the commercial product.</li>
+    <li><strong>Hook:</strong> "See your entire KMP app as a navigable graph. Click a button &rarr; trace to the database." Demo with BestBuds as the reference app.</li>
+    <li><strong>Pricing:</strong> Free for individual developers. $29/mo for IDE bridge + inspector + deploy screen.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h4>Phase 3-4: AI-Powered Development (Weeks 16-32)</h4>
+  <ul>
+    <li><strong>Target:</strong> Teams adopting AI-assisted development</li>
+    <li><strong>Channel:</strong> Integration announcements with Claude Code, Cursor, Codex via MCP. "The architectural layer your AI IDE is missing."</li>
+    <li><strong>Hook:</strong> "Your AI generates code. Reaktor tells it what code to generate." Show command &rarr; LLM &rarr; CodeDiff pipeline.</li>
+    <li><strong>Pricing:</strong> $79/mo per seat for AI features (command pattern, agent, MCP server). Usage-based for LLM API calls.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h4>Phase 5-6: Platform for Teams (Weeks 32-60)</h4>
+  <ul>
+    <li><strong>Target:</strong> Product teams (5-50 people) building production apps</li>
+    <li><strong>Channel:</strong> PM/QA/DevOps access as free readers. Developers pay for edit access. Enterprise sales for large teams.</li>
+    <li><strong>Hook:</strong> "One tool for your entire team &mdash; from the developer writing code to the PM reading analytics."</li>
+    <li><strong>Pricing:</strong> $29/mo readers, $79/mo editors, $199/mo enterprise seats. Custom pricing for self-hosted.</li>
+  </ul>
+</div>
+
+
+
+<h2 id="risks"><span class="icon" style="background:rgba(239,91,91,0.15); color:var(--error)">&#x26A0;</span> 13. Risks &amp; Mitigations</h2>
+
+<table>
+  <tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr>
+  <tr>
+    <td><strong>Compose/JS maturity</strong> &mdash; Web target may have performance or compatibility issues</td>
+    <td><span class="badge critical">High</span></td>
+    <td>Build everything in commonMain. Test Web early in P1. React prototype remains as fallback with JSON API to the real graph runtime.</td>
+  </tr>
+  <tr>
+    <td><strong>KMP market size</strong> &mdash; KMP developer community is smaller than React/Flutter</td>
+    <td><span class="badge wip">Medium</span></td>
+    <td>The graph model is framework-agnostic. P6 plugins can add React/Flutter/SwiftUI node types. KMP is the first target, not the only target.</td>
+  </tr>
+  <tr>
+    <td><strong>AI coding agents commoditize everything</strong> &mdash; Claude Code / Codex make visual tools irrelevant</td>
+    <td><span class="badge wip">Medium</span></td>
+    <td>The graph is what AI agents <em>need</em>, not what they replace. MCP server strategy: become the architectural layer that feeds AI tools. The more AI generates code, the more you need a graph to understand what it generated.</td>
+  </tr>
+  <tr>
+    <td><strong>Scope creep</strong> &mdash; 5 screens + inspector + drawer + agent + deploy + analytics is enormous</td>
+    <td><span class="badge critical">High</span></td>
+    <td>Each phase has strict exit criteria. P1 delivers standalone value. P2 delivers standalone value. No phase depends on the next one shipping. The web prototype serves as the spec &mdash; don't redesign, just implement.</td>
+  </tr>
+  <tr>
+    <td><strong>GraphManifest freshness</strong> &mdash; Manifest may drift from code between compiles</td>
+    <td><span class="badge wip">Medium</span></td>
+    <td>Incremental KSP processing on file save. Gradle continuous build mode. Worst case: "Manifest stale, rebuild?" prompt in workbench.</td>
+  </tr>
+  <tr>
+    <td><strong>LLM code quality</strong> &mdash; Generated code from commands may have errors</td>
+    <td><span class="badge wip">Medium</span></td>
+    <td>Every generated diff goes through review. Compile + test after apply. The agent iterates on failures (like Claude Code). The structured command gives the LLM far more context than a raw prompt.</td>
+  </tr>
+</table>
+
+
+
+<h2 id="success"><span class="icon" style="background:rgba(63,191,120,0.15); color:var(--ok)">&#x2605;</span> 14. Success Metrics</h2>
+
+<table>
+  <tr><th>Metric</th><th>P1 Target</th><th>P2 Target</th><th>P4 Target</th><th>P6 Target</th></tr>
+  <tr><td><strong>Graph entities rendered</strong></td><td>All BestBuds entities (38+)</td><td>Any KMP app</td><td>Any KMP app + infra</td><td>Any framework</td></tr>
+  <tr><td><strong>Time to first graph</strong></td><td>&lt;5 min (existing app)</td><td>&lt;5 min</td><td>&lt;5 min</td><td>&lt;2 min (from prompt)</td></tr>
+  <tr><td><strong>Commands applied per session</strong></td><td>&mdash;</td><td>&mdash;</td><td>5+ (useful)</td><td>20+ (primary workflow)</td></tr>
+  <tr><td><strong>Non-developer users</strong></td><td>0</td><td>0</td><td>1-2 per team</td><td>3-5 per team</td></tr>
+  <tr><td><strong>MCP queries from external tools</strong></td><td>&mdash;</td><td>&mdash;</td><td>100+/day</td><td>1000+/day</td></tr>
+  <tr><td><strong>Weekly active developers</strong></td><td>1 (you)</td><td>5-10 (alpha testers)</td><td>100+</td><td>5,000+</td></tr>
+  <tr><td><strong>Agent interventions accepted</strong></td><td>&mdash;</td><td>&mdash;</td><td>3+/week</td><td>Daily habit</td></tr>
+</table>
+
+<div class="quote-block" style="margin-top: 32px; border-left-color: var(--ok);">
+  The ultimate success metric: <strong>a developer opens Reaktor before they open their IDE</strong>. They look at the graph to understand what to change, use the agent to generate the change, review it in the CodeDiff tab, and only switch to IntelliJ when they need to hand-tune something the AI got wrong. The IDE becomes the fallback, not the primary tool.
+</div>
+
+
+
+<div style="margin-top:64px; padding-top:24px; border-top:1px solid #1a2031; color:var(--t-4); font-size:12px;">
+  Reaktor Strategic Roadmap &mdash; Generated 2026-05-16 &mdash; reaktor.build
+</div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

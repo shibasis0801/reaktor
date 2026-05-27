@@ -1,0 +1,1559 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>reaktorWeb → reaktor-graph Migration Plan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f4f7fb;
+      --paper: #ffffff;
+      --ink: #172026;
+      --muted: #5b6878;
+      --line: #d7dfeb;
+      --strong: #11395f;
+      --accent: #167761;
+      --accent-soft: #e8f6f1;
+      --warn: #9a5b12;
+      --warn-soft: #fff3df;
+      --done: #28654f;
+      --done-soft: #e8f5ed;
+      --planned: #42556d;
+      --planned-soft: #eef3f8;
+      --code: #111820;
+      --code-ink: #edf4fb;
+      --purple: #6d28d9;
+      --purple-soft: #f3eeff;
+      --red: #b91c1c;
+      --red-soft: #fef2f2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      background: linear-gradient(135deg, #102b45 0%, #1a3a5c 50%, #0d2233 100%);
+      color: #f8fbff;
+      border-bottom: 4px solid var(--accent);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .hero { padding: 48px 0 40px; }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #a7d7cb;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.1;
+    }
+
+    .summary {
+      max-width: 900px;
+      margin: 18px 0 0;
+      color: #d9e8f5;
+      font-size: 18px;
+    }
+
+    main { padding: 32px 0 72px; }
+
+    h2 {
+      margin: 48px 0 16px;
+      font-size: 26px;
+      color: var(--strong);
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      margin: 32px 0 12px;
+      font-size: 20px;
+      color: var(--strong);
+    }
+
+    h4 {
+      margin: 24px 0 8px;
+      font-size: 17px;
+      color: var(--ink);
+    }
+
+    p, ul, ol { margin: 8px 0; }
+    li { margin: 3px 0; }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 16px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .card h3 { margin-top: 0; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 800px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .pill-accent { background: var(--accent-soft); color: var(--accent); }
+    .pill-warn { background: var(--warn-soft); color: var(--warn); }
+    .pill-done { background: var(--done-soft); color: var(--done); }
+    .pill-planned { background: var(--planned-soft); color: var(--planned); }
+    .pill-purple { background: var(--purple-soft); color: var(--purple); }
+    .pill-red { background: var(--red-soft); color: var(--red); }
+
+    pre {
+      background: var(--code);
+      color: var(--code-ink);
+      border-radius: 8px;
+      padding: 18px 22px;
+      overflow-x: auto;
+      font: 13.5px/1.5 "SF Mono", "Fira Code", Menlo, monospace;
+      margin: 12px 0;
+    }
+
+    code {
+      font: 13.5px/1.5 "SF Mono", "Fira Code", Menlo, monospace;
+      background: #edf2f7;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #f0f4f8;
+      border-bottom: 2px solid var(--line);
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .diagram {
+      background: #0d1b2a;
+      color: #e0e8f0;
+      border-radius: 10px;
+      padding: 24px 28px;
+      font: 13px/1.6 "SF Mono", "Fira Code", Menlo, monospace;
+      overflow-x: auto;
+      margin: 16px 0;
+      white-space: pre;
+    }
+
+    .note {
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 20px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    .warning {
+      background: var(--warn-soft);
+      border-left: 4px solid var(--warn);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 20px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    .critical {
+      background: var(--red-soft);
+      border-left: 4px solid var(--red);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 20px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    .toc {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px 28px;
+      margin: 24px 0;
+    }
+
+    .toc ol { padding-left: 20px; }
+    .toc li { margin: 6px 0; }
+    .toc a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .toc a:hover { text-decoration: underline; }
+
+    .metric-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+
+    .metric {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px 20px;
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .metric .label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+
+    .metric .value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--strong);
+      margin-top: 4px;
+    }
+
+    .metric .sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 32px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 28px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--paper);
+    }
+
+    .timeline-item .phase-title {
+      font-weight: 800;
+      font-size: 17px;
+      color: var(--strong);
+    }
+
+    .timeline-item .phase-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    details {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 8px 0;
+    }
+
+    details summary {
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--strong);
+    }
+
+    details[open] summary {
+      border-bottom: 1px solid var(--line);
+    }
+
+    details .detail-body {
+      padding: 16px;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 24px 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <p class="eyebrow">Architecture Migration Plan</p>
+    <h1>reaktorWeb → reaktor-graph</h1>
+    <p class="summary">
+      Decompose a 14K-line React workbench into a polyglot reaktor-graph application.
+      Common core in Kotlin, dual renderers (engine + website), reactive in-memory store,
+      and self-referential graph visualization.
+    </p>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+<!-- ═══════════════════════════ TOC ═══════════════════════════ -->
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#situation">Situation &amp; Goals</a></li>
+    <li><a href="#polyglot">Polyglot Graph Design</a></li>
+    <li><a href="#memstore">In-Memory Reactive Store</a></li>
+    <li><a href="#topology">Navigation Topology</a></li>
+    <li><a href="#decomposition">State Decomposition</a></li>
+    <li><a href="#services">Service Modeling</a></li>
+    <li><a href="#selfviz">Self-Referential Visualization</a></li>
+    <li><a href="#dualrenderer">Dual Renderer Architecture</a></li>
+    <li><a href="#migration">Migration File Map</a></li>
+    <li><a href="#sprints">Sprint Plan</a></li>
+    <li><a href="#risks">Risk Matrix</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════ 1 ═══════════════════════════ -->
+
+<h2 id="situation">1. Situation &amp; Goals</h2>
+
+<div class="metric-row">
+  <div class="metric">
+    <div class="label">Total Source</div>
+    <div class="value">14,368</div>
+    <div class="sub">lines across 30+ files</div>
+  </div>
+  <div class="metric">
+    <div class="label">Screens</div>
+    <div class="value">10</div>
+    <div class="sub">mode screens + nested views</div>
+  </div>
+  <div class="metric">
+    <div class="label">State Fields</div>
+    <div class="value">40+</div>
+    <div class="sub">in ScenarioContext god object</div>
+  </div>
+  <div class="metric">
+    <div class="label">Mock Data</div>
+    <div class="value">80+</div>
+    <div class="sub">hardcoded entities</div>
+  </div>
+</div>
+
+<h3>What exists today</h3>
+<p><strong>reaktorWeb</strong> is a React 19 workbench deployed on Cloudflare Workers. It has 10 modes (graph, agent, database, auth, deploy, insights, etc.), complex state management via a single React context (<code>ScenarioContext</code> — 762 lines), hash-based routing, mock services, and @xyflow/react graph visualization. Everything runs on hardcoded mock data.</p>
+
+<p><strong>reaktor-graph</strong> is a Kotlin Multiplatform graph framework with a mature JS target:</p>
+<ul>
+  <li><code>WebHost</code> — entry point wrapping a Graph with <code>WebNavigationBridge</code></li>
+  <li><code>StateFlow.toReactState()</code> — bidirectional Kotlin StateFlow ↔ React useState bridge</li>
+  <li><code>ReactNode&lt;State&gt;</code> — Kotlin wrapper making React components act as graph nodes</li>
+  <li><code>ReactContainer</code> / <code>ReactContent</code> — interfaces for graph-driven rendering</li>
+  <li><code>WebBottomNavigationContainer</code> / <code>WebTabbedContainer</code> — container implementations</li>
+  <li><code>GraphContentComponent</code> — FC that renders based on backStack top entry</li>
+  <li><code>@JsExport</code> throughout, karakum TypeScript type generation</li>
+</ul>
+
+<h3>Goals</h3>
+<div class="grid-2">
+  <div class="card">
+    <h4>G1 — Polyglot Graph Application</h4>
+    <p>reaktorWeb becomes a reaktor-graph application. The graph model is usable from both Kotlin and TypeScript. React components consume the graph via typed port access.</p>
+  </div>
+  <div class="card">
+    <h4>G2 — Reactive In-Memory Store</h4>
+    <p>Design a graph-native reactive store that holds shared state across components. Aligns with reaktor principles: ports for access, scoped lifetime, observable via StateFlow.</p>
+  </div>
+  <div class="card">
+    <h4>G3 — Common Core, Dual Renderers</h4>
+    <p>The graph definition (nodes, routes, services, ports) lives in shared Kotlin. The engine module (Compose Desktop) and reaktorWeb (React) are two renderers of the same graph.</p>
+  </div>
+  <div class="card">
+    <h4>G4 — Self-Referential Visualization</h4>
+    <p>The graph screen visualizes the app's own live graph via <code>buildReaktorFlowGraph()</code> — the ultimate stress test of the introspection API.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ 2 ═══════════════════════════ -->
+
+<h2 id="polyglot">2. Polyglot Graph Design</h2>
+
+<p>reaktor-graph is Kotlin Multiplatform, but the website is React/TypeScript. The polyglot bridge must feel natural in both languages.</p>
+
+<h3>2.1 Current JS Target Surface</h3>
+
+<p>These are already <code>@JsExport</code>ed and proven:</p>
+
+<table>
+  <tr><th>Kotlin Class</th><th>JS Usage</th><th>Status</th></tr>
+  <tr><td><code>WebHost</code></td><td>Entry point: <code>new WebHost(graph)</code></td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>WebNavigationBridge</code></td><td>backStack ↔ browser history sync</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>StateFlow.toReactState()</code></td><td>Bidirectional StateFlow → React useState</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>ReactNode&lt;State&gt;</code></td><td>Graph node wrapping a React component</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>ReactContainer</code></td><td>Container rendering child graphs</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>GraphContentComponent</code></td><td>Renders backStack top entry</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>WebBottomNavigationContainer</code></td><td>Tab bar container</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>Graph.toJsonElement()</code></td><td>JSON serialization of graph structure</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>ServiceNode</code></td><td>Service with typed handlers</td><td><span class="pill pill-done">Ready</span></td></tr>
+  <tr><td><code>JsRequestHandler</code></td><td>Promise-based handler bridge</td><td><span class="pill pill-done">Ready</span></td></tr>
+</table>
+
+<h3>2.2 TypeScript Interop Architecture</h3>
+
+<p>The polyglot boundary has three layers:</p>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────────────┐
+│  TypeScript / React                                                 │
+│                                                                     │
+│  import { useGraph, usePort, useNavigation } from 'reaktor-web'     │
+│  import type { WorkbenchState, GraphPort } from 'reaktor-web'       │
+│                                                                     │
+│  function GraphScreen() {                                           │
+│    const graph = useGraph()                                         │
+│    const { selectedId } = usePort&lt;WorkbenchState&gt;('workbench')      │
+│    const nav = useNavigation()                                      │
+│    ...                                                              │
+│  }                                                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│  Bridge Layer  (reaktor-web/src/hooks/)                             │
+│                                                                     │
+│  useGraph()      → React context holding WebHost instance           │
+│  usePort(key)    → StateFlow.toReactState() for a named port        │
+│  useNavigation() → Push/Pop/Replace via graph.dispatch()            │
+│  useService(key) → Promise-based handler invocation                 │
+│  useStore(key)   → In-memory store slot access                      │
+├─────────────────────────────────────────────────────────────────────┤
+│  Kotlin/JS  (@JsExport)                                            │
+│                                                                     │
+│  WebHost(graph)  ← Graph built in commonMain or jsMain              │
+│  Graph, Node, Port, Edge, Service, StateFlow, NavCommand            │
+│  toReactFlowData() for self-visualization                           │
+└─────────────────────────────────────────────────────────────────────┘</div>
+
+<h3>2.3 React Hook API Design</h3>
+
+<p>These hooks are the TypeScript-facing API. They wrap the Kotlin/JS exports into idiomatic React patterns:</p>
+
+<pre><code>// reaktor-web/src/hooks/use-graph.ts
+// React context holding the WebHost + Graph instance
+const GraphContext = createContext&lt;WebHost | null&gt;(null)
+
+export function GraphProvider({ graph, children }) {
+  const host = useMemo(() =&gt; {
+    const h = new WebHost(graph)
+    h.start()
+    return h
+  }, [graph])
+
+  useEffect(() =&gt; () =&gt; host.destroy(), [host])
+
+  return &lt;GraphContext.Provider value={host}&gt;{children}&lt;/GraphContext.Provider&gt;
+}
+
+export function useGraph(): WebHost {
+  return useContext(GraphContext)!
+}
+</code></pre>
+
+<pre><code>// reaktor-web/src/hooks/use-port.ts
+// Subscribe to a ProviderPort's StateFlow value by port key
+export function usePort&lt;T&gt;(nodeLabel: string, portKey: string): T {
+  const host = useGraph()
+  const node = host.graph.findNode(nodeLabel)
+  const port = node.findProvider(portKey)
+  // port.impl is a StateFlow — toReactState() bridges it
+  const [value] = port.impl.toReactState()
+  return value as T
+}
+</code></pre>
+
+<pre><code>// reaktor-web/src/hooks/use-navigation.ts
+export function useNavigation() {
+  const host = useGraph()
+  return {
+    push: (pattern: string, params?: Record&lt;string, string&gt;) =&gt;
+      host.navigateToPattern(pattern, params),
+    pop: () =&gt; host.goBack(),
+    topPattern: () =&gt; host.topPattern(),
+    stackSize: () =&gt; host.stackSize(),
+  }
+}
+</code></pre>
+
+<h3>2.4 Kotlin Exports Needed</h3>
+
+<p>New <code>@JsExport</code> additions required on reaktor-graph:</p>
+
+<table>
+  <tr><th>Export</th><th>Purpose</th><th>Location</th></tr>
+  <tr><td><code>Graph.findNode(label)</code></td><td>Lookup node by label for port access</td><td>Graph.kt</td></tr>
+  <tr><td><code>Node.findProvider(key)</code></td><td>Lookup provider port by key string</td><td>Node.kt</td></tr>
+  <tr><td><code>Node.findConsumer(key)</code></td><td>Lookup consumer port by key string</td><td>Node.kt</td></tr>
+  <tr><td><code>WebHost.navigateToPattern(pattern, params)</code></td><td>URL-based navigation from TS</td><td>WebHost.kt</td></tr>
+  <tr><td><code>MemoryStore</code> (new)</td><td>In-memory reactive store</td><td>New file</td></tr>
+  <tr><td><code>Graph.toJsonElement()</code></td><td>Already exists, verify @JsExport</td><td>GraphJson.kt</td></tr>
+</table>
+
+<div class="note">
+  <strong>Key principle:</strong> Kotlin owns the graph model, navigation, state, and services. TypeScript owns the rendering. The bridge layer (hooks) translates between the two worlds. React components never directly create or mutate graph nodes — they read port values and dispatch commands.
+</div>
+
+<!-- ═══════════════════════════ 3 ═══════════════════════════ -->
+
+<h2 id="memstore">3. In-Memory Reactive Store</h2>
+
+<p>reaktorWeb needs cross-cutting state: <code>selectedId</code>, <code>graphFocus</code>, <code>edgeFilters</code>, <code>theme</code>, <code>notifications</code>, etc. Currently this is a React context god object. We need a graph-native replacement.</p>
+
+<h3>3.1 Design Principles</h3>
+
+<div class="grid-3">
+  <div class="card">
+    <h4>Port-Aligned</h4>
+    <p>Every store slot is a ProviderPort on a StoreNode. Consumers wire to it via edges, just like any other port connection.</p>
+  </div>
+  <div class="card">
+    <h4>Scoped Lifetime</h4>
+    <p>Store slots die when their owning node is detached. No zombie state. The graph lifecycle manages cleanup.</p>
+  </div>
+  <div class="card">
+    <h4>Observable</h4>
+    <p>Every slot is a <code>MutableStateFlow&lt;T&gt;</code>. Kotlin collects it, React bridges via <code>toReactState()</code>. One reactive primitive everywhere.</p>
+  </div>
+</div>
+
+<h3>3.2 Architecture</h3>
+
+<div class="diagram">
+┌──────────────────────────────────────────────────────────────┐
+│  MemoryStore                                                  │
+│  (BasicNode on the Graph — sibling to route/service nodes)    │
+│                                                               │
+│  ┌─────────────────────┐  ┌──────────────────────────────┐   │
+│  │ Slot: "selection"   │  │ Slot: "layout"               │   │
+│  │ MutableStateFlow&lt;   │  │ MutableStateFlow&lt;            │   │
+│  │   SelectionState    │  │   LayoutState                │   │
+│  │ &gt;                   │  │ &gt;                            │   │
+│  │                     │  │                              │   │
+│  │ ProviderPort        │  │ ProviderPort                 │   │
+│  │  key="selection"    │  │  key="layout"                │   │
+│  └────────┬────────────┘  └────────┬─────────────────────┘   │
+│           │                        │                          │
+│  ┌─────────────────────┐  ┌──────────────────────────────┐   │
+│  │ Slot: "environment" │  │ Slot: "notifications"        │   │
+│  │ MutableStateFlow&lt;   │  │ MutableStateFlow&lt;            │   │
+│  │   EnvironmentState  │  │   List&lt;Notification&gt;         │   │
+│  │ &gt;                   │  │ &gt;                            │   │
+│  │ ProviderPort        │  │ ProviderPort                 │   │
+│  │  key="environment"  │  │  key="notifications"         │   │
+│  └─────────────────────┘  └──────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
+         │              │              │              │
+    ┌────┘    ┌─────────┘    ┌─────────┘    ┌────────┘
+    ▼         ▼              ▼              ▼
+ GraphScreen  AgentScreen    Shell          Inspector
+ (consumes    (consumes      (consumes      (consumes
+  selection)   selection)     layout)        selection)</div>
+
+<h3>3.3 Store Node Implementation</h3>
+
+<pre><code>// reaktor-graph commonMain — new file
+// dev/shibasis/reaktor/graph/store/MemoryStore.kt
+
+@JsExport
+class MemoryStore(graph: Graph) : BasicNode(graph) {
+    private val slots = mutableMapOf&lt;String, MutableStateFlow&lt;Any?&gt;&gt;()
+
+    // Create a typed slot and register it as a ProviderPort
+    fun &lt;T&gt; slot(key: String, initial: T): MutableStateFlow&lt;T&gt; {
+        val flow = MutableStateFlow&lt;Any?&gt;(initial)
+        slots[key] = flow
+        registerProvider(
+            Port.KeyType(Port.Key(key), Port.Type(key)),
+            flow
+        )
+        @Suppress("UNCHECKED_CAST")
+        return flow as MutableStateFlow&lt;T&gt;
+    }
+
+    // Read-only access for JS interop
+    fun get(key: String): Any? = slots[key]?.value
+    fun set(key: String, value: Any?) { slots[key]?.value = value }
+    fun flow(key: String): StateFlow&lt;Any?&gt;? = slots[key]
+
+    // Batch update — mutate multiple slots atomically
+    fun update(block: (slots: MutableMap&lt;String, Any?&gt;) -&gt; Unit) {
+        val snapshot = slots.mapValues { it.value.value }.toMutableMap()
+        block(snapshot)
+        snapshot.forEach { (key, value) -&gt; slots[key]?.value = value }
+    }
+}</code></pre>
+
+<h3>3.4 Store Slot Types (Kotlin — shared by both renderers)</h3>
+
+<pre><code>// Common state types — used by engine and website
+@Serializable
+data class SelectionState(
+    val selectedId: String? = null,
+    val graphFocus: GraphFocus = GraphFocus.NONE,
+    val edgeFilters: Set&lt;String&gt; = emptySet(),
+)
+
+@Serializable
+data class LayoutState(
+    val drawerOpen: Boolean = true,
+    val drawerHeight: Int = 260,
+    val drawerTab: String = "cmds",
+    val leftWidth: Int = 240,
+    val rightWidth: Int = 300,
+    val leftCollapsed: Boolean = false,
+    val rightCollapsed: Boolean = false,
+)
+
+@Serializable
+data class EnvironmentState(
+    val project: String = "bestbuds",
+    val environment: String = "staging",
+    val deviceTarget: String = "iPhone 16 Pro",
+    val locale: String = "en",
+    val themeMode: String = "dark",
+    val networkMode: String = "online",
+)
+
+@Serializable
+enum class GraphFocus { NONE, SELECTED, TRACE, BLAST, TESTS }</code></pre>
+
+<h3>3.5 TypeScript Access via React Hooks</h3>
+
+<pre><code>// useStore hook — typed access to MemoryStore slots
+export function useStore&lt;T&gt;(key: string): [T, (value: T) =&gt; void] {
+  const host = useGraph()
+  const store = host.graph.findNode('store') as MemoryStore
+  const flow = store.flow(key)
+  const [value] = flow.toReactState()
+  const setter = useCallback((v: T) =&gt; store.set(key, v), [store, key])
+  return [value as T, setter]
+}
+
+// Usage in a React component
+function GraphScreen() {
+  const [selection, setSelection] = useStore&lt;SelectionState&gt;('selection')
+  const [layout] = useStore&lt;LayoutState&gt;('layout')
+
+  const onNodeClick = (nodeId: string) =&gt; {
+    setSelection({ ...selection, selectedId: nodeId })
+  }
+  // ...
+}</code></pre>
+
+<h3>3.6 How This Relates to the Object Database</h3>
+
+<div class="card">
+  <table>
+    <tr><th>Layer</th><th>Purpose</th><th>Lifetime</th><th>Access Pattern</th></tr>
+    <tr>
+      <td><strong>MemoryStore</strong></td>
+      <td>UI state, cross-component reactivity</td>
+      <td>Graph lifetime (session)</td>
+      <td>StateFlow → React hooks, port wiring</td>
+    </tr>
+    <tr>
+      <td><strong>Object Database</strong></td>
+      <td>Persistent cache, offline data</td>
+      <td>Across sessions (disk)</td>
+      <td>Queries, write-through, migrations</td>
+    </tr>
+    <tr>
+      <td><strong>Remote API</strong></td>
+      <td>Server of record</td>
+      <td>Permanent</td>
+      <td>ServiceNode handlers, HTTP</td>
+    </tr>
+  </table>
+  <p style="margin-top:12px">The <strong>MemoryStore</strong> sits between the Object Database and React components. On startup, it hydrates from the Object Database. During the session, it holds the working set. On meaningful changes, it writes through to the Object Database. This is exactly the <code>RepositoryNode</code> pattern already in reaktor-graph — <code>writeThrough&lt;T&gt;</code> with <code>CacheResult</code>.</p>
+</div>
+
+<!-- ═══════════════════════════ 4 ═══════════════════════════ -->
+
+<h2 id="topology">4. Navigation Topology</h2>
+
+<h3>4.1 Current: Hash-Based Mode Switching</h3>
+<pre><code>// scenario.jsx — mode is just a React state string
+const [mode, setMode] = useState('graph')
+// Cmd+1 → setMode('graph'), Cmd+2 → setMode('devtools'), etc.
+// Agent sub-routes: #agent/conversation/{id}, #agent/scout/{id}, etc.</code></pre>
+
+<h3>4.2 Target: Graph Navigation with URL Sync</h3>
+
+<div class="diagram">
+RootGraph (label: "workbench")
+│
+├── sentinel: RouteNode("/")
+│     ↓ (default redirect to /graph)
+│
+├── RouteNode("/graph")           → attached: ReactNode&lt;GraphScreen&gt;
+├── RouteNode("/devtools")        → attached: ReactNode&lt;DevToolsScreen&gt;
+├── RouteNode("/ui")              → attached: ReactNode&lt;UiScreen&gt;
+├── RouteNode("/database")        → attached: ReactNode&lt;DatabaseScreen&gt;
+├── RouteNode("/auth")            → attached: ReactNode&lt;AuthScreen&gt;
+├── RouteNode("/ai")              → attached: ReactNode&lt;AiScreen&gt;
+├── RouteNode("/testing")         → attached: ReactNode&lt;TestingScreen&gt;
+├── RouteNode("/deploy")          → attached: ReactNode&lt;DeployScreen&gt;
+├── RouteNode("/insights")        → attached: ReactNode&lt;InsightsScreen&gt;
+│
+├── RouteNode("/agent")           → attached: AgentContainer (ContainerNode)
+│     └── ChildGraph (label: "agent")
+│           ├── RouteNode("/agent/chat")
+│           ├── RouteNode("/agent/chat/{id}")
+│           ├── RouteNode("/agent/scout/{id}")
+│           ├── RouteNode("/agent/queue/{id}")
+│           ├── RouteNode("/agent/manage/{id}")
+│           └── RouteNode("/agent/pipeline")
+│
+├── BasicNode (label: "store")    → MemoryStore
+├── ServiceNode (label: "workbench-svc")  → WorkbenchService
+└── ServiceNode (label: "agent-svc")      → AgentService</div>
+
+<h3>4.3 URL Mapping</h3>
+
+<table>
+  <tr><th>Old (hash)</th><th>New (path)</th><th>Keyboard</th></tr>
+  <tr><td><code>#graph</code> (or just mode state)</td><td><code>/graph</code></td><td>Cmd+1</td></tr>
+  <tr><td><code>#devtools</code></td><td><code>/devtools</code></td><td>Cmd+2</td></tr>
+  <tr><td><code>#agent</code></td><td><code>/agent/chat</code></td><td>Cmd+3</td></tr>
+  <tr><td><code>#agent/conversation/abc</code></td><td><code>/agent/chat/abc</code></td><td>—</td></tr>
+  <tr><td><code>#agent/scout/xyz</code></td><td><code>/agent/scout/xyz</code></td><td>—</td></tr>
+  <tr><td><code>#ui</code></td><td><code>/ui</code></td><td>Cmd+4</td></tr>
+  <tr><td><code>#database</code></td><td><code>/database</code></td><td>Cmd+5</td></tr>
+  <tr><td><code>#auth</code></td><td><code>/auth</code></td><td>Cmd+6</td></tr>
+  <tr><td><code>#ai</code></td><td><code>/ai</code></td><td>Cmd+7</td></tr>
+  <tr><td><code>#testing</code></td><td><code>/testing</code></td><td>Cmd+8</td></tr>
+  <tr><td><code>#deploy</code></td><td><code>/deploy</code></td><td>Cmd+9</td></tr>
+  <tr><td><code>#insights</code></td><td><code>/insights</code></td><td>Cmd+0</td></tr>
+</table>
+
+<p><code>WebNavigationBridge</code> handles all browser history sync — <code>pushState</code> on forward navigation, <code>popstate</code> listener for back button. The Cloudflare Worker's SPA fallback (<code>not_found_handling: "single-page-application"</code>) already handles server-side routing.</p>
+
+<!-- ═══════════════════════════ 5 ═══════════════════════════ -->
+
+<h2 id="decomposition">5. State Decomposition</h2>
+
+<p>The <code>ScenarioContext</code> god object (40+ fields, 762 lines) must decompose into graph-native state. Each domain gets its own node with typed state exposed via ports.</p>
+
+<h3>5.1 Decomposition Map</h3>
+
+<table>
+  <tr>
+    <th>ScenarioContext Fields</th>
+    <th>Target Node</th>
+    <th>Node Type</th>
+    <th>Port Key</th>
+  </tr>
+  <tr>
+    <td><code>selectedId</code>, <code>graphFocus</code>, <code>edgeFilters</code></td>
+    <td>MemoryStore</td>
+    <td>slot: "selection"</td>
+    <td><code>SelectionState</code></td>
+  </tr>
+  <tr>
+    <td><code>drawerOpen/Height/Tab</code>, <code>leftWidth</code>, <code>rightWidth</code>, <code>collapsed</code></td>
+    <td>MemoryStore</td>
+    <td>slot: "layout"</td>
+    <td><code>LayoutState</code></td>
+  </tr>
+  <tr>
+    <td><code>project</code>, <code>environment</code>, <code>device</code>, <code>locale</code>, <code>theme</code>, <code>network</code></td>
+    <td>MemoryStore</td>
+    <td>slot: "environment"</td>
+    <td><code>EnvironmentState</code></td>
+  </tr>
+  <tr>
+    <td><code>mode</code></td>
+    <td>Graph backStack</td>
+    <td>Navigation</td>
+    <td><code>host.topPattern()</code></td>
+  </tr>
+  <tr>
+    <td><code>agentView</code>, <code>agentId</code>, <code>agentConversationId</code>, <code>agents[]</code></td>
+    <td>AgentNode (ControllerNode)</td>
+    <td>Node state</td>
+    <td><code>AgentState</code></td>
+  </tr>
+  <tr>
+    <td><code>dbTier</code>, <code>dbTable</code>, <code>dbTab</code></td>
+    <td>DatabaseNode (ControllerNode)</td>
+    <td>Node state</td>
+    <td><code>DatabaseState</code></td>
+  </tr>
+  <tr>
+    <td><code>authView</code>, <code>authRole</code></td>
+    <td>AuthNode (ControllerNode)</td>
+    <td>Node state</td>
+    <td><code>AuthState</code></td>
+  </tr>
+  <tr>
+    <td><code>deployEnv</code></td>
+    <td>DeployNode (ControllerNode)</td>
+    <td>Node state</td>
+    <td><code>DeployState</code></td>
+  </tr>
+  <tr>
+    <td><code>insightsRange</code>, <code>insightsTab</code>, <code>insightsSeries</code></td>
+    <td>InsightsNode (ControllerNode)</td>
+    <td>Node state</td>
+    <td><code>InsightsState</code></td>
+  </tr>
+  <tr>
+    <td><code>busy</code>, <code>notifications[]</code>, <code>activityLog[]</code>, <code>revision</code></td>
+    <td>MemoryStore</td>
+    <td>slot: "system"</td>
+    <td><code>SystemState</code></td>
+  </tr>
+  <tr>
+    <td><code>actions: { hotReload, deploy, ... }</code></td>
+    <td>WorkbenchService (ServiceNode)</td>
+    <td>Handlers</td>
+    <td>Port per handler</td>
+  </tr>
+</table>
+
+<h3>5.2 Before/After Comparison</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>Before: God Object</h4>
+<pre><code>// scenario.jsx
+function GraphScreen() {
+  const sc = useScenario()
+  // sc has 40+ fields
+  // Re-renders on ANY change
+  const { selectedId, graphFocus,
+    edgeFilters, mode, drawerOpen,
+    agents, dbTier, authView,
+    ... } = sc
+}</code></pre>
+  </div>
+  <div class="card">
+    <h4>After: Targeted Subscriptions</h4>
+<pre><code>// screen-graph.tsx
+function GraphScreen() {
+  const [sel] = useStore&lt;SelectionState&gt;('selection')
+  const nav = useNavigation()
+  // Only re-renders when selection changes
+  // No dependency on agent/db/auth state
+
+  const onNodeClick = (id: string) =&gt;
+    setSelection({ ...sel, selectedId: id })
+}</code></pre>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Performance win:</strong> The current ScenarioContext triggers re-renders in ALL children when ANY field changes. With per-slot StateFlow subscriptions, each component only re-renders when its specific dependencies change. A theme toggle no longer re-renders the graph canvas.
+</div>
+
+<!-- ═══════════════════════════ 6 ═══════════════════════════ -->
+
+<h2 id="services">6. Service Modeling</h2>
+
+<h3>6.1 Current Mock Services</h3>
+
+<pre><code>// mock-services.js — 82 lines of setTimeout-based mocks
+createMockWorkbenchServices() {
+  hotReload({ device })              → wait(420ms)
+  commitBundle({ bundleId, branch }) → wait(520ms)
+  deploy({ env, bundleId })          → wait(650-900ms)
+  rollback({ version, env })         → wait(600ms)
+  runTests({ count })                → wait(760ms)
+  sendToAgent({ bundleId })          → wait(450ms)
+}</code></pre>
+
+<h3>6.2 Target: ServiceNode with Typed Handlers</h3>
+
+<pre><code>// commonMain — shared between engine and web
+class WorkbenchService : Service() {
+    val hotReload = PostHandler.create&lt;HotReloadRequest, StatusResponse&gt;(
+        "/workbench/hot-reload", "HotReload"
+    ) { request -&gt;
+        delay(420) // mock for now, real impl later
+        StatusResponse(statusCode = StatusCode.OK)
+    }
+
+    val commitBundle = PostHandler.create&lt;CommitRequest, StatusResponse&gt;(
+        "/workbench/commit", "CommitBundle"
+    ) { request -&gt;
+        delay(520)
+        StatusResponse(statusCode = StatusCode.OK)
+    }
+
+    val deploy = PostHandler.create&lt;DeployRequest, DeployResponse&gt;(
+        "/workbench/deploy", "Deploy"
+    ) { request -&gt;
+        delay(if (request.env == "production") 900 else 650)
+        DeployResponse(statusCode = StatusCode.OK, version = "1.0.${revision++}")
+    }
+    // ... rollback, runTests, sendToAgent
+}</code></pre>
+
+<p>Each handler becomes a <code>ProviderPort</code> on the <code>ServiceNode</code>. React components consume them via the <code>useService</code> hook:</p>
+
+<pre><code>// TypeScript usage
+function DeployPanel() {
+  const deploy = useService('workbench-svc', 'Deploy')
+  const [env] = useStore&lt;EnvironmentState&gt;('environment')
+
+  const handleDeploy = async () =&gt; {
+    const response = await deploy({ env: env.environment, bundleId: currentBundle })
+    // response is typed DeployResponse
+  }
+}</code></pre>
+
+<!-- ═══════════════════════════ 7 ═══════════════════════════ -->
+
+<h2 id="selfviz">7. Self-Referential Visualization</h2>
+
+<p>The most powerful outcome: the graph screen shows the app's own live graph.</p>
+
+<h3>7.1 Data Pipeline</h3>
+
+<div class="diagram">
+WebHost.graph (live reaktor-graph instance)
+    │
+    ▼
+buildReaktorFlowGraph(graph, style)     ← reaktor-flow commonMain
+    │
+    ▼
+ReaktorFlowGraph                         ← nodes, edges, regions, handles
+    │
+    ▼
+flowGraph.toReactFlowData()              ← reaktor-flow jsMain
+    │
+    ▼
+JsReaktorFlowData                        ← React Flow-compatible arrays
+    │
+    ▼
+&lt;ReactFlow nodes={data.nodes}            ← @xyflow/react
+           edges={data.edges} /&gt;</div>
+
+<h3>7.2 What Gets Visualized</h3>
+
+<table>
+  <tr><th>Graph Element</th><th>Visual Representation</th><th>Kind</th></tr>
+  <tr><td>RouteNode("/graph")</td><td>Blue "Route" card</td><td>Route</td></tr>
+  <tr><td>ReactNode(GraphScreen)</td><td>Green "Screen" card</td><td>Screen</td></tr>
+  <tr><td>AgentContainer</td><td>Orange "Container" card with child graph</td><td>Container</td></tr>
+  <tr><td>WorkbenchService</td><td>Orange "Service" card with handler ports</td><td>Service</td></tr>
+  <tr><td>MemoryStore</td><td>Yellow "Node" card with slot ports</td><td>Node</td></tr>
+  <tr><td>Port edges (consumer→provider)</td><td>Data edges with labels</td><td>Data</td></tr>
+  <tr><td>Navigation edges (route→route)</td><td>Blue navigation arrows</td><td>Navigation</td></tr>
+  <tr><td>Child graph regions</td><td>Colored background overlays</td><td>Region</td></tr>
+</table>
+
+<h3>7.3 Replacing Hardcoded Data</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>Before: Hardcoded Mock</h4>
+<pre><code>// scenario.jsx — 80+ entities
+const ENTITIES = {
+  'route:/onboarding': {
+    type: 'route', title: '/onboarding',
+    pos: { x: COL_0, y: ROW_0, w: 420, h: 140 },
+    ports: { in: ['NavBinding'], out: ['routeBinding'] },
+    ...
+  },
+  // 79 more...
+}
+const EDGES = [ /* 40+ edges */ ]
+const REGIONS = [ /* 6 regions */ ]
+
+// screen-graph.jsx
+const flowData = scenarioToFlowData(ENTITIES, EDGES, REGIONS)</code></pre>
+  </div>
+  <div class="card">
+    <h4>After: Live Graph</h4>
+<pre><code>// screen-graph.tsx
+function GraphScreen() {
+  const host = useGraph()
+  const style = defaultReaktorGraphStyle()
+
+  const flowData = useMemo(() =&gt; {
+    const flowGraph = buildReaktorFlowGraph(
+      host.graph, style
+    )
+    return flowGraph.toReactFlowData()
+  }, [host.graph, /* revision trigger */])
+
+  return &lt;ReactFlow
+    nodes={flowData.nodes}
+    edges={flowData.edges}
+    nodeTypes={nodeTypes}
+  /&gt;
+}</code></pre>
+  </div>
+</div>
+
+<div class="warning">
+  <strong>Infinite recursion guard:</strong> The graph visualization node is itself part of the graph. The <code>Visitor</code> used by <code>buildReaktorFlowGraph</code> must skip nodes marked as <code>introspectionExcluded</code>, or use a depth limit. The <code>StructuralSelector</code> already supports this via selective traversal.
+</div>
+
+<!-- ═══════════════════════════ 8 ═══════════════════════════ -->
+
+<h2 id="dualrenderer">8. Dual Renderer Architecture</h2>
+
+<p>The graph definition is shared. Two renderers consume it independently.</p>
+
+<h3>8.1 Module Layout</h3>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────────────┐
+│  reaktor-graph  (KMP — commonMain)                                  │
+│  Graph, Node, Port, Edge, Service, Navigation, Lifecycle, DI        │
+│  MemoryStore, State types, Service definitions                      │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │
+            ┌───────────────┼───────────────┐
+            ▼               ▼               ▼
+    ┌───────────────┐ ┌──────────────┐ ┌──────────────────┐
+    │  jsMain       │ │  jvmMain     │ │  iosMain/        │
+    │  WebHost      │ │  Spring      │ │  androidMain     │
+    │  ReactNode    │ │  Adapters    │ │  Native adapters │
+    │  toReactState │ │              │ │                  │
+    └───────┬───────┘ └──────┬───────┘ └──────────────────┘
+            │                │
+            ▼                ▼
+┌───────────────────┐ ┌───────────────────────────────────────────┐
+│  reaktorWeb       │ │  engine module (Compose Desktop)           │
+│  (React/TS)       │ │                                           │
+│                   │ │  reaktor-flow ──▶ compose-flow ──▶ Compose │
+│  React hooks      │ │  buildReaktorFlowGraph()                  │
+│  @xyflow/react    │ │  ReaktorGraphEditor                       │
+│  Vite + CF Workers│ │  ReaktorGraphNodeCard                     │
+└───────────────────┘ └───────────────────────────────────────────┘</div>
+
+<h3>8.2 Shared Graph Definition</h3>
+
+<p>The workbench graph definition lives in a shared module (or in the engine module's <code>commonMain</code>) so both renderers consume the same topology:</p>
+
+<pre><code>// commonMain — shared graph builder
+@JsExport
+fun buildWorkbenchGraph(
+    dependencyAdapter: DependencyAdapter? = null
+): Graph {
+    val graph = Graph(
+        label = "workbench",
+        dependencyAdapter = dependencyAdapter
+    )
+
+    // Store
+    val store = MemoryStore(graph).apply {
+        slot("selection", SelectionState())
+        slot("layout", LayoutState())
+        slot("environment", EnvironmentState())
+        slot("system", SystemState())
+    }
+    graph.attach(store)
+
+    // Routes
+    val graphRoute = graph.Route("/graph")
+    val devtoolsRoute = graph.Route("/devtools")
+    val agentRoute = graph.Route("/agent")
+    val uiRoute = graph.Route("/ui")
+    val databaseRoute = graph.Route("/database")
+    val authRoute = graph.Route("/auth")
+    val aiRoute = graph.Route("/ai")
+    val testingRoute = graph.Route("/testing")
+    val deployRoute = graph.Route("/deploy")
+    val insightsRoute = graph.Route("/insights")
+
+    // Agent container with child graph
+    val agentContainer = AgentContainer(graph, "/agent", mapOf(
+        "chat" to ChildGraph(/* ... */),
+        "scout" to ChildGraph(/* ... */),
+        "queue" to ChildGraph(/* ... */),
+        "manage" to ChildGraph(/* ... */),
+        "pipeline" to ChildGraph(/* ... */),
+    ))
+
+    // Services
+    val workbenchSvc = ServiceNode(graph, WorkbenchService())
+    val agentSvc = ServiceNode(graph, AgentService())
+    graph.attach(workbenchSvc)
+    graph.attach(agentSvc)
+
+    // Wiring
+    graph.autoWire()
+
+    // Default route
+    graph.addRoot(graphRoute, Payload())
+
+    return graph
+}</code></pre>
+
+<h3>8.3 Renderer-Specific Wiring</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>Web Renderer (React)</h4>
+<pre><code>// main.jsx
+import { buildWorkbenchGraph } from 'reaktor-kt'
+
+const graph = buildWorkbenchGraph()
+
+// Attach React nodes (web-specific)
+attachReactScreens(graph)
+
+// Start
+const host = new WebHost(graph)
+host.start()
+
+ReactDOM.createRoot(root).render(
+  &lt;GraphProvider graph={graph}&gt;
+    &lt;AppShell /&gt;
+  &lt;/GraphProvider&gt;
+)</code></pre>
+  </div>
+  <div class="card">
+    <h4>Desktop Renderer (Compose)</h4>
+<pre><code>// Desktop main.kt
+fun main() = application {
+  val graph = buildWorkbenchGraph(
+    KoinDependencyAdapter()
+  )
+
+  // Attach Compose nodes (desktop-specific)
+  attachComposeScreens(graph)
+
+  // Render
+  Window(title = "Reaktor") {
+    GraphApplication(graph)
+  }
+}</code></pre>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Platform split:</strong> The graph topology, state types, and service definitions are in <code>commonMain</code>. Only the screen <em>rendering</em> is platform-specific. A <code>RouteNode("/graph")</code> exists in both renderers — on web it's attached to a <code>ReactNode&lt;GraphScreen&gt;</code>, on desktop it's attached to a <code>ComposeNode&lt;GraphScreenState&gt;</code>. Same route, same ports, different paint.
+</div>
+
+<!-- ═══════════════════════════ 9 ═══════════════════════════ -->
+
+<h2 id="migration">9. Migration File Map</h2>
+
+<h3>9.1 New Kotlin Files (commonMain — shared)</h3>
+
+<table>
+  <tr><th>File</th><th>Purpose</th><th>Lines (est.)</th></tr>
+  <tr><td><code>graph/store/MemoryStore.kt</code></td><td>In-memory reactive store node</td><td>~80</td></tr>
+  <tr><td><code>graph/store/StoreTypes.kt</code></td><td>SelectionState, LayoutState, EnvironmentState, SystemState</td><td>~100</td></tr>
+  <tr><td><code>workbench/WorkbenchGraph.kt</code></td><td>buildWorkbenchGraph() — shared graph definition</td><td>~200</td></tr>
+  <tr><td><code>workbench/WorkbenchService.kt</code></td><td>Typed service handlers (hot-reload, deploy, etc.)</td><td>~150</td></tr>
+  <tr><td><code>workbench/AgentService.kt</code></td><td>Agent-specific service handlers</td><td>~100</td></tr>
+  <tr><td><code>workbench/WorkbenchStates.kt</code></td><td>AgentState, DatabaseState, AuthState, etc.</td><td>~120</td></tr>
+</table>
+
+<h3>9.2 New Kotlin Files (jsMain — web bridge)</h3>
+
+<table>
+  <tr><th>File</th><th>Purpose</th><th>Lines (est.)</th></tr>
+  <tr><td><code>graph/store/MemoryStoreJs.kt</code></td><td>JS-specific store helpers, @JsExport</td><td>~40</td></tr>
+  <tr><td><code>graph/core/GraphLookupJs.kt</code></td><td>findNode(), findProvider() @JsExport wrappers</td><td>~30</td></tr>
+  <tr><td><code>ui/WebHost.kt</code> (modify)</td><td>Add navigateToPattern(), store accessor</td><td>~20 added</td></tr>
+</table>
+
+<h3>9.3 New TypeScript/React Files</h3>
+
+<table>
+  <tr><th>File</th><th>Purpose</th><th>Lines (est.)</th></tr>
+  <tr><td><code>hooks/use-graph.ts</code></td><td>GraphProvider + useGraph()</td><td>~40</td></tr>
+  <tr><td><code>hooks/use-store.ts</code></td><td>useStore&lt;T&gt;(key) — typed store access</td><td>~30</td></tr>
+  <tr><td><code>hooks/use-navigation.ts</code></td><td>useNavigation() — push/pop/replace</td><td>~35</td></tr>
+  <tr><td><code>hooks/use-service.ts</code></td><td>useService(node, handler) — typed service calls</td><td>~25</td></tr>
+  <tr><td><code>hooks/index.ts</code></td><td>Barrel export</td><td>~10</td></tr>
+</table>
+
+<h3>9.4 Modified React Files</h3>
+
+<table>
+  <tr><th>File</th><th>Change</th><th>Effort</th></tr>
+  <tr><td><code>main.jsx</code></td><td>Import Kotlin/JS graph, wrap in GraphProvider</td><td><span class="pill pill-accent">Small</span></td></tr>
+  <tr><td><code>app.jsx</code></td><td>Replace mode state with useNavigation(), keyboard shortcuts dispatch NavCommand</td><td><span class="pill pill-accent">Small</span></td></tr>
+  <tr><td><code>scenario.jsx</code></td><td>Gut ScenarioContext — thin adapter calling useStore/useNavigation</td><td><span class="pill pill-warn">Large</span></td></tr>
+  <tr><td><code>scenario-v3.jsx</code></td><td>Move static data (AGENTS, DB_CATALOG, etc.) to Kotlin state types</td><td><span class="pill pill-warn">Large</span></td></tr>
+  <tr><td><code>workbench-domain.jsx</code></td><td>Domain helpers now read from graph ports</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>agent-domain.jsx</code></td><td>Agent navigation via graph ContainerNode</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>screen-graph.jsx</code></td><td>Replace hardcoded data with buildReaktorFlowGraph()</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>shell.jsx</code></td><td>Sidebar reads from store, mode from navigation</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>shell-v3.jsx</code></td><td>Same as shell.jsx</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>bottom.jsx</code></td><td>Drawer state from store</td><td><span class="pill pill-accent">Small</span></td></tr>
+  <tr><td><code>screen-agent.jsx</code></td><td>Agent state from AgentNode, navigation from graph</td><td><span class="pill pill-warn">Large</span></td></tr>
+  <tr><td><code>screen-database.jsx</code></td><td>DB state from DatabaseNode</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>screen-auth.jsx</code></td><td>Auth state from AuthNode</td><td><span class="pill pill-accent">Small</span></td></tr>
+  <tr><td><code>screen-deploy.jsx</code></td><td>Deploy state from DeployNode</td><td><span class="pill pill-accent">Small</span></td></tr>
+  <tr><td><code>screen-insights.jsx</code></td><td>Insights state from store</td><td><span class="pill pill-accent">Small</span></td></tr>
+  <tr><td><code>inspector-bodies.jsx</code></td><td>Read entity data from graph introspection</td><td><span class="pill pill-planned">Medium</span></td></tr>
+  <tr><td><code>mock-services.js</code></td><td>Delete — replaced by WorkbenchService</td><td><span class="pill pill-done">Delete</span></td></tr>
+</table>
+
+<!-- ═══════════════════════════ 10 ═══════════════════════════ -->
+
+<h2 id="sprints">10. Sprint Plan</h2>
+
+<div class="timeline">
+
+  <div class="timeline-item">
+    <div class="phase-title">Sprint 1 — Foundation <span class="pill pill-purple">Core</span></div>
+    <div class="phase-sub">~1 week · Kotlin + bridge layer</div>
+    <div class="card" style="margin-top:8px">
+      <h4>1.1 MemoryStore implementation</h4>
+      <ul>
+        <li>New file: <code>reaktor-graph/store/MemoryStore.kt</code></li>
+        <li>Slot creation, typed get/set, StateFlow exposure</li>
+        <li>Batch update API</li>
+        <li>Unit tests: slot lifecycle, reactivity, cleanup on detach</li>
+      </ul>
+
+      <h4>1.2 Shared state types</h4>
+      <ul>
+        <li>New file: <code>reaktor-graph/store/StoreTypes.kt</code> (or in workbench module)</li>
+        <li><code>SelectionState</code>, <code>LayoutState</code>, <code>EnvironmentState</code>, <code>SystemState</code></li>
+        <li>All <code>@Serializable</code>, all <code>@JsExport</code></li>
+      </ul>
+
+      <h4>1.3 JS export additions</h4>
+      <ul>
+        <li><code>Graph.findNode(label)</code>, <code>Node.findProvider(key)</code></li>
+        <li><code>WebHost.navigateToPattern(pattern, params)</code></li>
+        <li><code>MemoryStore</code> JS interop methods</li>
+      </ul>
+
+      <h4>1.4 React hooks</h4>
+      <ul>
+        <li><code>use-graph.ts</code> — GraphProvider + useGraph()</li>
+        <li><code>use-store.ts</code> — useStore&lt;T&gt;(key)</li>
+        <li><code>use-navigation.ts</code> — useNavigation()</li>
+        <li><code>use-service.ts</code> — useService()</li>
+      </ul>
+
+      <h4>Deliverable:</h4>
+      <p>Graph boots in browser, WebNavigationBridge syncs URLs, MemoryStore holds state, React hooks work. No visual changes yet — the old UI still renders.</p>
+    </div>
+  </div>
+
+  <div class="timeline-item">
+    <div class="phase-title">Sprint 2 — Navigation Migration <span class="pill pill-accent">Navigation</span></div>
+    <div class="phase-sub">~4 days · Replace mode switching</div>
+    <div class="card" style="margin-top:8px">
+      <h4>2.1 Graph topology</h4>
+      <ul>
+        <li>New file: <code>WorkbenchGraph.kt</code> — <code>buildWorkbenchGraph()</code></li>
+        <li>10 RouteNodes, AgentContainer with child graph, sentinel</li>
+        <li>Default route: <code>/graph</code></li>
+      </ul>
+
+      <h4>2.2 Mode switching via navigation</h4>
+      <ul>
+        <li>Modify <code>app.jsx</code>: keyboard shortcuts dispatch <code>Push(route, Payload())</code></li>
+        <li>Mode toolbar reads <code>host.topPattern()</code> for active indicator</li>
+        <li>Remove <code>mode</code> state from ScenarioContext</li>
+      </ul>
+
+      <h4>2.3 Agent sub-navigation</h4>
+      <ul>
+        <li>Replace hash-based <code>#agent/conversation/{id}</code> with path-based <code>/agent/chat/{id}</code></li>
+        <li>AgentDomain reads from graph backStack instead of custom hash parser</li>
+      </ul>
+
+      <h4>Deliverable:</h4>
+      <p>All mode switching works via URL navigation. Browser back/forward works. Deep links work. Agent sub-views navigate correctly.</p>
+    </div>
+  </div>
+
+  <div class="timeline-item">
+    <div class="phase-title">Sprint 3 — State Migration <span class="pill pill-warn">High Risk</span></div>
+    <div class="phase-sub">~2 weeks · Strangler fig decomposition</div>
+    <div class="card" style="margin-top:8px">
+      <h4>3.1 ScenarioContext → Store adapter</h4>
+      <ul>
+        <li>ScenarioContext becomes a thin layer that reads from MemoryStore</li>
+        <li>Existing <code>useScenario()</code> calls continue to work during migration</li>
+        <li>New components use <code>useStore()</code> directly</li>
+      </ul>
+
+      <h4>3.2 Per-screen state migration (one screen at a time)</h4>
+      <ol>
+        <li>GraphScreen → reads <code>SelectionState</code> from store</li>
+        <li>Shell/TopBar → reads <code>EnvironmentState</code> from store</li>
+        <li>Bottom drawer → reads <code>LayoutState</code> from store</li>
+        <li>Inspector → reads <code>SelectionState</code> from store</li>
+        <li>AgentScreen → reads from <code>AgentNode</code> state</li>
+        <li>DatabaseScreen → reads from <code>DatabaseNode</code> state</li>
+        <li>AuthScreen → reads from <code>AuthNode</code> state</li>
+        <li>DeployScreen → reads from <code>DeployNode</code> state</li>
+        <li>InsightsScreen → reads from store <code>InsightsState</code></li>
+        <li>All remaining screens</li>
+      </ol>
+
+      <h4>3.3 ScenarioContext removal</h4>
+      <ul>
+        <li>Once all consumers migrated, delete ScenarioContext</li>
+        <li>Delete <code>scenario-v3.jsx</code> — static data moves to Kotlin</li>
+        <li>Domain helpers (workbench-domain.jsx, agent-domain.jsx) read from graph</li>
+      </ul>
+
+      <h4>Deliverable:</h4>
+      <p>No more god object. Each component subscribes only to its dependencies. ScenarioContext deleted.</p>
+    </div>
+  </div>
+
+  <div class="timeline-item">
+    <div class="phase-title">Sprint 4 — Services &amp; Self-Viz <span class="pill pill-planned">Integration</span></div>
+    <div class="phase-sub">~1 week · Services + graph introspection</div>
+    <div class="card" style="margin-top:8px">
+      <h4>4.1 Service migration</h4>
+      <ul>
+        <li>New file: <code>WorkbenchService.kt</code> — typed handlers</li>
+        <li>New file: <code>AgentService.kt</code> — agent-specific handlers</li>
+        <li>Delete <code>mock-services.js</code></li>
+        <li>Action dispatchers in bottom drawer use <code>useService()</code></li>
+      </ul>
+
+      <h4>4.2 Self-referential graph visualization</h4>
+      <ul>
+        <li>GraphScreen calls <code>buildReaktorFlowGraph(host.graph, style)</code></li>
+        <li><code>toReactFlowData()</code> feeds @xyflow/react</li>
+        <li>Remove hardcoded ENTITIES/EDGES/REGIONS from scenario.jsx</li>
+        <li>Add introspection exclusion for the graph screen node itself</li>
+      </ul>
+
+      <h4>4.3 Inspector from live graph</h4>
+      <ul>
+        <li>Inspector reads node details from graph introspection (ports, edges, lifecycle state)</li>
+        <li>Service metrics from ServiceNode handler invocation counts</li>
+      </ul>
+
+      <h4>Deliverable:</h4>
+      <p>The app visualizes itself. Services are typed and wired. Inspector shows live graph data.</p>
+    </div>
+  </div>
+
+  <div class="timeline-item">
+    <div class="phase-title">Sprint 5 — Dual Renderer &amp; Polish <span class="pill pill-done">Ship</span></div>
+    <div class="phase-sub">~1 week · Desktop parity + deploy</div>
+    <div class="card" style="margin-top:8px">
+      <h4>5.1 Engine module alignment</h4>
+      <ul>
+        <li>Engine module consumes <code>buildWorkbenchGraph()</code></li>
+        <li>Compose screens attach to same RouteNodes</li>
+        <li>Verify both renderers show equivalent graph topology</li>
+      </ul>
+
+      <h4>5.2 Kotlin/JS bundle optimization</h4>
+      <ul>
+        <li>Measure bundle size impact</li>
+        <li>Tree-shaking: ensure unused Kotlin code is eliminated</li>
+        <li>Lazy loading: split graph construction from UI code</li>
+      </ul>
+
+      <h4>5.3 Cloudflare Workers deployment</h4>
+      <ul>
+        <li>Verify SPA fallback works with new URL patterns</li>
+        <li>Test deep links: <code>reaktor.build/agent/chat/abc</code></li>
+        <li>Deploy to staging, smoke test all 10 modes</li>
+      </ul>
+
+      <h4>5.4 Cleanup</h4>
+      <ul>
+        <li>Remove all vestiges of old state management</li>
+        <li>Update documentation</li>
+        <li>Run full test suite (desktop Maestro tests + web)</li>
+      </ul>
+
+      <h4>Deliverable:</h4>
+      <p>Production deployment. Both renderers work. The app is a reaktor-graph application.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════ 11 ═══════════════════════════ -->
+
+<h2 id="risks">11. Risk Matrix</h2>
+
+<table>
+  <tr><th>Risk</th><th>Severity</th><th>Likelihood</th><th>Mitigation</th></tr>
+  <tr>
+    <td><strong>StateFlow→React performance</strong><br>40+ flows triggering React re-renders</td>
+    <td><span class="pill pill-red">High</span></td>
+    <td><span class="pill pill-warn">Medium</span></td>
+    <td>Per-slot subscriptions (not one big flow). Profile early. <code>useMemo</code> on derived values. The decomposition itself is the fix — 40 small flows &gt; 1 big context.</td>
+  </tr>
+  <tr>
+    <td><strong>Kotlin/JS bundle size</strong><br>Adding reaktor-graph to the web bundle</td>
+    <td><span class="pill pill-warn">Medium</span></td>
+    <td><span class="pill pill-warn">Medium</span></td>
+    <td>Measure after Sprint 1. Kotlin/JS tree-shaking is decent. Worst case: lazy-load the Kotlin bundle. Current bundle is ~200KB gzipped for bestbuds-kt.</td>
+  </tr>
+  <tr>
+    <td><strong>Strangler fig regression</strong><br>Half-migrated state causes bugs during Sprint 3</td>
+    <td><span class="pill pill-warn">Medium</span></td>
+    <td><span class="pill pill-red">High</span></td>
+    <td>ScenarioContext adapter reads from store — both systems stay in sync during migration. Migrate one screen at a time. Visual regression testing with screenshots.</td>
+  </tr>
+  <tr>
+    <td><strong>Self-referential infinite loop</strong><br>Graph viz node triggers graph change → re-viz</td>
+    <td><span class="pill pill-warn">Medium</span></td>
+    <td><span class="pill pill-accent">Low</span></td>
+    <td>Exclude introspection nodes from Visitor. Memoize <code>buildReaktorFlowGraph()</code> result. Only rebuild on structural graph changes (node attach/detach), not state changes.</td>
+  </tr>
+  <tr>
+    <td><strong>TypeScript type drift</strong><br>Kotlin types and TS types diverge</td>
+    <td><span class="pill pill-accent">Low</span></td>
+    <td><span class="pill pill-warn">Medium</span></td>
+    <td>Karakum generates TS types from Kotlin. CI check: rebuild types on every Kotlin change. The hook layer provides type safety at the boundary.</td>
+  </tr>
+  <tr>
+    <td><strong>WebNavigationBridge edge cases</strong><br>10+ routes with params, deep links, back/forward</td>
+    <td><span class="pill pill-accent">Low</span></td>
+    <td><span class="pill pill-accent">Low</span></td>
+    <td>Bridge is already proven. Agent sub-routes are the only complex case — test with Playwright after Sprint 2.</td>
+  </tr>
+  <tr>
+    <td><strong>Cloudflare Worker compatibility</strong><br>Kotlin/JS runtime in Worker context</td>
+    <td><span class="pill pill-accent">Low</span></td>
+    <td><span class="pill pill-accent">Low</span></td>
+    <td>Kotlin/JS is client-side only. Worker just serves static assets. No Kotlin runs in the Worker.</td>
+  </tr>
+</table>
+
+<div class="critical">
+  <strong>Critical path:</strong> Sprint 3 (State Migration) is the highest-risk phase. The strangler fig pattern — ScenarioContext reads from MemoryStore while components gradually switch to direct store access — must be carefully orchestrated. Migrate <em>one screen at a time</em> and verify after each. The temptation to do a big-bang migration must be resisted.
+</div>
+
+<!-- ═══════════════════════════ Summary ═══════════════════════════ -->
+
+<h2>Summary</h2>
+
+<div class="metric-row">
+  <div class="metric">
+    <div class="label">New Kotlin</div>
+    <div class="value">~750</div>
+    <div class="sub">lines (commonMain + jsMain)</div>
+  </div>
+  <div class="metric">
+    <div class="label">New TypeScript</div>
+    <div class="value">~140</div>
+    <div class="sub">lines (React hooks)</div>
+  </div>
+  <div class="metric">
+    <div class="label">Modified JSX</div>
+    <div class="value">~2,500</div>
+    <div class="sub">lines across 15+ files</div>
+  </div>
+  <div class="metric">
+    <div class="label">Deleted</div>
+    <div class="value">~1,500</div>
+    <div class="sub">lines (scenario, mock-services)</div>
+  </div>
+  <div class="metric">
+    <div class="label">Duration</div>
+    <div class="value">~5 wk</div>
+    <div class="sub">5 sprints</div>
+  </div>
+</div>
+
+<p>The migration transforms reaktorWeb from a standalone React app with hardcoded mock data into a <strong>polyglot reaktor-graph application</strong> with:</p>
+<ul>
+  <li><strong>Typed graph model</strong> shared between desktop and web</li>
+  <li><strong>Reactive in-memory store</strong> built on ports and StateFlow</li>
+  <li><strong>URL-based navigation</strong> synced with browser history</li>
+  <li><strong>Typed services</strong> replacing mock timeouts</li>
+  <li><strong>Self-referential visualization</strong> — the app is its own graph</li>
+  <li><strong>Better performance</strong> — per-slot subscriptions replace god-object context</li>
+</ul>
+
+<p>This is the highest-value stress test for reaktor-graph. If the framework can power a 14K-line workbench with 10 modes, nested navigation, cross-cutting state, services, and self-visualization — it can power anything.</p>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">reaktor · architecture migration plan · 2026</div>
+</footer>
+
+</body>
+</html>

@@ -47,9 +47,9 @@ fun CommonConnection.toReactFlow(): Connection = jso {
 
 fun CommonEdgeMarker.toReactFlow(): EdgeMarker = jso {
     type = markerType(this@toReactFlow.type)
-    color = this@toReactFlow.color
-    width = this@toReactFlow.width
-    height = this@toReactFlow.height
+    this@toReactFlow.color?.let { color = it }
+    this@toReactFlow.width?.let { width = it }
+    this@toReactFlow.height?.let { height = it }
 }
 
 fun CommonNode.toReactFlow(): Node<Any?> = jso {

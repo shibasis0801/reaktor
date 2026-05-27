@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUnsignedTypes::class)
+
 package dev.shibasis.reaktor.flexbuffer
 
 import dev.shibasis.reaktor.core.EncodingComplexCase
@@ -6,7 +8,11 @@ import dev.shibasis.reaktor.core.InnerNestedData
 import dev.shibasis.reaktor.core.NestedData
 import dev.shibasis.reaktor.core.NullableTestStruct
 import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.core.FlexCoder
+import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -49,6 +55,47 @@ class FlexDecoderTests {
         val ints: List<Int> = listOf(-1, 0, 1)
     )
 
+    @Serializable
+    data class ManualNestedDirectCase(
+        val value: Int,
+        val label: String
+    )
+
+    @Serializable
+    data class SerializerFallbackContainer(
+        val id: Int,
+        val nested: ManualNestedDirectCase,
+        val items: List<ManualNestedDirectCase>,
+        val byKey: Map<String, ManualNestedDirectCase>
+    )
+
+    private object CountingNestedDirectCoder : FlexCoder<ManualNestedDirectCase> {
+        var encodeCount = 0
+        var decodeCount = 0
+
+        fun reset() {
+            encodeCount = 0
+            decodeCount = 0
+        }
+
+        override fun encode(builder: FlexBuffersBuilder, value: ManualNestedDirectCase, key: String?) {
+            encodeCount++
+            val start = builder.startMap()
+            builder.set("label", value.label)
+            builder.set("value", value.value)
+            builder.endMap(start, key, presorted = true)
+        }
+
+        override fun decode(ref: Reference): ManualNestedDirectCase {
+            decodeCount++
+            val map = ref.toMap()
+            return ManualNestedDirectCase(
+                value = map.getInt(1),
+                label = map.getString(0)
+            )
+        }
+    }
+
     // ---- Simple Case ----
 
     @Test
@@ -62,6 +109,25 @@ class FlexDecoderTests {
         original.mutableMapOfStringToList.forEach { (key, value) ->
             assertEquals(value, decoded.mutableMapOfStringToList[key])
         }
+    }
+
+    @Test
+    fun testMapKeyPrefixLookupIsExact() {
+        val encoded = FlexBuffers.build {
+            val map = startMap()
+            set("a", 1)
+            set("aa", 2)
+            set("aaa", 3)
+            endMap(map)
+        }
+        val map = FlexBuffers.getRoot(encoded).toMap()
+
+        assertEquals(1, map.getInt("a", -1))
+        assertEquals(2, map.getInt("aa", -1))
+        assertEquals(3, map.getInt("aaa", -1))
+        assertEquals(-1, map.getInt("aaaa", -1))
+        assertTrue(map.indexOf("a") >= 0)
+        assertTrue(map.indexOf("aaaa") < 0)
     }
 
     // ---- Complex Case: all primitive types, collections, nested objects, maps ----
@@ -158,6 +224,83 @@ class FlexDecoderTests {
 
         val decoded = FlexBuffers.decode<NegativePrimitiveCase>(encoded)
         assertEquals(listOf(-1, 0, 1), decoded.ints)
+    }
+
+    @Test
+    fun serializerFallbackUsesRegisteredDirectCodersForNestedValues() {
+        FlexCoderRegistry.clear()
+        CountingNestedDirectCoder.reset()
+        FlexCoderRegistry.registerBySerialName(
+            ManualNestedDirectCase.serializer().descriptor.serialName,
+            CountingNestedDirectCoder
+        )
+
+        try {
+            val original = SerializerFallbackContainer(
+                id = 7,
+                nested = ManualNestedDirectCase(1, "root"),
+                items = listOf(
+                    ManualNestedDirectCase(2, "first"),
+                    ManualNestedDirectCase(3, "second")
+                ),
+                byKey = mapOf(
+                    "a" to ManualNestedDirectCase(4, "map-a"),
+                    "b" to ManualNestedDirectCase(5, "map-b")
+                )
+            )
+
+            val serializer = SerializerFallbackContainer.serializer()
+            val encoded = FlexBuffers.encode(serializer, original)
+            assertEquals(5, CountingNestedDirectCoder.encodeCount)
+
+            val decoded = FlexBuffers.decode(serializer, encoded)
+            assertEquals(original, decoded)
+            assertEquals(5, CountingNestedDirectCoder.decodeCount)
+        } finally {
+            FlexCoderRegistry.clear()
+        }
+    }
+
+    @Test
+    fun encodeToBufferAndDecodeBufferUseRegisteredDirectCoder() {
+        FlexCoderRegistry.clear()
+        CountingNestedDirectCoder.reset()
+        FlexCoderRegistry.registerBySerialName(
+            ManualNestedDirectCase.serializer().descriptor.serialName,
+            CountingNestedDirectCoder
+        )
+
+        try {
+            val original = ManualNestedDirectCase(42, "buffer")
+            FlexBuffers.withEncoder { builder ->
+                val buffer = FlexBuffers.encodeToBuffer(ManualNestedDirectCase.serializer(), original, builder)
+                val decoded = FlexBuffers.decode(ManualNestedDirectCase.serializer(), buffer)
+
+                assertEquals(original, decoded)
+                assertEquals(1, CountingNestedDirectCoder.encodeCount)
+                assertEquals(1, CountingNestedDirectCoder.decodeCount)
+            }
+        } finally {
+            FlexCoderRegistry.clear()
+        }
+    }
+
+    @Test
+    fun mapStringHelpersAvoidStringMaterializationWhenOnlyLengthsAreNeeded() {
+        val encoded = FlexBuffers.build {
+            val start = startMap()
+            set("alpha", "hello")
+            set("count", 3)
+            endMap(start, presorted = true)
+        }
+        val map = FlexBuffers.getRoot(encoded).toMap()
+
+        assertTrue(map.keyEquals(0, "alpha"))
+        assertFalse(map.keyEquals(0, "alph"))
+        assertEquals(5, map.keyByteLength(0))
+        assertEquals(5, map.getStringByteLength(0))
+        assertEquals("hello", map.getString(0))
+        assertEquals(3, map.getInt(1))
     }
 
     // ---- Primitives in isolation ----
@@ -368,11 +511,11 @@ class FlexDecoderTests {
 
             var json = ""
             val jsonEncodeTime = measureTime {
-                json = Json.encodeToString(complexCase)
+                json = Json.encodeToString(serializer, complexCase)
             }.inWholeMicroseconds
 
             val jsonDecodeTime = measureTime {
-                Json.decodeFromString(EncodingComplexCase.serializer(), json)
+                Json.decodeFromString(serializer, json)
             }.inWholeMicroseconds
 
             avgFlexEncode += flexEncodeTime

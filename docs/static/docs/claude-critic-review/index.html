@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Critic Review · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Critique</span><span>Claude</span></div>
+      <p class="eyebrow">Critique · Claude</p>
+      <h1>Claude Critic Review</h1>
+      <p class="subtitle">Adversarial review of architecture, feasibility, competition, and go-to-market risk.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use as the second opinion and adoption-risk check.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/claude-critic-review</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a aria-current="page" href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#0-executive-summary">0 Executive Summary</a><a href="#1-the-scope-problem">1 The Scope Problem</a><a href="#2-the-timeline-contradiction">2 The Timeline Contradiction</a><a href="#3-the-team-scope-mismatch">3 The Team-Scope Mismatch</a><a href="#4-the-market-size-question">4 The Market Size Question</a><a href="#5-the-competitive-claims-are-overstated">5 The Competitive Claims Are Overstated</a><a href="#6-architectural-risks">6 Architectural Risks</a><a href="#7-the-prototype-paradox">7 The Prototype Paradox</a><a href="#8-the-ai-integration-bet">8 The AI Integration Bet</a><a href="#9-business-model-concerns">9 Business Model Concerns</a><a href="#10-existential-risks">10 Existential Risks</a><a href="#11-the-steel-man-and-mdash-what-could-go-right">11 The Steel Man &amp;mdash; What Could Go Right</a><a href="#12-risk-scorecard">12 Risk Scorecard</a><a href="#recommendations">Recommendations</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<section id="tldr">
+<h2 id="0-executive-summary"><span class="num">0</span>Executive Summary</h2>
+
+<p>Reaktor is a genuinely ambitious vision: a graph-based IDE that unifies architecture visualization, runtime debugging, deployment, analytics, and AI code generation into a single tool for Kotlin Multiplatform apps. The technical intuition is sound &mdash; the "typed graph as source of truth" abstraction is powerful, and the existing graph/port/visitor infrastructure in the KMP codebase is real.</p>
+
+<p>But ambition without ruthless scoping is a death sentence for small teams. This review identifies <strong>11 categories of risk</strong> that, taken together, make the current plan structurally unlikely to succeed on the stated timeline with the stated resources.</p>
+
+<div class="verdict red">
+  <div class="label">Core Concern</div>
+  <p>Reaktor is attempting to build the equivalent of Xcode + Figma + Datadog + GitHub Actions + Cursor &mdash; simultaneously, with a 3-person team, in 60 weeks, on top of a framework that is itself still under active development. The probability of shipping all 6 phases as described is near zero.</p>
+</div>
+
+<p>This is not a dismissal. It's a calibration exercise. The question isn't whether Reaktor is a good idea &mdash; it is &mdash; but whether the plan is honest about what it will take.</p>
+</section>
+
+
+<section id="scope">
+<h2 id="1-the-scope-problem"><span class="num">1</span>The Scope Problem</h2>
+
+<h3>What Reaktor promises to be</h3>
+<p>The documents describe Reaktor as a tool where "every person involved in building an app &mdash; developer, architect, PM, QA, DevOps, marketing, analyst &mdash; can see, understand, modify, deploy, and measure the entire application." This is compared to Unreal Engine's editor.</p>
+
+<p>Let's count the distinct product surfaces this implies:</p>
+
+<div class="stat-grid">
+  <div class="stat"><div class="val">5</div><div class="lbl">IDE Screens</div></div>
+  <div class="stat"><div class="val">13</div><div class="lbl">Type-Aware Inspectors</div></div>
+  <div class="stat"><div class="val">7</div><div class="lbl">Drawer Tabs</div></div>
+  <div class="stat"><div class="val">6</div><div class="lbl">Target Personas</div></div>
+  <div class="stat"><div class="val">3</div><div class="lbl">Platform Targets</div></div>
+  <div class="stat"><div class="val">4</div><div class="lbl">External Integrations</div></div>
+</div>
+
+<p>Each of these is a product in itself. The Graph screen alone &mdash; with pan/zoom, port-anchored edges, overlay filtering, hover tooltips, group nodes, and keyboard navigation &mdash; is a multi-month project for a dedicated team. The analytics dashboard competes with Datadog. The deploy view competes with Vercel. The AI agent competes with Cursor.</p>
+
+<div class="verdict amber">
+  <div class="label">Counterargument needed</div>
+  <p>Which 2-3 of these surfaces deliver 80% of the value? The plan treats all 5 screens as equally important. A credible plan would identify the wedge product and defer the rest.</p>
+</div>
+
+<h3>The "everything connects to everything" trap</h3>
+<p>Reaktor's architecture means you can't ship any surface in isolation. The Graph screen needs the graph model. The DevTools screen needs runtime tracing. The Deploy screen needs CI integration. The Insights screen needs telemetry. The AI agent needs the command schema. Each screen depends on 2-3 infrastructure layers that don't exist yet.</p>
+
+<p>This creates a "big bang" delivery problem: nothing is valuable until everything works together. That's the opposite of how successful developer tools are built. VS Code shipped as a text editor. Figma shipped as a design tool. Datadog shipped as a monitoring tool. They expanded from a working core. Reaktor's plan delivers the entire surface area simultaneously.</p>
+</section>
+
+
+<section id="timeline">
+<h2 id="2-the-timeline-contradiction"><span class="num">2</span>The Timeline Contradiction</h2>
+
+<p>The project has two timeline documents that contradict each other:</p>
+
+<table>
+  <tr><th>Deliverable</th><th>Roadmap (60 weeks)</th><th>Plan (8 weeks)</th></tr>
+  <tr><td>Graph screen (pan/zoom, edge routing, filters, tooltips)</td><td>Phase 1-2: 16 weeks</td><td>3 days</td></tr>
+  <tr><td>13 type-aware inspectors</td><td>Phase 2: 8 weeks</td><td>5 days</td></tr>
+  <tr><td>AI agent + MCP server</td><td>Phase 3: 8 weeks</td><td>4 days</td></tr>
+  <tr><td>CI/CD + live telemetry</td><td>Phase 4: 8 weeks</td><td>3 days</td></tr>
+  <tr><td>Compose/JS web target</td><td>Phase 5: 12 weeks</td><td>5 days</td></tr>
+</table>
+
+<div class="verdict red">
+  <div class="label">Red Flag</div>
+  <p>The plan.html document estimates 8 weeks total for work that the roadmap.html document estimates at 60 weeks. One of these is wrong by a factor of 7.5x. If the plan estimates are what the team believes, they are severely underestimating the work. If the roadmap is what they believe, the plan is aspirational fiction.</p>
+</div>
+
+<p>For reference: JetBrains spent <strong>years</strong> building Fleet. Jetpack Compose took Google <strong>4+ years</strong> from announcement to stable. Figma took <strong>3 years</strong> to reach its first public release with a 10+ person team. None of these attempted the breadth Reaktor claims in 60 weeks.</p>
+</section>
+
+
+<section id="team">
+<h2 id="3-the-team-scope-mismatch"><span class="num">3</span>The Team-Scope Mismatch</h2>
+
+<p>The project has 3 contributors:</p>
+
+<table>
+  <tr><th>Person</th><th>Focus</th><th>Availability for Workbench</th></tr>
+  <tr><td>Shibasis Patnaik</td><td>Architecture, graph, workbench, everything</td><td><span class="tag a">Split across framework + workbench + app</span></td></tr>
+  <tr><td>Kedarnath</td><td>Composables, interactions</td><td><span class="tag a">Tactile design system focus</span></td></tr>
+  <tr><td>Manab Mohanty</td><td>Physics, shaders</td><td><span class="tag r">Tactile design system focus</span></td></tr>
+</table>
+
+<p>The workbench is effectively a <strong>single-person project</strong>. Shibasis is simultaneously:</p>
+<ul>
+  <li>Maintaining the Reaktor KMP framework (24 modules, 144K lines)</li>
+  <li>Building the BestBuds consumer app (the first customer of Reaktor)</li>
+  <li>Designing and building the Reaktor Workbench</li>
+  <li>Building the Tactile design system</li>
+  <li>Creating the web prototype and documentation</li>
+</ul>
+
+<div class="verdict red">
+  <div class="label">Critical Risk</div>
+  <p>A single person cannot build, test, document, and maintain a product with 5 major screens, 13 inspectors, a command palette, an AI agent, CI/CD integration, analytics, and a plugin system &mdash; while simultaneously maintaining the framework and building an app on top of it. This is a team-of-20 roadmap assigned to a team-of-1.</p>
+</div>
+
+<p>The AI-assisted development argument ("Claude/Gemini write most of the code") is tempting but misleading. AI tools can generate boilerplate and implement well-specified components. They cannot make architectural decisions, debug subtle cross-module interactions, write integration tests, handle production incidents, or maintain coherence across 24 modules. The bottleneck is not typing speed &mdash; it's decision bandwidth.</p>
+</section>
+
+
+<section id="market">
+<h2 id="4-the-market-size-question"><span class="num">4</span>The Market Size Question</h2>
+
+<h3>KMP is the initial target</h3>
+<p>The roadmap targets the Kotlin Multiplatform ecosystem, estimated at ~100K developers by 2026. But Reaktor doesn't target all KMP developers &mdash; it targets KMP developers who:</p>
+<ul>
+  <li>Use the Reaktor framework specifically (currently: 1 app)</li>
+  <li>Want a visual graph-based IDE (a niche preference)</li>
+  <li>Are willing to adopt an alpha-quality tool from a 3-person team</li>
+  <li>Will pay $29-199/month for it</li>
+</ul>
+
+<p>The addressable market at launch is realistically in the <strong>single digits</strong>. The roadmap acknowledges this: Phase 1 success metric is "1 active developer" (the creator). Phase 2 targets "5-10 alpha testers."</p>
+
+<div class="verdict amber">
+  <div class="label">Market Risk</div>
+  <p>The path from "1 user" to "5,000 weekly active developers" (Phase 6 target) requires either (a) Reaktor becoming framework-agnostic, which invalidates the tight KMP integration that is its core differentiator, or (b) KMP adoption exploding and developers choosing Reaktor's graph model over conventional approaches. Neither is guaranteed.</p>
+</div>
+
+<h3>The chicken-and-egg problem</h3>
+<p>Reaktor (the framework) needs developers to adopt it. The Workbench needs Reaktor apps to visualize. The Workbench is the selling point for adopting Reaktor. But the Workbench doesn't work yet. And Reaktor (the framework) has one consumer app.</p>
+
+<p>This circular dependency means neither the framework nor the workbench can grow independently. You need both to be good simultaneously, which doubles the development burden on a team that's already overextended.</p>
+</section>
+
+
+<section id="competition">
+<h2 id="5-the-competitive-claims-are-overstated"><span class="num">5</span>The Competitive Claims Are Overstated</h2>
+
+<h3>The "only tool with every checkmark" claim</h3>
+<p>The competitive analysis presents a 14-capability matrix where Reaktor has a checkmark in every row. This is misleading because:</p>
+
+<ul>
+  <li><strong>Most checkmarks represent plans, not implementations.</strong> Deploy/CI dashboard? Doesn't exist. Analytics/telemetry? Doesn't exist. AI code generation? Doesn't exist. Command pattern? Design only. Cross-platform? The Compose/JS target is commented out.</li>
+  <li><strong>The capabilities are chosen to favor Reaktor.</strong> The matrix doesn't include: time-to-productivity, community size, documentation quality, third-party integrations, stability, or production readiness &mdash; all areas where competitors dominate.</li>
+  <li><strong>Competitors are evaluated on their current shipping product; Reaktor is evaluated on its roadmap.</strong> Comparing Cursor's shipping AI to Reaktor's planned AI is not an honest comparison.</li>
+</ul>
+
+<div class="verdict red">
+  <div class="label">Credibility Risk</div>
+  <p>Claiming feature parity with tools backed by $100M+ in funding and 50-500 person teams &mdash; when those features exist only as static mockups &mdash; undermines credibility with the developer audience the project needs to attract. Developers are allergic to vaporware claims.</p>
+</div>
+
+<h3>The "AI tools don't understand architecture" thesis</h3>
+<p>The central competitive argument is that AI coding tools (Claude Code, Cursor, Codex) work with text, not architecture, and that Reaktor's graph provides the missing semantic layer.</p>
+
+<p>This was a stronger argument 12 months ago. Today:</p>
+<ul>
+  <li>Claude Code already reads project structure, dependency graphs, and test results as context</li>
+  <li>Cursor indexes entire codebases and understands cross-file dependencies</li>
+  <li>AI agents can already run builds, read stack traces, and navigate code structure</li>
+  <li>MCP servers for IDEs, databases, and cloud services already exist without requiring a specialized graph model</li>
+</ul>
+
+<p>The gap Reaktor aims to fill is narrowing from the other direction. The question is whether the gap closes before Reaktor can fill it.</p>
+</section>
+
+
+<section id="architecture">
+<h2 id="6-architectural-risks"><span class="num">6</span>Architectural Risks</h2>
+
+<h3>The GraphManifest doesn't exist yet</h3>
+<p>The entire workbench depends on a KSP-generated <code>GraphManifest.json</code> that maps the app's architecture into a typed graph. This is described as the "Phase 1 foundation." The <code>reaktor-graph-ksp</code> module &mdash; the compiler plugin that generates this manifest &mdash; does not exist.</p>
+
+<p>This is not a small gap. KSP plugins that accurately extract architectural information from arbitrary Kotlin code are <strong>extremely hard to build</strong>. The plugin needs to:</p>
+<ul>
+  <li>Identify all entity types (screens, services, actions, routes, stores, etc.) from annotations or conventions</li>
+  <li>Resolve cross-module dependencies at compile time</li>
+  <li>Track port connections (ConsumerPort/ProviderPort bindings) across the dependency graph</li>
+  <li>Handle generics, type aliases, expect/actual declarations, and platform-specific code</li>
+  <li>Generate a complete, correct graph that stays in sync as code changes</li>
+</ul>
+
+<div class="verdict amber">
+  <div class="label">Technical Risk</div>
+  <p>If the GraphManifest generator can't accurately capture the app's architecture, the entire workbench is built on a lie. Every screen, inspector, and AI interaction depends on the graph being correct. A graph that drifts from reality is worse than no graph &mdash; it actively misleads.</p>
+</div>
+
+<h3>The port system is the core &mdash; and it's unvalidated</h3>
+<p>The analysis document itself admits: "The entire ConsumerPort/ProviderPort system &mdash; the core of Reaktor &mdash; has no visual representation." Port pins in the prototype are "decorative." The graph connects node-to-node, not port-to-port.</p>
+
+<p>This means the most fundamental architectural decision &mdash; that applications are graphs of typed ports, not just boxes with arrows &mdash; has never been validated visually. The team doesn't yet know if port-level granularity helps users or overwhelms them. If it overwhelms them, the entire "typed graph" differentiator collapses into a standard dependency diagram that many tools already provide.</p>
+
+<h3>Live runtime connection is hand-waved</h3>
+<p>The roadmap describes live telemetry, runtime tracing, and real-time graph updates. But the prototype is 100% static data. The architecture for streaming runtime data from a KMP app into the workbench doesn't exist. This requires:</p>
+<ul>
+  <li>An instrumentation layer in the running app</li>
+  <li>A communication protocol (WebSocket? gRPC?)</li>
+  <li>A state synchronization mechanism</li>
+  <li>Performance isolation (the observer can't slow down the observed)</li>
+</ul>
+<p>Each of these is a multi-week project. Together they constitute an infrastructure layer as complex as the workbench itself.</p>
+</section>
+
+
+<section id="prototype">
+<h2 id="7-the-prototype-paradox"><span class="num">7</span>The Prototype Paradox</h2>
+
+<h3>Beautiful but dangerous</h3>
+<p>The web prototype at reaktor.build is visually impressive: dark IDE aesthetic, resizable panels, sparkline charts, causal traces, heatmaps. It looks like a shipping product.</p>
+
+<p>This is a double-edged sword:</p>
+<ul>
+  <li><strong>It sets expectations the team can't meet.</strong> Anyone who sees the prototype expects the real product to look and feel this good. But the prototype is a React facade with hardcoded data. The real product will be Compose Desktop, which has worse text rendering, less mature animation APIs, and no CSS. Recreating this visual fidelity in Compose Desktop is a massive effort.</li>
+  <li><strong>It creates an illusion of progress.</strong> 6,100 lines of JSX is impressive output. But it's throwaway code &mdash; the documents explicitly say "don't try to preserve this codebase." The real progress toward a shipping product is measured in the KMP modules, where the picture is much thinner.</li>
+  <li><strong>The spec coverage is self-reported at 35%.</strong> Even as a specification document, 65% of the intended behavior is unspecified. The prototype defines the happy path for 5 screens but doesn't address error states, loading states, empty states, permission boundaries, or data pagination.</li>
+</ul>
+
+<div class="verdict amber">
+  <div class="label">Risk</div>
+  <p>Time spent polishing the prototype is time not spent on the foundation (GraphManifest, runtime bridge, command schema) that determines whether the product can exist at all. The prototype is a compelling demo, not a shipping asset.</p>
+</div>
+</section>
+
+
+<section id="ai">
+<h2 id="8-the-ai-integration-bet"><span class="num">8</span>The AI Integration Bet</h2>
+
+<h3>MCP as moat &mdash; how defensible is it?</h3>
+<p>The competitive thesis positions Reaktor's MCP server as a unique "semantic layer" that makes AI tools architecturally aware. But MCP is an open protocol. Nothing prevents:</p>
+<ul>
+  <li>JetBrains from building an MCP server that exposes IntelliJ's code model (they have a richer one)</li>
+  <li>Android Studio from exposing Compose's component tree via MCP (Google has the resources)</li>
+  <li>AI tools from building their own architectural understanding without MCP (they're already doing this)</li>
+</ul>
+
+<p>The MCP moat depends on Reaktor's graph model being <strong>significantly better</strong> than what IDE vendors can build. Given that JetBrains has spent 20+ years building code analysis for Kotlin, and Google controls the Compose compiler, this is a bold assumption.</p>
+
+<h3>GraphCommand as AI interface</h3>
+<p>The idea that AI generates structured <code>GraphCommand</code> objects instead of raw code is elegant in theory. In practice:</p>
+<ul>
+  <li>LLMs are trained on code, not on Reaktor's custom command schema. Fine-tuning or heavy prompting is required.</li>
+  <li>If the command schema is too constrained, the AI can't express complex changes. If it's too permissive, you've reinvented "write code."</li>
+  <li>The command system adds a translation layer between intent and code. Every translation layer introduces bugs, latency, and cognitive overhead.</li>
+  <li>Developers who are comfortable with AI-generated code may not want the indirection of a command layer.</li>
+</ul>
+
+<div class="verdict amber">
+  <div class="label">Strategic Risk</div>
+  <p>The AI landscape moves faster than any single team can adapt. Features that seem differentiating today (architecture-aware AI, structured code generation) may be table stakes or obsolete in 12 months. Building a 60-week roadmap around AI capabilities that are moving targets is inherently fragile.</p>
+</div>
+</section>
+
+
+<section id="business">
+<h2 id="9-business-model-concerns"><span class="num">9</span>Business Model Concerns</h2>
+
+<h3>Pricing assumes value that doesn't exist yet</h3>
+<table>
+  <tr><th>Tier</th><th>Price</th><th>Requires</th><th>Status</th></tr>
+  <tr><td>Workbench</td><td>$29/mo</td><td>Graph + IDE bridge + 5 screens</td><td><span class="tag r">Not built</span></td></tr>
+  <tr><td>AI Features</td><td>$79/mo/seat</td><td>LLM pipeline + MCP + Agent</td><td><span class="tag r">Not built</span></td></tr>
+  <tr><td>Enterprise</td><td>$199/mo/seat</td><td>Collab + SSO + Plugins + Self-hosted</td><td><span class="tag r">Not built</span></td></tr>
+</table>
+
+<p>The revenue model depends on reaching Phase 4+ before generating meaningful income. At $29/month for 5-10 alpha testers (Phase 2), that's $145-290/month in revenue &mdash; roughly 0.1% of a single engineer's fully-loaded cost. The business is not self-sustaining until Phase 5-6 with hundreds of paying users.</p>
+
+<h3>The open-source tension</h3>
+<p>The framework modules are open source; the workbench is commercial. But the workbench's value depends on the framework having a large user base. If the framework doesn't grow, there's nobody to sell the workbench to. If the framework does grow, contributors may build open-source alternatives to the workbench (the graph model is public).</p>
+
+<p>This is the classic open-core tension, and it's harder to navigate when the open-source layer has minimal adoption.</p>
+</section>
+
+
+<section id="existential">
+<h2 id="10-existential-risks"><span class="num">10</span>Existential Risks</h2>
+
+<h3>What if KMP doesn't win?</h3>
+<p>Reaktor is deeply coupled to Kotlin Multiplatform. If KMP's adoption plateaus (it's still a fraction of Flutter's user base), Reaktor's addressable market stays small. The plugin architecture (Phase 6) promises framework-agnostic support, but by then the product needs to have been self-sustaining for 30+ weeks on KMP revenue alone.</p>
+
+<h3>What if the graph model is wrong?</h3>
+<p>The entire product is built on the premise that a typed architecture graph is the right abstraction for application development. But most successful developer tools are <strong>not</strong> graph-based. IDEs are text-based. Design tools are canvas-based. CI tools are pipeline-based. The graph abstraction is popular in game engines (Unreal Blueprints) and workflow tools (n8n), but it's unproven for application architecture.</p>
+
+<p>If developers prefer reading code over reading graphs &mdash; and decades of evidence suggests they do &mdash; the entire product premise is invalid regardless of execution quality.</p>
+
+<h3>What if one person gets sick?</h3>
+<p>With effectively one person building the workbench and framework, any interruption &mdash; illness, burnout, life events, a day job conflict &mdash; stops all progress. There's no redundancy, no institutional knowledge beyond one person's head, and no onboarding path for new contributors (the codebase spans 24 modules across 3 repositories with a custom build system).</p>
+
+<div class="verdict red">
+  <div class="label">Bus Factor</div>
+  <p>Bus factor is 1. For a project with a 60-week roadmap and commercial ambitions, this is an existential risk that no amount of technical excellence can mitigate.</p>
+</div>
+</section>
+
+
+<hr/>
+<section id="steel-man">
+<h2 id="11-the-steel-man-and-mdash-what-could-go-right"><span class="num">11</span>The Steel Man &mdash; What Could Go Right</h2>
+
+<p>A devil's advocate review is only credible if it acknowledges the genuine strengths. Here's what Reaktor has going for it:</p>
+
+<div class="verdict green">
+  <div class="label">Real Technical Foundation</div>
+  <p>The graph, port, and visitor abstractions in the KMP codebase are real, working code &mdash; not slides. 144K lines across 24 modules is substantial. The ReaktorComposeSemanticsInspector alone (2,300 lines) demonstrates deep Compose internals knowledge. This isn't vaporware from someone who can't code.</p>
+</div>
+
+<div class="verdict green">
+  <div class="label">The Prototype Is Genuinely Good</div>
+  <p>The web prototype demonstrates exceptional taste. The visual design, information density, and interaction patterns are at or above the level of shipping developer tools. If execution matches the vision, the product could be compelling.</p>
+</div>
+
+<div class="verdict green">
+  <div class="label">The Graph Insight Is Correct</div>
+  <p>AI tools <em>do</em> lack architectural understanding. A typed graph <em>is</em> a better abstraction for AI interactions than raw source code. The observation that AI needs a semantic layer is correct even if Reaktor's specific approach to providing it is uncertain. Someone will build this. Reaktor has a head start on the idea.</p>
+</div>
+
+<div class="verdict green">
+  <div class="label">AI-Augmented Solo Development Is Real</div>
+  <p>The prototype itself is evidence. 6,100 lines of coherent, visually polished UI code generated rapidly through Claude + GPT collaboration. If this velocity applies to the KMP workbench, the timeline estimates are less absurd than they look. The question is whether AI-assisted development scales to systems programming as well as it scales to UI prototyping.</p>
+</div>
+
+<div class="verdict blue">
+  <div class="label">Timing Could Be Perfect</div>
+  <p>KMP is maturing. Compose Multiplatform is stabilizing. The AI-native developer tools market is nascent. If Reaktor ships a credible MVP in the next 6-12 months, it enters a market that's hungry for exactly this kind of tool, before the big players consolidate.</p>
+</div>
+</section>
+
+
+<section id="scorecard">
+<h2 id="12-risk-scorecard"><span class="num">12</span>Risk Scorecard</h2>
+
+<table>
+  <tr><th>Risk Category</th><th>Severity</th><th>Likelihood</th><th>Mitigation</th></tr>
+  <tr><td>Scope exceeds capacity</td><td><span class="tag r">Critical</span></td><td><span class="tag r">Very High</span></td><td>Ruthless scoping to 1-2 screens for MVP</td></tr>
+  <tr><td>Timeline contradiction (8w vs 60w)</td><td><span class="tag r">High</span></td><td><span class="tag r">Certain</span></td><td>Pick one timeline and plan honestly</td></tr>
+  <tr><td>Bus factor = 1</td><td><span class="tag r">Critical</span></td><td><span class="tag a">Medium</span></td><td>Recruit 1-2 contributors; document architecture</td></tr>
+  <tr><td>GraphManifest generator doesn't exist</td><td><span class="tag r">Critical</span></td><td><span class="tag a">Medium</span></td><td>Build this first, before any UI work</td></tr>
+  <tr><td>KMP market too small</td><td><span class="tag a">High</span></td><td><span class="tag a">Medium</span></td><td>Design graph model to be framework-portable from day 1</td></tr>
+  <tr><td>AI moat is temporary</td><td><span class="tag a">Medium</span></td><td><span class="tag a">Medium</span></td><td>Ship fast; first-mover advantage is real but decays</td></tr>
+  <tr><td>Competitive claims damage credibility</td><td><span class="tag a">Medium</span></td><td><span class="tag r">High</span></td><td>Only claim what's shipped; label everything else as roadmap</td></tr>
+  <tr><td>Prototype sets unachievable expectations</td><td><span class="tag a">Medium</span></td><td><span class="tag a">Medium</span></td><td>Set expectations that Compose Desktop will look different</td></tr>
+  <tr><td>Business model unsustainable pre-Phase 4</td><td><span class="tag a">Medium</span></td><td><span class="tag r">High</span></td><td>Seek grant funding or consulting revenue bridge</td></tr>
+  <tr><td>Graph abstraction rejected by developers</td><td><span class="tag r">High</span></td><td><span class="tag a">Medium</span></td><td>User testing with 5+ external KMP developers</td></tr>
+  <tr><td>Port-level granularity overwhelms users</td><td><span class="tag a">Medium</span></td><td><span class="tag a">Medium</span></td><td>Default to node-level; ports as progressive disclosure</td></tr>
+</table>
+</section>
+
+
+<hr/>
+<section>
+<h2 id="recommendations">Recommendations</h2>
+
+<p>If the author were to ask "What should I do differently?", here are the highest-leverage changes:</p>
+
+<ol>
+  <li><strong>Ship GraphManifest first.</strong> Before any more UI work, build the KSP plugin that generates the graph from real code. This is the foundation everything depends on. If it can't be built, know that now.</li>
+  <li><strong>Cut the MVP to Graph + DevTools.</strong> Two screens, one inspector, no AI, no deploy, no insights. Prove that the graph visualization is valuable to at least 5 developers who aren't you.</li>
+  <li><strong>Stop claiming shipped features that are mockups.</strong> The competitive matrix should distinguish "shipped," "in progress," and "planned." Developer trust is earned through honesty, not feature count.</li>
+  <li><strong>Find 2-3 external KMP developers to test with.</strong> The biggest unknown is whether the graph abstraction resonates. Test this with real users before building 13 inspectors for a model nobody has validated.</li>
+  <li><strong>Reconcile the timelines.</strong> Pick one number and build a plan that's honest about it. A credible 6-month plan for a focused MVP is better than a 60-week plan for everything.</li>
+  <li><strong>Address the bus factor.</strong> Write an architecture guide. Record decision rationale. Make it possible for someone else to contribute.</li>
+</ol>
+</section>
+
+<div class="footer">
+  <p class="sig">Devil's Advocate Review &middot; Claude</p>
+  <p>This review is adversarial by design. It highlights risks, not certainties. The strongest ideas survive the hardest scrutiny.</p>
+</div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

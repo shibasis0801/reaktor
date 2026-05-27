@@ -17,6 +17,7 @@ object Reaktor {
     }
 
     fun web() {
+        if (Feature.Dependency != null) return
         Feature.Dependency = KoinDependencyAdapter(startKoin {})
     }
 }

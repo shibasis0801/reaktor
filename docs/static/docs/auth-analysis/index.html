@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auth Architecture and Redesign · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Security and auth</span><span>Claude</span></div>
+      <p class="eyebrow">Security and auth · Claude</p>
+      <h1>Auth Architecture and Redesign</h1>
+      <p class="subtitle">Principal, token, session, authorization, and adapter redesign plan for reaktor-auth.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use when working on auth kernel boundaries and API shape.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/auth-analysis</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a aria-current="page" href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#01-governing-principle">01 Governing Principle</a><a href="#02-target-architecture">02 Target Architecture</a><a href="#03-user-to-service-auth">03 User-to-Service Auth</a><a href="#04-service-to-service-auth">04 Service-to-Service Auth</a><a href="#05-global-identity-app-branded-login">05 Global Identity, App-Branded Login</a><a href="#06-supabase-email-and-magic-link">06 Supabase Email &amp; Magic Link</a><a href="#07-core-domain-model">07 Core Domain Model</a><a href="#08-token-model">08 Token Model</a><a href="#09-authcontext-and-authrequirement">09 AuthContext &amp; AuthRequirement</a><a href="#10-authorization-algorithm">10 Authorization Algorithm</a><a href="#11-current-implementation-audit">11 Current Implementation Audit</a><a href="#12-planned-api-tree">12 Planned API Tree</a><a href="#13-jvm-spring-target">13 JVM / Spring Target</a><a href="#14-cloudflare-workers-target">14 Cloudflare Workers Target</a><a href="#15-android-ios-web-clients">15 Android / iOS / Web Clients</a><a href="#16-graph-and-actors">16 Graph &amp; Actors</a><a href="#17-tools-cli-and-mcp">17 Tools, CLI &amp; MCP</a><a href="#18-migration-roadmap">18 Migration Roadmap</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<section id="governing-principle">
+  <h2 id="01-governing-principle"><span class="num">01</span> Governing Principle</h2>
+
+  <div class="principle">
+    reaktor-auth is not a login library. It is a <em>principal, token, session, and authorization kernel</em> that happens to support Google, Apple, and Supabase-backed email auth.
+  </div>
+
+  <p>The important boundary is <strong>Reaktor-issued access tokens</strong>, not Google/Apple/Supabase tokens. External providers authenticate the person. Reaktor authenticates and authorizes the call inside the Reaktor ecosystem.</p>
+
+  <p>The philosophical API direction: the interface should be simple at the surface, expressive underneath. The application developer should express <em>who can do what on which resource under which app/tenant/context</em> &mdash; not manually parse JWTs, fetch users, check string scopes, and throw 401/403.</p>
+
+<pre><span class="kw">val</span> createEvent = post&lt;<span class="ty">CreateEvent</span>, <span class="ty">EventCreated</span>&gt;(
+    <span class="str">"/events"</span>,
+    auth = <span class="fn">requires</span>(<span class="ty">EventAction</span>.Create)
+        .<span class="fn">on</span>(<span class="ty">EventResource</span>.fromBody { it.eventGroupId })
+) { req ->
+    <span class="kw">val</span> auth = req.auth
+    events.create(auth, req.body)
+}</pre>
+
+  <p>The biggest redesign decision: stop treating auth as &ldquo;login returns User + token&rdquo; and make it &ldquo;all calls enter with an <code>AuthContext</code>, and every protected capability declares an <code>AuthRequirement</code>.&rdquo; Everything else follows from that.</p>
+</section>
+
+
+<section id="target-architecture">
+  <h2 id="02-target-architecture"><span class="num">02</span> Target Architecture</h2>
+
+  <div class="flow-diagram">
+    <div class="step"><span class="step-num blue">1</span> External credential provider (Google / Apple / Supabase)</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num purple">2</span> Reaktor identity normalization</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num purple">3</span> Global identity + app membership + tenant/context grants</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num green">4</span> Session + refresh token, or service credential</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num green">5</span> Short-lived Reaktor access token (JWT)</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num orange">6</span> Middleware creates AuthContext</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num orange">7</span> Authorizer checks Requirement against Resource</div>
+    <div class="arrow">&darr;</div>
+    <div class="step"><span class="step-num cyan">8</span> Service / Worker / Graph / Actor handler executes</div>
+  </div>
+
+  <p>Every target &mdash; Spring server, Cloudflare Worker, KMP app graph, actor mailbox, CLI tool &mdash; converges at steps 6&ndash;8. The transport-specific part (steps 1&ndash;5) only adapts credentials into the common kernel.</p>
+</section>
+
+
+<section id="user-to-service">
+  <h2 id="03-user-to-service-auth"><span class="num">03</span> User-to-Service Auth</h2>
+
+  <p>A human user signs in through an app-branded provider flow. Reaktor maps that external credential to a global identity and app membership, creates a session, and issues short-lived Reaktor access tokens that services verify.</p>
+
+  <div class="flow-diagram">
+    <div class="step"><span class="step-num blue">1</span> App starts Google, Apple, or Supabase auth</div>
+    <div class="step"><span class="step-num blue">2</span> Provider returns external credential (ID token / auth code / session)</div>
+    <div class="step"><span class="step-num blue">3</span> App sends credential to Reaktor with appId, provider, platform, nonce</div>
+    <div class="step"><span class="step-num purple">4</span> Reaktor verifies credential against app&rsquo;s configured provider client</div>
+    <div class="step"><span class="step-num purple">5</span> Reaktor upserts identity, provider account, principal, membership</div>
+    <div class="step"><span class="step-num green">6</span> Reaktor creates session + rotating refresh token + access token</div>
+    <div class="step"><span class="step-num orange">7</span> Client calls services with <code>Authorization: Bearer &lt;reaktor-access-token&gt;</code></div>
+    <div class="step"><span class="step-num orange">8</span> Middleware verifies token, injects AuthContext</div>
+    <div class="step"><span class="step-num cyan">9</span> Handler checks AuthRequirement before domain work</div>
+  </div>
+
+  <h3>Why not use the provider token as the API token?</h3>
+  <ul>
+    <li>Google&rsquo;s <code>aud</code> claim must equal the app&rsquo;s OAuth client ID &mdash; it is a proof of login to that OAuth client, not a general-purpose API credential for every Reaktor service.</li>
+    <li>Google warns not to use email as the stable identifier; use <code>sub</code> instead.</li>
+    <li>RFC 9700 recommends audience-restricting access tokens to specific resource servers and refresh-token rotation for public clients.</li>
+  </ul>
+
+  <h3>Reaktor Access Token Claims</h3>
+<pre>{
+  <span class="str">"iss"</span>: <span class="str">"https://auth.reaktor.build"</span>,
+  <span class="str">"aud"</span>: <span class="str">"manna-api"</span>,
+  <span class="str">"sub"</span>: <span class="str">"principal_usr_123"</span>,
+  <span class="str">"jti"</span>: <span class="str">"tok_123"</span>,
+  <span class="str">"sid"</span>: <span class="str">"ses_123"</span>,
+
+  <span class="str">"principal_type"</span>: <span class="str">"user"</span>,
+  <span class="str">"identity_id"</span>: <span class="str">"idn_123"</span>,
+  <span class="str">"app_id"</span>: <span class="str">"app_manna"</span>,
+  <span class="str">"tenant_id"</span>: <span class="str">"tenant_wedding_456"</span>,
+  <span class="str">"context_id"</span>: <span class="str">"event_group_789"</span>,
+
+  <span class="str">"scp"</span>: [<span class="str">"event.read"</span>, <span class="str">"event.write"</span>],
+  <span class="str">"perm_ver"</span>: <span class="num">42</span>,
+
+  <span class="str">"amr"</span>: [<span class="str">"google"</span>],
+  <span class="str">"iat"</span>: <span class="num">1710000000</span>,
+  <span class="str">"exp"</span>: <span class="num">1710000900</span>
+}</pre>
+</section>
+
+
+<section id="service-to-service">
+  <h2 id="04-service-to-service-auth"><span class="num">04</span> Service-to-Service Auth</h2>
+
+  <p>Service-to-service auth must not be modeled as &ldquo;a fake user.&rdquo; It is a first-class service principal.</p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h4>A. Pure Service Principal</h4>
+      <p>&ldquo;manna-worker is calling manna-api.&rdquo; Uses <code>client_credentials</code> grant with service account.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>B. Tool / Developer Credential</h4>
+      <p>&ldquo;CLI/MCP/tool calls API using a PAT, then exchanges it for a short-lived JWT.&rdquo;</p>
+    </div>
+    <div class="card card-orange">
+      <h4>C. User-Delegated Service Call</h4>
+      <p>&ldquo;manna-worker calls on behalf of user U after U triggered a long-running job.&rdquo;</p>
+    </div>
+  </div>
+
+  <h3>A. Client Credentials Flow</h3>
+<pre><span class="cm">POST /auth/token</span>
+grant_type=<span class="str">client_credentials</span>
+client_id=<span class="str">svc_manna_worker</span>
+client_secret=<span class="str">...</span>
+audience=<span class="str">manna-api</span>
+scope=<span class="str">knowledge.ingest</span></pre>
+
+  <p>Token issued with <code>sub: "principal_svc_manna_worker"</code>, <code>principal_type: "service"</code>. OAuth 2.0 RFC 6749 explicitly supports this grant type for non-user service access.</p>
+
+  <h3>B. PAT Exchange Flow</h3>
+  <p>PATs are exchange credentials, not direct bearer credentials. The tool keeps the <code>rak_</code> token locally, exchanges it for a 5&ndash;15 minute JWT via <code>POST /auth/token grant_type=pat</code>, then workers verify the JWT locally without database hits.</p>
+
+  <h3>C. On-Behalf-Of (Delegated Actor)</h3>
+<pre>{
+  <span class="str">"sub"</span>: <span class="str">"principal_usr_123"</span>,
+  <span class="str">"act"</span>: {
+    <span class="str">"sub"</span>: <span class="str">"principal_svc_manna_worker"</span>,
+    <span class="str">"principal_type"</span>: <span class="str">"service"</span>
+  },
+  <span class="str">"aud"</span>: <span class="str">"manna-api"</span>,
+  <span class="str">"scp"</span>: [<span class="str">"job.result.write"</span>],
+  <span class="str">"job_id"</span>: <span class="str">"job_123"</span>
+}</pre>
+
+  <p>Authorization distinguishes <em>subject</em> (whose resources are affected) from <em>actor</em> (which service is performing the action). This avoids the common bug where a background worker either has too much power as &ldquo;system&rdquo; or loses the user context entirely.</p>
+</section>
+
+
+<section id="global-identity">
+  <h2 id="05-global-identity-app-branded-login"><span class="num">05</span> Global Identity, App-Branded Login</h2>
+
+  <div class="callout blue">
+    <strong>Key insight:</strong> You can support a single Reaktor identity across all apps without showing &ldquo;Login to Reaktor.&rdquo; Provider UX is app-specific. Identity normalization is Reaktor-global.
+  </div>
+
+  <p>Each app has its own configured OAuth client / branding. Google&rsquo;s consent screen shows the app name, logo, and homepage configured in Google Cloud Console. Apple&rsquo;s prompt is tied to the app / service configuration. The user never sees &ldquo;Reaktor.&rdquo;</p>
+
+  <h3>Database Model</h3>
+  <p>The database should <strong>not</strong> say &ldquo;identity belongs to app.&rdquo; It should say:</p>
+  <ul>
+    <li><strong>Provider client</strong> belongs to <strong>app</strong></li>
+    <li><strong>Provider account</strong> belongs to <strong>global identity</strong></li>
+    <li><strong>Membership</strong> belongs to <strong>app / tenant / context</strong></li>
+  </ul>
+
+<pre><span class="cm">── Example ──</span>
+
+<span class="dir">app</span>
+  app_manna       <span class="str">"Manna"</span>
+  app_bestbuds    <span class="str">"BestBuds"</span>
+
+<span class="dir">auth_provider_client</span>
+  app_manna     GOOGLE  ANDROID  client_id=manna-android-client
+  app_manna     GOOGLE  WEB      client_id=manna-web-client
+  app_bestbuds  GOOGLE  ANDROID  client_id=bestbuds-android-client
+  app_bestbuds  APPLE   IOS      bundle_id=dev.shibasis.bestbuds
+
+<span class="dir">identity</span>
+  idn_123
+
+<span class="dir">provider_account</span>
+  identity_id=idn_123  provider=GOOGLE  subject=&lt;google_sub&gt;
+
+<span class="dir">membership</span>
+  principal_usr_123  app_manna     ACTIVE
+  principal_usr_123  app_bestbuds  ACTIVE</pre>
+
+  <p>Login validation: <code>appId + provider + platform &rarr; expected issuer + expected audience/clientId</code>. Do not auto-link accounts only by email. Use provider subject as the primary key.</p>
+</section>
+
+
+<section id="supabase">
+  <h2 id="06-supabase-email-and-magic-link"><span class="num">06</span> Supabase Email &amp; Magic Link</h2>
+
+  <p>Supabase is treated as a credential provider, not as the Reaktor authorization system. Spring calls Supabase server-side using the service role key. The Reaktor client does not need to understand Supabase sessions.</p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h4>Email / Password</h4>
+      <p><code>POST /auth/login/email</code> &rarr; Spring calls Supabase Auth &rarr; validates email/password &rarr; maps <code>supabase_user_id</code> to ProviderAccount &rarr; issues Reaktor tokens.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>Magic Link</h4>
+      <p><code>POST /auth/magic-link/start</code> &rarr; Supabase sends email. <code>POST /auth/magic-link/confirm</code> &rarr; Spring verifies with Supabase &rarr; maps user &rarr; issues Reaktor tokens.</p>
+    </div>
+  </div>
+
+  <p>Supabase admin methods require the secret key and must be called only from trusted servers. The Supabase JWT does not become the Reaktor API token.</p>
+</section>
+
+
+<section id="domain-model">
+  <h2 id="07-core-domain-model"><span class="num">07</span> Core Domain Model</h2>
+
+  <p>The main correction from the old model: split identity, principal, and membership into distinct concepts.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Concept</th><th>Definition</th><th>Key Fields</th></tr></thead>
+      <tbody>
+        <tr><td><code>Identity</code></td><td>Global human identity (one per person across all apps)</td><td><code>id</code>, <code>status</code>, <code>primaryEmail</code>, timestamps</td></tr>
+        <tr><td><code>ProviderAccount</code></td><td>One login method attached to an identity</td><td><code>identityId</code>, <code>provider</code>, <code>issuer</code>, <code>subject</code>, <code>email</code>, <code>providerTenant</code></td></tr>
+        <tr><td><code>Principal</code></td><td>The entity that can be authorized (user, service, agent, actor)</td><td><code>id</code>, <code>kind</code>, <code>identityId?</code>, <code>status</code></td></tr>
+        <tr><td><code>Membership</code></td><td>App/tenant/context-specific attachment</td><td><code>principalId</code>, <code>appId</code>, <code>tenantId?</code>, <code>contextId?</code>, <code>status</code>, <code>profile</code></td></tr>
+        <tr><td><code>AuthProviderClient</code></td><td>App-branded OAuth configuration</td><td><code>appId</code>, <code>provider</code>, <code>platform</code>, <code>clientId</code>, <code>issuer</code>, <code>redirectUris</code></td></tr>
+        <tr><td><code>Tenant</code></td><td>Organizational unit within an app</td><td><code>id</code>, <code>appId</code>, <code>name</code>, <code>status</code></td></tr>
+        <tr><td><code>ResourceRef</code></td><td>Pointer to a specific protected resource</td><td><code>type</code>, <code>id</code>, <code>appId</code>, <code>tenantId</code>, <code>contextId</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ProviderAccount Unique Keys</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Provider</th><th>issuer</th><th>subject</th><th>providerTenant</th></tr></thead>
+      <tbody>
+        <tr><td>Google</td><td><code>https://accounts.google.com</code></td><td>Google <code>sub</code></td><td>&mdash;</td></tr>
+        <tr><td>Apple</td><td><code>https://appleid.apple.com</code></td><td>Apple user identifier</td><td>Apple Team ID</td></tr>
+        <tr><td>Supabase</td><td><code>https://&lt;project&gt;.supabase.co/auth/v1</code></td><td>Supabase user ID</td><td>Supabase project ref</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Principal Kinds</h3>
+  <div class="card-grid">
+    <div class="card card-accent"><h4>USER</h4><p>Human user. Has an Identity. Created at first login.</p></div>
+    <div class="card card-purple"><h4>SERVICE</h4><p>Service account. No Identity. Has client credentials.</p></div>
+    <div class="card card-orange"><h4>AGENT</h4><p>AI agent or autonomous system. Future-ready.</p></div>
+    <div class="card card-cyan"><h4>ACTOR</h4><p>Graph actor / message-processing entity. Future-ready.</p></div>
+  </div>
+</section>
+
+
+<section id="token-model">
+  <h2 id="08-token-model"><span class="num">08</span> Token Model</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Credential</th><th>Format</th><th>Lifetime</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><strong>External provider credential</strong></td><td>Google ID token / Apple identity token / Supabase session</td><td>Login only</td><td>Proves identity to external provider</td></tr>
+        <tr><td><strong>Reaktor access token</strong></td><td>JWT (ES256/RS256, asymmetric JWKS)</td><td>5&ndash;15 min</td><td>Used by APIs, workers, graph services</td></tr>
+        <tr><td><strong>Refresh token</strong></td><td>Opaque random, hashed server-side</td><td>Days/weeks</td><td>Rotates to get new access tokens. User sessions only.</td></tr>
+        <tr><td><strong>PAT / service credential</strong></td><td><code>rak_</code> prefix, hashed server-side</td><td>Long-lived</td><td>Exchange-only &mdash; used to obtain short-lived access tokens</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Asymmetric Signing</h3>
+  <p>Prefer ES256 or RS256 with JWKS. Workers and services verify with public keys &mdash; no shared signing secret needed. HS256 should not be the default because every verifier would need the signing secret.</p>
+
+  <h3>Refresh Token Rotation</h3>
+<pre><span class="dir">refresh_token table:</span>
+  id
+  session_id
+  token_hash
+  family_id          <span class="cm">// for reuse detection</span>
+  previous_token_id
+  created_at, used_at, rotated_at, expires_at, revoked_at</pre>
+
+  <p>Every refresh rotates: old token &rarr; new access + new refresh. Old token becomes invalid. Reuse of old token revokes entire family (RFC 9700).</p>
+
+  <h3>PAT Binding</h3>
+  <p>PATs become app/audience-bound: <code>appId</code>, <code>tenantId</code>, <code>contextId</code>, <code>allowedAudiences</code>, <code>scopes</code>. The current model has <code>userId</code>, <code>name</code>, <code>tokenHash</code>, <code>scopes</code>, nullable <code>contextId</code> &mdash; but no required <code>appId</code> or audience binding.</p>
+</section>
+
+
+<section id="authcontext">
+  <h2 id="09-authcontext-and-authrequirement"><span class="num">09</span> AuthContext &amp; AuthRequirement</h2>
+
+  <div class="callout blue">
+    <strong><code>AuthContext</code> is the single most important primitive.</strong> It is the answer to &ldquo;who is calling, for what app/tenant/context, with what authority?&rdquo; Available everywhere: <code>request.auth</code>, <code>workerContext.auth</code>, <code>graph.auth</code>, <code>actorMessage.auth</code>.
+  </div>
+
+<pre><span class="kw">data class</span> <span class="ty">AuthContext</span>(
+    <span class="kw">val</span> principal: <span class="ty">PrincipalRef</span>,
+    <span class="kw">val</span> identityId: <span class="ty">String</span>?,
+    <span class="kw">val</span> appId: <span class="ty">String</span>,
+    <span class="kw">val</span> tenantId: <span class="ty">String</span>?,
+    <span class="kw">val</span> contextId: <span class="ty">String</span>?,
+    <span class="kw">val</span> sessionId: <span class="ty">String</span>?,
+    <span class="kw">val</span> tokenId: <span class="ty">String</span>?,
+    <span class="kw">val</span> credentialId: <span class="ty">String</span>?,
+    <span class="kw">val</span> issuer: <span class="ty">String</span>,
+    <span class="kw">val</span> audience: <span class="ty">String</span>,
+    <span class="kw">val</span> scopes: <span class="ty">Set&lt;Scope&gt;</span>,
+    <span class="kw">val</span> roles: <span class="ty">Set&lt;RoleRef&gt;</span>,
+    <span class="kw">val</span> permissions: <span class="ty">Set&lt;PermissionRef&gt;</span>,
+    <span class="kw">val</span> method: <span class="ty">AuthMethod</span>,
+    <span class="kw">val</span> actor: <span class="ty">PrincipalRef</span>? = <span class="kw">null</span>,
+    <span class="kw">val</span> delegation: <span class="ty">Delegation</span>? = <span class="kw">null</span>,
+    <span class="kw">val</span> claims: <span class="ty">JsonObject</span> = <span class="ty">JsonObject</span>(emptyMap())
+)</pre>
+
+  <h3>Context Shapes by Auth Type</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Scenario</th><th>principal.kind</th><th>identityId</th><th>sessionId</th><th>actor</th></tr></thead>
+      <tbody>
+        <tr><td>User &rarr; service</td><td>USER</td><td>present</td><td>present</td><td>null</td></tr>
+        <tr><td>Service &rarr; service</td><td>SERVICE</td><td>null</td><td>null</td><td>null</td></tr>
+        <tr><td>Service on behalf of user</td><td>USER</td><td>present</td><td>null</td><td>SERVICE ref</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>AuthRequirement DSL</h3>
+  <p>The current <code>SecuredPort</code> model checks required string scopes. That becomes the beginner path, but the kernel supports composable, resource-aware requirements:</p>
+
+<pre><span class="cm">// Simple scope check</span>
+auth = <span class="fn">requires</span>(<span class="str">"event.write"</span>)
+
+<span class="cm">// Resource-aware</span>
+auth = <span class="fn">requires</span>(<span class="ty">Event</span>.Write)
+    .<span class="fn">on</span>(<span class="ty">EventResource</span>.fromPath(<span class="str">"eventId"</span>))
+
+<span class="cm">// Multi-actor</span>
+auth = <span class="fn">anyOf</span>(
+    <span class="fn">requires</span>(<span class="ty">Event</span>.Write).<span class="fn">forUsers</span>(),
+    <span class="fn">requires</span>(<span class="str">"event.import"</span>).<span class="fn">forServices</span>()
+)
+
+<span class="cm">// Tenant-bound</span>
+auth = <span class="fn">requires</span>(<span class="ty">Event</span>.Write)
+    .<span class="fn">inTenant</span> { path[<span class="str">"eventGroupId"</span>] }
+
+<span class="cm">// Delegated actor</span>
+auth = <span class="fn">requires</span>(<span class="ty">Job</span>.WriteResult)
+    .<span class="fn">allowDelegatedActor</span>(<span class="str">"manna-worker"</span>)</pre>
+</section>
+
+
+<section id="authorization-algorithm">
+  <h2 id="10-authorization-algorithm"><span class="num">10</span> Authorization Algorithm</h2>
+
+  <div class="flow-diagram">
+    <div class="step"><span class="step-num blue">1</span> Is there an AuthContext? &mdash; No &rarr; <strong>401</strong></div>
+    <div class="step"><span class="step-num blue">2</span> Does token match required issuer/audience? &mdash; No &rarr; <strong>401</strong></div>
+    <div class="step"><span class="step-num blue">3</span> Is principal/session/credential active? &mdash; No &rarr; <strong>401</strong></div>
+    <div class="step"><span class="step-num purple">4</span> Is app/tenant/context compatible with route/resource? &mdash; No &rarr; <strong>403</strong></div>
+    <div class="step"><span class="step-num purple">5</span> Does requirement allow this principal kind? &mdash; No &rarr; <strong>403</strong></div>
+    <div class="step"><span class="step-num purple">6</span> Does principal have required scopes/permissions/roles? &mdash; No &rarr; <strong>403</strong></div>
+    <div class="step"><span class="step-num orange">7</span> If resource-bound, does grant apply to this resource? &mdash; No &rarr; <strong>403</strong></div>
+    <div class="step"><span class="step-num orange">8</span> If delegated, is actor allowed to act for subject? &mdash; No &rarr; <strong>403</strong></div>
+    <div class="step"><span class="step-num green">9</span> <strong>Allow</strong></div>
+  </div>
+
+<pre><span class="kw">sealed interface</span> <span class="ty">AuthDecision</span> {
+    <span class="kw">data class</span> <span class="ty">Allow</span>(<span class="kw">val</span> context: <span class="ty">AuthContext</span>) : <span class="ty">AuthDecision</span>
+    <span class="kw">data class</span> <span class="ty">Deny</span>(
+        <span class="kw">val</span> reason: <span class="ty">AuthDenyReason</span>,
+        <span class="kw">val</span> statusCode: <span class="ty">Int</span>,
+        <span class="kw">val</span> safeMessage: <span class="ty">String</span>
+    ) : <span class="ty">AuthDecision</span>
+}</pre>
+
+  <p>This is already implemented in <code>LocalAuthorizer</code> in the kernel &mdash; it evaluates constraints, <code>anyOf</code>/<code>allOf</code> composition, scopes, permissions, roles, resources, and delegation in the correct order.</p>
+</section>
+
+
+<section id="current-state">
+  <h2 id="11-current-implementation-audit"><span class="num">11</span> Current Implementation Audit</h2>
+
+  <h3>What Already Exists</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Area</th><th>Status</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td>Kernel types</td><td><span class="badge done">Done</span></td><td><code>AuthContext</code>, <code>AuthRequirement</code>, <code>AuthDecision</code>, <code>Principal</code>, <code>Identity</code>, <code>ProviderAccount</code>, <code>Membership</code>, <code>AuthProviderClient</code>, <code>Tenant</code>, <code>ResourceRef</code>, all enums</td></tr>
+        <tr><td>Kernel interfaces</td><td><span class="badge done">Done</span></td><td><code>Authenticator</code>, <code>Authorizer</code>, <code>TokenVerifier</code>, <code>TokenIssuer</code>, <code>SessionManager</code>, <code>PermissionResolver</code>, <code>TenantResolver</code></td></tr>
+        <tr><td>LocalAuthorizer</td><td><span class="badge done">Done</span></td><td>Full authorization algorithm with constraint validation, <code>anyOf</code>/<code>allOf</code>, scopes, permissions, roles, resources, delegation</td></tr>
+        <tr><td>DSL functions</td><td><span class="badge done">Done</span></td><td><code>requires()</code>, <code>permits()</code>, <code>anyOf()</code>, <code>allOf()</code>, <code>resource()</code>, fluent methods on <code>AuthRequirement</code></td></tr>
+        <tr><td>Secured graph ports</td><td><span class="badge done">Done</span></td><td><code>SecuredProviderPort</code>, <code>SecuredConsumerPort</code>, <code>providesSecured()</code>, <code>consumesSecured()</code> &mdash; now using <code>AuthRequirement</code></td></tr>
+        <tr><td>AuthNode</td><td><span class="badge done">Done</span></td><td>Graph node with <code>AuthSession</code> state, provider port, DB rehydration, login/logout</td></tr>
+        <tr><td>Platform providers</td><td><span class="badge partial">Partial</span></td><td>Google (Android, iOS, Web), Apple (iOS, Web), Android Apple TODO</td></tr>
+        <tr><td>Auth service API</td><td><span class="badge done">Done</span></td><td><code>login</code>, <code>token</code>, <code>mintPat</code>, <code>verifyPat</code>, <code>exchangePat</code> + <code>TokenRequest</code>/<code>TokenResponse</code> with grant types</td></tr>
+        <tr><td>PAT system</td><td><span class="badge done">Done</span></td><td>Secure random generation, hash-only storage, revocation, exchange to JWT</td></tr>
+        <tr><td>RBAC DTOs</td><td><span class="badge done">Done</span></td><td><code>App</code>, <code>User</code>, <code>Role</code>, <code>Permission</code>, <code>Session</code>, <code>Context</code>, <code>RolePermission</code>, <code>UserRole</code>, <code>PersonalAccessToken</code></td></tr>
+        <tr><td>Spring server</td><td><span class="badge partial">Partial</span></td><td><code>AuthServer</code> routes, <code>LoginInteractor</code>, <code>TokenInteractor</code>, <code>JwtVerifier</code>, <code>JwtMinter</code>, Exposed tables/repos</td></tr>
+        <tr><td>UI components</td><td><span class="badge done">Done</span></td><td><code>GoogleLoginButton</code>, <code>AppleLoginButton</code>, icons</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Critical Gaps</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Gap</th><th>Impact</th><th>Current State</th></tr></thead>
+      <tbody>
+        <tr><td><strong>DefaultSecurityConfig permits all</strong></td><td>No auth boundary on Spring</td><td><code>authorize(anyExchange, permitAll)</code> + CSRF disabled. Actual protection depends on handler-local checks.</td></tr>
+        <tr><td><strong>Fake refresh tokens</strong></td><td>No session lifecycle</td><td><code>LoginInteractor</code> returns <code>UUID.randomUUID().toString()</code> as refresh token with no persistence, rotation, or revocation.</td></tr>
+        <tr><td><strong>No real sessions</strong></td><td>Cannot revoke access</td><td>No server-side session store. No <code>/refresh</code> or <code>/logout</code> endpoints.</td></tr>
+        <tr><td><strong>No app-branded provider clients</strong></td><td>Cannot multi-app</td><td>Login verifies against hardcoded audience, not per-app <code>AuthProviderClient</code>.</td></tr>
+        <tr><td><strong>No identity/principal split</strong></td><td>Flat user model</td><td>Old <code>User</code> table conflates identity, principal, and membership into one row.</td></tr>
+        <tr><td><strong>PATs not audience-bound</strong></td><td>Over-privileged tokens</td><td>PAT has <code>userId</code>, <code>scopes</code>, <code>contextId</code> but no required <code>appId</code> or <code>allowedAudiences</code>.</td></tr>
+        <tr><td><strong>No JWKS endpoint</strong></td><td>Workers can&rsquo;t verify locally</td><td>No <code>/.well-known/jwks.json</code>. Workers would need the signing secret or a DB hit.</td></tr>
+        <tr><td><strong>No worker middleware</strong></td><td>Cloudflare unprotected</td><td>No <code>WorkerJwtVerifier</code>, no JWKS cache, no Hono middleware.</td></tr>
+        <tr><td><strong>No Supabase provider</strong></td><td>Email/magic link blocked</td><td>No server-side Supabase integration.</td></tr>
+        <tr><td><strong>No service accounts</strong></td><td>No S2S auth</td><td>No <code>client_credentials</code> grant. No <code>ServiceAccountService</code>.</td></tr>
+        <tr><td><strong>Apple iOS issues</strong></td><td>Crashes on 2nd login</td><td>Force-unwraps email (<code>it.email!!</code>), logs serialized user, doesn&rsquo;t persist first-login name/email.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<section id="planned-api-tree">
+  <h2 id="12-planned-api-tree"><span class="num">12</span> Planned API Tree</h2>
+
+<div class="tree"><span class="dir">reaktor-auth</span>
+├── <span class="dir">kernel</span>                          <span class="kept">(commonMain, pure KMP)</span>
+│   ├── <span class="dir">model</span>
+│   │   ├── Identity, ProviderAccount, Principal, Membership
+│   │   ├── Tenant, Context, ResourceRef, Action
+│   │   ├── Permission, Role, Grant
+│   │   ├── AuthContext, AuthRequirement, AuthDecision, AuthError
+│   │   └── PrincipalRef, Scope, RoleRef, PermissionRef
+│   ├── <span class="dir">authn</span>
+│   │   ├── Authenticator, CredentialVerifier
+│   │   ├── ExternalIdentityVerifier, ReaktorTokenVerifier
+│   │   ├── SessionManager, RefreshTokenManager
+│   │   └── TokenIssuer, TokenExchange
+│   ├── <span class="dir">authz</span>
+│   │   ├── Authorizer, LocalAuthorizer
+│   │   ├── PermissionResolver, GrantResolver
+│   │   ├── TenantResolver, ResourceResolver
+│   │   └── PolicyEvaluator
+│   ├── <span class="dir">credentials</span>
+│   │   ├── UserSessionCredential, ServiceCredential
+│   │   ├── PersonalAccessTokenCredential
+│   │   └── GoogleCredential, AppleCredential, SupabaseCredential
+│   └── <span class="dir">dsl</span>
+│       └── requires(), permits(), resource(), anyOf(), allOf()
+│
+├── <span class="dir">service</span>                         <span class="kept">(commonMain service API)</span>
+│   ├── <span class="new">AuthService</span>   — externalLogin, emailPasswordLogin, magicLink, refresh, logout, me
+│   ├── <span class="new">TokenService</span>  — token (client_credentials / pat / on_behalf_of), introspect, revoke, jwks
+│   ├── <span class="new">SessionService</span> — listSessions, revokeSession
+│   ├── PatService   — createPat, listPats, revokePat, exchangePat
+│   ├── <span class="new">ServiceAccountService</span> — create, list, credentials, rotate, revoke
+│   ├── <span class="new">AppAuthService</span> — apps, providerClients, tenants, memberships, roles, grants
+│   └── <span class="new">AuditService</span>  — listAuditEvents
+│
+├── <span class="dir">client</span>                          <span class="kept">(commonMain + platform)</span>
+│   ├── ReaktorAuthClient — loginWithGoogle/Apple/Email, magicLink, refresh, logout
+│   ├── <span class="new">AuthSessionStore</span>, <span class="new">SecureTokenStore</span>, <span class="new">AccessTokenCache</span>
+│   ├── <span class="new">AuthHttpPlugin</span> — auto-attach bearer, auto-refresh
+│   └── <span class="new">AuthGraphPlugin</span> — wire AuthContext into graph
+│
+├── <span class="dir">providers</span>                       <span class="kept">(platform-specific)</span>
+│   ├── google/  — Android, iOS, Web, <span class="new">GoogleTokenVerifier (JVM)</span>
+│   ├── apple/   — iOS, Web, <span class="new">AndroidAppleWebLogin</span>, <span class="new">AppleTokenVerifier (JVM)</span>
+│   └── <span class="new">supabase/</span> — SupabaseEmailPasswordProvider, SupabaseMagicLinkProvider (JVM)
+│
+├── <span class="dir">spring</span>                          <span class="kept">(jvmMain)</span>
+│   ├── <span class="new">ReaktorSecurityWebFilter</span>
+│   ├── <span class="new">ReaktorReactiveJwtDecoder</span>
+│   ├── <span class="new">ReaktorAuthorizationManager</span>
+│   ├── <span class="new">AuthContextServerWebExchangeAdapter</span>
+│   └── <span class="new">RouteAuthDsl</span>
+│
+├── <span class="dir">cloudflare</span>                      <span class="new">(jsMain — new)</span>
+│   ├── <span class="new">ReaktorWorkerAuthMiddleware</span>
+│   ├── <span class="new">WorkerJwtVerifier</span> (crypto.subtle)
+│   ├── <span class="new">WorkerJwksCache</span> (KV-backed)
+│   └── <span class="new">HonoAuthContextAdapter</span>
+│
+├── <span class="dir">graph</span>                           <span class="kept">(commonMain)</span>
+│   ├── AuthNode, AuthContextPort
+│   ├── requiresAuth(), providesSecured(), consumesSecured()
+│   └── <span class="new">ActorAuthEnvelope</span>
+│
+└── <span class="dir">cli</span>                             <span class="new">(new)</span>
+    └── reaktor auth login / create-app / configure-provider / mint-pat / inspect-token</div>
+
+  <p><span class="badge new">New</span> items are marked in green. The kernel types and interfaces are already implemented; the gaps are primarily in Spring middleware, worker middleware, Supabase provider, service accounts, and real session lifecycle.</p>
+</section>
+
+
+<section id="spring">
+  <h2 id="13-jvm-spring-target"><span class="num">13</span> JVM / Spring Target</h2>
+
+  <h3>Security Configuration</h3>
+  <p>Replace the current <code>permitAll</code> default with proper route-aware auth. Use both Spring Resource Server (validates Reaktor JWT) and a Reaktor WebFlux filter (maps to <code>AuthContext</code>, calls <code>Authorizer</code>).</p>
+
+<pre><span class="cm">// Public routes</span>
+/auth/login/*
+/auth/magic-link/*
+/.well-known/jwks.json
+
+<span class="cm">// Protected (everything else)</span>
+authorize(anyExchange, authenticated)</pre>
+
+  <h3>Handler-Level Auth (Reaktor-Native)</h3>
+<pre><span class="kw">val</span> createEvent = <span class="ty">PostHandler</span>&lt;<span class="ty">CreateEvent</span>, <span class="ty">EventCreated</span>&gt;(
+    route = <span class="str">"/events"</span>,
+    auth = <span class="fn">requires</span>(<span class="ty">Event</span>.Write)
+        .<span class="fn">on</span>(<span class="ty">EventResource</span>.fromBody { it.eventGroupId })
+) { req ->
+    eventService.create(req.auth, req.body)
+}
+
+<span class="cm">// Spring router wraps automatically:</span>
+<span class="cm">//   extract bearer → authenticate → attach AuthContext</span>
+<span class="cm">//   → evaluate handler.auth → call handler</span></pre>
+
+  <h3>Spring Service Routes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Path</th><th>Method</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>/auth/login/google</code></td><td>POST</td><td>Google login</td></tr>
+        <tr><td><code>/auth/login/apple</code></td><td>POST</td><td>Apple login</td></tr>
+        <tr><td><code>/auth/login/email</code></td><td>POST</td><td>Supabase email/password</td></tr>
+        <tr><td><code>/auth/magic-link/start</code></td><td>POST</td><td>Send magic link</td></tr>
+        <tr><td><code>/auth/magic-link/confirm</code></td><td>POST</td><td>Confirm magic link</td></tr>
+        <tr><td><code>/auth/session/refresh</code></td><td>POST</td><td>Rotate refresh token</td></tr>
+        <tr><td><code>/auth/session/logout</code></td><td>POST</td><td>Revoke current session</td></tr>
+        <tr><td><code>/auth/session/logout-all</code></td><td>POST</td><td>Revoke all sessions</td></tr>
+        <tr><td><code>/auth/session/me</code></td><td>GET</td><td>Current user/session info</td></tr>
+        <tr><td><code>/auth/session/sessions</code></td><td>GET</td><td>List active sessions</td></tr>
+        <tr><td><code>/auth/token</code></td><td>POST</td><td>Token exchange (client_credentials / pat / on_behalf_of)</td></tr>
+        <tr><td><code>/auth/token/introspect</code></td><td>POST</td><td>Token introspection</td></tr>
+        <tr><td><code>/auth/token/revoke</code></td><td>POST</td><td>Token revocation</td></tr>
+        <tr><td><code>/.well-known/jwks.json</code></td><td>GET</td><td>Public signing keys</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Required Stores</h3>
+  <p><code>IdentityStore</code>, <code>ProviderAccountStore</code>, <code>PrincipalStore</code>, <code>MembershipStore</code>, <code>SessionStore</code>, <code>RefreshTokenStore</code>, <code>ServiceAccountStore</code>, <code>PatStore</code>, <code>GrantStore</code>, <code>SigningKeyStore</code>, <code>AuditStore</code>. The existing repository/RBAC work can be preserved; the current <code>User</code> table should become <code>principal</code> + <code>membership</code> or a compatibility view.</p>
+</section>
+
+
+<section id="cloudflare">
+  <h2 id="14-cloudflare-workers-target"><span class="num">14</span> Cloudflare Workers Target</h2>
+
+  <p>Primary requirement: <strong>no DB hit per request, no shared signing secret, fast local verification.</strong></p>
+
+  <div class="flow-diagram">
+    <div class="step"><span class="step-num blue">1</span> Worker request arrives</div>
+    <div class="step"><span class="step-num blue">2</span> Middleware extracts <code>Authorization: Bearer</code></div>
+    <div class="step"><span class="step-num purple">3</span> WorkerJwtVerifier fetches/caches JWKS (KV-backed)</div>
+    <div class="step"><span class="step-num purple">4</span> Verify signature using <code>crypto.subtle</code></div>
+    <div class="step"><span class="step-num green">5</span> Validate iss/aud/exp/nbf/app_id &rarr; build AuthContext</div>
+    <div class="step"><span class="step-num orange">6</span> Route requirement check &rarr; handler executes</div>
+  </div>
+
+<pre><span class="kw">val</span> auth = <span class="fn">reaktorWorkerAuth</span> {
+    issuer = <span class="str">"https://auth.reaktor.build"</span>
+    audience = <span class="str">"manna-mcp"</span>
+    jwksUrl = <span class="str">"https://auth.reaktor.build/.well-known/jwks.json"</span>
+    cache = <span class="ty">WorkerJwksCache</span>(kv = env.AUTH_KV)
+}
+
+app.use(<span class="str">"*"</span>, auth.middleware())
+
+app.post(<span class="str">"/mcp"</span>, <span class="fn">requires</span>(<span class="str">"mcp.read"</span>).<span class="fn">forUsersOrServices</span>()) { c ->
+    <span class="kw">val</span> auth = c.auth
+    mcp.handle(auth, c.req)
+}</pre>
+
+  <p>Hono&rsquo;s JWT middleware follows the same shape. Cloudflare Workers expose Web Crypto via <code>crypto.subtle</code>, which is the right primitive for JWT signature verification.</p>
+</section>
+
+
+<section id="clients">
+  <h2 id="15-android-ios-web-clients"><span class="num">15</span> Android / iOS / Web Clients</h2>
+
+  <h3>App-Facing API</h3>
+<pre><span class="ty">Feature</span>.Auth.configure {
+    appId = <span class="str">"app_manna"</span>
+    authBaseUrl = <span class="str">"https://auth.reaktor.build"</span>
+    providers {
+        google()
+        apple()
+        supabaseEmail()
+        supabaseMagicLink()
+    }
+}
+
+<span class="ty">Feature</span>.Auth.<span class="fn">login</span>(<span class="ty">Google</span>)
+<span class="ty">Feature</span>.Auth.<span class="fn">login</span>(<span class="ty">EmailPassword</span>(email, password))
+<span class="ty">Feature</span>.Auth.<span class="fn">sendMagicLink</span>(email)
+<span class="ty">Feature</span>.Auth.<span class="fn">confirmMagicLink</span>(tokenHash)
+
+<span class="ty">Feature</span>.Auth.currentSession.<span class="fn">collect</span> { session -> <span class="cm">/* update UI */</span> }</pre>
+
+  <h3>Client Token Behavior</h3>
+  <ol>
+    <li>Store refresh token securely (Keychain / EncryptedSharedPreferences / HttpOnly cookie)</li>
+    <li>Keep access token in memory when possible</li>
+    <li>Attach access token to Reaktor service calls via <code>AuthHttpPlugin</code></li>
+    <li>Refresh before expiry</li>
+    <li>On refresh failure, clear session and emit logged-out state</li>
+  </ol>
+
+  <h3>Storage Split</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Store</th><th>Contents</th><th>Mobile</th><th>Web</th></tr></thead>
+      <tbody>
+        <tr><td><code>AuthSessionStore</code></td><td>User/session metadata</td><td>ObjectStore</td><td>Memory / localStorage</td></tr>
+        <tr><td><code>SecureTokenStore</code></td><td>Refresh token / credential</td><td>Keychain / EncryptedPrefs</td><td>HttpOnly Secure cookie</td></tr>
+        <tr><td><code>AccessTokenCache</code></td><td>Current access token</td><td>Memory</td><td>Memory</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Apple iOS Fixes Required</h3>
+  <ul>
+    <li>Do not force-unwrap email (<code>it.email!!</code>) &mdash; Apple only sends name/email on first authorization</li>
+    <li>Persist name/email received only on first login as profile hints</li>
+    <li>Assign successful <code>AppleUser</code> into the <code>MutableStateFlow</code></li>
+    <li>Remove token logging</li>
+  </ul>
+</section>
+
+
+<section id="graph-actors">
+  <h2 id="16-graph-and-actors"><span class="num">16</span> Graph &amp; Actors</h2>
+
+  <p>This is where Reaktor can be better than Clerk/Auth0/Firebase. Auth travels with causality through the graph.</p>
+
+  <h3>Graph Auth</h3>
+<pre><span class="kw">class</span> <span class="ty">AuthNode</span>(graph: <span class="ty">Graph</span>) : <span class="ty">BasicNode</span>(graph) {
+    <span class="kw">val</span> authState: <span class="ty">StateFlow&lt;AuthContext?&gt;</span>
+    <span class="kw">val</span> authPort <span class="kw">by</span> <span class="fn">provides</span>&lt;<span class="ty">AuthContextProvider</span>&gt;(...)
+}
+
+<span class="cm">// Secured port with requirement</span>
+<span class="kw">val</span> eventRepository <span class="kw">by</span> <span class="fn">consumesSecured</span>&lt;<span class="ty">EventRepository</span>&gt;(
+    <span class="fn">requires</span>(<span class="ty">Event</span>.Read)
+        .<span class="fn">on</span>(<span class="ty">EventResource</span>.fromGraphContext())
+)</pre>
+
+  <h3>Actor Messages</h3>
+  <p>Actor messages carry auth explicitly so authorization context is never lost across async boundaries:</p>
+
+<pre><span class="kw">data class</span> <span class="ty">AuthEnvelope</span>&lt;<span class="ty">T</span>&gt;(
+    <span class="kw">val</span> auth: <span class="ty">AuthContext</span>,
+    <span class="kw">val</span> message: <span class="ty">T</span>,
+    <span class="kw">val</span> causationId: <span class="ty">String</span>?,
+    <span class="kw">val</span> correlationId: <span class="ty">String</span>?
+)
+
+<span class="fn">actor</span>&lt;<span class="ty">EventCommand</span>&gt;(
+    auth = <span class="fn">anyOf</span>(
+        <span class="fn">requires</span>(<span class="ty">Event</span>.Write).<span class="fn">forUsers</span>(),
+        <span class="fn">requires</span>(<span class="str">"event.import"</span>).<span class="fn">forServices</span>()
+    )
+)</pre>
+
+  <p>If a user action triggers a service job which sends an actor message, the actor sees both the subject and the service actor.</p>
+</section>
+
+
+<section id="tools-cli">
+  <h2 id="17-tools-cli-and-mcp"><span class="num">17</span> Tools, CLI &amp; MCP</h2>
+
+  <p>Tools use PATs or service accounts, then exchange for scoped JWTs.</p>
+
+<pre><span class="cm">$ reaktor auth login</span>
+<span class="cm">$ reaktor auth mint-pat --app manna --audience manna-mcp --scope mcp.read</span>
+<span class="cm">$ reaktor auth token --audience manna-mcp</span></pre>
+
+  <div class="flow-diagram">
+    <div class="step"><span class="step-num blue">1</span> CLI stores PAT locally</div>
+    <div class="step"><span class="step-num purple">2</span> CLI exchanges PAT for audience-bound JWT</div>
+    <div class="step"><span class="step-num green">3</span> CLI calls worker/API with JWT</div>
+    <div class="step"><span class="step-num orange">4</span> Worker/API verifies locally via JWKS</div>
+  </div>
+
+  <h3>Service Account Examples</h3>
+  <ul>
+    <li><code>manna-ingestion-worker</code> &mdash; knowledge base ingest pipeline</li>
+    <li><code>manna-notification-worker</code> &mdash; push notifications</li>
+    <li><code>bestbuds-chat-worker</code> &mdash; message processing</li>
+    <li><code>reaktor-deploy-agent</code> &mdash; CI/CD automation</li>
+  </ul>
+</section>
+
+
+<section id="migration">
+  <h2 id="18-migration-roadmap"><span class="num">18</span> Migration Roadmap</h2>
+
+  <div class="phase p1">
+    <h4>Step 1: Kernel types <span class="timeline">&mdash; already done</span></h4>
+    <p><code>AuthContext</code>, <code>AuthRequirement</code>, <code>Authenticator</code>, <code>Authorizer</code>, <code>TokenVerifier</code>, <code>TokenIssuer</code>, <code>SessionManager</code>, <code>LocalAuthorizer</code>, DSL functions. Keep current <code>LoginResponse</code> but enrich with <code>TokenSet</code>.</p>
+  </div>
+
+  <div class="phase p2">
+    <h4>Step 2: Real sessions &amp; refresh tokens</h4>
+    <p>Replace <code>UUID.randomUUID()</code> refresh token with persisted, hashed, rotating refresh tokens. Add <code>POST /auth/session/refresh</code>, <code>POST /auth/session/logout</code>, <code>GET /auth/session/me</code>.</p>
+  </div>
+
+  <div class="phase p3">
+    <h4>Step 3: Spring middleware</h4>
+    <p>Replace <code>permitAll</code> with route-aware auth. Add <code>ReaktorSecurityWebFilter</code>, <code>ReaktorReactiveJwtDecoder</code>. Public routes: <code>/auth/login/*</code>, <code>/auth/magic-link/*</code>, <code>/.well-known/jwks.json</code>.</p>
+  </div>
+
+  <div class="phase p4">
+    <h4>Step 4: App-branded provider clients</h4>
+    <p>Add <code>auth_provider_client</code> table. Update login verification: <code>appId + provider + platform &rarr; expected clientId/audience</code>.</p>
+  </div>
+
+  <div class="phase p5">
+    <h4>Step 5: Identity / principal / membership split</h4>
+    <p>Keep compatibility mapping: old <code>User</code> &rarr; new <code>Principal</code> + <code>Membership</code>. Migrate data gradually.</p>
+  </div>
+
+  <div class="phase p6">
+    <h4>Step 6: Service accounts &amp; PAT audience binding</h4>
+    <p>Add <code>ServiceAccountService</code>, <code>TokenService grant_type=client_credentials</code>, PAT <code>allowedAudiences</code> + <code>appId</code>.</p>
+  </div>
+
+  <div class="phase p7">
+    <h4>Step 7: Worker middleware</h4>
+    <p>JWKS endpoint on Spring. Worker JWKS cache (KV). <code>WorkerJwtVerifier</code> with <code>crypto.subtle</code>. Hono/Reaktor middleware.</p>
+  </div>
+
+  <div class="phase p8">
+    <h4>Step 8: Supabase provider</h4>
+    <p><code>POST /auth/login/email</code>, <code>POST /auth/magic-link/start</code>, <code>POST /auth/magic-link/confirm</code>. Spring calls Supabase server-side. Reaktor issues its own tokens after Supabase verification.</p>
+  </div>
+
+  <hr class="sep">
+
+  <h3>Mental Model</h3>
+
+  <div class="card-grid">
+    <div class="card card-accent"><h4>Identity</h4><p>Who is this human globally?</p></div>
+    <div class="card card-purple"><h4>Principal</h4><p>What authenticated entity is acting? (user / service / agent / actor)</p></div>
+    <div class="card card-green"><h4>Membership</h4><p>Where does this principal belong? (app / tenant / context)</p></div>
+    <div class="card card-orange"><h4>Credential</h4><p>How did they prove identity? (Google / Apple / Supabase / secret / PAT)</p></div>
+    <div class="card card-cyan"><h4>Session</h4><p>Is this login still alive?</p></div>
+    <div class="card" style="border-left: 3px solid var(--yellow);"><h4>Token</h4><p>What short-lived proof is presented to this service?</p></div>
+    <div class="card" style="border-left: 3px solid var(--red);"><h4>Requirement</h4><p>What does this route/port/actor need?</p></div>
+    <div class="card" style="border-left: 3px solid var(--text-muted);"><h4>AuthContext</h4><p>The answer to &ldquo;who is calling, for what app/tenant/context, with what authority?&rdquo;</p></div>
+  </div>
+
+  <div class="callout green">
+    <strong>Every target converges on the same kernel.</strong> Apps, servers, workers, tools, graph nodes, and actors all see <code>AuthContext</code> and declare <code>AuthRequirement</code>. The transport varies. The authorization model does not.
+  </div>
+</section>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

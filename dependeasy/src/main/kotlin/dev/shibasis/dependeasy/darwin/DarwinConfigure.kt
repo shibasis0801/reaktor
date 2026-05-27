@@ -36,6 +36,8 @@ class DarwinConfigure(): Configuration<KotlinNativeTarget>() {
 fun KotlinMultiplatformExtension.darwin(
     configuration: DarwinConfigure.() -> Unit = {}
 ) {
+    project.plugins.apply("org.jetbrains.kotlin.native.cocoapods")
+
     val configure = DarwinConfigure().apply(configuration)
     val native = project.nativeConfigurationOrNull
     val nativeDependencies = native

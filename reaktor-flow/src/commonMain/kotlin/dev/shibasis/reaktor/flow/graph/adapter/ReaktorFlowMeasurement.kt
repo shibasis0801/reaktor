@@ -11,6 +11,7 @@ import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.Port
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import kotlin.math.max
+import kotlin.math.min
 
 // References:
 // - Compose custom layout guidance: measurement should be a first-class contract, not an implicit
@@ -68,7 +69,7 @@ internal fun measureNodeHeight(
     consumerCount: Int,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): Double {
-    val rowCount = max(providerCount, consumerCount).coerceAtLeast(1)
+    val rowCount = min(max(providerCount, consumerCount).coerceAtLeast(1), style.port.previewRows.coerceAtLeast(1))
     return style.node.titleHeightPx + rowCount * style.port.rowHeightPx + style.node.verticalPaddingPx * 2.0
 }
 

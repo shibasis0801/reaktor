@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.ffi.switch
 
-import com.google.flatbuffers.kotlin.Vector
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector
 import dev.shibasis.reaktor.ffi.Invokable
 import dev.shibasis.reaktor.ffi.payload.moduleName
 import dev.shibasis.reaktor.ffi.payload.toFlexPayload

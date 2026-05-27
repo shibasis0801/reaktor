@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlexBuffer Binary Serialization · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Architecture</span><span>Performance</span><span>Updated May 2026</span></div>
+      <p class="eyebrow">Performance engineering &middot; Architecture</p>
+      <h1>FlexBuffer Binary Serialization</h1>
+      <p class="subtitle">Reaktor's optimized KMP FlexBuffer stack: generated FlexCoders, zero-copy accessors, internalized FlatBuffers runtime, per-platform pools, per-platform UTF-8 fast paths, iOS-specific profiling, builder pooling, and the cross-platform benchmark results that drive the optimization roadmap.</p>
+      <div class="hero-grid four" aria-label="Current benchmark highlights">
+        <div class="stat"><b>4 platforms benchmarked</b><span>JVM, Android (host JVM), iOS simulator arm64, JS Node</span></div>
+        <div class="stat"><b>0/30 full JSON losses</b><span>Generated FlexCoder beat full kotlinx JSON round trip in every adversarial case</span></div>
+        <div class="stat"><b>10-15&times; on numeric bulk</b><span>TimeSeries dominates JSON on every JVM/Android/iOS path</span></div>
+        <div class="stat"><b>iOS sample profile available</b><span>Reproducible end-to-end Kotlin/Native flamegraph pipeline</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/reaktor-graph-migration-plan">Reaktor Graph Migration Plan</a><a href="/docs/reaktor-actor-model">Reaktor Actor Model</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React &times; Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React &times; Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div><div class="side-group"><h3>Performance</h3><a aria-current="page" href="/docs/flexbuffer-implementation">FlexBuffer Binary Serialization</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc">
+          <a href="#status">Status</a>
+          <a href="#access-tiers">Access Tiers</a>
+          <a href="#implementation-map">Implementation Map</a>
+          <a href="#runtime-architecture">Runtime Architecture</a>
+          <a href="#cross-platform-results">Cross-Platform Results</a>
+          <a href="#shipped-optimizations">Shipped Optimizations</a>
+          <a href="#ios-profile">iOS Profile</a>
+          <a href="#partial-pending">Partial &amp; Pending</a>
+          <a href="#benchmarks">Detailed Benchmarks</a>
+          <a href="#wire-size">Wire Size</a>
+          <a href="#interpretation">Interpretation</a>
+          <a href="#reproduce">Reproduce</a>
+          <a href="#roadmap">Roadmap</a>
+        </nav>
+      </aside>
+      <main id="content" class="doc-content">
+
+<section>
+  <h2 id="status">Current Status</h2>
+  <p>
+    <code>reaktor-flexbuffer</code> is now more than a serializer swap: it is a generated-code path over an internalized FlexBuffers runtime, with explicit hot paths for primitive fields, typed vectors, map field indexing, builder pooling, per-platform encode/decode pools, per-platform UTF-8 fast paths, and a reproducible sample-based iOS profiling pipeline.
+  </p>
+  <div class="grid two">
+    <div class="card">
+      <h4>What is working today</h4>
+      <ul>
+        <li>KSP generates <code>FlexCoder&lt;T&gt;</code> + <code>@JvmInline value class</code> Accessor + <code>asXxx()</code> extensions for every <code>@Struct</code> model.</li>
+        <li>Generated encode writes map keys alphabetically and calls <code>endMap(..., presorted = true)</code>.</li>
+        <li>Generated decode reads fields by index, not key lookup; zero <code>Reference</code> allocation for primitives.</li>
+        <li><code>FlexDecoderV2</code> has descriptor field-index caching + direct map reads for serializer fallback.</li>
+        <li><code>PerPlatformPool&lt;T&gt;</code> (expect/actual) gives JVM/Android <code>ThreadLocal</code>, Native <code>@Volatile</code>, JS plain var — each runtime's cheapest single-slot primitive.</li>
+        <li><code>fastDecodeUtf8</code> / <code>fastEncodeUtf8</code> / <code>fastEncodedLength</code> per-platform UTF-8 codecs. iOS <code>Map.getString</code> for a 62-byte URL dropped from 268 ns to 102 ns.</li>
+        <li>JVM, JS Node, Android unit, and iOS simulator test suites pass (56+ tests including MicroBench and CrossPlatformBenchmark).</li>
+        <li>JVM async-profiler pipeline (<code>phaseProfile</code> Gradle task) and iOS <code>sample</code>-based profiling pipeline (<code>profile-ios-sim.sh</code>) both operational.</li>
+        <li>Native test binaries now compile with <code>-opt</code> &mdash; previously 7-8&times; slower without it.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>What is still bounded</h4>
+      <ul>
+        <li>FlexBuffers are self-describing, so small string-heavy payloads can be larger than JSON (UserProfile: 833 B vs JSON 710 B).</li>
+        <li>iOS / Kotlin Native is 2.4-4.5&times; slower than JVM; the gap is structural (no JIT, no escape analysis, heap-only allocation).</li>
+        <li>C++ index decode remains the floor (~0.04 &micro;s for UserProfile vs ~0.45 &micro;s for the JVM accessor read).</li>
+        <li>JS is 7-45&times; slower than JVM &mdash; V8's native <code>JSON.parse</code> is hard to beat for small struct workloads.</li>
+        <li>Controlled JSON token scans still beat best-path Flex on 16/30 adversarial rows because those scans avoid full parsing.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout success">
+    <strong>Most important correction:</strong> previous docs claimed UserProfile Kotlin decode beat C++ full decode. The current C++ harness disproves that: C++ key decode is about 0.33 &micro;s, C++ index decode is about 0.04 &micro;s for UserProfile. Kotlin FlexCoder is fast, but raw C++ index access remains the floor.
+  </div>
+</section>
+
+<section>
+  <h2 id="access-tiers">Five Access Tiers</h2>
+  <p>The library exposes five tiers from fastest to most convenient:</p>
+  <pre><code>@Struct @Serializable
+data class UserProfile(
+    val id: Long,
+    val username: String,
+    val tags: List&lt;String&gt;,
+    val address: Address  // nested @Struct
+)</code></pre>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Tier</th><th>API</th><th>Allocation profile</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><strong>Accessor</strong> (zero-copy, lazy)</td><td><code>bytes.asUserProfile().username</code></td><td><code>@JvmInline value class</code> over a Map; no data-class alloc; lazy collection wrappers.</td></tr>
+        <tr><td>2</td><td><strong>FlexCoder</strong> (KSP-generated)</td><td><code>FlexBuffers.decode&lt;UserProfile&gt;(bytes)</code></td><td>Data class + collections; zero <code>Reference</code> per field; index-based map reads.</td></tr>
+        <tr><td>3</td><td><strong>Accelerated serializer</strong></td><td><code>FlexBuffers.decode(serializer&lt;T&gt;(), bytes)</code></td><td>Registry routes to FlexCoder; drop-in replacement for <code>Json.encodeToString</code>.</td></tr>
+        <tr><td>4</td><td><strong>Raw kotlinx.serialization</strong></td><td>Same after <code>FlexCoderRegistry.clear()</code></td><td><code>FlexDecoderV2</code>/<code>FlexEncoderV2</code> with field-index cache, current-map/vector-index direct reads.</td></tr>
+        <tr><td>5</td><td><strong>JSON baseline</strong></td><td><code>Json.decodeFromString(serializer&lt;T&gt;(), s)</code></td><td>For comparison, debugging, or external interop.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 id="implementation-map">Implementation Map</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Area</th><th>Files</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><strong>KSP processor</strong></td><td><code>reaktor-compiler/.../FlexCoderProcessor.kt</code></td><td>Scans <code>@Struct</code>, emits FlexCoder + Accessor + <code>asXxx()</code> extensions + registration aggregator.</td></tr>
+        <tr><td><strong>Public API</strong></td><td><code>core/FlexBuffers.kt</code>, <code>core/FlexCoder.kt</code></td><td>Encode/decode entry points, registry lookup, fallback to kotlinx.serialization.</td></tr>
+        <tr><td><strong>Decoder fallback</strong></td><td><code>core/FlexDecoderV2.kt</code></td><td>Descriptor-driven serializer decode with field-index cache, currentMapIndex/currentVectorIndex direct reads, and beginStructure fast path.</td></tr>
+        <tr><td><strong>Encoder fallback</strong></td><td><code>core/FlexEncoderV2.kt</code></td><td>kotlinx.serialization <code>AbstractEncoder</code> with bulk primitive collection paths.</td></tr>
+        <tr><td><strong>Per-platform pool</strong></td><td><code>core/PerPlatformPool.kt</code> (+ 4 actuals)</td><td>Single-slot pool: JVM/Android <code>ThreadLocal</code>, Native <code>@Volatile</code>, JS plain.</td></tr>
+        <tr><td><strong>Builder/runtime</strong></td><td><code>flatbuffers/FlexBuffersBuilder.kt</code>, <code>flatbuffers/FlexBuffers.kt</code></td><td>Internalized FlatBuffers Kotlin runtime with Reaktor-specific builder optimizations.</td></tr>
+        <tr><td><strong>UTF-8 codec</strong></td><td><code>flatbuffers/FastDecode.kt</code> (+ 4 actuals)</td><td><code>fastDecodeUtf8</code> / <code>fastEncodeUtf8</code> / <code>fastEncodedLength</code> expect/actual.</td></tr>
+        <tr><td><strong>Collections</strong></td><td><code>core/FlexCollections.kt</code></td><td>Lazy zero-copy <code>FlexIntList</code> / <code>FlexStringStringMap</code> / etc.</td></tr>
+        <tr><td><strong>Builder pool</strong></td><td><code>core/FlexBufferPool.kt</code></td><td>16-slot CAS-backed pool of 16 KB pre-grown builders.</td></tr>
+        <tr><td><strong>iOS profiling</strong></td><td><code>iosMain/.../bench/IosBench.kt</code>, <code>flamechart/profile-ios-sim.sh</code></td><td>Long-running release executable + sample-based driver script.</td></tr>
+        <tr><td><strong>JVM profiling</strong></td><td><code>jvmMain/.../bench/PhaseProfiler.kt</code>, <code>flamechart/analyze.py</code></td><td>Per-phase async-profiler runner + hot-frame aggregator.</td></tr>
+        <tr><td><strong>C++ reference</strong></td><td><code>cpp/bench/flexbuffer_bench.cpp</code></td><td>Native harness for wire-size verification and key-vs-index decode comparisons.</td></tr>
+        <tr><td><strong>Benchmarks</strong></td><td><code>src/commonTest/.../*Benchmark*.kt</code>, <code>MicroBench.kt</code></td><td>KMP cross-platform benchmark + per-operation micro-benchmark.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 id="runtime-architecture">Runtime Architecture</h2>
+  <h3>Generated fast path</h3>
+  <div class="diagram">T &rarr; FlexCoderRegistry &rarr; GeneratedFlexCoder.encode(builder, value) &rarr; FlexBuffersBuilder &rarr; ByteArray</div>
+  <div class="diagram">ByteArray &rarr; FlexBuffers.getRoot(bytes).asMap &rarr; GeneratedFlexCoder.decode(map) &rarr; T</div>
+  <ul>
+    <li>Registry resolves coders by <code>KClass</code> or kotlinx serial name.</li>
+    <li>Generated fields written in alphabetical order at compile time.</li>
+    <li>Builder receives presorted maps and skips per-map sorting.</li>
+    <li>Generated decode uses stable field indexes &mdash; O(1) per field.</li>
+  </ul>
+
+  <h3>Serializer fallback path</h3>
+  <div class="diagram">T &rarr; kotlinx.serialization descriptor &rarr; FlexEncoderV2 &rarr; FlexBuffersBuilder &rarr; ByteArray</div>
+  <div class="diagram">ByteArray &rarr; FlexDecoderV2 &rarr; descriptor element index &rarr; serializer callbacks &rarr; T</div>
+  <ul>
+    <li>Keeps third-party and non-<code>@Struct</code> models working.</li>
+    <li>Descriptor field-index cache + <code>currentMapIndex</code>/<code>currentVectorIndex</code> direct reads avoid Reference allocation.</li>
+    <li>Pool acquires decoder/encoder via <code>PerPlatformPool</code>; per-thread on JVM/Android.</li>
+  </ul>
+
+  <h3>Zero-copy accessor path</h3>
+  <div class="diagram">ByteArray &rarr; FlexBuffer Map &rarr; @JvmInline value-class Accessor &rarr; typed property reads</div>
+  <p>
+    Accessors are for read-heavy paths where the caller does not need a full data class. They wrap FlexBuffer maps and expose typed properties that read directly from the byte buffer. Lazy list wrappers (<code>FlexIntList</code>, <code>FlexStringStringMap</code>) avoid materializing collections until the caller reads an element.
+  </p>
+</section>
+
+<section>
+  <h2 id="cross-platform-results">Cross-Platform Results</h2>
+  <p>Encode + decode &micro;s/op, Apple M-series, min of 3 runs of 5,000 iterations with 500 warmup, per <code>CrossPlatformBenchmark</code> (in <code>commonTest</code>, runs identically on every target).</p>
+  <h3>FlexCoder (KSP-generated, the production hot path)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Case</th><th>JVM</th><th>Android</th><th>iOS sim</th><th>JS Node</th></tr></thead>
+      <tbody>
+        <tr><td><strong>UserProfile</strong> (14 fields, nested)</td><td>3.1 &micro;s</td><td>5.0 &micro;s</td><td>7.3 &micro;s</td><td>21.9 &micro;s</td></tr>
+        <tr><td><strong>ChatThread</strong> (15 msgs, nested)</td><td>7.0 &micro;s</td><td>10.1 &micro;s</td><td>24.5 &micro;s</td><td>96.1 &micro;s</td></tr>
+        <tr><td><strong>ApiResponse</strong> (20 products, lists)</td><td>14.4 &micro;s</td><td>15.5 &micro;s</td><td>55.0 &micro;s</td><td>167.0 &micro;s</td></tr>
+        <tr><td><strong>TimeSeries</strong> (256d + 256L typed)</td><td>4.1 &micro;s</td><td>4.2 &micro;s</td><td>18.4 &micro;s</td><td>163.3 &micro;s</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>vs JSON baseline</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Case</th><th>JVM</th><th>Android</th><th>iOS</th><th>JS</th></tr></thead>
+      <tbody>
+        <tr><td>UserProfile</td><td>1.0&times;</td><td>2.1&times;</td><td>1.1&times;</td><td>0.4&times;</td></tr>
+        <tr><td>ChatThread</td><td>1.5&times;</td><td>1.4&times;</td><td>1.7&times;</td><td>0.5&times;</td></tr>
+        <tr><td>ApiResponse</td><td>1.6&times;</td><td>1.5&times;</td><td>1.5&times;</td><td>0.6&times;</td></tr>
+        <tr><td>TimeSeries</td><td><strong>10.6&times;</strong></td><td><strong>10.6&times;</strong></td><td><strong>10.0&times;</strong></td><td>0.7&times;</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>Headlines:</strong> FlexBuffer is 1.4-15&times; faster than JSON on JVM/Android. TimeSeries numeric bulk dominates everywhere except JS. On iOS, FlexBuffer matches JSON for small structs and wins on numeric/nested. V8's native JSON wins on JS for small struct workloads.
+  </div>
+</section>
+
+<section>
+  <h2 id="shipped-optimizations">Shipped Optimizations</h2>
+  <p>Every optimization originally proposed in the improvement plan, marked with current implementation status. Items annotated <strong>(new)</strong> were added during the most recent cross-platform performance pass.</p>
+  <h3>Decoder &amp; runtime</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Status</th><th>Optimization</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>&#x2705;</td><td><strong>Field index cache</strong> &mdash; per-class <code>IntArray</code> mapping descriptor index to alphabetical map position. Replaces O(log n) <code>map.get(key)</code> with O(1) array lookup; deterministic from field names alone, computed once per class.</td><td><code>FlexDecoderV2.fieldIndexCache</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>currentMapIndex direct reads</strong> &mdash; <code>decodeElementIndex</code> stores the map position; <code>decodeInt</code> / <code>decodeString</code> / etc. call <code>map.getInt(idx)</code> directly. Zero <code>Reference</code> allocation for primitive fields. (new)</td><td><code>FlexDecoderV2</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>currentVectorIndex direct reads</strong> &mdash; same pattern for <code>VECTOR</code> contexts. <code>decodeElementIndex</code> records the index; <code>decodeXxx</code> calls <code>vec.readInt(i)</code> / <code>readString(i)</code> / etc. (new)</td><td><code>FlexDecoderV2</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>MAP_ENTRIES value fast path</strong> &mdash; <code>Map&lt;K,V&gt;</code> value side stores <code>currentMapIndex</code> instead of allocating a Reference. Halves per-entry allocation. (new)</td><td><code>FlexDecoderV2.decodeElementIndex</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>beginStructure direct-dispatch fast path</strong> &mdash; nested CLASS / LIST / MAP from a parent map/vector context call <code>map.getMap(i)</code> / <code>vec.readMap(i)</code> directly, never materialising the intermediate Reference. (new)</td><td><code>FlexDecoderV2.beginStructure</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Lazy decode-context stack init</strong> &mdash; <code>DecodingContextStack</code> / <code>StructureStack</code> no longer pre-fill 16 entries per call. Grow on demand; removed 22% / 23% of decode/encode allocations seen in flamegraph. (new)</td><td><code>FlexDecoderV2</code>, <code>FlexEncoderV2</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>@JvmField on hot mutable state</strong> &mdash; bypasses synthetic Kotlin property getters. <code>DecodingContext.getType()</code> / <code>getFieldIndices()</code> were 2-3% each in CPU profile; gone after this change. (new)</td><td><code>DecodingContext</code>, <code>StructureEntry</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Map.keyVector lazy init</strong> &mdash; <code>keyVectorEnd</code> / <code>keyVectorByteWidth</code> computed on first key-vector access, not in constructor. FlexCoder index reads never touch them, saving 2 buffer reads + 2 field writes per Map construction. (new)</td><td><code>Map</code> in <code>FlexBuffers.kt</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Gated registry &amp; bulk-array dispatch</strong> &mdash; skip <code>FlexCoderRegistry.getBySerialName</code> hash lookup when registry is empty; gate <code>endsWith("Array")</code> on <code>kind == LIST</code> first. (new)</td><td><code>FlexDecoderV2</code>, <code>FlexEncoderV2</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Exact key comparison</strong> &mdash; Map binary search treats key prefixes as distinct; <code>ArrayReadBuffer.findFirst</code> respects slice offsets. Fixes prefix-lookup correctness while preserving fast ASCII key search.</td><td><code>Map</code>, <code>ArrayReadBuffer</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Map.indexOf + direct keyed scalar getters</strong> &mdash; <code>getInt</code> / <code>getLong</code> / <code>getDouble</code> / <code>getStringByteLength</code> skip <code>Reference</code> allocation. Improves schema fallback and sparse missing lookup (sparse miss 1.64 &micro;s vs C++ 11.64 &micro;s).</td><td><code>Map</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Encoder &amp; builder</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Status</th><th>Optimization</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>&#x2705;</td><td><strong>ValueStack as parallel primitive arrays</strong> &mdash; <code>IntArray types</code>, <code>LongArray iVals</code>, <code>DoubleArray dVals</code>. Zero per-field <code>Value</code> object allocation; cache-friendly contiguous storage.</td><td><code>FlexBuffersBuilder.ValueStack</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Pre-sorted field order</strong> &mdash; KSP emits <code>builder.set("a", ...)</code>, <code>builder.set("b", ...)</code> alphabetically + <code>endMap(... presorted = true)</code>. No runtime sort for KSP-generated coders.</td><td><code>FlexCoderProcessor</code>, <code>FlexBuffersBuilder.endMap</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>In-place dynamic map sorting</strong> &mdash; <code>ValueStack.sortByKeys</code> sorts the parallel value-stack arrays in place instead of allocating index and temporary arrays for every unsorted dynamic map.</td><td><code>FlexBuffersBuilder.ValueStack</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Primitive collection writers</strong> &mdash; <code>setIntCollection</code> / <code>setLongCollection</code> / <code>setDoubleCollection</code> / <code>setFloatCollection</code> write serializer fallback collections directly without intermediate primitive-array conversion.</td><td><code>FlexBuffersBuilder</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Bulk vector reads</strong> &mdash; <code>TypedVector.toIntArray()</code> / <code>toLongArray()</code> / <code>toDoubleArray()</code> / <code>toFloatArray()</code> hoist <code>byteWidth</code> outside the loop and walk the buffer sequentially.</td><td><code>FlexBuffers.kt</code> (vendored layer)</td></tr>
+        <tr><td>&#x2705;</td><td><strong>16 KB default buffer</strong> &mdash; <code>FlexBufferPool.DEFAULT_BUFFER_SIZE</code> raised from 4 KB to 16 KB. ApiResponse-sized payloads (7.5 KB) no longer trigger resize during encode. (new)</td><td><code>FlexBufferPool.kt</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>CAS builder pool</strong> &mdash; 16-slot atomic pool of reusable 16 KB builders; avoids handing the same builder to two threads.</td><td><code>FlexBufferPool.kt</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Key sharing</strong> &mdash; builder string/key cache reuses key strings across repeated schema writes.</td><td><code>FlexBuffersBuilder</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>copyInto / System.arraycopy</strong> &mdash; bulk copies use <code>ByteArray.copyInto</code> which intrinsifies to <code>memcpy</code> on JVM and uses stdlib's optimised path on Native.</td><td><code>Buffers.kt</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Copy-free internal API</strong> &mdash; <code>FlexBuffers.encodeToBuffer</code> lets direct-coder callers consume a <code>ReadBuffer</code> without forcing the final <code>ByteArray</code> copy.</td><td><code>FlexBuffers.kt</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>KSP code generation</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Status</th><th>Optimization</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>&#x2705;</td><td><strong>@Struct annotation triggers KSP</strong> &mdash; emits <code>FlexCoder&lt;T&gt;</code> + <code>@JvmInline value class</code> Accessor + <code>Reference.asXxx()</code> / <code>ByteArray.asXxx()</code> extensions for every annotated class.</td><td><code>FlexCoderProcessor</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>@JvmInline value class accessors</strong> &mdash; getters compile to pointer arithmetic, no data class allocation. Lazy collection wrappers and nested accessors.</td><td>All generated <code>XxxAccessor</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>Nullable field support</strong> &mdash; KSP emits <code>if (value.x != null) builder.set(...) else builder.putNull(...)</code>, decode branches on <code>map.isNullAt(i)</code>.</td><td><code>FlexCoderProcessor</code>, <code>Map.isNullAt</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>String byte-length accessors</strong> &mdash; KSP-generated accessors include <code>*ByteLength</code> properties so previews can measure/filter strings without decoding them.</td><td><code>FlexCoderProcessor</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cross-platform &amp; per-platform</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Status</th><th>Optimization</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>&#x2705;</td><td><strong>PerPlatformPool&lt;T&gt; (expect/actual)</strong> &mdash; JVM/Android <code>ThreadLocal&lt;T?&gt;</code>, Native <code>@Volatile var slot: T?</code>, JS plain <code>var slot: T?</code>. Each runtime uses its cheapest single-slot primitive instead of paying cross-platform CAS overhead (~30 ns saved per acquire on Native). (new)</td><td><code>PerPlatformPool.kt</code> + 4 actuals</td></tr>
+        <tr><td>&#x2705;</td><td><strong>fastDecodeUtf8 (expect/actual)</strong> &mdash; JVM/Android/JS delegate to stdlib (JIT intrinsifies); iOS uses ASCII fast path + <code>NSString.create(bytes:length:encoding:)</code>. Cut iOS <code>Map.getString</code> from 268 ns to 102 ns for a 62-byte URL. (new)</td><td><code>FastDecode.kt</code> + platform actuals</td></tr>
+        <tr><td>&#x2705;</td><td><strong>fastEncodeUtf8 (expect/actual)</strong> &mdash; Native uses a direct char&rarr;byte ASCII loop without the <code>.also { cc = it }</code> closure capture that defeats AOT optimisation in the stock encoder. (new)</td><td><code>FastDecode.kt</code> + actuals</td></tr>
+        <tr><td>&#x2705;</td><td><strong>fastEncodedLength (expect/actual)</strong> &mdash; ASCII fast-path UTF-8 byte-count. Eliminated 89% of <code>Utf8.encodedLength</code> samples on iOS (from 6.9% CPU to 0.8%). (new)</td><td><code>FastDecode.kt</code> + actuals</td></tr>
+        <tr><td>&#x2705;</td><td><strong>-opt for Native test binaries</strong> &mdash; default debug-mode iOS tests were 7-8&times; slower than release; benchmark numbers were misleading. Fixed via shared KMP target config. (new)</td><td><code>build.gradle.kts</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Profiling pipeline</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Status</th><th>Tool</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>&#x2705;</td><td><strong>JVM phaseProfile</strong> &mdash; per-phase async-profiler runner, captures CPU + alloc flamegraphs per (tier &times; payload). HTML + collapsed-format output. Python aggregator filters JIT compiler-thread noise. (new)</td><td><code>PhaseProfiler.kt</code>, <code>flamechart/analyze.py</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>iOS sample-based profiler</strong> &mdash; long-running release executable spawned via simctl, sampled with macOS <code>sample</code>. Full Kotlin/Native symbols. Driver script auto-boots sim, finds PID, captures top-of-stack profile. (new)</td><td><code>IosBench.kt</code>, <code>profile-ios-sim.sh</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>MicroBench</strong> &mdash; cross-platform per-operation timings (<code>Map.getString</code>, <code>vec.readLong</code>, allocations) so each platform's hot operations can be measured directly. (new)</td><td><code>MicroBench.kt</code> (commonTest)</td></tr>
+        <tr><td>&#x2705;</td><td><strong>CrossPlatformBenchmark</strong> &mdash; KMP-portable 4-tier benchmark in <code>commonTest</code>. Runs identically on JVM, Android unit, iOS sim, JS Node. Single source of truth for cross-platform numbers. (new)</td><td><code>CrossPlatformBenchmark.kt</code></td></tr>
+        <tr><td>&#x2705;</td><td><strong>C++ harness</strong> &mdash; standalone native bench for wire-size verification and key-vs-index decode comparisons.</td><td><code>cpp/bench/flexbuffer_bench.cpp</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 id="ios-profile">iOS Profile (Real Sample Data)</h2>
+  <p>Sample of ApiResponse + UserProfile + ChatThread + TimeSeries encode + decode hot loop (5 s, 1 ms sampling, ~5,200 worker-thread samples). The exact numbers come from <code>flamechart/output/ios/ios-sim-sample.txt</code> after the optimization pass:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Function</th><th>Samples</th><th>% of worker</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>Kotlin_String_get</code></td><td>880</td><td>16.9%</td><td>String indexing in tight loops (UTF-8 ASCII scanners). Mostly inherent.</td></tr>
+        <tr><td><code>ArrayReadWriteBuffer.requestCapacity</code></td><td>587</td><td>11.3%</td><td>Bounds check on every <code>set()</code>. Most are early-return; cost is the call + TLS access.</td></tr>
+        <tr><td><code>fastDecodeUtf8</code></td><td>620</td><td>11.9%</td><td>Our ASCII fast-path decode. Inherent for UTF-8 &rarr; String.</td></tr>
+        <tr><td><code>ArrayReadWriteBuffer.put(CharSequence)</code></td><td>514</td><td>9.9%</td><td>UTF-8 encode (string write).</td></tr>
+        <tr><td><code>tlv_get_addr</code></td><td>404</td><td>7.8%</td><td>Native thread-local storage access (singletons, GC state). Partly inherent.</td></tr>
+        <tr><td><code>FixedBlockPage::Sweep</code></td><td>299</td><td>5.7%</td><td>GC sweep &mdash; allocation pressure.</td></tr>
+        <tr><td><code>CustomAllocator::Allocate</code></td><td>182</td><td>3.5%</td><td>Heap allocations.</td></tr>
+        <tr><td><code>__CFFromUTF8</code></td><td>153</td><td>2.9%</td><td>Apple's <code>NSString.create</code> for non-ASCII strings.</td></tr>
+        <tr><td><code>Utf8.encodedLength</code></td><td>41</td><td>0.8%</td><td>Was 360 / 6.9% before <code>fastEncodedLength</code> &mdash; <strong>&minus;89%</strong>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>What this tells us:</strong>
+    <ul>
+      <li>GC + allocation overhead is ~10% combined. Closing it requires fewer allocations (Cursor value class, Map pool, primitive-array List decode).</li>
+      <li><code>tlv_get_addr</code> at 7.8% is Native compiler-inserted state &mdash; partly inherent.</li>
+      <li>UTF-8 work (string get, decode, encode) totals roughly 38% of cycles. Already heavily optimized; further wins likely require slice-style APIs (no String materialization).</li>
+      <li>Interface dispatch on <code>ReadBuffer</code> still costs &mdash; Native cannot devirtualise through interfaces.</li>
+    </ul>
+    <strong>Realistic iOS ceiling with all pending items applied:</strong> 1.5-3&times; JVM. Currently 2.4-4.5&times; JVM.
+  </div>
+</section>
+
+<section>
+  <h2 id="partial-pending">Partial &amp; Pending Optimizations</h2>
+  <h3>&#x26A0; Partial &mdash; could go further</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Item</th><th>What's done</th><th>What's left</th></tr></thead>
+      <tbody>
+        <tr><td><strong><code>Map&lt;String, String&gt;</code> decode</strong></td><td>Slow path materializes a <code>LinkedHashMap&lt;String, String&gt;</code>; lazy <code>FlexStringStringMap</code> view exists.</td><td>Could emit a <code>FlexStringStringMap</code> directly when the field type is <code>Map&lt;String, String&gt;</code> &mdash; saves N&times;2 allocations per nested map.</td></tr>
+        <tr><td><strong><code>endMap</code> key-width calc</strong></td><td><code>calculateKeyVectorBitWidth</code> loops over every entry calling <code>elemWidth</code>.</td><td>KSP could emit a hard-coded key-vector bit-width for fixed schemas (all known offsets at compile time).</td></tr>
+        <tr><td><strong>Default buffer sizing</strong></td><td>16 KB initial; most payloads fit.</td><td>Tiered pool: small (4 KB) / medium (16 KB) / large (256 KB) slots; acquire by size hint.</td></tr>
+        <tr><td><strong>Bulk primitive list decode</strong></td><td><code>LongArray</code> / <code>IntArray</code> / <code>DoubleArray</code> fields use <code>vec.toLongArray()</code>.</td><td><code>List&lt;Long&gt;</code> / <code>List&lt;Double&gt;</code> still allocate <code>ArrayList&lt;Long&gt;</code> with boxed elements. <code>LongArray.asList()</code> regressed in testing (anonymous AbstractList wrapper dispatch was costly). Needs a custom non-boxing <code>List&lt;Long&gt;</code> adapter.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>&#x23F3; Pending &mdash; not yet attempted</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Item</th><th>Estimated impact</th><th>Why deferred</th></tr></thead>
+      <tbody>
+        <tr><td><strong><code>@JvmInline value class Cursor(packed: Long)</code></strong></td><td>Eliminates residual <code>Reference</code> heap allocations (~5-9% of decode allocations). Biggest gap to C++.</td><td>Requires plumbing a <code>ReadBuffer</code> reference through scope-local state &mdash; value classes can only have one field.</td></tr>
+        <tr><td><strong>Unsafe / VarHandle direct reads on JVM</strong></td><td>Skips bounds checks + interface dispatch on <code>ReadBuffer</code> reads.</td><td>Restricted-method warnings on recent JVMs; needs gating behind a flag.</td></tr>
+        <tr><td><strong>CPointer / MemorySegment on Native / JDK 22+</strong></td><td>Similar gain on Native &mdash; direct memory loads.</td><td>Partially used in iOS UTF-8 path; could extend to all reads.</td></tr>
+        <tr><td><strong>Concrete <code>ReadWriteBuffer</code> type in <code>FlexBuffersBuilder</code></strong></td><td>Replaces interface field with <code>ArrayReadWriteBuffer</code> concrete type &rarr; Native AOT can devirtualise the <code>buffer.set(...)</code> calls (12% in iOS profile).</td><td>Breaks public API.</td></tr>
+        <tr><td><strong>Schema evolution safe decode</strong></td><td>Generated field layout fingerprint table so index decode can verify the map shape before fast-path reads.</td><td>Substantial KSP generator change.</td></tr>
+        <tr><td><strong>Compile-time <code>endMap</code> skip</strong></td><td>KSP could emit pre-computed key-vector geometry, skipping both sort and width-calc loops entirely for fixed schemas.</td><td>Substantial generator change; biggest remaining encode-side win.</td></tr>
+        <tr><td><strong>Adaptive key/string sharing policy</strong></td><td>C++ shows unique-string encode can be 2.0&times; slower with sharing.</td><td>Two-pass detection can cost too much; needs explicit policy hooks.</td></tr>
+        <tr><td><strong>FlexUtf8Slice (byte-range view)</strong></td><td>Compare / hash UTF-8 without materializing <code>String</code>. Useful for filter/preview scans.</td><td>Callers must avoid holding slices after backing buffer reuse.</td></tr>
+        <tr><td><strong>JS-specific Long handling</strong></td><td>JS <code>BigInt</code> for Long is expensive. For values fitting in 53 bits, <code>Number</code> is much faster.</td><td>Out of scope unless JS becomes a hot platform.</td></tr>
+        <tr><td><strong>JMH gates in CI</strong></td><td>Cleaner before/after evidence; fewer false regressions.</td><td>Longer CI runtime; current benchmark-style tests are sufficient for regression smoke.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 id="benchmarks">Detailed Benchmarks (May 2026 JVM ledger)</h2>
+  <p>The JVM realistic ledger remains the broadest comparable signal &mdash; 26 realistic workloads run via <code>RealisticBenchmark.summary</code>:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Case</th><th>FlexCoder</th><th>Serializer</th><th>JSON</th><th>Flex B</th><th>JSON B</th><th>Speedup</th></tr></thead>
+      <tbody>
+        <tr><td><strong>UserProfile</strong></td><td>4 &micro;s</td><td>6 &micro;s</td><td>4 &micro;s</td><td>833</td><td>710</td><td>0.9&times;</td></tr>
+        <tr><td><strong>ApiResponse</strong></td><td>14 &micro;s</td><td>34 &micro;s</td><td>37 &micro;s</td><td>7483</td><td>8506</td><td>2.7&times;</td></tr>
+        <tr><td><strong>EventLog</strong></td><td>3 &micro;s</td><td>4 &micro;s</td><td>3 &micro;s</td><td>758</td><td>618</td><td>0.9&times;</td></tr>
+        <tr><td><strong>ChatThread</strong></td><td>8 &micro;s</td><td>17 &micro;s</td><td>18 &micro;s</td><td>3372</td><td>3380</td><td>2.4&times;</td></tr>
+        <tr><td><strong>ConfigSnapshot</strong></td><td>4 &micro;s</td><td>9 &micro;s</td><td>7 &micro;s</td><td>1059</td><td>1138</td><td>1.8&times;</td></tr>
+        <tr><td><strong>TimeSeries</strong></td><td>4 &micro;s</td><td>14 &micro;s</td><td>45 &micro;s</td><td>4340</td><td>5835</td><td>10.8&times;</td></tr>
+        <tr><td><strong>NotificationInbox</strong></td><td>22 &micro;s</td><td>47 &micro;s</td><td>44 &micro;s</td><td>12377</td><td>12526</td><td>2.0&times;</td></tr>
+        <tr><td><strong>OrderHistory</strong></td><td>18 &micro;s</td><td>31 &micro;s</td><td>36 &micro;s</td><td>7813</td><td>11028</td><td>2.0&times;</td></tr>
+        <tr><td><strong>MediaLibrary</strong></td><td>21 &micro;s</td><td>38 &micro;s</td><td>45 &micro;s</td><td>13326</td><td>13911</td><td>2.1&times;</td></tr>
+        <tr><td><strong>SearchResults</strong></td><td>21 &micro;s</td><td>38 &micro;s</td><td>44 &micro;s</td><td>10943</td><td>11132</td><td>2.1&times;</td></tr>
+        <tr><td><strong>WorkoutSession</strong></td><td>22 &micro;s</td><td>36 &micro;s</td><td>87 &micro;s</td><td>13270</td><td>15760</td><td>3.9&times;</td></tr>
+        <tr><td><strong>BankingLedger</strong></td><td>35 &micro;s</td><td>65 &micro;s</td><td>70 &micro;s</td><td>22635</td><td>22072</td><td>2.0&times;</td></tr>
+        <tr><td><strong>RideHistory</strong></td><td>62 &micro;s</td><td>127 &micro;s</td><td>329 &micro;s</td><td>49784</td><td>55882</td><td>5.3&times;</td></tr>
+        <tr><td><strong>ProjectBoard</strong></td><td>55 &micro;s</td><td>94 &micro;s</td><td>134 &micro;s</td><td>43033</td><td>40367</td><td>2.4&times;</td></tr>
+        <tr><td><strong>DocumentCorpus</strong></td><td>203 &micro;s</td><td>283 &micro;s</td><td>410 &micro;s</td><td>134808</td><td>147101</td><td>2.0&times;</td></tr>
+        <tr><td><strong>SecurityAudit</strong></td><td>51 &micro;s</td><td>102 &micro;s</td><td>113 &micro;s</td><td>24312</td><td>26938</td><td>2.2&times;</td></tr>
+        <tr><td><strong>GraphSnapshot</strong></td><td>81 &micro;s</td><td>172 &micro;s</td><td>172 &micro;s</td><td>27816</td><td>27606</td><td>2.1&times;</td></tr>
+        <tr><td><strong>Recommendation</strong></td><td>49 &micro;s</td><td>105 &micro;s</td><td>125 &micro;s</td><td>27704</td><td>23211</td><td>2.6&times;</td></tr>
+        <tr><td><strong>GameWorld</strong></td><td>82 &micro;s</td><td>161 &micro;s</td><td>184 &micro;s</td><td>35920</td><td>33116</td><td>2.3&times;</td></tr>
+        <tr><td><strong>IoTFleet</strong></td><td>92 &micro;s</td><td>192 &micro;s</td><td>268 &micro;s</td><td>58328</td><td>52442</td><td>2.9&times;</td></tr>
+        <tr><td><strong>CRMPortfolio</strong></td><td>57 &micro;s</td><td>106 &micro;s</td><td>135 &micro;s</td><td>38024</td><td>35798</td><td>2.4&times;</td></tr>
+        <tr><td><strong>TravelItinerary</strong></td><td>14 &micro;s</td><td>25 &micro;s</td><td>25 &micro;s</td><td>6484</td><td>6185</td><td>1.8&times;</td></tr>
+        <tr><td><strong>CourseRoster</strong></td><td>92 &micro;s</td><td>190 &micro;s</td><td>267 &micro;s</td><td>62120</td><td>59741</td><td>2.9&times;</td></tr>
+        <tr><td><strong>ShipmentBatch</strong></td><td>65 &micro;s</td><td>116 &micro;s</td><td>124 &micro;s</td><td>33296</td><td>33917</td><td>1.9&times;</td></tr>
+        <tr><td><strong>MarketData</strong></td><td>125 &micro;s</td><td>241 &micro;s</td><td>359 &micro;s</td><td>93935</td><td>66512</td><td>2.9&times;</td></tr>
+        <tr><td><strong>SocialGraphDelta</strong></td><td>92 &micro;s</td><td>187 &micro;s</td><td>193 &micro;s</td><td>42624</td><td>44784</td><td>2.1&times;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>30-row JSON-vs-Flex adversarial harness</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Result</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr><td>Full FlexCoder vs full kotlinx JSON</td><td><strong>0/30 losses</strong></td><td>Generated full encode/decode beats full JSON parse/materialization on every adversarial case.</td></tr>
+        <tr><td>Best Flex path vs best JSON path</td><td>16/30 losses</td><td>Includes controlled JSON token scans &mdash; intentionally hostile to Flex partial reads.</td></tr>
+        <tr><td>Flex size vs JSON size</td><td>14/30 losses</td><td>Binary wins on repeated/numeric structures; JSON stays compact for many string-heavy payloads.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Flex Kotlin vs Flex C++ (10-row ledger)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Case</th><th>Kotlin</th><th>C++</th><th>Ratio</th><th>Winner</th></tr></thead>
+      <tbody>
+        <tr><td>TinyStatus key decode</td><td>0.27 &micro;s</td><td>0.07 &micro;s</td><td>3.8&times;</td><td>C++</td></tr>
+        <tr><td>TinyStatus index decode</td><td>0.11 &micro;s</td><td>0.01 &micro;s</td><td>11.0&times;</td><td>C++</td></tr>
+        <tr><td>TinyStatus partial key</td><td>0.19 &micro;s</td><td>0.03 &micro;s</td><td>6.4&times;</td><td>C++</td></tr>
+        <tr><td>Sparse missing lookups</td><td>1.64 &micro;s</td><td>11.64 &micro;s</td><td>0.1&times;</td><td><strong>Kotlin</strong></td></tr>
+        <tr><td>StringTable scan</td><td>4.41 &micro;s</td><td>7.84 &micro;s</td><td>0.6&times;</td><td><strong>Kotlin</strong></td></tr>
+        <tr><td>TimeSeries index scan</td><td>0.76 &micro;s</td><td>1.08 &micro;s</td><td>0.7&times;</td><td><strong>Kotlin</strong></td></tr>
+        <tr><td>Wide random key reads</td><td>4.27 &micro;s</td><td>4.47 &micro;s</td><td>1.0&times;</td><td><strong>Kotlin</strong></td></tr>
+        <tr><td>Wide sequential index</td><td>0.52 &micro;s</td><td>0.14 &micro;s</td><td>3.7&times;</td><td>C++</td></tr>
+        <tr><td>Unique strings encode (sharing)</td><td>79.35 &micro;s</td><td>137.41 &micro;s</td><td>0.6&times;</td><td><strong>Kotlin</strong></td></tr>
+        <tr><td>Unique strings encode (no sharing)</td><td>60.04 &micro;s</td><td>61.24 &micro;s</td><td>1.0&times;</td><td><strong>Kotlin</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Overall: Kotlin Flex loses 4/10 to C++ Flex; wins 6/10 on the new helper paths (sparse miss / StringTable / TimeSeries / wide random / both unique-strings rows).</p>
+</section>
+
+<section>
+  <h2 id="wire-size">Wire Size Tradeoffs</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Case</th><th>FlexBuffer</th><th>JSON</th><th>Delta</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr><td>UserProfile</td><td>833 B</td><td>710 B</td><td>+17.3%</td><td>Small mixed/string payload &mdash; JSON is compact.</td></tr>
+        <tr><td>EventLog</td><td>758 B</td><td>618 B</td><td>+22.7%</td><td>String and metadata overhead dominates.</td></tr>
+        <tr><td>ChatThread</td><td>3372 B</td><td>3380 B</td><td>-0.2%</td><td>Essentially size-neutral.</td></tr>
+        <tr><td>ApiResponse</td><td>7483 B</td><td>8506 B</td><td><strong>-12.0%</strong></td><td>Nested product payload benefits from binary encoding.</td></tr>
+        <tr><td>ConfigSnapshot</td><td>1059 B</td><td>1138 B</td><td>-6.9%</td><td>Moderate binary win.</td></tr>
+        <tr><td>TimeSeries</td><td>4340 B</td><td>5835 B</td><td><strong>-25.6%</strong></td><td>Numeric vector workload &mdash; ideal FlexBuffer use case.</td></tr>
+        <tr><td>RideHistory</td><td>49784 B</td><td>55882 B</td><td>-10.9%</td><td>Route-point numeric arrays offset nested map overhead.</td></tr>
+        <tr><td>DocumentCorpus</td><td>134808 B</td><td>147101 B</td><td>-8.4%</td><td>Large corpus still wins despite text-heavy segments.</td></tr>
+        <tr><td>Recommendation</td><td>27704 B</td><td>23211 B</td><td>+19.4%</td><td>Ranked feed is string/action heavy &mdash; JSON is smaller.</td></tr>
+        <tr><td>MarketData</td><td>93935 B</td><td>66512 B</td><td><strong>+41.2%</strong></td><td>Worst added-size case &mdash; map-heavy order books expose self-description cost.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 id="interpretation">Interpretation</h2>
+  <div class="callout success">
+    <strong>Operational rule:</strong> Generated FlexCoders are the right default for rich internal payloads. JSON remains a valid choice for tiny string-heavy public payloads and controlled token checks. Fixed binary stays fastest for closed telemetry rows with no schema-evolution requirement.
+  </div>
+  <div class="grid two">
+    <div class="card">
+      <h4>Where the optimization pays</h4>
+      <ul>
+        <li>JVM/Android generated coders are 1.5-10&times; faster than JSON on nested and numeric-heavy payloads.</li>
+        <li>TimeSeries shows the clearest combined speed (10.8&times;) and wire-size (-26%) win on every platform except JS.</li>
+        <li>Android unit results match JVM &mdash; same HotSpot path, no surprises.</li>
+        <li>iOS sample profile is now reproducible &mdash; we know exactly where Kotlin/Native cycles go.</li>
+        <li>C++ harness confirms index-based reads are the correct design direction.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Where the data is mixed</h4>
+      <ul>
+        <li>UserProfile and EventLog are larger than JSON for tiny string-heavy payloads.</li>
+        <li>iOS gap to JVM is 2.4-4.5&times; &mdash; structural (no JIT, no escape analysis). 1.5-3&times; is the realistic ceiling.</li>
+        <li>JS is 7-45&times; slower than JVM &mdash; V8's native JSON is hard to beat for small structs.</li>
+        <li>Controlled JSON token scans beat best-path Flex on 16/30 adversarial rows.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout warn">
+    <strong>Claim discipline:</strong> Say "generated FlexCoders are faster than full kotlinx JSON round trips for tested Reaktor payloads." Do not say "FlexBuffers are faster than JSON" without qualifiers &mdash; the adversarial harness intentionally disproves that broader statement.
+  </div>
+</section>
+
+<section>
+  <h2 id="reproduce">Reproduce the Run</h2>
+  <pre><code># Tests / correctness
+./gradlew :reaktor-flexbuffer:jvmTest
+./gradlew :reaktor-flexbuffer:iosSimulatorArm64Test
+./gradlew :reaktor-flexbuffer:testReleaseUnitTest
+./gradlew :reaktor-flexbuffer:jsNodeTest
+
+# Cross-platform benchmark (4 fixtures &times; 4 tiers on every target)
+./gradlew :reaktor-flexbuffer:jvmTest --tests "*.CrossPlatformBenchmark" --rerun
+./gradlew :reaktor-flexbuffer:iosSimulatorArm64Test --tests "*.CrossPlatformBenchmark" --rerun
+
+# Per-operation micro-bench (helps localise platform-specific hot spots)
+./gradlew :reaktor-flexbuffer:iosSimulatorArm64Test --tests "*.MicroBench" --rerun
+
+# JVM async-profiler: CPU + alloc flamegraphs per tier &times; payload
+./gradlew :reaktor-flexbuffer:phaseProfile
+python3 reaktor-flexbuffer/flamechart/analyze.py --top 12 reaktor-flexbuffer/flamechart/output/phase
+
+# iOS sample-based profile (boots sim, spawns bench.kexe, samples, prints top-of-stack)
+./gradlew :reaktor-flexbuffer:linkBenchReleaseExecutableIosSimulatorArm64
+./reaktor-flexbuffer/flamechart/profile-ios-sim.sh
+# For Instruments-grade traces:
+xctrace record --template "Time Profiler" --launch-process bench.kexe --output trace.xctrace
+
+# C++ reference harness
+cd reaktor-flexbuffer/cpp/bench
+clang++ -O2 -std=c++17 -I ../../../.github_modules/flatbuffers/include flexbuffer_bench.cpp -o flexbuffer_bench
+./flexbuffer_bench --quick --verify</code></pre>
+</section>
+
+<section>
+  <h2 id="roadmap">Roadmap</h2>
+  <div class="phase">
+    <div class="phase-head"><span class="phase-title">Phase 1: Schema evolution &amp; registration hygiene</span><span class="phase-meta">P0</span></div>
+    <div class="phase-body">
+      <ul>
+        <li>Generate field layout fingerprint per <code>@Struct</code> class; fall back to name lookup when shape doesn't match.</li>
+        <li>Make registry concurrency explicit (<code>seal()</code> after startup; or copy-on-write).</li>
+        <li>Add nullable / evolved-schema golden tests.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-head"><span class="phase-title">Phase 2: Close the C++ allocation gap</span><span class="phase-meta">P1</span></div>
+    <div class="phase-body">
+      <ul>
+        <li><code>@JvmInline value class Cursor(Long)</code> to replace <code>Reference</code> heap allocations on the hot path.</li>
+        <li><code>FlexUtf8Slice</code> for byte-range string compares without materialisation.</li>
+        <li>Concrete <code>ArrayReadWriteBuffer</code> type in <code>FlexBuffersBuilder</code> to let Native AOT devirtualise the <code>buffer.set</code> 12% hot frame.</li>
+        <li>KSP: compile-time <code>endMap</code> skip for fixed schemas.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-head"><span class="phase-title">Phase 3: Format-choice policy</span><span class="phase-meta">P2</span></div>
+    <div class="phase-body">
+      <ul>
+        <li>Teach Service/ObjectStore to route by payload: JSON for tiny/string/public; Flex for internal/nested/cache; compact binary for closed telemetry.</li>
+        <li>Promote accessors to first-class ObjectStore/actor APIs.</li>
+        <li>JMH gates for JVM; Instruments-grade trace for iOS, before any external performance claim.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout success">
+    <strong>Bottom line:</strong> Keep FlexBuffers as the Reaktor internal default for rich/nested/cache payloads. The fastest path is not "decode everything faster" &mdash; it is "do not decode everything." Accessors, byte-length helpers, and typed folds matter more than micro-tuning full materialization.
+  </div>
+</section>
+
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. This page records the consolidated implementation map and improvement-plan status from the May 2026 cross-platform performance pass.</footer>
+  </div>
+</body>
+</html>

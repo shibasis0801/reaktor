@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>reaktor-graph — Refinement Plan</title>
+<style>
+  :root {
+    --bg: #06080d; --bg-1: #0a0d14; --bg-2: #0f131c; --bg-3: #161b27;
+    --t-1: #e6eaf2; --t-2: #a1abc0; --t-3: #6b7588; --t-4: #4a536b;
+    --accent: #4b7bff; --accent-2: #6d8bff;
+    --ok: #3fbf78; --warn: #f0a93a; --error: #ef5b5b;
+    --route: #5891ff; --screen: #3fbf78; --container: #a075f0;
+    --service: #e0a04a; --cloud: #36c4d4;
+    --port: #c084fc; --state: #f472b6; --actor: #fbbf24; --effect: #34d399;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--t-1);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px; line-height: 1.6; padding: 0;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 32px; }
+  h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--t-3); font-size: 15px; margin-bottom: 40px; }
+  h2 {
+    font-size: 20px; font-weight: 600; margin: 56px 0 16px;
+    padding-bottom: 8px; border-bottom: 1px solid #1a2031;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .icon { width: 24px; height: 24px; border-radius: 6px; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  h3 { font-size: 16px; font-weight: 600; margin: 28px 0 12px; color: var(--t-1); }
+  h4 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--accent-2); }
+  p { color: var(--t-2); margin-bottom: 12px; }
+  strong { color: var(--t-1); }
+  em { color: var(--t-2); font-style: italic; }
+  code { font-family: var(--font-mono); font-size: 12px; background: var(--bg-3); padding: 2px 6px; border-radius: 4px; color: var(--accent-2); }
+  pre {
+    font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-2);
+    border: 1px solid #1a2031; border-radius: 8px; padding: 16px;
+    overflow-x: auto; margin: 12px 0 16px; color: var(--t-2); line-height: 1.65;
+  }
+  pre code { background: none; padding: 0; color: var(--t-2); }
+  pre .k { color: #c792ea; }
+  pre .s { color: #ecc48d; }
+  pre .c { color: var(--t-4); font-style: italic; }
+  pre .t { color: #82aaff; }
+  pre .n { color: #d6deeb; }
+  pre .fn { color: var(--accent-2); }
+  pre .hl { color: var(--ok); }
+  pre .bad { color: var(--error); }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { color: var(--t-2); padding-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 6px; }
+  li strong { color: var(--t-1); }
+
+  .hero {
+    background: linear-gradient(135deg, rgba(75,123,255,0.08), rgba(192,132,252,0.06));
+    border: 1px solid rgba(75,123,255,0.2); border-radius: 12px;
+    padding: 32px; margin-bottom: 40px;
+  }
+  .hero p { font-size: 15px; color: var(--t-2); }
+  .hero h1 { font-size: 36px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+  .stat {
+    background: var(--bg-2); border: 1px solid #1a2031; border-radius: 8px;
+    padding: 16px; text-align: center;
+  }
+  .stat .val { font-size: 28px; font-weight: 700; font-family: var(--font-mono); }
+  .stat .label { font-size: 11px; color: var(--t-3); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+  .card {
+    background: var(--bg-2); border: 1px solid #1a2031; border-radius: 8px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h4 { margin-top: 0; }
+  .card.accent { border-color: rgba(75,123,255,0.4); }
+  .card.warn { border-color: rgba(240,169,58,0.3); background: rgba(240,169,58,0.04); }
+  .card.ok { border-color: rgba(63,191,120,0.3); background: rgba(63,191,120,0.04); }
+  .card.layer { border-left: 3px solid var(--accent); }
+
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.08em;
+    vertical-align: middle;
+  }
+  .badge.done { background: rgba(63,191,120,0.15); color: var(--ok); border: 1px solid rgba(63,191,120,0.3); }
+  .badge.partial { background: rgba(240,169,58,0.15); color: var(--warn); border: 1px solid rgba(240,169,58,0.3); }
+  .badge.new { background: rgba(75,123,255,0.15); color: var(--accent-2); border: 1px solid rgba(75,123,255,0.3); }
+  .badge.critical { background: rgba(239,91,91,0.15); color: var(--error); border: 1px solid rgba(239,91,91,0.3); }
+  .badge.port { background: rgba(192,132,252,0.15); color: var(--port); border: 1px solid rgba(192,132,252,0.3); }
+  .badge.actor { background: rgba(251,191,36,0.15); color: var(--actor); border: 1px solid rgba(251,191,36,0.3); }
+  .badge.state { background: rgba(244,114,182,0.15); color: var(--state); border: 1px solid rgba(244,114,182,0.3); }
+  .badge.effect { background: rgba(52,211,153,0.15); color: var(--effect); border: 1px solid rgba(52,211,153,0.3); }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; background: var(--bg-3); color: var(--t-2);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #1a2031; }
+  td { padding: 10px 12px; border-bottom: 1px solid #111724; color: var(--t-2); vertical-align: top; }
+  tr:hover td { background: rgba(75,123,255,0.04); }
+
+  .toc { background: var(--bg-2); border: 1px solid #1a2031; border-radius: 8px; padding: 20px 24px; margin: 24px 0; }
+  .toc-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--t-3); margin-bottom: 12px; }
+  .toc a { display: block; padding: 4px 0; color: var(--t-2); font-size: 13px; }
+  .toc a:hover { color: var(--accent-2); }
+  .toc .indent { padding-left: 20px; }
+
+  .principle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+  .principle {
+    background: var(--bg-2); border: 1px solid #1a2031; border-radius: 8px;
+    padding: 18px 20px; position: relative;
+  }
+  .principle .num {
+    position: absolute; top: 14px; right: 16px;
+    font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+    color: var(--t-4); opacity: 0.5;
+  }
+  .principle h4 { margin: 0 0 8px; color: var(--t-1); font-size: 14px; padding-right: 28px; }
+  .principle p { font-size: 13px; margin: 0; color: var(--t-3); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) {
+    .two-col, .principle-grid, .arch-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+
+  .diag-list { list-style: none; padding: 0; margin: 0; }
+  .diag-list li {
+    padding: 14px 16px; margin-bottom: 8px;
+    background: var(--bg-2); border: 1px solid #1a2031; border-radius: 6px;
+    border-left: 3px solid var(--warn);
+  }
+  .diag-list li.critical { border-left-color: var(--error); }
+  .diag-list li.minor { border-left-color: var(--accent); }
+  .diag-list li .diag-head { font-weight: 600; color: var(--t-1); margin-bottom: 4px; font-size: 14px; }
+  .diag-list li .diag-loc { font-family: var(--font-mono); font-size: 11px; color: var(--t-4); margin-left: 8px; }
+  .diag-list li .diag-body { font-size: 13px; color: var(--t-3); }
+
+  .layer-block {
+    border: 1px solid #1a2031; border-radius: 10px;
+    margin: 24px 0; overflow: hidden;
+    background: var(--bg-1);
+  }
+  .layer-head {
+    padding: 16px 22px;
+    background: linear-gradient(90deg, rgba(75,123,255,0.08), transparent);
+    border-bottom: 1px solid #1a2031;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .layer-head .layer-num {
+    font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+    color: var(--accent); min-width: 40px;
+  }
+  .layer-head .layer-title { font-size: 17px; font-weight: 600; }
+  .layer-head .layer-sub { font-size: 12px; color: var(--t-3); margin-top: 2px; }
+  .layer-body { padding: 20px 24px; }
+
+  .before-after {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0;
+  }
+  @media (max-width: 900px) { .before-after { grid-template-columns: 1fr; } }
+  .before-after .col { background: var(--bg-2); border: 1px solid #1a2031; border-radius: 6px; padding: 14px; }
+  .before-after .col h5 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--t-3); margin-bottom: 8px; }
+  .before-after .before { border-left: 3px solid var(--error); }
+  .before-after .after { border-left: 3px solid var(--ok); }
+  .before-after pre { background: var(--bg-1); margin: 0; font-size: 11.5px; }
+
+  .key-insight {
+    border-left: 3px solid var(--accent); padding: 12px 18px; margin: 16px 0;
+    background: rgba(75,123,255,0.04); border-radius: 0 6px 6px 0;
+  }
+  .key-insight strong { color: var(--accent-2); }
+
+  .flow-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+  .flow-box {
+    background: var(--bg-3); border: 1px solid #1a2031; border-radius: 6px;
+    padding: 10px 16px; font-size: 12px; text-align: center; min-width: 140px;
+  }
+  .flow-box strong { display: block; font-size: 13px; }
+  .flow-box .sub { font-size: 10px; color: var(--t-3); margin-top: 2px; }
+  .flow-arrow { color: var(--accent); font-size: 18px; font-weight: 300; }
+
+  .ascii-diagram {
+    font-family: var(--font-mono); font-size: 12px; color: var(--t-2);
+    background: var(--bg-2); border: 1px solid #1a2031; border-radius: 8px;
+    padding: 18px 22px; white-space: pre; line-height: 1.45;
+    overflow-x: auto; margin: 14px 0;
+  }
+
+  .non-goal {
+    background: rgba(239,91,91,0.06); border: 1px solid rgba(239,91,91,0.2);
+    border-radius: 6px; padding: 12px 16px; margin: 8px 0; font-size: 13px;
+  }
+  .non-goal strong { color: var(--error); }
+
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    background: var(--bg-3); color: var(--t-3); border: 1px solid #1a2031;
+    margin-right: 4px;
+  }
+
+  details { background: var(--bg-2); border: 1px solid #1a2031; border-radius: 6px; padding: 0; margin: 10px 0; }
+  details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; color: var(--t-1); font-size: 14px; }
+  details[open] summary { border-bottom: 1px solid #1a2031; }
+  details .detail-body { padding: 14px 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ===== HERO ===== -->
+<h1>reaktor-graph <span>Refinement Plan</span></h1>
+<p class="subtitle">Sharpening the graph framework toward an expressive, layered, React/Actor-grade runtime.</p>
+
+<div class="hero">
+  <p><strong>Premise.</strong> <code>reaktor-graph</code> is the most mature module in Reaktor and powers BestBuds in production. The skeleton — a sealed <code>Node</code> hierarchy over a typed port-graph with lifecycle, DI, navigation, and services — is sound. What the BestBuds codebase reveals is that everyday feature work spends most of its lines on <em>ceremony</em>: re-declaring <code>RouteBinding</code>s, chaining <code>.apply { exposePort(...) }</code>, hand-rolling <code>MutableStateFlow</code> fields, and overriding <code>activateGraphForRoute</code> just to keep a tab selector in sync.</p>
+  <p style="margin-top: 12px"><strong>Goal of this document.</strong> Identify the precise places where the framework is <em>under-abstracted</em> (not <em>over-abstracted</em>) and propose a layered set of refinements that pull these patterns into the framework — without flattening into a one-shot mega-DSL. We want a runtime where the 80% case is one line and the 20% case is still wide open.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="val" style="color:var(--ok)">65</div><div class="label">Kotlin files in reaktor-graph</div></div>
+    <div class="stat"><div class="val" style="color:var(--accent)">6</div><div class="label">Concrete node types today</div></div>
+    <div class="stat"><div class="val" style="color:var(--warn)">~3:1</div><div class="label">Ceremony : business logic</div></div>
+    <div class="stat"><div class="val" style="color:var(--port)">12</div><div class="label">Proposed primitives</div></div>
+  </div>
+</div>
+
+<!-- ===== TOC ===== -->
+<div class="toc">
+  <div class="toc-title">Table of Contents</div>
+  <a href="#principles">1. Principles</a>
+  <a href="#snapshot">2. Snapshot &mdash; What Already Works</a>
+  <a href="#diagnosis">3. Diagnosis &mdash; Where Expressiveness Leaks</a>
+  <a href="#model">4. Mental Model &mdash; Five Layers</a>
+  <a href="#layer0">5. Layer 0 &mdash; Atomic Primitives</a>
+  <a href="#layer1">6. Layer 1 &mdash; Port Shapes</a>
+  <a href="#layer2">7. Layer 2 &mdash; Reactive Nodes (Hooks &amp; Behaviors)</a>
+  <a href="#layer3">8. Layer 3 &mdash; Routing &amp; Container Idioms</a>
+  <a href="#layer4">9. Layer 4 &mdash; Module Composition &amp; Supervision</a>
+  <a href="#walkthrough">10. End-to-end Walkthrough &mdash; ChatGraph Re-imagined</a>
+  <a href="#migration">11. Migration &mdash; Additive Path</a>
+  <a href="#nongoals">12. Non-Goals</a>
+  <a href="#open">13. Open Questions</a>
+</div>
+
+<!-- ===== 1. PRINCIPLES ===== -->
+<h2 id="principles"><span class="icon" style="background:rgba(75,123,255,0.15); color:var(--accent)">&#x271C;</span> 1. Principles</h2>
+<p>Every refinement in this document is judged against these four constraints. When they conflict, the order is the tiebreaker: an expressive primitive beats a simple one; a simple primitive beats a clever one; a clever one-shot API beats nothing only when it is also expressive.</p>
+
+<div class="principle-grid">
+  <div class="principle">
+    <span class="num">01</span>
+    <h4>Expressiveness &gt;&gt; Simplicity &gt;&gt;&gt;&gt; Bloated one-shot APIs</h4>
+    <p>Primitives must compose. A <code>@Screen("/chat/:id")</code> annotation that owns state, navigation, and IO is fast to type and impossible to bend. We prefer five thin orthogonal primitives that can be combined.</p>
+  </div>
+  <div class="principle">
+    <span class="num">02</span>
+    <h4>React &amp; Actor models as inspiration</h4>
+    <p>Two field-proven mental models: <em>functions of state with declarative effects</em> (React), and <em>autonomous units exchanging messages with supervision</em> (Akka/Erlang). Reaktor already has both ingredients half-formed; this plan finishes them.</p>
+  </div>
+  <div class="principle">
+    <span class="num">03</span>
+    <h4>Atomic design, layered abstractions</h4>
+    <p>Primitive &rarr; molecule &rarr; organism &rarr; template &rarr; system. Every layer is usable on its own. You can drop down a layer for power or up a layer for ergonomics &mdash; without rewriting.</p>
+  </div>
+  <div class="principle">
+    <span class="num">04</span>
+    <h4>Easy for 80% &mdash; possible for 20%</h4>
+    <p>A vanilla CRUD screen should be one DSL block. A custom render pipeline with shared mailbox routing should still be expressible, even if it takes more lines. Never <em>force</em> developers into the DSL.</p>
+  </div>
+</div>
+
+<div class="key-insight">
+  <strong>What this rules out.</strong> Annotation processors that own the entire feature ("@Feature" macros), reflection-based dependency injection at runtime, and any DSL that <em>hides</em> the underlying <code>Graph</code>/<code>Node</code>/<code>Port</code> identities. The DSL is sugar on top of types we can still call directly.
+</div>
+
+<!-- ===== 2. SNAPSHOT ===== -->
+<h2 id="snapshot"><span class="icon" style="background:rgba(63,191,120,0.15); color:var(--ok)">&#x2713;</span> 2. Snapshot &mdash; What Already Works</h2>
+<p>Before proposing changes, lock in what we keep. The runtime has earned the following load-bearing decisions:</p>
+
+<table>
+  <tr><th>Decision</th><th>Where it lives</th><th>Why we keep it</th></tr>
+  <tr>
+    <td><code>Graph</code> as the runtime scope (DI + lifecycle + coroutines + navigation + ports in one object)</td>
+    <td><code>core/Graph.kt</code></td>
+    <td>One place to attach, one place to tear down. Parent-child nesting cleanly models tabs/containers.</td>
+  </tr>
+  <tr>
+    <td>Typed <code>Port</code> graph (<code>ProviderPort&lt;T&gt;</code>, <code>ConsumerPort&lt;T&gt;</code>, indexed by <code>Type + Key</code>)</td>
+    <td><code>reaktor-graph-port/port/*</code></td>
+    <td>Allows multiple ports of the same type per node; underpins <code>autoWire()</code>.</td>
+  </tr>
+  <tr>
+    <td>Sealed lifecycle state machine with cascading transitions</td>
+    <td><code>capabilities/LifecycleCapability.kt</code></td>
+    <td>Predictable, debuggable. Actors hook in cleanly (<code>Restoring/Attaching</code> &rarr; loop start).</td>
+  </tr>
+  <tr>
+    <td>Cross-graph navigation that bubbles to the container owner</td>
+    <td><code>Graph.handleCrossGraphForward</code></td>
+    <td>The right separation between in-tab and across-tab navigation; back-stacks stay layered.</td>
+  </tr>
+  <tr>
+    <td><code>ActorNode&lt;M&gt;</code> with mailbox + supervision + persistent <code>ObjectStore</code></td>
+    <td><code>core/node/ActorNode.kt</code></td>
+    <td>Akka-grade primitive: sequential receive, <code>ask</code> with timeouts, restart/escalate directives, stable UUIDs by name.</td>
+  </tr>
+  <tr>
+    <td><code>ServiceNode</code> &mdash; HTTP handlers as provider ports</td>
+    <td><code>service/Service.kt</code></td>
+    <td>One model spans client and server. Swap an implementation without touching consumers.</td>
+  </tr>
+  <tr>
+    <td>Visitor + Selector + Traverser triplet for graph traversal</td>
+    <td><code>visitor/*</code>, <code>portgraph/visitor/*</code></td>
+    <td>Decouples policy (DFS/BFS) from concern (introspection/serialization).</td>
+  </tr>
+</table>
+
+<p>The skeleton holds. Everything below adds <em>tissue</em>; nothing replaces a bone.</p>
+
+<!-- ===== 3. DIAGNOSIS ===== -->
+<h2 id="diagnosis"><span class="icon" style="background:rgba(239,91,91,0.15); color:var(--error)">&#x2717;</span> 3. Diagnosis &mdash; Where Expressiveness Leaks</h2>
+<p>Findings from a sweep of <code>bestbuds/modules/app</code> and <code>bestbuds/modules/engine</code>, cross-referenced with the framework source.</p>
+
+<ul class="diag-list">
+  <li class="critical">
+    <div class="diag-head">D1 &mdash; <code>RouteBinding</code> subclasses are pure plumbing<span class="diag-loc">ChatScreen.kt:77, BestBuds.kt:139</span></div>
+    <div class="diag-body">Every navigable screen declares a <code>RouteBinding</code> subtype solely to hold cross-route <code>NavigationEdge</code> references in constructor parameters. The class never carries logic.</div>
+  </li>
+  <li class="critical">
+    <div class="diag-head">D2 &mdash; <code>exposePort</code> chains repeat 3&ndash;10&times; per graph<span class="diag-loc">BestBuds.kt:389&ndash;411, WorkbenchGraph.kt:163&ndash;167</span></div>
+    <div class="diag-body">Every node that should be reachable from sibling graphs needs <code>.apply { exposePort(myPort) }</code>. The intent ("I am exposed as <code>T</code>") is declarative; the call is imperative.</div>
+  </li>
+  <li class="critical">
+    <div class="diag-head">D3 &mdash; <code>by consumes&lt;T&gt;()</code> bloat on actors<span class="diag-loc">ChatActor.kt:32&ndash;55</span></div>
+    <div class="diag-body">Heavy actors declare 6&ndash;10 individual <code>consumes</code> delegates plus getters. <code>autoWire()</code> would handle most of these, but the developer still has to spell them out because the actor needs typed references.</div>
+  </li>
+  <li class="critical">
+    <div class="diag-head">D4 &mdash; <code>MutableStateFlow</code> sprawl in controllers/interactors<span class="diag-loc">ChatSessionStateInteractor.kt:27&ndash;46</span></div>
+    <div class="diag-body">A single interactor declares six independent <code>StateFlow</code>s with manual <code>field = MutableStateFlow(...)</code>. There is no reducer composition, no useState-equivalent, no derived selectors.</div>
+  </li>
+  <li>
+    <div class="diag-head">D5 &mdash; Lifecycle &harr; effect adhesion at the UI<span class="diag-loc">ChatScreen.kt:44&ndash;54</span></div>
+    <div class="diag-body">Every screen pairs <code>LaunchedEffect(payloadKey)</code> with <code>DisposableEffect(Unit){ onDispose { ... } }</code> to track route enter/exit. The framework already runs lifecycle phases; the UI duplicates them by hand.</div>
+  </li>
+  <li>
+    <div class="diag-head">D6 &mdash; Container selection state hand-mirrored<span class="diag-loc">BestBudsContainers.kt:66&ndash;135</span></div>
+    <div class="diag-body"><code>BottomNavigationContainer</code> overrides <code>activateGraphForRoute</code> just to keep a <code>MutableStateFlow&lt;String&gt; selected</code> in sync. Every container variant repeats this glue.</div>
+  </li>
+  <li>
+    <div class="diag-head">D7 &mdash; Generic type information lost at the port boundary<span class="diag-loc">portgraph/port/Type.kt, registerProvider</span></div>
+    <div class="diag-body"><code>Type&lt;Map&lt;String,Int&gt;&gt;()</code> collapses to <code>Type("Map")</code>. Two semantically different ports become indistinguishable to <code>autoWire</code>.</div>
+  </li>
+  <li>
+    <div class="diag-head">D8 &mdash; <code>Reply&lt;R&gt;</code> ask ceremony<span class="diag-loc">ActorNode.kt:109&ndash;125</span></div>
+    <div class="diag-body">Every actor message that supports request/response must thread a <code>Reply&lt;R&gt;</code> through the sealed message class. The call site is clean (<code>ask { reply -&gt; Msg.Query(reply) }</code>); the schema isn't.</div>
+  </li>
+  <li>
+    <div class="diag-head">D9 &mdash; Routes pushed imperatively, no route table or guards<span class="diag-loc">RouteNode.kt, Graph.addRoot</span></div>
+    <div class="diag-body">There is no declarative inventory of "what routes does this graph have, and what protects them?" Deeplinks and auth gates have to be re-derived per call site.</div>
+  </li>
+  <li>
+    <div class="diag-head">D10 &mdash; Property delegation as a substitute for module composition<span class="diag-loc">WorkbenchGraph.kt:127&ndash;145</span></div>
+    <div class="diag-body">Engine code re-exposes child-graph services via thirty hand-written <code>get() = shell.xyz</code> lines. There is no notion of a sub-graph contract or module re-export.</div>
+  </li>
+  <li class="minor">
+    <div class="diag-head">D11 &mdash; <code>Edge</code> constructor mutates port state in <code>init</code><span class="diag-loc">portgraph/edge/Edge.kt</span></div>
+    <div class="diag-body">No transactional rewiring. A listener that throws leaves the graph half-connected. Connect failures cannot be batched/rolled back.</div>
+  </li>
+  <li class="minor">
+    <div class="diag-head">D12 &mdash; No stream-shaped port; everything is a method call<span class="diag-loc">port/ProviderPort.kt</span></div>
+    <div class="diag-body">Reaktor uses <code>StateFlow</code> and <code>SharedFlow</code> everywhere but the port layer has no notion of an observable port. Consumers re-derive Flow plumbing per use site.</div>
+  </li>
+</ul>
+
+<!-- ===== 4. MENTAL MODEL ===== -->
+<h2 id="model"><span class="icon" style="background:rgba(192,132,252,0.15); color:var(--port)">&#x29C9;</span> 4. Mental Model &mdash; Five Layers</h2>
+<p>The refinements organize into five concentric layers. Each one is small and orthogonal; each can be adopted independently. Lower layers know nothing about higher ones.</p>
+
+<div class="ascii-diagram">  ┌───────────────────────────────────────────────────────────────────────┐
+  │  L4  System              graphs ↔ graphs, supervision, deep links     │
+  │   ┌─────────────────────────────────────────────────────────────────┐ │
+  │   │  L3  Templates        route tables, containers, modules         │ │
+  │   │   ┌───────────────────────────────────────────────────────────┐ │ │
+  │   │   │  L2  Organisms     hook-style nodes, behavior actors,    │ │ │
+  │   │   │                    reducer controllers                   │ │ │
+  │   │   │   ┌─────────────────────────────────────────────────────┐ │ │ │
+  │   │   │   │  L1  Port Shapes   StatePort, StreamPort,          │ │ │ │
+  │   │   │   │                    RequestPort, EventPort,         │ │ │ │
+  │   │   │   │                    EffectPort                       │ │ │ │
+  │   │   │   │   ┌───────────────────────────────────────────────┐ │ │ │ │
+  │   │   │   │   │ L0  Atoms     Type, Key, Port, Message,       │ │ │ │ │
+  │   │   │   │   │               Behavior, Lifecycle              │ │ │ │ │
+  │   │   │   │   └───────────────────────────────────────────────┘ │ │ │ │
+  │   │   │   └─────────────────────────────────────────────────────┘ │ │ │
+  │   │   └───────────────────────────────────────────────────────────┘ │ │
+  │   └─────────────────────────────────────────────────────────────────┘ │
+  └───────────────────────────────────────────────────────────────────────┘</div>
+
+<div class="key-insight">
+  <strong>How to read this.</strong> A screen author lives at L2-L3. A subsystem author lives at L1-L2. A framework author lives at L0-L1. The point is that none of them should have to step outside their layer for the common case &mdash; but all paths down are open.
+</div>
+
+<!-- ===== 5. LAYER 0 ===== -->
+<h2 id="layer0"><span class="icon" style="background:rgba(74,83,107,0.15); color:var(--t-3)">&#x29BF;</span> 5. Layer 0 &mdash; Atomic Primitives</h2>
+<p>These are the cells the higher layers are built from. Each one is independently testable and ~50&ndash;200 LOC.</p>
+
+<div class="layer-block">
+  <div class="layer-head">
+    <div class="layer-num">L0.1</div>
+    <div>
+      <div class="layer-title">Strengthen <code>Type</code> to carry full <code>KType</code></div>
+      <div class="layer-sub">Fix D7. Generic-aware type identity at the port boundary.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <p>Today <code>Type</code> stores a string and an optional <code>KClass</code>. Two ports of <code>List&lt;String&gt;</code> and <code>List&lt;Int&gt;</code> collide. Switch to <code>kotlin.reflect.typeOf&lt;T&gt;()</code> (multiplatform since 1.6) and use structural equality.</p>
+    <div class="before-after">
+      <div class="col before">
+        <h5>Before</h5>
+<pre><span class="k">inline fun</span>&lt;<span class="k">reified</span> T&gt; <span class="fn">Type</span>() = <span class="fn">create</span>(T::<span class="t">class</span>)
+<span class="c">// Type&lt;List&lt;String&gt;&gt;() ≡ Type&lt;List&lt;Int&gt;&gt;()</span></pre>
+      </div>
+      <div class="col after">
+        <h5>After</h5>
+<pre><span class="k">inline fun</span>&lt;<span class="k">reified</span> T&gt; <span class="fn">Type</span>() = <span class="fn">Type</span>(<span class="fn">typeOf</span>&lt;T&gt;())
+
+<span class="k">data class</span> <span class="t">Type</span>(<span class="k">val</span> kType: KType) {
+    <span class="k">val</span> raw: KClass&lt;*&gt; <span class="k">get</span>() = kType.classifier <span class="k">as</span> KClass&lt;*&gt;
+}
+<span class="c">// Type&lt;List&lt;String&gt;&gt;() ≠ Type&lt;List&lt;Int&gt;&gt;() ✓</span></pre>
+      </div>
+    </div>
+    <p>Side effect: <code>autoWire</code> can now compute structural compatibility (e.g. wire <code>List&lt;Message&gt;</code> consumer to <code>MutableList&lt;Message&gt;</code> provider if you opt in to variance).</p>
+  </div>
+</div>
+
+<div class="layer-block">
+  <div class="layer-head">
+    <div class="layer-num">L0.2</div>
+    <div>
+      <div class="layer-title">Lift <code>connect()</code> out of the <code>Edge</code> constructor</div>
+      <div class="layer-sub">Fix D11. Transactional, two-phase wiring.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <p>Edges should be immutable values. A separate <code>Wiring</code> object accumulates pending connections, validates the lot, then commits atomically &mdash; firing port-lifecycle events only after the commit succeeds.</p>
+<pre><span class="k">class</span> <span class="t">Wiring</span>(<span class="k">private val</span> graph: Graph) {
+    <span class="k">private val</span> pending = <span class="fn">mutableListOf</span>&lt;Pair&lt;ConsumerPort&lt;*&gt;, ProviderPort&lt;*&gt;&gt;&gt;()
+    <span class="k">fun</span>&lt;T&gt; <span class="fn">add</span>(c: ConsumerPort&lt;T&gt;, p: ProviderPort&lt;T&gt;): Wiring = <span class="fn">apply</span> { pending += c <span class="k">to</span> p }
+    <span class="k">fun</span> <span class="fn">commit</span>(): Result&lt;List&lt;Edge&gt;&gt; { <span class="c">/* validate all, then apply */</span> }
+}
+
+<span class="c">// usage</span>
+graph.<span class="fn">wire</span> {
+    chatActor.operations <span class="k">to</span> operationsInteractor
+    chatActor.timeline   <span class="k">to</span> timelineInteractor
+}.<span class="fn">commit</span>().<span class="fn">getOrThrow</span>()</pre>
+    <p>This unlocks dry-run validation, partial rollback, and structured error reporting &mdash; a prerequisite for the Layer-4 module-merging story.</p>
+  </div>
+</div>
+
+<div class="layer-block">
+  <div class="layer-head">
+    <div class="layer-num">L0.3</div>
+    <div>
+      <div class="layer-title">Promote <code>Lifecycle</code> hooks to <code>suspend</code></div>
+      <div class="layer-sub">Fix D5. Async setup/teardown without leaking <code>runBlocking</code>.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <p>Today <code>onTransition</code> is synchronous, which forces nodes that need async setup to schedule it on <code>coroutineScope</code> and lose ordering. Add a parallel <code>suspend fun onTransitionAsync(prev, next)</code> hook driven through <code>graph.coroutineScope</code> so the next transition waits.</p>
+<pre><span class="k">interface</span> <span class="t">LifecycleAware</span> {
+    <span class="k">fun</span> <span class="fn">onTransition</span>(prev: Lifecycle, next: Lifecycle) {}        <span class="c">// sync, optional</span>
+    <span class="k">suspend fun</span> <span class="fn">onTransitionAsync</span>(prev: Lifecycle, next: Lifecycle) {} <span class="c">// async, optional</span>
+}</pre>
+    <p>Graph then awaits all <code>onTransitionAsync</code> calls before advancing to the next state.</p>
+  </div>
+</div>
+
+<div class="layer-block">
+  <div class="layer-head">
+    <div class="layer-num">L0.4</div>
+    <div>
+      <div class="layer-title">Introduce a <code>Behavior</code> type for actor receive logic</div>
+      <div class="layer-sub">Inspiration: Akka Behaviors (Typed). Replaces the unbounded sealed-class &times; <code>when</code> pattern.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <p>An <code>ActorNode</code>'s logic is "given a message, do something, and possibly become a new behavior." Today this is implicit in the <code>receive(msg)</code> method, with sealed-class dispatch and mutable fields. Make it explicit:</p>
+<pre><span class="k">sealed interface</span> <span class="t">Behavior</span>&lt;M : Any&gt; {
+    <span class="k">object</span> Same : Behavior&lt;Nothing&gt;
+    <span class="k">object</span> Stopped : Behavior&lt;Nothing&gt;
+    <span class="k">class</span> Receive&lt;M : Any&gt;(<span class="k">val</span> fn: <span class="k">suspend</span> ActorContext&lt;M&gt;.(M) -&gt; Behavior&lt;M&gt;) : Behavior&lt;M&gt;
+    <span class="k">class</span> Setup&lt;M : Any&gt;(<span class="k">val</span> fn: <span class="k">suspend</span> ActorContext&lt;M&gt;.() -&gt; Behavior&lt;M&gt;) : Behavior&lt;M&gt;
+}
+
+<span class="k">val</span> chatActor = <span class="fn">behavior</span>&lt;ChatMsg&gt; {
+    <span class="fn">receive</span> { msg -&gt; <span class="k">when</span>(msg) {
+        <span class="k">is</span> ChatMsg.Open  -&gt; { ops.load(msg.id); <span class="fn">become</span>(open(msg.id)) }
+        <span class="k">is</span> ChatMsg.Close -&gt; Behavior.Stopped
+        <span class="k">else</span>             -&gt; Behavior.Same
+    }}
+}</pre>
+    <p>The existing <code>ActorNode</code> stays; <code>behavior {}</code> compiles to an <code>ActorNode</code> whose <code>receive</code> just dispatches to the current <code>Behavior</code>. Existing subclasses keep working untouched.</p>
+  </div>
+</div>
+
+<!-- ===== 6. LAYER 1 — PORT SHAPES ===== -->
+<h2 id="layer1"><span class="icon" style="background:rgba(192,132,252,0.15); color:var(--port)">&#x25C7;</span> 6. Layer 1 &mdash; Port Shapes</h2>
+<p>Today every port is a value provider. Consumers call into the value directly. This works for repositories and interactors, but everywhere else the team rebuilds Flow/Channel/Deferred plumbing on the call site. Five port shapes cover &gt;95% of real usage.</p>
+
+<table>
+  <tr><th>Shape</th><th>Underlying</th><th>Consumer reads</th><th>Use case</th></tr>
+  <tr>
+    <td><span class="badge port">ValuePort&lt;T&gt;</span></td>
+    <td>Direct reference (current behavior)</td>
+    <td><code>port.impl</code></td>
+    <td>Repositories, services, singletons.</td>
+  </tr>
+  <tr>
+    <td><span class="badge state">StatePort&lt;S&gt;</span></td>
+    <td><code>StateFlow&lt;S&gt;</code></td>
+    <td><code>port.value</code>, <code>port.flow</code></td>
+    <td>Replaces hand-rolled <code>StateFlow</code> in interactors (D4).</td>
+  </tr>
+  <tr>
+    <td><span class="badge port">StreamPort&lt;E&gt;</span></td>
+    <td><code>Flow&lt;E&gt;</code> or <code>SharedFlow&lt;E&gt;</code></td>
+    <td><code>port.collect { }</code></td>
+    <td>Event buses, telemetry feeds, presence ticks (D12).</td>
+  </tr>
+  <tr>
+    <td><span class="badge effect">RequestPort&lt;In,Out&gt;</span></td>
+    <td><code>suspend (In) -&gt; Out</code> with retry/timeout policy</td>
+    <td><code>port(input)</code></td>
+    <td>Service calls, single-shot RPCs; replaces ad-hoc handler classes.</td>
+  </tr>
+  <tr>
+    <td><span class="badge actor">MailboxPort&lt;M&gt;</span></td>
+    <td><code>ActorRef&lt;M&gt;</code></td>
+    <td><code>port.send(msg)</code>, <code>port.ask { }</code></td>
+    <td>How sibling nodes talk to an actor; replaces <code>by consumes&lt;MyActor&gt;()</code> (D3).</td>
+  </tr>
+</table>
+
+<h3>Port-shape declaration DSL</h3>
+<p>The <code>by provides&lt;T&gt;()</code>/<code>by consumes&lt;T&gt;()</code> delegates stay for the <code>ValuePort</code> case; new delegates layer in next to them.</p>
+
+<pre><span class="k">class</span> <span class="t">ChatSessionInteractor</span>(graph: Graph) : <span class="t">BasicNode</span>(graph) {
+
+    <span class="c">// L1 — declarative state, single line</span>
+    <span class="k">val</span> chatState   <span class="k">by</span> <span class="fn">state</span>&lt;Data&lt;Chat&gt;&gt;(Data.Loading)
+    <span class="k">val</span> messages    <span class="k">by</span> <span class="fn">state</span>&lt;List&lt;ChatMessage&gt;&gt;(<span class="fn">emptyList</span>())
+    <span class="k">val</span> presence    <span class="k">by</span> <span class="fn">state</span>&lt;Map&lt;String, ChatPresence&gt;&gt;(<span class="fn">emptyMap</span>())
+
+    <span class="c">// L1 — declarative downstream event channel</span>
+    <span class="k">val</span> typingEvents <span class="k">by</span> <span class="fn">stream</span>&lt;TypingEvent&gt;()
+
+    <span class="c">// L1 — declarative request endpoint</span>
+    <span class="k">val</span> sendMessage  <span class="k">by</span> <span class="fn">request</span>&lt;DraftMessage, SentMessage&gt;(retry = <span class="fn">backoff</span>(3))
+
+    <span class="c">// L1 — declarative inbound mailbox; auto-wired by actor key</span>
+    <span class="k">val</span> chatActor   <span class="k">by</span> <span class="fn">mailbox</span>(chatActorKey)
+}</pre>
+
+<div class="key-insight">
+  <strong>Why this matters for D2 and D4.</strong> The interactor above is its own provider <em>and</em> its own consumer. The <code>by state</code> / <code>by stream</code> delegates register provider ports automatically, indexed under the property name. No more <code>provides&lt;ChatSessionInteractor&gt;(this)</code> + <code>exposePort</code> chain &mdash; the node's surface is its property list, period.
+</div>
+
+<!-- ===== 7. LAYER 2 — REACTIVE NODES ===== -->
+<h2 id="layer2"><span class="icon" style="background:rgba(244,114,182,0.15); color:var(--state)">&#x269B;</span> 7. Layer 2 &mdash; Reactive Nodes (Hooks &amp; Behaviors)</h2>
+<p>With Layer-1 port shapes in place we can express two of the most useful organism patterns: <strong>React-style hook nodes</strong> and <strong>Akka-style behavior actors</strong>. Both compile down to existing concrete <code>Node</code> subclasses; both are entirely optional.</p>
+
+<h3 id="hooks">7.1 Hook nodes &mdash; React-flavored controllers</h3>
+<p>React's reducer pattern (<code>useReducer</code> + <code>useEffect</code> + <code>useEvent</code>) cleanly separates <em>what state we have</em> from <em>what events change it</em> and <em>what side effects happen</em>. Today every interactor reimplements this poorly. Wrap it once:</p>
+
+<pre><span class="k">val</span> chatController = graph.<span class="fn">controller</span>&lt;ChatState, ChatEvent&gt;(
+    initial = ChatState.Loading,
+    label = <span class="s">"chat"</span>,
+) {
+
+    <span class="c">// reducer: events ➜ next state</span>
+    <span class="fn">reduce</span> { state, event -&gt; <span class="k">when</span>(event) {
+        <span class="k">is</span> ChatEvent.Loaded   -&gt; ChatState.Ready(event.chat, event.messages)
+        <span class="k">is</span> ChatEvent.Typed    -&gt; (state <span class="k">as</span>? ChatState.Ready)?.<span class="fn">addMessage</span>(event.msg) ?: state
+        <span class="k">is</span> ChatEvent.Disposed -&gt; ChatState.Loading
+    }}
+
+    <span class="c">// effect: state transitions trigger IO</span>
+    <span class="fn">effect</span>(on = { it.chatId }) { state -&gt;
+        <span class="k">if</span> (state <span class="k">is</span> ChatState.Loading)
+            sendMessage(<span class="fn">DraftMessage</span>(...))   <span class="c">// RequestPort call</span>
+    }
+
+    <span class="c">// derived selector: re-derive only on dependency change</span>
+    <span class="k">val</span> unreadCount = <span class="fn">derived</span> { state -&gt; state.messages.<span class="fn">count</span> { !it.read } }
+
+    <span class="c">// lifecycle: bound to node Attaching/Saving</span>
+    <span class="fn">onEnter</span> { chatActor.<span class="fn">send</span>(ChatMsg.Open(payload.chatId)) }
+    <span class="fn">onLeave</span> { chatActor.<span class="fn">send</span>(ChatMsg.Close) }
+}</pre>
+
+<p>What we get:</p>
+<ul>
+  <li><strong>One reducer</strong> instead of six independent <code>MutableStateFlow</code>s. Fixes D4.</li>
+  <li><strong>Effects scoped to dependency keys</strong> &mdash; React's <code>useEffect</code> deps, but built on <code>StateFlow</code>. Fixes D5.</li>
+  <li><strong>onEnter/onLeave</strong> bound to the node's lifecycle, not the screen's <code>DisposableEffect</code>. The UI layer becomes a thin renderer of <code>state.collectAsState()</code>.</li>
+</ul>
+
+<p>The result is a <code>ControllerNode&lt;State&gt;</code> with a <code>StatePort&lt;State&gt;</code> already exposed &mdash; readable from Compose, from sibling nodes, and from tests, without any new glue.</p>
+
+<h3 id="behavior-actors">7.2 Behavior actors &mdash; Akka Typed-flavored mailboxes</h3>
+<p>Inspired by L0.4, this is the high-level surface for the same primitive:</p>
+
+<pre><span class="k">val</span> chatActor = graph.<span class="fn">actor</span>&lt;ChatMsg&gt;(key = chatActorKey) {
+
+    <span class="fn">setup</span> {
+        <span class="c">// preStart equivalent — runs before first message</span>
+        operations.<span class="fn">connect</span>()
+    }
+
+    <span class="fn">receive</span>&lt;ChatMsg.Open&gt; { msg -&gt;
+        chatState.<span class="fn">update</span> { ChatState.Loading }
+        <span class="k">val</span> chat = sendMessage(<span class="fn">DraftMessage</span>(...))
+        chatState.<span class="fn">update</span> { ChatState.Ready(chat) }
+    }
+
+    <span class="fn">receive</span>&lt;ChatMsg.Close&gt; {
+        Behavior.Stopped
+    }
+
+    <span class="fn">supervise</span> {
+        <span class="fn">on</span>&lt;NetworkError&gt; { ActorDirective.Restart }
+        <span class="fn">default</span>            { ActorDirective.Escalate }
+    }
+
+    <span class="fn">teardown</span> { operations.<span class="fn">disconnect</span>() }
+}</pre>
+
+<p>Three wins:</p>
+<ul>
+  <li><strong>Per-message handlers</strong> instead of one <code>when</code>-statement <code>receive</code> &mdash; better IDE jump, smaller diffs.</li>
+  <li><strong>Supervise block</strong> declares directives by exception type instead of overriding <code>onFailure</code>. Fixes the lack of structured error handling.</li>
+  <li><strong>The ask pattern stays the same</strong> at the call site (<code>ask&lt;Out&gt;(timeout) { reply -&gt; Msg.Query(reply) }</code>), but request-shaped messages can be expressed as <code>RequestPort</code> instead. Sidesteps D8 for the common case.</li>
+</ul>
+
+<h3 id="exposed">7.3 <code>exposed { }</code> &mdash; one place declares the node's public surface</h3>
+<p>The current <code>exposePort()</code> chain (D2) is the worst offender for ceremony. Replace with a node-local <code>exposed { }</code> block, evaluated once at attach time, that registers ports into the <em>parent graph's</em> DI scope:</p>
+
+<div class="before-after">
+  <div class="col before">
+    <h5>Before &mdash; BestBuds.kt:404-411</h5>
+<pre><span class="fn">Node</span>(::ConfigRepository).<span class="fn">apply</span> { <span class="fn">exposePort</span>(configRepository) }
+<span class="fn">Node</span>(::StickerRepository).<span class="fn">apply</span> { <span class="fn">exposePort</span>(stickerRepository) }
+<span class="fn">Node</span>(::SessionHydrationInteractor).<span class="fn">apply</span> {
+    <span class="fn">exposePort</span>(sessionHydrationInteractor)
+}</pre>
+  </div>
+  <div class="col after">
+    <h5>After</h5>
+<pre><span class="k">class</span> <span class="t">ConfigRepository</span>(g: Graph) : <span class="t">BasicNode</span>(g) {
+    <span class="k">val</span> repo <span class="k">by</span> <span class="fn">state</span>&lt;Config&gt;(Config.Default)
+    <span class="fn">exposed</span> { +repo }   <span class="c">// one line, declarative</span>
+}
+
+<span class="c">// parent graph:</span>
+<span class="fn">Node</span>(::ConfigRepository)
+<span class="fn">Node</span>(::StickerRepository)
+<span class="fn">Node</span>(::SessionHydrationInteractor)</pre>
+  </div>
+</div>
+
+<!-- ===== 8. LAYER 3 — ROUTING ===== -->
+<h2 id="layer3"><span class="icon" style="background:rgba(88,145,255,0.15); color:var(--route)">&#x21AA;</span> 8. Layer 3 &mdash; Routing &amp; Container Idioms</h2>
+
+<h3 id="routes">8.1 Declarative route tables (D1, D9)</h3>
+<p>A <em>route table</em> co-locates pattern, payload type, screen, and guards. <code>RouteBinding</code> subclasses disappear &mdash; their only job was to carry edge references, which the table holds globally.</p>
+
+<pre><span class="k">val</span> routes = <span class="fn">routes</span> {
+
+    <span class="fn">route</span>&lt;ChatPayload&gt;(<span class="s">"/chats/{id}"</span>) {
+        screen = ::ChatScreen
+        controller = ::ChatController
+        guard { auth.user.value != <span class="k">null</span> }
+        <span class="fn">onEnter</span> { actor.<span class="fn">send</span>(ChatMsg.Open(payload.chatId)) }
+        <span class="fn">onLeave</span> { actor.<span class="fn">send</span>(ChatMsg.Close) }
+
+        <span class="fn">navigatesTo</span>(<span class="s">"/profile/{userId}"</span>)
+        <span class="fn">navigatesTo</span>(<span class="s">"/groups/{groupId}"</span>)
+    }
+
+    <span class="fn">route</span>&lt;FriendProfilePayload&gt;(<span class="s">"/profile/{userId}"</span>) {
+        screen = ::FriendProfileScreen
+    }
+
+    <span class="fn">deeplink</span>(<span class="s">"bestbuds://chat/{id}"</span>) <span class="k">to</span> <span class="s">"/chats/{id}"</span>
+}
+
+graph.<span class="fn">install</span>(routes)
+</pre>
+
+<p>The <code>routes</code> DSL is just data &mdash; it compiles down to <code>RouteNode</code> instances plus a registry. The runtime can answer questions previously impossible:</p>
+<ul>
+  <li>"What deeplinks does this app support?" &rarr; iterate registry.</li>
+  <li>"What routes are protected by auth?" &rarr; filter on <code>guard</code>.</li>
+  <li>"From <code>/chats/{id}</code>, where can the user go?" &rarr; <code>navigatesTo</code> edges.</li>
+  <li>"Generate a debug nav graph picture" &rarr; render registry as graphviz.</li>
+</ul>
+
+<h3 id="typed-results">8.2 Typed result returns (refines D8 for navigation)</h3>
+<p>Current <code>back(result: R)</code> erases <code>R</code> to <code>Any</code>. Make the return type part of the route declaration:</p>
+
+<pre><span class="fn">route</span>&lt;<span class="t">PickStickerPayload</span>, <span class="t">PickedSticker</span>&gt;(<span class="s">"/picker/sticker"</span>) {
+    screen = ::StickerPickerScreen
+}
+
+<span class="c">// caller:</span>
+<span class="k">val</span> picked: PickedSticker = routeBinding.<span class="fn">pushForResult</span>(stickerPickerEdge, ...)
+
+<span class="c">// callee:</span>
+routeBinding.<span class="fn">back</span>(<span class="fn">PickedSticker</span>(id))   <span class="c">// type-checked at compile time</span></pre>
+
+<h3 id="containers">8.3 Container with reactive selection (D6)</h3>
+<p>Today every <code>ContainerNode</code> subclass mirrors the active child into its own <code>MutableStateFlow</code>. Push that into the base class:</p>
+
+<pre><span class="k">abstract class</span> <span class="t">ContainerNode</span>(graph: Graph, ...) : <span class="t">Node</span>(graph) {
+    <span class="k">val</span> selectedKey: StateFlow&lt;String&gt;     <span class="c">// driven by activateGraphForRoute</span>
+    <span class="k">val</span> activeGraph: StateFlow&lt;Graph?&gt;     <span class="c">// derived</span>
+    <span class="k">fun</span> <span class="fn">select</span>(key: String): Boolean       <span class="c">// reverse: programmatic switch</span>
+}</pre>
+
+<p><code>BottomNavigationContainer</code> drops its 70-line glue and becomes:</p>
+
+<pre><span class="k">class</span> <span class="t">BottomNavigationContainer</span>(g: Graph, p: String, c: Map&lt;String, ChildGraph&gt;)
+    : <span class="t">ContainerNode</span>(g, p, c.values.<span class="fn">map</span> { it.graph }) {
+    <span class="k">val</span> controller <span class="k">by</span> <span class="fn">provides</span>&lt;Controller&gt;(Controller(selectedKey))
+}</pre>
+
+<h3 id="modules">8.4 Modules &mdash; reusable subgraph contracts (D10)</h3>
+<p>The engine module's <code>WorkbenchGraph</code> re-exports thirty properties from a child <code>shell</code> graph. The framework should know about this pattern. A <strong>module</strong> is a subgraph plus a public contract:</p>
+
+<pre><span class="k">val</span> messagingModule = <span class="fn">module</span> {
+    <span class="fn">provides</span>&lt;MessagingApi&gt;()
+    <span class="fn">provides</span>&lt;PresenceTracker&gt;()
+    <span class="fn">consumes</span>&lt;AuthSession&gt;()
+    <span class="fn">build</span> { graph -&gt;
+        <span class="t">ServiceNode</span>(graph, <span class="fn">MessagingServiceClient</span>(Servers.MessagingServer))
+        <span class="t">Node</span>(::PresenceTrackerNode)
+    }
+}
+
+<span class="c">// inside a parent graph:</span>
+<span class="fn">use</span>(messagingModule)   <span class="c">// one line — wires consumes/provides automatically</span></pre>
+
+<p>Two things to note: (1) the contract is checked at <code>commit</code> time using the L0.2 wiring machinery &mdash; missing <code>AuthSession</code> &rarr; compile-time-quality error; (2) modules nest: a module can <code>use(otherModule)</code>.</p>
+
+<!-- ===== 9. LAYER 4 — SYSTEM ===== -->
+<h2 id="layer4"><span class="icon" style="background:rgba(251,191,36,0.15); color:var(--actor)">&#x2698;</span> 9. Layer 4 &mdash; Module Composition &amp; Supervision</h2>
+
+<h3>9.1 Supervision trees rooted in the graph hierarchy</h3>
+<p><code>actorSupervisorStrategy</code> is currently a flat per-graph function. Promote it to a tree:</p>
+
+<div class="ascii-diagram">  RootGraph
+   ├── supervises: AlwaysRestart
+   │
+   ├── ChatGraph
+   │    ├── chatActor (mailbox)
+   │    │    ├── on NetworkError → Restart (max 3 in 1m → Escalate)
+   │    │    └── on default      → Escalate
+   │    └── messagingActor
+   │         └── on default      → inherit ChatGraph strategy
+   │
+   └── ProfileGraph
+        └── on default → Resume</div>
+
+<p>Concretely: every <code>ActorNode</code> can declare its own <code>supervise { }</code> block (already in Layer 2.2). When a directive is <code>Escalate</code>, the failure walks <em>up</em> the graph parent chain until handled. This mirrors Erlang's supervisor hierarchies and gives operators a single tunable.</p>
+
+<h3>9.2 Cross-graph mesh &mdash; explicit named edges</h3>
+<p>The current cross-graph forward works but is invisible: <code>NavigationEdge.isCrossGraph</code> is a derived boolean and the bubble-up is unwritten. Make cross-graph edges a first-class concept:</p>
+
+<pre><span class="k">val</span> crossEdge: CrossGraphEdge&lt;ChatPayload&gt; = chatGraph.routes.chatRoute <span class="k">crosses</span> rootGraph.routes.chatRoute</pre>
+
+<p>This gives us a registry the workbench/devtools can render and the runtime can validate at startup. Today, a typo in a target graph silently fails at runtime with a <code>Logger.w</code>.</p>
+
+<h3>9.3 Visitor with mutation &mdash; framework-level transforms</h3>
+<p>The visitor pattern is read-only. Add a <code>MutatingVisitor</code> that returns a <code>GraphPatch</code> instead of side-effecting. A devtools "rewire" command, a hot-reload swap, or a feature-flag-driven node swap all become structured operations that the wiring machinery (L0.2) can apply atomically.</p>
+
+<!-- ===== 10. WALKTHROUGH ===== -->
+<h2 id="walkthrough"><span class="icon" style="background:rgba(52,211,153,0.15); color:var(--effect)">&#x270D;</span> 10. End-to-end Walkthrough &mdash; <code>ChatGraph</code> Re-imagined</h2>
+<p>What does a real screen look like once all five layers exist? Here is BestBuds' <code>ChatGraph</code> (which today spans ~80 lines plus three separate <code>RouteBinding</code> classes plus a manually wired actor).</p>
+
+<details open>
+<summary>Today &mdash; verbatim shape (collapsed for space)</summary>
+<div class="detail-body">
+<pre><span class="c">// BestBuds.kt:128-179</span>
+<span class="k">class</span> <span class="t">ChatGraph</span>(parent: Graph?) : <span class="t">Graph</span>(parent, label = <span class="s">"Chat"</span>) {
+    <span class="k">val</span> chatRoute: RouteNode&lt;ChatPayload, ChatBinding&gt;
+    <span class="k">val</span> friendProfileRoute: RouteNode&lt;FriendProfilePayload, FriendProfileBinding&gt;
+    <span class="k">val</span> groupProfileRoute: RouteNode&lt;GroupProfilePayload, GroupProfileBinding&gt;
+
+    <span class="k">init</span> {
+        <span class="fn">Node</span>(::MessageRepository)
+        <span class="fn">Node</span>(::ChatSessionOperationsInteractor)
+        <span class="fn">Node</span>(::ChatSessionStateInteractor)
+        <span class="fn">Node</span>(::ChatTimelineInteractor)
+        <span class="fn">Node</span>(::ChatAnalyticsInteractor)
+        <span class="fn">Node</span>(::ChatSocketInteractor)
+        <span class="fn">Node</span>(::ChatTypingInteractor)
+        <span class="fn">Node</span>(::ChatActor)
+
+        friendProfileRoute = <span class="fn">Route</span>(<span class="s">"/profile/{userId}"</span>) { <span class="fn">FriendProfileBinding</span>() }
+        groupProfileRoute  = <span class="fn">Route</span>(<span class="s">"/groups/{groupId}"</span>) { <span class="fn">GroupProfileBinding</span>() }
+        chatRoute = <span class="fn">Route</span>(<span class="s">"/chats/{id}"</span>) {
+            <span class="fn">ChatBinding</span>(
+                friendProfileEdge = it.<span class="fn">edge</span>(friendProfileRoute),
+                groupProfileEdge  = it.<span class="fn">edge</span>(groupProfileRoute),
+            )
+        }
+        <span class="fn">Node</span>(::ChatScreen)
+        <span class="fn">Node</span>(::FriendProfileScreen)
+        <span class="fn">Node</span>(::GroupProfileScreen)
+
+        <span class="fn">autoWire</span>()
+        <span class="fn">addRoot</span>(chatRoute, <span class="fn">Payload</span>())
+    }
+}
+
+<span class="c">// + ChatBinding (5 lines), FriendProfileBinding (3), GroupProfileBinding (3)</span>
+<span class="c">// + ChatActor with 6 manual `by consumes&lt;T&gt;()` declarations</span>
+<span class="c">// + ChatSessionStateInteractor with 6 manual MutableStateFlow fields</span></pre>
+</div>
+</details>
+
+<details open>
+<summary>After refinement &mdash; same shape, ~40% fewer lines, more readable</summary>
+<div class="detail-body">
+<pre><span class="k">val</span> chatModule = <span class="fn">module</span>(label = <span class="s">"Chat"</span>) {
+
+    <span class="c">// 1. Sub-nodes are normal — Layer 2 conventions remove boilerplate inside each.</span>
+    +<span class="t">MessageRepository</span>()
+    +<span class="t">ChatSessionOperationsInteractor</span>()
+    +<span class="t">ChatSessionStateInteractor</span>()      <span class="c">// uses `by state` from L1</span>
+    +<span class="t">ChatTimelineInteractor</span>()
+    +<span class="t">ChatAnalyticsInteractor</span>()
+    +<span class="t">ChatSocketInteractor</span>()
+    +<span class="t">ChatTypingInteractor</span>()
+
+    <span class="c">// 2. The actor is a behavior block — no subclass, no consumes ceremony.</span>
+    <span class="fn">actor</span>&lt;ChatMsg&gt;(chatActorKey) {
+        <span class="fn">setup</span> { operations.<span class="fn">connect</span>() }
+        <span class="fn">receive</span>&lt;ChatMsg.Open&gt;  { msg -&gt; state.<span class="fn">update</span> { Loading }; ops.<span class="fn">load</span>(msg.id) }
+        <span class="fn">receive</span>&lt;ChatMsg.Close&gt; { Behavior.Stopped }
+        <span class="fn">supervise</span> { <span class="fn">on</span>&lt;NetworkError&gt; { Restart } }
+    }
+
+    <span class="c">// 3. Routes are declarative; navigation targets are listed inline.</span>
+    <span class="fn">routes</span> {
+        <span class="fn">route</span>&lt;ChatPayload&gt;(<span class="s">"/chats/{id}"</span>) {
+            screen = ::ChatScreen
+            controller = ::ChatController
+            <span class="fn">onEnter</span> { actor.<span class="fn">send</span>(ChatMsg.Open(payload.chatId)) }
+            <span class="fn">onLeave</span> { actor.<span class="fn">send</span>(ChatMsg.Close) }
+            <span class="fn">navigatesTo</span>(<span class="s">"/profile/{userId}"</span>)
+            <span class="fn">navigatesTo</span>(<span class="s">"/groups/{groupId}"</span>)
+        }
+        <span class="fn">route</span>&lt;FriendProfilePayload&gt;(<span class="s">"/profile/{userId}"</span>) { screen = ::FriendProfileScreen }
+        <span class="fn">route</span>&lt;GroupProfilePayload&gt;(<span class="s">"/groups/{groupId}"</span>)   { screen = ::GroupProfileScreen }
+    }
+}
+
+<span class="c">// somewhere up in App.kt</span>
+<span class="fn">use</span>(chatModule)</pre>
+
+<p style="margin-top:14px">What disappeared:</p>
+<ul>
+  <li>Three <code>RouteBinding</code> subclasses &mdash; gone. Route &rarr;route navigation is a declarative <code>navigatesTo</code>.</li>
+  <li>The hand-wired <code>ChatBinding(friendProfileEdge = ..., groupProfileEdge = ...)</code> constructor &mdash; gone. The route table knows.</li>
+  <li>Six <code>by consumes&lt;T&gt;()</code> declarations on <code>ChatActor</code> &mdash; gone. The actor is a <code>behavior</code> block scoped inside <code>chatModule</code>, so all sibling nodes are in scope.</li>
+  <li>Six <code>MutableStateFlow</code> declarations on the state interactor &mdash; gone. <code>by state&lt;T&gt;(init)</code>.</li>
+  <li><code>LaunchedEffect</code>/<code>DisposableEffect</code> in the Compose screen for open/close &mdash; gone. The route's <code>onEnter</code>/<code>onLeave</code> is the single source of truth.</li>
+</ul>
+
+<p>What is <em>still</em> possible at lower layers:</p>
+<ul>
+  <li>A custom <code>ContainerNode</code> subclass with custom UI semantics? Still allowed &mdash; it just inherits the new <code>selectedKey</code> StateFlow for free.</li>
+  <li>A raw <code>ProviderPort&lt;T&gt;</code> with custom wiring policy? Still allowed &mdash; the <code>by state</code>/<code>by stream</code> delegates compile to the same primitive.</li>
+  <li>A bespoke <code>ActorNode&lt;M&gt;</code> subclass with custom <code>receive</code>? Still allowed &mdash; <code>actor { receive&lt;Open&gt; { } }</code> is just sugar.</li>
+</ul>
+</div>
+</details>
+
+<!-- ===== 11. MIGRATION ===== -->
+<h2 id="migration"><span class="icon" style="background:rgba(54,196,212,0.15); color:var(--cloud)">&#x21BB;</span> 11. Migration &mdash; Additive Path</h2>
+
+<p>Every layer is <strong>additive</strong>: nothing in this plan deletes or replaces an existing API. The migration story is one of <em>opt-in</em>, screen by screen.</p>
+
+<table>
+  <tr><th>Phase</th><th>Scope</th><th>Risk</th><th>Verification</th></tr>
+  <tr>
+    <td>P0 &mdash; L0 primitives</td>
+    <td>Strengthen <code>Type</code> with <code>KType</code>; add <code>Wiring</code> alongside <code>connect()</code>; add <code>onTransitionAsync</code>.</td>
+    <td><span class="badge done">Low</span> &mdash; old paths untouched.</td>
+    <td>All existing tests pass; add specific <code>KType</code>-equality tests.</td>
+  </tr>
+  <tr>
+    <td>P1 &mdash; Port shapes</td>
+    <td>Add <code>state</code>/<code>stream</code>/<code>request</code>/<code>mailbox</code> delegates next to <code>provides</code>/<code>consumes</code>.</td>
+    <td><span class="badge done">Low</span> &mdash; new properties, no replacement.</td>
+    <td>Convert <em>one</em> interactor (e.g. <code>ChatSessionStateInteractor</code>) and diff lines.</td>
+  </tr>
+  <tr>
+    <td>P2 &mdash; <code>exposed { }</code></td>
+    <td>Add the block; legacy <code>exposePort</code> stays callable.</td>
+    <td><span class="badge done">Low</span></td>
+    <td>Convert <code>BestBuds.kt:389-411</code>; check that DI lookups still resolve.</td>
+  </tr>
+  <tr>
+    <td>P3 &mdash; Hook controllers</td>
+    <td>Introduce <code>controller&lt;S, E&gt; { reduce; effect; ... }</code> as a thin wrapper around <code>ControllerNode</code>.</td>
+    <td><span class="badge partial">Medium</span> &mdash; touches UI integration.</td>
+    <td>Migrate <code>ChatScreen</code>; visually verify navigation, state, lifecycle still work.</td>
+  </tr>
+  <tr>
+    <td>P4 &mdash; Behavior actors</td>
+    <td>Introduce <code>actor&lt;M&gt;(key) { receive; supervise; ... }</code>.</td>
+    <td><span class="badge partial">Medium</span> &mdash; new code path through <code>ActorNode</code>.</td>
+    <td>Migrate <code>ChatActor</code>; ensure <code>ask</code>/<code>send</code>/supervision still pass <code>ActorNodeIntegrationTest</code>.</td>
+  </tr>
+  <tr>
+    <td>P5 &mdash; Route table</td>
+    <td><code>routes { route&lt;P&gt;(...) { } }</code> registers <code>RouteNode</code>s under the covers.</td>
+    <td><span class="badge partial">Medium</span></td>
+    <td>Migrate <code>ChatGraph</code>; verify cross-graph forward, deeplinks, guards.</td>
+  </tr>
+  <tr>
+    <td>P6 &mdash; Modules &amp; supervision trees</td>
+    <td>Add <code>module</code> / <code>use</code> / hierarchical supervision.</td>
+    <td><span class="badge critical">Highest</span> &mdash; touches engine module's nested-graph delegation.</td>
+    <td>Migrate <code>WorkbenchGraph</code>; verify all 30 re-exposed services still resolve.</td>
+  </tr>
+  <tr>
+    <td>P7 &mdash; Deprecate</td>
+    <td>After two release cycles where new modules use the DSL, mark legacy <code>RouteBinding</code> subclass pattern and inline <code>exposePort</code> as deprecated.</td>
+    <td><span class="badge done">Low</span> &mdash; soft-deprecation only.</td>
+    <td>Run the workbench inspector to detect remaining legacy patterns.</td>
+  </tr>
+</table>
+
+<div class="key-insight">
+  <strong>Verification doctrine.</strong> Each phase ships behind a "old path still works" guarantee. A single screen migrated end-to-end &mdash; <code>ChatGraph</code> is the canonical pilot &mdash; is the gate for the next phase. No phase ships without removing &gt;100 lines from the BestBuds codebase.
+</div>
+
+<!-- ===== 12. NON-GOALS ===== -->
+<h2 id="nongoals"><span class="icon" style="background:rgba(239,91,91,0.15); color:var(--error)">&#x2298;</span> 12. Non-Goals</h2>
+
+<div class="non-goal"><strong>No annotation processors.</strong> <code>@Screen</code>, <code>@Provides</code>, etc. would force a compiler plugin into the multiplatform build for every consumer. Reified generics + property delegates cover the same surface in pure source.</div>
+<div class="non-goal"><strong>No runtime reflection-based DI.</strong> Koin already does the DI; we don't add a second mechanism. The new <code>exposed { }</code> block is sugar over Koin registration, not a replacement.</div>
+<div class="non-goal"><strong>No new top-level node type.</strong> The sealed <code>Node</code> hierarchy is small and load-bearing. Hooks/behavior actors are <em>builders</em> that emit existing concrete types.</div>
+<div class="non-goal"><strong>No removal of imperative APIs.</strong> Every imperative API stays callable. The DSL is opt-in. A developer who prefers <code>RouteNode(graph, pattern) { Binding }</code> can keep writing it forever.</div>
+<div class="non-goal"><strong>No replacement of Compose integration.</strong> The Compose layer reads <code>StateFlow</code>s; it doesn't care whether the StateFlow came from a hand-rolled <code>MutableStateFlow</code> or a <code>StatePort</code>.</div>
+
+<!-- ===== 13. OPEN QUESTIONS ===== -->
+<h2 id="open"><span class="icon" style="background:rgba(240,169,58,0.15); color:var(--warn)">?</span> 13. Open Questions</h2>
+
+<ol>
+  <li>
+    <strong>How far does structural <code>KType</code> matching go?</strong> Exact equality is safe but rigid; subtype matching (<code>List&lt;String&gt;</code> accepts <code>ArrayList&lt;String&gt;</code>) is intuitive but requires careful variance handling. Start with exact, add covariance behind an opt-in.
+  </li>
+  <li>
+    <strong>Does <code>RequestPort</code> subsume <code>ServiceNode</code>?</strong> The handlers in <code>service/*</code> already are request/response. We could deprecate the <code>GetHandler</code>/<code>PostHandler</code> hierarchy in favor of a single <code>RequestPort</code> with HTTP-method metadata. Worth a prototype.
+  </li>
+  <li>
+    <strong>How do hook controllers interact with <code>JsExport</code>?</strong> Reified-generic property delegates don't always round-trip through <code>@JsExport</code>. May need a parallel <code>controllerJs(...)</code> factory that avoids reified types at the JS boundary.
+  </li>
+  <li>
+    <strong>Persistence model for <code>StatePort</code>.</strong> <code>ActorNode</code> already has <code>ObjectStore</code>-backed state. Should <code>by state&lt;S&gt;()</code> support an <code>persisted = true</code> flag that automatically rehydrates from the store on <code>Restoring</code>?
+  </li>
+  <li>
+    <strong>Cross-graph mesh: validation timing.</strong> Layer-4 cross-graph edges are validated at startup. But subgraphs can be added/removed at runtime (tab creation). The wiring needs to support incremental validation without re-walking the whole world.
+  </li>
+  <li>
+    <strong>Where does <code>reaktor-react</code> fit?</strong> The plan is largely Compose-centric, but a sibling module exists for React. Hook controllers in particular need to translate cleanly to React hooks. Should the controller DSL emit both a Compose and a React adapter?
+  </li>
+</ol>
+
+<!-- ===== FOOTER ===== -->
+<div style="margin-top:64px; padding-top:24px; border-top:1px solid #1a2031; color:var(--t-4); font-size:12px; text-align:center;">
+  Refinement plan v1 &mdash; targets reaktor-graph + reaktor-graph-port. Status: <span class="badge new">Proposal</span> &mdash; awaiting pilot on <code>ChatGraph</code>.
+</div>
+
+</div>
+</body>
+</html>

@@ -12,6 +12,7 @@ kotlin {
     common {
         dependencies {
             api("org.jetbrains.kotlinx:atomicfu:0.28.0")
+            api(project(":reaktor-core"))
         }
     }
     droid {}

@@ -24,6 +24,11 @@ var label: String?
 var selected: Boolean?
 var hidden: Boolean?
 var animated: Boolean?
+var markerStart: EdgeMarker?
 var markerEnd: EdgeMarker?
 var zIndex: Double?
+var selectable: Boolean?
+var deletable: Boolean?
+var reconnectable: Boolean?
+var interactionWidth: Double?
 }

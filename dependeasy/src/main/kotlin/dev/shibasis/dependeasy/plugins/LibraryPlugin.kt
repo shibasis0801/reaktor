@@ -61,7 +61,6 @@ fun Project.applyMultiplatformPlugins(dependeasyExtension: DependeasyExtension) 
     // https://issuetracker.google.com/u/1/issues/439746703
     plugins.apply("com.android.library")
     plugins.apply("kotlin-multiplatform")
-    plugins.apply("org.jetbrains.kotlin.native.cocoapods")
 //    plugins.apply("io.github.turansky.seskar")
 //    plugins.apply("com.github.node-gradle.node")
 

@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Engine and Website Implementation Report</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar">
+        <a href="/">Reaktor Build</a>
+        <a href="/docs">Docs</a>
+        <span>Workbench</span>
+        <span>Report date: 2026-05-22</span>
+      </div>
+      <p class="eyebrow">Implementation report</p>
+      <h1>Engine and website parity work</h1>
+      <p class="subtitle">A detailed account of the KMM engine migration, Kotlin/React website renderer, Compose desktop renderer, shared workbench core, tests, performance harnesses, and the Reaktor Graph improvements this work exposed.</p>
+      <div class="hero-grid four" aria-label="Report highlights">
+        <div class="stat"><b>Shared core</b><span>Workbench state, graph, actors, repositories, services, fixtures, and design tokens now live in Kotlin commonMain.</span></div>
+        <div class="stat"><b>React renderer</b><span>The website components moved into Kotlin/JS with TypeScript left for boot, lazy loading, and library installation.</span></div>
+        <div class="stat"><b>Compose renderer</b><span>The desktop engine now follows the website shell, panes, graph surface, bottom drawer, and inspector model.</span></div>
+        <div class="stat"><b>Real graph</b><span>The website renders the actual BestBuds graph export through a shared visual catalog instead of a disconnected mock.</span></div>
+      </div>
+    </header>
+
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Document navigation">
+        <a class="home-link" href="/docs">Documentation home</a>
+        <h2>On This Page</h2>
+        <nav class="page-toc">
+          <a href="#executive-summary">Executive Summary</a>
+          <a href="#module-shape">Module Shape</a>
+          <a href="#shared-kotlin">Shared Kotlin Core</a>
+          <a href="#website">Website Renderer</a>
+          <a href="#desktop">Desktop Engine</a>
+          <a href="#feature-parity">Feature Parity</a>
+          <a href="#tests-performance">Tests and Performance</a>
+          <a href="#real-vs-mock">Real vs Mock</a>
+          <a href="#pain-points">Pain Points</a>
+          <a href="#graph-enhancements">Graph Enhancements</a>
+          <a href="#next-steps">Next Steps</a>
+          <a href="#file-map">File Map</a>
+        </nav>
+      </aside>
+
+      <main id="content" class="doc-content">
+        <section id="executive-summary">
+          <h2>Executive Summary</h2>
+          <p class="lead">The workbench was moved from a website-first prototype toward a KMM Reaktor module where the engine and website share the same domain model, graph, fixtures, services, interactors, app targets, design vocabulary, and most renderer-facing state.</p>
+          <div class="callout success">
+            <strong>Outcome:</strong> the website is now a Kotlin/React renderer over the engine module, the desktop app is a Compose renderer over the same workbench concepts, and both target the same BestBuds, Engine, and Website app universe. The website still uses TypeScript for the React root, CSS imports, and React Flow lazy loading, which is the intended remaining JavaScript boundary.
+          </div>
+          <div class="grid three">
+            <div class="card">
+              <h3>Architecture</h3>
+              <p>The central work moved into <code>modules/engine</code>. The shared workbench graph composes pane subgraphs, service nodes, typed API ports, actor nodes, repositories, interactors, and routes.</p>
+            </div>
+            <div class="card">
+              <h3>Parity</h3>
+              <p>The website and desktop app both expose Graph, DevTools, Agent, UI, Database, Auth, AI, Testing, Deploy, and Insights. The old Run naming was retired in favor of DevTools.</p>
+            </div>
+            <div class="card">
+              <h3>Quality</h3>
+              <p>The test surface was expanded across engine JVM tests, desktop smoke tests, Playwright web tests, subsystem regression tests, and performance-oriented harnesses.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="module-shape">
+          <h2>Module Shape</h2>
+          <p>The target shape is now a Reaktor KMM workbench module. The common layer owns vocabulary and behavior; the platform layers render and bridge external UI libraries.</p>
+          <pre><code>modules/engine/
+  src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/
+    data/
+      actors/
+      core/
+      interactors/
+      repositories/
+      services/
+    design/
+    fixtures/
+    graph/
+      panes/
+    model/
+    ui/compose/
+
+  src/jsMain/kotlin/ai/bestbuds/reaktor/workbench/render/react/
+    atoms/
+    domain/
+    foundation/
+    graph/
+    panels/
+    runtime/
+    shell/
+    state/
+
+  src/jsMain/react/
+    main.ts
+    styles.css
+    styles-v3.css
+
+  src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/
+    atoms/
+    design/
+    graph/
+    inspection/
+    panes/
+    shell/</code></pre>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Layer</th>
+                  <th>Responsibility</th>
+                  <th>Representative files</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>commonMain graph</td>
+                  <td>Workbench modes, pane subgraphs, routes, service nodes, typed API ports, auto-wiring, and navigation.</td>
+                  <td><code>workbench/graph/WorkbenchGraph.kt</code>, <code>workbench/graph/panes/WorkbenchPaneGraphs.kt</code></td>
+                </tr>
+                <tr>
+                  <td>commonMain data</td>
+                  <td>Actors, repositories, interactors, mock-backed service contracts, and typed workbench APIs.</td>
+                  <td><code>data/actors/*</code>, <code>data/interactors/*</code>, <code>data/repositories/*</code>, <code>data/services/*</code></td>
+                </tr>
+                <tr>
+                  <td>commonMain model</td>
+                  <td>Shared catalog, graph entity, edge summary, sidebar group, status, app target, and pane state models.</td>
+                  <td><code>model/WorkbenchGraphCatalog.kt</code>, <code>model/WorkbenchStates.kt</code></td>
+                </tr>
+                <tr>
+                  <td>jsMain renderer</td>
+                  <td>Kotlin/React shell, panels, graph bridges, runtime bridge, scenario bridge, and typed domain conversion.</td>
+                  <td><code>render/react/shell/*</code>, <code>render/react/panels/*</code>, <code>render/react/graph/*</code></td>
+                </tr>
+                <tr>
+                  <td>jvmMain renderer</td>
+                  <td>Compose shell, desktop graph pane, left rail, inspector, bottom drawer, preview, and semantics inspection.</td>
+                  <td><code>render/compose/shell/*</code>, <code>render/compose/panes/*</code>, <code>render/compose/graph/*</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="shared-kotlin">
+          <h2>Shared Kotlin Core</h2>
+          <p>The common layer now carries the workbench meaning. Renderers should mostly project this meaning instead of inventing parallel state machines.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>WorkbenchGraph</h3>
+              <p><code>WorkbenchGraph</code> composes shell and pane subgraphs for Graph, DevTools, UI, Database, Auth, AI, Testing, Deploy, Insights, and Agent. It exposes stable interactor properties and a <code>navigateTo(mode)</code> entrypoint.</p>
+              <p>The graph also registers command, data, and subsystem API nodes as provider ports, then exposes the service mocks as Reaktor <code>ServiceNode</code> instances.</p>
+            </div>
+            <div class="card">
+              <h3>Pane Subgraphs</h3>
+              <p>Each pane has a small graph and route binding rather than being a static screen switch. This follows the BestBuds direction where the root app composes smaller subgraphs and the app body reads as graph composition.</p>
+            </div>
+            <div class="card">
+              <h3>Actors and Interactors</h3>
+              <p>The shell and command queue moved toward actor-shaped behavior with <code>ShellActor</code>, <code>CommandQueueActor</code>, command repositories, and mode-specific interactors. This is the basis for durable workbench commands and future agent execution.</p>
+            </div>
+            <div class="card">
+              <h3>Fixtures and Services</h3>
+              <p>App targets are now <code>BestBuds</code>, <code>Engine</code>, and <code>Website</code>. Subsystem fixtures cover graph, auth, database, deploy, testing, insights, agent, messaging, social, media, UI, and AI.</p>
+            </div>
+          </div>
+
+          <h3>Common service surface</h3>
+          <p>The shared service layer now defines the same operations the UI presents. These are mock-backed today, but they are typed service contracts rather than loose UI-only fixtures.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>API</th>
+                  <th>Operations</th>
+                  <th>Current backing</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>WorkbenchCommandApi</code></td>
+                  <td>Hot reload, commit bundle, deploy, rollback, run tests.</td>
+                  <td><code>WorkbenchServiceMock</code> with <code>PostHandler</code> routes under <code>/workbench</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>WorkbenchDataApi</code></td>
+                  <td>Read schema and run query.</td>
+                  <td><code>DataServiceMock</code> with schema and query handlers under <code>/data</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>WorkbenchSubsystemApi</code></td>
+                  <td>Read subsystem summary and snapshot.</td>
+                  <td>Per-subsystem <code>SubsystemServiceMock</code> instances for graph, auth, deploy, testing, insights, agent, messaging, social, media, UI, and AI.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="website">
+          <h2>Website Renderer</h2>
+          <p>The website renderer was moved from a JSX-heavy tree into Kotlin/JS. The remaining TypeScript file is now intentionally small and platform-like: it installs React, loads CSS, lazy-loads React Flow, installs Kotlin bridge objects, and boots the Kotlin app component.</p>
+          <div class="callout">
+            <strong>Boundary:</strong> <code>src/jsMain/react/main.ts</code> is still JavaScript/TypeScript because it owns boot, dynamic import of <code>@xyflow/react</code>, global interop installation, and the React root. The application components live under <code>src/jsMain/kotlin/.../render/react</code>.
+          </div>
+
+          <h3>Kotlin/React decomposition</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Package</th>
+                  <th>Role</th>
+                  <th>Examples</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>render/react/shell</code></td>
+                  <td>Application chrome and navigation surfaces.</td>
+                  <td><code>AppShell.kt</code>, <code>TopBar.kt</code>, <code>ModeToolbar.kt</code>, <code>ModeSubControls.kt</code></td>
+                </tr>
+                <tr>
+                  <td><code>render/react/panels</code></td>
+                  <td>Mode-specific screens and rich subsystem panes.</td>
+                  <td><code>DevToolsScreen.kt</code>, <code>AgentRichScreen.kt</code>, <code>DataAuthRichScreens.kt</code>, <code>TestingAiRichScreens.kt</code></td>
+                </tr>
+                <tr>
+                  <td><code>render/react/graph</code></td>
+                  <td>React Flow bridge, graph screen data, node renderers, visual constants, and graph sizing.</td>
+                  <td><code>GraphScreenBridge.kt</code>, <code>GraphNodesBridge.kt</code>, <code>GraphVisuals.kt</code></td>
+                </tr>
+                <tr>
+                  <td><code>render/react/domain</code></td>
+                  <td>BestBuds graph flow export, domain fixtures, compatibility helpers, and flow adapter bridge.</td>
+                  <td><code>BestBudsGraphFlowBridge.kt</code>, <code>FlowAdapterBridge.kt</code>, <code>MockBridge.kt</code></td>
+                </tr>
+                <tr>
+                  <td><code>render/react/runtime</code></td>
+                  <td>Bridge installation, graph boot, service access, interactor access, and navigation synchronization.</td>
+                  <td><code>BootBridge.kt</code>, <code>RuntimeBridge.kt</code>, <code>ServicesBridge.kt</code>, <code>NavigationBridge.kt</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Website behavior implemented</h3>
+          <ul>
+            <li>Target switching now has the real app set: BestBuds, Engine, and Website.</li>
+            <li>The graph screen uses the BestBuds graph export and maps it into the workbench catalog.</li>
+            <li>Graph node sizing and visual density were improved through shared graph visuals and larger readable node surfaces.</li>
+            <li>All major modes have real screens or mock-backed rich screens instead of empty tab placeholders.</li>
+            <li>DevTools is the canonical name; Run remains a retired concept.</li>
+            <li>Performance marks are emitted during runtime import, graph import, graph boot scheduling, and graph boot completion.</li>
+          </ul>
+        </section>
+
+        <section id="desktop">
+          <h2>Desktop Engine</h2>
+          <p>The desktop app now follows the website as the styling source of truth. The work focused on making Compose render the same control-plane vocabulary as the web app: dark chrome, compact top bar, mode toolbar, graph drawer, right inspector, bottom command drawer, DevTools command pipeline, and graph-focused panes.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>Visual system</h3>
+              <p>The Compose renderer gained web-aligned theme tokens, Inter and JetBrains Mono font use, compact toolbar treatments, dark surfaces, blue active controls, amber warnings, green live state, and denser panel spacing.</p>
+            </div>
+            <div class="card">
+              <h3>Layout system</h3>
+              <p>The desktop shell now mirrors the website shell with a top app bar, mode toolbar, left rail, central graph or pane surface, side inspector, bottom drawer, and footer/status row.</p>
+            </div>
+            <div class="card">
+              <h3>Graph pane</h3>
+              <p>The desktop graph pane was reshaped around shared graph catalog data, larger visible nodes, left tree support, preview panel support, inspector models, and mode-specific panels.</p>
+            </div>
+            <div class="card">
+              <h3>DevTools</h3>
+              <p>The old Run naming was replaced. The desktop DevTools pane now presents command queue, code diff, compile, hot reload, tests, deploy, and trace-oriented controls consistent with the website.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="feature-parity">
+          <h2>Feature Parity</h2>
+          <p>The current state is not that every backend integration is production-real. The important shift is that both renderers now see the same workbench world and can mix live graph data with mock-backed subsystem contracts without deleting unfinished surfaces.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Shared core</th>
+                  <th>Website</th>
+                  <th>Desktop engine</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>App target switcher</td>
+                  <td>Common app target fixtures: BestBuds, Engine, Website.</td>
+                  <td>Switcher reflects and updates target state.</td>
+                  <td>Header follows the same target set and visual treatment.</td>
+                </tr>
+                <tr>
+                  <td>Graph</td>
+                  <td>BestBuds graph export maps to <code>WorkbenchGraphCatalog</code>.</td>
+                  <td>React Flow renders actual graph data with improved node sizing.</td>
+                  <td>Compose graph pane uses shared catalog and matching inspector patterns.</td>
+                </tr>
+                <tr>
+                  <td>DevTools</td>
+                  <td>Command API and command fixtures cover hot reload, commit, deploy, rollback, and tests.</td>
+                  <td>DevTools screen shows command queue, preview, trace, and action controls.</td>
+                  <td>Run was renamed to DevTools and the bottom drawer was brought closer to web.</td>
+                </tr>
+                <tr>
+                  <td>Agent</td>
+                  <td>Agent fixtures, command queue state, and interactor model.</td>
+                  <td>Rich agent screen with command generation and queue management.</td>
+                  <td>Agent mode is present in the shared toolbar and desktop pane model.</td>
+                </tr>
+                <tr>
+                  <td>Database and Auth</td>
+                  <td>Schema, query, provider, session, role, and RBAC-shaped fixtures.</td>
+                  <td>Rich data and auth screens moved into Kotlin/React.</td>
+                  <td>Desktop panes use the same subsystem summaries and visual language.</td>
+                </tr>
+                <tr>
+                  <td>AI, Testing, Deploy, Insights</td>
+                  <td>Subsystem fixtures and service mocks expose metrics, warnings, and actions.</td>
+                  <td>Rich mode screens exist and are covered by Playwright tests.</td>
+                  <td>Desktop shell exposes the same mode set and bottom command affordances.</td>
+                </tr>
+                <tr>
+                  <td>Design language</td>
+                  <td>Shared workbench tokens and fixture vocabulary.</td>
+                  <td>Website remains visual source of truth.</td>
+                  <td>Compose renderer adopted web-like typography, spacing, status colors, and shell structure.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="tests-performance">
+          <h2>Tests and Performance</h2>
+          <p>The test work expanded in three directions: common engine behavior, desktop renderer smoke coverage, and website browser coverage. Performance harnessing also moved toward a dedicated <code>reaktor-performance</code> concern.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>Verified test commands</h3>
+              <ul>
+                <li><code>./gradlew :engine:jvmTest --no-daemon --console=plain</code> passed.</li>
+                <li><code>npm run test:reaktorWeb:playwright</code> passed with 84 tests.</li>
+                <li><code>./gradlew :engine:compileKotlinJs :reaktorDesktop:test --no-daemon --console=plain</code> passed.</li>
+                <li><code>./gradlew :reaktorDesktop:test --rerun-tasks --no-daemon --console=plain</code> passed with 13 desktop tests.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Coverage added</h3>
+              <ul>
+                <li>Engine architecture, graph document, graph flow, feature, subsystem, and performance tests.</li>
+                <li>Desktop smoke tests through the in-process driver and semantics bridge.</li>
+                <li>Playwright shell, workbench, data/auth, testing/AI, agent, subsystem regression, cross-workbench, and performance specs.</li>
+                <li>Bundle budget and web vitals style performance checks in <code>tests/reaktorWeb/performance</code> and Playwright performance specs.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout warn">
+            <strong>Remaining warning class:</strong> builds still report Gradle/Kotlin deprecation warnings, a <code>reaktor-work</code> Compose version warning, and Vite chunk/externalization warnings. They do not currently block the verified suites, but they are useful cleanup targets.
+          </div>
+        </section>
+
+        <section id="real-vs-mock">
+          <h2>Real vs Mock</h2>
+          <p>The direction is intentionally mixed: real where the codebase already has reliable source data, mock-backed where the subsystem surface is needed for parity but the backend is not ready.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Subsystems</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="pill">Real</span></td>
+                  <td>BestBuds graph topology, workbench mode model, app targets, route catalog mapping, renderer boot, desktop and website shells.</td>
+                  <td>These now come from Kotlin code and existing graph/runtime data rather than disconnected web fixtures.</td>
+                </tr>
+                <tr>
+                  <td><span class="pill">Typed mock</span></td>
+                  <td>Auth, Database, Deploy, Testing, Insights, Agent, Messaging, Social, Media, UI, and AI subsystem summaries.</td>
+                  <td>The UI needs real feature surfaces now, while the production adapters can be swapped in behind the same service contracts later.</td>
+                </tr>
+                <tr>
+                  <td><span class="pill">Bridge</span></td>
+                  <td>React Flow, React root, CSS loading, graph lazy loading, and JS library imports.</td>
+                  <td>These stay in the thin TypeScript boundary until Reaktor has a cleaner first-class Kotlin/JS renderer bridge and code splitting story.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="pain-points">
+          <h2>Pain Points Found</h2>
+          <p>The implementation worked, but it exposed where Reaktor Graph and the workbench architecture should become sharper.</p>
+          <div class="grid two">
+            <div class="card">
+              <h3>Graph composition is verbose</h3>
+              <p>Every workbench mode still needs a route binding, pane graph, container entry, route property, interactor property, and <code>routeFor</code> branch. The pattern is clear, but the amount of hand wiring is too high.</p>
+            </div>
+            <div class="card">
+              <h3>Auto-wire diagnostics are thin</h3>
+              <p><code>autoWire()</code> is powerful, but failures are opaque. It should explain unconnected consumers, candidate providers, qualifier mismatches, graph boundaries, and DI fallback results.</p>
+            </div>
+            <div class="card">
+              <h3>Navigation needs a registry</h3>
+              <p>Mode navigation currently depends on explicit <code>sentinel.edge(routeFor(mode))</code> calls and route node branches. A typed route registry would reduce boilerplate and make graph navigation inspectable.</p>
+            </div>
+            <div class="card">
+              <h3>Service mocks are too manual</h3>
+              <p>Service declarations, API nodes, provider ports, and service nodes are related concepts but currently require separate declarations. A service registry could generate most of the glue.</p>
+            </div>
+            <div class="card">
+              <h3>JS bridge ergonomics are still rough</h3>
+              <p>Kotlin/JS interop still requires global installation points and dynamic library bridges for React Flow. The remaining TypeScript boundary is small, but the shape should become generated and safer.</p>
+            </div>
+            <div class="card">
+              <h3>Visual graph adapters are duplicated</h3>
+              <p>React Flow and Compose graph rendering both need node sizing, handles, ports, edge colors, labels, grouping, minimap metadata, and layout hints. This should be one canonical Reaktor Flow visual model.</p>
+            </div>
+            <div class="card">
+              <h3>Desktop UI testing is brittle</h3>
+              <p>The in-process driver can still be forced into substring-based text interactions. Shared test tags and exact semantics actions should become mandatory for tabs, buttons, panes, and command items.</p>
+            </div>
+            <div class="card">
+              <h3>Real/mock maturity is not first-class</h3>
+              <p>The fixtures express live and mock status, but graph nodes and subsystem contracts should carry maturity, adapter source, deployability, and fallback strategy as metadata.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="graph-enhancements">
+          <h2>Reaktor Graph Enhancements</h2>
+          <p>The next graph work should reduce hand wiring while increasing introspection. The goal is the same BestBuds principle: fewer concepts, more expression, less bloat.</p>
+          <div class="phase">
+            <div class="phase-head">
+              <span class="phase-title">1. Pane and route DSL</span>
+              <span class="phase-meta">Highest DX impact</span>
+            </div>
+            <div class="phase-body">
+              <p>Add a graph builder that can declare a pane once and derive route binding, route node, container membership, mode registry, and navigation entrypoint.</p>
+              <pre><code>workbenchPane(WorkbenchMode.DevTools) {
+  route("/devtools")
+  graph(::WorkbenchDevtoolsPaneGraph)
+  expose(::DevToolsInteractor)
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="phase">
+            <div class="phase-head">
+              <span class="phase-title">2. GraphInspector diagnostics</span>
+              <span class="phase-meta">Required for scale</span>
+            </div>
+            <div class="phase-body">
+              <p>Add a common inspection API that reports nodes, ports, edges, lifecycle state, route bindings, unconnected consumers, provider candidates, DI fallback attempts, and service handlers.</p>
+            </div>
+          </div>
+
+          <div class="phase">
+            <div class="phase-head">
+              <span class="phase-title">3. Canonical Reaktor Flow visual model</span>
+              <span class="phase-meta">React and Compose parity</span>
+            </div>
+            <div class="phase-body">
+              <p>Promote graph visual concerns into shared Kotlin: node dimensions, handle placement, group bounds, minimap colors, edge category colors, labels, warnings, and layout hints. React Flow and Compose should become renderers of the same visual graph.</p>
+            </div>
+          </div>
+
+          <div class="phase">
+            <div class="phase-head">
+              <span class="phase-title">4. ActorNode maturity</span>
+              <span class="phase-meta">BestBuds and workbench runtime</span>
+            </div>
+            <div class="phase-body">
+              <p>Deepen <code>ActorNode</code> so it owns a mailbox, effect handlers, supervised lifecycle, exclusive ObjectStore access, direct node map storage, durable command replay, and a Durable Object deploy path.</p>
+            </div>
+          </div>
+
+          <div class="phase">
+            <div class="phase-head">
+              <span class="phase-title">5. Generated test matrix</span>
+              <span class="phase-meta">Regression control</span>
+            </div>
+            <div class="phase-body">
+              <p>Let graph metadata generate smoke tests for routes, panes, services, ports, subsystem pages, and command actions. The workbench should be able to ask the graph what must be tested.</p>
+            </div>
+          </div>
+
+          <div class="phase">
+            <div class="phase-head">
+              <span class="phase-title">6. Performance spans</span>
+              <span class="phase-meta">Reaktor performance module</span>
+            </div>
+            <div class="phase-body">
+              <p>Instrument graph boot, route switch, port auto-wire, node render, edge render, layout, command queue execution, and subsystem service calls. Feed these into <code>reaktor-performance</code>, web vitals, app vitals, and flamegraph exports.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="next-steps">
+          <h2>Next Steps</h2>
+          <ol>
+            <li>Build the pane/route DSL inside <code>reaktor-graph</code>, then rewrite <code>WorkbenchGraph</code> to prove the API reduces boilerplate.</li>
+            <li>Add <code>GraphInspector</code> and surface its diagnostics in both the website and desktop Graph pane.</li>
+            <li>Move graph visual sizing, handles, grouping, and layout hints into a common <code>ReaktorFlowVisualGraph</code> model.</li>
+            <li>Turn the remaining TypeScript bridge into a small generated runtime adapter with explicit lazy-load hooks.</li>
+            <li>Make subsystem maturity real in the graph: live, typed mock, stub, production adapter, deployable, and blocked.</li>
+            <li>Add shared exact test IDs and semantics tags so Playwright and Compose tests can use the same intent names.</li>
+            <li>Replace mock subsystem services one by one behind the existing common service APIs without changing the renderer contracts.</li>
+          </ol>
+        </section>
+
+        <section id="file-map">
+          <h2>File Map</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Files</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Shared graph</td>
+                  <td><code>modules/engine/src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/graph/WorkbenchGraph.kt</code><br><code>modules/engine/src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/graph/panes/WorkbenchPaneGraphs.kt</code></td>
+                </tr>
+                <tr>
+                  <td>Shared services and ports</td>
+                  <td><code>modules/engine/src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/data/services/WorkbenchApis.kt</code><br><code>modules/engine/src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/data/services/WorkbenchService.kt</code></td>
+                </tr>
+                <tr>
+                  <td>Shared model and fixtures</td>
+                  <td><code>modules/engine/src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/model/WorkbenchGraphCatalog.kt</code><br><code>modules/engine/src/commonMain/kotlin/ai/bestbuds/reaktor/workbench/fixtures/WorkbenchFixtures.kt</code></td>
+                </tr>
+                <tr>
+                  <td>Website Kotlin/React renderer</td>
+                  <td><code>modules/engine/src/jsMain/kotlin/ai/bestbuds/reaktor/workbench/render/react</code></td>
+                </tr>
+                <tr>
+                  <td>Website TypeScript boundary</td>
+                  <td><code>modules/engine/src/jsMain/react/main.ts</code></td>
+                </tr>
+                <tr>
+                  <td>Desktop Compose renderer</td>
+                  <td><code>modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose</code></td>
+                </tr>
+                <tr>
+                  <td>Engine tests</td>
+                  <td><code>modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor</code></td>
+                </tr>
+                <tr>
+                  <td>Desktop tests</td>
+                  <td><code>targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor</code></td>
+                </tr>
+                <tr>
+                  <td>Website tests</td>
+                  <td><code>tests/reaktorWeb/playwright</code><br><code>tests/reaktorWeb/performance</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <footer class="doc-footer">This report is intentionally implementation-grounded: it names the code that moved, the seams that still hurt, and the Reaktor Graph changes that would make the next parity pass smaller.</footer>
+  </div>
+</body>
+</html>

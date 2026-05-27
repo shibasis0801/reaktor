@@ -15,7 +15,10 @@ import dev.shibasis.reaktor.graph.navigation.NavigationCapabilityImpl
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.Push
+import dev.shibasis.reaktor.graph.core.node.ActorNode
+import dev.shibasis.reaktor.graph.core.node.ActorSupervisorStrategy
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
+import dev.shibasis.reaktor.graph.core.node.DefaultActorSupervisorStrategy
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
@@ -68,6 +71,9 @@ open class Graph(
 
     private val navigationImpl = NavigationCapabilityImpl()
     override val backStack get() = navigationImpl.backStack
+
+    @JsExport.Ignore
+    var actorSupervisorStrategy: ActorSupervisorStrategy = DefaultActorSupervisorStrategy
 
     override fun dispatch(navCommand: NavCommand) {
         when (navCommand) {
@@ -124,6 +130,18 @@ open class Graph(
     init { builder() }
 
     override fun attach(node: Node): Boolean {
+        if (node is ActorNode<*>) {
+            val existing = node(node.id)
+            if (existing != null) {
+                if (existing is ActorNode<*> && existing.key == node.key) {
+                    Logger.w("Actor '${node.key.name}' is already attached. Ignoring.")
+                } else {
+                    Logger.w("Node id ${node.id} is already attached. Ignoring actor '${node.key.name}'.")
+                }
+                return false
+            }
+        }
+
         if (!super.attach(node)) {
             Logger.w("Node ${node.id} is already attached. Ignoring.")
             return false
@@ -259,3 +277,13 @@ fun Graph.findContainerForGraph(
     }
     return null
 }
+
+@JsExport
+fun Graph.findNode(label: String): Node? =
+    nodes.firstOrNull { it.label == label }
+
+inline fun <reified T : Node> Graph.findNodeByType(): T? =
+    nodes.filterIsInstance<T>().firstOrNull()
+
+fun Graph.findRoute(pattern: String): RouteNode<*, *>? =
+    nodes.filterIsInstance<RouteNode<*, *>>().firstOrNull { it.pattern.original == pattern }

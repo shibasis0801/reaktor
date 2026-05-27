@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Roadmap · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Start here</span><span>Codex</span></div>
+      <p class="eyebrow">Start here · Codex</p>
+      <h1>Codex Roadmap</h1>
+      <p class="subtitle">Code-grounded roadmap for turning the Reaktor Workbench prototype into a real control plane.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Read first when deciding what needs to become real and in what order.</span></div>
+        <div class="stat"><b>Source</b><span>Codex</span></div>
+        <div class="stat"><b>Route</b><span>/docs/codex-roadmap</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a aria-current="page" href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#1-summary">1. Summary</a><a href="#2-evidence-from-the-current-code">2. Evidence From The Current Code</a><a href="#2a-deeper-code-level-analysis">2A. Deeper Code-Level Analysis</a><a href="#3-target-architecture">3. Target Architecture</a><a href="#4-prototype-feature-map">4. Prototype Feature Map</a><a href="#5-implementation-phases">5. Implementation Phases</a><a href="#6-bestbuds-dogfood-gaps-the-workbench-should-expose">6. BestBuds Dogfood Gaps The Workbench Should Expose</a><a href="#7-testing-strategy">7. Testing Strategy</a><a href="#8-risks-and-mitigations">8. Risks And Mitigations</a><a href="#near-term-execution-order">Near-Term Execution Order</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<div id="summary">
+      <h2 id="1-summary">1. Summary</h2>
+      <p class="lead">
+        Reaktor already has more real infrastructure than the prototype suggests. The graph runtime, port model, object DB, service abstraction, auth kernel, Cloudflare bridge, Compose desktop workbench, graph document export, and BestBuds app graph are present. The missing work is a production control plane that connects those pieces to the web prototype's screens and replaces every static scenario with live, typed state.
+      </p>
+
+      <div class="grid three">
+        <div class="card bar green">
+          <h3>Keep</h3>
+          <p>The existing Reaktor runtime model should remain the center: <code>Graph</code>, <code>Node</code>, <code>RouteNode</code>, ports, lifecycle, DI, and <code>Feature</code> slots. The desktop engine and server graph endpoint are the first real workbench spine.</p>
+        </div>
+        <div class="card bar amber">
+          <h3>Replace</h3>
+          <p>Replace <code>targets/reaktorWeb/src/mock-services.js</code>, static <code>scenario*.jsx</code> catalogs, fake DB/auth/agent data, and no-op buttons with a <code>WorkbenchService</code> contract and safe command queue.</p>
+        </div>
+        <div class="card bar cyan">
+          <h3>Converge</h3>
+          <p>Unify the React web prototype, Compose desktop workbench, and Spring/Cloudflare service layers around one serializable <code>WorkbenchManifest</code> and <code>WorkbenchEvent</code> stream.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Definition of reality:</strong> a visible workbench feature is real only when it reads from live or recorded production-shaped data, every command is persisted and auditable, every mutating action has authorization and rollback semantics, and tests prove crash-free behavior for the screen and the underlying service contract.
+      </div>
+    </div>
+
+    <div id="evidence">
+      <h2 id="2-evidence-from-the-current-code">2. Evidence From The Current Code</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Status</th>
+            <th>Observed source</th>
+            <th>What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Graph runtime</td>
+            <td><span class="status real">Real</span></td>
+            <td><code>../reaktor/reaktor-graph</code>, <code>../reaktor/reaktor-graph-port</code></td>
+            <td>Lifecycle, navigation, auto-wiring, typed providers/consumers, and port events exist. The graph screen should consume this instead of hand-authored entity arrays.</td>
+          </tr>
+          <tr>
+            <td>Flow editor</td>
+            <td><span class="status real">Real</span></td>
+            <td><code>../reaktor/reaktor-flow</code>, <code>modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorWorkbench.kt</code></td>
+            <td>Compose desktop already builds a visual graph from a live <code>Graph</code>. Web should share the same manifest/model, not create a second graph language.</td>
+          </tr>
+          <tr>
+            <td>Graph document export</td>
+            <td><span class="status partial">Partial</span></td>
+            <td><code>modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorGraphDocument.kt</code>, <code>targets/reaktorServer/.../ServerApplication.kt</code></td>
+            <td><code>/apps/{appId}/graph</code> exists and exports nodes/edges. It needs file ownership, stable IDs, tests, deploy targets, telemetry links, auth/service/DB metadata, and versioning.</td>
+          </tr>
+          <tr>
+            <td>BestBuds dogfood graph</td>
+            <td><span class="status real">Real</span></td>
+            <td><code>modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBuds.kt</code></td>
+            <td>The app has chat, campaign, discover, events, friends, profile, dev, onboarding, repositories, and interactors. It is a valid first production target for the workbench.</td>
+          </tr>
+          <tr>
+            <td>Auth kernel and adapters</td>
+            <td><span class="status partial">Partial</span></td>
+            <td><code>../reaktor/reaktor-auth</code></td>
+            <td>Auth models, staged login state, JWT verification, server interactor, RBAC schema, PAT contracts, and web Apple/Google providers exist. Android Apple and complete session/refresh/audit/runtime enforcement still need work.</td>
+          </tr>
+          <tr>
+            <td>Database layer</td>
+            <td><span class="status partial">Partial</span></td>
+            <td><code>../reaktor/reaktor-db</code>, <code>targets/reaktorServer/.../ServerApplication.kt</code></td>
+            <td>SQLite object store and GraphDb/Memgraph are real. DB console functionality is currently static and needs adapters for Postgres, D1, Durable Objects, R2, local SQLite, and Memgraph with redaction and RBAC.</td>
+          </tr>
+          <tr>
+            <td>Cloudflare bridge</td>
+            <td><span class="status partial">Partial</span></td>
+            <td><code>../reaktor/reaktor-cloudflare</code>, <code>modules/app/src/jsMain</code></td>
+            <td>Typed bindings and service-to-Hono bridge exist. Deploy/run/test screens still need a deployment control plane and environment-aware service registry.</td>
+          </tr>
+          <tr>
+            <td>Telemetry</td>
+            <td><span class="status partial">Partial</span></td>
+            <td><code>../reaktor/reaktor-telemetry</code>, <code>modules/app/src/commonMain/.../analytics</code></td>
+            <td>Graph instrumentation and analytics sinks exist. The insights UI needs ingestion, storage, query APIs, span correlation, and release comparison.</td>
+          </tr>
+          <tr>
+            <td>Agents and command queue</td>
+            <td><span class="status mock">Facade</span></td>
+            <td><code>targets/reaktorWeb/src/screen-agent.jsx</code>, <code>scenario-v3.jsx</code></td>
+            <td>Codex, Claude, Gemini, commits, and pending commands are static. Need a persistent queue, command validators, codegen workers, git boundaries, and audit.</td>
+          </tr>
+          <tr>
+            <td>Prototype actions</td>
+            <td><span class="status mock">Facade</span></td>
+            <td><code>targets/reaktorWeb/src/mock-services.js</code></td>
+            <td>Hot reload, deploy, rollback, tests, IDE open, apply/revert commands, and agent actions return mocked logs. This file must disappear from production builds.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="code-analysis">
+      <h2 id="2a-deeper-code-level-analysis">2A. Deeper Code-Level Analysis</h2>
+      <p class="lead">
+        This section is grounded in the actual Reaktor and BestBuds source. The main conclusion is stronger than the first scan: the prototype is a facade, but the repos already contain enough real runtime surfaces to make the facade honest without inventing a parallel architecture.
+      </p>
+
+      <h3>Runtime substrate that should be reused</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Actual source</th>
+            <th>Observed behavior</th>
+            <th>Workbench implication</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Graph orchestration</td>
+            <td><code>../reaktor/reaktor-graph/src/commonMain/.../core/Graph.kt</code>, <code>Node.kt</code>, <code>RouteNode.kt</code>, <code>ContainerNode.kt</code></td>
+            <td><code>Graph</code> delegates lifecycle, DI, concurrency, navigation, and port containment. <code>dispatch</code> handles cross-graph navigation through containers. <code>autoWire()</code> connects consumers to local providers or DI fallback.</td>
+            <td>The graph tab should not infer routes from static JSON. It should render real <code>Graph</code>, <code>ContainerNode</code>, <code>RouteNode</code>, attached nodes, back stack roots, lifecycle state, and auto-wire failures.</td>
+          </tr>
+          <tr>
+            <td>Port and edge model</td>
+            <td><code>../reaktor/reaktor-graph-port/src/commonMain/.../port</code>, <code>.../edge/Edge.kt</code>, <code>.../graph/connect.kt</code></td>
+            <td>Provider and consumer ports are typed by <code>(Type, Key)</code>. Edges reject already-connected consumers, emit connect/disconnect events, and carry a deterministic qualifier.</td>
+            <td>Data edges in the workbench should show exact provider/consumer type, key, owner node, connection state, and errors from <code>requireFullyWired()</code>, not only a display label.</td>
+          </tr>
+          <tr>
+            <td>Typed services</td>
+            <td><code>../reaktor/reaktor-graph/src/commonMain/.../service/Service.kt</code>, <code>RequestHandler.kt</code>, <code>ServiceInterceptor.kt</code></td>
+            <td><code>Service</code> owns typed handlers, client invocation, request/response serializers, route patterns, environment propagation, and interceptors.</td>
+            <td>Deploy, testing, auth, DB, and API tabs should be derived from handler catalogs and transport metadata. Service calls should be traceable through a common interceptor rather than manually instrumented per screen.</td>
+          </tr>
+          <tr>
+            <td>Cloudflare runtime bridge</td>
+            <td><code>../reaktor/reaktor-cloudflare/src/jsMain/.../Router.kt</code>, <code>Bindings.kt</code>, <code>CloudflareApi.kt</code></td>
+            <td><code>Service.toHono()</code> maps typed handlers onto Hono routes and injects <code>CloudflareContext</code>. Bindings cover D1, R2, KV, Durable Objects, service bindings, secrets, vector, AI, and Hyperdrive.</td>
+            <td>The deployment and database tabs can introspect real worker bindings and routes. Production work should replace ad hoc worker UI data with a <code>CloudflareTargetCatalog</code>.</td>
+          </tr>
+          <tr>
+            <td>Object and graph persistence</td>
+            <td><code>../reaktor/reaktor-db/src/commonMain/.../ObjectDatabase.kt</code>, <code>core/ObjectStore.kt</code>, <code>graph/GraphDbPolicy.kt</code></td>
+            <td>Object stores emit DB events and maintain per-key flows/cache. Graph DB policies enforce mandatory tenant parameterization and tenant filters in Cypher.</td>
+            <td>The DB tab should surface stores, keys, flows, cache policy, graph query policy, and tenant safety checks. Writes should become migration or command records.</td>
+          </tr>
+          <tr>
+            <td>Auth substrate</td>
+            <td><code>../reaktor/reaktor-auth/src/commonMain/.../AuthAdapter.kt</code>, <code>kernel/AuthKernel.kt</code>, <code>jvmMain/.../LoginInteractor.kt</code>, <code>api/AuthServer.kt</code></td>
+            <td>The client adapter has explicit login states, provider registry, server sign-in, and session caching. The kernel models principals, tenants, scopes, permissions, roles, token claims, and authorization decisions. The JVM server verifies provider JWTs and mints access/PAT tokens.</td>
+            <td>The auth tab should be backed by provider health, login-state telemetry, RBAC catalog, token/session lifecycle, PAT operations, and authorization decision traces. Static role matrices are not enough.</td>
+          </tr>
+          <tr>
+            <td>Telemetry</td>
+            <td><code>../reaktor/reaktor-telemetry/src/commonMain/.../GraphTelemetry.kt</code>, <code>bestbuds/modules/app/src/commonMain/.../analytics</code></td>
+            <td>Graph telemetry observes lifecycle, back stack, screen views, and existing port listeners. BestBuds has analytics event contracts and an analytics worker endpoint.</td>
+            <td>Insights should start by correlating graph node IDs, route changes, service calls, DB events, and BestBuds analytics events into one entity timeline.</td>
+          </tr>
+          <tr>
+            <td>Desktop engine</td>
+            <td><code>bestbuds/modules/engine/src/main/kotlin/ai/bestbuds/reaktor/ReaktorGraphDocument.kt</code>, <code>ReaktorComposeSemanticsInspector.kt</code>, <code>ReaktorRuntime.kt</code></td>
+            <td>The engine already initializes desktop/test/server features, exports a graph document, and captures Compose semantics/source/bounds every 350ms while enabled.</td>
+            <td>This is the first real workbench host. The web prototype should consume engine/server contracts and the desktop workbench should consume the same manifest version.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>BestBuds is a concrete dogfood app, not a toy fixture</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Product area</th>
+            <th>Actual source</th>
+            <th>Current reality</th>
+            <th>Roadmap consequence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Root app graph</td>
+            <td><code>bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBuds.kt</code></td>
+            <td>App id <code>38d1cee3-004d-441f-8f66-ad5060859af1</code>. Root nodes include config, messages, stickers, user, chat, social, and user interactors. Home contains Chat, Campaign, Discover, Events, Friends, Profile, and Dev graphs.</td>
+            <td>The manifest builder should use this as its baseline fixture and acceptance target. Every graph tab feature should work against this real app id.</td>
+          </tr>
+          <tr>
+            <td>Routes and screens</td>
+            <td><code>BestBuds.kt</code> plus <code>modules/app/src/commonMain/.../ui</code></td>
+            <td>Routes include <code>/</code>, <code>/onboarding</code>, <code>/home</code>, <code>/chats</code>, <code>/chats/{id}</code>, profile/friend/group routes, campaigns, events, friends, profile edit/create, and dev.</td>
+            <td>The Run App tab should support route dispatch and route-param editing against these actual route bindings. The Testing tab should map specs to these flows.</td>
+          </tr>
+          <tr>
+            <td>Chat orchestration</td>
+            <td><code>data/interactors/ChatInteractor.kt</code>, <code>data/repositories/MessageRepository.kt</code></td>
+            <td>Chat has cache-first open, background revalidation, WebSocket receive/send, optimistic messages, retry/discard, reaction queuing, typing, presence, pagination, and group-member hydration.</td>
+            <td>DevTools should be able to trace one chat send through UI state, interactor, cache, socket, backend echo, reaction updates, and telemetry. Gemini scouting can target TODOs around signed socket auth, heartbeat, multi-device presence, and privacy.</td>
+          </tr>
+          <tr>
+            <td>User/session orchestration</td>
+            <td><code>data/repositories/UserRepository.kt</code></td>
+            <td>User login goes through <code>Feature.Auth</code>, records pending provider/status in KV, handles timeout/failure, persists the user, hydrates stickers/profile, and supports logout. There are explicit TODOs around flow-based user state.</td>
+            <td>Auth and DevTools should show current login stage, pending provider, cached user, hydration work, and failure state. Auth refresh/session tests should be part of production readiness.</td>
+          </tr>
+          <tr>
+            <td>Social and messaging services</td>
+            <td><code>data/social/SocialService.kt</code>, <code>data/services/MessagingService.kt</code>, <code>data/analytics/AnalyticsService.kt</code></td>
+            <td>Typed handlers exist for friends, groups, current/discover campaigns, profile, onboarding questions/responses/complete, top messages, chat messages, send, bot send, reactions, and analytics ingest.</td>
+            <td>The API catalog should be generated from typed service classes. Mock endpoint lists in the prototype should be replaced by real handler metadata plus environment URLs.</td>
+          </tr>
+          <tr>
+            <td>Cloudflare workers</td>
+            <td><code>modules/app/src/jsMain/kotlin/ai/bestbuds/app/cloudflare</code></td>
+            <td>Messaging and social workers mount typed services through <code>bestBudsWorker</code>. Worker auth is explicitly disabled until JWT verification is wired. Bot agents are registered in <code>AgentRegistry.kt</code>.</td>
+            <td>Deploy view should know the worker service, bindings, auth posture, endpoint list, and security blockers. AI tab can start with the real Workers AI bot registry instead of invented model cards.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Current graph document export is useful but too thin</h3>
+      <p>
+        <code>ReaktorGraphDocument.kt</code> currently exports app id/label, visible nodes, containment/navigation/data edges, display labels, graph names, routes attached to nodes, and provider/consumer keys. It intentionally hides <code>RouteNode</code> from visible nodes and normalizes IDs from graph labels plus route or node labels.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Missing from export</th>
+            <th>Why it matters</th>
+            <th>Where to get it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Stable source-aware IDs</td>
+            <td>IDs based on labels and routes can shift when labels change. Commands, tests, telemetry, and commits need stable identity.</td>
+            <td>Combine graph/node runtime id, class fqcn, route pattern, source file, and optional KSP metadata.</td>
+          </tr>
+          <tr>
+            <td>Route nodes and route bindings</td>
+            <td>Navigation debugging needs route payload type, path params, attached nodes, source route, target route, and container activation.</td>
+            <td><code>RouteNode.pattern</code>, <code>routeBinding</code>, <code>navigationTargets()</code>, <code>ContainerNode.graphs</code>, back stack entries.</td>
+          </tr>
+          <tr>
+            <td>Port type metadata</td>
+            <td>Provider/consumer keys alone cannot prove type safety or explain auto-wire misses.</td>
+            <td><code>ProviderPort.key.type</code>, <code>ConsumerPort.key.type</code>, qualifiers, edge source/destination, <code>PortEvent</code>.</td>
+          </tr>
+          <tr>
+            <td>Services and worker endpoints</td>
+            <td>Deploy, testing, auth, API docs, and DevTools all need real handlers.</td>
+            <td><code>Service.handlers</code>, <code>RequestHandler.method</code>, <code>routePattern</code>, worker wrappers under <code>modules/app/src/jsMain</code>.</td>
+          </tr>
+          <tr>
+            <td>Stores, cache policy, and DB bindings</td>
+            <td>The DB tab cannot be production-ready without knowing which nodes read/write which stores and backing resources.</td>
+            <td><code>RepositoryNode</code> store names, <code>ObjectDatabase.events</code>, Cloudflare bindings, Postgres/D1/R2 declarations, GraphDb policies.</td>
+          </tr>
+          <tr>
+            <td>Auth requirements</td>
+            <td>Users need to know whether a route/service/action is unauthenticated, user-scoped, admin-scoped, PAT-scoped, or currently unsafe.</td>
+            <td><code>AuthKernel</code>, <code>AuthServer</code>, <code>LoginInteractor</code>, worker auth config, service middleware/interceptors.</td>
+          </tr>
+          <tr>
+            <td>Tests and deploy targets</td>
+            <td>Command queue, affected-tests view, and deploy gates need source-to-test and source-to-deploy mapping.</td>
+            <td><code>tests/</code> folders, Gradle tasks, npm scripts, Wrangler/Partykit targets, Playwright/Maestro specs.</td>
+          </tr>
+          <tr>
+            <td>Known incompleteness markers</td>
+            <td>The workbench should expose incomplete production behavior rather than hide it behind polished UI.</td>
+            <td>TODO/FIXME scanners over BestBuds/Reaktor, disabled KSP processor, disabled worker auth, stub platform adapters, mocked web services.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Prototype-to-real replacement map</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Prototype file/surface</th>
+            <th>Current behavior</th>
+            <th>Replacement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>targets/reaktorWeb/src/scenario.jsx</code>, <code>scenario-v3.jsx</code>, <code>window.ENTITIES</code>, <code>window.BUNDLE</code></td>
+            <td>Static graph, commands, auth, DB, deploy, tests, agents, and metrics.</td>
+            <td><code>GET /workbench/apps/{appId}/manifest</code> plus recorded fixtures generated from the same endpoint for offline tests.</td>
+          </tr>
+          <tr>
+            <td><code>mock-services.js</code></td>
+            <td>Every action sleeps and returns a fake log, including deploy, rollback, test run, command apply/revert, IDE open, and agent calls.</td>
+            <td><code>WorkbenchServiceClient</code> with typed calls for command preview/apply/revert, test run, deploy dry-run/promote, source open, agent job, and runtime session control.</td>
+          </tr>
+          <tr>
+            <td><code>workbench-domain.jsx</code></td>
+            <td>Domain helpers read global browser variables and local React state.</td>
+            <td>Move to a typed client-side store fed by manifest snapshots and event streams. Keep UI-only helpers, but remove production reads from global scenario data.</td>
+          </tr>
+          <tr>
+            <td><code>screen-agent.jsx</code></td>
+            <td>Codex, Claude, Gemini, command queue, commits, and pending work are scenario objects.</td>
+            <td>Persistent command queue, agent job table, git commit mapping, read-only Gemini scout jobs, and queue items linked to commands/tests/commits.</td>
+          </tr>
+          <tr>
+            <td><code>screen-database.jsx</code></td>
+            <td>Static resource list and sample rows.</td>
+            <td>Read-only adapters for ObjectStore, Postgres/Supabase, D1, R2, Durable Objects, and Memgraph, with redaction and write commands only.</td>
+          </tr>
+          <tr>
+            <td><code>screen-testing.jsx</code></td>
+            <td>Static suites and proxy rules.</td>
+            <td>Test inventory scanner plus runners for Playwright, Maestro, Gradle, and service replay. Results link to manifest entities and command gates.</td>
+          </tr>
+          <tr>
+            <td><code>screen-deploy.jsx</code></td>
+            <td>Mock release activity over static topology.</td>
+            <td>Deploy catalog from npm scripts, Wrangler/Partykit configs, server deploy scripts, k3s scripts, secrets check, dry-run plan, approval gates, and rollback records.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Production blockers found in code</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Blocker</th>
+            <th>Evidence</th>
+            <th>Required fix before calling it production</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Worker auth is not wired</td>
+            <td><code>bestbuds/modules/app/src/jsMain/.../core/BestBudsWorker.kt</code> rejects enabled auth with <code>BestBuds worker auth is not wired yet</code>.</td>
+            <td>Add JWT verification middleware using <code>reaktor-auth</code> token verification, wire service requirements, and expose auth posture in the Deploy/Auth tabs.</td>
+          </tr>
+          <tr>
+            <td>User identity is passed as a serialized header in product services</td>
+            <td><code>SocialService</code> and <code>MessagingService</code> use <code>userHeaders(user)</code>; workers read <code>currentUserOrNull</code>.</td>
+            <td>Replace trust-on-header behavior with signed access tokens and typed auth requirements. Keep impersonation only in explicit dev/test mode.</td>
+          </tr>
+          <tr>
+            <td>Chat socket identity is raw query data</td>
+            <td><code>ChatInteractor.connectWebSocket</code> passes <code>userId</code> and <code>userName</code> via query and comments that signed token auth is needed.</td>
+            <td>Issue short-lived room tokens, verify them in the PartyKit/chat worker, and add tests for rejected/expired tokens.</td>
+          </tr>
+          <tr>
+            <td>Session lifecycle is incomplete</td>
+            <td><code>LoginInteractor</code> mints access tokens and creates a random refresh token, but complete refresh persistence/revoke/audit flow is not unified in the runtime.</td>
+            <td>Persist refresh sessions, add revoke/rotate endpoints, expose active sessions in Auth, and add regression tests for refresh/revoke.</td>
+          </tr>
+          <tr>
+            <td>Compiler metadata path is disabled</td>
+            <td><code>../reaktor/reaktor-compiler/src/.../ReaktorProcessor.kt</code> returns immediately.</td>
+            <td>Either restore KSP metadata generation or explicitly replace it with Gradle/source scanning for source file, ownership, command, and test mapping.</td>
+          </tr>
+          <tr>
+            <td>Secrets/config leakage risk</td>
+            <td><code>targets/reaktorServer/.../ServerApplication.kt</code> contains hardcoded database configuration, and deploy scripts include sensitive command-line tokens.</td>
+            <td>Move credentials to secret stores, add a scanner gate, and prevent Deploy tab from exposing secret values in logs or manifests.</td>
+          </tr>
+          <tr>
+            <td>Platform auth parity is uneven</td>
+            <td>Android Apple login is a TODO; web providers exist but still need production configuration and parity tests.</td>
+            <td>Make provider support visible per platform and enforce parity tests before a provider is marked healthy.</td>
+          </tr>
+          <tr>
+            <td>Several BestBuds user flows are visibly incomplete</td>
+            <td>Profile edit/save, campaign join/details, event actions, image picker, and call actions still have TODOs or partial behavior.</td>
+            <td>The workbench should mark these as incomplete product capabilities and generate command/test plans rather than displaying them as finished.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Concrete first implementation delta</h3>
+      <div class="callout">
+        <strong>Recommended next code milestone:</strong> extend <code>ReaktorGraphDocument.kt</code> into a versioned <code>WorkbenchManifest</code>, expose it from <code>targets/reaktorServer</code>, generate a checked-in fixture from the live BestBuds graph, and migrate the Graph/Search/Drawer portions of <code>targets/reaktorWeb</code> away from <code>scenario*.jsx</code>. That gives the team a real spine before touching deploy, DB, auth, agents, or testing.
+      </div>
+    </div>
+
+    <div id="architecture">
+      <h2 id="3-target-architecture">3. Target Architecture</h2>
+      <p class="lead">
+        The clean structure is a layered control plane. Screens are thin. Domain logic lives in typed services. Runtime adapters are explicit and replaceable. Mutations go through commands. Low-level escape hatches exist only behind capability checks.
+      </p>
+
+      <div class="flow">
+        <div class="step">
+          <div class="step-title">Source Apps</div>
+          <div class="step-text">BestBuds and future Reaktor apps expose graphs, routes, services, repositories, auth, deploy targets, and tests.</div>
+        </div>
+        <div class="step">
+          <div class="step-title">Manifest Builder</div>
+          <div class="step-text">Runtime reflection plus Gradle/KSP metadata produces a stable <code>WorkbenchManifest</code>.</div>
+        </div>
+        <div class="step">
+          <div class="step-title">Workbench Service</div>
+          <div class="step-text">Typed APIs provide graph, runtime, DB, auth, testing, deploy, telemetry, agents, and commands.</div>
+        </div>
+        <div class="step">
+          <div class="step-title">Command Queue</div>
+          <div class="step-text">All mutations become validated sealed commands with preview, apply, revert, commit, and audit records.</div>
+        </div>
+        <div class="step">
+          <div class="step-title">Web/Desktop UI</div>
+          <div class="step-text">React prototype and Compose desktop consume the same contract and render mode-specific views.</div>
+        </div>
+      </div>
+
+      <h3>Core packages to introduce or promote</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Package/module</th>
+            <th>Responsibility</th>
+            <th>Why it belongs here</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>reaktor-workbench-core</code></td>
+            <td>Shared serializable models: manifest, events, commands, queue records, adapters, RBAC scopes.</td>
+            <td>This is framework-level and should serve BestBuds, Manna, and any future Reaktor app.</td>
+          </tr>
+          <tr>
+            <td><code>reaktor-workbench-service</code></td>
+            <td>Service contract and server implementation for graph/runtime/DB/auth/testing/deploy/agent APIs.</td>
+            <td>Prevents every UI surface from inventing direct transport and filesystem access.</td>
+          </tr>
+          <tr>
+            <td><code>bestbuds/modules/engine</code></td>
+            <td>Dogfood host, desktop shell, app registration, live preview, graph document builder until promoted.</td>
+            <td>Already contains real workbench code and should be the proving ground before framework extraction.</td>
+          </tr>
+          <tr>
+            <td><code>targets/reaktorWeb</code></td>
+            <td>Production web shell for remote workbench access.</td>
+            <td>Keep the UI investment, but make it a client of <code>WorkbenchService</code> rather than a static scenario viewer.</td>
+          </tr>
+          <tr>
+            <td><code>targets/reaktorServer</code></td>
+            <td>Local/cloud control-plane backend, app graph endpoint, GraphQL, Memgraph, auth, deploy/test bridges.</td>
+            <td>Already exposes <code>/apps/{appId}/graph</code>; extend it into a real workbench API.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Shape of the shared contract</h3>
+      <div class="codebox">sealed interface WorkbenchCommand {
+  val id: CommandId
+  val appId: AppId
+  val target: WorkbenchTarget
+  val author: WorkbenchActor
+  val reason: String
+  val risk: CommandRisk
+}
+
+data class AddNodeCommand(...)
+data class ConnectPortsCommand(...)
+data class UpdateRouteCommand(...)
+data class UpdateAuthPolicyCommand(...)
+data class CreateMigrationCommand(...)
+data class RunTestSuiteCommand(...)
+data class DeployReleaseCommand(...)
+data class AgentScoutCommand(...)
+
+data class WorkbenchManifest(
+  val app: WorkbenchApp,
+  val graph: GraphManifest,
+  val sources: SourceIndex,
+  val services: ServiceCatalog,
+  val stores: StoreCatalog,
+  val auth: AuthCatalog,
+  val tests: TestCatalog,
+  val deploy: DeployCatalog,
+  val telemetry: TelemetryCatalog
+)</div>
+    </div>
+
+    <div id="features">
+      <h2 id="4-prototype-feature-map">4. Prototype Feature Map</h2>
+      <p class="lead">
+        Every row below corresponds to visible functionality in <code>targets/reaktorWeb/src</code>. The target is not "make buttons click"; the target is production behavior with mock data only where explicitly labeled as recorded fixtures or test mode.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Prototype area</th>
+            <th>Current behavior</th>
+            <th>Real substrate</th>
+            <th>Work to make it real</th>
+            <th>Acceptance criteria</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Graph</td>
+            <td>Static entities and edges in <code>scenario*.jsx</code>.</td>
+            <td><code>Graph</code>, <code>PortCapability</code>, <code>ReaktorFlowGraph</code>, <code>ReaktorGraphDocument</code>.</td>
+            <td>Serve graph manifests from live app graph. Add stable IDs, source paths, routes, ports, DI, stores, services, tests, deploy targets, telemetry nodes, and focus queries.</td>
+            <td>Graph view renders BestBuds from <code>/apps/{appId}/graph</code>; selecting a node opens real metadata; no production dependency on <code>window.ENTITIES</code>.</td>
+          </tr>
+          <tr>
+            <td>Run App</td>
+            <td>Visual fake devices and state controls.</td>
+            <td>Compose desktop preview in <code>modules/engine</code>, BestBuds <code>GraphApplication</code>, web/app targets.</td>
+            <td>Add runtime session manager, app preview launch, hot reload, route dispatch, device profiles, network modes, logs, state snapshots, and click-to-inspect bridge.</td>
+            <td>User can launch BestBuds in phone/desktop viewport, navigate actual graph routes, inspect UI tree, and see runtime errors/logs.</td>
+          </tr>
+          <tr>
+            <td>DevTools</td>
+            <td>Static blast radius, commands, and mini device.</td>
+            <td>Graph edges, lifecycle flows, port events, telemetry spans, source index.</td>
+            <td>Capture navigation transitions, port invocations, DB/service calls, payload previews, affected tests, source jump, and diff linkage.</td>
+            <td>Clicking a live action produces a trace showing route, node, port, service, cache, network, DB, and telemetry events.</td>
+          </tr>
+          <tr>
+            <td>Deploy</td>
+            <td>Mock deploy/rollback logs and static topology.</td>
+            <td>npm deploy scripts, Wrangler targets, k3s scripts, Spring server deploy, n8n workflow definitions.</td>
+            <td>Build deploy catalog, environment inventory, CI run adapter, migration planner, canary/rollback model, secret validation, and release health monitor.</td>
+            <td>Deploy button starts a real gated release job or opens a dry-run plan; production deploy requires RBAC and passing tests.</td>
+          </tr>
+          <tr>
+            <td>Insights</td>
+            <td>Static funnels, costs, retention, error cards.</td>
+            <td><code>reaktor-telemetry</code>, BestBuds analytics queue/service, Firebase/OTel adapters.</td>
+            <td>Create telemetry ingestion store, query endpoints, release correlation, entity-to-metric links, cost adapters, and trace sampling controls.</td>
+            <td>Insights cards are backed by a named data source, time range, and query; graph nodes show current p95/error/funnel impact.</td>
+          </tr>
+          <tr>
+            <td>Agent</td>
+            <td>Static Codex/Claude/Gemini personas, fake chat, fake queue, fake commits.</td>
+            <td>Codex CLI/worktrees, git, tests, graph manifest, command model.</td>
+            <td>Build agent registry, conversation store, scout jobs, command proposal API, review gates, command-to-commit grouping, and worktree isolation.</td>
+            <td>Gemini scout can run a real read-only scan; queued findings produce commands; committed groups show actual git commits and executed command IDs.</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>Static catalogs for Supabase, Memgraph, D1, Durable Objects, R2, SQLite.</td>
+            <td>Reaktor object store, Memgraph/Neo4j GraphDb, Exposed/Supabase, Cloudflare bindings.</td>
+            <td>Implement adapters, schema introspection, read-only query console, migrations, relationship explorer, explain plans, PII redaction, and write approvals.</td>
+            <td>Schema/data tabs query real or recorded data source; writes create migration commands, not direct DB edits.</td>
+          </tr>
+          <tr>
+            <td>Auth</td>
+            <td>Static provider, role, session, audit views; local state toggles.</td>
+            <td><code>reaktor-auth</code> AuthKernel, RBAC schema, AuthService, LoginInteractor, adapters.</td>
+            <td>Expose provider health, role/permission CRUD via commands, session lookup/revoke, PAT flows, audit stream, provider parity tests, and RBAC middleware status.</td>
+            <td>Revoking a session calls a real endpoint; role matrix changes generate audited policy commands; provider status reflects actual config/test results.</td>
+          </tr>
+          <tr>
+            <td>Testing</td>
+            <td>Static suites plus calls to mocked <code>runTests</code>.</td>
+            <td><code>tests/</code> structure, Playwright specs, Maestro flows, Gradle tests, Keploy config.</td>
+            <td>Build test inventory scanner, runner API, artifact store, coverage-to-graph mapping, replay/proxy manager, device lab adapter, and flaky-test tracker.</td>
+            <td>Run buttons execute named suites; result rows link to artifacts, graph nodes, source files, and command gates.</td>
+          </tr>
+          <tr>
+            <td>AI</td>
+            <td>Static model registry, notebooks, gateway, evals, costs.</td>
+            <td>Cloudflare Workers AI wrapper, agent concepts, possible OpenAI/Gemini adapters.</td>
+            <td>Implement provider registry, model usage logs, prompt/eval store, gateway policies, safety checks, cost collection, and notebook execution sandbox.</td>
+            <td>AI tab displays real configured providers, model calls, eval runs, and cost estimates from logs.</td>
+          </tr>
+          <tr>
+            <td>Shell, search, drawer</td>
+            <td>Mostly local state over static data.</td>
+            <td>Workbench manifest, command queue, source index, app registry.</td>
+            <td>Centralize state orchestration, persisted preferences, RBAC-aware actions, deep links, keyboard shortcuts, source search, and drawer tabs backed by APIs.</td>
+            <td>Every sidebar/search/drawer result comes from the manifest or a service query and survives refresh.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="phases">
+      <h2 id="5-implementation-phases">5. Implementation Phases</h2>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P0</div>
+          <div>
+            <div class="phase-title">Freeze the contract and remove ambiguity</div>
+            <p>Turn the prototype into a written/API contract before adding more surface area.</p>
+          </div>
+          <div class="phase-time">1 week</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Define <code>WorkbenchManifest</code>, <code>WorkbenchEvent</code>, <code>WorkbenchCommand</code>, <code>CommandQueueRecord</code>, and <code>WorkbenchCapability</code>.</li>
+            <li>Tag prototype-only static data and block it from production builds with a lint/test check.</li>
+            <li>Create API fixtures from real BestBuds graph export so UI can migrate one endpoint at a time.</li>
+            <li>Define RBAC scopes for read graph, run app, query DB, modify auth, run tests, deploy, and run agents.</li>
+            <li>Document destructive action rules: no direct writes except through commands with preview and rollback metadata.</li>
+            <li>Add a production readiness checklist per screen and keep it next to Playwright specs.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P1</div>
+          <div>
+            <div class="phase-title">Make the graph and shell live</div>
+            <p>Replace static graph/search/sidebar/drawer data with the real app manifest.</p>
+          </div>
+          <div class="phase-time">2-3 weeks</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Promote and enrich <code>ReaktorGraphDocument.kt</code> into a reusable manifest builder.</li>
+            <li>Extend <code>/apps/{appId}/graph</code> to <code>/workbench/apps/{appId}/manifest</code> with version, schema, source, and capability metadata.</li>
+            <li>Add stable IDs that do not depend on object identity alone; include route path, graph path, node type, and source fingerprint.</li>
+            <li>Add a web data layer: <code>useWorkbenchManifest</code>, <code>useCommandQueue</code>, <code>useWorkbenchSearch</code>.</li>
+            <li>Keep local fixtures only as recorded offline mode and Playwright fixtures.</li>
+            <li>Make graph focus, blast radius, affected tests, and sidebar groups derived selectors over manifest data.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P2</div>
+          <div>
+            <div class="phase-title">Build the command queue before mutating anything</div>
+            <p>The workbench must never apply hidden edits. Commands are the safety boundary.</p>
+          </div>
+          <div class="phase-time">3-4 weeks</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Implement sealed command classes and validators for graph, source, DB, auth, testing, deploy, and agent actions.</li>
+            <li>Persist queue records with status: drafted, proposed, reviewed, ready, running, applied, reverted, failed, committed.</li>
+            <li>Support dry-run, diff preview, conflict detection, dependency ordering, and rollback metadata.</li>
+            <li>Group executed commands by actual git commit and show pending commands separately in Agent view.</li>
+            <li>Map every UI mutating button to either a command proposal or an explicitly disabled state with reason.</li>
+            <li>Add command audit entries with actor, RBAC scopes, source IP/session, approval chain, and resulting artifacts.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P3</div>
+          <div>
+            <div class="phase-title">Make Run App and DevTools production-grade</div>
+            <p>Connect the visual workbench to a real running app session and trace stream.</p>
+          </div>
+          <div class="phase-time">4-6 weeks</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Create <code>WorkbenchRuntimeSession</code> for desktop, web preview, Android simulator, and iOS simulator modes.</li>
+            <li>Expose route dispatch, back stack, lifecycle state, selected UI element, component tree, logs, and errors.</li>
+            <li>Instrument port invocations, service calls, repository cache hits, DB access, websocket events, and analytics emissions.</li>
+            <li>Bridge Compose semantics inspector data into the shared manifest/runtime event stream.</li>
+            <li>Implement hot reload as a real build/reload operation with failure state and logs.</li>
+            <li>Make DevTools timelines replayable and link each event to graph nodes and source paths.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P4</div>
+          <div>
+            <div class="phase-title">Make Database and Auth consoles real</div>
+            <p>These screens are sensitive; implement read-first, RBAC-first, command-first behavior.</p>
+          </div>
+          <div class="phase-time">4-5 weeks</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Build DB adapters for local SQLite object stores, Supabase/Postgres, Memgraph, D1, Durable Objects, and R2 metadata.</li>
+            <li>Default all database views to read-only and redact secrets/PII by policy.</li>
+            <li>Route schema changes through migration commands with dry-run and rollback sections.</li>
+            <li>Expose auth providers, RBAC roles, permissions, user-role bindings, sessions, PATs, and audit logs from <code>reaktor-auth</code>.</li>
+            <li>Finish provider parity gaps: Android Apple, session refresh lifecycle, revoke flows, and service middleware enforcement status.</li>
+            <li>Move hard-coded credentials and platform secret TODOs into proper secret storage before production access.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P5</div>
+          <div>
+            <div class="phase-title">Make Testing, Deploy, and Insights operational</div>
+            <p>Workbench decisions should be gated by test evidence and production telemetry.</p>
+          </div>
+          <div class="phase-time">4-6 weeks</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Scan <code>tests/</code>, Gradle tasks, Playwright, Maestro, Keploy, n8n, and deploy scripts into a <code>TestCatalog</code>.</li>
+            <li>Add a runner API that can execute suites, stream logs, collect artifacts, and map failures to graph nodes.</li>
+            <li>Build deploy adapters for Wrangler workers, app web, analytics/sticker services, Spring server, k3s, Android, and iOS distribution.</li>
+            <li>Implement environment inventory, release manifests, migrations, canary gates, rollback gates, and health checks.</li>
+            <li>Wire telemetry ingestion to graph entities, route spans, release versions, cost data, funnel events, and crash/error cards.</li>
+            <li>Make the Deploy button a real pipeline starter only after RBAC, command review, tests, and environment checks pass.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div class="phase-num">P6</div>
+          <div>
+            <div class="phase-title">Make agents and AI useful, bounded, and auditable</div>
+            <p>Gemini scouts broadly, Codex proposes/builds, Claude critiques/tests, but the queue remains the source of truth.</p>
+          </div>
+          <div class="phase-time">4-6 weeks</div>
+        </div>
+        <div class="phase-body">
+          <ul class="checklist">
+            <li>Create agent registry and conversation store with model, tool, permission, trigger, and scope metadata.</li>
+            <li>Implement Gemini scout jobs for dead code, harness gaps, coverage mapping, inefficiencies, dependency drift, and stale generated wrappers.</li>
+            <li>Make agents output structured findings and commands, never untracked source mutations.</li>
+            <li>Run codegen in isolated worktrees and attach diffs, tests, and commit metadata back to queue records.</li>
+            <li>Build AI provider registry, gateway logs, eval runs, safety checks, usage costs, and notebook sandbox for the AI tab.</li>
+            <li>Add audit rules for every agent action: inputs, model, prompt version, files read, files changed, tests run, reviewer, and commit.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="bestbuds">
+      <h2 id="6-bestbuds-dogfood-gaps-the-workbench-should-expose">6. BestBuds Dogfood Gaps The Workbench Should Expose</h2>
+      <p class="lead">
+        The first honest proof is BestBuds. The workbench should surface these as real graph findings, not hidden TODOs.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Gap</th>
+            <th>Current source signal</th>
+            <th>Workbench behavior to implement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Edit profile is not implemented</td>
+            <td><code>EditProfileScreen.kt</code> throws TODO; <code>ProfileScreen.kt</code> has save TODO.</td>
+            <td>Graph should mark route/screen as incomplete, Testing should show missing flow, Agent/Gemini should propose bounded implementation commands.</td>
+          </tr>
+          <tr>
+            <td>Campaign actions are placeholders</td>
+            <td><code>CampaignScreen.kt</code> and <code>DiscoverScreen.kt</code> have TODO click actions.</td>
+            <td>Blast radius should link campaign UI buttons to missing interactor/service endpoints and tests.</td>
+          </tr>
+          <tr>
+            <td>Private events actions and image picker are incomplete</td>
+            <td><code>PrivateEventsScreen.kt</code>, <code>CreateEventScreen.kt</code>.</td>
+            <td>Testing catalog should show absent event creation/upload flows; command queue should generate media/event service work.</td>
+          </tr>
+          <tr>
+            <td>Call action is not implemented</td>
+            <td><code>ChatScreen.kt</code> call TODO.</td>
+            <td>Graph should expose action node as incomplete and link to media/work/notification capabilities needed.</td>
+          </tr>
+          <tr>
+            <td>Auth provider parity is incomplete</td>
+            <td><code>AndroidAppleLogin.kt</code> TODO; auth/session lifecycle partial.</td>
+            <td>Auth tab should show provider parity status by platform and Testing should gate releases on adapter contract tests.</td>
+          </tr>
+          <tr>
+            <td>Secrets and credentials need hardening</td>
+            <td><code>ServerApplication.kt</code> contains direct Supabase connection data; <code>reaktor-security</code> platform secret boxes are TODO.</td>
+            <td>Deploy screen should fail production readiness until secrets are moved into approved secret stores and platform boxes are implemented.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="testing">
+      <h2 id="7-testing-strategy">7. Testing Strategy</h2>
+
+      <div class="grid two">
+        <div class="card bar green">
+          <h3>Contract tests</h3>
+          <ul>
+            <li>Manifest schema golden tests for BestBuds graph export.</li>
+            <li>Command validation tests for every command type and failure mode.</li>
+            <li>Auth provider parity tests across Android, Darwin, Web, Desktop, and server verification.</li>
+            <li>DB adapter tests with local fake drivers and redaction assertions.</li>
+          </ul>
+        </div>
+        <div class="card bar cyan">
+          <h3>UI and workflow tests</h3>
+          <ul>
+            <li>Keep Playwright for <code>reaktorWeb</code> tab coverage, keyboard flows, command queue, graph interactions, and crash-free behavior.</li>
+            <li>Use Maestro for mobile BestBuds app flows and web smoke where it provides useful black-box coverage.</li>
+            <li>Add screenshot/artifact checks for visual regressions and component overlap.</li>
+            <li>Map every UI test to graph nodes so blast radius can show affected coverage.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Production-readiness gates</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Gate</th>
+            <th>Required evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>No static production data</td>
+            <td>Build/test fails if production bundle imports <code>mock-services.js</code> or uses <code>scenario-v3.jsx</code> as primary data.</td>
+          </tr>
+          <tr>
+            <td>Every button has behavior</td>
+            <td>Playwright action inventory asserts each enabled control either triggers an API call, command, navigation, test run, or explicitly visible state change.</td>
+          </tr>
+          <tr>
+            <td>No unsafe writes</td>
+            <td>DB/auth/deploy mutations create queue records and require RBAC plus dry-run preview before apply.</td>
+          </tr>
+          <tr>
+            <td>Graph is source of truth</td>
+            <td>Graph/search/sidebar/drawer data comes from manifest selectors; fixtures are only used in offline or test mode.</td>
+          </tr>
+          <tr>
+            <td>Dogfood coverage</td>
+            <td>BestBuds graph, run preview, tests, deploy, auth, DB, and telemetry have at least one live integration path each.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="risks">
+      <h2 id="8-risks-and-mitigations">8. Risks And Mitigations</h2>
+
+      <div class="grid two">
+        <div class="card bar rose">
+          <h3>Risk: the UI outpaces the substrate again</h3>
+          <p>Mitigation: no new prototype-only tabs. Every new visual component must be backed by a domain selector, API fixture, or command contract before polish work.</p>
+        </div>
+        <div class="card bar amber">
+          <h3>Risk: graph manifest becomes another static snapshot</h3>
+          <p>Mitigation: include manifest versioning, runtime session IDs, event streams, and tests that compare live graph construction against exported graph documents.</p>
+        </div>
+        <div class="card bar rose">
+          <h3>Risk: command queue can damage source or production</h3>
+          <p>Mitigation: apply commands only inside isolated worktrees or controlled deploy jobs, require dry-run diffs, record rollback metadata, and gate destructive operations by RBAC.</p>
+        </div>
+        <div class="card bar amber">
+          <h3>Risk: auth/DB consoles expose sensitive data</h3>
+          <p>Mitigation: read-only by default, redaction policies, scoped credentials, audit logs, session-aware access, and production write lockouts until secret storage is fixed.</p>
+        </div>
+        <div class="card bar violet">
+          <h3>Risk: agents create unreviewable complexity</h3>
+          <p>Mitigation: agents output findings and typed commands. Human or policy gates approve execution. Git commits are linked to commands and tests.</p>
+        </div>
+        <div class="card bar cyan">
+          <h3>Risk: two workbenches diverge</h3>
+          <p>Mitigation: desktop Compose and web React must consume the same manifest, command queue, and workbench services. UI differences are allowed; domain differences are not.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2 id="near-term-execution-order">Near-Term Execution Order</h2>
+      <ol>
+        <li>Create <code>WorkbenchManifest</code> and update <code>ReaktorGraphDocument.kt</code> to produce the first version from BestBuds.</li>
+        <li>Add <code>/workbench/apps/{appId}/manifest</code> and a small web fetch layer in <code>targets/reaktorWeb</code>.</li>
+        <li>Migrate Graph, sidebar, search, and inspector summary from static scenario data to the manifest.</li>
+        <li>Implement command queue storage and make all mock mutating actions create queue records instead.</li>
+        <li>Wire Testing tab to the existing <code>tests/</code> inventory and run at least Playwright suites through a real runner API.</li>
+        <li>Wire Auth and Database tabs read-only to real catalogs, then add command-backed mutations.</li>
+        <li>Make Gemini scout real as a read-only job that reports findings and proposes commands.</li>
+      </ol>
+    </div>
+
+    <div class="footer">
+      Generated from a scan of <code>/Users/ovd/dev/reaktor</code>, <code>/Users/ovd/dev/bestbuds/modules/app</code>, <code>/Users/ovd/dev/bestbuds/modules/engine</code>, <code>/Users/ovd/dev/bestbuds/targets/reaktorServer</code>, and <code>/Users/ovd/dev/bestbuds/targets/reaktorWeb</code>. Place: <code>/Users/ovd/dev/bestbuds/roadmap-codex.html</code>.
+    </div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

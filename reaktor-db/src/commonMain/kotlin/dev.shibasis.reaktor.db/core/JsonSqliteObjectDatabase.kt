@@ -55,7 +55,13 @@ class SqliteObjectDatabase(
         )
     }
 
-    override suspend fun <T : Any> put(storeName: String, key: String, value: T, serializer: KSerializer<T>): StoredObject<T> {
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun <T : Any> putRaw(
+        storeName: String,
+        key: String,
+        value: T,
+        serializer: KSerializer<T>,
+    ): StoredObject<T> {
         val serialized = objectSerializer.serialize(serializer, value)
         val now = timestampProvider.getTimestamp()
 
@@ -76,16 +82,15 @@ class SqliteObjectDatabase(
             bindLong(4, now)
         }
 
-        val sizeBytes = when (serialized) {
-            is String -> serialized.length.toLong() * 2
-            is ByteArray -> serialized.size.toLong()
-            else -> 0L
-        }
-
-        return StoredObject(key, value, storeName, now, now, sizeBytes)
+        return getRaw(
+            storeName = storeName,
+            key = key,
+            type = value::class as KClass<T>,
+            serializer = serializer,
+        ) ?: error("Object disappeared immediately after put: $storeName/$key")
     }
 
-    override suspend fun <T : Any> get(
+    override suspend fun <T : Any> getRaw(
         storeName: String, key: String,
         type: KClass<T>, serializer: KSerializer<T>
     ): StoredObject<T>? {
@@ -100,7 +105,7 @@ class SqliteObjectDatabase(
         }.value
     }
 
-    override suspend fun <T : Any> getAll(
+    override suspend fun <T : Any> getAllRaw(
         storeName: String, type: KClass<T>, serializer: KSerializer<T>
     ): List<StoredObject<T>> {
         return driver.executeQuery(
@@ -119,7 +124,7 @@ class SqliteObjectDatabase(
         }.value
     }
 
-    override suspend fun delete(storeName: String, key: String) {
+    override suspend fun deleteRaw(storeName: String, key: String) {
         driver.execute(
             null,
             "DELETE FROM $tableName WHERE key = ? AND store_name = ?",
@@ -130,13 +135,13 @@ class SqliteObjectDatabase(
         }
     }
 
-    override suspend fun clear(storeName: String) {
+    override suspend fun clearRaw(storeName: String) {
         driver.execute(null, "DELETE FROM $tableName WHERE store_name = ?", 1) {
             bindString(0, storeName)
         }
     }
 
-    override suspend fun clear() {
+    override suspend fun clearRaw() {
         driver.execute(null, "DELETE FROM $tableName", 0)
     }
 }

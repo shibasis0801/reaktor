@@ -1,0 +1,1919 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reaktor Graph Visitors — Design Document v2</title>
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --panel: #fffdf8;
+      --panel-2: #edf5ef;
+      --ink: #17211d;
+      --muted: #5c6a62;
+      --line: #d7ded4;
+      --accent: #0f8b6f;
+      --accent-2: #255a9b;
+      --warn: #a15c06;
+      --danger: #be123c;
+      --code-bg: #111714;
+      --code-border: #304237;
+      --chip: #e7f2eb;
+      --chip-new: #e6efff;
+      --chip-changed: #fff0d8;
+      --paper: #ffffff;
+      --paper-ink: #17211d;
+      --nav-bg: #14211c;
+      --nav-ink: #f4f7f3;
+      --nav-muted: #b9c8bf;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(20, 33, 28, .05), transparent 34rem),
+        var(--bg);
+      line-height: 1.65;
+    }
+
+    .layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); min-height: 100vh; }
+
+    aside {
+      position: sticky; top: 0; height: 100vh;
+      padding: 28px 20px; background: var(--nav-bg);
+      border-right: 1px solid var(--line);
+      overflow: auto; color: var(--nav-ink);
+    }
+
+    aside h1 { font-size: 18px; line-height: 1.25; margin: 0 0 4px; letter-spacing: -0.02em; }
+    aside .version { color: var(--accent); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+    aside p { color: var(--nav-muted); font-size: 13px; margin: 0 0 24px; }
+    nav a { display: block; padding: 6px 10px; color: var(--nav-muted); text-decoration: none; border-radius: 8px; font-size: 12.5px; }
+    nav a:hover { color: var(--nav-ink); background: rgba(255, 255, 255, .08); }
+    nav .group { margin-top: 14px; padding: 0 10px 4px; color: #88a39a; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+    nav a.new::after { content: 'new'; float: right; font-size: 9px; padding: 1px 6px; border-radius: 8px; background: rgba(75,123,255,0.2); color: #b8d0ff; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 3px; }
+    nav a.changed::after { content: 'v2'; float: right; font-size: 9px; padding: 1px 6px; border-radius: 8px; background: rgba(161,92,6,0.25); color: #f0c684; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 3px; }
+
+    main { width: min(1120px, 100%); padding: 56px 48px 96px; }
+
+    .hero { border: 1px solid var(--line); background: linear-gradient(135deg, #fffdf8, #edf5ef); border-radius: 24px; padding: 36px; box-shadow: 0 18px 48px rgba(35, 45, 38, .12); }
+
+    .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .11em; font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+
+    h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.025em; }
+    h1 { font-size: clamp(34px, 5vw, 58px); margin: 0 0 18px; }
+    h2 { font-size: 30px; margin: 56px 0 18px; }
+    h3 { font-size: 22px; margin: 34px 0 12px; }
+    h4 { font-size: 17px; margin: 26px 0 10px; }
+
+    .lead { font-size: 19px; color: #2d3a34; max-width: 900px; }
+
+    .principle { margin: 26px 0 0; padding: 20px 24px; border-left: 4px solid var(--accent); background: rgba(15, 139, 111, .08); border-radius: 12px; font-size: 18px; }
+
+    section { margin-top: 36px; }
+    .section-meta { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; vertical-align: middle; margin-left: 10px; }
+    .section-meta.new { background: var(--chip-new); color: #1d4ed8; border: 1px solid #c7dbff; }
+    .section-meta.changed { background: var(--chip-changed); color: var(--warn); border: 1px solid #f5d6a0; }
+
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .card { background: rgba(255, 253, 248, 0.96); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(35, 45, 38, .06); }
+
+    .card h3, .card h4 { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--accent); }
+    .ok { color: var(--accent-2); }
+    .warn { color: var(--warn); }
+    .danger { color: var(--danger); }
+
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; margin: 18px 0; background: rgba(255, 253, 248, .94); border: 1px solid var(--line); }
+    th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    th { color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+    tr:last-child td { border-bottom: none; }
+
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    code { background: rgba(125, 211, 252, .10); border: 1px solid rgba(15, 139, 111, .20); color: #0f4f42; border-radius: 6px; padding: 1px 6px; font-size: .92em; }
+    pre { margin: 16px 0 24px; overflow: auto; padding: 18px; background: var(--code-bg); color: #d9efe2; border: 1px solid var(--code-border); border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.02); font-size: 13px; line-height: 1.55; }
+    pre code { background: transparent; border: 0; padding: 0; color: inherit; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .tag { padding: 6px 10px; border-radius: 999px; background: var(--chip); color: #244239; font-size: 12px; border: 1px solid var(--line); }
+    .tag.new { background: var(--chip-new); color: #1d4ed8; border-color: #c7dbff; }
+
+    .flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 18px 0 28px; }
+    .flow .step { padding: 14px 12px; border-radius: 14px; background: rgba(15, 139, 111, .08); border: 1px solid rgba(15, 139, 111, .22); text-align: center; font-size: 13px; }
+
+    .callout { padding: 18px 20px; border-radius: 16px; border: 1px solid var(--line); background: rgba(37, 90, 155, .07); margin: 18px 0; }
+    .warning { background: rgba(161, 92, 6, .08); border-color: rgba(161, 92, 6, .30); }
+    .danger-callout { background: rgba(190, 18, 60, 0.06); border-color: rgba(190, 18, 60, 0.30); }
+
+    .app-lens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 18px 0 26px; }
+    .lens-card { border: 1px solid var(--line); border-radius: 18px; padding: 22px; background: var(--paper); box-shadow: 0 12px 34px rgba(35, 45, 38, .07); }
+    .lens-card h3 { margin-top: 0; }
+
+    .decision-list { display: grid; gap: 12px; margin: 18px 0; }
+    .decision { border-left: 3px solid var(--accent); background: rgba(15, 139, 111, .06); padding: 12px 14px; border-radius: 10px; }
+
+    .paper-block { color: var(--paper-ink); background: var(--paper); border-radius: 18px; padding: 26px; border: 1px solid #e5e7eb; margin: 24px 0; }
+    .paper-block code { background: #eef6ff; border-color: #c7dff9; color: #0f3c61; }
+
+    .small { font-size: 13px; }
+    .hr { height: 1px; background: var(--line); margin: 48px 0; }
+
+    .delta-list { display: grid; gap: 10px; margin: 18px 0; }
+    .delta { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--paper); }
+    .delta .marker { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.06em; margin-right: 10px; text-transform: uppercase; vertical-align: middle; }
+    .delta .marker.new { background: var(--chip-new); color: #1d4ed8; }
+    .delta .marker.changed { background: var(--chip-changed); color: var(--warn); }
+    .delta .marker.kept { background: var(--chip); color: var(--accent); }
+    .delta strong { color: var(--ink); }
+
+    .gap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+    @media (max-width: 980px) { .gap-grid { grid-template-columns: 1fr; } }
+    .gap-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--paper); border-left: 3px solid var(--warn); }
+    .gap-card h4 { margin: 0 0 6px; color: var(--ink); }
+    .gap-card .where { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .gap-card .fix { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; }
+    .gap-card .fix strong { color: var(--accent); }
+
+    .axis-table { background: var(--paper); }
+    .axis-table th { background: rgba(15, 139, 111, .08); }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: relative; height: auto; }
+      main { padding: 32px 20px 72px; }
+      .grid.two, .grid.three, .flow, .app-lens { grid-template-columns: 1fr; }
+    }
+    @media print { body { background: white; color: #111827; } .layout { display: block; } aside { display: none; } main { width: 100%; padding: 0; } .hero, .card, pre, table, .callout { box-shadow: none; break-inside: avoid; } a { color: #111827; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h1>Reaktor Graph Visitors</h1>
+      <div class="version">Design v2 — refined</div>
+      <p>Read-only by default. Mutations are patches. Selectors compose. Passes form a DAG. Visitors are deterministic, suspend-capable, and reactive when asked.</p>
+      <nav>
+        <a href="#summary">1. Summary</a>
+        <a href="#delta" class="new">2. What changed in v2</a>
+        <a href="#diagnosis" class="changed">3. Diagnosis</a>
+        <a href="#app-perspective">4. App pressure test</a>
+        <a href="#principles" class="changed">5. Design principles</a>
+
+        <div class="group">Core model</div>
+        <a href="#minimal-model" class="changed">6. Minimal model</a>
+        <a href="#visit-arc" class="changed">7. VisitArc & VisitKind</a>
+        <a href="#context">8. VisitContext</a>
+        <a href="#visitor-api" class="changed">9. Visitor API</a>
+        <a href="#mutating" class="new">10. Mutations &amp; GraphPatch</a>
+        <a href="#traversals" class="changed">11. Traversals</a>
+
+        <div class="group">Selectors</div>
+        <a href="#selectors">12. Standard selectors</a>
+        <a href="#combinators" class="new">13. Selector combinators</a>
+        <a href="#reactive" class="new">14. Reactive selectors</a>
+
+        <div class="group">Passes</div>
+        <a href="#passes" class="changed">15. Passes &amp; PassContext</a>
+        <a href="#diagnostics" class="new">16. Diagnostics</a>
+        <a href="#standard-passes" class="changed">17. Standard passes</a>
+        <a href="#composition" class="new">18. Visitor composition</a>
+
+        <div class="group">Cross-cutting</div>
+        <a href="#contract-id" class="new">19. Polyglot wiring</a>
+        <a href="#lifecycle" class="new">20. Lifecycle integration</a>
+        <a href="#introspection" class="new">21. Introspection &amp; cycles</a>
+        <a href="#incremental" class="new">22. Incremental visitors</a>
+        <a href="#metadata" class="changed">23. Attributes &amp; inheritance</a>
+        <a href="#testing" class="new">24. Testing affordances</a>
+
+        <div class="group">Wrap-up</div>
+        <a href="#examples">25. Examples</a>
+        <a href="#acceptance" class="changed">26. Acceptance tests</a>
+        <a href="#migration" class="changed">27. Migration plan</a>
+        <a href="#files" class="changed">28. Files to create</a>
+        <a href="#open" class="new">29. Open questions</a>
+        <a href="#appendix">30. Appendix</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="hero" id="summary">
+        <div class="eyebrow">Design document &middot; v2 &middot; refined</div>
+        <h1>Reaktor Graph Visitors</h1>
+        <p class="lead">A refined visitor architecture for Reaktor Graph: <strong>read-only by default, mutations as explicit patches, selectors that compose, passes that form a DAG, and visitors that can run sync, suspend, or reactively</strong>. Pressure-tested against the BestBuds product graph, the Reaktor Engine workbench graph, and the polyglot wiring story in <code>graph-kernel-analysis</code>.</p>
+        <div class="principle"><strong>Design sentence (refined).</strong> A visitor is a graph pass over a selected graph-view. Selectors define the view, traversals define order and effects, visitors produce typed results, patches express mutations, and passes package the whole thing into a reusable, diagnosable capability.</div>
+        <div class="tag-row">
+          <span class="tag">Graph stays small</span>
+          <span class="tag">Visitors bolt on behavior</span>
+          <span class="tag">Selectors return arcs</span>
+          <span class="tag">Passes are reusable capabilities</span>
+          <span class="tag new">+ Mutations are patches</span>
+          <span class="tag new">+ Passes compose into a DAG</span>
+          <span class="tag new">+ Reactive selectors</span>
+          <span class="tag new">+ Polyglot ContractId</span>
+        </div>
+      </header>
+
+      <!-- ===== 2. WHAT CHANGED ===== -->
+      <section id="delta">
+        <h2>2. What changed in v2 <span class="section-meta new">new</span></h2>
+        <p>v1 nailed the core insight — selectors should return arcs, not raw neighbors — and laid out the six-type model. v2 takes that further by closing seven specific gaps that emerged when cross-referencing the design against the <em>refinement plan</em>, the <em>actor model</em> doc, the <em>kernel analysis</em>, and real <code>autoWire()</code>/<code>toJsonElement()</code> code in the runtime.</p>
+
+        <div class="delta-list">
+          <div class="delta"><span class="marker new">new</span><strong>Mutations are explicit patches.</strong> <code>WirePass</code> in v1 quietly mutated the graph inside <code>visitor.finish()</code>. v2 separates <code>Visitor&lt;R&gt;</code> (read-only) from <code>MutatingVisitor</code>, which returns a <code>GraphPatch</code> applied transactionally via the refinement plan's <code>Wiring</code> machinery.</div>
+          <div class="delta"><span class="marker new">new</span><strong>Selectors compose.</strong> <code>StructuralSelector union ActiveSelector</code>, <code>RouteSelector filter { arc -&gt; ... }</code>, <code>StructuralSelector restrictTo&lt;Graph&gt;()</code>. v1 had six selectors but no way to derive new views without writing new objects.</div>
+          <div class="delta"><span class="marker new">new</span><strong>Passes are a DAG with shared <code>PassContext</code>.</strong> v1's <code>GraphCompiler</code> just ran passes sequentially. v2 lets one pass declare a dependency on another (<code>DeepLinkInstallPass depends on RouteIndexPass</code>) and read its result, eliminating duplicate traversals.</div>
+          <div class="delta"><span class="marker new">new</span><strong>Suspend-capable traversals.</strong> Service health checks, cache warmup, and Engine source-map collection are IO-bound. v2 adds <code>SuspendTraversal</code> alongside the synchronous one without forcing every pass to be suspend.</div>
+          <div class="delta"><span class="marker new">new</span><strong>Reactive selectors and live installs.</strong> <code>ActiveSelector</code> changes over time; an analytics install wants to re-fire when the back-stack moves. v2 introduces <code>ReactiveSelector</code> emitting a <code>Flow&lt;VisitArc&gt;</code> and binds it to <code>GraphInstallation</code> lifetimes automatically.</div>
+          <div class="delta"><span class="marker new">new</span><strong>Polyglot wiring via <code>ContractId</code>.</strong> The kernel says ports match by contract identity, not by local Kotlin <code>Type</code>. v2 routes <code>WirePass</code> through a pluggable <code>PortMatcher</code> so a TS port can match a Kotlin port across the bridge.</div>
+          <div class="delta"><span class="marker new">new</span><strong>Self-reference safety.</strong> The Engine workbench inspects graphs that may include the inspecting graph itself. v2 adds an <code>IntrospectionExcluded</code> attribute, arc-level filtering, and a documented cycle policy so visualizers do not infinite-recurse.</div>
+          <div class="delta"><span class="marker changed">v2</span><strong>Diagnostics are structured.</strong> <code>PassReport</code> in v1 carried <code>success/messages/error</code>. v2 adds severity (Info/Warn/Error/Fatal), per-element findings (<code>Finding(element, message, hint)</code>), and a deterministic ordering contract.</div>
+          <div class="delta"><span class="marker changed">v2</span><strong>VisitKind grows to cover module contracts and cross-graph edges.</strong> v1 left <code>WorkflowDependency</code> as the only domain kind; v2 adds <code>ModuleProvides</code>, <code>ModuleConsumes</code>, and <code>CrossGraphEdge</code> for the refinement plan's L3-L4 work.</div>
+          <div class="delta"><span class="marker kept">kept</span><strong>Six-type model.</strong> Visitable, VisitArc, Selector, Traversal, Visitor, GraphPass. Still the spine.</div>
+          <div class="delta"><span class="marker kept">kept</span><strong>App pressure test.</strong> BestBuds + Engine are still the two graphs every selector and pass must justify itself against.</div>
+        </div>
+      </section>
+
+      <!-- ===== 3. DIAGNOSIS ===== -->
+      <section id="diagnosis">
+        <h2>3. Diagnosis <span class="section-meta changed">v2</span></h2>
+        <p>The current Reaktor visitor code (<code>reaktor-graph/src/commonMain/kotlin/dev/shibasis/reaktor/graph/visitor/Visitor.kt</code> and <code>reaktor-graph-port/src/commonMain/kotlin/dev/shibasis/reaktor/portgraph/visitor/Visitor.kt</code>) is small and useful, but limited to neighbor-walking with untyped results and ad-hoc <code>ExitScope</code> closures. The following twelve gaps are the precise reason a redesign is worth the cost.</p>
+
+        <div class="gap-grid">
+          <div class="gap-card">
+            <h4>G1 &mdash; Neighbors lose relation meaning</h4>
+            <div class="where">portgraph/visitor/Visitor.kt:13</div>
+            <div>A selector returns <code>List&lt;Visitable&gt;</code>. A traversal landing on a <code>Graph</code> cannot tell whether the next node is a child graph, a sibling node, a port, or a route attachment.</div>
+            <span class="fix"><strong>Fix.</strong> Selectors return <code>Sequence&lt;VisitArc&gt;</code>; arcs carry a typed <code>VisitKind</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G2 &mdash; No visit context</h4>
+            <div class="where">visitor/Visitor.kt:64</div>
+            <div>Visitors only see the current node. Depth, parent, root, path, graph chain, and route chain are recomputed by every visitor that needs them.</div>
+            <span class="fix"><strong>Fix.</strong> <code>VisitContext</code> with <code>depth</code>, <code>path</code>, <code>graphPath</code>, <code>routePath</code>, <code>nearest&lt;T&gt;()</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G3 &mdash; No traversal control</h4>
+            <div class="where">portgraph/visitor/Visitor.kt:60</div>
+            <div><code>DepthFirstTraverser</code> walks everything. There is no way for a visitor to say "stop here" or "skip my children" beyond throwing.</div>
+            <span class="fix"><strong>Fix.</strong> <code>VisitDecision</code> with <code>Continue / SkipChildren / Stop</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G4 &mdash; No typed results</h4>
+            <div class="where">visitor/Visitor.kt:64</div>
+            <div><code>Visitor</code> returns nothing. <code>HierarchyVisitor</code> exposes a <code>lateinit rootMap</code> that throws if you forget to traverse before reading.</div>
+            <span class="fix"><strong>Fix.</strong> <code>Visitor&lt;R&gt;</code> with <code>fun result(): R</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G5 &mdash; Visitors quietly mutate</h4>
+            <div class="where">Graph.kt:211 (<code>autoWire</code>)</div>
+            <div>The graph runtime already mutates state from outside a transaction. A future <code>WireVisitor.finish()</code> would inherit the same problem &mdash; partial wiring on listener failure.</div>
+            <span class="fix"><strong>Fix.</strong> <code>MutatingVisitor</code> returns <code>GraphPatch</code>; patches commit through <code>Wiring</code> (refinement plan L0.2).</span>
+          </div>
+          <div class="gap-card">
+            <h4>G6 &mdash; Port type matching is string equality</h4>
+            <div class="where">Graph.kt:217 (<code>autoWire</code>)</div>
+            <div><code>localProviders[consumer.type]</code> compares <code>Type.type: String</code>. Loses generic information; cannot cross language boundaries to TS or JS bridges.</div>
+            <span class="fix"><strong>Fix.</strong> <code>PortMatcher</code> strategy with <code>KType</code> and <code>ContractId</code> variants.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G7 &mdash; No async pass support</h4>
+            <div class="where">N/A (missing)</div>
+            <div>Engine source-map collection, service health probes, and cache warmup are IO. A synchronous traversal cannot accommodate these without smuggling <code>runBlocking</code> into <code>onTransition</code>.</div>
+            <span class="fix"><strong>Fix.</strong> <code>SuspendTraversal</code> in parallel with <code>Traversal</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G8 &mdash; No reactive view</h4>
+            <div class="where">backStack, ActiveSelector</div>
+            <div>The active route is a <code>StateFlow</code>; a v1 <code>ActiveSelector</code> snapshots it once. Analytics, browser URL sync, and devtools all need to re-run when it changes.</div>
+            <span class="fix"><strong>Fix.</strong> <code>ReactiveSelector.arcs(graph): Flow&lt;VisitArc&gt;</code> with installation-bound subscription.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G9 &mdash; No selector composition</h4>
+            <div class="where">N/A</div>
+            <div>A visitor over <em>routes that are currently active</em> requires writing a third selector. Doubles for routes-in-this-graph, ports-on-a-controller, etc.</div>
+            <span class="fix"><strong>Fix.</strong> <code>union</code>, <code>intersect</code>, <code>filter</code>, <code>restrictTo&lt;T&gt;()</code> combinators.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G10 &mdash; Passes don't share results</h4>
+            <div class="where">v1 GraphCompiler</div>
+            <div><code>DeepLinkInstallPass</code> reindexes routes that <code>RouteIndexPass</code> already produced. Every compose-time call duplicates work.</div>
+            <span class="fix"><strong>Fix.</strong> <code>PassContext</code> with typed results; passes declare <code>dependsOn</code> and read via <code>ctx[RouteIndexPass]</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G11 &mdash; Self-reference can infinite-recurse</h4>
+            <div class="where">Engine graph viewer (planned)</div>
+            <div>The workbench visualizer is itself a Reaktor graph. Naive recursive serialization would crawl the visualizer's own viewer node.</div>
+            <span class="fix"><strong>Fix.</strong> <code>IntrospectionExcluded</code> attribute + arc-level <code>VisitFilter</code>.</span>
+          </div>
+          <div class="gap-card">
+            <h4>G12 &mdash; Diagnostics are too thin</h4>
+            <div class="where">v1 PassReport</div>
+            <div><code>success / messages / error</code> is enough for "did it compile" but not for "which port failed and why."</div>
+            <span class="fix"><strong>Fix.</strong> <code>Finding(severity, element, message, hint, code)</code> with deterministic ordering.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 4. APP PRESSURE TEST ===== -->
+      <section id="app-perspective">
+        <h2>4. App pressure test: BestBuds and Engine</h2>
+        <p>The visitor design is judged against two live Reaktor apps. <code>bestbuds/modules/app</code> is the product graph (real routing, services, state, feature flags). <code>bestbuds/modules/engine</code> is the workbench/control-plane graph that <em>inspects</em> Reaktor apps &mdash; including itself.</p>
+
+        <div class="app-lens">
+          <div class="lens-card">
+            <h3>BestBuds app graph</h3>
+            <p>BestBuds is a nested product graph rooted at <code>BestBuds</code>. It installs service nodes for messaging, social, and stickers; exposes repositories and interactors; then composes route graphs for chat, campaign, discover, events, friends, profile, palette, and dev tools under <code>/home</code>.</p>
+            <ul>
+              <li><code>ChatGraph</code> wires message repositories, chat actors, session interactors, socket/typing/timeline logic, chat list, chat detail, and friend/group profile routes.</li>
+              <li><code>EventGraph</code> creates a route in the parent graph and passes it into private/public child graphs, so navigation analysis must preserve cross-graph route ownership.</li>
+              <li><code>FriendGraph</code> receives <code>chatGraph.chatRoute</code>, which means route reachability is not a pure tree problem.</li>
+              <li><code>FeatureFlags.EVENTS_TAB</code> controls visible navigation, so active/navigation visitors need runtime state without losing the full structural graph.</li>
+              <li><code>navigateToStart()</code> documents a current cross-graph limitation: some flows still dispatch from the root because edges cannot always reach back across graph boundaries.</li>
+            </ul>
+          </div>
+
+          <div class="lens-card">
+            <h3>Reaktor Engine graph</h3>
+            <p>Engine exposes apps through <code>ReaktorApps</code>: the real <code>BestBuds</code> graph and a <code>WorkbenchGraph</code> for the Engine itself. The workbench has API/service nodes, shell state, command queues, graph catalog, and pane subgraphs for graph, devtools, UI, database, auth, AI, testing, deploy, insights, and agent workflows.</p>
+            <ul>
+              <li><code>WorkbenchGraph</code> composes a <code>/workbench</code> container over many pane graphs while also exposing cross-cutting command/data/subsystem services.</li>
+              <li><code>ReaktorGraphDocumentBuilder</code> already manually walks graphs to emit nodes plus containment, navigation, and data edges &mdash; the strongest first migration target.</li>
+              <li>Engine renders graphs as Reaktor Flow diagrams. Without the v2 introspection-exclusion mechanism, visualizing the Engine itself recurses forever.</li>
+              <li>Engine requires stable IDs, deterministic ordering, and read-only snapshot passes because it diffs graph documents across sessions.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Consequences for the design</h3>
+        <div class="decision-list">
+          <div class="decision"><strong>Route traversal must be graph-aware.</strong> A route edge may connect siblings, parent-owned routes, or container child graphs. <code>VisitContext</code> needs both <code>graphPath</code> and <code>routePath</code>; <code>VisitArc.kind</code> must distinguish containment, route attachment, navigation target, active child graph, and cross-graph edges.</div>
+          <div class="decision"><strong>Export is not just debugging.</strong> Engine's graph document is a product API. <code>GraphDocumentPass</code> is a standard pass with stable IDs, predictable edge categories, and compatibility with the current <code>reaktorGraphDocument(appId)</code> entry point. It must be deterministic to support diffs.</div>
+          <div class="decision"><strong>Wiring needs reports, not only side effects.</strong> BestBuds calls <code>autoWire()</code> repeatedly across subgraphs. A pass-based replacement must explain connected, missing, ambiguous, and inherited/provider-from-parent ports so product regressions are diagnosable &mdash; and must operate transactionally so a partial failure does not leave a half-wired graph.</div>
+          <div class="decision"><strong>Runtime passes and snapshot passes must be separate.</strong> BestBuds needs installs for deep links, analytics, auth guards, and active route syncing. Engine needs pure exports and validation. Mixing those concerns would make the workbench mutate graphs while trying to inspect them.</div>
+          <div class="decision"><strong>Self-inspection must not loop.</strong> The Engine workbench inspects graphs that may include the Engine itself. Visitors must respect an opt-out (<code>IntrospectionExcluded</code>) and a documented cycle policy.</div>
+        </div>
+      </section>
+
+      <!-- ===== 5. PRINCIPLES ===== -->
+      <section id="principles">
+        <h2>5. Design principles <span class="section-meta changed">v2</span></h2>
+        <table class="axis-table">
+          <thead><tr><th>Principle</th><th>Meaning</th><th>Consequence</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Graph is runtime structure</strong></td>
+              <td>The graph owns nodes, ports, edges, routes, containers, lifecycle, navigation, and dependency scope.</td>
+              <td>Do not add core concepts for analytics, auth, docs, WorkManager, deep links, or workflow engines.</td>
+            </tr>
+            <tr>
+              <td><strong>Selectors are graph views</strong></td>
+              <td>The same structure can be seen as a structural tree, a route graph, a port graph, an active route chain, or a workflow DAG.</td>
+              <td>A visitor can be reused over multiple views, and a selector can support many visitors. Views compose with <code>union</code>, <code>filter</code>, <code>restrictTo</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Visitors are passes</strong></td>
+              <td>A visitor does one operation: collect, validate, wire, install, compile, export, or inspect.</td>
+              <td>Graph capabilities become composable: <code>graph.compile { +WirePass(); +RouteIndexPass() }</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Arcs matter</strong></td>
+              <td>Relationships carry meaning; neighbors alone are insufficient.</td>
+              <td><code>Selector</code> returns <code>VisitArc</code>, not raw <code>Visitable</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Read-only by default</strong> <span class="section-meta new">new</span></td>
+              <td>A <code>Visitor&lt;R&gt;</code> never modifies the graph it walks. Mutations are surfaced as <code>GraphPatch</code> values for the caller to apply.</td>
+              <td>Workbench/devtools cannot accidentally mutate the graph they are inspecting. Test fixtures can re-run any visitor any number of times.</td>
+            </tr>
+            <tr>
+              <td><strong>Deterministic order</strong> <span class="section-meta new">new</span></td>
+              <td>A <code>Selector</code> over a fixed graph state must yield arcs in a stable order. A <code>Traversal</code> must visit them in a stable order.</td>
+              <td>Engine document diffs are meaningful. Snapshot tests do not flake. AI context windows are repeatable.</td>
+            </tr>
+            <tr>
+              <td><strong>Result typed</strong></td>
+              <td>Visitors must return concrete values like <code>RouteIndex</code>, <code>WiringReport</code>, <code>JsonElement</code>, or <code>WorkflowPlan</code>.</td>
+              <td>No global mutation or ad hoc side channels for common operations.</td>
+            </tr>
+            <tr>
+              <td><strong>Suspend-capable</strong> <span class="section-meta new">new</span></td>
+              <td>Some passes (health checks, source maps, cache warmup) are IO-bound and must await.</td>
+              <td>A parallel <code>SuspendTraversal</code> and <code>SuspendVisitor&lt;R&gt;</code> exist next to the sync ones; sync stays the default.</td>
+            </tr>
+            <tr>
+              <td><strong>Reactive when asked</strong> <span class="section-meta new">new</span></td>
+              <td>Some views change over time (active route, lifecycle, dependency scope content).</td>
+              <td><code>ReactiveSelector</code> emits a <code>Flow&lt;VisitArc&gt;</code>; <code>GraphInstallation</code> binds the subscription to lifetime.</td>
+            </tr>
+            <tr>
+              <td><strong>Polyglot port identity</strong> <span class="section-meta new">new</span></td>
+              <td>Ports identified by <code>ContractId</code> across language bridges, not by local Kotlin <code>Type</code> only.</td>
+              <td><code>PortMatcher</code> is pluggable; the same <code>WirePass</code> handles Kotlin&harr;Kotlin, Kotlin&harr;TS, and JS bridges.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===== 6. MINIMAL MODEL ===== -->
+      <section id="minimal-model">
+        <h2>6. Minimal model <span class="section-meta changed">v2</span></h2>
+        <p>v1's six types are kept; v2 adds two formal companions for mutations and async.</p>
+        <div class="flow">
+          <div class="step"><strong>Visitable</strong><br/>thing that can be visited</div>
+          <div class="step"><strong>VisitArc</strong><br/>typed relation</div>
+          <div class="step"><strong>Selector</strong><br/>graph view</div>
+          <div class="step"><strong>Traversal</strong><br/>order &amp; mode</div>
+          <div class="step"><strong>Visitor&lt;R&gt;</strong><br/>logic &amp; result</div>
+          <div class="step"><strong>GraphPass&lt;R&gt;</strong><br/>packaged capability</div>
+        </div>
+        <p class="muted small">Two formal companions, not part of the spine but always present:</p>
+        <div class="flow" style="grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 540px;">
+          <div class="step" style="background: rgba(75,123,255,0.10); border-color: rgba(75,123,255,0.30);"><strong>GraphPatch</strong> <span class="section-meta new">new</span><br/>mutation as data</div>
+          <div class="step" style="background: rgba(75,123,255,0.10); border-color: rgba(75,123,255,0.30);"><strong>PassContext</strong> <span class="section-meta new">new</span><br/>shared pass results</div>
+        </div>
+
+<pre><code>interface Visitable
+
+data class VisitArc(
+    val from: Visitable?,
+    val to: Visitable,
+    val kind: VisitKind,
+    val label: String = "",
+)
+
+fun interface Selector {
+    fun outgoing(ctx: VisitContext, current: Visitable): Sequence&lt;VisitArc&gt;
+}
+
+interface Traversal {
+    fun &lt;R&gt; traverse(root: Visitable, selector: Selector, visitor: Visitor&lt;R&gt;): R
+}
+
+interface Visitor&lt;R&gt; {
+    fun enter(ctx: VisitContext): VisitEnter = VisitEnter()
+    fun finish() {}
+    fun result(): R
+}
+
+interface GraphPass&lt;R&gt; {
+    val name: String
+    val selector: Selector
+    val traversal: Traversal
+    val dependsOn: List&lt;PassKey&lt;*&gt;&gt; get() = emptyList()
+    fun visitor(ctx: PassContext): Visitor&lt;R&gt;
+}</code></pre>
+      </section>
+
+      <!-- ===== 7. VISITARC + VISITKIND ===== -->
+      <section id="visit-arc">
+        <h2>7. VisitArc &amp; VisitKind <span class="section-meta changed">v2</span></h2>
+        <p>The strongest refinement v1 introduced: selectors return arcs, not neighbors. v2 keeps the model and grows <code>VisitKind</code> to cover module contracts, cross-graph edges, and lifecycle transitions surfaced by reactive selectors.</p>
+
+<pre><code>enum class VisitKind {
+    Root,
+
+    // Structure
+    GraphNode,
+    ContainerRoute,
+    ContainerChildGraph,
+    ActiveChildGraph,
+
+    // Ports
+    ProviderPort,
+    ConsumerPort,
+    PortEdge,
+
+    // Routing / navigation
+    RouteAttachment,
+    NavigationTarget,
+    BackStackEntry,
+    ActiveRoute,
+    CrossGraphEdge,                 // NEW v2 — explicit cross-graph nav
+
+    // Services / workflow
+    ServiceHandler,
+    ServiceEndpoint,
+    RepositoryState,
+    ActorMailbox,
+    FeatureGate,
+    WorkflowDependency,
+
+    // Module contracts (refinement plan L3.4)            NEW v2
+    ModuleProvides,
+    ModuleConsumes,
+    ModuleBoundary,
+
+    // Lifecycle (reactive selectors only)               NEW v2
+    LifecycleTransition,
+
+    // Fallback
+    Derived,
+}</code></pre>
+
+        <p><code>VisitArc</code> stays a four-field data class. v2 adds two optional projections:</p>
+<pre><code>data class VisitArc(
+    val from: Visitable?,
+    val to: Visitable,
+    val kind: VisitKind,
+    val label: String = "",
+    val attributes: Attributes = Attributes.Empty,     // NEW v2 — arc-level metadata
+)
+
+// Helpers for filtering / matching
+fun VisitArc.matches(kind: VisitKind) = this.kind == kind
+fun VisitArc.crossesGraph(): Boolean =
+    from is Node &amp;&amp; to is Node &amp;&amp; from.graph !== to.graph</code></pre>
+      </section>
+
+      <!-- ===== 8. VISITCONTEXT ===== -->
+      <section id="context">
+        <h2>8. VisitContext</h2>
+        <p>Visitors should not need to recompute parent, route, graph, path, or traversal state. The traversal provides this context; nothing about it changes in v2 except a small extension for module boundaries.</p>
+<pre><code>data class VisitContext(
+    val root: Visitable,
+    val current: Visitable,
+    val parent: Visitable?,
+    val incoming: VisitArc?,
+    val depth: Int,
+    val path: List&lt;VisitArc&gt;,
+    val traversal: Traversal,
+    val selector: Selector,
+    val passContext: PassContext,        // NEW v2 — access to upstream pass results
+) {
+    inline fun &lt;reified T : Visitable&gt; nearest(): T? =
+        path.asReversed().asSequence()
+            .flatMap { sequenceOf(it.to, it.from).filterNotNull() }
+            .filterIsInstance&lt;T&gt;()
+            .firstOrNull()
+
+    val graph: Graph?
+        get() = when (current) {
+            is Graph -&gt; current
+            is Node -&gt; current.graph
+            else -&gt; nearest&lt;Graph&gt;()
+        }
+
+    val graphPath: List&lt;Graph&gt;
+        get() = path.asSequence()
+            .flatMap { sequenceOf(it.from, it.to).filterNotNull() }
+            .filterIsInstance&lt;Graph&gt;().distinct().toList()
+
+    val route: RouteNode&lt;*, *&gt;?
+        get() = current as? RouteNode&lt;*, *&gt; ?: nearest&lt;RouteNode&lt;*, *&gt;&gt;()
+
+    val routePath: List&lt;RouteNode&lt;*, *&gt;&gt;
+        get() = path.asSequence()
+            .flatMap { sequenceOf(it.from, it.to).filterNotNull() }
+            .filterIsInstance&lt;RouteNode&lt;*, *&gt;&gt;().distinct().toList()
+
+    // NEW v2 — module boundary helpers
+    val module: ModuleId? get() = nearest&lt;Graph&gt;()?.attributes[ModuleAttr.Id]
+    val crossedModuleBoundary: Boolean
+        get() = path.any { it.kind == VisitKind.ModuleBoundary }
+}</code></pre>
+
+        <div class="callout">
+          <strong>Rule.</strong> Passes should not manually crawl global graph state unless their job is explicitly global indexing. Most logic should derive from <code>VisitContext</code> and <code>VisitArc.kind</code>.
+        </div>
+        <div class="callout warning">
+          <strong>BestBuds rule.</strong> <code>graphPath</code> and <code>routePath</code> are not optional polish. The app has parent-owned routes handed into child graphs and child graphs mounted under containers. Without path-aware context, a visitor cannot distinguish "this screen belongs under /home/Chat" from "this route is reachable from the root sentinel."
+        </div>
+      </section>
+
+      <!-- ===== 9. VISITOR API ===== -->
+      <section id="visitor-api">
+        <h2>9. Visitor API <span class="section-meta changed">v2</span></h2>
+        <p>The visitor supports typed results, early stop, child skipping, exit hooks, and (new) a suspend variant. <code>ReaktorVisitor&lt;R&gt;</code> is unchanged from v1 except for the suspend twin.</p>
+<pre><code>sealed interface VisitDecision
+data object Continue : VisitDecision
+data object SkipChildren : VisitDecision
+data object Stop : VisitDecision
+
+data class VisitEnter(
+    val decision: VisitDecision = Continue,
+    val onExit: () -&gt; Unit = {},
+)
+
+interface Visitor&lt;R&gt; {
+    fun enter(ctx: VisitContext): VisitEnter = VisitEnter()
+    fun finish() {}
+    fun result(): R
+}
+
+// NEW v2 — suspend twin
+interface SuspendVisitor&lt;R&gt; {
+    suspend fun enter(ctx: VisitContext): VisitEnter = VisitEnter()
+    suspend fun finish() {}
+    suspend fun result(): R
+}</code></pre>
+
+        <h3>Typed Reaktor visitor adapter</h3>
+<pre><code>open class ReaktorVisitor&lt;R&gt; : Visitor&lt;R&gt; {
+    override fun enter(ctx: VisitContext): VisitEnter =
+        when (val current = ctx.current) {
+            is Graph -&gt; visitGraph(ctx, current)
+            is ContainerNode -&gt; visitContainer(ctx, current)
+            is RouteNode&lt;*, *&gt; -&gt; visitRoute(ctx, current)
+            is ControllerNode&lt;*&gt; -&gt; visitController(ctx, current)
+            is ActorNode&lt;*&gt; -&gt; visitActor(ctx, current)         // NEW v2
+            is ServiceNode -&gt; visitService(ctx, current)         // NEW v2
+            is BasicNode -&gt; visitBasic(ctx, current)
+            is Node -&gt; visitNode(ctx, current)
+            is ConsumerPort&lt;*&gt; -&gt; visitConsumerPort(ctx, current)
+            is ProviderPort&lt;*&gt; -&gt; visitProviderPort(ctx, current)
+            is Edge&lt;*&gt; -&gt; visitEdge(ctx, current)
+            else -&gt; VisitEnter()
+        }
+
+    open fun visitGraph(ctx: VisitContext, graph: Graph): VisitEnter = VisitEnter()
+    open fun visitContainer(ctx: VisitContext, container: ContainerNode): VisitEnter = VisitEnter()
+    open fun visitRoute(ctx: VisitContext, route: RouteNode&lt;*, *&gt;): VisitEnter = VisitEnter()
+    open fun visitController(ctx: VisitContext, node: ControllerNode&lt;*&gt;): VisitEnter = VisitEnter()
+    open fun visitActor(ctx: VisitContext, node: ActorNode&lt;*&gt;): VisitEnter = VisitEnter()
+    open fun visitService(ctx: VisitContext, node: ServiceNode): VisitEnter = VisitEnter()
+    open fun visitBasic(ctx: VisitContext, node: BasicNode): VisitEnter = VisitEnter()
+    open fun visitNode(ctx: VisitContext, node: Node): VisitEnter = VisitEnter()
+    open fun visitConsumerPort(ctx: VisitContext, port: ConsumerPort&lt;*&gt;): VisitEnter = VisitEnter()
+    open fun visitProviderPort(ctx: VisitContext, port: ProviderPort&lt;*&gt;): VisitEnter = VisitEnter()
+    open fun visitEdge(ctx: VisitContext, edge: Edge&lt;*&gt;): VisitEnter = VisitEnter()
+}</code></pre>
+
+        <div class="callout">
+          <strong>Why <code>visitActor</code> and <code>visitService</code> are separate hooks.</strong> These are the two node kinds whose semantics differ enough from "just a Node" that <em>every</em> Engine inspector and <em>every</em> deploy pass needs to special-case them. Splitting hooks at the adapter level keeps individual visitors readable.
+        </div>
+      </section>
+
+      <!-- ===== 10. MUTATIONS & GRAPHPATCH ===== -->
+      <section id="mutating">
+        <h2>10. Mutations &amp; GraphPatch <span class="section-meta new">new</span></h2>
+        <p>The single most important change in v2. A <code>Visitor&lt;R&gt;</code> is contractually read-only. Anything that mutates the graph &mdash; wiring ports, attaching nodes, installing listeners &mdash; emits a <code>GraphPatch</code> instead, which the caller commits atomically.</p>
+
+<pre><code>sealed interface GraphPatch {
+    val description: String
+
+    data class ConnectPort(
+        val consumer: ConsumerPort&lt;*&gt;,
+        val provider: ProviderPort&lt;*&gt;,
+        override val description: String = "connect ${consumer.key.key} ↔ ${provider.key.key}",
+    ) : GraphPatch
+
+    data class AttachNode(
+        val graph: Graph,
+        val node: Node,
+        override val description: String = "attach ${node.label}",
+    ) : GraphPatch
+
+    data class SetAttribute&lt;T : Any&gt;(
+        val target: Attributed,
+        val key: AttributeKey&lt;T&gt;,
+        val value: T,
+        override val description: String = "set ${key.name}",
+    ) : GraphPatch
+
+    data class Composite(
+        val patches: List&lt;GraphPatch&gt;,
+        override val description: String = "${patches.size} changes",
+    ) : GraphPatch
+}
+
+interface MutatingVisitor&lt;R&gt; : Visitor&lt;Pair&lt;R, GraphPatch?&gt;&gt; {
+    /** Read-only result plus an optional patch describing every mutation
+     *  the visitor would perform. Returning `null` means no mutations. */
+}</code></pre>
+
+        <h3>The commit machinery</h3>
+        <p><code>GraphPatch</code> commits through the refinement plan's <code>Wiring</code> machinery: validate the entire patch, then apply atomically. If a step fails, no port is mutated. Listener exceptions are collected and reported per-step, not raised mid-commit.</p>
+
+<pre><code>class GraphPatchResult(
+    val applied: List&lt;GraphPatch&gt;,
+    val rejected: List&lt;Finding&gt;,
+) {
+    val success: Boolean get() = rejected.isEmpty()
+}
+
+fun Graph.apply(patch: GraphPatch, dryRun: Boolean = false): GraphPatchResult { ... }
+
+// Convenience over MutatingVisitor result
+fun &lt;R&gt; Graph.runMutating(pass: GraphPass&lt;Pair&lt;R, GraphPatch?&gt;&gt;): Pair&lt;R, GraphPatchResult&gt; {
+    val (result, patch) = run(pass)
+    val applied = patch?.let { apply(it) } ?: GraphPatchResult(emptyList(), emptyList())
+    return result to applied
+}</code></pre>
+
+        <div class="callout danger-callout">
+          <strong>Migration consequence.</strong> v1's <code>WireVisitor.finish()</code> mutates the graph as a side effect. v2's <code>WirePass</code> emits a <code>GraphPatch.Composite</code> and exposes the wiring report alongside it. The legacy <code>Graph.autoWire()</code> function continues to exist as a thin wrapper that runs the pass and applies the patch.
+        </div>
+      </section>
+
+      <!-- ===== 11. TRAVERSALS ===== -->
+      <section id="traversals">
+        <h2>11. Traversals <span class="section-meta changed">v2</span></h2>
+        <p>Depth-first is the default. Breadth-first supports search/indexing. Topological is needed for workflow compilation. v2 also adds a documented determinism contract and a suspend variant.</p>
+
+        <div class="callout">
+          <strong>Determinism contract.</strong> A <code>Traversal</code> over a fixed graph state must visit elements in a stable, reproducible order. <code>Selector</code> implementations must yield arcs in a deterministic order (typically declaration order in the <code>nodes</code>/<code>ports</code> collections). Engine document diffs, snapshot tests, and AI context windows depend on this.
+        </div>
+
+        <h3>11.1 Depth-first</h3>
+<pre><code>object DepthFirst : Traversal {
+    override fun &lt;R&gt; traverse(
+        root: Visitable, selector: Selector, visitor: Visitor&lt;R&gt;,
+    ): R {
+        val visited = mutableSetOf&lt;Visitable&gt;()
+        var stopped = false
+
+        fun go(
+            current: Visitable,
+            parent: Visitable?,
+            incoming: VisitArc?,
+            path: List&lt;VisitArc&gt;,
+        ) {
+            if (stopped || !visited.add(current)) return
+
+            val ctx = VisitContext(
+                root = root, current = current, parent = parent,
+                incoming = incoming, depth = path.size, path = path,
+                traversal = this, selector = selector,
+                passContext = PassContext.NoOp,
+            )
+
+            val enter = visitor.enter(ctx)
+            when (enter.decision) {
+                Stop -&gt; { stopped = true; enter.onExit(); return }
+                SkipChildren -&gt; { enter.onExit(); return }
+                Continue -&gt; Unit
+            }
+
+            selector.outgoing(ctx, current).forEach { arc -&gt;
+                if (stopped) return@forEach
+                go(arc.to, current, arc, path + arc)
+            }
+            enter.onExit()
+        }
+
+        go(root, null, VisitArc(null, root, VisitKind.Root), emptyList())
+        visitor.finish()
+        return visitor.result()
+    }
+}</code></pre>
+
+        <h3>11.2 Topological <span class="section-meta new">new</span></h3>
+        <p>For workflow planning, deploy ordering, and dependency analysis. Selectors used with topological traversal must yield a DAG; cycles are reported as <code>Finding</code>s, not exceptions.</p>
+<pre><code>object Topological : Traversal {
+    override fun &lt;R&gt; traverse(
+        root: Visitable, selector: Selector, visitor: Visitor&lt;R&gt;,
+    ): R {
+        val sorted = topologicalSort(root, selector) // returns Result with cycle diagnostics
+        sorted.getOrThrow().forEach { element -&gt; /* enter element */ }
+        visitor.finish()
+        return visitor.result()
+    }
+}</code></pre>
+
+        <h3>11.3 Suspend <span class="section-meta new">new</span></h3>
+<pre><code>interface SuspendTraversal {
+    suspend fun &lt;R&gt; traverse(
+        root: Visitable, selector: Selector, visitor: SuspendVisitor&lt;R&gt;,
+    ): R
+}
+
+object SuspendDepthFirst : SuspendTraversal {
+    override suspend fun &lt;R&gt; traverse(...) { /* analogous to DepthFirst, awaiting each enter */ }
+}</code></pre>
+
+        <h3>Graph helpers</h3>
+<pre><code>fun &lt;R&gt; Graph.visit(
+    selector: Selector = GraphSelectors.Structural,
+    traversal: Traversal = DepthFirst,
+    visitor: Visitor&lt;R&gt;,
+): R = traversal.traverse(this, selector, visitor)
+
+suspend fun &lt;R&gt; Graph.visitAsync(
+    selector: Selector = GraphSelectors.Structural,
+    traversal: SuspendTraversal = SuspendDepthFirst,
+    visitor: SuspendVisitor&lt;R&gt;,
+): R = traversal.traverse(this, selector, visitor)</code></pre>
+      </section>
+
+      <!-- ===== 12. STANDARD SELECTORS ===== -->
+      <section id="selectors">
+        <h2>12. Standard selectors</h2>
+        <p>Selectors are the reusable "views" over the same Reaktor graph. The graph itself does not change; only the relationship view changes. The six v1 selectors stay; refer to v1 for the full bodies. v2 sharpens three of them and adds two new ones.</p>
+
+        <table>
+          <thead><tr><th>Selector</th><th>Use case</th><th>v2 status</th></tr></thead>
+          <tbody>
+            <tr><td><code>StructuralSelector</code></td><td>Export, route indexing, validation, recursive compile.</td><td>Kept.</td></tr>
+            <tr><td><code>RouteSelector</code></td><td>Route index, deeplinks, sitemap, auth coverage.</td><td>Kept.</td></tr>
+            <tr><td><code>NavigationSelector</code></td><td>Route reachability, dead-route detection.</td><td>Kept + emits <code>CrossGraphEdge</code> arcs.</td></tr>
+            <tr><td><code>PortConnectivitySelector</code></td><td>Wiring, capability analysis.</td><td>Kept.</td></tr>
+            <tr><td><code>ActiveSelector</code></td><td>URL sync, analytics, focused back handling.</td><td>Has a reactive companion now (§14).</td></tr>
+            <tr><td><code>WorkflowSelector</code></td><td>Task DAG extraction.</td><td>Kept.</td></tr>
+            <tr><td><code>ModuleContractSelector</code> <span class="section-meta new">new</span></td><td>Module boundary &amp; contract inspection.</td><td>New in v2.</td></tr>
+            <tr><td><code>SupervisionSelector</code> <span class="section-meta new">new</span></td><td>Actor supervision tree for deploy/diagnostics.</td><td>New in v2.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>12.1 ModuleContractSelector <span class="section-meta new">new</span></h3>
+        <p>Walks a graph as a tree of modules (refinement plan L3.4). Each <code>Graph</code> with a <code>ModuleAttr.Id</code> attribute is a module boundary; its provides/consumes are exposed as <code>ModuleProvides</code>/<code>ModuleConsumes</code> arcs.</p>
+<pre><code>object ModuleContractSelector : Selector {
+    override fun outgoing(ctx: VisitContext, current: Visitable): Sequence&lt;VisitArc&gt; = sequence {
+        when (current) {
+            is Graph -&gt; {
+                val moduleId = current.attributes[ModuleAttr.Id]
+                if (moduleId != null) {
+                    current.attributes[ModuleAttr.Provides]?.forEach { type -&gt;
+                        yield(VisitArc(current, ModuleProvide(moduleId, type), VisitKind.ModuleProvides))
+                    }
+                    current.attributes[ModuleAttr.Consumes]?.forEach { type -&gt;
+                        yield(VisitArc(current, ModuleConsume(moduleId, type), VisitKind.ModuleConsumes))
+                    }
+                }
+                current.nodes.filterIsInstance&lt;ContainerNode&gt;().forEach { container -&gt;
+                    container.graphs.forEach { child -&gt;
+                        yield(VisitArc(current, child, VisitKind.ModuleBoundary))
+                    }
+                }
+            }
+        }
+    }
+}</code></pre>
+
+        <h3>12.2 SupervisionSelector <span class="section-meta new">new</span></h3>
+        <p>Walks the actor supervision tree (refinement plan §9.1). Used by deploy diagnostics and devtools fault visualization.</p>
+<pre><code>object SupervisionSelector : Selector {
+    override fun outgoing(ctx: VisitContext, current: Visitable): Sequence&lt;VisitArc&gt; = sequence {
+        when (current) {
+            is Graph -&gt; current.nodes.filterIsInstance&lt;ActorNode&lt;*&gt;&gt;().forEach { actor -&gt;
+                yield(VisitArc(current, actor, VisitKind.ActorMailbox))
+            }
+            is ActorNode&lt;*&gt; -&gt; current.supervisedChildren().forEach { child -&gt;
+                yield(VisitArc(current, child, VisitKind.ActorMailbox))
+            }
+        }
+    }
+}</code></pre>
+      </section>
+
+      <!-- ===== 13. SELECTOR COMBINATORS ===== -->
+      <section id="combinators">
+        <h2>13. Selector combinators <span class="section-meta new">new</span></h2>
+        <p>A view of a view is also a view. v2 introduces a small set of combinators so the existing selectors compose without subclassing.</p>
+
+<pre><code>// Union — yield arcs from both selectors, in order.
+infix fun Selector.union(other: Selector): Selector = Selector { ctx, current -&gt;
+    sequenceOf(this, other).flatMap { it.outgoing(ctx, current) }
+}
+
+// Intersect — yield arcs present in both (matched by from/to/kind).
+infix fun Selector.intersect(other: Selector): Selector = Selector { ctx, current -&gt;
+    val a = outgoing(ctx, current).toList()
+    val b = other.outgoing(ctx, current).toSet()
+    a.asSequence().filter { it in b }
+}
+
+// Filter — yield only matching arcs.
+fun Selector.filter(predicate: (VisitArc) -&gt; Boolean): Selector = Selector { ctx, current -&gt;
+    outgoing(ctx, current).filter(predicate)
+}
+
+// Restrict — only yield arcs where `to` is a specific Visitable type.
+inline fun &lt;reified T : Visitable&gt; Selector.restrictTo(): Selector =
+    filter { it.to is T }
+
+// Mapping — rewrite arc kinds (useful for adapters).
+fun Selector.relabel(transform: (VisitArc) -&gt; VisitArc): Selector = Selector { ctx, current -&gt;
+    outgoing(ctx, current).map(transform)
+}
+
+// Stop at boundary — do not traverse past arcs of a given kind.
+fun Selector.stopAt(kind: VisitKind): Selector = Selector { ctx, current -&gt;
+    outgoing(ctx, current).takeWhile { it.kind != kind }
+}</code></pre>
+
+        <h3>Example: active routes + module boundaries</h3>
+<pre><code>val activeWithModules = ActiveSelector union ModuleContractSelector
+val withinThisModule = StructuralSelector.stopAt(VisitKind.ModuleBoundary)
+val portsOnlyOnControllers = PortConnectivitySelector
+    .filter { it.from is ControllerNode&lt;*&gt; }
+    .restrictTo&lt;ConsumerPort&lt;*&gt;&gt;()</code></pre>
+      </section>
+
+      <!-- ===== 14. REACTIVE SELECTORS ===== -->
+      <section id="reactive">
+        <h2>14. Reactive selectors &amp; live installations <span class="section-meta new">new</span></h2>
+        <p>Some views change over time. The current active route is a <code>StateFlow</code>; an analytics install needs to re-fire every time the back-stack moves. A reactive selector emits a <code>Flow&lt;VisitArc&gt;</code> describing arc changes; a <code>ReactivePass</code> subscribes to it for the lifetime of the resulting <code>GraphInstallation</code>.</p>
+
+<pre><code>interface ReactiveSelector {
+    /** Emits arcs over time. Each emission is a single change &mdash; addition or removal. */
+    fun arcs(graph: Graph): Flow&lt;VisitArc&gt;
+}
+
+// Built-in: ActiveSelector as a reactive selector.
+object ReactiveActiveSelector : ReactiveSelector {
+    override fun arcs(graph: Graph): Flow&lt;VisitArc&gt; =
+        graph.backStack.entries
+            .map { it.lastOrNull()?.edge?.end }
+            .distinctUntilChanged()
+            .filterNotNull()
+            .map { route -&gt; VisitArc(graph, route, VisitKind.ActiveRoute) }
+}
+
+// Built-in: LifecycleSelector
+object ReactiveLifecycleSelector : ReactiveSelector {
+    override fun arcs(graph: Graph): Flow&lt;VisitArc&gt; =
+        graph.lifecycle
+            .map { state -&gt; VisitArc(graph, LifecycleEvent(state), VisitKind.LifecycleTransition) }
+}
+
+// A pass that returns an installation tied to a reactive selector subscription.
+abstract class ReactivePass : GraphPass&lt;GraphInstallation&gt; {
+    abstract val reactiveSelector: ReactiveSelector
+    abstract suspend fun onArc(arc: VisitArc, graph: Graph)
+
+    override fun visitor(ctx: PassContext): Visitor&lt;GraphInstallation&gt; =
+        object : ReaktorVisitor&lt;GraphInstallation&gt;() {
+            override fun result(): GraphInstallation {
+                val graph = ctx.graph
+                val job = graph.coroutineScope.launch {
+                    reactiveSelector.arcs(graph).collect { onArc(it, graph) }
+                }
+                return GraphInstallation { job.cancel() }
+            }
+        }
+}</code></pre>
+
+        <h3>Example: analytics install</h3>
+<pre><code>class AnalyticsInstallPass(private val analytics: Analytics) : ReactivePass() {
+    override val name = "analytics.install"
+    override val selector = StructuralSelector
+    override val traversal = DepthFirst
+    override val reactiveSelector = ReactiveActiveSelector
+
+    override suspend fun onArc(arc: VisitArc, graph: Graph) {
+        val route = arc.to as? RouteNode&lt;*, *&gt; ?: return
+        val screen = route.attributes[AnalyticsAttr.Screen] ?: return
+        analytics.logEvent("screen_view", mapOf("screen" to screen))
+    }
+}</code></pre>
+
+        <div class="callout">
+          <strong>Why a separate type.</strong> A <code>ReactiveSelector</code> is not a <code>Selector</code>. The plain <code>Selector</code> is a pure function over a fixed graph state and is required to be deterministic. Reactive selectors emit over time and are explicitly side-effecting in their subscription &mdash; they have their own contract and lifecycle.
+        </div>
+      </section>
+
+      <!-- ===== 15. PASSES + PASSCONTEXT ===== -->
+      <section id="passes">
+        <h2>15. Passes &amp; PassContext <span class="section-meta changed">v2</span></h2>
+        <p>v1 introduced <code>GraphPass&lt;R&gt;</code> and a sequential <code>GraphCompiler</code>. v2 elevates this to a DAG: a pass can declare dependencies on other passes and read their results through a typed <code>PassContext</code>. The compiler does the topological sort.</p>
+
+<pre><code>class PassKey&lt;R&gt;(val name: String)
+
+interface PassContext {
+    val graph: Graph
+    operator fun &lt;R&gt; get(key: PassKey&lt;R&gt;): R
+    fun &lt;R&gt; getOrNull(key: PassKey&lt;R&gt;): R?
+
+    companion object {
+        val NoOp: PassContext = NoOpPassContext
+    }
+}
+
+interface GraphPass&lt;R&gt; {
+    val name: String
+    val key: PassKey&lt;R&gt; get() = PassKey(name)
+    val selector: Selector
+    val traversal: Traversal
+    val dependsOn: List&lt;PassKey&lt;*&gt;&gt; get() = emptyList()
+
+    fun visitor(ctx: PassContext): Visitor&lt;R&gt;
+}</code></pre>
+
+        <h3>Example: deeplinks depend on routes</h3>
+<pre><code>object PassKeys {
+    val RouteIndex = PassKey&lt;RouteIndex&gt;("routes.index")
+    val Wiring = PassKey&lt;WiringReport&gt;("ports.wire")
+    val GraphDocument = PassKey&lt;GraphDocument&gt;("engine.graphDocument")
+}
+
+class DeepLinkInstallPass : GraphPass&lt;GraphInstallation&gt; {
+    override val name = "navigation.deepLinks"
+    override val key = PassKey&lt;GraphInstallation&gt;(name)
+    override val selector = StructuralSelector            // unused, RouteIndex carries data
+    override val traversal = DepthFirst
+    override val dependsOn = listOf(PassKeys.RouteIndex)  // NEW v2
+
+    override fun visitor(ctx: PassContext): Visitor&lt;GraphInstallation&gt; {
+        val index = ctx[PassKeys.RouteIndex]              // read upstream result
+        return object : ReaktorVisitor&lt;GraphInstallation&gt;() {
+            override fun result(): GraphInstallation {
+                val bridge = WebNavigationBridgeV2(ctx.graph, index)
+                bridge.start()
+                return GraphInstallation { bridge.destroy() }
+            }
+        }
+    }
+}</code></pre>
+
+        <h3>Compile pipeline</h3>
+<pre><code>class GraphCompiler(private val graph: Graph) {
+    private val passes = mutableListOf&lt;GraphPass&lt;*&gt;&gt;()
+
+    operator fun GraphPass&lt;*&gt;.unaryPlus() { passes += this }
+
+    fun run(): GraphCompileReport {
+        val sorted = topologicalSortPasses(passes)        // by `dependsOn`
+        val results = mutableMapOf&lt;PassKey&lt;*&gt;, Any?&gt;()
+        val findings = mutableListOf&lt;Finding&gt;()
+        val ctx = LivePassContext(graph, results)
+
+        for (pass in sorted) {
+            runCatching {
+                val visitor = pass.visitor(ctx)
+                val r = pass.traversal.traverse(graph, pass.selector, visitor)
+                @Suppress("UNCHECKED_CAST")
+                results[pass.key as PassKey&lt;Any&gt;] = r as Any
+            }.onFailure { error -&gt;
+                findings += Finding(
+                    severity = Severity.Fatal,
+                    element = graph,
+                    code = "pass.failed",
+                    message = "Pass '${pass.name}' threw ${error::class.simpleName}: ${error.message}",
+                    cause = error,
+                )
+            }
+        }
+        return GraphCompileReport(results, findings)
+    }
+}
+
+fun Graph.compile(configure: GraphCompiler.() -&gt; Unit): GraphCompileReport =
+    GraphCompiler(this).apply(configure).run()</code></pre>
+
+        <h3>Runtime installations</h3>
+        <p>Unchanged from v1: passes that install observers/interceptors return a <code>GraphInstallation</code>. The compile report aggregates them so the caller can close all installs together.</p>
+<pre><code>fun interface GraphInstallation : AutoCloseable
+
+class CompositeInstallation(
+    private val handles: List&lt;GraphInstallation&gt;,
+) : GraphInstallation {
+    override fun close() { handles.asReversed().forEach { it.close() } }
+}
+
+val GraphCompileReport.installations: GraphInstallation
+    get() = CompositeInstallation(
+        results.values.filterIsInstance&lt;GraphInstallation&gt;()
+    )</code></pre>
+      </section>
+
+      <!-- ===== 16. DIAGNOSTICS ===== -->
+      <section id="diagnostics">
+        <h2>16. Diagnostics <span class="section-meta new">new</span></h2>
+        <p>v1's <code>PassReport</code> had <code>success/messages/error</code>. v2 promotes findings to first-class structured values with severity, element, code, and hint &mdash; matching <code>WiringReport</code>'s precision.</p>
+
+<pre><code>enum class Severity { Info, Warn, Error, Fatal }
+
+data class Finding(
+    val severity: Severity,
+    val element: Visitable?,
+    val code: String,                  // stable identifier — e.g. "wiring.ambiguous"
+    val message: String,               // human-readable, includes element labels
+    val hint: String? = null,          // suggested fix
+    val cause: Throwable? = null,
+) : Comparable&lt;Finding&gt; {
+    override fun compareTo(other: Finding): Int =
+        compareValuesBy(this, other, { it.severity }, { it.code }, { it.message })
+}
+
+data class GraphCompileReport(
+    val results: Map&lt;PassKey&lt;*&gt;, Any?&gt;,
+    val findings: List&lt;Finding&gt;,
+) {
+    val errors get() = findings.filter { it.severity &gt;= Severity.Error }
+    val success: Boolean get() = errors.isEmpty()
+
+    inline fun &lt;reified R&gt; get(key: PassKey&lt;R&gt;): R? {
+        @Suppress("UNCHECKED_CAST")
+        return results[key] as? R
+    }
+}</code></pre>
+
+        <h3>Standard codes</h3>
+        <table>
+          <thead><tr><th>Code</th><th>Severity</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>wiring.missing</code></td><td>Error</td><td>Consumer port has no matching provider.</td></tr>
+            <tr><td><code>wiring.ambiguous</code></td><td>Error</td><td>More than one provider matches an unnamed consumer.</td></tr>
+            <tr><td><code>wiring.crossgraph</code></td><td>Info</td><td>Consumer matched a provider from a parent graph's DI scope.</td></tr>
+            <tr><td><code>route.deadend</code></td><td>Warn</td><td>Route has no attached node or no incoming edges.</td></tr>
+            <tr><td><code>route.duplicate</code></td><td>Error</td><td>Two routes share the same pattern in the same graph.</td></tr>
+            <tr><td><code>module.contract.unsatisfied</code></td><td>Error</td><td>A module declares <code>consumes&lt;T&gt;</code> but no upstream module provides it.</td></tr>
+            <tr><td><code>introspection.cycle</code></td><td>Fatal</td><td>A self-referential visitor hit a cycle without an <code>IntrospectionExcluded</code> mark.</td></tr>
+            <tr><td><code>pass.failed</code></td><td>Fatal</td><td>A pass threw before completing.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout">
+          <strong>Why codes are stable strings.</strong> Engine workbench filters and groups findings by code. Renaming a code breaks the workbench. New codes are additive; old codes are immutable.
+        </div>
+      </section>
+
+      <!-- ===== 17. STANDARD PASSES ===== -->
+      <section id="standard-passes">
+        <h2>17. Standard passes <span class="section-meta changed">v2</span></h2>
+        <p>v1 specified eight standard passes. v2 keeps them, sharpens the wiring &amp; document passes, and adds three new ones for module contracts, cross-graph reachability, and source-map collection.</p>
+
+        <table>
+          <thead><tr><th>Pass</th><th>Purpose</th><th>Mutates</th><th>v2 status</th></tr></thead>
+          <tbody>
+            <tr><td><code>WirePass</code></td><td>Connect unmatched consumers to providers.</td><td>via <code>GraphPatch</code></td><td>Refactored to emit a patch instead of side-effecting.</td></tr>
+            <tr><td><code>RequireFullyWiredPass</code></td><td>Validate that every consumer has an edge.</td><td>No</td><td>Kept; emits <code>Finding</code>s.</td></tr>
+            <tr><td><code>RouteIndexPass</code></td><td>Build a path-pattern → route map.</td><td>No</td><td>Kept; result reused by deeplinks/sitemap.</td></tr>
+            <tr><td><code>GraphJsonPass</code></td><td>Recursive JSON dump.</td><td>No</td><td>Kept.</td></tr>
+            <tr><td><code>GraphDocumentPass</code></td><td>Engine's first-class graph document.</td><td>No</td><td>Sharpened: deterministic ordering, stable IDs.</td></tr>
+            <tr><td><code>DeepLinkInstallPass</code></td><td>Wire URL changes to <code>NavCommand</code>.</td><td>via install</td><td>Now depends on <code>RouteIndexPass</code>.</td></tr>
+            <tr><td><code>AnalyticsInstallPass</code></td><td>Emit screen_view on active route change.</td><td>via install</td><td>Now a <code>ReactivePass</code>.</td></tr>
+            <tr><td><code>AuthCoveragePass</code></td><td>Report which routes are guarded.</td><td>No</td><td>Kept.</td></tr>
+            <tr><td><code>WorkflowPlanPass</code></td><td>Compile a task DAG from workflow edges.</td><td>No</td><td>Uses <code>Topological</code> traversal.</td></tr>
+            <tr><td><code>ModuleContractPass</code> <span class="section-meta new">new</span></td><td>Validate that module consumes are satisfied.</td><td>No</td><td>New.</td></tr>
+            <tr><td><code>CrossGraphReachabilityPass</code> <span class="section-meta new">new</span></td><td>Detect orphan target graphs in cross-graph edges.</td><td>No</td><td>New.</td></tr>
+            <tr><td><code>SourceMapPass</code> <span class="section-meta new">new</span></td><td>Collect source-code locations for nodes/ports.</td><td>No</td><td>New; suspend pass.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>17.1 WirePass (refactored)</h3>
+<pre><code>class WirePass(
+    private val matcher: PortMatcher = PortMatcher.Default,
+) : GraphPass&lt;Pair&lt;WiringReport, GraphPatch?&gt;&gt; {
+    override val name = "ports.wire"
+    override val selector = StructuralSelector
+    override val traversal = DepthFirst
+
+    override fun visitor(ctx: PassContext) = object : ReaktorVisitor&lt;Pair&lt;WiringReport, GraphPatch?&gt;&gt;() {
+        private val providers = mutableListOf&lt;ProviderPort&lt;*&gt;&gt;()
+        private val consumers = mutableListOf&lt;ConsumerPort&lt;*&gt;&gt;()
+        private val patches = mutableListOf&lt;GraphPatch&gt;()
+        private val findings = mutableListOf&lt;Finding&gt;()
+
+        override fun visitProviderPort(c: VisitContext, p: ProviderPort&lt;*&gt;): VisitEnter {
+            providers += p; return VisitEnter()
+        }
+        override fun visitConsumerPort(c: VisitContext, p: ConsumerPort&lt;*&gt;): VisitEnter {
+            if (!p.isConnected()) consumers += p; return VisitEnter()
+        }
+
+        override fun finish() {
+            consumers.forEach { consumer -&gt;
+                val matches = providers.filter { matcher.matches(consumer, it) }
+                when {
+                    matches.isEmpty() -&gt; findings += Finding(
+                        Severity.Error, consumer, "wiring.missing",
+                        "No provider for '${consumer.key.key}' (${consumer.type})",
+                        hint = "Expose a port of type ${consumer.type} or add @Provides annotation.",
+                    )
+                    matches.size &gt; 1 &amp;&amp; consumer.key.key.isEmpty() -&gt; findings += Finding(
+                        Severity.Error, consumer, "wiring.ambiguous",
+                        "Multiple providers match '${consumer.type}'",
+                        hint = "Add a key or qualifier to disambiguate.",
+                    )
+                    else -&gt; patches += GraphPatch.ConnectPort(consumer, matches.first())
+                }
+            }
+        }
+
+        override fun result() = WiringReport(
+            connected = emptyList(), // populated after patch applies
+            missing = consumers.filter { c -&gt; findings.any { it.element == c &amp;&amp; it.code == "wiring.missing" } },
+            ambiguous = consumers.filter { c -&gt; findings.any { it.element == c &amp;&amp; it.code == "wiring.ambiguous" } },
+            findings = findings,
+        ) to if (patches.isEmpty()) null else GraphPatch.Composite(patches)
+    }
+}</code></pre>
+
+        <h3>17.2 GraphDocumentPass (sharpened)</h3>
+        <p>The Engine-first pass. Replaces the manual <code>ReaktorGraphDocumentBuilder</code> while preserving the public document shape: app id, label, visible nodes, containment edges, navigation edges, and data edges. v2 makes determinism explicit: nodes are emitted in declaration order; edges follow the order in which arcs are seen.</p>
+
+<pre><code>class GraphDocumentPass(
+    private val appId: String,
+    private val appLabel: String,
+) : GraphPass&lt;GraphDocument&gt; {
+    override val name = "engine.graphDocument"
+    override val key = PassKeys.GraphDocument
+    override val selector = StructuralSelector
+        .filter { arc -&gt; arc.from?.attributes?.get(VisitorAttr.IntrospectionExcluded) != true }
+    override val traversal = DepthFirst
+
+    override fun visitor(ctx: PassContext): Visitor&lt;GraphDocument&gt; =
+        GraphDocumentVisitor(appId, appLabel)
+}</code></pre>
+
+        <h3>17.3 ModuleContractPass <span class="section-meta new">new</span></h3>
+<pre><code>data class ModuleContractReport(
+    val satisfied: List&lt;ModuleConsume&gt;,
+    val unsatisfied: List&lt;ModuleConsume&gt;,
+) { val success: Boolean get() = unsatisfied.isEmpty() }
+
+class ModuleContractPass : GraphPass&lt;ModuleContractReport&gt; {
+    override val name = "module.contracts"
+    override val selector = ModuleContractSelector
+    override val traversal = DepthFirst
+
+    override fun visitor(ctx: PassContext) = object : Visitor&lt;ModuleContractReport&gt; {
+        private val provides = mutableSetOf&lt;ModuleProvide&gt;()
+        private val consumes = mutableListOf&lt;ModuleConsume&gt;()
+
+        override fun enter(c: VisitContext): VisitEnter {
+            when (val v = c.current) {
+                is ModuleProvide -&gt; provides += v
+                is ModuleConsume -&gt; consumes += v
+            }
+            return VisitEnter()
+        }
+
+        override fun result(): ModuleContractReport {
+            val satisfied = consumes.filter { c -&gt; provides.any { p -&gt; p.type == c.type } }
+            val unsatisfied = consumes - satisfied.toSet()
+            return ModuleContractReport(satisfied, unsatisfied)
+        }
+    }
+}</code></pre>
+
+        <h3>17.4 CrossGraphReachabilityPass <span class="section-meta new">new</span></h3>
+        <p>Validates that every cross-graph navigation edge has a reachable target. Catches a class of failures that today surface as <code>Logger.w("Cross-graph navigation failed...")</code> at runtime.</p>
+<pre><code>class CrossGraphReachabilityPass : GraphPass&lt;List&lt;Finding&gt;&gt; {
+    override val name = "navigation.crossGraph"
+    override val selector = NavigationSelector.filter { it.kind == VisitKind.CrossGraphEdge }
+    override val traversal = DepthFirst
+
+    override fun visitor(ctx: PassContext) = object : ReaktorVisitor&lt;List&lt;Finding&gt;&gt;() {
+        private val findings = mutableListOf&lt;Finding&gt;()
+
+        override fun visitEdge(c: VisitContext, edge: Edge&lt;*&gt;): VisitEnter {
+            val nav = edge as? NavigationEdge&lt;*&gt; ?: return VisitEnter()
+            val target = nav.end.graph
+            val container = ctx.graph.findContainerForGraph(target)
+            if (container == null) findings += Finding(
+                Severity.Error, nav, "navigation.unreachable",
+                "Cross-graph edge to '${target.label}' has no container in the root graph.",
+                hint = "Mount target graph under a ContainerNode or remove the edge.",
+            )
+            return VisitEnter()
+        }
+
+        override fun result() = findings
+    }
+}</code></pre>
+
+        <h3>17.5 SourceMapPass <span class="section-meta new">new</span></h3>
+        <p>Collects source-code locations for every node and port, so Engine inspectors and AI context can jump-to-definition. This pass is suspend because it reads the build's source-map artifact from disk or R2.</p>
+<pre><code>class SourceMapPass(
+    private val sourceMaps: SourceMapStore,
+) : SuspendGraphPass&lt;SourceMap&gt; {
+    override val name = "engine.sourceMap"
+    override val selector = StructuralSelector
+    override val traversal = SuspendDepthFirst
+
+    override suspend fun visitor(ctx: PassContext) = object : SuspendVisitor&lt;SourceMap&gt; {
+        private val entries = mutableListOf&lt;SourceMapEntry&gt;()
+
+        override suspend fun enter(c: VisitContext): VisitEnter {
+            val v = c.current
+            sourceMaps.lookup(v)?.let { entries += it }
+            return VisitEnter()
+        }
+
+        override suspend fun result() = SourceMap(entries)
+    }
+}</code></pre>
+      </section>
+
+      <!-- ===== 18. VISITOR COMPOSITION ===== -->
+      <section id="composition">
+        <h2>18. Visitor composition <span class="section-meta new">new</span></h2>
+        <p>You often want two visitors to run over the same traversal &mdash; an export visitor and a validation visitor, say. v2 adds a tiny adapter so a single traversal can drive multiple visitors and return a tuple.</p>
+
+<pre><code>class TupleVisitor2&lt;A, B&gt;(
+    private val a: Visitor&lt;A&gt;,
+    private val b: Visitor&lt;B&gt;,
+) : Visitor&lt;Pair&lt;A, B&gt;&gt; {
+    override fun enter(ctx: VisitContext): VisitEnter {
+        val ea = a.enter(ctx); val eb = b.enter(ctx)
+        val decision = when {
+            ea.decision == Stop || eb.decision == Stop -&gt; Stop
+            ea.decision == SkipChildren &amp;&amp; eb.decision == SkipChildren -&gt; SkipChildren
+            else -&gt; Continue
+        }
+        return VisitEnter(decision) { ea.onExit(); eb.onExit() }
+    }
+    override fun finish() { a.finish(); b.finish() }
+    override fun result(): Pair&lt;A, B&gt; = a.result() to b.result()
+}
+
+fun &lt;A, B&gt; Visitor&lt;A&gt;.with(other: Visitor&lt;B&gt;): Visitor&lt;Pair&lt;A, B&gt;&gt; = TupleVisitor2(this, other)</code></pre>
+
+        <h3>Example: export and validate in one walk</h3>
+<pre><code>val (doc, findings) = graph.visit(
+    selector = StructuralSelector,
+    visitor = GraphDocumentVisitor(appId, appLabel) with ValidationVisitor(),
+)</code></pre>
+
+        <p>For more than two visitors, <code>TupleVisitor3</code> / <code>TupleVisitor4</code> follow the same pattern. Beyond that, the ergonomics favor running multiple passes through the compiler; the compiler already deduplicates work by caching pass results.</p>
+      </section>
+
+      <!-- ===== 19. POLYGLOT WIRING ===== -->
+      <section id="contract-id">
+        <h2>19. Polyglot wiring with <code>ContractId</code> <span class="section-meta new">new</span></h2>
+        <p>The kernel analysis treats <code>ContractId</code> as the polyglot port identity &mdash; Kotlin and TypeScript ports match by a shared schema name, not by local Kotlin <code>Type</code>. The visitor system delegates this through a <code>PortMatcher</code> strategy so the same <code>WirePass</code> works across language bridges.</p>
+
+<pre><code>fun interface PortMatcher {
+    fun matches(consumer: ConsumerPort&lt;*&gt;, provider: ProviderPort&lt;*&gt;): Boolean
+
+    companion object {
+        val Default: PortMatcher = ChainedMatcher(
+            ByContractId,            // try contract first
+            ByKType,                 // then full KType (refinement plan L0.1)
+            ByLocalType,             // legacy fallback — string equality
+        )
+    }
+}
+
+object ByContractId : PortMatcher {
+    override fun matches(c: ConsumerPort&lt;*&gt;, p: ProviderPort&lt;*&gt;): Boolean {
+        val cId = c.attributes[ContractAttr.Id] ?: return false
+        val pId = p.attributes[ContractAttr.Id] ?: return false
+        return cId == pId &amp;&amp; (c.key.key.isEmpty() || c.key == p.key)
+    }
+}
+
+object ByKType : PortMatcher {
+    override fun matches(c: ConsumerPort&lt;*&gt;, p: ProviderPort&lt;*&gt;): Boolean =
+        c.type.kType == p.type.kType &amp;&amp; (c.key.key.isEmpty() || c.key == p.key)
+}
+
+object ByLocalType : PortMatcher {
+    override fun matches(c: ConsumerPort&lt;*&gt;, p: ProviderPort&lt;*&gt;): Boolean =
+        c.type.type == p.type.type &amp;&amp; (c.key.key.isEmpty() || c.key == p.key)
+}</code></pre>
+
+        <h3>Variance opt-in</h3>
+        <p>Strict <code>KType</code> equality is too rigid in some real cases: a consumer of <code>List&lt;Message&gt;</code> should be wirable to a provider of <code>MutableList&lt;Message&gt;</code>. <code>VarianceAwareMatcher</code> implements this behind an opt-in flag.</p>
+
+<pre><code>class VarianceAwareMatcher(
+    private val allowCovariantList: Boolean = true,
+    private val allowContravariantConsumer: Boolean = false,
+) : PortMatcher { ... }</code></pre>
+
+        <div class="callout">
+          <strong>Acceptance.</strong> When ContractId resolution is enabled, two ports declaring <code>ContractAttr.Id = "MessagingApi/v1"</code> must wire regardless of whether they are <code>MessagingApi</code> on the Kotlin side and a TS interface of the same shape on the React side.
+        </div>
+      </section>
+
+      <!-- ===== 20. LIFECYCLE INTEGRATION ===== -->
+      <section id="lifecycle">
+        <h2>20. Lifecycle integration <span class="section-meta new">new</span></h2>
+        <p>Passes are not always run by the developer; some run during graph lifecycle transitions. The compile-time bundle <code>BestBudsRuntimePasses</code> wants to fire <code>DeepLinkInstallPass</code> only when the graph reaches <code>Attaching</code> and tear it down on <code>Saving</code>. v2 ties passes to lifecycle transitions explicitly.</p>
+
+<pre><code>enum class PassPhase {
+    Compile,    // before any lifecycle transition — pure analysis
+    Attaching,  // after graph reaches Attaching
+    Active,     // graph is running; passes may be reactive
+    Saving,     // graph is being saved; pass returns persistable result
+    Destroying, // graph is tearing down; passes flush
+}
+
+interface PassSchedule {
+    val phase: PassPhase
+    fun shouldRun(graph: Graph): Boolean = true
+}
+
+// Default schedule: compile-time analysis.
+val CompilePhase = object : PassSchedule {
+    override val phase = PassPhase.Compile
+}
+
+interface ScheduledGraphPass&lt;R&gt; : GraphPass&lt;R&gt; {
+    val schedule: PassSchedule get() = CompilePhase
+}</code></pre>
+
+        <h3>Hooking into <code>Graph.lifecycle</code></h3>
+<pre><code>fun Graph.installRuntimePasses(passes: List&lt;ScheduledGraphPass&lt;*&gt;&gt;): GraphInstallation {
+    val handles = mutableListOf&lt;GraphInstallation&gt;()
+    val job = coroutineScope.launch {
+        lifecycle.collect { state -&gt;
+            passes.filter { it.schedule.phase.matches(state) &amp;&amp; it.schedule.shouldRun(this@installRuntimePasses) }
+                .forEach { pass -&gt;
+                    val result = run(pass)
+                    if (result is GraphInstallation) handles += result
+                }
+        }
+    }
+    return GraphInstallation {
+        job.cancel()
+        handles.asReversed().forEach { it.close() }
+    }
+}</code></pre>
+
+        <div class="callout warning">
+          <strong>Rule.</strong> A <code>PassPhase.Compile</code> pass must be side-effect-free on the live graph. It may produce a <code>GraphPatch</code>, but the patch is not applied until the caller opts in. Lifecycle-phased passes (Attaching/Saving) may install <code>GraphInstallation</code>s but should still avoid mutation.
+        </div>
+      </section>
+
+      <!-- ===== 21. INTROSPECTION & CYCLES ===== -->
+      <section id="introspection">
+        <h2>21. Introspection &amp; cycles <span class="section-meta new">new</span></h2>
+        <p>The Engine workbench inspects graphs. The workbench itself is a Reaktor graph. Without explicit cycle handling, visualizing the Engine recurses into the visualizer's own viewer node forever. v2 makes the policy explicit at three levels.</p>
+
+        <h3>21.1 Level 1: visited-set (existing)</h3>
+        <p>Every traversal keeps a <code>visited</code> set; revisiting an already-visited <code>Visitable</code> is a no-op. This handles structural cycles in the same graph.</p>
+
+        <h3>21.2 Level 2: arc-level <code>IntrospectionExcluded</code></h3>
+        <p>Mark a node, port, or graph as <em>not</em> to be introspected by visualization passes. The Engine's graph-viewer node is the canonical example.</p>
+
+<pre><code>object VisitorAttr {
+    val IntrospectionExcluded = AttributeKey&lt;Boolean&gt;("visitor.introspectionExcluded")
+}
+
+// in Engine setup:
+val workbenchViewer = Node(::ReaktorGraphDocumentNode)
+    .attr(VisitorAttr.IntrospectionExcluded, true)
+
+// in StructuralSelector usage:
+val visualizerSelector = StructuralSelector.filter { arc -&gt;
+    arc.from?.attributes?.get(VisitorAttr.IntrospectionExcluded) != true
+}</code></pre>
+
+        <h3>21.3 Level 3: explicit cycle policy</h3>
+        <p>For visitors that <em>must</em> traverse cyclic structures (workflow planning over a graph that may have cycles), expose the policy:</p>
+
+<pre><code>enum class CyclePolicy {
+    Stop,          // default — visited-set prevents re-entry
+    ReportAsError, // surface a Finding when a cycle is detected
+    Allow,         // re-enter (caller responsible for termination)
+}
+
+class CycleAwareDepthFirst(
+    private val policy: CyclePolicy = CyclePolicy.Stop,
+) : Traversal { ... }</code></pre>
+
+        <div class="callout danger-callout">
+          <strong>Engine rule.</strong> All passes intended for the workbench visualizer must use a selector that filters <code>IntrospectionExcluded</code>. <code>GraphDocumentPass</code> does this by default. The Engine integration tests check that visualizing the Engine itself terminates.
+        </div>
+      </section>
+
+      <!-- ===== 22. INCREMENTAL VISITORS ===== -->
+      <section id="incremental">
+        <h2>22. Incremental visitors <span class="section-meta new">new</span></h2>
+        <p>The workbench is a long-lived inspector. When a node is attached or an edge is connected, the workbench should update its view <em>incrementally</em>, not re-traverse the whole graph. v2 adds an opt-in incremental visitor protocol on top of graph events.</p>
+
+<pre><code>interface IncrementalVisitor&lt;R&gt; : Visitor&lt;R&gt; {
+    fun onAttach(ctx: VisitContext, node: Node) {}
+    fun onDetach(ctx: VisitContext, node: Node) {}
+    fun onConnect(ctx: VisitContext, edge: Edge&lt;*&gt;) {}
+    fun onDisconnect(ctx: VisitContext, edge: Edge&lt;*&gt;) {}
+}
+
+fun &lt;R&gt; Graph.installIncremental(
+    pass: GraphPass&lt;R&gt;,
+    visitor: IncrementalVisitor&lt;R&gt;,
+): GraphInstallation {
+    visit(pass.selector, pass.traversal, visitor)  // initial pass
+    val job = coroutineScope.launch {
+        graphEvents.collect { event -&gt;
+            val ctx = visitContextFor(event)
+            when (event) {
+                is GraphEvent.NodeAttached -&gt; visitor.onAttach(ctx, event.node)
+                is GraphEvent.NodeDetached -&gt; visitor.onDetach(ctx, event.node)
+                is GraphEvent.EdgeConnected -&gt; visitor.onConnect(ctx, event.edge)
+                is GraphEvent.EdgeDisconnected -&gt; visitor.onDisconnect(ctx, event.edge)
+            }
+        }
+    }
+    return GraphInstallation { job.cancel() }
+}</code></pre>
+
+        <div class="callout">
+          <strong>Where this lands.</strong> The Engine workbench's tree panel and inspector panel today re-call <code>toJsonElement()</code> on every render. With an incremental visitor and the existing <code>PortEvent</code> stream from <code>PortCapability</code>, the panels become live without a polling loop.
+        </div>
+      </section>
+
+      <!-- ===== 23. ATTRIBUTES ===== -->
+      <section id="metadata">
+        <h2>23. Attributes &amp; inheritance <span class="section-meta changed">v2</span></h2>
+        <p>Visitors need metadata, but the graph core should not know analytics, auth, documentation, workflow policy, or deep-link policy. The typed attribute bag from v1 stays; v2 adds documented inheritance rules.</p>
+
+<pre><code>class AttributeKey&lt;T : Any&gt;(val name: String, val inheritable: Boolean = false)
+
+class Attributes private constructor(
+    private val values: MutableMap&lt;AttributeKey&lt;*&gt;, Any&gt;,
+) {
+    operator fun &lt;T : Any&gt; set(key: AttributeKey&lt;T&gt;, value: T) { values[key] = value }
+
+    @Suppress("UNCHECKED_CAST")
+    operator fun &lt;T : Any&gt; get(key: AttributeKey&lt;T&gt;): T? = values[key] as? T
+
+    fun has(key: AttributeKey&lt;*&gt;): Boolean = key in values
+
+    companion object { val Empty = Attributes(mutableMapOf()) }
+}
+
+interface Attributed { val attributes: Attributes }
+
+fun &lt;T : Any, A&gt; A.attr(key: AttributeKey&lt;T&gt;, value: T): A where A : Attributed {
+    attributes[key] = value; return this
+}</code></pre>
+
+        <h3>Inheritance rules</h3>
+        <p>If <code>AttributeKey.inheritable = true</code>, a missing attribute on a node falls back to the owning graph, then its parent graph, then root. Non-inheritable keys never look up the chain.</p>
+
+<pre><code>fun &lt;T : Any&gt; Visitable.resolve(key: AttributeKey&lt;T&gt;): T? {
+    if (this is Attributed) attributes[key]?.let { return it }
+    if (!key.inheritable) return null
+    return when (this) {
+        is Node -&gt; graph.resolve(key)
+        is Graph -&gt; parentGraph?.resolve(key)
+        else -&gt; null
+    }
+}
+
+// Example: AuthAttr.RequiresUser is inheritable — set once on /home, applies to all children.
+object AuthAttr {
+    val RequiresUser = AttributeKey&lt;Boolean&gt;("auth.requiresUser", inheritable = true)
+}</code></pre>
+
+        <div class="callout">
+          <strong>Rule.</strong> Inheritance is opt-in per key. Most attributes (route patterns, analytics names) are scoped to one element and stay non-inheritable. Cross-cutting policies (auth, feature gates, environment) are good inheritance candidates.
+        </div>
+      </section>
+
+      <!-- ===== 24. TESTING ===== -->
+      <section id="testing">
+        <h2>24. Testing affordances <span class="section-meta new">new</span></h2>
+        <p>The whole point of pushing capabilities into passes is that they become testable in isolation. v2 ships a small test toolkit so a pass author writes one fixture, not three.</p>
+
+<pre><code>// 1. Build a fake graph quickly.
+fun testGraph(label: String = "test", build: Graph.() -&gt; Unit): Graph =
+    Graph(label = label, dependencyAdapter = NoOpDependencyAdapter, builder = build)
+
+// 2. Assert which arcs a selector emits, in order.
+fun Selector.assertEmits(
+    from: Visitable,
+    expected: List&lt;Pair&lt;VisitKind, Visitable&gt;&gt;,
+) {
+    val actual = outgoing(VisitContext.empty(from), from).toList()
+    assertEquals(expected.size, actual.size, "arc count")
+    expected.zip(actual).forEach { (e, a) -&gt;
+        assertEquals(e.first, a.kind)
+        assertSame(e.second, a.to)
+    }
+}
+
+// 3. Run a pass against a built graph.
+fun &lt;R&gt; GraphPass&lt;R&gt;.runAgainst(graph: Graph): R = graph.run(this)
+
+// 4. Assert findings.
+fun GraphCompileReport.assertFinding(code: String, severity: Severity = Severity.Error) {
+    val match = findings.firstOrNull { it.code == code &amp;&amp; it.severity == severity }
+    assertNotNull(match, "expected finding $code at $severity, got: $findings")
+}</code></pre>
+
+        <h3>Example test</h3>
+<pre><code>@Test
+fun `wire pass reports ambiguous unnamed consumer`() {
+    val g = testGraph {
+        Node { object : BasicNode(it) {
+            val a by provides&lt;String&gt;("a", "hello")
+            val b by provides&lt;String&gt;("b", "world")
+        }}
+        Node { object : BasicNode(it) {
+            val consumer by consumes&lt;String&gt;()    // no key — ambiguous
+        }}
+    }
+
+    val report = g.compile { +WirePass() }
+    report.assertFinding("wiring.ambiguous", Severity.Error)
+}</code></pre>
+      </section>
+
+      <!-- ===== 25. EXAMPLES ===== -->
+      <section id="examples">
+        <h2>25. Concrete examples</h2>
+
+        <h3>25.1 Compile BestBuds end-to-end</h3>
+<pre><code>val report = BestBuds.compile {
+    +WirePass()                          // emits patch
+    +RequireFullyWiredPass()
+    +RouteIndexPass()
+    +CrossGraphReachabilityPass()
+    +AuthCoveragePass(defaultRequiresUser = true) {
+        public("/")
+        public("/onboarding")
+    }
+    +DeepLinkInstallPass()
+    +AnalyticsInstallPass(analytics)
+}
+
+if (!report.success) {
+    report.errors.forEach { Logger.e("compile.failed", it) }
+    return
+}
+
+val installation = report.installations
+// later, at app shutdown:
+installation.close()</code></pre>
+
+        <h3>25.2 Engine document export, deterministically</h3>
+<pre><code>fun reaktorGraphDocument(app: ReaktorAppDefinition): JsonElement {
+    val report = app.graph().compile {
+        +GraphDocumentPass(appId = app.id, appLabel = app.name)
+        +SourceMapPass(sourceMaps)
+    }
+    val doc = report[PassKeys.GraphDocument] ?: error("document pass did not run")
+    return Json.encodeToJsonElement(GraphDocument.serializer(), doc)
+}</code></pre>
+
+        <h3>25.3 Workbench live tree panel</h3>
+<pre><code>val installation = workbenchGraph.installIncremental(
+    pass = GraphDocumentPass(appId = "engine", appLabel = "Reaktor Engine"),
+    visitor = TreePanelVisitor(treePanelState),
+)
+
+// TreePanelVisitor implements IncrementalVisitor and updates a StateFlow
+// that Compose collects. No polling.</code></pre>
+
+        <h3>25.4 Polyglot wire across the React bridge</h3>
+<pre><code>val matcher = ChainedMatcher(ByContractId, ByKType, ByLocalType)
+val report = appGraph.compile {
+    +WirePass(matcher = matcher)
+}
+// Kotlin ProviderPort&lt;MessagingApi&gt; with ContractAttr.Id = "MessagingApi/v1"
+// wires to TS ConsumerPort with the same ContractId.</code></pre>
+      </section>
+
+      <!-- ===== 26. ACCEPTANCE ===== -->
+      <section id="acceptance">
+        <h2>26. Acceptance tests <span class="section-meta changed">v2</span></h2>
+        <table>
+          <thead><tr><th>Area</th><th>Acceptance check</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>BestBuds routes</td>
+              <td><code>RouteIndexPass</code> finds <code>/</code>, <code>/onboarding</code>, <code>/home</code>, <code>/chats</code>, <code>/chats/{id}</code>, <code>/friends</code>, <code>/profiles/user</code>, and event routes when the flag is on.</td>
+              <td>Confirms nested route graphs and feature-gated containers are represented.</td>
+            </tr>
+            <tr>
+              <td>BestBuds navigation</td>
+              <td><code>NavigationSelector</code> reports cross-graph edges from friends to chat, onboarding to home, and event tabs to create-event flows.</td>
+              <td>Validates the app's real route topology.</td>
+            </tr>
+            <tr>
+              <td>BestBuds wiring</td>
+              <td><code>WirePass</code> + <code>RequireFullyWiredPass</code> produce a deterministic report; the resulting patch applies atomically; legacy <code>autoWire()</code> still works as a wrapper.</td>
+              <td>Makes wiring failures inspectable before runtime traffic.</td>
+            </tr>
+            <tr>
+              <td>Cross-graph reachability <span class="section-meta new">new</span></td>
+              <td><code>CrossGraphReachabilityPass</code> emits a <code>navigation.unreachable</code> finding for any cross-graph edge whose target graph is not mounted under a container.</td>
+              <td>Catches today's silent <code>Logger.w</code> failure.</td>
+            </tr>
+            <tr>
+              <td>Engine export</td>
+              <td><code>GraphDocumentPass</code> emits the same edge categories as the current builder; running twice produces identical IDs, node order, and edge order.</td>
+              <td>Required for workbench diffs, screenshots, AI context, deploy diagnostics.</td>
+            </tr>
+            <tr>
+              <td>Engine self-inspection <span class="section-meta changed">v2</span></td>
+              <td>Running <code>GraphDocumentPass</code> on <code>WorkbenchGraph</code> terminates without recursing through the workbench's own graph-viewer node.</td>
+              <td>Validates the introspection-exclusion mechanism end-to-end.</td>
+            </tr>
+            <tr>
+              <td>Polyglot wiring <span class="section-meta new">new</span></td>
+              <td>A Kotlin port with <code>ContractAttr.Id = "MessagingApi/v1"</code> wires to a TS port with the same id, regardless of local Kotlin <code>Type</code>.</td>
+              <td>Confirms the kernel's polyglot port-identity rule is honored by the visitor system.</td>
+            </tr>
+            <tr>
+              <td>Pass DAG <span class="section-meta new">new</span></td>
+              <td><code>DeepLinkInstallPass</code> declares <code>dependsOn = [RouteIndex]</code>; the compiler topologically sorts; running <code>DeepLinkInstallPass</code> alone reuses a cached <code>RouteIndex</code> when present.</td>
+              <td>Validates pass composition.</td>
+            </tr>
+            <tr>
+              <td>Reactive install <span class="section-meta new">new</span></td>
+              <td><code>AnalyticsInstallPass</code> fires <code>screen_view</code> for every distinct active route during a recorded navigation sequence; closing the installation cancels the subscription.</td>
+              <td>Validates reactive selector lifecycle.</td>
+            </tr>
+            <tr>
+              <td>Incremental visitor <span class="section-meta new">new</span></td>
+              <td>The Engine tree panel updates within one frame when a node is attached to a child graph; no full re-traversal.</td>
+              <td>Validates the incremental protocol.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===== 27. MIGRATION ===== -->
+      <section id="migration">
+        <h2>27. Migration plan <span class="section-meta changed">v2</span></h2>
+        <table>
+          <thead><tr><th>Step</th><th>Change</th><th>Compatibility</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>0</td>
+              <td>Freeze the current Engine graph document contract; add snapshot tests for <code>ReaktorApps.bestBuds</code> and <code>ReaktorApps.engine</code>.</td>
+              <td>Prevents visitor migration from breaking the visible workbench renderer.</td>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>Add <code>VisitArc</code>, <code>VisitKind</code> (v2 expanded), <code>VisitContext</code>, <code>VisitDecision</code>, <code>VisitEnter</code>, <code>Attributes</code>, <code>PassKey</code>, <code>PassContext</code>.</td>
+              <td>Additive.</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Add new arc-based <code>Selector.outgoing(ctx, current)</code>; provide adapter from legacy <code>neighbors()</code> selectors.</td>
+              <td>Old neighbor selectors continue to work via wrapper.</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Add result-producing <code>Traversal</code> with determinism contract, plus <code>SuspendTraversal</code>.</td>
+              <td>Keep old <code>Traverser</code> wrappers temporarily.</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Add <code>Visitor&lt;R&gt;</code>, <code>SuspendVisitor&lt;R&gt;</code>, <code>ReaktorVisitor&lt;R&gt;</code>.</td>
+              <td>Existing visitors migrate one by one; old <code>Visitor</code> stays as an alias.</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Add <code>GraphPatch</code> sealed hierarchy + <code>Graph.apply(patch)</code> via the refinement plan's <code>Wiring</code>.</td>
+              <td>New API only; existing mutations untouched.</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Implement <code>WirePass</code> emitting a patch; legacy <code>Graph.autoWire()</code> calls <code>run(WirePass()).second.apply()</code>.</td>
+              <td>Behavior preserved for all current callers.</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>Implement <code>GraphDocumentPass</code> with introspection-exclusion filter; route <code>reaktorGraphDocument(appId)</code> through it.</td>
+              <td>Behavior preserved; snapshot tests verify byte-for-byte parity.</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>Implement <code>RouteIndexPass</code>, <code>DeepLinkInstallPass</code>, <code>AuthCoveragePass</code>; route <code>WebNavigationBridge.buildRouteIndex()</code> through it.</td>
+              <td>Bridge constructor wraps the new pass internally.</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>Add <code>ReactivePass</code> + <code>ReactiveSelector</code>; migrate <code>AnalyticsInstallPass</code>.</td>
+              <td>New analytics path; legacy listeners stay.</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td>Add <code>Graph.compile { ... }</code> with DAG sorting and <code>PassContext</code>; document the determinism contract.</td>
+              <td>Used by both BestBuds and Engine; old manual calls stay as wrappers.</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td>Implement <code>ModuleContractPass</code> and <code>CrossGraphReachabilityPass</code>; integrate with refinement plan L3 module work.</td>
+              <td>Gated on refinement plan P6; standalone <code>CrossGraphReachabilityPass</code> can land independently.</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>Add <code>IncrementalVisitor</code> + <code>graph.installIncremental(...)</code>; migrate Engine tree/inspector panels.</td>
+              <td>Existing polling code stays; opt-in per panel.</td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>Add product bundles: <code>BestBudsRuntimePasses</code> for installs, <code>EngineSnapshotPasses</code> for export/diagnostics.</td>
+              <td>Keeps runtime mutation separate from read-only workbench snapshots.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ===== 28. FILES ===== -->
+      <section id="files">
+        <h2>28. Suggested files to create <span class="section-meta changed">v2</span></h2>
+<pre><code>dev.shibasis.reaktor.portgraph.visitor/
+  Visitable.kt
+  VisitArc.kt
+  VisitContext.kt
+  Selector.kt              (+ combinators)
+  ReactiveSelector.kt      [new]
+  Traversal.kt             (DepthFirst, BreadthFirst, Topological)
+  SuspendTraversal.kt      [new]
+  Visitor.kt
+  SuspendVisitor.kt        [new]
+  Attributes.kt            (+ inheritance)
+
+dev.shibasis.reaktor.graph.visitor/
+  GraphSelectors.kt        (+ ModuleContractSelector, SupervisionSelector)
+  ReaktorVisitor.kt        (+ Actor/Service hooks)
+  GraphPass.kt             (+ PassContext, dependsOn)
+  GraphCompiler.kt         (+ DAG sort)
+  GraphInstallation.kt
+  GraphPatch.kt            [new]
+  PortMatcher.kt           [new]
+  Finding.kt               [new]
+  IncrementalVisitor.kt    [new]
+  ReactivePass.kt          [new]
+  ScheduledGraphPass.kt    [new]
+  IntrospectionAttr.kt     [new]
+
+dev.shibasis.reaktor.graph.passes/
+  WirePass.kt              (now emits GraphPatch)
+  RequireFullyWiredPass.kt
+  RouteIndexPass.kt
+  GraphJsonPass.kt
+  GraphDocumentPass.kt
+  DeepLinkInstallPass.kt
+  AnalyticsInstallPass.kt  (now ReactivePass)
+  AuthCoveragePass.kt
+  WorkflowPlanPass.kt
+  ModuleContractPass.kt    [new]
+  CrossGraphReachabilityPass.kt [new]
+  SourceMapPass.kt         [new]
+
+dev.shibasis.reaktor.graph.testing/
+  TestGraph.kt             [new]
+  SelectorAssertions.kt    [new]
+  PassAssertions.kt        [new]
+
+ai.bestbuds.app.graph/
+  BestBudsRuntimePasses.kt
+
+ai.bestbuds.reaktor/
+  EngineSnapshotPasses.kt</code></pre>
+      </section>
+
+      <!-- ===== 29. OPEN QUESTIONS ===== -->
+      <section id="open">
+        <h2>29. Open questions <span class="section-meta new">new</span></h2>
+        <ol>
+          <li><strong>GraphPatch concurrency.</strong> If two passes in the same compile both emit patches that touch the same port, what's the conflict resolution? Right now the compiler applies in <code>dependsOn</code> order, but conflicts on the same edge should at least surface as a <code>patch.conflict</code> finding.</li>
+          <li><strong>Reactive pass back-pressure.</strong> A <code>ReactivePass</code> subscribed to <code>backStack.entries</code> may be slower than emissions. Should we buffer, conflate, or drop? Recommendation: <code>conflate()</code> by default with an opt-in <code>buffer(n)</code>.</li>
+          <li><strong>Determinism under concurrent attach.</strong> If a graph mutates while a traversal is in progress, ordering breaks. Should traversal take a snapshot? Or require the caller to suspend mutations? Recommendation: snapshot the node collection at the start of each <code>Selector.outgoing</code> call; document as "best-effort consistency under quiescent graph state."</li>
+          <li><strong>PassContext type erasure.</strong> <code>ctx[PassKey&lt;RouteIndex&gt;]</code> uses unchecked casts internally. Is there a cleaner type-safe encoding? Likely needs Kotlin contracts.</li>
+          <li><strong>Variance opt-in scope.</strong> <code>VarianceAwareMatcher</code> is currently per-WirePass. Should variance be a per-port attribute (<code>PortAttr.AllowCovariant</code>) instead, so a single graph can mix strict and permissive?</li>
+          <li><strong>Cycle policy for topological traversal.</strong> A workflow graph with cycles must surface them, but <code>WorkflowPlanPass</code> as written returns a partial plan. Should it fail-fast or emit a finding and continue?</li>
+          <li><strong>Source-map storage location.</strong> <code>SourceMapPass</code> reads a <code>SourceMapStore</code>. Where does the store live &mdash; in <code>reaktor-io</code>, in <code>reaktor-compiler</code> output, or as an Engine-only resource?</li>
+          <li><strong>Module boundary semantics during lifecycle.</strong> Are module contracts validated at <code>Compile</code> phase only, or re-validated on each <code>Attaching</code> transition? Suspect compile-only is enough but worth a runtime spike.</li>
+          <li><strong>How do reactive selectors interact with introspection-exclusion?</strong> If the workbench installs a reactive pass over its own active route, should excluded nodes still emit transitions? Recommendation: yes &mdash; exclusion is for visualizers; analytics doesn't care.</li>
+        </ol>
+      </section>
+
+      <!-- ===== 30. APPENDIX ===== -->
+      <section id="appendix">
+        <h2>30. Appendix: compatibility adapters</h2>
+        <p>To keep migration safe, support the old neighbor selector style as a wrapper.</p>
+<pre><code>fun interface NeighborSelector {
+    fun neighbors(visitable: Visitable): List&lt;Visitable&gt;
+}
+
+fun NeighborSelector.asSelector(kind: VisitKind = VisitKind.Derived): Selector =
+    Selector { _, current -&gt;
+        neighbors(current).asSequence().map { next -&gt;
+            VisitArc(from = current, to = next, kind = kind)
+        }
+    }</code></pre>
+
+        <h3>Existing function wrappers</h3>
+<pre><code>fun Graph.autoWire() {
+    val (_, patch) = run(WirePass())
+    if (patch != null) apply(patch)
+}
+
+fun Graph.requireFullyWired() {
+    val report = compile { +RequireFullyWiredPass() }
+    require(report.success) { report.errors.joinToString("\n") { it.message } }
+}
+
+fun Graph.toJsonElement(): JsonElement = run(GraphJsonPass())</code></pre>
+
+        <div class="paper-block">
+          <h3>Final recommendation</h3>
+          <p>Build the visitor system around this invariant:</p>
+          <p><strong>Graph = runtime structure. Selector = graph view. Traversal = order. Visitor = read-only logic. Patch = mutation as data. Pass = reusable, diagnosable capability that fits into a DAG.</strong></p>
+          <p>The crucial implementation shifts compared to v1 are small but powerful:</p>
+          <ol>
+            <li><code>Selector</code> returns <code>VisitArc</code> (already in v1).</li>
+            <li>Mutations become <code>GraphPatch</code> values, applied transactionally.</li>
+            <li>Passes form a DAG with shared results via <code>PassContext</code>.</li>
+            <li>Selectors compose; reactive selectors are first-class for live installs.</li>
+            <li>Polyglot wiring is delegated to <code>PortMatcher</code> so the same passes work across language bridges.</li>
+            <li>The Engine workbench can inspect itself without recursing forever.</li>
+          </ol>
+          <p>Each of these is additive over v1 and over the existing runtime, so the migration plan above can land one step at a time without breaking any currently shipping app.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

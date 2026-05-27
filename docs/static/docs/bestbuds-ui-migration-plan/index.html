@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BestBuds UI Migration Plan - Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>BestBuds</span><span>Product UI</span></div>
+      <p class="eyebrow">BestBuds - Product UI</p>
+      <h1>BestBuds UI Migration Plan</h1>
+      <p class="subtitle">Plan for migrating the real BestBuds app in <code>modules/app</code> to the visual and interaction language of the current prototype and desktop website without changing the app graph, data flows, auth behavior, or chat contracts.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Planning or reviewing the BestBuds design-system extraction and app restyle.</span></div>
+        <div class="stat"><b>Source</b><span>Codex scan of appWeb, prototype, modules/design, modules/app, and tests.</span></div>
+        <div class="stat"><b>Route</b><span>/docs/bestbuds-ui-migration-plan</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div>
+        <div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div>
+        <div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div>
+        <div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div>
+        <div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div>
+        <div class="side-group"><h3>BestBuds</h3><a aria-current="page" href="/docs/bestbuds-ui-migration-plan">UI Migration Plan</a><a href="/docs/bestbuds-market-readiness-ux-audit">Market Readiness UX Audit</a></div>
+        <div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc">
+          <a href="#overview">Overview</a>
+          <a href="#source-of-truth">Source Of Truth</a>
+          <a href="#current-state">Current State</a>
+          <a href="#discrepancies">Discrepancies</a>
+          <a href="#testing-plan">Testing Plan</a>
+          <a href="#design-extraction">Atomic Design Extraction</a>
+          <a href="#react-karakum">React And Karakum</a>
+          <a href="#migration-sequence">Migration Sequence</a>
+          <a href="#screen-notes">Screen Notes</a>
+          <a href="#acceptance-risks">Acceptance And Risks</a>
+          <a href="#next-steps">Immediate Next Steps</a>
+        </nav>
+      </aside>
+      <main id="content" class="doc-content">
+        <div id="overview">
+          <h2>Overview</h2>
+          <p class="lead">The migration should be test-led. First capture the current prototype and website behavior, then extract the design system into <code>modules/design</code>, then replace the existing Compose UI screen by screen.</p>
+          <div class="grid three">
+            <div class="card bar green">
+              <h3>Preserve</h3>
+              <p>Keep the existing Reaktor graph topology, route bindings, repositories, auth flows, analytics hooks, and platform targets. UI migration should not rewrite product behavior.</p>
+            </div>
+            <div class="card bar amber">
+              <h3>Extract</h3>
+              <p>Move prototype and desktop website styling into named tokens, atoms, molecules, and screen templates in <code>modules/design</code>. Avoid carrying inline React styling into the app.</p>
+            </div>
+            <div class="card bar cyan">
+              <h3>Replace</h3>
+              <p>Restyle real app screens with shared design components while leaving graph nodes and data orchestration inside <code>modules/app</code>.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Core rule:</strong> appWeb and the mobile prototype define the look and interaction feel; the real app defines the behavior contract.
+          </div>
+        </div>
+
+        <div id="source-of-truth">
+          <h2>Source Of Truth</h2>
+          <p>Use this precedence order when code disagrees.</p>
+          <ol>
+            <li><code>targets/appWeb/src/website_main.tsx</code> and <code>targets/appWeb/src/App.css</code> for desktop website theme, palette tokens, typography, sticky prototype presentation, waitlist UX, and palette persistence.</li>
+            <li><code>prototype/*.jsx</code> for full mobile prototype behavior, route inventory, screen-level interaction patterns, local state, stage language, cards, top bars, tab bars, campaign/chat/event/profile flows.</li>
+            <li><code>modules/app/src/commonMain/kotlin/ai/bestbuds/app</code> for real app graph topology, repositories, route bindings, analytics, auth, and native behavior.</li>
+            <li><code>modules/design</code> as the final shared implementation home.</li>
+          </ol>
+          <div class="callout warn">
+            <strong>Legacy frontend scan:</strong> <code>targets/appWeb/frontend</code> was an older CRA/Tailwind/shadcn landing page. The only notable reference content was old product copy around a 7-day friendship system, access/foster phases, AI icebreakers, and meeting IRL. It did not contain the current appWeb palette, prototype behavior, or reusable implementation worth preserving, so it was deleted.
+          </div>
+        </div>
+
+        <div id="current-state">
+          <h2>Current State</h2>
+          <h3>appWeb</h3>
+          <p>The active appWeb entry points are <code>src/main.tsx</code>, <code>src/App.tsx</code>, <code>src/website_main.tsx</code>, <code>src/App.css</code>, <code>src/prototype-inline.jsx</code>, and <code>src/SurfaceBackground.tsx</code>.</p>
+          <div class="grid three">
+            <div class="card"><h3>Desktop website</h3><p>Scroll-snapped narrative landing page with fixed top bar, palette selector, waitlist form, WebGL surface background, and sticky phone iframe.</p></div>
+            <div class="card"><h3>Canonical defaults</h3><p><code>Terracotta</code> palette, <code>Fraunces</code> display serif, <code>Space Grotesk</code> body sans, organic cards, radius scale <code>1.5</code>, accent intensity <code>1.3</code>, texture off, cool stage language.</p></div>
+            <div class="card"><h3>Showcased routes</h3><p><code>create</code>, <code>landing</code>, <code>campaigns</code>, <code>chat</code>, <code>picks</code>, and <code>events</code>. The mobile website is lighter and should only get smoke coverage for now.</p></div>
+          </div>
+          <h3>Prototype</h3>
+          <p>The standalone mobile prototype is the richest app reference. It includes onboarding, lobby, campaign, chat, picks, friends, events, create, search, notifications, invite, profile, settings, and home routes.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Layer</th><th>Prototype examples</th><th>Migration value</th></tr></thead>
+              <tbody>
+                <tr><td>Tokens</td><td><code>BB_TOKENS</code>, stage definitions, card radius, accent alpha, texture layer</td><td>Source for Kotlin palette, stage, spacing, and radius models.</td></tr>
+                <tr><td>Atoms</td><td><code>Avatar</code>, <code>Pill</code>, <code>LiveDot</code>, <code>DayRing</code>, <code>IconBtn</code>, <code>BBWordmark</code></td><td>First shared Compose component set.</td></tr>
+                <tr><td>Molecules</td><td><code>AvatarStack</code>, <code>StageBadge</code>, <code>StageTrack</code>, <code>TrustRing</code>, <code>UserChip</code></td><td>Reusable product UI vocabulary for campaigns, chat, events, and profile.</td></tr>
+                <tr><td>Layouts</td><td><code>Phone</code>, <code>AppTopBar</code>, <code>TabBar</code></td><td>Screen scaffolding and navigation chrome references.</td></tr>
+                <tr><td>Product widgets</td><td><code>CampaignCard</code>, <code>BudbotCampaignPanel</code>, <code>EventCard</code>, chat panels, inbox rows</td><td>Screen molecules and organisms for the real app.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>modules/design</h3>
+          <p>The current design module is being replaced by a scoped atomic design surface. Public screen code should use <code>Theme.Components { Card(...) }</code>, <code>Text</code>, <code>Chip</code>, <code>SearchBar</code>, <code>Event</code>, and <code>TopBar</code>. Legacy wrapper names are not part of the migration path.</p>
+          <h3>modules/app</h3>
+          <p>The real app is graph-driven and should remain that way. The root route is <code>/</code>, onboarding is <code>/onboarding</code>, home is <code>/home</code>, top-level tabs include Chat, Campaign, Discover, and optional Events, with overflow graphs for Friends, Profile, and Dev.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Area</th><th>Current files</th><th>Prototype target</th></tr></thead>
+              <tbody>
+                <tr><td>Login/start</td><td><code>ui/StartScreen.kt</code></td><td><code>entry.jsx</code>, <code>onboarding.jsx</code></td></tr>
+                <tr><td>Onboarding</td><td><code>ui/onboarding/*</code></td><td><code>onboarding.jsx</code>, <code>flow-bridges.jsx</code></td></tr>
+                <tr><td>Chat inbox</td><td><code>ui/home/chats/ChatsScreen.kt</code>, <code>ChatViews.kt</code></td><td><code>chats-inbox.jsx</code></td></tr>
+                <tr><td>Chat thread</td><td><code>ChatScreen.kt</code>, <code>ChatViews.kt</code>, <code>views/MessageView.kt</code></td><td><code>chat.jsx</code>, prompt/member moments</td></tr>
+                <tr><td>Campaigns</td><td><code>CampaignScreen.kt</code>, <code>CampaignComponents.kt</code></td><td><code>campaigns.jsx</code>, <code>campaign-detail.jsx</code></td></tr>
+                <tr><td>Discover</td><td><code>DiscoverScreen.kt</code></td><td><code>discover.jsx</code>, <code>create.jsx</code></td></tr>
+                <tr><td>Events</td><td><code>ui/home/events/*</code></td><td><code>events.jsx</code></td></tr>
+                <tr><td>Friends/profile</td><td><code>FriendsScreen.kt</code>, <code>ProfileScreen.kt</code>, profile detail screens</td><td><code>picks.jsx</code>, <code>profile.jsx</code>, member rows</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="discrepancies">
+          <h2>Discrepancies</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Discrepancy</th><th>Resolution</th></tr></thead>
+              <tbody>
+                <tr><td>appWeb desktop theme differs from older prototype defaults such as deep red, <code>Instrument Serif</code>, and <code>Inter</code>.</td><td>Make appWeb values canonical: <code>Fraunces</code>, <code>Space Grotesk</code>, cool stage language, radius scale <code>1.5</code>, accent intensity <code>1.3</code>, and the newer palette values.</td></tr>
+                <tr><td>appWeb only exercises a subset of prototype routes.</td><td>Desktop tests cover website behavior; mobile prototype tests cover app-like route behavior.</td></tr>
+                <tr><td><code>targets/appWeb/frontend</code> was a separate legacy frontend.</td><td>It has been scanned and deleted. Do not rebuild from that stack.</td></tr>
+                <tr><td><code>modules/design</code> is Material-ish and gradient-heavy.</td><td>Replace the internals with warm editorial/product tokens and scoped atomic components. Do not preserve legacy wrapper APIs.</td></tr>
+                <tr><td>The real Compose app has behavior not present in the prototype.</td><td>Use the prototype for look and interaction feel; keep real data and behavior in app code.</td></tr>
+                <tr><td>React/Kotlin portability is uneven.</td><td>Put portable data and Compose components in <code>commonMain</code>, React DOM wrappers in <code>jsMain</code>, and keep WebGL/iframe host details in TypeScript until worth porting.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="testing-plan">
+          <h2>Testing Plan</h2>
+          <p class="lead">Add richer tests under <code>tests/bestbudsWeb</code> before extraction and migration.</p>
+          <div class="grid three">
+            <div class="card">
+              <h3>Desktop website</h3>
+              <p>Cover landing render, wordmark, headline, waitlist form, sticky prototype, palette persistence, story section navigation, iframe route sync, waitlist success/failure mocks, desktop width sanity, and console/page error guards.</p>
+            </div>
+            <div class="card">
+              <h3>Mobile prototype</h3>
+              <p>Use an iPhone-sized Playwright project around 390x844. Cover onboarding, campaigns, campaign detail, chats, chat, picks, friends, events, event detail, create event, utility routes, and palette postMessage sync.</p>
+            </div>
+            <div class="card">
+              <h3>Mobile website</h3>
+              <p>Keep it light: hero copy, inline preview render, palette control behavior, lazy-loaded final prototype iframe, and no console/page errors.</p>
+            </div>
+          </div>
+          <h3>Recommended test shape</h3>
+          <pre><code>tests/bestbudsWeb/playwright/
+  landing-desktop.spec.ts
+  prototype-mobile.spec.ts
+  landing-mobile-smoke.spec.ts
+  helpers/
+    consoleErrors.ts
+    localStorage.ts
+    waitlistMocks.ts
+    iframe.ts</code></pre>
+          <h3>Commands</h3>
+          <pre><code>npm run test:bestbudsWeb:playwright
+npm run test:bestbudsWeb:maestro
+npm run test:bestbudsWeb</code></pre>
+          <div class="callout">
+            Prefer semantic text plus existing <code>data-route</code> and <code>data-local-action</code> selectors. Add stable <code>data-testid</code> attributes in prototype source only where tests become brittle.
+          </div>
+        </div>
+
+        <div id="design-extraction">
+          <h2>Atomic Design Extraction</h2>
+          <h3>Token layer</h3>
+          <p>Create canonical token files in <code>modules/design/src/commonMain/kotlin/ai/bestbuds/design/tokens</code>.</p>
+          <pre><code>BestBudsPalette.kt
+BestBudsTypography.kt
+BestBudsSpacing.kt
+BestBudsRadii.kt
+BestBudsStage.kt
+BestBudsElevation.kt</code></pre>
+          <p>Suggested model: <code>BestBudsPaletteName</code>, <code>BestBudsPalette</code>, <code>BestBudsTokens</code>, <code>BestBudsStage</code>, <code>BestBudsStageStyle</code>, and <code>BestBudsThemeState</code>. Include helpers for color alpha, readable-on color, card radius, and stage accent selection.</p>
+          <div class="callout">
+            Current implementation status: <code>BestBudsPalette</code>, <code>BestBudsTokens</code>, <code>ColorTokens</code>, <code>CampaignStage</code>, and <code>StageTokens</code> now live in <code>modules/design</code>. The stage model covers <code>Forming</code>, <code>Matched</code>, <code>Milestone</code>, <code>BestBuds</code>, and <code>Wrapped</code>, with app screens deriving stage from campaign metadata until the backend exposes a first-class stage field.
+          </div>
+          <h3>Scoped component API</h3>
+          <p>Use a CompositionLocal-backed component set rather than public <code>BB*</code> component names. Screens should enter the design scope and write product-generic component calls such as <code>Card</code>, <code>Text</code>, <code>Chip</code>, <code>SearchBar</code>, <code>Event</code>, and <code>TopBar</code>. The current bridge is <code>Theme.Components { ... }</code>, backed by <code>LocalBestBudsComponentSet</code> and <code>BestBudsComponentSet</code>.</p>
+          <pre><code>themed {
+  Components {
+    Card {
+      Text("Coffee crawl")
+      Chip("Matched")
+      PrimaryButton("Open Chat")
+    }
+  }
+}</code></pre>
+          <p>Do not keep previous public component APIs as migration adapters. New atoms, molecules, and templates can use BestBuds-prefixed file/class names when useful, but their screen-facing component functions should be scoped and unprefixed.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Level</th><th>Components</th></tr></thead>
+              <tbody>
+                <tr><td>Atoms</td><td><code>Wordmark</code>, <code>Text</code>, <code>IconButton</code>, <code>Button</code>, <code>Pill</code>, <code>LiveDot</code>, <code>Avatar</code>, <code>DayRing</code>, <code>TrustRing</code>, <code>StageBadge</code>, <code>SearchField</code>, <code>TextField</code>, <code>Card</code>, <code>Divider</code>, <code>ReactionChip</code>.</td></tr>
+                <tr><td>Molecules</td><td><code>TopBar</code>, <code>TabBar</code>, <code>AvatarStack</code>, <code>StageTrack</code>, <code>CampaignCard</code>, <code>CampaignDetailHeader</code>, <code>BudbotPanel</code>, <code>ChatRow</code>, <code>ChatBubble</code>, <code>MessageInput</code>, <code>ReplyPreview</code>, <code>Event</code>, <code>EventInvite</code>, <code>MemberRow</code>, <code>ProfileHeader</code>, <code>FilterRow</code>, <code>SettingsSection</code>.</td></tr>
+                <tr><td>Templates</td><td><code>ScreenScaffold</code>, <code>ScrollableScreen</code>, <code>HomeShell</code>, <code>DetailScaffold</code>, <code>FormScaffold</code>, <code>EmptyState</code>, <code>LoadingState</code>, <code>ErrorState</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout warn">
+            Do not move app repositories, route bindings, graph nodes, analytics calls, or platform auth into <code>modules/design</code>.
+          </div>
+          <div class="callout">
+            Current component status: campaign cards now consume scoped <code>Card</code>, <code>Text</code>, <code>Chip</code>, <code>PrimaryButton</code>, <code>JoinButton</code>, <code>StageBadge</code>, <code>StageTrack</code>, and <code>TrustRing</code>. Internal implementation names may remain descriptive, but screen code should stay inside <code>Components { ... }</code> and avoid preserving old public APIs.
+          </div>
+        </div>
+
+        <div id="react-karakum">
+          <h2>React And Karakum</h2>
+          <p>Use <code>commonMain</code> for portable design data and Compose components. Use <code>jsMain</code> only for React-specific wrappers.</p>
+          <pre><code>modules/design/src/commonMain/kotlin/ai/bestbuds/design/
+  tokens/
+  theme/
+  components/atoms/
+  components/molecules/
+  components/templates/
+
+modules/design/src/jsMain/kotlin/ai/bestbuds/design/react/
+  BestBudsReactTokens.kt
+  ReactAtoms.kt
+  ReactPrototypeHost.kt
+
+modules/design/ts/
+  package.json
+  tsconfig.json
+  karakum.config.json
+  index.ts
+  karakum.ts
+  src/</code></pre>
+          <p>Follow the <code>reaktor-graph</code> convention: TypeScript package in <code>ts/</code>, <code>build: tsc -b</code>, <code>postbuild: karakum --config karakum.config.json</code>, generated externals into <code>ts/import</code>, and Dependeasy <code>web {}</code> includes <code>ts/import</code> in <code>jsMain</code>.</p>
+          <div class="callout">
+            Keep TypeScript for <code>SurfaceBackground.tsx</code>, exact prototype iframe hosting during migration, and DOM-only route/palette sync logic. Do not block Compose app restyling on perfect React/Kotlin parity.
+          </div>
+        </div>
+
+        <div id="migration-sequence">
+          <h2>Migration Sequence</h2>
+          <ol>
+            <li><strong>Baseline tests:</strong> expand Playwright desktop and mobile coverage, add fixtures for console errors, localStorage reset, iframe access, and waitlist mocks.</li>
+            <li><strong>Token-first design rewrite:</strong> replace current design token base with appWeb/prototype tokens, remove legacy wrappers, and document native font fallback strategy.</li>
+            <li><strong>Shared primitives:</strong> build wordmark, avatar, avatar stack, pills, buttons, icon buttons, cards, stage badges/tracks, day/trust rings, top bar, tab bar, event cards, and campaign cards.</li>
+            <li><strong>React/web pieces:</strong> move reusable appWeb pieces into <code>modules/design/jsMain</code> and <code>modules/design/ts</code> where useful, including palette serialization and prototype host wrappers.</li>
+            <li><strong>Real app screens:</strong> restyle <code>StartScreen</code>, onboarding, campaigns, discover, chats, chat, events, friends, profile, and dev in that order.</li>
+            <li><strong>Clean up:</strong> remove old gradient tokens, delete unused duplicate UI, update READMEs, and refresh generated JS only intentionally.</li>
+          </ol>
+        </div>
+
+        <div id="screen-notes">
+          <h2>Screen Notes</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Screen area</th><th>Keep</th><th>Change</th></tr></thead>
+              <tbody>
+                <tr><td>Start and onboarding</td><td>Apple/Google login, impersonated test users, pending login resume, auth status/errors.</td><td>Prototype-style welcome, wordmark, warm card, clear auth actions, avatar/chip impersonation, and onboarding controls.</td></tr>
+                <tr><td>Campaigns and discover</td><td><code>SocialRepository</code> calls, analytics events, route shape.</td><td>Stage-aware cards, <code>StageBadge</code>, <code>StageTrack</code>, <code>DayRing</code>, <code>AvatarStack</code>, and prototype filters/cards.</td></tr>
+                <tr><td>Chat</td><td>Reverse <code>LazyColumn</code>, pagination, websocket behavior, reply drag, action sheets, reactions, copy/forward, retry/discard, stickers, image fullscreen, mentions, BotUser, typing/presence subtitle.</td><td>Warm card/ink/cream bubbles, prototype top bar language, rounded composer, Budbot panel message styling, and pill reaction chips.</td></tr>
+                <tr><td>Events</td><td>Search analytics, save/unsave analytics, create-event form state, private/public tabs.</td><td>Prototype event cards, RSVP/invite controls, create event segmented options, warm save CTA, and FAB styling.</td></tr>
+                <tr><td>Profile and friends</td><td>Profile repository calls, logout behavior, friend/group navigation, age calculation, hobbies parsing.</td><td>Profile header, avatar, stat chips, interest pills, member rows, message CTA, and prototype text field/card style.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="acceptance-risks">
+          <h2>Acceptance And Risks</h2>
+          <div class="callout warn">
+            Definition of done: the migration is finished only when every BestBuds app surface has moved to the new scoped UI and the migrated app is validated by the maintained Maestro suites. The current stage/campaign work is an implementation slice, not migration completion.
+          </div>
+          <div class="grid two">
+            <div class="card">
+              <h3>Acceptance criteria</h3>
+              <ul>
+                <li>appWeb desktop tests and mobile prototype tests pass.</li>
+                <li><code>modules/design</code> owns canonical BestBuds tokens and shared components.</li>
+                <li>appWeb no longer defines independent duplicate palette constants; any remaining web-only constants must be deleted or moved into the shared token layer.</li>
+                <li>All real app screens use <code>modules/design</code> components for core UI structure and no screen depends on previous public component APIs.</li>
+                <li>Graph routes, ports, repositories, analytics, auth, and chat behavior remain unchanged unless explicitly scoped.</li>
+                <li>Android, iOS, and Desktop targets remain buildable.</li>
+                <li>BestBuds Maestro validation passes with the migrated UI in place: <code>npm run maestro:android</code>, <code>npm run maestro:ios</code>, and <code>npm run test:bestbudsWeb:maestro</code>.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Risks</h3>
+              <ul>
+                <li>Native font strategy for <code>Fraunces</code> and <code>Space Grotesk</code>.</li>
+                <li>Chat gesture, reverse list, modal sheet, and IME regressions during restyle.</li>
+                <li>Brittle prototype selectors unless stable test IDs are added sparingly.</li>
+                <li>WebGL background should stay TypeScript until Kotlin/JS porting has clear value.</li>
+                <li>Dirty generated artifacts should not be refreshed accidentally.</li>
+                <li>Legacy <code>targets/appWeb/frontend</code> should not distract the migration.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div id="next-steps">
+          <h2>Immediate Next Steps</h2>
+          <ol>
+            <li>Finish replacing direct Material/profile helper usage in <code>ProfileScreen</code>, <code>FriendProfileScreen</code>, <code>GroupProfileScreen</code>, <code>DevScreen</code>, event scaffolds, chat views, and remaining home shells.</li>
+            <li>Move generic loading, profile placeholder, editable field, info row, avatar, and empty/error states behind the scoped component API instead of public helper functions.</li>
+            <li>Keep feature behavior stable while changing presentation: auth, graph routes, chat actions, analytics, work tasks, and profile navigation should keep the same Maestro-observable semantics.</li>
+            <li>Run the final validation gate after app migration: <code>npm run maestro:android</code>, <code>npm run maestro:ios</code>, <code>npm run test:bestbudsWeb</code>, plus target builds for Android, Darwin, Desktop, and app web.</li>
+          </ol>
+        </div>
+      </main>
+    </div>
+    <footer class="doc-footer">This page uses the shared Reaktor docs shell and should remain the canonical HTML version of the BestBuds UI migration plan.</footer>
+  </div>
+</body>
+</html>

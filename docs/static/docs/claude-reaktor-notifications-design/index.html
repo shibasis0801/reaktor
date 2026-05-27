@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>reaktor-notifications — Full-Stack Notification Runtime Design</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface-2: #1a2332;
+    --surface-3: #1f2b3d;
+    --border: #2d3a4f;
+    --border-light: #3d4f6a;
+    --text: #e2e8f0;
+    --text-muted: #8b9ab8;
+    --text-dim: #5a6a84;
+    --accent: #3b82f6;
+    --accent-dim: #1e3a5f;
+    --green: #34d399;
+    --green-dim: #064e3b;
+    --orange: #fb923c;
+    --orange-dim: #7c2d12;
+    --red: #f87171;
+    --red-dim: #7f1d1d;
+    --purple: #a78bfa;
+    --purple-dim: #3b1f6e;
+    --cyan: #22d3ee;
+    --cyan-dim: #0e4f5c;
+    --yellow: #fbbf24;
+    --yellow-dim: #713f12;
+    --pink: #ec4899;
+    --pink-dim: #831843;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.72;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+  /* Header */
+  header { border-bottom: 1px solid var(--border); padding: 64px 0 48px; }
+  header .eyebrow { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px; }
+  header h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; margin-bottom: 18px; }
+  header h1 .accent { color: var(--accent); }
+  header .subtitle { color: var(--text-muted); font-size: 1.05rem; line-height: 1.65; max-width: 820px; }
+  header .meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 22px; color: var(--text-dim); font-size: 0.8rem; font-family: var(--mono); }
+  header .meta b { color: var(--text-muted); font-weight: 400; }
+
+  .hero-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 28px; }
+  .strip-cell { border: 1px solid var(--border); background: var(--surface); padding: 14px 16px; border-radius: 10px; }
+  .strip-cell .label { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+  .strip-cell .value { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-top: 4px; }
+  .strip-cell .value.warn { color: var(--orange); }
+  .strip-cell .value.good { color: var(--green); }
+  .strip-cell .value.alert { color: var(--red); }
+
+  /* TOC */
+  nav.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin: 40px 0; }
+  nav.toc h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 18px; font-weight: 600; }
+  nav.toc .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 40px; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; display: flex; align-items: baseline; gap: 10px; padding: 3px 0; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc .num { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); min-width: 28px; }
+
+  /* Sections */
+  section { margin: 64px 0; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+  section > h2 .num { color: var(--accent); font-family: var(--mono); font-size: 1rem; margin-right: 14px; }
+  h3 { font-size: 1.14rem; font-weight: 600; margin: 34px 0 12px; color: var(--text); }
+  h4 { font-size: 0.84rem; font-weight: 600; margin: 24px 0 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  p { margin: 10px 0; color: var(--text-muted); }
+  p strong { color: var(--text); font-weight: 600; }
+  ul, ol { margin: 12px 0 12px 22px; color: var(--text-muted); }
+  li { margin: 6px 0; }
+  li strong { color: var(--text); }
+
+  /* Principle box */
+  .principle {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(167,139,250,0.06));
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 12px; padding: 22px 26px; margin: 22px 0;
+    font-size: 1rem; font-weight: 500; line-height: 1.65; color: var(--text);
+  }
+  .principle em { color: var(--accent); font-style: normal; font-weight: 600; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  thead th { background: var(--surface-2); padding: 12px 14px; text-align: left; font-weight: 600; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-muted); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(59,130,246,0.03); }
+  tbody td strong { color: var(--text); }
+  td code, p code, li code { font-family: var(--mono); font-size: 0.82em; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+
+  /* Code blocks */
+  pre {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 0.82rem;
+    line-height: 1.7; margin: 16px 0; color: var(--text-muted); tab-size: 2;
+  }
+  pre .kw { color: var(--purple); }
+  pre .ty { color: var(--cyan); }
+  pre .str { color: var(--green); }
+  pre .cm { color: var(--text-dim); font-style: italic; }
+  pre .fn { color: var(--yellow); }
+  pre .num { color: var(--orange); }
+  pre .anno { color: var(--pink); }
+
+  /* Flow diagrams */
+  .flow-diagram {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px 32px; margin: 20px 0; font-family: var(--mono); font-size: 0.82rem;
+    line-height: 1.95; color: var(--text-muted);
+  }
+  .flow-diagram .step { display: flex; align-items: flex-start; gap: 14px; margin: 6px 0; }
+  .flow-diagram .step-num {
+    min-width: 24px; height: 24px; border-radius: 6px; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+  }
+  .flow-diagram .step-num.blue { background: var(--accent-dim); color: var(--accent); }
+  .flow-diagram .step-num.green { background: var(--green-dim); color: var(--green); }
+  .flow-diagram .step-num.purple { background: var(--purple-dim); color: var(--purple); }
+  .flow-diagram .step-num.orange { background: var(--orange-dim); color: var(--orange); }
+  .flow-diagram .step-num.cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .flow-diagram .step-num.pink { background: var(--pink-dim); color: var(--pink); }
+  .flow-diagram .step-num.yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .flow-diagram .label-pill { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 0.7rem; margin-right: 8px; }
+  .flow-diagram .label-pill.do { background: var(--accent-dim); color: var(--accent); }
+  .flow-diagram .label-pill.bus { background: var(--cyan-dim); color: var(--cyan); }
+  .flow-diagram .label-pill.jvm { background: var(--green-dim); color: var(--green); }
+  .flow-diagram .label-pill.client { background: var(--orange-dim); color: var(--orange); }
+  .flow-diagram .label-pill.d1 { background: var(--purple-dim); color: var(--purple); }
+  .flow-diagram .arrow { color: var(--border-light); margin: 4px 0 4px 12px; }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 22px 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
+  .card h4 { margin: 0 0 8px; text-transform: none; letter-spacing: 0; color: var(--text); font-size: 0.98rem; }
+  .card p { font-size: 0.88rem; color: var(--text-muted); margin: 0; line-height: 1.62; }
+  .card-accent { border-left: 3px solid var(--accent); }
+  .card-green { border-left: 3px solid var(--green); }
+  .card-purple { border-left: 3px solid var(--purple); }
+  .card-orange { border-left: 3px solid var(--orange); }
+  .card-cyan { border-left: 3px solid var(--cyan); }
+  .card-pink { border-left: 3px solid var(--pink); }
+  .card-yellow { border-left: 3px solid var(--yellow); }
+  .card-red { border-left: 3px solid var(--red); }
+
+  /* Phases */
+  .phase { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 26px 22px 32px; margin: 16px 0; position: relative; }
+  .phase::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 10px 0 0 10px; }
+  .phase.p1::before { background: var(--accent); }
+  .phase.p2::before { background: var(--purple); }
+  .phase.p3::before { background: var(--orange); }
+  .phase.p4::before { background: var(--green); }
+  .phase h4 { margin: 0 0 8px; color: var(--text); text-transform: none; letter-spacing: 0; font-size: 1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+  .phase .timeline { color: var(--text-dim); font-size: 0.78rem; font-weight: 400; font-family: var(--mono); }
+  .phase p { font-size: 0.9rem; margin: 6px 0 0; }
+  .phase ul, .phase ol { margin-left: 18px; }
+  .phase li { margin: 3px 0; font-size: 0.88rem; }
+
+  /* Callouts */
+  .callout { border-radius: 10px; padding: 18px 22px; margin: 22px 0; font-size: 0.92rem; line-height: 1.65; }
+  .callout.blue { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.3); color: var(--text-muted); }
+  .callout.orange { background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.3); color: var(--text-muted); }
+  .callout.green { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.3); color: var(--text-muted); }
+  .callout.red { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3); color: var(--text-muted); }
+  .callout strong { color: var(--text); }
+  .callout .tag { display: inline-block; font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px; margin-right: 8px; }
+  .callout.blue .tag { background: var(--accent-dim); color: var(--accent); }
+  .callout.orange .tag { background: var(--orange-dim); color: var(--orange); }
+  .callout.green .tag { background: var(--green-dim); color: var(--green); }
+  .callout.red .tag { background: var(--red-dim); color: var(--red); }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; font-family: var(--mono); }
+  .badge.done { background: var(--green-dim); color: var(--green); }
+  .badge.partial { background: var(--orange-dim); color: var(--orange); }
+  .badge.missing { background: var(--red-dim); color: var(--red); }
+  .badge.new { background: var(--cyan-dim); color: var(--cyan); }
+  .badge.phase1 { background: var(--accent-dim); color: var(--accent); }
+  .badge.phase2 { background: var(--purple-dim); color: var(--purple); }
+
+  /* Tree */
+  .tree { font-family: var(--mono); font-size: 0.82rem; line-height: 1.65; color: var(--text-muted); white-space: pre; overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 26px; margin: 18px 0; }
+  .tree .dir { color: var(--accent); font-weight: 600; }
+  .tree .file { color: var(--text-muted); }
+  .tree .new { color: var(--green); }
+  .tree .kept { color: var(--text-dim); }
+  .tree .note { color: var(--text-dim); font-style: italic; }
+
+  /* Compare grid */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0; }
+  .compare .col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 24px; }
+  .compare .col h4 { margin: 0 0 12px; color: var(--text); text-transform: none; letter-spacing: 0; font-size: 1rem; }
+  .compare .col.target { border-left: 3px solid var(--accent); }
+  .compare .col.expo { border-left: 3px solid var(--purple); }
+
+  /* Pipeline rail */
+  .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 28px 0; }
+  .pipeline .stage {
+    border: 1px solid var(--border); border-radius: 8px; padding: 16px 14px;
+    background: var(--surface); position: relative; min-height: 100px;
+  }
+  .pipeline .stage .kind { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+  .pipeline .stage .who { font-size: 0.92rem; font-weight: 600; color: var(--text); margin-top: 6px; }
+  .pipeline .stage .what { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; line-height: 1.55; }
+  .pipeline .stage::after {
+    content: '→'; position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+    color: var(--border-light); font-size: 1.2rem; font-weight: 700;
+  }
+  .pipeline .stage:last-child::after { display: none; }
+  .pipeline .stage.intake { border-top: 3px solid var(--accent); }
+  .pipeline .stage.fanout { border-top: 3px solid var(--purple); }
+  .pipeline .stage.deliver { border-top: 3px solid var(--green); }
+  .pipeline .stage.receipt { border-top: 3px solid var(--orange); }
+  .pipeline .stage.client { border-top: 3px solid var(--cyan); }
+
+  /* Domain card grid */
+  .domain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin: 22px 0; }
+  .domain { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
+  .domain h4 { margin: 0 0 6px; font-family: var(--mono); font-size: 0.92rem; color: var(--accent); text-transform: none; letter-spacing: 0; }
+  .domain p { font-size: 0.86rem; margin: 4px 0 0; color: var(--text-muted); }
+  .domain ul { font-size: 0.84rem; margin-top: 8px; }
+
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 44px 0; margin-top: 80px; text-align: center; color: var(--text-dim); font-size: 0.8rem; }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 880px) {
+    .compare { grid-template-columns: 1fr; }
+    nav.toc .toc-grid { grid-template-columns: 1fr; }
+    .pipeline { grid-template-columns: 1fr; }
+    .pipeline .stage::after { display: none; }
+    header h1 { font-size: 1.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <div class="eyebrow">reaktor-notifications · detailed design · <span style="color:var(--text-dim)">authored by Claude</span></div>
+  <h1>The full-stack notification runtime, from <span class="accent">domain intent</span> to <span class="accent">graph action</span></h1>
+  <p class="subtitle">
+    Today the module is a single empty <code>NotificationAdapter</code>. The target is the equivalent of <strong>Expo Notifications + Expo Push Service</strong> for Reaktor, with engagement-platform features layered on top, integrated as a first-class graph node and bus-coordinated server pipeline. The decomposition mirrors the canonical <strong>IntakeGraph / BusGraph / DeliveryGraph / ClientGraph</strong> shape from <a href="graph-kernel-analysis.html">graph-kernel-analysis</a> Example 9, slotting into the six runtime planes that govern every Reaktor module.
+  </p>
+  <div class="meta">
+    <span><b>Gradle path</b> · <code>:reaktor-notification</code> (singular)</span>
+    <span><b>Canonical name</b> · <code>reaktor-notifications</code> (plural, per kernel canon)</span>
+    <span><b>Status</b> · Brainstorming → Phase 1</span>
+    <span><b>Source spec</b> · Reaktor / §22</span>
+    <span><b>Targets</b> · android · ios · jvm · jsMain · webMain</span>
+    <span><b>Doc revision</b> · 2026-05-26</span>
+  </div>
+
+  <div class="callout blue" style="margin-top:18px;">
+    <span class="tag">naming</span>
+    The gradle folder is <code>reaktor-notification</code> (singular). The kernel canon — every other design doc and the pill list in <a href="graph-kernel-analysis.html">graph-kernel-analysis</a> — uses <code>reaktor-notifications</code> (plural). This document follows the canonical plural for prose and the singular path only when referring to the actual gradle target. <strong>Renaming the gradle module to <code>reaktor-notifications</code> is a recommended Phase 1 chore.</strong>
+  </div>
+
+  <div class="hero-strip">
+    <div class="strip-cell">
+      <div class="label">Code today</div>
+      <div class="value alert">~10 LOC</div>
+    </div>
+    <div class="strip-cell">
+      <div class="label">Files today</div>
+      <div class="value alert">1 .kt</div>
+    </div>
+    <div class="strip-cell">
+      <div class="label">Phase&nbsp;1 footprint</div>
+      <div class="value warn">~6 KLOC est.</div>
+    </div>
+    <div class="strip-cell">
+      <div class="label">Source sets</div>
+      <div class="value">common · android · ios · js · jvm</div>
+    </div>
+    <div class="strip-cell">
+      <div class="label">Bus kinds</div>
+      <div class="value">6 (fanout · delivery · receipt · …)</div>
+    </div>
+    <div class="strip-cell">
+      <div class="label">Reuses</div>
+      <div class="value good">bus · db · auth · capability · graph</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>Table of contents</h2>
+  <div class="toc-grid">
+    <a href="#current"><span class="num">00</span>Where we are today</a>
+    <a href="#why-hard"><span class="num">01</span>Why notifications are hard</a>
+    <a href="#expo-inspiration"><span class="num">02</span>Inspiration: expo-notifications &amp; Expo Push</a>
+    <a href="#positioning"><span class="num">03</span>Positioning &amp; design philosophy</a>
+    <a href="#non-negotiables"><span class="num">04</span>Seven non-negotiables</a>
+    <a href="#planes"><span class="num">05</span>The six runtime planes &amp; four graphs</a>
+    <a href="#workflow"><span class="num">06</span>The notification as a typed workflow</a>
+    <a href="#layout"><span class="num">07</span>Module layout</a>
+    <a href="#domain"><span class="num">08</span>Domain model (commonMain)</a>
+    <a href="#contracts"><span class="num">09</span>Service contracts</a>
+    <a href="#store"><span class="num">10</span>Operational data store</a>
+    <a href="#android"><span class="num">11</span>Android source set</a>
+    <a href="#ios"><span class="num">12</span>iOS source set</a>
+    <a href="#web"><span class="num">13</span>Web push source set</a>
+    <a href="#jsmain"><span class="num">14</span>jsMain: intake &amp; fanout</a>
+    <a href="#jvmmain"><span class="num">15</span>jvmMain: delivery workers</a>
+    <a href="#retry"><span class="num">16</span>Retry classification</a>
+    <a href="#routing"><span class="num">17</span>Typed routing into the graph</a>
+    <a href="#node"><span class="num">18</span>NotificationsNode</a>
+    <a href="#observability"><span class="num">19</span>Observability</a>
+    <a href="#modes"><span class="num">20</span>Hosted vs embedded</a>
+    <a href="#roadmap"><span class="num">21</span>Phase 1 / Phase 2 roadmap</a>
+    <a href="#integration"><span class="num">22</span>Integration with the rest of Reaktor</a>
+    <a href="#gap"><span class="num">23</span>Gap analysis &amp; next steps</a>
+  </div>
+</nav>
+
+<!-- ───────────────── SECTION 00: CURRENT STATE ───────────────── -->
+<section id="current">
+  <h2><span class="num">00</span>Where we are today</h2>
+  <p>
+    The <code>reaktor-notification</code> module currently exists as a thin shared seam. It declares all five target source sets in its Gradle build but ships a single abstract class. Everything in this document is forward-looking; nothing below is implemented yet.
+  </p>
+
+  <h3>What ships today</h3>
+  <div class="tree">
+<span class="dir">reaktor-notification/</span>
+├── <span class="file">README.md</span>           <span class="note"># "Stability: Brainstorming"</span>
+├── <span class="file">build.gradle.kts</span>   <span class="note"># droid {} darwin {} web {} server {} useKoin()</span>
+├── <span class="file">reaktor_notification.podspec</span>
+└── <span class="dir">src/</span>
+    └── <span class="dir">commonMain/kotlin/dev/shibasis/reaktor/notification/</span>
+        └── <span class="file">NotificationAdapter.kt</span>   <span class="note"># ~7 LOC</span>
+  </div>
+
+  <h4>NotificationAdapter.kt (entire current source)</h4>
+<pre><span class="kw">package</span> dev.shibasis.reaktor.notification
+
+<span class="kw">import</span> dev.shibasis.reaktor.core.framework.Adapter
+
+<span class="kw">abstract class</span> <span class="ty">NotificationAdapter</span>&lt;<span class="ty">Controller</span>&gt;(
+    controller: <span class="ty">Controller</span>
+): <span class="ty">Adapter</span>&lt;<span class="ty">Controller</span>&gt;(controller) {
+
+}
+</pre>
+
+  <div class="callout orange">
+    <span class="tag">audit</span>
+    The module has the build configuration of a multiplatform leaf module but zero implementation. No domain model, no platform code, no server pipeline, no graph integration. The README explicitly labels this <em>"Stability: Brainstorming — intentionally thin. Exists as a shared seam for future platform implementations."</em>
+  </div>
+
+  <h3>What is not built yet</h3>
+  <div class="card-grid">
+    <div class="card card-red">
+      <h4>Domain model</h4>
+      <p>No <code>NotificationIntent</code>, <code>NotificationTarget</code>, <code>NotificationContent</code>, <code>NotificationRoute</code>, <code>NotificationEndpoint</code>, <code>NotificationRecord</code>, <code>DeliveryTask</code>, <code>ProviderReceipt</code>, or <code>NotificationInteractionEvent</code>.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Service contracts</h4>
+      <p>No <code>NotificationsService</code>, <code>NotificationOrchestrator</code>, <code>NotificationEndpointStore</code>, <code>NotificationStore</code>, <code>PushProvider</code>, or <code>NotificationRouteDispatcher</code> interfaces.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Android client</h4>
+      <p>No <code>FirebaseMessagingService</code> subclass, no channel registry, no <code>MessagingStyle</code> renderer, no conversation/shortcut bridge, no token provider.</p>
+    </div>
+    <div class="card card-red">
+      <h4>iOS client</h4>
+      <p>No <code>UNUserNotificationCenterDelegate</code> implementation, no APNs registration, no category registry, no communication-notification builder, no Live Activity controller.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Server (jsMain)</h4>
+      <p>No Durable Object intake, no D1 schema, no <code>FanoutService</code>, no <code>WebPushProvider</code>, no outbox relay wiring.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Server (jvmMain)</h4>
+      <p>No FCM Admin worker, no APNs-direct worker, no receipt worker, no Postgres adapters, no Arrow retry/circuit-breaker integration, no error classifiers.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Graph integration</h4>
+      <p>No <code>NotificationsNode</code>, no <code>GraphNotificationRouteDispatcher</code>, no wiring to <code>TactileActionRegistry</code>.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Telemetry</h4>
+      <p>No structured trace emission, no correlationId propagation, no Reaktor Desktop dashboard panels for the notification flow.</p>
+    </div>
+  </div>
+
+  <p>
+    Effectively the entire module is <strong>greenfield</strong>. The rest of this document specifies what to build, how it fits the rest of Reaktor, and the order in which to ship it.
+  </p>
+</section>
+
+<!-- ───────────────── SECTION 01: WHY NOTIFICATIONS ARE HARD ───────────────── -->
+<section id="why-hard">
+  <h2><span class="num">01</span>Why notifications are hard</h2>
+  <p>
+    Notifications look simple from the product surface but are one of the most cross-cutting subsystems in modern apps. Nine concerns must be solved in concert; ignoring any one of them produces a system that works in demos and rots in production.
+  </p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h4>1 · Platform fragmentation</h4>
+      <p>Channels vs categories. <code>importance</code> vs <code>interruptionLevel</code>. <code>MessagingStyle</code> vs communication notifications. <code>POST_NOTIFICATIONS</code> vs <code>requestAuthorization</code>. Web push and desktop add further variants.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>2 · Provider diversity</h4>
+      <p>FCM, APNs direct, Web Push (VAPID + service workers), Expo Push. Each has its own auth model, error taxonomy, rate limits, and quota.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>3 · Token lifecycle</h4>
+      <p>FCM and APNs tokens rotate on reinstall, restore, and sometimes for no reason. Production deployments see 5–15% token churn per month. Dead tokens must be detected from server-side error responses and pruned.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>4 · Delivery semantics</h4>
+      <p>Push is best-effort by design. Neither FCM nor APNs guarantee delivery. <em>Delivered</em>, <em>seen</em>, and <em>opened</em> are distinct states that need client-side feedback to observe.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>5 · Interaction routing</h4>
+      <p>A tap should deep-link to the right screen with state restored. The app may be dead, auth may be lost, the tap may arrive before the graph is ready. This is operationally painful.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>6 · User preferences</h4>
+      <p>Per-category mute, quiet hours, time-zone awareness, priority overrides. Preferences must sync across the user's devices.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>7 · Targeting &amp; segmentation</h4>
+      <p>"Send to users who completed onboarding, live in NA, and haven't logged in for three days" is table-stakes for engagement.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>8 · Scheduling &amp; orchestration</h4>
+      <p>Campaigns are sequences with conditions. Event-triggered notifications fire on user actions. Retention reminders fire on absence. Each needs a different execution model.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>9 · Analytics</h4>
+      <p>Delivery, open, conversion, downstream engagement. Tying a notification to a purchase or message reply requires joining telemetry across the entire product lifecycle.</p>
+    </div>
+  </div>
+
+  <p>The question is not <em>whether</em> all nine get solved — every production app solves them, somewhere — but <strong>where each one is solved</strong>: in app code, in the notification module, in the delivery provider, or in an engagement platform. <code>reaktor-notifications</code> takes positions on every layer.</p>
+</section>
+
+<!-- ───────────────── SECTION 02: EXPO INSPIRATION ───────────────── -->
+<section id="expo-inspiration">
+  <h2><span class="num">02</span>Inspiration: expo-notifications &amp; Expo Push Service</h2>
+  <p>
+    Expo provides two layers that, taken together, are the benchmark every cross-platform notification library is compared against: <code>expo-notifications</code> (the client library) and Expo Push Service (the hosted delivery API). Understanding both is essential because Reaktor is positioned as the Expo-Push-plus-engagement-platform equivalent for KMP apps.
+  </p>
+
+  <h3>expo-notifications — the library</h3>
+  <p>A React Native package with a unified API across Android and iOS for the things app code actually needs to do:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>API</th>
+          <th>What it abstracts</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Permissions</strong></td>
+          <td><code>getPermissionsAsync</code>, <code>requestPermissionsAsync</code></td>
+          <td>POST_NOTIFICATIONS (Android 13+) and <code>requestAuthorization</code> (iOS) including iOS interruption-level granularity.</td>
+        </tr>
+        <tr>
+          <td><strong>Tokens</strong></td>
+          <td><code>getExpoPushTokenAsync</code>, <code>getDevicePushTokenAsync</code></td>
+          <td>Opaque ExpoPushToken vs raw FCM/APNs token. Auto re-fetch on rotation.</td>
+        </tr>
+        <tr>
+          <td><strong>Local</strong></td>
+          <td><code>scheduleNotificationAsync(request)</code></td>
+          <td>Time-interval, calendar-date, daily/weekly/yearly triggers; iOS location triggers.</td>
+        </tr>
+        <tr>
+          <td><strong>Categories</strong></td>
+          <td><code>setNotificationCategoryAsync</code></td>
+          <td>Maps to Android InboxStyle + actions and iOS <code>UNNotificationCategory</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Channels</strong></td>
+          <td><code>setNotificationChannelAsync</code></td>
+          <td>Android channel creation with importance/sound/vibration.</td>
+        </tr>
+        <tr>
+          <td><strong>Handlers</strong></td>
+          <td><code>setNotificationHandler</code>, <code>addNotificationReceivedListener</code>, <code>addNotificationResponseReceivedListener</code></td>
+          <td>Foreground presentation decision and received/response hooks.</td>
+        </tr>
+        <tr>
+          <td><strong>Badge</strong></td>
+          <td><code>setBadgeCountAsync</code>, <code>getBadgeCountAsync</code></td>
+          <td>iOS badge management.</td>
+        </tr>
+        <tr>
+          <td><strong>Presented / dismiss</strong></td>
+          <td><code>getPresentedNotificationsAsync</code>, <code>dismissNotificationAsync</code></td>
+          <td>Currently-displayed inspection (Android) and explicit dismissal.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Expo Push Service — the delivery primitive</h3>
+  <p>
+    The server POSTs an array of messages (each with <code>to: ExpoPushToken[]</code>, <code>title</code>, <code>body</code>, <code>data</code>, <code>sound</code>, <code>badge</code>, …) to <code>exp.host/--/api/v2/push/send</code>. Expo translates to FCM or APNs internally, returns <strong>tickets</strong> immediately, and exposes a separate endpoint for eventually-consistent <strong>receipts</strong> (~15 min later).
+  </p>
+  <div class="callout blue">
+    <span class="tag">two-phase</span>
+    Tickets prove "Expo queued it"; receipts prove "FCM/APNs accepted it". Production code <strong>must</strong> poll receipts and prune dead ExpoPushTokens, or quota silently leaks on every send.
+  </div>
+
+  <h3>Where Expo stops</h3>
+  <p>Expo Push is a <em>delivery primitive</em>, not an engagement platform. It does not target by attribute/cohort/behavior, does not schedule campaigns with conditions, does not A/B test, does not personalize per recipient, does not provide open or conversion analytics, does not cap frequency across campaigns, does not respect quiet hours, and does not coordinate with email or SMS.</p>
+
+  <div class="compare">
+    <div class="col expo">
+      <h4>Expo provides</h4>
+      <ul>
+        <li>Unified client API for permissions, tokens, local, categories, channels, handlers</li>
+        <li>Single POST endpoint that fans to FCM and APNs</li>
+        <li>Tickets + receipts protocol</li>
+        <li>Rate-limited multitenant delivery (~600 msgs/sec baseline)</li>
+        <li>APNs cert management on behalf of the developer</li>
+      </ul>
+    </div>
+    <div class="col target">
+      <h4>reaktor-notifications adds</h4>
+      <ul>
+        <li>Typed <code>NotificationIntent</code> + <code>NotificationRoute</code> (not opaque strings)</li>
+        <li>D1 / Postgres operational store (records · attempts · receipts · interactions · endpoints · idempotency)</li>
+        <li>Outbox-coordinated intake from Durable Objects</li>
+        <li>Bus-coordinated fanout &amp; per-endpoint delivery with retry + circuit breaker</li>
+        <li>Per-category mute, quiet hours, frequency caps (Phase 1)</li>
+        <li>Segmentation, A/B test, campaigns (Phase 2)</li>
+        <li>Direct integration with <code>reaktor-graph</code>: a tap is a typed graph action</li>
+        <li>Hosted (Reaktor Cloud) <em>and</em> embedded deployment shapes from one codebase</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 03: POSITIONING ───────────────── -->
+<section id="positioning">
+  <h2><span class="num">03</span>Positioning &amp; design philosophy</h2>
+  <div class="principle">
+    <code>reaktor-notifications</code> occupies the space between the <em>delivery primitive</em> (Expo Push, FCM Admin, APNs-direct) and the <em>engagement platform</em> (OneSignal, Braze, CleverTap). It covers <em>~80% of what engagement platforms provide</em>, stays open-source and self-hostable, and integrates with the rest of the Reaktor framework.
+  </div>
+
+  <h3>Six design commitments</h3>
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h4>1 · Typed workflow, not push send</h4>
+      <p>The caller (chat DO, payment worker, moderation agent) decides a domain event deserves a notification. The module owns the workflow from intent → delivery → interaction.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>2 · Reuse the rest of Reaktor</h4>
+      <p><code>reaktor-bus</code> for async, <code>reaktor-db</code> for the operational store, <code>reaktor-auth</code> for authorization, <code>reaktor-capability</code> for degradation tiers, <code>reaktor-telemetry</code> for traces, <code>reaktor-graphify</code> to surface the subgraph. The module is thin because the framework is thick.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>3 · Platform depth is first-class</h4>
+      <p>Channels, categories, <code>MessagingStyle</code>, communication notifications, Live Activities — all exposed as typed building blocks rather than hidden behind a lowest-common-denominator API.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>4 · Typed routing into the graph</h4>
+      <p>A tap produces a <code>NotificationInteractionEvent</code> resolved to an <code>ActionRef</code> or a route <code>Push</code>. <strong>Tap-as-graph-event</strong> is the Reaktor differentiator versus deep-link strings.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>5 · Production resilience from day one</h4>
+      <p>Outbox, idempotency, retry with circuit breaker, DLQ with replay — all via <code>reaktor-bus</code>. No "we'll add that later" for the parts that matter.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>6 · Two deployment shapes</h4>
+      <p>Embedded (run your own delivery cluster) and hosted (Reaktor Cloud multi-tenant). Same <code>commonMain</code> contracts. Migration is a deployment-config change.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 04: NON-NEGOTIABLES ───────────────── -->
+<section id="non-negotiables">
+  <h2><span class="num">04</span>Seven non-negotiables</h2>
+  <div class="card-grid">
+    <div class="card card-purple">
+      <h4>One KMM module</h4>
+      <p><code>commonMain</code>, <code>androidMain</code>, <code>iosMain</code>, <code>jsMain</code>, <code>jvmMain</code>. No sub-packages beyond standard source sets.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>D1 for edge · Postgres for Spring</h4>
+      <p>D1 is the operational store for Cloudflare deployments; Postgres for Spring-first. Supabase is business truth; notification truth is separate.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>DO intake · Bus spine</h4>
+      <p>Durable Objects are the intake surface on Cloudflare. <code>reaktor-bus</code> (PubSub or CF Queue) is the async spine.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>JVM owns provider delivery</h4>
+      <p>Firebase Admin SDK and APNs direct run on JVM workers. Worker (jsMain) talks to JVM via bus, not by re-implementing the SDKs.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>Arrow + coroutines for resilience</h4>
+      <p>No bespoke retry DSL, no custom circuit breaker, no parallel effect system. <code>Schedule.exponential().jittered()</code> and <code>CircuitBreaker</code> from Arrow Resilience compose with coroutines naturally.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>Typed routes, not strings</h4>
+      <p><code>NotificationRoute</code> is a sealed class with <code>OpenPath</code> and <code>GraphAction</code> cases. Deep-link string parsing is forbidden at the route surface.</p>
+    </div>
+    <div class="card card-purple">
+      <h4>Envelope carries correlation</h4>
+      <p>Every bus envelope carries <code>correlationId</code> and <code>causationId</code> so a notification flow is traceable across kinds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 05: PLANES & FOUR GRAPHS ───────────────── -->
+<section id="planes">
+  <h2><span class="num">05</span>The six runtime planes &amp; four graphs</h2>
+  <p>
+    Reaktor describes every module's responsibilities along <strong>six canonical runtime planes</strong> (per <a href="graph-kernel-analysis.html">graph-kernel-analysis §Canonical runtime planes</a>). Planes describe <em>ownership</em>, not dependencies. A healthy module knows which plane each of its concerns belongs to and resists the urge to mix them. <code>reaktor-notifications</code> touches all six.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Plane</th><th>What it owns</th><th>Notifications' surface area</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Capability / environment</strong></td>
+          <td>Device, platform, execution, network, renderer, permission, power, thermal, storage.</td>
+          <td><code>PushNotification</code> &amp; <code>LocalNotification</code> capabilities · POST_NOTIFICATIONS / <code>requestAuthorization</code> permission gating · FCM and APNs token providers · channel / category registries.</td>
+        </tr>
+        <tr>
+          <td><strong>Graph / action</strong></td>
+          <td>Routes, panes, payloads, lifecycle, ports, services, repositories, actions.</td>
+          <td><code>NotificationsNode</code> · <code>RouteFacet</code> on <code>OpenPath</code> · <code>ActionFacet</code> on <code>GraphAction</code> · <code>ServiceFacet</code> on <code>NotificationsService</code> · <code>TactileActionRegistry</code> dispatch.</td>
+        </tr>
+        <tr>
+          <td><strong>Transport / messaging</strong></td>
+          <td>HTTP, WebSocket, queues, Pub/Sub, mesh, FFI, envelopes, retries, DLQ, idempotency.</td>
+          <td><code>QueueFacet</code> on every bus kind · outbox pattern · Arrow <code>Schedule</code> + <code>CircuitBreaker</code> · FCM HTTP v1 / APNs HTTP/2 / Web Push VAPID transport.</td>
+        </tr>
+        <tr>
+          <td><strong>Data / persistence</strong></td>
+          <td>Local cache, object store, SQL, CRDTs, blobs, sync, archival, tenant isolation.</td>
+          <td>D1 (Worker) / Postgres (Spring) operational store · 6 tables · per-tenant DB binding · endpoint &amp; record &amp; receipt &amp; idempotency &amp; interaction &amp; attempt rows.</td>
+        </tr>
+        <tr>
+          <td><strong>UI / interaction</strong></td>
+          <td>Compose, React, design tokens, tactile state, adaptive layouts, components, accessibility.</td>
+          <td>Foreground presentation policy · in-app inbox surface (P3) · permission rationale screen · interaction-back-to-UI dispatch via <code>TactileActionRegistry</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Intelligence / tooling</strong></td>
+          <td>Compiler, graphify, shadow, devtools, deployment, telemetry, MCP, AI copilot.</td>
+          <td><code>TelemetryFacet</code> on each leg · Reaktor Desktop flow panels · <code>reaktor-graphify</code> Leiden community for the notification subgraph · <code>reaktor-shadow</code> recorded traces of the full pipeline · <code>DeploymentFacet</code> partitioning intake/fanout/delivery across CF Worker / DO / Spring.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Four graphs (kernel canon · Example 9)</h3>
+  <p>
+    <a href="graph-kernel-analysis.html">graph-kernel-analysis</a> Example 9 ("Notification and Campaign System") defines the canonical four-graph decomposition. <code>reaktor-notifications</code> implements exactly these graphs; each is independently deployable to a different target.
+  </p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h4>IntakeGraph <span class="badge new">Spring · Worker · DO</span></h4>
+      <p>Where the world hands a <code>NotificationIntent</code> to the system. Nodes:</p>
+      <ul>
+        <li><code>NotificationRequestService</code> — REST / SDK entrypoint, validates &amp; idempotency-checks the intent.</li>
+        <li><code>CampaignTriggerService</code> <span class="badge phase2">P2</span> — listens for bus events, materializes intents from campaign DSL.</li>
+        <li><code>WebhookReceiver</code> — third-party event hook (Stripe, Mailgun) that produces intents.</li>
+      </ul>
+    </div>
+    <div class="card card-purple">
+      <h4>BusGraph <span class="badge new">Cloudflare Queues · GCP Pub/Sub</span></h4>
+      <p>Where async coordination lives. Each queue is a node with a <code>QueueFacet</code>; failures flow to the DLQ.</p>
+      <ul>
+        <li><code>NotificationRequestedQueue</code> — outbox-relayed from the intake transaction.</li>
+        <li><code>FanoutQueue</code> — per-endpoint delivery tasks.</li>
+        <li><code>ReceiptQueue</code> — provider acceptance &amp; device-delivery receipts.</li>
+        <li><code>DeadLetterQueue</code> — retries-exhausted or terminal-failure intents, replayable from Reaktor Desktop.</li>
+      </ul>
+    </div>
+    <div class="card card-green">
+      <h4>DeliveryGraph <span class="badge new">JVM Spring · Worker</span></h4>
+      <p>Where bytes leave the system. Each sender is a node bound to a provider:</p>
+      <ul>
+        <li><code>AndroidFcmSender</code> — Firebase Admin SDK on JVM.</li>
+        <li><code>IosApnsSender</code> — FCM-for-iOS in Phase 1; APNs-direct in <span class="badge phase2">P2</span> for Live Activities / critical alerts.</li>
+        <li><code>WebPushSender</code> <span class="badge phase2">P2</span> — VAPID JWT + AES-GCM payload encryption on the Worker.</li>
+        <li><code>RetryClassifier</code> — pure-function node that turns provider errors into <code>RetryDecision</code>.</li>
+      </ul>
+    </div>
+    <div class="card card-cyan">
+      <h4>ClientGraph <span class="badge new">Android · iOS · Web</span></h4>
+      <p>Where the user actually sees and touches a notification. Lives on the device, attached to the root graph.</p>
+      <ul>
+        <li><code>NotificationsNode</code> — lifecycle host, listener registration, permission flow.</li>
+        <li><code>NotificationActionRouter</code> — converts <code>NotificationInteractionEvent</code> to graph dispatch.</li>
+        <li><code>OpenRouteAction</code> — typed action for the path-based route case.</li>
+        <li><code>MarkReadAction</code> — typed action for the dismiss / read-receipt case.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <span class="tag">key alignment</span>
+    Each graph maps cleanly onto one or two planes: <em>Intake</em> is Graph/action + Transport, <em>Bus</em> is Transport, <em>Delivery</em> is Transport + Capability, <em>Client</em> is Capability + Graph/action + UI. There is no graph that crosses every plane — that's the property that lets the four pieces be deployed, tested, and reasoned about independently.
+  </div>
+
+  <h3>Facets in play</h3>
+  <p>
+    Facets ("typed meaning attached to a node, port, or edge without subclass explosion" — per <a href="graph-kernel-analysis.html">graph-kernel-analysis §Build next #2</a>) are how the notification module participates in the rest of the kernel without hardcoded coupling.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Facet</th><th>Carried by</th><th>Consumed by</th></tr></thead>
+      <tbody>
+        <tr><td><code>ServiceFacet</code></td><td><code>NotificationsService</code>, <code>NotificationOrchestrator</code></td><td>Routing layer, Reaktor Desktop service inspector.</td></tr>
+        <tr><td><code>QueueFacet</code></td><td>Every bus kind: <code>notifications.fanout.requested</code>, <code>.delivery.task</code>, <code>.delivery.receipt</code>, …</td><td><code>reaktor-bus</code>, DLQ replay tool, telemetry.</td></tr>
+        <tr><td><code>RouteFacet</code></td><td><code>NotificationRoute.OpenPath</code></td><td>Navigation runtime, deep-link validator, graphify route community.</td></tr>
+        <tr><td><code>ActionFacet</code></td><td><code>NotificationRoute.GraphAction</code></td><td><code>TactileActionRegistry</code>, action codegen, AI copilot suggestions.</td></tr>
+        <tr><td><code>DeploymentFacet</code></td><td>Each sender node (FCM, APNs, Web Push)</td><td><code>reaktor-devops</code> deployment planner — picks JVM Spring vs Worker per provider.</td></tr>
+        <tr><td><code>TelemetryFacet</code></td><td>Every leg of the pipeline</td><td><code>reaktor-telemetry</code>, Reaktor Desktop dashboards.</td></tr>
+        <tr><td><code>CapabilityProfile</code></td><td><code>PushNotification</code>, <code>LocalNotification</code></td><td>Strategy selector — falls back from remote → local → suppressed.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 06: THE WORKFLOW ───────────────── -->
+<section id="workflow">
+  <h2><span class="num">06</span>The notification as a typed workflow</h2>
+  <p>
+    A notification is not a "send-push" call — it is a workflow that begins with a domain intent inside a service and ends with a typed graph action on the user's device. Every async hop is a bus kind. Every step is idempotent. Every failure is observable.
+  </p>
+
+  <div class="pipeline">
+    <div class="stage intake">
+      <div class="kind">IntakeGraph · DO</div>
+      <div class="who">NotificationRequestService</div>
+      <div class="what">Idempotency check · persist <code>NotificationRecord</code> · outbox publish to <code>NotificationRequestedQueue</code></div>
+    </div>
+    <div class="stage fanout">
+      <div class="kind">BusGraph → Worker</div>
+      <div class="who">FanoutService</div>
+      <div class="what">Target → endpoints · apply policy · publish per-endpoint <code>FanoutQueue</code> tasks</div>
+    </div>
+    <div class="stage deliver">
+      <div class="kind">DeliveryGraph · JVM</div>
+      <div class="who">Fcm / Apns / WebPush Sender</div>
+      <div class="what">Build provider message · send · retry · circuit-break · <code>RetryClassifier</code></div>
+    </div>
+    <div class="stage receipt">
+      <div class="kind">BusGraph → ReceiptQueue</div>
+      <div class="who">ReceiptWorker</div>
+      <div class="what">Update attempts · invalidate dead endpoints · emit telemetry · DLQ on terminal</div>
+    </div>
+    <div class="stage client">
+      <div class="kind">ClientGraph · Device</div>
+      <div class="who">NotificationActionRouter</div>
+      <div class="what">Render · listener fires · <code>OpenRouteAction</code> / <code>MarkReadAction</code> → graph dispatch</div>
+    </div>
+  </div>
+
+  <h3>End-to-end flow</h3>
+  <div class="flow-diagram">
+    <div class="step"><span class="step-num blue">1</span><span><span class="label-pill do">DO</span> caller builds <code>NotificationIntent</code> from a domain event (e.g. <code>chat.mention</code>)</span></div>
+    <div class="step"><span class="step-num blue">2</span><span><span class="label-pill do">DO</span> <code>createNotificationInTransaction</code> writes <code>NotificationRecord</code> + outbox row atomically (idempotency-keyed)</span></div>
+    <div class="step"><span class="step-num cyan">3</span><span><span class="label-pill bus">BUS</span> outbox relay publishes <code>notifications.fanout.requested</code></span></div>
+    <div class="step"><span class="step-num purple">4</span><span><span class="label-pill bus">BUS</span> fanout worker loads record · resolves <code>NotificationTarget.User</code> → endpoints · applies <code>DeliveryPolicy</code> (quiet hours · category mute · frequency cap)</span></div>
+    <div class="step"><span class="step-num purple">5</span><span><span class="label-pill bus">BUS</span> publishes one <code>notifications.delivery.task</code> per surviving endpoint</span></div>
+    <div class="step"><span class="step-num green">6</span><span><span class="label-pill jvm">JVM</span> <code>FirebaseDeliveryWorker</code> consumes task · constructs provider message · sends through Arrow retry + circuit breaker</span></div>
+    <div class="step"><span class="step-num orange">7</span><span><span class="label-pill bus">BUS</span> publishes <code>notifications.delivery.receipt</code> (<code>Accepted</code> or <code>EndpointInvalid</code>)</span></div>
+    <div class="step"><span class="step-num orange">8</span><span><span class="label-pill jvm">JVM</span> receipt worker writes receipt row · marks endpoint invalid on permanent failure</span></div>
+    <div class="step"><span class="step-num yellow">9</span><span><span class="label-pill client">DEV</span> FCM / APNs delivers push · platform service builds <code>NotificationEnvelope</code></span></div>
+    <div class="step"><span class="step-num yellow">10</span><span><span class="label-pill client">DEV</span> foreground listener or system display · user taps</span></div>
+    <div class="step"><span class="step-num pink">11</span><span><span class="label-pill client">DEV</span> interaction bridge emits <code>NotificationInteractionEvent</code> → <code>GraphNotificationRouteDispatcher</code> → <code>graph.dispatch(...)</code></span></div>
+    <div class="step"><span class="step-num pink">12</span><span><span class="label-pill client">DEV</span> graph executes typed action exactly as if a button were pressed inside the app</span></div>
+  </div>
+
+  <div class="callout green">
+    <span class="tag">invariant</span>
+    The outbox row sits in the <strong>same SQLite transaction</strong> as the <code>NotificationRecord</code>. There is no path through this system where a chat message exists without the matching notification intent being published, or where a notification is published without the message being persisted. <em>One transaction, two intents — never one without the other.</em>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 07: MODULE LAYOUT ───────────────── -->
+<section id="layout">
+  <h2><span class="num">07</span>Module layout</h2>
+  <p>Each file is a single concern. No god-objects. The platform source sets do not hide platform primitives — they expose them as typed, composable building blocks.</p>
+  <div class="tree">
+<span class="dir">reaktor-notification/</span>
+├── <span class="dir">commonMain/</span>
+│   ├── <span class="dir">domain/</span>
+│   │   ├── <span class="new">NotificationIntent.kt</span>
+│   │   ├── <span class="new">NotificationTarget.kt</span>
+│   │   ├── <span class="new">NotificationContent.kt</span>
+│   │   ├── <span class="new">NotificationRoute.kt</span>
+│   │   ├── <span class="new">NotificationEndpoint.kt</span>
+│   │   ├── <span class="new">NotificationRecord.kt</span>
+│   │   ├── <span class="new">DeliveryTask.kt</span>
+│   │   ├── <span class="new">ProviderReceipt.kt</span>
+│   │   └── <span class="new">NotificationInteractionEvent.kt</span>
+│   ├── <span class="dir">service/</span>
+│   │   ├── <span class="new">NotificationsService.kt</span>
+│   │   ├── <span class="new">NotificationOrchestrator.kt</span>
+│   │   ├── <span class="new">NotificationEndpointStore.kt</span>
+│   │   ├── <span class="new">NotificationStore.kt</span>
+│   │   └── <span class="new">NotificationRouteDispatcher.kt</span>
+│   ├── <span class="dir">policy/</span>
+│   │   ├── <span class="new">DeliveryPolicy.kt</span>
+│   │   ├── <span class="new">FrequencyCap.kt</span>
+│   │   └── <span class="new">QuietHours.kt</span>
+│   └── <span class="dir">provider/</span>
+│       ├── <span class="new">PushProvider.kt</span>
+│       └── <span class="new">ProviderErrorClassifier.kt</span>
+├── <span class="dir">androidMain/</span>
+│   ├── <span class="new">AndroidNotificationsClient.kt</span>
+│   ├── <span class="new">FcmTokenProvider.kt</span>
+│   ├── <span class="new">AndroidChannelRegistry.kt</span>
+│   ├── <span class="new">AndroidNotificationRenderer.kt</span>
+│   ├── <span class="new">ConversationShortcutManager.kt</span>
+│   ├── <span class="new">AndroidNotificationInteractionBridge.kt</span>
+│   └── <span class="new">ReaktorFirebaseMessagingService.kt</span>
+├── <span class="dir">iosMain/</span>
+│   ├── <span class="new">IosNotificationsClient.kt</span>
+│   ├── <span class="new">ApnsRegistrationProvider.kt</span>
+│   ├── <span class="new">AppleCategoryRegistry.kt</span>
+│   ├── <span class="new">IosNotificationInteractionBridge.kt</span>
+│   ├── <span class="new">CommunicationNotificationBuilder.kt</span>
+│   └── <span class="new">LiveActivityController.kt</span>            <span class="note"># Phase 2</span>
+├── <span class="dir">jsMain/</span>
+│   ├── <span class="new">DurableObjectIntake.kt</span>
+│   ├── <span class="new">D1NotificationEndpointStore.kt</span>
+│   ├── <span class="new">D1NotificationStore.kt</span>
+│   ├── <span class="new">FanoutService.kt</span>
+│   └── <span class="new">WebPushProvider.kt</span>                    <span class="note"># Phase 2</span>
+└── <span class="dir">jvmMain/</span>
+    ├── <span class="new">FirebasePushProvider.kt</span>
+    ├── <span class="new">ApnsDirectPushProvider.kt</span>             <span class="note"># Phase 2</span>
+    ├── <span class="new">FirebaseDeliveryWorker.kt</span>
+    ├── <span class="new">PostgresNotificationEndpointStore.kt</span>
+    ├── <span class="new">PostgresNotificationStore.kt</span>
+    ├── <span class="new">ReceiptWorker.kt</span>
+    └── <span class="new">CampaignScheduler.kt</span>                  <span class="note"># Phase 2</span>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 08: DOMAIN MODEL ───────────────── -->
+<section id="domain">
+  <h2><span class="num">08</span>Domain model (commonMain)</h2>
+  <p>Semantic, provider-neutral. No FCM types. No APNs types. No platform types. All nine types live in <code>commonMain/domain/</code>.</p>
+
+  <div class="domain-grid">
+    <div class="domain">
+      <h4>NotificationIntent</h4>
+      <p>What the caller wants delivered: tenant · app · type · target · content · route · priority · category · scheduledAt · idempotencyKey · correlationId.</p>
+    </div>
+    <div class="domain">
+      <h4>NotificationTarget</h4>
+      <p>Sealed: <code>User</code> · <code>Users</code> · <code>Installation</code> · <code>Installations</code> · <code>Segment</code> (P2) · <code>Topic</code> (P2).</p>
+    </div>
+    <div class="domain">
+      <h4>NotificationContent</h4>
+      <p>title · subtitle (iOS) · body · imageUrl · categoryId · threadId · person · badge · sound · interruptionLevel · data.</p>
+    </div>
+    <div class="domain">
+      <h4>NotificationRoute</h4>
+      <p>Sealed: <code>OpenPath(path)</code> · <code>GraphAction(type, payloadJson)</code> · <code>None</code>.</p>
+    </div>
+    <div class="domain">
+      <h4>NotificationEndpoint</h4>
+      <p>id · tenant · app · user · installation · platform · provider · token · environment · locale · timezone · deviceInfo · status · preferences · timestamps.</p>
+    </div>
+    <div class="domain">
+      <h4>NotificationRecord</h4>
+      <p>The persisted intent: tenant · type · target · content · route · status · createdAt · sentAt · completedAt.</p>
+    </div>
+    <div class="domain">
+      <h4>DeliveryTask</h4>
+      <p>The unit of work for the JVM worker: notificationId · endpointId · attemptNumber · deadline.</p>
+    </div>
+    <div class="domain">
+      <h4>ProviderReceipt</h4>
+      <p>Outcome of a delivery attempt: notificationId · endpointId · providerMessageId · result · receivedAt.</p>
+    </div>
+    <div class="domain">
+      <h4>NotificationInteractionEvent</h4>
+      <p>What the device emits when the user taps or actions a notification: notificationId · endpointId · actionId · route · occurredAt.</p>
+    </div>
+  </div>
+
+  <h3>Reference shapes</h3>
+<pre><span class="kw">data class</span> <span class="ty">NotificationIntent</span>(
+  <span class="kw">val</span> tenantId: <span class="ty">String</span>,
+  <span class="kw">val</span> appId: <span class="ty">String</span>,
+  <span class="kw">val</span> type: <span class="ty">String</span>,                <span class="cm">// "chat.message" | "event.invite"</span>
+  <span class="kw">val</span> target: <span class="ty">NotificationTarget</span>,
+  <span class="kw">val</span> content: <span class="ty">NotificationContent</span>,
+  <span class="kw">val</span> route: <span class="ty">NotificationRoute</span>,
+  <span class="kw">val</span> priority: <span class="ty">NotificationPriority</span> = <span class="ty">NotificationPriority</span>.Normal,
+  <span class="kw">val</span> category: <span class="ty">String</span>? = <span class="kw">null</span>,    <span class="cm">// user-preference category</span>
+  <span class="kw">val</span> scheduledAt: <span class="ty">Instant</span>? = <span class="kw">null</span>,
+  <span class="kw">val</span> idempotencyKey: <span class="ty">String</span>? = <span class="kw">null</span>,
+  <span class="kw">val</span> correlationId: <span class="ty">String</span>? = <span class="kw">null</span>,
+)
+
+<span class="kw">sealed class</span> <span class="ty">NotificationTarget</span> {
+  <span class="kw">data class</span> <span class="ty">User</span>(<span class="kw">val</span> userId: <span class="ty">String</span>) : <span class="ty">NotificationTarget</span>()
+  <span class="kw">data class</span> <span class="ty">Users</span>(<span class="kw">val</span> userIds: <span class="ty">List</span>&lt;<span class="ty">String</span>&gt;) : <span class="ty">NotificationTarget</span>()
+  <span class="kw">data class</span> <span class="ty">Installation</span>(<span class="kw">val</span> installationId: <span class="ty">String</span>) : <span class="ty">NotificationTarget</span>()
+  <span class="kw">data class</span> <span class="ty">Installations</span>(<span class="kw">val</span> installationIds: <span class="ty">List</span>&lt;<span class="ty">String</span>&gt;) : <span class="ty">NotificationTarget</span>()
+  <span class="kw">data class</span> <span class="ty">Segment</span>(<span class="kw">val</span> segmentId: <span class="ty">String</span>) : <span class="ty">NotificationTarget</span>()   <span class="cm">// Phase 2</span>
+  <span class="kw">data class</span> <span class="ty">Topic</span>(<span class="kw">val</span> topic: <span class="ty">String</span>) : <span class="ty">NotificationTarget</span>()           <span class="cm">// Phase 2</span>
+}
+
+<span class="kw">data class</span> <span class="ty">NotificationContent</span>(
+  <span class="kw">val</span> title: <span class="ty">String</span>,
+  <span class="kw">val</span> subtitle: <span class="ty">String</span>? = <span class="kw">null</span>,        <span class="cm">// iOS only</span>
+  <span class="kw">val</span> body: <span class="ty">String</span>,
+  <span class="kw">val</span> imageUrl: <span class="ty">String</span>? = <span class="kw">null</span>,
+  <span class="kw">val</span> categoryId: <span class="ty">String</span>? = <span class="kw">null</span>,      <span class="cm">// iOS category / Android channel action set</span>
+  <span class="kw">val</span> threadId: <span class="ty">String</span>? = <span class="kw">null</span>,        <span class="cm">// iOS threadIdentifier / Android conversation id</span>
+  <span class="kw">val</span> person: <span class="ty">NotificationPerson</span>? = <span class="kw">null</span>,  <span class="cm">// communication notifications</span>
+  <span class="kw">val</span> badge: <span class="ty">Int</span>? = <span class="kw">null</span>,
+  <span class="kw">val</span> sound: <span class="ty">NotificationSound</span> = <span class="ty">NotificationSound</span>.Default,
+  <span class="kw">val</span> interruptionLevel: <span class="ty">InterruptionLevel</span> = <span class="ty">InterruptionLevel</span>.Active,
+  <span class="kw">val</span> data: <span class="ty">Map</span>&lt;<span class="ty">String</span>, <span class="ty">String</span>&gt; = emptyMap(),
+)
+
+<span class="kw">sealed class</span> <span class="ty">NotificationRoute</span> {
+  <span class="kw">data class</span> <span class="ty">OpenPath</span>(<span class="kw">val</span> path: <span class="ty">String</span>) : <span class="ty">NotificationRoute</span>()
+  <span class="kw">data class</span> <span class="ty">GraphAction</span>(<span class="kw">val</span> type: <span class="ty">String</span>, <span class="kw">val</span> payloadJson: <span class="ty">String</span>) : <span class="ty">NotificationRoute</span>()
+  <span class="kw">data object</span> <span class="ty">None</span> : <span class="ty">NotificationRoute</span>()
+}
+
+<span class="kw">enum class</span> <span class="ty">InterruptionLevel</span> { Passive, Active, TimeSensitive, Critical }
+<span class="kw">enum class</span> <span class="ty">NotificationPriority</span> { Low, Normal, High, Urgent }
+</pre>
+</section>
+
+<!-- ───────────────── SECTION 09: CONTRACTS ───────────────── -->
+<section id="contracts">
+  <h2><span class="num">09</span>Service contracts</h2>
+  <p>Six interfaces in <code>commonMain/service/</code>, each a small concern. The interface boundary is identical across embedded and hosted deployment shapes.</p>
+
+<pre><span class="kw">interface</span> <span class="ty">NotificationsService</span> {
+  <span class="kw">suspend fun</span> <span class="fn">registerEndpoint</span>(cmd: <span class="ty">RegisterEndpointCommand</span>): <span class="ty">RegisterEndpointResult</span>
+  <span class="kw">suspend fun</span> <span class="fn">unregisterEndpoint</span>(cmd: <span class="ty">UnregisterEndpointCommand</span>)
+  <span class="kw">suspend fun</span> <span class="fn">updatePreferences</span>(cmd: <span class="ty">UpdatePreferencesCommand</span>)
+  <span class="kw">suspend fun</span> <span class="fn">createNotification</span>(intent: <span class="ty">NotificationIntent</span>): <span class="ty">NotificationAccepted</span>
+  <span class="kw">suspend fun</span> <span class="fn">getNotification</span>(id: <span class="ty">String</span>): <span class="ty">NotificationRecord</span>?
+  <span class="kw">suspend fun</span> <span class="fn">recordInteraction</span>(event: <span class="ty">NotificationInteractionEvent</span>)
+}
+
+<span class="kw">interface</span> <span class="ty">NotificationOrchestrator</span> {
+  <span class="kw">suspend fun</span> <span class="fn">accept</span>(intent: <span class="ty">NotificationIntent</span>): <span class="ty">NotificationAccepted</span>
+  <span class="kw">suspend fun</span> <span class="fn">fanOut</span>(notificationId: <span class="ty">String</span>)
+  <span class="kw">suspend fun</span> <span class="fn">deliver</span>(task: <span class="ty">DeliveryTask</span>): <span class="ty">DeliveryResult</span>
+  <span class="kw">suspend fun</span> <span class="fn">handleReceipt</span>(receipt: <span class="ty">ProviderReceipt</span>)
+}
+
+<span class="kw">interface</span> <span class="ty">NotificationEndpointStore</span> {
+  <span class="kw">suspend fun</span> <span class="fn">upsert</span>(endpoint: <span class="ty">NotificationEndpoint</span>)
+  <span class="kw">suspend fun</span> <span class="fn">findByUser</span>(tenantId: <span class="ty">String</span>, appId: <span class="ty">String</span>, userId: <span class="ty">String</span>): <span class="ty">List</span>&lt;<span class="ty">NotificationEndpoint</span>&gt;
+  <span class="kw">suspend fun</span> <span class="fn">findByInstallation</span>(tenantId: <span class="ty">String</span>, appId: <span class="ty">String</span>, installationId: <span class="ty">String</span>): <span class="ty">NotificationEndpoint</span>?
+  <span class="kw">suspend fun</span> <span class="fn">markInvalid</span>(endpointId: <span class="ty">String</span>, reason: <span class="ty">String</span>)
+  <span class="kw">suspend fun</span> <span class="fn">updatePreferences</span>(endpointId: <span class="ty">String</span>, prefs: <span class="ty">PerCategoryPreferences</span>)
+}
+
+<span class="kw">interface</span> <span class="ty">NotificationStore</span> {
+  <span class="kw">suspend fun</span> <span class="fn">insert</span>(record: <span class="ty">NotificationRecord</span>)
+  <span class="kw">suspend fun</span> <span class="fn">updateStatus</span>(id: <span class="ty">String</span>, status: <span class="ty">NotificationStatus</span>)
+  <span class="kw">suspend fun</span> <span class="fn">appendAttempt</span>(attempt: <span class="ty">DeliveryAttempt</span>)
+  <span class="kw">suspend fun</span> <span class="fn">recordReceipt</span>(receipt: <span class="ty">ProviderReceipt</span>)
+  <span class="kw">suspend fun</span> <span class="fn">recordInteraction</span>(event: <span class="ty">NotificationInteractionEvent</span>)
+}
+
+<span class="kw">interface</span> <span class="ty">PushProvider</span> {
+  <span class="kw">val</span> kind: <span class="ty">PushProviderKind</span>
+  <span class="kw">suspend fun</span> <span class="fn">send</span>(batch: <span class="ty">ProviderBatch</span>): <span class="ty">ProviderBatchResult</span>
+}
+
+<span class="kw">interface</span> <span class="ty">NotificationRouteDispatcher</span> {
+  <span class="kw">suspend fun</span> <span class="fn">dispatch</span>(event: <span class="ty">NotificationInteractionEvent</span>)
+}
+</pre>
+</section>
+
+<!-- ───────────────── SECTION 10: DATA STORE ───────────────── -->
+<section id="store">
+  <h2><span class="num">10</span>Operational data store</h2>
+  <p>D1 (Cloudflare) or Postgres (Spring). Six tables in Phase 1; campaign tables land in Phase 2 if scheduled.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Table</th><th>Purpose</th><th>Key indexes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong><code>notification_endpoints</code></strong></td><td>Tokens keyed by tenant + app + installation + provider.</td><td><code>(tenant,app,user)</code> · <code>(tenant,status)</code></td></tr>
+        <tr><td><strong><code>notification_records</code></strong></td><td>Each accepted <code>NotificationIntent</code> as a persisted record.</td><td><code>(tenant,app,created_at DESC)</code> · <code>(correlation_id)</code></td></tr>
+        <tr><td><strong><code>notification_attempts</code></strong></td><td>One row per per-endpoint delivery attempt.</td><td><code>(notification_id)</code></td></tr>
+        <tr><td><strong><code>notification_receipts</code></strong></td><td>Outcomes: Accepted · DeliveredToDevice · Opened · Dismissed · Failed.</td><td><code>(notification_id)</code></td></tr>
+        <tr><td><strong><code>notification_idempotency</code></strong></td><td>Dedup table on <code>idempotencyKey</code> with TTL.</td><td>PK only</td></tr>
+        <tr><td><strong><code>notification_interactions</code></strong></td><td>Tap and action-button events from devices.</td><td><code>(notification_id)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Schema (D1)</h3>
+<pre><span class="kw">CREATE TABLE</span> notification_endpoints (
+  id <span class="ty">TEXT</span> <span class="kw">PRIMARY KEY</span>,
+  tenant_id <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  app_id <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  user_id <span class="ty">TEXT</span>,
+  installation_id <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  platform <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  provider <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  token <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  environment <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  locale <span class="ty">TEXT</span>,
+  timezone <span class="ty">TEXT</span>,
+  device_info_json <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  preferences_json <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  status <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  last_seen_at <span class="ty">INTEGER</span> <span class="kw">NOT NULL</span>,
+  created_at <span class="ty">INTEGER</span> <span class="kw">NOT NULL</span>,
+  updated_at <span class="ty">INTEGER</span> <span class="kw">NOT NULL</span>,
+  <span class="kw">UNIQUE</span>(tenant_id, app_id, installation_id, provider)
+);
+<span class="kw">CREATE INDEX</span> idx_endpoints_user <span class="kw">ON</span> notification_endpoints(tenant_id, app_id, user_id);
+<span class="kw">CREATE INDEX</span> idx_endpoints_status <span class="kw">ON</span> notification_endpoints(tenant_id, status);
+
+<span class="kw">CREATE TABLE</span> notification_records (
+  id <span class="ty">TEXT</span> <span class="kw">PRIMARY KEY</span>,
+  tenant_id <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  app_id <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  type <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  correlation_id <span class="ty">TEXT</span>,
+  target_type <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  target_value <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  content_json <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  route_json <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  category <span class="ty">TEXT</span>,
+  priority <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  status <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,
+  created_at <span class="ty">INTEGER</span> <span class="kw">NOT NULL</span>,
+  scheduled_at <span class="ty">INTEGER</span>,
+  sent_at <span class="ty">INTEGER</span>,
+  completed_at <span class="ty">INTEGER</span>
+);
+
+<span class="cm">-- + notification_attempts, notification_receipts,
+--   notification_idempotency, notification_interactions</span>
+</pre>
+</section>
+
+<!-- ───────────────── SECTION 11: ANDROID ───────────────── -->
+<section id="android">
+  <h2><span class="num">11</span>Android source set</h2>
+  <p>Translates <code>commonMain</code> contracts to Android primitives. Every Android-specific concept the OS exposes is available as a typed building block; nothing is hidden behind a lowest-common-denominator abstraction.</p>
+
+  <div class="card-grid">
+    <div class="card card-green">
+      <h4>AndroidNotificationsClient</h4>
+      <p>Implements the common <code>NotificationsClient</code> interface. Wires permissions (<code>POST_NOTIFICATIONS</code>), token acquisition, listener registration, and local-notification scheduling onto Android primitives.</p>
+    </div>
+    <div class="card card-green">
+      <h4>FcmTokenProvider</h4>
+      <p>Wraps <code>FirebaseMessaging.getToken()</code> with Arrow <code>Either</code>. Listens for <code>onNewToken</code> via the Reaktor-installed FCM service subclass and posts the new token to the endpoint store.</p>
+    </div>
+    <div class="card card-green">
+      <h4>AndroidChannelRegistry</h4>
+      <p>Idempotent channel + channel-group lifecycle at app start. Conversation channels are created on demand when a conversation first appears. Tracks what's registered to avoid recreation.</p>
+    </div>
+    <div class="card card-green">
+      <h4>AndroidNotificationRenderer</h4>
+      <p>Translates <code>NotificationContent</code> to <code>NotificationCompat.Builder</code> picking <code>BigTextStyle</code>, <code>MessagingStyle</code>, <code>BigPictureStyle</code>, <code>InboxStyle</code>, or <code>MediaStyle</code> based on content shape. Resolves <code>threadId</code> to conversation channel + shortcut; resolves <code>person</code> to <code>MessagingStyle.Person</code>.</p>
+    </div>
+    <div class="card card-green">
+      <h4>ConversationShortcutManager</h4>
+      <p>Maintains long-lived <code>ShortcutInfo</code> entries for active chats. Enables bubbles and conversation-priority on Android 11+. Pushes via <code>ShortcutManager</code>.</p>
+    </div>
+    <div class="card card-green">
+      <h4>AndroidNotificationInteractionBridge</h4>
+      <p>Receives tap and action intents. Extracts <code>notificationId</code>, <code>endpointId</code>, <code>actionId</code>, route metadata; for direct reply, extracts <code>RemoteInput</code> text and attaches it to the event.</p>
+    </div>
+    <div class="card card-green">
+      <h4>ReaktorFirebaseMessagingService</h4>
+      <p>Extends <code>FirebaseMessagingService</code>. Deserializes reaktor-specific fields from the data payload, constructs a <code>NotificationEnvelope</code>, dispatches through the client's received listener. Foreground delivery hands off to the renderer.</p>
+    </div>
+  </div>
+
+  <h3>Platform primitives covered</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Capability</th><th>Module surface</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Channels &amp; channel groups</td><td><code>AndroidChannelRegistry</code></td><td>Locked behaviors respected; only name &amp; description editable post-creation.</td></tr>
+        <tr><td>MessagingStyle</td><td><code>AndroidNotificationRenderer</code></td><td>Multi-message threading + self-message attribution.</td></tr>
+        <tr><td>Conversations (API 30+)</td><td><code>ConversationShortcutManager</code></td><td>Unlocks priority conversations, bubbles, top-of-shade placement.</td></tr>
+        <tr><td>Direct reply</td><td><code>AndroidNotificationInteractionBridge</code></td><td><code>RemoteInput</code> bound to a category's reply action.</td></tr>
+        <tr><td>Group summaries</td><td><code>AndroidNotificationRenderer</code></td><td>Explicit cross-channel aggregation when needed.</td></tr>
+        <tr><td><code>POST_NOTIFICATIONS</code> permission</td><td><code>AndroidNotificationsClient</code></td><td>Requested in context (post-onboarding), not on first launch.</td></tr>
+        <tr><td>Importance vs priority bridging</td><td><code>AndroidNotificationRenderer</code></td><td><code>NotificationCompat</code> bridges both worlds.</td></tr>
+        <tr><td>Foreground-service notifications</td><td>—</td><td><strong>Out of scope</strong>; owned by the specific service.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 12: iOS ───────────────── -->
+<section id="ios">
+  <h2><span class="num">12</span>iOS source set</h2>
+  <p>Wraps <code>UNUserNotificationCenter</code> and APNs registration. Communication-notification &amp; Live-Activity helpers expose iOS-specific features without leaking <code>UNMutableNotificationContent</code> into common code.</p>
+
+  <div class="card-grid">
+    <div class="card card-cyan">
+      <h4>IosNotificationsClient</h4>
+      <p>Implements the common interface against <code>UNUserNotificationCenter</code>: authorization, pending/delivered queries, dismissal, badge, schedule.</p>
+    </div>
+    <div class="card card-cyan">
+      <h4>ApnsRegistrationProvider</h4>
+      <p>Calls <code>registerForRemoteNotifications</code>. Receives the NSData token via the app delegate, converts to hex, returns to common. When FCM-on-iOS is enabled, exchanges the APNs token for an FCM token before upload.</p>
+    </div>
+    <div class="card card-cyan">
+      <h4>AppleCategoryRegistry</h4>
+      <p>Registers <code>UNNotificationCategory</code> entries at launch via <code>setNotificationCategories</code>. Re-registration is cheap and idempotent; categories key off app version.</p>
+    </div>
+    <div class="card card-cyan">
+      <h4>CommunicationNotificationBuilder</h4>
+      <p>Handles INPerson + <code>INSendMessageIntent</code> donation + <code>threadIdentifier</code> + intent image. Engaged whenever <code>content.person</code> is non-null. Required for sender-avatar rendering, Focus filters, CarPlay read-aloud.</p>
+    </div>
+    <div class="card card-cyan">
+      <h4>LiveActivityController <span class="badge phase2">P2</span></h4>
+      <p>Wraps ActivityKit. Starts a Live Activity with a typed <code>ContentState</code>; updates via APNs <code>liveactivity</code> push type; ends on workflow completion. Hard caps: 8h idle / 12h total / ~1 update per 30s.</p>
+    </div>
+    <div class="card card-cyan">
+      <h4>IosNotificationInteractionBridge</h4>
+      <p>Implements <code>UNUserNotificationCenterDelegate</code>. <code>willPresent</code> chooses foreground presentation options. <code>didReceive</code> converts the response to a <code>NotificationInteractionEvent</code>. Handles <code>UNTextInputNotificationResponse.userText</code>.</p>
+    </div>
+    <div class="card card-cyan">
+      <h4>Service Extension <span class="badge new">opt-in</span></h4>
+      <p>Separate target. For E2E-encrypted apps: decrypt body and substitute plaintext. For rich push: fetch image URL and attach as <code>UNNotificationAttachment</code>. Triggered by <code>mutable-content: 1</code>.</p>
+    </div>
+  </div>
+
+  <h3>Platform primitives covered</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Capability</th><th>Module surface</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Authorization (incl. provisional)</td><td><code>IosNotificationsClient</code></td><td>Provisional auth path for "deliver quietly until trusted".</td></tr>
+        <tr><td>Categories &amp; actions</td><td><code>AppleCategoryRegistry</code></td><td>Text-input actions map to direct reply.</td></tr>
+        <tr><td>Attachments &amp; rich push</td><td>Service extension</td><td>Fetched in 30s budget; original delivered on timeout.</td></tr>
+        <tr><td>Communication notifications (iOS 15+)</td><td><code>CommunicationNotificationBuilder</code></td><td>Sender avatar + Focus integration + CarPlay.</td></tr>
+        <tr><td>Focus &amp; interruption levels</td><td><code>NotificationContent.interruptionLevel</code></td><td>Passive · Active · TimeSensitive · Critical.</td></tr>
+        <tr><td>Live Activities (iOS 16.1+)</td><td><code>LiveActivityController</code> <span class="badge phase2">P2</span></td><td>Push type <code>liveactivity</code>, separate auth.</td></tr>
+        <tr><td>Critical alerts</td><td><code>NotificationContent.interruptionLevel = Critical</code></td><td>Requires Apple entitlement; surfaced not enforced by the module.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 13: WEB PUSH ───────────────── -->
+<section id="web">
+  <h2><span class="num">13</span>Web push source set <span class="badge phase2">P2</span></h2>
+  <p>
+    Web push is protocol-standardized (not vendor-proprietary) and end-to-end encrypted (AES128-GCM). It requires a Service Worker registration on the page side and a VAPID JWT on the server side. Targeted for Phase 2.
+  </p>
+  <ul>
+    <li><strong>VAPID</strong> — server generates an EC keypair, public key registered with the browser at subscription, server signs each push with the private key.</li>
+    <li><strong>Service Worker</strong> — receives <code>push</code> events even when the page is closed, displays via <code>registration.showNotification</code>.</li>
+    <li><strong>Encryption</strong> — payload encrypted with subscriber's public key; decrypted in-browser.</li>
+  </ul>
+  <p>Module pieces: <code>WebPushProvider.kt</code> on the server and a small <code>service-worker.js</code> template on the client. Web push is the most secure provider by default but the least feature-rich (no native action buttons with inline reply, limited styling).</p>
+</section>
+
+<!-- ───────────────── SECTION 14: JSMAIN ───────────────── -->
+<section id="jsmain">
+  <h2><span class="num">14</span>jsMain: intake &amp; fanout</h2>
+  <p>The Cloudflare-side runtime. A Durable Object is the intake surface; a Worker hosts the fanout <code>ServiceNode</code>; D1 holds the operational store.</p>
+
+  <h3>Intake from a Durable Object</h3>
+  <p>The DO calls <code>NotificationsService.createNotificationInTransaction(txn, intent)</code> inside the same SQLite transaction that persists the domain event. The call writes both the <code>NotificationRecord</code> and an outbox row atomically; the outbox relay publishes the bus kind asynchronously.</p>
+
+<pre><span class="kw">class</span> <span class="ty">ChatRoomDurableObject</span>(
+  <span class="kw">private val</span> db: <span class="ty">DurableObjectDatabase</span>,
+  <span class="kw">private val</span> notifications: <span class="ty">NotificationsService</span>
+) {
+  <span class="kw">suspend fun</span> <span class="fn">onMessageCreated</span>(message: <span class="ty">ChatMessage</span>) {
+    db.transaction { txn -&gt;
+      persistMessage(txn, message)
+      message.mentions.forEach { userId -&gt;
+        notifications.<span class="fn">createNotificationInTransaction</span>(
+          txn,
+          <span class="ty">NotificationIntent</span>(
+            tenantId = tenant,
+            appId = <span class="str">"bestbuds"</span>,
+            type = <span class="str">"chat.mention"</span>,
+            target = <span class="ty">NotificationTarget</span>.User(userId),
+            content = <span class="ty">NotificationContent</span>(
+              title = <span class="str">"${message.author.name} mentioned you"</span>,
+              body = message.text.take(<span class="num">100</span>),
+              threadId = message.roomId,
+              person = <span class="ty">NotificationPerson</span>(
+                id = message.author.id,
+                displayName = message.author.name,
+                avatarUrl = message.author.avatarUrl,
+              ),
+            ),
+            route = <span class="ty">NotificationRoute</span>.GraphAction(
+              type = <span class="str">"bestbuds.chat.open"</span>,
+              payloadJson = <span class="str">"""{"chatId":"${message.roomId}"}"""</span>,
+            ),
+            category = <span class="str">"messages"</span>,
+            idempotencyKey = <span class="str">"mention:${message.id}:${userId}"</span>,
+            correlationId = message.id,
+          )
+        )
+      }
+    }
+  }
+}
+</pre>
+
+  <h3>Fanout worker</h3>
+  <p>A <code>ServiceNode</code> consumes <code>notifications.fanout.requested</code>, resolves target → endpoints, applies policy, and publishes one <code>notifications.delivery.task</code> per surviving endpoint. <code>DeliveryPolicy</code> is a pure function of <code>(intent, endpoint, now)</code> and is unit-testable without infrastructure.</p>
+
+<pre><span class="kw">class</span> <span class="ty">NotificationFanoutService</span>(
+  <span class="kw">private val</span> records: <span class="ty">NotificationStore</span>,
+  <span class="kw">private val</span> endpoints: <span class="ty">NotificationEndpointStore</span>,
+  <span class="kw">private val</span> policy: <span class="ty">DeliveryPolicy</span>,
+  <span class="kw">private val</span> bus: <span class="ty">ReaktorBus</span>,
+) : <span class="ty">Service</span>() {
+  <span class="kw">val</span> fanout = <span class="ty">PostHandler</span>&lt;<span class="ty">FanoutRequest</span>, <span class="ty">FanoutResult</span>&gt;(
+    <span class="ty">ServiceEndpoint</span>.pubSub(<span class="str">"notifications.fanout.requested"</span>).operation
+  ) { request -&gt;
+    <span class="kw">val</span> record = records.get(request.notificationId)
+      ?: <span class="kw">return</span>@PostHandler <span class="ty">FanoutResult</span>.NotFound
+
+    <span class="kw">val</span> targetEndpoints = resolveTarget(record.intent.target, record.tenantId, record.appId)
+
+    <span class="kw">val</span> filtered = targetEndpoints.filter { endpoint -&gt;
+      endpoint.status == <span class="ty">EndpointStatus</span>.Active &amp;&amp;
+        policy.permits(record.intent, endpoint, <span class="ty">Clock</span>.System.now())
+    }
+
+    filtered.forEach { endpoint -&gt;
+      bus.<span class="fn">publish</span>(
+        kind = <span class="str">"notifications.delivery.task"</span>,
+        payload = <span class="ty">DeliveryTask</span>(
+          notificationId = record.id,
+          endpointId = endpoint.id,
+          attemptNumber = <span class="num">1</span>,
+          deadline = <span class="ty">Clock</span>.System.now() + <span class="num">24</span>.hours,
+        ),
+        serializer = <span class="ty">DeliveryTask</span>.serializer(),
+        correlationId = record.correlationId,
+        causationId = request.messageId,
+      )
+    }
+    <span class="ty">FanoutResult</span>.Accepted(filtered.size)
+  }
+}
+</pre>
+</section>
+
+<!-- ───────────────── SECTION 15: JVMMAIN ───────────────── -->
+<section id="jvmmain">
+  <h2><span class="num">15</span>jvmMain: delivery workers</h2>
+  <p>
+    JVM owns provider delivery because the Firebase Admin SDK and APNs HTTP/2 client are mature on JVM and not on JS. Workers consume <code>notifications.delivery.task</code> via <code>reaktor-bus</code> streaming pull, build the provider message, send through Arrow retry + circuit breaker, classify errors, and emit receipts.
+  </p>
+
+<pre><span class="kw">class</span> <span class="ty">FirebaseDeliveryWorker</span>(
+  <span class="kw">private val</span> firebase: <span class="ty">FirebaseMessaging</span>,
+  <span class="kw">private val</span> endpoints: <span class="ty">NotificationEndpointStore</span>,
+  <span class="kw">private val</span> records: <span class="ty">NotificationStore</span>,
+  <span class="kw">private val</span> classifier: <span class="ty">ProviderErrorClassifier</span>,
+  <span class="kw">private val</span> bus: <span class="ty">ReaktorBus</span>,
+) : <span class="ty">Service</span>() {
+
+  <span class="kw">private val</span> retrySchedule = <span class="ty">Schedule</span>
+    .exponential&lt;<span class="ty">Throwable</span>&gt;(base = <span class="num">1</span>.seconds)
+    .jittered()
+    .doWhile { err -&gt; classifier.classify(err) <span class="kw">is</span> <span class="ty">RetryDecision</span>.Retryable }
+    .maxN(<span class="num">10</span>)
+
+  <span class="kw">private val</span> breaker = <span class="ty">CircuitBreaker</span>(
+    maxFailures = <span class="num">5</span>,
+    resetTimeout = <span class="num">30</span>.seconds,
+    openingStrategy = <span class="ty">OpeningStrategy</span>.Count,
+  )
+
+  <span class="kw">val</span> deliver = <span class="ty">PostHandler</span>&lt;<span class="ty">DeliveryTask</span>, <span class="ty">DeliveryResult</span>&gt;(
+    <span class="ty">ServiceEndpoint</span>.pubSub(<span class="str">"notifications.delivery.task"</span>).operation
+  ) { task -&gt;
+    <span class="kw">val</span> endpoint = endpoints.findById(task.endpointId)
+      ?: <span class="kw">return</span>@PostHandler <span class="ty">DeliveryResult</span>.EndpointMissing
+    <span class="kw">val</span> record = records.get(task.notificationId)
+      ?: <span class="kw">return</span>@PostHandler <span class="ty">DeliveryResult</span>.RecordMissing
+
+    <span class="kw">val</span> message = <span class="ty">MessageBuilder</span>.forEndpoint(endpoint, record.intent.content, record.intent.route)
+
+    <span class="kw">val</span> outcome = retrySchedule.retry {
+      breaker.protectOrThrow {
+        firebase.send(message)
+        <span class="ty">DeliveryResult</span>.Accepted(firebaseMessageId = message.messageId)
+      }
+    }
+
+    outcome.fold(
+      ifLeft  = { err     -&gt; handleFailure(task, endpoint, err) },
+      ifRight = { accepted -&gt;
+        bus.publish(
+          kind = <span class="str">"notifications.delivery.receipt"</span>,
+          payload = <span class="ty">ProviderReceipt</span>(
+            notificationId = task.notificationId,
+            endpointId = task.endpointId,
+            providerMessageId = accepted.firebaseMessageId,
+            result = <span class="ty">ProviderResult</span>.Accepted,
+            receivedAt = <span class="ty">Clock</span>.System.now(),
+          ),
+          serializer = <span class="ty">ProviderReceipt</span>.serializer(),
+        )
+        accepted
+      }
+    )
+  }
+
+  <span class="kw">private suspend fun</span> <span class="fn">handleFailure</span>(task: <span class="ty">DeliveryTask</span>, endpoint: <span class="ty">NotificationEndpoint</span>, err: <span class="ty">Throwable</span>): <span class="ty">DeliveryResult</span> =
+    <span class="kw">when</span> (<span class="kw">val</span> decision = classifier.classify(err)) {
+      <span class="kw">is</span> <span class="ty">RetryDecision</span>.InvalidateEndpoint -&gt; {
+        endpoints.markInvalid(task.endpointId, decision.reason)
+        <span class="ty">DeliveryResult</span>.EndpointInvalid(decision.reason)
+      }
+      <span class="kw">is</span> <span class="ty">RetryDecision</span>.Terminal  -&gt; <span class="ty">DeliveryResult</span>.Failed(err)
+      <span class="kw">is</span> <span class="ty">RetryDecision</span>.Retryable -&gt; <span class="ty">DeliveryResult</span>.Failed(err) <span class="cm">// retries exhausted</span>
+    }
+}
+</pre>
+
+  <h3>Receipt worker</h3>
+<pre><span class="kw">class</span> <span class="ty">ReceiptWorker</span>(
+  <span class="kw">private val</span> endpoints: <span class="ty">NotificationEndpointStore</span>,
+  <span class="kw">private val</span> records: <span class="ty">NotificationStore</span>,
+) : <span class="ty">Service</span>() {
+  <span class="kw">val</span> handle = <span class="ty">PostHandler</span>&lt;<span class="ty">ProviderReceipt</span>, <span class="ty">Unit</span>&gt;(
+    <span class="ty">ServiceEndpoint</span>.pubSub(<span class="str">"notifications.delivery.receipt"</span>).operation
+  ) { receipt -&gt;
+    records.recordReceipt(receipt)
+    <span class="kw">if</span> (receipt.result <span class="kw">is</span> <span class="ty">ProviderResult</span>.EndpointInvalid) {
+      endpoints.markInvalid(receipt.endpointId, receipt.result.reason)
+    }
+  }
+}
+</pre>
+  <p>For Expo Push (if used as a provider), an additional worker polls Expo's tickets endpoint after the 15-minute propagation window and updates endpoint state.</p>
+</section>
+
+<!-- ───────────────── SECTION 16: RETRY ───────────────── -->
+<section id="retry">
+  <h2><span class="num">16</span>Retry classification</h2>
+  <p>
+    <code>ProviderErrorClassifier</code> maps provider errors to a three-way <code>RetryDecision</code>: <strong>InvalidateEndpoint</strong> (dead token — remove from store), <strong>Retryable</strong> (transient — Arrow retries with backoff), <strong>Terminal</strong> (operator-fixable or unknown — surface to DLQ).
+    One implementation per provider, each tested against fixture error responses captured from real deployments.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Provider</th><th>Error</th><th>Decision</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>FCM</td><td><code>UNREGISTERED</code></td><td><span class="badge missing">Invalidate</span></td><td>Mark endpoint invalid; stop sending to this token.</td></tr>
+        <tr><td>FCM</td><td><code>INVALID_ARGUMENT</code></td><td><span class="badge missing">Invalidate</span></td><td>Malformed token or payload; mark invalid.</td></tr>
+        <tr><td>FCM</td><td><code>SENDER_ID_MISMATCH</code></td><td><span class="badge missing">Invalidate</span></td><td>Token belongs to a different app.</td></tr>
+        <tr><td>FCM</td><td><code>QUOTA_EXCEEDED</code></td><td><span class="badge partial">Retryable</span></td><td>Exponential backoff + jitter.</td></tr>
+        <tr><td>FCM</td><td><code>UNAVAILABLE</code> / <code>INTERNAL</code></td><td><span class="badge partial">Retryable</span></td><td>Transient FCM outage.</td></tr>
+        <tr><td>FCM</td><td><code>THIRD_PARTY_AUTH_ERROR</code></td><td><span class="badge new">Terminal</span></td><td>Operator-fixable (APNs key config).</td></tr>
+        <tr><td>APNs</td><td><code>BadDeviceToken</code> / <code>Unregistered</code> / <code>DeviceTokenNotForTopic</code></td><td><span class="badge missing">Invalidate</span></td><td>Common: dev/prod env mismatch causes <code>DeviceTokenNotForTopic</code>.</td></tr>
+        <tr><td>APNs</td><td><code>TooManyRequests</code> / <code>ServiceUnavailable</code> / <code>Shutdown</code></td><td><span class="badge partial">Retryable</span></td><td>Backoff &amp; reconnect.</td></tr>
+        <tr><td>*</td><td><code>IOException</code></td><td><span class="badge partial">Retryable</span></td><td>Network blip.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 17: ROUTING ───────────────── -->
+<section id="routing">
+  <h2><span class="num">17</span>Typed routing into the graph</h2>
+  <p>
+    Tap and action events are not strings. They become <code>NotificationInteractionEvent</code> on the client, and the <code>GraphNotificationRouteDispatcher</code> converts them to typed graph actions or route pushes.
+  </p>
+
+<pre><span class="kw">class</span> <span class="ty">GraphNotificationRouteDispatcher</span>(
+  <span class="kw">private val</span> graph: <span class="ty">Graph</span>,
+  <span class="kw">private val</span> actionRegistry: <span class="ty">TactileActionRegistry</span>,
+) : <span class="ty">NotificationRouteDispatcher</span> {
+
+  <span class="kw">override suspend fun</span> <span class="fn">dispatch</span>(event: <span class="ty">NotificationInteractionEvent</span>) {
+    <span class="kw">when</span> (<span class="kw">val</span> route = event.route) {
+      <span class="kw">is</span> <span class="ty">NotificationRoute</span>.OpenPath -&gt; {
+        <span class="kw">val</span> routeNode = graph.resolveRoute(route.path) ?: <span class="kw">return</span>
+        graph.dispatch(<span class="ty">Push</span>(routeNode.edge(), routeNode.parsePayload(route.path)))
+      }
+      <span class="kw">is</span> <span class="ty">NotificationRoute</span>.GraphAction -&gt; {
+        <span class="kw">val</span> actionRef = <span class="ty">ActionRef</span>(route.type, payloadSchema = route.type)
+        <span class="kw">val</span> payload = <span class="ty">TactileValue</span>.fromJson(route.payloadJson)
+        actionRegistry.dispatch(actionRef, payload)
+      }
+      <span class="ty">NotificationRoute</span>.None -&gt; <span class="ty">Unit</span>
+    }
+  }
+}
+</pre>
+
+  <div class="callout green">
+    <span class="tag">differentiator</span>
+    A tap on "Alice mentioned you" fires <code>GraphAction(type = "bestbuds.chat.open", payloadJson = {"chatId":"..."})</code>. The dispatcher resolves the action through <code>TactileActionRegistry</code> — the <em>same registry the UI already uses for button taps</em>. A notification tap is a first-class graph event. Deep-link strings are an internal detail of the path-based route only.
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 18: NODE ───────────────── -->
+<section id="node">
+  <h2><span class="num">18</span>NotificationsNode: graph integration</h2>
+  <p>Notifications live in the graph as a node, not as a parallel system. Lifecycle hooks and DI scope flow naturally from <code>BasicNode</code>.</p>
+
+<pre><span class="kw">class</span> <span class="ty">NotificationsNode</span>(
+  graph: <span class="ty">Graph</span>,
+  <span class="kw">private val</span> client: <span class="ty">NotificationsClient</span>,
+  <span class="kw">private val</span> dispatcher: <span class="ty">NotificationRouteDispatcher</span>,
+) : <span class="ty">BasicNode</span>(graph) {
+
+  <span class="kw">override suspend fun</span> <span class="fn">onAttach</span>() {
+    client.addReceivedListener { envelope -&gt;
+      <span class="cm">// foreground presentation, badge update, analytics</span>
+    }
+    client.addResponseListener { response -&gt;
+      dispatcher.dispatch(response.toInteractionEvent())
+    }
+  }
+
+  <span class="kw">suspend fun</span> <span class="fn">register</span>(userId: <span class="ty">String</span>?) {
+    <span class="kw">val</span> permission = client.getPermissions()
+    <span class="kw">if</span> (permission == <span class="ty">NotificationPermissionStatus</span>.Denied) <span class="kw">return</span>
+    <span class="kw">if</span> (permission == <span class="ty">NotificationPermissionStatus</span>.Undetermined) {
+      <span class="kw">val</span> granted = client.requestPermissions()
+      <span class="kw">if</span> (granted == <span class="ty">NotificationPermissionStatus</span>.Denied) <span class="kw">return</span>
+    }
+    client.registerRemoteEndpoint(userId)
+  }
+}
+
+<span class="kw">fun</span> <span class="ty">Graph</span>.<span class="fn">NotificationsNode</span>(
+  client: <span class="ty">NotificationsClient</span>,
+  dispatcher: <span class="ty">NotificationRouteDispatcher</span>,
+): <span class="ty">NotificationsNode</span> {
+  <span class="kw">val</span> node = <span class="ty">NotificationsNode</span>(<span class="kw">this</span>, client, dispatcher)
+  attach(node)
+  <span class="kw">return</span> node
+}
+
+<span class="cm">// Installed in the app's root graph:</span>
+rootGraph.<span class="fn">NotificationsNode</span>(
+  client = platformNotificationsClient,
+  dispatcher = <span class="ty">GraphNotificationRouteDispatcher</span>(rootGraph, actionRegistry),
+)
+</pre>
+
+  <p>From the developer's perspective notifications are a graph capability. From the runtime's perspective they are a node with lifecycle hooks and DI scope.</p>
+</section>
+
+<!-- ───────────────── SECTION 19: OBSERVABILITY ───────────────── -->
+<section id="observability">
+  <h2><span class="num">19</span>Observability</h2>
+  <p>Every intent, attempt, receipt, and interaction is traced end to end via <code>reaktor-telemetry</code> with a stable <code>notification.correlationId</code> spanning the entire flow.</p>
+
+  <h3>Standard telemetry attributes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Attribute</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>notification.id</code></td><td>Record id.</td></tr>
+        <tr><td><code>notification.type</code></td><td>Domain type (<code>chat.mention</code>, <code>order.shipped</code>).</td></tr>
+        <tr><td><code>notification.tenant_id</code> · <code>notification.app_id</code></td><td>Multi-tenant context.</td></tr>
+        <tr><td><code>notification.target_type</code></td><td>User · Installation · Segment · …</td></tr>
+        <tr><td><code>notification.endpoint_id</code> · <code>notification.provider</code></td><td>Per-leg endpoint detail.</td></tr>
+        <tr><td><code>notification.attempt</code> · <code>notification.status</code> · <code>notification.error_code</code></td><td>Delivery semantics.</td></tr>
+        <tr><td><code>notification.route_type</code> · <code>notification.interaction_type</code></td><td>Routing &amp; user response.</td></tr>
+        <tr><td><code>notification.latency_ms</code></td><td>End-to-end latency for SLO tracking.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Reaktor Desktop dashboard panels</h3>
+  <ul>
+    <li>Notification flow graph: <em>intake → fanout → delivery → interaction</em> with live counters.</li>
+    <li>Endpoint health per tenant, platform, and provider.</li>
+    <li>Delivery success rate rolled up by notification type.</li>
+    <li>Retry frequency and DLQ depth.</li>
+    <li>Interaction conversion: <em>notification → tap → graph action</em>.</li>
+    <li>Slow-delivery alerts: P95 delivery latency breaching threshold.</li>
+  </ul>
+
+  <div class="callout green">
+    <span class="tag">closes the gap</span>
+    This is what closes the "works in demos, opaque in production" gap that afflicts most notification systems. Every leg emits a structured span with the same <code>correlationId</code>; everything is queryable from Reaktor Desktop.
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 20: MODES ───────────────── -->
+<section id="modes">
+  <h2><span class="num">20</span>Hosted vs embedded</h2>
+  <div class="compare">
+    <div class="col target">
+      <h4>Hosted (Reaktor Cloud)</h4>
+      <p>Bestbuds Ventures runs a multi-tenant delivery fleet. Tenants call a hosted REST API (or SDK) with <code>createNotification</code> calls; from tenant code the experience is identical to embedded mode.</p>
+      <ul>
+        <li>Per-tenant D1 databases (<code>notifications.{tenantId}</code> binding)</li>
+        <li>Per-tenant FCM service accounts, encrypted at rest</li>
+        <li>Per-tenant APNs keys, encrypted at rest</li>
+        <li>Multi-tenant JVM delivery fleet with per-tenant rate limits</li>
+        <li>Per-tenant analytics dashboard surfaced through Reaktor Desktop</li>
+        <li>Auth via <code>reaktor-auth</code> tenant API keys</li>
+      </ul>
+    </div>
+    <div class="col expo">
+      <h4>Embedded (self-hosted)</h4>
+      <p>The tenant runs their own notifications cluster. Same module, same <code>commonMain</code> contracts, different deployment topology.</p>
+      <ul>
+        <li>D1 or Postgres operational store</li>
+        <li>Their own FCM &amp; APNs credentials</li>
+        <li>Their own JVM workers</li>
+        <li>Their own <code>reaktor-bus</code> deployment</li>
+      </ul>
+    </div>
+  </div>
+  <p>Migration from embedded to hosted (or back) is a deployment-config change. Application code does not change.</p>
+</section>
+
+<!-- ───────────────── SECTION 21: ROADMAP ───────────────── -->
+<section id="roadmap">
+  <h2><span class="num">21</span>Phase 1 / Phase 2 roadmap</h2>
+
+  <div class="phase p1">
+    <h4>Phase 1 — v0.1 <span class="timeline">target: Q3 2026</span></h4>
+    <ul>
+      <li>Single KMM module with all five source sets populated.</li>
+      <li>Android + iOS client: permissions, channels, conversation shortcuts, token acquisition, local notifications, receive + respond, typed interaction bridge.</li>
+      <li>D1-backed endpoint store, record store, idempotency table, interactions table, receipts table, attempts table.</li>
+      <li>Durable Object intake (jsMain) with outbox pattern.</li>
+      <li>Fanout <code>ServiceNode</code> (jsMain) with policy engine (quiet hours, frequency caps, category mutes).</li>
+      <li>JVM <code>FirebasePushProvider</code> + <code>FirebaseDeliveryWorker</code> with Arrow retry + circuit breaker.</li>
+      <li>FCM error classifier.</li>
+      <li>Receipt worker for FCM.</li>
+      <li><code>GraphNotificationRouteDispatcher</code> + <code>NotificationsNode</code>.</li>
+      <li>Six bus kinds declared; <code>reaktor-bus</code> wiring.</li>
+      <li>Endpoint invalidation on permanent failure.</li>
+      <li>Standard telemetry.</li>
+    </ul>
+  </div>
+
+  <div class="phase p2">
+    <h4>Phase 2 — v0.2 <span class="timeline">target: Q4 2026 — Q1 2027</span></h4>
+    <ul>
+      <li>APNs direct (Live Activities, critical alerts, push-to-talk, push types FCM does not expose).</li>
+      <li>Web Push provider (VAPID + service worker template + AES-GCM encryption).</li>
+      <li>Live Activities controller (ActivityKit wrapper).</li>
+      <li>Campaign engine: scheduled + event-triggered campaigns with A/B variants.</li>
+      <li>Segmentation queries over the endpoint store (attribute + event filters).</li>
+      <li>Frequency caps + quiet hours promoted from policy to campaign-level config.</li>
+      <li>Expo Push provider (optional, as an interchangeable <code>PushProvider</code> implementation).</li>
+    </ul>
+  </div>
+
+  <div class="phase p3">
+    <h4>Explicitly out of scope</h4>
+    <ul>
+      <li>Visual journey builder (a Reaktor Desktop feature, not a module concern).</li>
+      <li>Propensity scoring &amp; best-time-to-send ML.</li>
+      <li>Multi-channel orchestration: <code>reaktor-email</code> and <code>reaktor-sms</code> are separate modules.</li>
+      <li>In-app inbox UI (lives in <code>reaktor-tactile</code> if it ships at all).</li>
+      <li>Foreground-service notifications — owned by the specific service (media player, call UI).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 22: INTEGRATION ───────────────── -->
+<section id="integration">
+  <h2><span class="num">22</span>Integration with the rest of Reaktor</h2>
+  <p>Composes through standard Reaktor surfaces. No bespoke wiring. The <strong>status</strong> column reflects the dependency's own state today — most are partial or aspirational, which is the most important fact this whole document needs to communicate honestly. <code>reaktor-notifications</code> cannot ship faster than the slowest of its dependencies, so Phase 1 sequencing has to follow them.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Module</th><th>Status today</th><th>How reaktor-notifications uses it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>reaktor-core</strong></td><td><span class="badge done">Stable</span></td><td>Idempotency contract; persisted attempt &amp; record abstractions; typed envelope helpers.</td></tr>
+        <tr><td><strong>reaktor-graph</strong></td><td><span class="badge done">Stable</span></td><td><code>NotificationsNode</code> is a graph node; lifecycle &amp; DI scope flow naturally. Kernel facets (<code>ServiceFacet</code>, <code>RouteFacet</code>, <code>ActionFacet</code>) tag every concern.</td></tr>
+        <tr><td><strong>reaktor-graph-port</strong></td><td><span class="badge partial">Partial</span></td><td><code>ServiceNode</code> handlers with <code>ServiceEndpoint.pubSub</code>; <code>ConsumerPort</code> / <code>ProviderPort</code> wiring. Port kernel exists; transport bindings vary by target.</td></tr>
+        <tr><td><strong>reaktor-bus</strong></td><td><span class="badge missing">Aspirational</span></td><td>Every async topic. Module assumes outbox, retry, DLQ, envelope with <code>correlationId</code>, W3C trace context. <strong>Blocks intake → fanout coordination.</strong></td></tr>
+        <tr><td><strong>reaktor-capability</strong></td><td><span class="badge partial">Vocabulary only</span></td><td><code>CapabilityProfile</code> for <code>PushNotification</code> / <code>LocalNotification</code> with tiers: <em>Full</em> (remote + local) · <em>Basic</em> (local only) · <em>Fallback</em> (suppressed). Strategy selector adapter layer still to build.</td></tr>
+        <tr><td><strong>reaktor-db</strong></td><td><span class="badge partial">Partial</span></td><td>D1 (Worker) and Postgres (Spring) repository adapters for the six tables; outbox primitive. Repos exist for some adapters; multi-target story incomplete.</td></tr>
+        <tr><td><strong>reaktor-auth</strong></td><td><span class="badge partial">Partial — see <a href="auth-analysis.html">auth-analysis</a></span></td><td>Tenant + user identity on intent construction; permission gating on hosted API. Spring middleware partial (<code>DefaultSecurityConfig</code> permits all); JWKS endpoint on Workers missing.</td></tr>
+        <tr><td><strong>reaktor-telemetry</strong></td><td><span class="badge missing">Aspirational</span></td><td>Structured trace emission through the delivery pipeline; <code>correlationId</code> across kinds. Schema and collection layer undefined today.</td></tr>
+        <tr><td><strong>reaktor-tactile</strong></td><td><span class="badge partial">Partial</span></td><td><code>NotificationsService</code> action refs available to generated UI via <code>TactileActionRegistry</code>. Action registry exists; registry-as-ContractId boundary still firming up.</td></tr>
+        <tr><td><strong>reaktor-graphify</strong></td><td><span class="badge missing">Aspirational</span></td><td>Notification subgraph appears in <code>GRAPH_REPORT.md</code> as its own Leiden community.</td></tr>
+        <tr><td><strong>reaktor-shadow</strong></td><td><span class="badge missing">Aspirational</span></td><td>Notification flows participate in recorded traces; replay covers the full intake-to-receipt chain.</td></tr>
+        <tr><td><strong>reaktor-cloudflare</strong></td><td><span class="badge partial">Partial</span></td><td>DO intake surface; D1 binding; CF Queues for the bus; per-tenant DB binding for hosted mode.</td></tr>
+        <tr><td><strong>reaktor-devops</strong></td><td><span class="badge missing">Aspirational</span></td><td>Deploys the module across Worker, Spring, and D1 in one command; bus kinds registered in the CF and GCP control plane.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout orange">
+    <span class="tag">honest take</span>
+    Three dependencies are <strong>blocking</strong> a real Phase 1 ship: <code>reaktor-bus</code> (no outbox / DLQ today), <code>reaktor-telemetry</code> (no schema), and <code>reaktor-capability</code> (vocabulary only). Phase 1 should either land minimum-viable versions of these in parallel, or stub them with explicit "to be replaced" interfaces. Without that, <em>this module ends up reinventing those kernels privately</em>, which the design philosophy (commitment #2: "reuse the rest of Reaktor") explicitly forbids.
+  </div>
+</section>
+
+<!-- ───────────────── SECTION 23: GAP ───────────────── -->
+<section id="gap">
+  <h2><span class="num">23</span>Gap analysis &amp; next steps</h2>
+  <p>The honest picture: every concern in this document, except the empty <code>NotificationAdapter</code> class, is not yet implemented. The work below is roughly ordered to unblock the next concern after it lands.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Work item</th><th>Source set</th><th>Status</th><th>Blocks</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Domain types (Intent, Target, Content, Route, Endpoint, Record, DeliveryTask, ProviderReceipt, InteractionEvent)</td><td>commonMain</td><td><span class="badge missing">missing</span></td><td>everything</td></tr>
+        <tr><td>2</td><td>Service contracts (6 interfaces)</td><td>commonMain</td><td><span class="badge missing">missing</span></td><td>all platform impls</td></tr>
+        <tr><td>3</td><td>Policy: <code>DeliveryPolicy</code>, <code>FrequencyCap</code>, <code>QuietHours</code> (pure functions)</td><td>commonMain</td><td><span class="badge missing">missing</span></td><td>fanout</td></tr>
+        <tr><td>4</td><td>D1 schema migrations &amp; <code>D1Notification{Endpoint,Record}Store</code></td><td>jsMain</td><td><span class="badge missing">missing</span></td><td>intake, fanout</td></tr>
+        <tr><td>5</td><td><code>DurableObjectIntake</code> with outbox row + idempotency</td><td>jsMain</td><td><span class="badge missing">missing</span></td><td>fanout</td></tr>
+        <tr><td>6</td><td><code>FanoutService</code> consuming <code>notifications.fanout.requested</code></td><td>jsMain</td><td><span class="badge missing">missing</span></td><td>delivery</td></tr>
+        <tr><td>7</td><td><code>FcmErrorClassifier</code> &amp; <code>FirebasePushProvider</code></td><td>jvmMain</td><td><span class="badge missing">missing</span></td><td>delivery worker</td></tr>
+        <tr><td>8</td><td><code>FirebaseDeliveryWorker</code> with Arrow Schedule + CircuitBreaker</td><td>jvmMain</td><td><span class="badge missing">missing</span></td><td>receipts</td></tr>
+        <tr><td>9</td><td><code>ReceiptWorker</code> updating attempts and invalidating endpoints</td><td>jvmMain</td><td><span class="badge missing">missing</span></td><td>endpoint health</td></tr>
+        <tr><td>10</td><td><code>AndroidChannelRegistry</code>, <code>FcmTokenProvider</code>, <code>ReaktorFirebaseMessagingService</code></td><td>androidMain</td><td><span class="badge missing">missing</span></td><td>android receive</td></tr>
+        <tr><td>11</td><td><code>AndroidNotificationRenderer</code>, <code>ConversationShortcutManager</code>, <code>AndroidNotificationInteractionBridge</code></td><td>androidMain</td><td><span class="badge missing">missing</span></td><td>android tap routing</td></tr>
+        <tr><td>12</td><td><code>IosNotificationsClient</code>, <code>ApnsRegistrationProvider</code>, <code>AppleCategoryRegistry</code>, <code>IosNotificationInteractionBridge</code></td><td>iosMain</td><td><span class="badge missing">missing</span></td><td>ios receive + tap</td></tr>
+        <tr><td>13</td><td><code>CommunicationNotificationBuilder</code> (iOS 15+ sender avatar + Focus)</td><td>iosMain</td><td><span class="badge missing">missing</span></td><td>chat-app parity</td></tr>
+        <tr><td>14</td><td><code>NotificationsNode</code> + <code>GraphNotificationRouteDispatcher</code></td><td>commonMain</td><td><span class="badge missing">missing</span></td><td>graph integration</td></tr>
+        <tr><td>15</td><td>Telemetry attribute set + Reaktor Desktop panels</td><td>commonMain + tooling</td><td><span class="badge missing">missing</span></td><td>operational sign-off</td></tr>
+        <tr><td>16</td><td>Postgres adapters for Spring-first deployments</td><td>jvmMain</td><td><span class="badge missing">missing</span></td><td>embedded mode</td></tr>
+        <tr><td>17</td><td>APNs direct provider, Web Push provider, Live Activities</td><td>jvmMain, jsMain, iosMain</td><td><span class="badge phase2">Phase 2</span></td><td>—</td></tr>
+        <tr><td>18</td><td>Campaign scheduler, segmentation, A/B testing</td><td>jvmMain, jsMain</td><td><span class="badge phase2">Phase 2</span></td><td>engagement-platform parity</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Critical-path recommendation</h3>
+  <div class="card-grid">
+    <div class="card card-accent">
+      <h4>Week 1–2 · Domain &amp; contracts</h4>
+      <p>Land every type and interface in <code>commonMain</code>. Nothing else is unblocked without them. These are pure data classes — they should be reviewable independently of any platform work.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>Week 3–4 · Edge intake on D1</h4>
+      <p>D1 schema, <code>D1NotificationEndpointStore</code>, <code>D1NotificationStore</code>, idempotency table, outbox relay, <code>DurableObjectIntake</code>. End state: a chat DO can call <code>createNotificationInTransaction</code> and observe a bus kind being published.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>Week 5–7 · JVM delivery</h4>
+      <p><code>FcmErrorClassifier</code>, <code>FirebasePushProvider</code>, <code>FirebaseDeliveryWorker</code> with Arrow retry + circuit breaker, <code>ReceiptWorker</code>. End state: a published delivery task produces a real FCM push and a persisted receipt.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>Week 8–10 · Android client</h4>
+      <p>Channel registry, token provider, FCM service subclass, renderer, interaction bridge. End state: a push from the JVM worker lands on a real Android device and a tap dispatches a typed graph action.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>Week 11–13 · iOS client</h4>
+      <p><code>UNUserNotificationCenterDelegate</code> impl, APNs registration, category registry, interaction bridge, communication notifications. End state: full parity with the Android client.</p>
+    </div>
+    <div class="card card-accent">
+      <h4>Week 14 · Telemetry &amp; cutover</h4>
+      <p>Wire <code>reaktor-telemetry</code> across every leg. Land Desktop panels. Cut Bestbuds chat mentions over to the new pipeline behind a feature flag.</p>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">first user</span>
+    Bestbuds is the obvious first consumer. <code>chat.mention</code> notifications + tap-deep-link-into-chat is exactly the workflow this module exists to make trivial, and it is the highest-value notification surface on the product today.
+  </div>
+</section>
+
+<footer>
+  <p>
+    reaktor-notifications · detailed design · authored by <strong>Claude</strong> · sourced from Reaktor System Specification §22 · cross-checked against peer docs · drafted 2026-05-26
+  </p>
+  <p>
+    <strong>Kernel context:</strong>
+    <a href="graph-kernel-analysis.html">graph-kernel-analysis</a>
+    (planes · facets · Example 9 four-graph decomposition)
+  </p>
+  <p>
+    <strong>Peer module designs:</strong>
+    <a href="auth-analysis.html">reaktor-auth</a> ·
+    <a href="reaktor-architecture-analysis.html">reaktor-architecture-analysis</a> ·
+    <a href="reaktor-implementation-plan.html">reaktor-implementation-plan</a> ·
+    <a href="flow-analysis.html">flow-analysis</a>
+  </p>
+  <p>
+    <strong>Navigate:</strong>
+    <a href="docs.html#architecture">all architecture docs</a> ·
+    <a href="docs-index.html">full doc index</a>
+  </p>
+</footer>
+
+</div>
+
+</body>
+</html>

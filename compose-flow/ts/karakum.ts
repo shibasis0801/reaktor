@@ -52,6 +52,10 @@ export interface Node<Data = unknown> {
   zIndex?: number;
   sourcePosition?: string;
   targetPosition?: string;
+  draggable?: boolean;
+  selectable?: boolean;
+  connectable?: boolean;
+  deletable?: boolean;
 }
 
 export interface EdgeMarker {
@@ -73,8 +77,13 @@ export interface Edge<Data = unknown> {
   selected?: boolean;
   hidden?: boolean;
   animated?: boolean;
+  markerStart?: EdgeMarker;
   markerEnd?: EdgeMarker;
   zIndex?: number;
+  selectable?: boolean;
+  deletable?: boolean;
+  reconnectable?: boolean;
+  interactionWidth?: number;
 }
 
 export interface Connection {

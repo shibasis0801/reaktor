@@ -114,7 +114,7 @@ internal fun ReaktorGraphScene(
                             flow = flow,
                             style = graphStyle,
                             rightInsetPx = rightInsetPx,
-                            readable = false,
+                            readable = true,
                         )
                     },
                     onResetZoom = {

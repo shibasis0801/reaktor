@@ -1,0 +1,1146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>React × Compose Interop Roadmap · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>UI and interop</span><span>Claude</span></div>
+      <p class="eyebrow">UI and interop · Claude</p>
+      <h1>React × Compose Interop Roadmap</h1>
+      <p class="subtitle">High-performance interop roadmap for bridging React and Compose across platforms.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use for phased interop execution and runtime performance checkpoints.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/react-compose-interop-roadmap</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a aria-current="page" href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#1-core-thesis">1. Core thesis</a><a href="#2-target-architecture">2. Target architecture</a><a href="#3-build-roadmap">3. Build roadmap</a><a href="#4-proposed-module-map">4. Proposed module map</a><a href="#5-internal-data-structures">5. Internal data structures</a><a href="#6-benchmark-and-profiling-plan">6. Benchmark and profiling plan</a><a href="#7-study-plan">7. Study plan</a><a href="#8-learning-resources-and-references">8. Learning resources and references</a><a href="#9-risks-and-mitigations">9. Risks and mitigations</a><a href="#10-codex-ready-implementation-tasks">10. Codex-ready implementation tasks</a><a href="#11-final-recommended-north-star">11. Final recommended north star</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<section id="thesis">
+          <div class="section-inner">
+            <h2 id="1-core-thesis">1. Core thesis</h2>
+            <div class="callout success">
+              <strong>Build a shared host runtime, not a fake universal component framework.</strong>
+              React and Compose should remain expert reconcilers. Reaktor should own the high-performance retained tree,
+              mutation protocol, dirty propagation, cross-runtime identity, event routing, inspection, and scheduling boundary.
+            </div>
+
+            <div class="diagram">React components / hooks              Compose functions / remember / snapshots
+          │                                      │
+          ▼                                      ▼
+React Fiber reconciliation             Compose Composer + Applier
+          │                                      │
+          └────────────── Host mutation ops ─────┘
+                             │
+                             ▼
+              Reaktor Mutation Buffer / Batch
+                             │
+                             ▼
+              Arena-backed retained HostTree
+                             │
+                             ▼
+         Derived ShadowTree: style/layout/dirty/events
+                             │
+                             ▼
+      Compose renderer / React renderer / DOM / native / inspector</div>
+
+            <h3>Non-negotiable principles</h3>
+            <ul>
+              <li><strong>Never depend on private Fiber or SlotTable layout.</strong> Connect at host mutation boundaries.</li>
+              <li><strong>Every subtree has one structural owner.</strong> React owns React islands; Compose owns Compose islands; Reaktor owns the kernel.</li>
+              <li><strong>Batch before crossing runtime boundaries.</strong> Avoid one JSI/native call per host mutation.</li>
+              <li><strong>Node identity is explicit and stable.</strong> NodeId survives renderer changes and powers profiling/tooling.</li>
+              <li><strong>ShadowTree is derived, not authoritative.</strong> Canonical HostTree is the source of truth.</li>
+              <li><strong>Low-level structures are hidden.</strong> Gap buffers, arenas, slabs, and dirty bitsets are internal implementation details.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <div class="section-inner">
+            <h2 id="2-target-architecture">2. Target architecture</h2>
+
+            <h3>Runtime layers</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Layer</th>
+                  <th>Purpose</th>
+                  <th>Core artifacts</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Authoring frontends</td>
+                  <td>Let users write idiomatic UI in React, Compose, Blueprint, or server-generated form.</td>
+                  <td>React components, composables, visual graph nodes, server UI specs</td>
+                </tr>
+                <tr>
+                  <td>Runtime adapters</td>
+                  <td>Translate reconciler-specific host operations into Reaktor mutations.</td>
+                  <td>React HostConfig, Compose Applier, Blueprint compiler</td>
+                </tr>
+                <tr>
+                  <td>Mutation buffer</td>
+                  <td>Collect, compact, validate, and flush structural/prop/event changes.</td>
+                  <td>TreeOp, TreeMutationBatch, binary op stream, frame transaction</td>
+                </tr>
+                <tr>
+                  <td>HostTree</td>
+                  <td>Canonical retained tree with stable ids, props, event refs, ownership, and children.</td>
+                  <td>Arena store, NodeRecord, ChildBuffer, PropsRef, EventRef</td>
+                </tr>
+                <tr>
+                  <td>ShadowTree</td>
+                  <td>Derived renderer-facing tree with layout/style/event caches and dirty propagation.</td>
+                  <td>ShadowNode, DirtyFlags, LayoutBox, MeasureCache, hit-test tree</td>
+                </tr>
+                <tr>
+                  <td>Renderers</td>
+                  <td>Project shadow snapshots to platform UI.</td>
+                  <td>Compose renderer, React renderer, DOM renderer, native renderer, inspector renderer</td>
+                </tr>
+                <tr>
+                  <td>Tooling</td>
+                  <td>Expose the tree to debugger, graph visualizer, perf traces, AI agents, and Blueprint editor.</td>
+                  <td>Inspector protocol, trace spans, snapshot export, graph diff protocol</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Important internal handles</h3>
+            <pre><code>React Fiber host instance ┐
+                          ├── ReaktorHostNodeHandle(NodeId, BoundaryId)
+Compose Applier node  ────┘
+
+NodeId
+  → arena index + generation
+  → HostNode
+  → ShadowNode
+  → optional renderer handle
+  → inspector/profiler identity</code></pre>
+
+            <h3>Ownership island model</h3>
+            <div class="diagram">ReaktorRoot
+├── ComposeBoundary(id = C1)
+│   ├── Compose-owned screen chrome
+│   ├── ReactBoundary(id = R1)
+│   │   └── React-owned dynamic campaign card
+│   └── Compose-owned native footer
+├── ServerBoundary(id = S1)
+│   └── server-controlled announcement modal
+└── BlueprintBoundary(id = B1)
+    └── visual editor generated form</div>
+
+            <p>
+              A parent runtime may mount or unmount a boundary, pass props/resources into it, and receive events from it.
+              It should not directly mutate the child structure inside another owner’s boundary.
+            </p>
+          </div>
+        </section>
+
+        <section id="phases">
+          <div class="section-inner">
+            <h2 id="3-build-roadmap">3. Build roadmap</h2>
+            <p>
+              The phases are ordered to minimize unknowns. The early goal is not product completeness; it is to prove
+              the central performance path: <span class="tag">React/Compose → batched ops → HostTree → ShadowTree → renderer</span>.
+            </p>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 0 — Research spike and architecture guardrails</div>
+                <div class="phase-meta">1–2 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> eliminate dangerous assumptions before writing the kernel.</p>
+                <ul>
+                  <li>Build tiny probes for <code>react-reconciler</code> HostConfig lifecycle: create, append, insert, remove, update, commit.</li>
+                  <li>Build tiny Compose custom Applier sample that emits mutations into a fake tree.</li>
+                  <li>Read React Native Fabric concepts: ShadowTree, ShadowNode, surface, mounting, JSI, codegen.</li>
+                  <li>Define forbidden dependencies: no private Fiber field coupling, no SlotTable assumptions, no renderer-specific public APIs.</li>
+                  <li>Decide initial platform target: Android first, then iOS/Desktop, then Web.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: architecture memo</span>
+                  <span class="chip">Output: 2 spike repos</span>
+                  <span class="chip">Exit: host mutation lifecycle understood</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 1 — Reaktor HostTree kernel</div>
+                <div class="phase-meta">3–5 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> build the canonical retained tree with stable identity and fast mutation.</p>
+                <pre><code>@JvmInline value class NodeId(val raw: Long)
+
+data class HostNode(
+    val id: NodeId,
+    var type: HostType,
+    var parent: NodeId?,
+    val children: ChildBuffer&lt;NodeId&gt;,
+    var propsRef: PropsRef,
+    var eventRef: EventRef?,
+    var owner: BoundaryId,
+    var flags: DirtyFlags
+)</code></pre>
+                <ul>
+                  <li>Implement NodeId as index + generation to detect stale handles.</li>
+                  <li>Implement arena/slab storage with free list and generation counter.</li>
+                  <li>Implement adaptive child storage: empty, inline small array, gap buffer, chunked vector.</li>
+                  <li>Implement structural invariants: no cycles, valid parent pointers, boundary ownership.</li>
+                  <li>Implement immutable <code>TreeSnapshot</code> view for tooling and tests.</li>
+                  <li>Implement <code>TreeVisitor</code> and <code>TreeDiff</code> primitives.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-tree-core</span>
+                  <span class="chip">Output: reaktor-tree-storage</span>
+                  <span class="chip">Exit: 100k-node mutation benchmark</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 2 — Unified mutation protocol</div>
+                <div class="phase-meta">2–4 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> make React, Compose, Blueprint, and server UI all speak the same low-level operation language.</p>
+                <pre><code>sealed interface TreeOp {
+    data class CreateNode(val id: NodeId, val type: HostType) : TreeOp
+    data class InsertChild(val parent: NodeId, val child: NodeId, val index: Int) : TreeOp
+    data class MoveChild(val parent: NodeId, val from: Int, val to: Int, val count: Int) : TreeOp
+    data class RemoveChild(val parent: NodeId, val index: Int, val count: Int) : TreeOp
+    data class UpdateProps(val id: NodeId, val patch: PropsPatch) : TreeOp
+    data class DeleteNode(val id: NodeId) : TreeOp
+}</code></pre>
+                <ul>
+                  <li>Implement <code>TreeMutationBatch</code> with validation, compaction, and deterministic application order.</li>
+                  <li>Support frame transactions: begin, append ops, validate, commit, publish <code>TreeCommit</code>.</li>
+                  <li>Add op coalescing: repeated prop updates collapse; remove+insert can become move where safe.</li>
+                  <li>Add debug-mode invariant checks and release-mode fast path.</li>
+                  <li>Design binary encoding path, initially simple; leave room for FlatBuffers/FlexBuffers later.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: mutation batch API</span>
+                  <span class="chip">Output: deterministic commit tests</span>
+                  <span class="chip">Exit: 1M ops fuzz tested</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 3 — Compose Applier adapter</div>
+                <div class="phase-meta">3–5 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> prove Compose can author into the Reaktor HostTree.</p>
+                <pre><code>class ReaktorApplier(
+    root: ReaktorComposeNode,
+    private val buffer: MutationBuffer
+) : AbstractApplier&lt;ReaktorComposeNode&gt;(root) {
+
+    override fun insertTopDown(index: Int, instance: ReaktorComposeNode) {
+        buffer.insert(current.nodeId, instance.nodeId, index)
+    }
+
+    override fun remove(index: Int, count: Int) {
+        buffer.remove(current.nodeId, index, count)
+    }
+
+    override fun move(from: Int, to: Int, count: Int) {
+        buffer.move(current.nodeId, from, to, count)
+    }
+
+    override fun onClear() {
+        buffer.clearBoundary(current.boundaryId)
+    }
+}</code></pre>
+                <ul>
+                  <li>Create primitive composables: <code>RText</code>, <code>RBox</code>, <code>RRow</code>, <code>RColumn</code>, <code>RButton</code>.</li>
+                  <li>Map composable calls to HostType + props + events.</li>
+                  <li>Support keys and boundary identity explicitly.</li>
+                  <li>Validate recomposition produces minimal op sequences.</li>
+                  <li>Build an Android demo where Compose-authored Reaktor UI updates the HostTree.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-ui-compose-applier</span>
+                  <span class="chip">Exit: Compose → HostTree working</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 4 — ShadowTree v1 and Compose renderer</div>
+                <div class="phase-meta">4–6 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> render HostTree through Compose while keeping ShadowTree as the renderer-facing derived structure.</p>
+                <ul>
+                  <li>Define <code>ShadowNode</code>: source id, resolved style, layout box, dirty flags, event mask, renderer handle.</li>
+                  <li>Implement dirty propagation: structure, props, style, measure, layout, paint, semantics, events.</li>
+                  <li>Build Compose renderer for common primitives.</li>
+                  <li>Keep actual text input and platform components delegated to Compose initially.</li>
+                  <li>Expose snapshot inspection for visualizer/debug tools.</li>
+                </ul>
+                <div class="callout">
+                  <strong>v1 rule:</strong> Reaktor owns semantic tree and dirty/event graph. Compose owns actual measure/layout/draw for platform correctness. Later, Reaktor can own layout for common primitives.
+                </div>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-ui-shadow</span>
+                  <span class="chip">Output: reaktor-ui-compose-renderer</span>
+                  <span class="chip">Exit: end-to-end Compose-authored UI renders</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 5 — React custom renderer</div>
+                <div class="phase-meta">4–7 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> React components commit into the same HostTree through a custom renderer.</p>
+                <pre><code>type ReaktorHostInstance = {
+  nodeId: number
+  boundaryId: number
+  type: string
+}
+
+const hostConfig = {
+  createInstance(type, props, root, hostContext) {
+    const id = ids.next()
+    buffer.create(id, type)
+    buffer.updateProps(id, encodeProps(type, props))
+    return { nodeId: id, boundaryId: root.boundaryId, type }
+  },
+
+  appendChild(parent, child) {
+    buffer.insert(parent.nodeId, child.nodeId, parent.childCount++)
+  },
+
+  commitUpdate(instance, updatePayload, type, oldProps, newProps) {
+    buffer.updateProps(instance.nodeId, encodePatch(type, oldProps, newProps))
+  }
+}</code></pre>
+                <ul>
+                  <li>Start with a local JS-only renderer committing into a Kotlin/JVM or TS HostTree test implementation.</li>
+                  <li>Move to Android via JSI/TurboModule-style bridge after lifecycle is stable.</li>
+                  <li>Batch all host mutations until commit boundary; avoid per-op native calls.</li>
+                  <li>Support text nodes, prop diffing, event refs, refs, boundary roots, and unmount cleanup.</li>
+                  <li>Build demo: React-authored card rendered by Compose renderer through Reaktor HostTree.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-ui-react-renderer</span>
+                  <span class="chip">Exit: React → HostTree → Compose Renderer demo</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 6 — JSI/native commit path</div>
+                <div class="phase-meta">5–8 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> replace slow JS/native serialization with a compact batched commit path.</p>
+                <ul>
+                  <li>Implement C++/Kotlin native runtime boundary for mutation batches.</li>
+                  <li>Represent batch as ArrayBuffer or FlatBuffer-backed payload.</li>
+                  <li>Use generated prop encoders for hot primitives.</li>
+                  <li>Use opaque event handler ids instead of passing callbacks through every node.</li>
+                  <li>Build bidirectional event batch: native hit-test → event queue → JS/Compose owner boundary.</li>
+                  <li>Measure JSI commit overhead vs classic bridge-like JSON batch.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-ui-jsi</span>
+                  <span class="chip">Output: binary batch format v0</span>
+                  <span class="chip">Exit: low-copy mutation commit</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 7 — Ownership islands, events, and state cells</div>
+                <div class="phase-meta">3–5 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> let React and Compose coexist safely in one tree.</p>
+                <ul>
+                  <li>Implement <code>RuntimeBoundary</code>: owner, root node, scheduler, event sink, resource scope.</li>
+                  <li>Implement event delegation through ShadowTree hit-testing and EventRef routing.</li>
+                  <li>Implement shared <code>StateCell</code> abstraction for durable shared state.</li>
+                  <li>Support React island inside Compose parent and Compose island inside React parent.</li>
+                  <li>Forbid structural mutation across boundary ownership unless mediated by explicit commands.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-runtime-boundaries</span>
+                  <span class="chip">Exit: mixed React/Compose screen</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 8 — Scheduler and priority bridge</div>
+                <div class="phase-meta">3–5 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> coordinate cross-runtime work without pretending React and Compose have one scheduler.</p>
+                <pre><code>enum class ReaktorPriority {
+    ImmediateInput,
+    Animation,
+    VisibleUi,
+    BackgroundUi,
+    Data,
+    Idle
+}</code></pre>
+                <ul>
+                  <li>Map React-originated commits to Reaktor priorities.</li>
+                  <li>Map Compose invalidations/frame updates to Reaktor priorities.</li>
+                  <li>Introduce frame scheduler: input → animation → visible UI → background UI → data → idle.</li>
+                  <li>Add backpressure: large React batch should not starve input or animation work.</li>
+                  <li>Add offscreen/precompute support for hidden screens and upcoming routes.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-scheduler</span>
+                  <span class="chip">Exit: jank-budgeted commit pipeline</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 9 — DevTools, Blueprint, and inspector protocol</div>
+                <div class="phase-meta">4–8 weeks</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> turn Reaktor’s runtime tree into a product moat.</p>
+                <ul>
+                  <li>Expose HostTree + ShadowTree snapshots through a debugger protocol.</li>
+                  <li>Show owner boundary, NodeId, props schema, dirty flags, layout bounds, event refs, and state dependencies.</li>
+                  <li>Export trace events compatible with Perfetto-style timelines.</li>
+                  <li>Build Blueprint editor integration: selected graph node maps to rendered bounds.</li>
+                  <li>Build AI-agent diff format: typed graph/tree commands, not text patches.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: reaktor-devtools-protocol</span>
+                  <span class="chip">Output: visual tree inspector</span>
+                  <span class="chip">Exit: inspect mixed React/Compose tree live</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="phase">
+              <div class="phase-head">
+                <div class="phase-title">Phase 10 — Productization and public SDK</div>
+                <div class="phase-meta">ongoing</div>
+              </div>
+              <div class="phase-body">
+                <p><strong>Goal:</strong> make it usable without exposing the internal complexity.</p>
+                <ul>
+                  <li>Publish stable primitive set: layout, text, image, button, input, list, surface, navigation, modal.</li>
+                  <li>Create docs for authoring in Compose, authoring in React, and mixed ownership islands.</li>
+                  <li>Add migration guide for Reaktor apps: native Compose first, React dynamic islands second.</li>
+                  <li>Write a “performance contract” page documenting what is stable, internal, and experimental.</li>
+                  <li>Build sample apps: chat screen, feed, form builder, visual editor, dynamic campaign card.</li>
+                </ul>
+                <div class="chips">
+                  <span class="chip">Output: public alpha</span>
+                  <span class="chip">Exit: external user can build a screen</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="modules">
+          <div class="section-inner">
+            <h2 id="4-proposed-module-map">4. Proposed module map</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Module</th>
+                  <th>Responsibility</th>
+                  <th>Stability target</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>reaktor-tree-core</code></td>
+                  <td>NodeId, TreeOp, TreeCommit, TreeSnapshot, visitors, boundaries.</td>
+                  <td>Stable early</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-tree-storage</code></td>
+                  <td>Arena/slab, adaptive child buffers, gap/chunked storage, invariant checks.</td>
+                  <td>Internal</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-core</code></td>
+                  <td>HostType, PropsRef, EventRef, StateCell, ResourceRef, CapabilityRef.</td>
+                  <td>Stable after primitive set settles</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-shadow</code></td>
+                  <td>ShadowNode, DirtyFlags, style resolver, hit-test, layout metadata.</td>
+                  <td>Mostly internal</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-compose-applier</code></td>
+                  <td>Compose authoring frontend that emits Reaktor host mutations.</td>
+                  <td>Experimental</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-compose-renderer</code></td>
+                  <td>Renderer that projects Reaktor tree to Compose UI.</td>
+                  <td>Stable for Android first</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-react-renderer</code></td>
+                  <td>Custom React renderer HostConfig for Reaktor runtime.</td>
+                  <td>Experimental due to react-reconciler instability</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-jsi</code></td>
+                  <td>JSI/native bridge, ArrayBuffer/FlatBuffer batch transport, event return path.</td>
+                  <td>Internal/experimental</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-devtools</code></td>
+                  <td>Inspector protocol, snapshot viewer, performance trace export.</td>
+                  <td>Public tooling</td>
+                </tr>
+                <tr>
+                  <td><code>reaktor-ui-benchmarks</code></td>
+                  <td>JMH/macrobenchmark/Perfetto/JS benchmarks and regression suite.</td>
+                  <td>Internal but visible</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="data-structures">
+          <div class="section-inner">
+            <h2 id="5-internal-data-structures">5. Internal data structures</h2>
+
+            <div class="grid-2">
+              <div class="card">
+                <h3>Arena-backed nodes</h3>
+                <p>Use NodeId as index + generation. This gives compact storage, low allocation churn, stale-handle detection, and cache-friendlier traversal than object graphs.</p>
+              </div>
+              <div class="card">
+                <h3>Adaptive child buffers</h3>
+                <p>Do not use one child list strategy everywhere. Small array for small nodes, gap buffer for clustered insert/remove, chunked vector for large mutable lists, virtual children for feeds.</p>
+              </div>
+              <div class="card">
+                <h3>Props table</h3>
+                <p>Use schema-aware props with patches. Hot primitives should use generated encoders. Avoid generic maps in hot paths.</p>
+              </div>
+              <div class="card">
+                <h3>Dirty bitsets</h3>
+                <p>Dirty flags should distinguish structure, props, style, measure, layout, paint, semantics, and events. This is the key to avoiding full-tree recomputation.</p>
+              </div>
+            </div>
+
+            <h3>ChildBuffer strategy</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Use case</th>
+                  <th>Structure</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>0 children</td>
+                  <td><code>EmptyChildren</code></td>
+                  <td>No allocation.</td>
+                </tr>
+                <tr>
+                  <td>1–4 children</td>
+                  <td><code>InlineChildren</code></td>
+                  <td>Avoid heap churn and indirection for common simple nodes.</td>
+                </tr>
+                <tr>
+                  <td>5–128, local edits</td>
+                  <td><code>GapChildren</code></td>
+                  <td>Good for clustered insert/remove/move around a local index.</td>
+                </tr>
+                <tr>
+                  <td>Large dynamic subtree</td>
+                  <td><code>ChunkedChildren</code></td>
+                  <td>Better for large lists and non-local edits.</td>
+                </tr>
+                <tr>
+                  <td>Feed / lazy list</td>
+                  <td><code>VirtualChildren</code></td>
+                  <td>Do not materialize every row as a full node when not visible.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Dirty propagation matrix</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Change</th>
+                  <th>Dirty flags</th>
+                  <th>Renderer effect</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Text content changed</td>
+                  <td>Props, measure, layout, paint, semantics</td>
+                  <td>Re-measure text and parent layout if size changed.</td>
+                </tr>
+                <tr>
+                  <td>Color changed</td>
+                  <td>Props, paint</td>
+                  <td>No layout recomputation.</td>
+                </tr>
+                <tr>
+                  <td>Child inserted</td>
+                  <td>Structure, layout, semantics, hit-test</td>
+                  <td>Parent and affected ancestors may re-layout.</td>
+                </tr>
+                <tr>
+                  <td>Event handler changed</td>
+                  <td>Events</td>
+                  <td>Update event routing only.</td>
+                </tr>
+                <tr>
+                  <td>Visibility changed</td>
+                  <td>Style, layout, paint, hit-test, semantics</td>
+                  <td>May remove from hit-test/accessibility tree.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="benchmarks">
+          <div class="section-inner">
+            <h2 id="6-benchmark-and-profiling-plan">6. Benchmark and profiling plan</h2>
+
+            <p>
+              Benchmarks should be built before the React and JSI paths are “done”. Otherwise the API will ossify around
+              unmeasured assumptions.
+            </p>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Benchmark</th>
+                  <th>Scenario</th>
+                  <th>Primary metric</th>
+                  <th>Why it matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Structural mutation</td>
+                  <td>Insert/move/remove 10k nodes under mixed parents.</td>
+                  <td>ops/ms, allocation count</td>
+                  <td>Tests HostTree + ChildBuffer design.</td>
+                </tr>
+                <tr>
+                  <td>Prop patch</td>
+                  <td>Patch style/text/event props on 50k nodes.</td>
+                  <td>bytes/op, ns/op</td>
+                  <td>Tests schema-aware props and dirty flags.</td>
+                </tr>
+                <tr>
+                  <td>React batch commit</td>
+                  <td>React renders dynamic feed updates through custom renderer.</td>
+                  <td>JS time, native commit time, frame misses</td>
+                  <td>Tests HostConfig and batch boundary.</td>
+                </tr>
+                <tr>
+                  <td>Compose applier commit</td>
+                  <td>Compose recomposes list/form updates into HostTree.</td>
+                  <td>recomposition time, commit time</td>
+                  <td>Tests Compose adapter efficiency.</td>
+                </tr>
+                <tr>
+                  <td>Mixed ownership screen</td>
+                  <td>Compose parent with React card island and server modal.</td>
+                  <td>event latency, frame stability</td>
+                  <td>Tests boundary routing and scheduler priorities.</td>
+                </tr>
+                <tr>
+                  <td>Cold start / mount</td>
+                  <td>Mount a 1k-node screen from React and Compose.</td>
+                  <td>time to first useful render</td>
+                  <td>Critical for app UX.</td>
+                </tr>
+                <tr>
+                  <td>Text editing</td>
+                  <td>TextField and rich text buffer operations.</td>
+                  <td>input latency, memory</td>
+                  <td>Tests gap/piece/rope strategy where actual text is involved.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Instrumentation checklist</h3>
+            <ul>
+              <li>Add trace slices for <code>ReactCommit</code>, <code>ComposeApply</code>, <code>TreeStoreApply</code>, <code>ShadowDirty</code>, <code>RenderCommit</code>, and <code>EventDispatch</code>.</li>
+              <li>Expose NodeId and BoundaryId in traces.</li>
+              <li>Count allocations and bytes moved per mutation batch.</li>
+              <li>Keep golden benchmark screens in CI.</li>
+              <li>Use Android Macrobenchmark + Perfetto for device-level traces.</li>
+              <li>Use JMH or Kotlin benchmarks for HostTree and ChildBuffer microbenchmarks.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="study-plan">
+          <div class="section-inner">
+            <h2 id="7-study-plan">7. Study plan</h2>
+            <p>
+              This is organized as a build-aligned curriculum. Each track has a reason: learn only what directly improves
+              the runtime.
+            </p>
+
+            <h3>12-week focused plan</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Weeks</th>
+                  <th>Study</th>
+                  <th>Build artifact</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1–2</td>
+                  <td>React reconciliation, keys, custom renderer HostConfig, commit phase, renderer examples.</td>
+                  <td>Tiny React renderer that logs create/insert/remove/update ops.</td>
+                </tr>
+                <tr>
+                  <td>2–3</td>
+                  <td>Compose runtime, Applier, Composer, custom node trees, snapshot state, recomposition basics.</td>
+                  <td>Tiny Compose Applier that logs tree operations.</td>
+                </tr>
+                <tr>
+                  <td>3–4</td>
+                  <td>Arenas, generational ids, gap buffers, chunked vectors, persistent snapshots.</td>
+                  <td>Arena HostTree with adaptive child buffers.</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td>Dirty propagation, retained UI trees, shadow tree responsibilities.</td>
+                  <td>ShadowTree v0 with dirty flags and snapshot export.</td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td>Compose layout/performance, modifier nodes, text/input boundaries.</td>
+                  <td>Compose renderer for basic primitives.</td>
+                </tr>
+                <tr>
+                  <td>7–8</td>
+                  <td>React Native New Architecture, Fabric, JSI, TurboModules, Codegen, ShadowTree concepts.</td>
+                  <td>JSI-backed batch commit prototype.</td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td>Yoga/Flexbox layout, measurement, hit-testing, accessibility tree basics.</td>
+                  <td>Hit-test + event routing through ShadowTree.</td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td>Perfetto, Android tracing, OpenTelemetry concepts, flame charts.</td>
+                  <td>Trace export for mutation/layout/render pipeline.</td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td>FlatBuffers/FlexBuffers and schema evolution.</td>
+                  <td>Binary mutation batch format v0.</td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td>DevTools Protocol ideas, inspector APIs, graph visualization UX.</td>
+                  <td>Mini inspector showing HostTree + ShadowTree live.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Deep study tracks</h3>
+            <div class="grid-3">
+              <div class="card">
+                <h3>React internals</h3>
+                <ul>
+                  <li>Reconciliation and state preservation</li>
+                  <li>Custom renderers with HostConfig</li>
+                  <li>Commit vs render phase</li>
+                  <li>Refs, text nodes, event systems</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Compose internals</h3>
+                <ul>
+                  <li>Runtime and compiler relationship</li>
+                  <li>Applier and custom target trees</li>
+                  <li>Snapshot state and recomposition</li>
+                  <li>Layout, modifier nodes, performance</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Native runtime</h3>
+                <ul>
+                  <li>C++/Kotlin boundaries</li>
+                  <li>JSI and ArrayBuffer transport</li>
+                  <li>Arenas and memory ownership</li>
+                  <li>Platform event loops</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Data structures</h3>
+                <ul>
+                  <li>Gap buffers</li>
+                  <li>Ropes and piece tables</li>
+                  <li>Chunked vectors/B-trees</li>
+                  <li>Generational arenas</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Rendering/layout</h3>
+                <ul>
+                  <li>Shadow trees</li>
+                  <li>Yoga/Flexbox</li>
+                  <li>Text measurement</li>
+                  <li>Hit-testing and accessibility</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Tooling/perf</h3>
+                <ul>
+                  <li>Perfetto traces</li>
+                  <li>OpenTelemetry concepts</li>
+                  <li>Chrome DevTools Protocol ideas</li>
+                  <li>Regression benchmark design</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="resources">
+          <div class="section-inner">
+            <h2 id="8-learning-resources-and-references">8. Learning resources and references</h2>
+
+            <h3>Official / primary resources</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Topic</th>
+                  <th>Resource</th>
+                  <th>What to extract</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>React reconciliation</td>
+                  <td><a href="https://react.dev/learn/preserving-and-resetting-state">React docs: Preserving and Resetting State</a></td>
+                  <td>Identity, position, key semantics, state preservation.</td>
+                </tr>
+                <tr>
+                  <td>React custom renderer</td>
+                  <td><a href="https://www.npmjs.com/package/react-reconciler">react-reconciler package</a> and <a href="https://github.com/facebook/react/blob/main/packages/react-reconciler/README.md">React reconciler README</a></td>
+                  <td>HostConfig, experimental status, renderer boundary design.</td>
+                </tr>
+                <tr>
+                  <td>React Native New Architecture</td>
+                  <td><a href="https://reactnative.dev/architecture/landing-page">React Native architecture overview</a></td>
+                  <td>JSI, bridge removal, C++ references, native interop principles.</td>
+                </tr>
+                <tr>
+                  <td>Fabric renderer</td>
+                  <td><a href="https://reactnative.dev/architecture/fabric-renderer">React Native Fabric docs</a></td>
+                  <td>ShadowTree, C++ render logic, host interoperability.</td>
+                </tr>
+                <tr>
+                  <td>RN glossary</td>
+                  <td><a href="https://reactnative.dev/architecture/glossary">React Native architecture glossary</a></td>
+                  <td>Surface, ShadowTree, ShadowNode, host component vocabulary.</td>
+                </tr>
+                <tr>
+                  <td>Turbo Native Modules</td>
+                  <td><a href="https://reactnative.dev/docs/turbo-native-modules-introduction">React Native Turbo Native Modules</a></td>
+                  <td>Typed specs and codegen approach for JS/native APIs.</td>
+                </tr>
+                <tr>
+                  <td>Fabric Native Components</td>
+                  <td><a href="https://reactnative.dev/docs/fabric-native-components-introduction">React Native Fabric Native Components</a></td>
+                  <td>How RN exposes native host components in the new architecture.</td>
+                </tr>
+                <tr>
+                  <td>Compose runtime</td>
+                  <td><a href="https://developer.android.com/jetpack/androidx/releases/compose-runtime">Compose Runtime release/API page</a></td>
+                  <td>Runtime scope, compiler target, state/composition building blocks.</td>
+                </tr>
+                <tr>
+                  <td>Compose Applier</td>
+                  <td><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Applier">Applier API reference</a> and <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:compose/runtime/runtime/src/commonMain/kotlin/androidx/compose/runtime/Applier.kt">Applier source</a></td>
+                  <td>Custom target tree operations and operation ordering.</td>
+                </tr>
+                <tr>
+                  <td>Compose performance</td>
+                  <td><a href="https://developer.android.com/develop/ui/compose/performance">Jetpack Compose performance docs</a></td>
+                  <td>Recomposition, layout, draw phases, optimization rules.</td>
+                </tr>
+                <tr>
+                  <td>Compose Multiplatform</td>
+                  <td><a href="https://kotlinlang.org/compose-multiplatform/">Compose Multiplatform</a></td>
+                  <td>Cross-platform renderer target strategy.</td>
+                </tr>
+                <tr>
+                  <td>Yoga layout</td>
+                  <td><a href="https://www.yogalayout.dev/docs/about-yoga">Yoga docs</a> and <a href="https://github.com/facebook/yoga">Yoga GitHub</a></td>
+                  <td>Portable layout engine boundaries: computes boxes, does not draw UI.</td>
+                </tr>
+                <tr>
+                  <td>FlatBuffers</td>
+                  <td><a href="https://flatbuffers.dev/">FlatBuffers docs</a> and <a href="https://flatbuffers.dev/evolution/">schema evolution</a></td>
+                  <td>Zero-copy-ish access, schema evolution, binary batch design.</td>
+                </tr>
+                <tr>
+                  <td>Perfetto</td>
+                  <td><a href="https://perfetto.dev/docs/">Perfetto docs</a> and <a href="https://developer.android.com/tools/perfetto">Android Perfetto tool</a></td>
+                  <td>System/app tracing for performance root-cause analysis.</td>
+                </tr>
+                <tr>
+                  <td>OpenTelemetry</td>
+                  <td><a href="https://opentelemetry.io/">OpenTelemetry</a></td>
+                  <td>Tracing vocabulary and vendor-neutral instrumentation model.</td>
+                </tr>
+                <tr>
+                  <td>DevTools protocol</td>
+                  <td><a href="https://chromedevtools.github.io/devtools-protocol/">Chrome DevTools Protocol</a></td>
+                  <td>Inspector protocol inspiration: domains, methods, events, tracing.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>High-value non-official resources</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Resource</th>
+                  <th>Use it for</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="https://github.com/acdlite/react-fiber-architecture">React Fiber Architecture by Andrew Clark</a></td>
+                  <td>Mental model of Fiber as units of work and reconciliation as renderer-agnostic tree updating.</td>
+                </tr>
+                <tr>
+                  <td><a href="https://github.com/chentsulin/awesome-react-renderer">Awesome React Renderer</a></td>
+                  <td>Examples of custom renderers and learning paths.</td>
+                </tr>
+                <tr>
+                  <td><a href="https://web.mit.edu/~yandros/doc/craft-text-editing/Chapter-6.html">Craft of Text Editing — Buffer Gap</a></td>
+                  <td>Classic explanation of gap buffers and text editor internals.</td>
+                </tr>
+                <tr>
+                  <td><a href="https://coredumped.dev/2023/08/09/text-showdown-gap-buffers-vs-ropes/">Gap Buffers vs Ropes</a></td>
+                  <td>Tradeoffs for local vs non-local editing patterns.</td>
+                </tr>
+                <tr>
+                  <td><a href="https://www.cs.unm.edu/~crowley/papers/sds.pdf">Data Structures for Text Sequences — Charles Crowley</a></td>
+                  <td>Canonical comparison of sequence data structures for text.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Books worth reading alongside implementation</h3>
+            <ul>
+              <li><strong>Designing Data-Intensive Applications</strong> — for logs, materialized views, snapshots, and state/dataflow thinking.</li>
+              <li><strong>Game Engine Architecture</strong> — for runtime loops, memory ownership, update pipelines, and engine modularity.</li>
+              <li><strong>Data-Oriented Design</strong> — for cache behavior, layout of data, and batch-oriented runtime design.</li>
+              <li><strong>Computer Systems: A Programmer’s Perspective</strong> — for memory, linking, runtime, and performance fundamentals.</li>
+              <li><strong>Crafting Interpreters</strong> — for VM/runtime thinking and readable implementation style.</li>
+              <li><strong>Engineering a Compiler</strong> — useful later if Reaktor’s Blueprint/DSL compilers become central.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="risks">
+          <div class="section-inner">
+            <h2 id="9-risks-and-mitigations">9. Risks and mitigations</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Risk</th>
+                  <th>Why dangerous</th>
+                  <th>Mitigation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Coupling to React Fiber internals</td>
+                  <td>Fiber internals are not a stable public integration surface.</td>
+                  <td>Only depend on custom renderer HostConfig boundary; isolate in experimental module.</td>
+                </tr>
+                <tr>
+                  <td>Coupling to Compose SlotTable internals</td>
+                  <td>SlotTable is compiler/runtime implementation detail.</td>
+                  <td>Use Applier and public runtime APIs only.</td>
+                </tr>
+                <tr>
+                  <td>Two runtimes mutate same subtree</td>
+                  <td>Breaks identity, state preservation, lifecycle, and event ownership.</td>
+                  <td>Strict RuntimeBoundary ownership; cross-boundary mutations become commands.</td>
+                </tr>
+                <tr>
+                  <td>Abstracting layout too early</td>
+                  <td>Text/input/layout correctness is a huge project.</td>
+                  <td>Let Compose own actual layout/rendering in v1; build Reaktor layout later.</td>
+                </tr>
+                <tr>
+                  <td>Overusing binary serialization too early</td>
+                  <td>Can slow iteration and harden the wrong protocol.</td>
+                  <td>Start with clear object model; add binary batch after mutation semantics stabilize.</td>
+                </tr>
+                <tr>
+                  <td>Tooling delayed until too late</td>
+                  <td>Runtime complexity becomes invisible and hard to debug.</td>
+                  <td>Build snapshot export and trace events from Phase 2 onward.</td>
+                </tr>
+                <tr>
+                  <td>Public API leaks internal structures</td>
+                  <td>Locks you into gap buffers/arenas/dirty flags forever.</td>
+                  <td>Expose semantic primitives, commands, and snapshots; keep storage internal.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="callout danger">
+              <strong>The main trap:</strong> trying to be React, Compose, Flutter, and Fabric at once.
+              The first successful product should be narrower: React-authored dynamic islands rendered through Compose using a shared Reaktor HostTree.
+            </div>
+          </div>
+        </section>
+
+        <section id="codex">
+          <div class="section-inner">
+            <h2 id="10-codex-ready-implementation-tasks">10. Codex-ready implementation tasks</h2>
+
+            <h3>Task group A — HostTree kernel</h3>
+            <ol>
+              <li>Create <code>NodeId</code> as packed index + generation.</li>
+              <li>Create <code>ArenaTreeStore</code> with allocate/free/get/validate.</li>
+              <li>Create <code>ChildBuffer&lt;T&gt;</code> interface with inline, gap, and chunked implementations.</li>
+              <li>Create <code>TreeOp</code>, <code>TreeMutationBatch</code>, and <code>TreeCommit</code>.</li>
+              <li>Add property-based tests for random insert/remove/move/delete.</li>
+              <li>Add JMH benchmark for child buffer strategies.</li>
+            </ol>
+
+            <h3>Task group B — Compose path</h3>
+            <ol>
+              <li>Create <code>ReaktorComposeNode</code> handle with NodeId and BoundaryId.</li>
+              <li>Implement <code>ReaktorApplier</code> emitting TreeOps.</li>
+              <li>Create composables for RText/RBox/RRow/RColumn/RButton.</li>
+              <li>Build test composition that updates state and verifies minimal mutation batch.</li>
+              <li>Build Compose renderer consuming HostTree snapshots.</li>
+            </ol>
+
+            <h3>Task group C — React path</h3>
+            <ol>
+              <li>Create local JS <code>reaktor-react-renderer</code> using <code>react-reconciler</code>.</li>
+              <li>Implement HostConfig for create/append/insert/remove/update/text.</li>
+              <li>Add prop diffing and event handler id registration.</li>
+              <li>Add batch flushing at commit boundary.</li>
+              <li>Build demo rendering React-authored UI into in-memory HostTree.</li>
+            </ol>
+
+            <h3>Task group D — JSI and performance</h3>
+            <ol>
+              <li>Define batch binary format v0.</li>
+              <li>Implement ArrayBuffer-based native commit API.</li>
+              <li>Implement event batch return path.</li>
+              <li>Add trace events for every major pipeline stage.</li>
+              <li>Compare JSON batch vs binary batch vs direct in-process test path.</li>
+            </ol>
+
+            <h3>Task group E — Tooling</h3>
+            <ol>
+              <li>Create snapshot JSON export with nodes, children, props schema ids, owner boundaries, and dirty flags.</li>
+              <li>Create visual tree inspector page.</li>
+              <li>Create trace export viewer integration.</li>
+              <li>Create graph projection: HostTree nodes → Reaktor graph nodes and edges.</li>
+            </ol>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-inner">
+            <h2 id="11-final-recommended-north-star">11. Final recommended north star</h2>
+            <div class="callout success">
+              <strong>North star:</strong> React Fiber and Compose Runtime remain independent reconcilers,
+              but their host-level mutations are compiled into the same native Reaktor mutation buffer,
+              applied to an arena-backed retained HostTree with adaptive child buffers, from which a derived
+              ShadowTree drives layout metadata, rendering, events, inspection, and cross-runtime scheduling.
+            </div>
+
+            <p>
+              The first visible win should be a small but impressive demo:
+            </p>
+
+            <div class="diagram">Android app shell in Compose
+  ├── native Compose navigation + toolbar
+  ├── React-authored dynamic CampaignCard island
+  │     └── rendered through Reaktor HostTree into Compose UI
+  ├── shared Reaktor StateCell updates both sides
+  └── DevTools panel shows:
+        NodeId
+        owner boundary
+        dirty flags
+        props patch history
+        event routing
+        frame trace</div>
+
+            <p>
+              This is narrow enough to ship, deep enough to prove the moat, and aligned with Reaktor’s larger thesis:
+              typed graph/runtime infrastructure where code, UI, state, events, tools, AI agents, and deployment all meet.
+            </p>
+          </div>
+        </section>
+      
+    
+
+    <div class="footer">
+      Created for Reaktor. This roadmap intentionally separates stable public abstractions from experimental/internal runtime machinery.
+    </div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>

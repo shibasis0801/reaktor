@@ -16,7 +16,7 @@ fun interface Selector {
 @JsExport
 object StructuralSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
-        is PortGraph<*, *> -> visitable.nodes
+        is PortGraph<*, *> -> visitable.nodes.toList()
         is PortNode<*> -> buildList {
             addAll(visitable.providerPorts.flattenedValues())
             addAll(visitable.consumerPorts.flattenedValues())

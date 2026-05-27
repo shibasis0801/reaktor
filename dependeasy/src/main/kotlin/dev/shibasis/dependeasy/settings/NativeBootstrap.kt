@@ -39,7 +39,6 @@ internal class NativeBootstrap(
         }
 
         require(flatc.exists()) { "Failed to build flatc at ${flatc.absolutePath}" }
-        settings.includeWithPath("flatbuffers-kotlin", ".github_modules/flatbuffers/kotlin/flatbuffers-kotlin")
     }
 
     private fun linkHermes(

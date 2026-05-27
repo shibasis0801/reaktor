@@ -2,6 +2,8 @@
 
 package dev.shibasis.reaktor.graph.core.node
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
@@ -64,3 +66,6 @@ fun<N: Node> Graph.Node(builder: (Graph) -> N): N {
     attach(node)
     return node
 }
+
+@Composable
+fun<P: Payload> RouteBinding<out P>.collectPayloadAsState() = payload.collectAsState()

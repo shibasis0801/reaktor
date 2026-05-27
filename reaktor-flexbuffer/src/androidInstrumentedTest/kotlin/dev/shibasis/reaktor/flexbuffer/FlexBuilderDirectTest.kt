@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.flexbuffer
 
-import com.google.flatbuffers.kotlin.FlexBuffersBuilder
-import com.google.flatbuffers.kotlin.getRoot
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import kotlinx.serialization.Serializable
 import org.junit.Test
@@ -27,7 +27,7 @@ class FlexBuilderDirectTest {
         assertTrue("Encoded data should be more than 3 bytes", encoded.size > 3)
 
         // Try to decode
-        val root = getRoot(com.google.flatbuffers.kotlin.ArrayReadBuffer(encoded))
+        val root = getRoot(dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer(encoded))
         println("Root type: ${root.type}")
         println("Root is map: ${root.isMap}")
 
@@ -45,7 +45,7 @@ class FlexBuilderDirectTest {
         println("WithList encoded size: ${encoded.size}")
         assertTrue("Encoded data should not be empty", encoded.isNotEmpty())
 
-        val root = getRoot(com.google.flatbuffers.kotlin.ArrayReadBuffer(encoded))
+        val root = getRoot(dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer(encoded))
         assertTrue("Root should be a map", root.isMap)
 
         val map = root.toMap()
@@ -65,7 +65,7 @@ class FlexBuilderDirectTest {
         println("WithNestedObject encoded size: ${encoded.size}")
         assertTrue("Encoded data should not be empty", encoded.isNotEmpty())
 
-        val root = getRoot(com.google.flatbuffers.kotlin.ArrayReadBuffer(encoded))
+        val root = getRoot(dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer(encoded))
         assertTrue("Root should be a map", root.isMap)
 
         val map = root.toMap()
@@ -85,7 +85,7 @@ class FlexBuilderDirectTest {
         println("WithStringMap encoded size: ${encoded.size}")
         assertTrue("Encoded data should not be empty", encoded.isNotEmpty())
 
-        val root = getRoot(com.google.flatbuffers.kotlin.ArrayReadBuffer(encoded))
+        val root = getRoot(dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer(encoded))
         assertTrue("Root should be a map", root.isMap)
     }
 
@@ -110,7 +110,7 @@ class FlexBuilderDirectTest {
         println("AllPrimitives encoded size: ${encoded.size}")
         assertTrue("Encoded data should not be empty", encoded.isNotEmpty())
 
-        val root = getRoot(com.google.flatbuffers.kotlin.ArrayReadBuffer(encoded))
+        val root = getRoot(dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer(encoded))
         assertTrue("Root should be a map", root.isMap)
 
         val map = root.toMap()

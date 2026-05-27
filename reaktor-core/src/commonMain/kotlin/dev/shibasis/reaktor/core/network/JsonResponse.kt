@@ -80,7 +80,7 @@ enum class StatusCode(val code: Int) {
     NETWORK_AUTHENTICATION_REQUIRED(511);
 
     companion object {
-        fun invoke(code: Int): StatusCode {
+        operator fun invoke(code: Int): StatusCode {
             return entries.find { it.code == code } ?: throw IllegalArgumentException("Invalid Status Code")
         }
     }

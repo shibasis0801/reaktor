@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BestBuds Architecture Refactor Plan - Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>BestBuds</span><span>Architecture Refactor</span></div>
+      <p class="eyebrow">BestBuds - App Architecture</p>
+      <h1>BestBuds Architecture Refactor Plan</h1>
+      <p class="subtitle">A concrete plan for applying atomic design and the React/actor philosophy across the real BestBuds app: fewer primitive concepts, stronger composition, clearer graph ownership, and a hard separation between data, actions, state, and UI.</p>
+      <div class="hero-grid four" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Refactoring <code>modules/app</code> and <code>modules/design</code> after the prototype-style UI migration.</span></div>
+        <div class="stat"><b>Source</b><span>Codex scan of BestBuds screens, interactors, services, graph wiring, and design components.</span></div>
+        <div class="stat"><b>Model</b><span>Reaktor graph + nested interactors + focused actors + atomic Compose components.</span></div>
+        <div class="stat"><b>Route</b><span>/docs/bestbuds-architecture-refactor-plan</span></div>
+      </div>
+    </header>
+
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div>
+        <div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div>
+        <div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/reaktor-graph-migration-plan">Reaktor Graph Migration Plan</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div>
+        <div class="side-group"><h3>Workbench</h3><a href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div>
+        <div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div>
+        <div class="side-group"><h3>BestBuds</h3><a href="/docs/bestbuds-ui-migration-plan">UI Migration Plan</a><a href="/docs/bestbuds-market-readiness-ux-audit">Market Readiness UX Audit</a><a aria-current="page" href="/docs/bestbuds-architecture-refactor-plan">Architecture Refactor Plan</a></div>
+        <div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc">
+          <a href="#decision">Decision</a>
+          <a href="#current-shape">Current Shape</a>
+          <a href="#target-model">Target Model</a>
+          <a href="#atomic-design">Atomic Design</a>
+          <a href="#react-actor-philosophy">React/Actor Philosophy</a>
+          <a href="#graph-ownership">Graph Ownership</a>
+          <a href="#screen-inventory">Screen Inventory</a>
+          <a href="#domain-interactors">Domain Interactors</a>
+          <a href="#ui-layering">UI Layering</a>
+          <a href="#component-rules">Component Rules</a>
+          <a href="#examples">Examples</a>
+          <a href="#file-plan">File Plan</a>
+          <a href="#migration-phases">Migration Phases</a>
+          <a href="#definition-of-done">Definition Of Done</a>
+          <a href="#guardrails">Guardrails</a>
+          <a href="#next-implementation-order">Next Implementation Order</a>
+          <a href="#sources">Sources</a>
+        </nav>
+      </aside>
+
+      <main id="content" class="doc-content">
+        <section id="decision">
+          <div class="section-inner">
+            <h2>Decision</h2>
+            <p class="lead">BestBuds should be refactored around a small set of powerful concepts: graph, route, interactor, actor, repository, service, screen state, and scoped design component. Screens should be declarative and readable. Interactors should own data plus actions. Actors should own focused asynchronous loops and state machines. The design module should expose a proper atomic hierarchy without <code>BB*</code> wrapper compatibility shims.</p>
+            <div class="grid three">
+              <div class="card bar green">
+                <h3>Keep</h3>
+                <p>The Reaktor graph, port wiring, route bindings, <code>edge.push(payload)</code> ergonomics, scoped <code>themed {}</code> UI, new design tokens, prototype visual direction, and existing data/service work.</p>
+              </div>
+              <div class="card bar amber">
+                <h3>Change</h3>
+                <p>Move repository access, analytics, network refresh, optimistic messaging, editor state, and transient UI flows out of screens and into graph-owned interactors or actors.</p>
+              </div>
+              <div class="card bar cyan">
+                <h3>Reject</h3>
+                <p>Do not create broad one-use templates, <code>BBCard</code>-style wrappers, random service primitives, labels that only satisfy one client, or files that hide the visual structure of a screen.</p>
+              </div>
+            </div>
+            <div class="callout">
+              <strong>Architecture standard:</strong> opening a screen file should let a reader visualize the layout and the main product concepts. Opening an interactor should show data, actions, and side effects. Opening an actor should show one coherent loop.
+            </div>
+          </div>
+        </section>
+
+        <section id="current-shape">
+          <div class="section-inner">
+            <h2>Current Shape</h2>
+            <p>The app has already moved a long way from the legacy frontend. The remaining issue is not lack of components; it is mixed abstraction levels. Some screens still combine graph payloads, repository calls, data shaping, analytics, mutable local workflow state, layout, and low-level visual details in the same file. Some components are well-scoped; others are just moved elsewhere, which creates ravioli code instead of declarative UI.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Hotspot</th><th>Observed shape</th><th>Refactor pressure</th></tr></thead>
+                <tbody>
+                  <tr><td><code>ChatInteractor.kt</code></td><td>Roughly 800+ lines. Owns chat list, open/close, cache refresh, WebSocket lifecycle, optimistic sends, failures, participants, typing, presence, reactions, forwarding, and pagination.</td><td>Split into a parent session interactor plus focused actors. This is the highest leverage refactor.</td></tr>
+                  <tr><td><code>ChatScreen.kt</code></td><td>Collects many flows, owns reply/highlight/photo/action-sheet/reactor/forwarding state, derives subtitle, triggers pagination, and declares UI.</td><td>Move transient workflows into <code>ChatScreenState</code> and action APIs. Keep the visible skeleton in the screen.</td></tr>
+                  <tr><td><code>ChatsScreen.kt</code></td><td>Close to the desired style, but still hydrates stickers, filters chats, logs analytics, and opens routes directly inside screen composition.</td><td>Extract <code>ChatListInteractor</code> while preserving a readable screen skeleton.</td></tr>
+                  <tr><td><code>ProfileScreen.kt</code></td><td>Mixes profile fetch, editor fields, dirty detection, session state, geo side effects, analytics, logout, and UI model shaping.</td><td>Create <code>ProfileInteractor</code> and <code>ProfileEditorActor</code>.</td></tr>
+                  <tr><td><code>OnboardingScreen.kt</code></td><td>Owns questions, step state, responses, timings, analytics, submission, completion, and route decisions.</td><td>Create <code>OnboardingInteractor</code> with flow actor and submission actor.</td></tr>
+                  <tr><td><code>PublicEventsScreen.kt</code></td><td>Uses sample data and local save state. Search/filter UI is good, but event data and actions are not graph-owned.</td><td>Create <code>EventsInteractor</code> and wire create/open/save/join as real actions.</td></tr>
+                  <tr><td><code>modules/design</code></td><td>Strong visual foundation, but component contracts are broad and some files are large or implementation-oriented.</td><td>Introduce atomic folders and narrower capability scopes under <code>themed {}</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout warn">
+              <strong>Important:</strong> file splitting is not the goal by itself. Splitting only helps when every new file has a stable abstraction level and a reason to be read independently.
+            </div>
+          </div>
+        </section>
+
+        <section id="target-model">
+          <div class="section-inner">
+            <h2>Target Model</h2>
+            <p>The target structure is a graph-backed UI architecture where each layer has a precise reason to exist. The goal is not ceremony. The goal is that a small number of concepts can express a large product surface without duplicating logic or leaking implementation details upward.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Layer</th><th>Owns</th><th>Must not own</th><th>Example</th></tr></thead>
+                <tbody>
+                  <tr><td>Service</td><td>Typed transport contracts and request/response shapes.</td><td>Screen state, app labels, UI concepts, cache policy, or operation names for HTTP handlers.</td><td><code>MessagingApi</code>, <code>SocialApi</code>, <code>StickerApi</code>.</td></tr>
+                  <tr><td>Repository</td><td>Persistence, cache, local source of truth, and remote fetch wrappers.</td><td>Screen composition, analytics, navigation, or transient UI workflow.</td><td><code>UserRepository</code>, <code>MessageRepository</code>, <code>SocialRepository</code>.</td></tr>
+                  <tr><td>Interactor</td><td>Data plus actions. Combines repositories, services, analytics, and route-safe domain operations.</td><td>Low-level Compose layout or primitive style choices.</td><td><code>ChatListInteractor</code>, <code>ProfileInteractor</code>, <code>EventsInteractor</code>.</td></tr>
+                  <tr><td>Actor</td><td>One focused async loop, reducer, queue, or state machine.</td><td>Multiple unrelated workflows or broad product orchestration.</td><td><code>ChatSocketActor</code>, <code>ComposerActor</code>, <code>OnboardingSubmissionActor</code>.</td></tr>
+                  <tr><td>Screen state</td><td>Immutable state model shaped for UI rendering.</td><td>Networking, mutation logic, or Compose dependencies.</td><td><code>ChatScreenState</code>, <code>ProfileEditorState</code>.</td></tr>
+                  <tr><td>Screen</td><td>Route binding, state collection, action forwarding, and context-appropriate declarative layout.</td><td>Repository calls, service clients, analytics details, data hydration, or ad hoc business rules.</td><td><code>ChatScreen.Content()</code> reads like the actual screen.</td></tr>
+                  <tr><td>Design component</td><td>Reusable rendering and interaction primitives at the right atomic level.</td><td>Product data fetching or route behavior.</td><td><code>Card</code>, <code>ConversationRow</code>, <code>MessageTimeline</code>, <code>ProfileHeader</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout success">
+              <strong>Gold standard:</strong> <code>edge.push(payload)</code> is the reference style. It hides incidental boilerplate while preserving the real concept. The same standard should apply to UI and data APIs.
+            </div>
+          </div>
+        </section>
+
+        <section id="atomic-design">
+          <div class="section-inner">
+            <h2>Atomic Design</h2>
+            <p>Atomic design gives us a vocabulary for moving between parts and whole without losing either. Brad Frost's model uses atoms, molecules, organisms, templates, and pages. For BestBuds, the names should be adapted to Compose and product code, but the hierarchy should remain strict.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Atomic stage</th><th>BestBuds meaning</th><th>Examples</th><th>Rules</th></tr></thead>
+                <tbody>
+                  <tr><td>Tokens</td><td>Subatomic design constants and semantic decisions.</td><td>Color palette, typography, spacing, corners, elevation, motion durations.</td><td>Never encode screen-specific alpha, color, or spacing in a product screen when a semantic token exists.</td></tr>
+                  <tr><td>Primitives / atoms</td><td>Smallest functional UI elements.</td><td><code>Text</code>, <code>IconAction</code>, <code>Card</code>, <code>Button</code>, <code>Avatar</code>, <code>TextField</code>, <code>Badge</code>.</td><td>No repository, no product workflow, minimal styling branches, stable accessibility contract.</td></tr>
+                  <tr><td>Molecules</td><td>Small reusable groups with one purpose.</td><td><code>SearchBar</code>, <code>PillGroup</code>, <code>StatRow</code>, <code>ProfileFact</code>, <code>ComposerActionStrip</code>.</td><td>Use atoms and tokens. Do not become a full screen section.</td></tr>
+                  <tr><td>Organisms</td><td>Distinct product sections composed from molecules and atoms.</td><td><code>ConversationRow</code>, <code>MessageTimeline</code>, <code>ProfileHeader</code>, <code>EventCard</code>, <code>CampaignStageTrack</code>.</td><td>Can know product UI models, but not repositories or network behavior.</td></tr>
+                  <tr><td>Screen blocks</td><td>Named screen-level regions where reuse is real and the abstraction helps reading.</td><td><code>ChatHeader</code>, <code>ComposerDock</code>, <code>OnboardingQuestionStage</code>, <code>ProfileEditorSection</code>.</td><td>Extract only when the name improves the screen's readability. Avoid one-line template indirection.</td></tr>
+                  <tr><td>Screens / pages</td><td>Route-bound concrete UI instances with real content and actions.</td><td><code>ChatScreen</code>, <code>PublicEventsScreen</code>, <code>ProfileScreen</code>.</td><td>Should reveal the visual skeleton directly: top bar, list, header, sections, sheets, dock, FAB.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout">
+              <strong>BestBuds adaptation:</strong> use atomic design as a hierarchy, not dogma. If a screen-specific block is not reused but makes the screen readable, it can stay private in that screen file. If moving it elsewhere makes the screen opaque, do not move it.
+            </div>
+          </div>
+        </section>
+
+        <section id="react-actor-philosophy">
+          <div class="section-inner">
+            <h2>React/Actor Philosophy</h2>
+            <p>The product should follow the same mental model that makes React and actor systems powerful: a small number of composable primitives, explicit state, clear message flow, and local reasoning. The implementation should not grow new concepts unless they generalize across real use cases.</p>
+            <div class="grid two">
+              <div class="card">
+                <h3>React side</h3>
+                <p>UI is a function of state. Components are composed, not inherited. A screen should read top-down. Props and action callbacks should make the data flow visible. Styling should come from scoped theme contracts, not random local constants.</p>
+              </div>
+              <div class="card">
+                <h3>Actor side</h3>
+                <p>Async workflows are isolated. A socket actor owns socket state. A composer actor owns draft, reply, attachments, and send lifecycle. A submission actor owns validation and remote mutation. State changes happen through explicit actions.</p>
+              </div>
+            </div>
+            <h3>What this means in code</h3>
+            <ul>
+              <li>A screen should call <code>interactor.actions.send()</code>, not assemble service payloads.</li>
+              <li>A screen should render <code>state.timeline</code>, not fetch, merge, sort, and annotate messages.</li>
+              <li>A component should render a <code>ConversationSummaryUi</code>, not inspect raw service DTOs.</li>
+              <li>An actor should expose a focused state flow and action surface, not a broad utility object.</li>
+              <li>New primitives must serve multiple domains or be clearly local to one feature.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="graph-ownership">
+          <div class="section-inner">
+            <h2>Graph Ownership</h2>
+            <p>Reaktor's graph model should be the backbone of the app, not just a navigation wrapper. BestBuds should use graph nodes to make lifecycle and ownership explicit: services and repositories are providers, interactors are product capability nodes, actors are owned by interactors or narrow graph nodes, and screens consume only the state/actions they need.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Graph object</th><th>Recommended role</th><th>BestBuds application</th></tr></thead>
+                <tbody>
+                  <tr><td><code>BestBuds</code></td><td>Readable app graph and route map. It can be longer than 500 lines if it remains the single obvious app topology.</td><td>Declare providers, top-level interactors, routes, containers, and edge bindings. Avoid business logic.</td></tr>
+                  <tr><td><code>ServiceNode</code></td><td>Typed API provider for real services.</td><td>Expose <code>MessagingApi</code>, <code>SocialApi</code>, and <code>StickerApi</code>. No ad hoc client service labels.</td></tr>
+                  <tr><td><code>RepositoryNode</code></td><td>Offline-first data access and cache lifecycle.</td><td>User, message, sticker, social, and profile data should live here.</td></tr>
+                  <tr><td><code>Interactor</code></td><td>Product behavior boundary.</td><td>Chat, events, campaigns, friends, onboarding, profile, palette/session.</td></tr>
+                  <tr><td><code>ActorNode</code></td><td>Focused event loop where ordering matters.</td><td>Socket, composer, forwarding, onboarding submission, media upload, profile save.</td></tr>
+                  <tr><td><code>RouteBinding</code></td><td>Route payload and navigation actions.</td><td>Use <code>edge.push(payload)</code>, <code>edge.replace(payload)</code>, and correct return/back commands.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout">
+              <strong>Rule:</strong> if a screen has to coordinate two repositories or a repository plus a service, it probably needs an interactor. If it coordinates concurrency, retries, or ordered events, it probably needs an actor.
+            </div>
+          </div>
+        </section>
+
+        <section id="screen-inventory">
+          <div class="section-inner">
+            <h2>Screen Inventory</h2>
+            <p>The current UI is visually stronger than before, but data and action ownership varies by screen. The refactor should be comprehensive and staged by product flow risk.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Screen group</th><th>Current concern</th><th>Target screen shape</th><th>Interactor target</th></tr></thead>
+                <tbody>
+                  <tr><td>Start / auth</td><td>Login and quick test-user paths are close to screen-level orchestration.</td><td>Start screen declares hero, sign-in actions, trust/value blocks, and optional dev impersonation block.</td><td><code>AuthInteractor</code> or <code>SessionInteractor</code>.</td></tr>
+                  <tr><td>Onboarding</td><td>Questions, local responses, timers, analytics, validation, and submission are mixed into the screen.</td><td>Screen renders progress, question stage, answer controls, and bottom action dock.</td><td><code>OnboardingInteractor</code> with <code>OnboardingFlowActor</code> and <code>OnboardingSubmissionActor</code>.</td></tr>
+                  <tr><td>Chat list</td><td>Filtering, hydration, unread counts, pinned sections, analytics, and navigation are still local.</td><td>Screen declares hero, filter bar, pinned section, active circles, friends, empty states.</td><td><code>ChatListInteractor</code>.</td></tr>
+                  <tr><td>Chat thread</td><td>Large flow collection and transient UI state in the screen; large interactor behind it.</td><td>Screen declares scaffold, header, timeline, sheets, member rail, composer dock, and error banners.</td><td><code>ChatSessionInteractor</code> with focused actors.</td></tr>
+                  <tr><td>Group profile</td><td>Beautiful direction, but group context, members, events, safety, and reveal are not fully state-owned.</td><td>Screen declares identity hero, stage track, members, pinned plan, memory wall, safety controls.</td><td><code>GroupProfileInteractor</code>.</td></tr>
+                  <tr><td>Personal profile</td><td>Fetch, edit fields, save state, session geo, logout, analytics, and UI shaping are mixed.</td><td>Screen declares profile hero, editor sections, privacy block, linked accounts, logout action.</td><td><code>ProfileInteractor</code> and <code>ProfileEditorActor</code>.</td></tr>
+                  <tr><td>Friend profile</td><td>Direct repository data and simple profile display.</td><td>Screen declares friend hero, prompts, mutual circles, shared events, plan/message actions.</td><td><code>FriendProfileInteractor</code>.</td></tr>
+                  <tr><td>Campaigns / discover</td><td>Strong cards, shallow actions, no detail depth.</td><td>Screen declares stage summary, recommendation explanation, campaign sections, detail entry.</td><td><code>CampaignInteractor</code> and <code>DiscoverInteractor</code>.</td></tr>
+                  <tr><td>Public/private events</td><td>Sample data and local save state; create/open/join not real enough.</td><td>Screen declares event hero, filters, event feed, create FAB, detail sheets/routes.</td><td><code>EventsInteractor</code>.</td></tr>
+                  <tr><td>Friends</td><td>Simple list with profile routing.</td><td>Screen declares search, close friends, recent activity, groups, plans, empty recovery.</td><td><code>FriendsInteractor</code>.</td></tr>
+                  <tr><td>Palette / dev</td><td>Useful but release-sensitive.</td><td>Palette stays as design tool behind dropdown/dev access. Dev screens are hidden or gated in release builds.</td><td><code>PaletteInteractor</code> or theme controller.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="domain-interactors">
+          <div class="section-inner">
+            <h2>Domain Interactors</h2>
+            <p>Interactors should become the product API used by screens. The intent is not to make every action global. The intent is that each domain has one obvious place where data, actions, analytics, cache invalidation, optimistic updates, and navigation-safe product decisions live.</p>
+            <div class="grid two">
+              <div class="card">
+                <h3>Chat domain</h3>
+                <ul>
+                  <li><code>ChatListInteractor</code>: fetch summaries, hydrate stickers, derive sections, search/filter, unread counts, pinned groups, analytics for open.</li>
+                  <li><code>ChatSessionInteractor</code>: load one thread, expose <code>ChatScreenState</code>, coordinate timeline, participants, composer, sheets, and route actions.</li>
+                  <li><code>ChatSocketActor</code>: connect, reconnect, receive, send, close, online state, typing receive.</li>
+                  <li><code>MessageTimelineActor</code>: pages, merge, sort, dedupe, highlight, scroll triggers, optimistic replacement.</li>
+                  <li><code>ComposerActor</code>: draft, reply target, attachments, sticker picker, validation, send lifecycle.</li>
+                  <li><code>ReactionActor</code>: reaction sheets, quick reactions, optimistic toggles, undo.</li>
+                  <li><code>ForwardingActor</code>: select targets, confirm, send copies, dismiss.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Identity and trust</h3>
+                <ul>
+                  <li><code>SessionInteractor</code>: current user, login/logout, test persona gating, session readiness.</li>
+                  <li><code>OnboardingInteractor</code>: question state, responses, progress, validation, submission, completion routing.</li>
+                  <li><code>ProfileInteractor</code>: fetch, edit state, dirty state, save, privacy, media, logout handoff.</li>
+                  <li><code>FriendProfileInteractor</code>: friend context, shared history, message/plan actions.</li>
+                  <li><code>GroupProfileInteractor</code>: members, stage, reveal, pinned plan, events, safety controls.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>IRL loop</h3>
+                <ul>
+                  <li><code>EventsInteractor</code>: public/private feeds, filters, saved events, RSVP, create, open detail, empty states.</li>
+                  <li><code>CreateEventInteractor</code>: editor state, image selection, validation, publish, drafts.</li>
+                  <li><code>CampaignInteractor</code>: current campaign, stage status, members, trust ring, action readiness.</li>
+                  <li><code>DiscoverInteractor</code>: recommendations, search, local filters, explanation, join/request flows.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Shell and theme</h3>
+                <ul>
+                  <li><code>NavigationInteractor</code>: route-visible tab metadata, unread badges, shell actions.</li>
+                  <li><code>PaletteInteractor</code>: palette selection, preview, persistence, system theme adaptation.</li>
+                  <li><code>DevInteractor</code>: debug-only toggles and diagnostics hidden from release builds.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="callout success">
+              <strong>Interactor API shape:</strong> prefer <code>state: StateFlow&lt;ScreenState&gt;</code> plus small action functions. Avoid mutable public fields and avoid exposing raw repository flows directly to screens.
+            </div>
+          </div>
+        </section>
+
+        <section id="ui-layering">
+          <div class="section-inner">
+            <h2>UI Layering</h2>
+            <p>The design module should keep moving toward a real atomic library. App screens should consume semantic organisms and screen blocks, while still showing enough structure to be readable. The <code>themed {}</code> scope should be the primary way to access theme-aware components.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Package</th><th>Content</th><th>Allowed dependencies</th><th>Forbidden dependencies</th></tr></thead>
+                <tbody>
+                  <tr><td><code>design.tokens</code></td><td>Color, typography, spacing, corners, motion, elevations.</td><td>Kotlin/Compose primitives.</td><td>App models, screens, repositories.</td></tr>
+                  <tr><td><code>design.primitives</code></td><td>Foundational UI elements: surface, text, icon action, image, input, button.</td><td>Tokens and Compose primitives.</td><td>Product models, network state.</td></tr>
+                  <tr><td><code>design.atoms</code></td><td>Badges, pills, stats, labels, dividers, avatars, menu items.</td><td>Primitives and tokens.</td><td>Screen-specific branching.</td></tr>
+                  <tr><td><code>design.molecules</code></td><td>Search bars, action rows, input groups, summary rows, media pickers.</td><td>Atoms and primitives.</td><td>Repository calls, navigation.</td></tr>
+                  <tr><td><code>design.organisms</code></td><td>Conversation rows, event cards, profile headers, message bubbles, composer dock.</td><td>Molecules, atoms, UI models.</td><td>Services, repositories, graph dispatch.</td></tr>
+                  <tr><td><code>app.ui.*</code></td><td>Route screens and private screen blocks.</td><td>Design organisms, interactors, route binding.</td><td>Service clients, broad data manipulation.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <h3>Scope facets</h3>
+            <p><code>BestBudsThemeScope</code> can be powerful without becoming a single huge interface. Prefer capability facets installed into the themed scope:</p>
+            <ul>
+              <li><code>SurfaceComponents</code>: card, panel, sheet, backdrop, separators.</li>
+              <li><code>TextComponents</code>: headings, body copy, captions, labels, metadata.</li>
+              <li><code>InputComponents</code>: text fields, search, composer input, segmented controls, chips.</li>
+              <li><code>IdentityComponents</code>: avatars, stacks, identity rows, verification marks.</li>
+              <li><code>FeedComponents</code>: list sections, empty states, loading states, row containers.</li>
+              <li><code>ActionComponents</code>: buttons, icon actions, floating actions, menus, action rows.</li>
+              <li><code>MotionComponents</code>: transitions, press feedback, reveal, shimmer, scroll effects.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="component-rules">
+          <div class="section-inner">
+            <h2>Component Rules</h2>
+            <p>Component extraction should make the code more expressive. It should never hide the screen's structure or create a thin wrapper around a primitive just to add a prefix.</p>
+            <div class="grid two">
+              <div class="card bar green">
+                <h3>Extract when</h3>
+                <ul>
+                  <li>The name is a real product or UI concept: <code>ConversationRow</code>, <code>ProfileHeader</code>, <code>EventCard</code>, <code>ComposerDock</code>.</li>
+                  <li>The component is reused or likely to become a stable visual contract.</li>
+                  <li>The extracted code sits one abstraction level below its caller.</li>
+                  <li>The component bundles accessibility, interaction, and visual behavior that should stay consistent.</li>
+                  <li>The screen becomes easier to visualize after extraction.</li>
+                </ul>
+              </div>
+              <div class="card bar rose">
+                <h3>Do not extract when</h3>
+                <ul>
+                  <li>The new component is a one-use template that makes the screen say only <code>PrivateEventsTemplate(...)</code>.</li>
+                  <li>The extracted function name merely repeats the file name.</li>
+                  <li>The component takes a giant prop list because it is hiding unrelated state.</li>
+                  <li>The abstraction exists only to avoid a few lines of readable layout code.</li>
+                  <li>The extraction forces unrelated concepts into a common interface.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="callout">
+              <strong>Screen readability rule:</strong> a screen should reveal its regions directly. A good screen says: hero, filters, sections, feed, sheet, dock, FAB. It should not say: template.
+            </div>
+          </div>
+        </section>
+
+        <section id="examples">
+          <div class="section-inner">
+            <h2>Examples</h2>
+            <p>These examples show the target level of abstraction. They are not final code, but they define the shape of the refactor.</p>
+            <h3>Chat list screen after refactor</h3>
+            <pre><code>@Composable
+override fun Content() = themed {
+    TrackScreenView("chat_list")
+    val state by chatListInteractor.state.collectAsState()
+
+    ScreenColumn(
+        contentPadding = ScreenPadding.feed,
+        verticalSpacing = Spacing.small,
+    ) {
+        item { ChatListHero(state.hero) }
+        item {
+            ConversationFilters(
+                filters = state.filters,
+                selected = state.selectedFilter,
+                onSelect = chatListInteractor::selectFilter,
+            )
+        }
+
+        conversationSections(
+            sections = state.sections,
+            onOpen = { chatListInteractor.open(it) },
+        )
+    }
+}</code></pre>
+            <p>The screen still shows the visual skeleton. What changed is that counts, filters, pinned logic, unread logic, sticker hydration, analytics, and route-safe open behavior moved to <code>ChatListInteractor</code>.</p>
+
+            <h3>Chat session ownership</h3>
+            <pre><code>class ChatSessionInteractor(
+    private val timeline: MessageTimelineActor,
+    private val socket: ChatSocketActor,
+    private val composer: ComposerActor,
+    private val reactions: ReactionActor,
+    private val forwarding: ForwardingActor,
+) : BasicNode(...) {
+    val state: StateFlow&lt;ChatScreenState&gt; = combine(...)
+
+    fun open(payload: ChatPayload)
+    fun close()
+    fun retry(messageId: String)
+    fun react(messageId: String, reaction: Reaction)
+    fun showGroupProfile()
+}</code></pre>
+            <p>The parent interactor composes actors. It does not become a second god object. Each actor owns a single workflow, and <code>ChatScreenState</code> is the product-facing shape consumed by Compose.</p>
+
+            <h3>Profile screen after refactor</h3>
+            <pre><code>@Composable
+override fun Content() = themed {
+    val state by profileInteractor.state.collectAsState()
+
+    ScreenColumn(contentPadding = ScreenPadding.feed) {
+        item { ProfileHero(state.identity, onPhoto = profileInteractor::changePhoto) }
+        item { ProfilePromptEditor(state.prompts, profileInteractor.prompts) }
+        item { ProfilePrivacyPanel(state.privacy, profileInteractor.privacy) }
+        item { ProfileSessionActions(state.session, profileInteractor.sessionActions) }
+    }
+}</code></pre>
+            <p>This is the target: a reader can see the profile page structure without reading field plumbing, dirty-state logic, geolocation side effects, or save/retry behavior.</p>
+          </div>
+        </section>
+
+        <section id="file-plan">
+          <div class="section-inner">
+            <h2>File Plan</h2>
+            <p>Most files should stay under roughly 500 lines. The exception is a topology file like <code>BestBuds.kt</code>, where length is acceptable if it lets the app graph be read in one place. The file boundary should follow ownership, not arbitrary line count.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Area</th><th>Proposed files</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td>Chat data</td><td><code>ChatListInteractor.kt</code>, <code>ChatSessionInteractor.kt</code>, <code>MessageTimelineActor.kt</code>, <code>ChatSocketActor.kt</code>, <code>ComposerActor.kt</code>, <code>ReactionActor.kt</code>, <code>ForwardingActor.kt</code></td><td>First major split. Keep public action APIs simple. Avoid leaking actor internals to screens.</td></tr>
+                  <tr><td>Chat UI</td><td><code>ChatScreen.kt</code>, <code>ChatListScreen.kt</code>, <code>ChatOrganisms.kt</code>, <code>MessageOrganisms.kt</code>, <code>ComposerOrganisms.kt</code></td><td>Keep route-bound skeletons in screen files. Move reusable rows/bubbles/composer pieces into organisms.</td></tr>
+                  <tr><td>Profile</td><td><code>ProfileInteractor.kt</code>, <code>ProfileEditorActor.kt</code>, <code>FriendProfileInteractor.kt</code>, <code>GroupProfileInteractor.kt</code>, <code>ProfileOrganisms.kt</code></td><td>Personal, friend, and group profile share identity components but have separate product actions.</td></tr>
+                  <tr><td>Onboarding</td><td><code>OnboardingInteractor.kt</code>, <code>OnboardingFlowActor.kt</code>, <code>OnboardingSubmissionActor.kt</code>, <code>OnboardingOrganisms.kt</code></td><td>Move timing, analytics, answers, validation, and completion routing out of UI.</td></tr>
+                  <tr><td>Events and campaigns</td><td><code>EventsInteractor.kt</code>, <code>CreateEventInteractor.kt</code>, <code>CampaignInteractor.kt</code>, <code>DiscoverInteractor.kt</code>, <code>EventOrganisms.kt</code>, <code>CampaignOrganisms.kt</code></td><td>Replace sample data and TODO callbacks with graph-owned state and actions.</td></tr>
+                  <tr><td>Design system</td><td><code>tokens/</code>, <code>primitives/</code>, <code>atoms/</code>, <code>molecules/</code>, <code>organisms/</code>, <code>theme/</code></td><td>Use exports that match hierarchy. Keep app-specific product models out of lower layers.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="migration-phases">
+          <div class="section-inner">
+            <h2>Migration Phases</h2>
+            <p>The refactor should be done in vertical slices that preserve behavior after each step. The chat domain should move first because it has the most state and the highest market impact.</p>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 0 - Safety net and inventory</span><span class="phase-meta">1 pass</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>List all screen files, design files, interactors, services, repositories, and generated routes.</li>
+                  <li>Add or refresh smoke tests for login, chat list, chat send, profile, events, and navigation shell.</li>
+                  <li>Record current Maestro flows that must still pass after each migration slice.</li>
+                  <li>Mark release-only blockers: dev routes, placeholder callbacks, sample data, empty edit/create routes.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 1 - Interactor scaffolding</span><span class="phase-meta">Foundation</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>Create shared patterns for <code>ScreenState</code>, <code>ActionSet</code>, actor input messages, and reducer-style state updates.</li>
+                  <li>Register interactors as graph nodes and providers where screens can consume them.</li>
+                  <li>Keep old behavior while routing screen reads through the new state model.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 2 - Chat split</span><span class="phase-meta">Highest leverage</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>Extract <code>ChatListInteractor</code> from <code>ChatsScreen</code> responsibilities.</li>
+                  <li>Split <code>ChatInteractor</code> into session interactor plus socket, timeline, composer, reactions, forwarding, typing/presence actors.</li>
+                  <li>Convert <code>ChatScreen</code> to consume <code>ChatScreenState</code> and action groups while keeping the visible layout skeleton in the screen file.</li>
+                  <li>Run Android and iOS chat Maestro flows after the slice.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 3 - Identity and onboarding</span><span class="phase-meta">Trust foundation</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>Move profile fetching, editing, save, logout, privacy, and media workflows into profile interactors.</li>
+                  <li>Move onboarding progress, responses, validation, analytics, and submission into onboarding actors.</li>
+                  <li>Make personal, friend, and group profiles share identity atoms and molecules while keeping distinct product organisms.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 4 - Events, campaigns, and discovery</span><span class="phase-meta">IRL loop</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>Replace sample event data with repository/interactor state.</li>
+                  <li>Implement create, save, RSVP, open, join, and campaign detail actions as interactor methods.</li>
+                  <li>Make event cards, campaign cards, recommendation rows, and profile trust panels reusable organisms.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 5 - Design taxonomy cleanup</span><span class="phase-meta">Atomic pass</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>Rename and move design files into tokens, primitives, atoms, molecules, organisms, and theme scopes.</li>
+                  <li>Slice broad component contracts into capability facets installed through <code>themed {}</code>.</li>
+                  <li>Remove empty files, dead imports, compatibility shims, and legacy frontend remnants.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="phase">
+              <div class="phase-head"><span class="phase-title">Phase 6 - Validation</span><span class="phase-meta">Done bar</span></div>
+              <div class="phase-body">
+                <ul>
+                  <li>Run Kotlin/Android, Kotlin/JS, and iOS build checks relevant to the touched layers.</li>
+                  <li>Run Maestro on Android and iOS for all migrated flows.</li>
+                  <li>Visually inspect screens for prototype parity and mobile/desktop polish.</li>
+                  <li>Update docs only after the real app behavior is migrated.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="definition-of-done">
+          <div class="section-inner">
+            <h2>Definition Of Done</h2>
+            <p>The migration is finished only when the real BestBuds apps are migrated, not when the documentation is complete.</p>
+            <div class="grid two">
+              <div class="card">
+                <h3>Code done</h3>
+                <ul>
+                  <li>All user-facing screens use the new design language and atomic components.</li>
+                  <li>Screens no longer call repositories or services directly except for narrow, documented transitional cases.</li>
+                  <li>Data plus actions live in interactors. Ordered async workflows live in actors.</li>
+                  <li>No <code>BB*</code> compatibility wrappers remain.</li>
+                  <li>No legacy frontend files remain after scanning for valuable behavior.</li>
+                  <li>Most files stay under 500 lines unless their topology role justifies length.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Validation done</h3>
+                <ul>
+                  <li>Android Maestro flows pass with the migrated UI.</li>
+                  <li>iOS Maestro flows pass with the migrated UI.</li>
+                  <li>Chat list, chat send, reactions, attachments/stickers, group profile, personal profile, public events, private events, onboarding, and navigation shell are covered.</li>
+                  <li>Desktop and mobile web prototype parity checks remain useful as design references.</li>
+                  <li>No critical empty states, TODO callbacks, or release-visible dev surfaces remain.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="callout danger">
+              <strong>Hard bar:</strong> a visual migration without Maestro validation is not done. A clean component taxonomy without migrated app screens is not done. A screen that looks right but still owns business logic is not done.
+            </div>
+          </div>
+        </section>
+
+        <section id="guardrails">
+          <div class="section-inner">
+            <h2>Guardrails</h2>
+            <ul>
+              <li>Do not add primitives for one use case. A primitive must generalize or stay private.</li>
+              <li>Do not use "template" as a way to hide an entire screen elsewhere.</li>
+              <li>Do not over-normalize incompatible components into one interface.</li>
+              <li>Do not move business logic into design components.</li>
+              <li>Do not create graph nodes that only rename an existing service or repository.</li>
+              <li>Do not degrade the readability of <code>BestBuds.kt</code>; it should remain the app topology map.</li>
+              <li>Do not block real app migration on docs or speculative architecture work.</li>
+              <li>Keep the prototype and appWeb as visual references, but app code should have native ownership and state models.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="next-implementation-order">
+          <div class="section-inner">
+            <h2>Next Implementation Order</h2>
+            <p>This is the recommended next sequence for actual code work after this document.</p>
+            <ol>
+              <li>Create a small screen-state/action pattern and register <code>ChatListInteractor</code>.</li>
+              <li>Move chat list filtering, pinned/unread sections, sticker hydration, analytics, and open-chat routing into <code>ChatListInteractor</code>.</li>
+              <li>Split <code>ChatInteractor</code> into <code>ChatSessionInteractor</code> plus socket, timeline, composer, reactions, forwarding, and typing/presence actors.</li>
+              <li>Refactor <code>ChatScreen</code> to render <code>ChatScreenState</code> while preserving the screen's top-level visual skeleton.</li>
+              <li>Repeat the same pattern for onboarding, profile, events, campaigns, discover, and friends.</li>
+              <li>Reorganize the design module into atomic folders and scoped component facets once app usage proves the right boundaries.</li>
+              <li>Run Android and iOS Maestro smoke flows after each vertical slice, then the full suite at the end.</li>
+            </ol>
+            <div class="callout success">
+              <strong>Best first cut:</strong> start with chat because it will prove the architecture under realtime, optimistic, paginated, media-rich, sheet-heavy conditions. If the pattern works there, it will work everywhere else.
+            </div>
+          </div>
+        </section>
+
+        <section id="sources">
+          <div class="section-inner">
+            <h2>Sources</h2>
+            <ul>
+              <li>Local scan of <code>/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app</code>.</li>
+              <li>Local scan of <code>/Users/ovd/dev/bestbuds/modules/design/src/commonMain/kotlin/ai/bestbuds/design</code>.</li>
+              <li><a href="https://atomicdesign.bradfrost.com/table-of-contents/">Atomic Design table of contents</a> and <a href="https://atomicdesign.bradfrost.com/chapter-2/">Atomic Design Methodology</a> by Brad Frost.</li>
+            </ul>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

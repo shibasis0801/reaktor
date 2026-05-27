@@ -75,6 +75,8 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
             this(graph, RoutePattern.from(pattern), "routeBinding", binder)
 
 
+    private val navigationEdges = mutableMapOf<String, NavigationEdge<out Payload>>()
+
     private val binding = binder(this).apply { dispatch = graph::dispatch }
 
     // todo must allow only one stateful node to connect.
@@ -106,9 +108,13 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
         return attachedNodes().firstOrNull()
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun <D: Payload> edge(
         destination: RouteNode<D, *>
-    ) = NavigationEdge(this, destination)
+    ): NavigationEdge<D> =
+        navigationEdges.getOrPut(destination.id.toString()) {
+            NavigationEdge(this, destination)
+        } as NavigationEdge<D>
 
     companion object {
         operator fun invoke(graph: Graph, pattern: String) =

@@ -7,6 +7,10 @@ import dev.shibasis.reaktor.db.Database
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 
+/*
+must have opt-in into stale-while-revalidate/etc
+
+*/
 abstract class RepositoryNode(
     graph: Graph,
     name: String

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.defaultNodeHeight
@@ -148,10 +149,23 @@ internal fun readableFlowBounds(
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): FlowBounds {
     val padding = style.readablePadding()
-    val nodeLeft = flow.nodes.minOfOrNull { it.position.x } ?: 0.0
-    val nodeTop = flow.nodes.minOfOrNull { it.position.y } ?: 0.0
-    val nodeRight = flow.nodes.maxOfOrNull { it.position.x + (it.width ?: style.defaultNodeWidth()) } ?: style.defaultNodeWidth()
-    val nodeBottom = flow.nodes.maxOfOrNull { it.position.y + (it.height ?: style.defaultNodeHeight()) } ?: style.defaultNodeHeight()
+    val readableNodes = flow.nodes.filter { node ->
+        val data = node.data as? ReaktorGraphNodeData
+        data?.isRootNode == true ||
+            data?.title == "/" ||
+            data?.title == "/onboarding" ||
+            data?.title == "StartScreen"
+    }.ifEmpty {
+        flow.nodes.take(10).ifEmpty { flow.nodes }
+    }
+    val nodeLeft = readableNodes.minOfOrNull { it.position.x } ?: 0.0
+    val nodeTop = readableNodes.minOfOrNull { it.position.y } ?: 0.0
+    val nodeRight = readableNodes.maxOfOrNull {
+        it.position.x + (it.width ?: style.defaultNodeWidth())
+    } ?: style.defaultNodeWidth()
+    val nodeBottom = readableNodes.maxOfOrNull {
+        it.position.y + (it.height ?: style.defaultNodeHeight())
+    } ?: style.defaultNodeHeight()
     return FlowBounds(
         left = nodeLeft - padding.horizontal,
         top = nodeTop - padding.vertical,

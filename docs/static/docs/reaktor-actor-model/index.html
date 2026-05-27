@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reaktor Actor Model</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar">
+        <a href="/docs">Reaktor Docs</a>
+        <span>Architecture</span>
+        <span>Final actor model</span>
+        <span>Updated May 21, 2026</span>
+      </div>
+      <p class="eyebrow">Implemented primitive</p>
+      <h1>Reaktor Actors are graph nodes with a serialized mailbox</h1>
+      <p class="subtitle">The final local actor model keeps Reaktor small: Graph stays the runtime and supervisor, ActorNode stays a normal Node, ActorKey names the identity, ActorRef is the mutation handle, and each actor owns an exclusive ObjectStore. BestBuds chat now runs through this model.</p>
+      <div class="hero-grid four" aria-label="Final actor decisions">
+        <div class="stat"><b>No ActorSystem</b><span>Graph already owns lifecycle, dependency scope, coroutine scope, ports, and node attachment.</span></div>
+        <div class="stat"><b>Mailbox Contract</b><span>All external mutation enters through ordered send or ask messages.</span></div>
+        <div class="stat"><b>Normal Nodes</b><span>Actors live in the existing node collection and participate in consumes/provides wiring.</span></div>
+        <div class="stat"><b>Durable Ready</b><span>The backend adapter can map one actor key to one Cloudflare Durable Object instance.</span></div>
+      </div>
+    </header>
+
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Document navigation">
+        <a class="home-link" href="/docs">Docs Home</a>
+        <h2>On this page</h2>
+        <nav class="page-toc">
+          <a href="#status">Status</a>
+          <a href="#principles">Principles</a>
+          <a href="#model">Core Model</a>
+          <a href="#api">API Shape</a>
+          <a href="#lifecycle">Lifecycle</a>
+          <a href="#storage">Storage</a>
+          <a href="#graph">Graph Wiring</a>
+          <a href="#bestbuds">BestBuds ChatActor</a>
+          <a href="#cloudflare">Cloudflare Alignment</a>
+          <a href="#invariants">Invariants</a>
+          <a href="#next">Next Work</a>
+          <a href="#sources">Sources</a>
+        </nav>
+        <h2>Related</h2>
+        <div class="side-group">
+          <h3>Kernel</h3>
+          <a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a>
+          <a href="/docs/reaktor-graph-migration-plan">Graph Migration Plan</a>
+          <a href="/docs/bestbuds-architecture-refactor-plan">BestBuds Architecture Refactor</a>
+        </div>
+      </aside>
+
+      <main id="content" class="doc-content">
+        <section id="status">
+          <h2>1. Implementation Status</h2>
+          <p class="lead">The actor primitive is implemented in <code>reaktor-graph</code>, backed by concurrent graph node storage in <code>reaktor-graph-port</code>, and exercised by BestBuds chat.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Area</th><th>Status</th><th>Important files</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Actor primitive</td><td>Implemented</td><td><code>reaktor-graph/.../core/node/ActorNode.kt</code></td></tr>
+                <tr><td>Graph supervision</td><td>Implemented</td><td><code>reaktor-graph/.../core/Graph.kt</code></td></tr>
+                <tr><td>Concurrent node collection</td><td>Implemented with Collection API preserved</td><td><code>reaktor-graph-port/.../graph/PortGraph.kt</code></td></tr>
+                <tr><td>BestBuds chat migration</td><td>Implemented as <code>ChatActor</code></td><td><code>bestbuds/modules/app/.../data/interactors/ChatActor.kt</code></td></tr>
+                <tr><td>Actor tests</td><td>Implemented</td><td><code>ActorNodeIntegrationTest.kt</code>, <code>ChatActorTest.kt</code></td></tr>
+                <tr><td>Cloudflare Durable Object adapter</td><td>Designed, not implemented in this pass</td><td>Future <code>reaktor-cloudflare</code> actor bridge</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout success">
+            <strong>Shipped rule:</strong> actors are not a second runtime. They are nodes with a mailbox, lifecycle hooks, state helpers, and a provider port registered from their key.
+          </div>
+        </section>
+
+        <section id="principles">
+          <h2>2. Principles</h2>
+          <p>The actor model follows the same standard as the route-binding improvement from <code>dispatch(Push(edge, payload))</code> to <code>edge.push(payload)</code>: maximum power behind a small, expressive API.</p>
+          <pre><code>state has one owner
+events go to the owner
+the owner serializes mutation
+the owner emits state
+views render state
+services transport data
+ports expose capabilities</code></pre>
+          <div class="grid-2">
+            <div class="card">
+              <h3>What actors are for</h3>
+              <ul>
+                <li>Mutable state with concurrent event sources.</li>
+                <li>WebSocket sessions, active rooms, retries, timers, and ordered side effects.</li>
+                <li>Backend entities where one logical identity owns state.</li>
+                <li>Workflow/session coordinators that need supervision.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>What actors are not for</h3>
+              <ul>
+                <li>Pure repositories.</li>
+                <li>Stateless service clients.</li>
+                <li>Screen-only Compose state.</li>
+                <li>Adding another DI, graph, or service framework.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="model">
+          <h2>3. Core Model</h2>
+          <p>Keep the public set tiny. Everything else should be an adapter, helper, or code generation target.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Concept</th><th>Role</th><th>Design constraint</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>ActorKey&lt;M&gt;</code></td><td>Logical actor identity and message type.</td><td>Key is the durable identity. Activation is just a node instance.</td></tr>
+                <tr><td><code>ActorRef&lt;M&gt;</code></td><td>Public send, trySend, ask handle.</td><td>No public mutable actor state should bypass the mailbox.</td></tr>
+                <tr><td><code>Reply&lt;R&gt;</code></td><td>Ask bridge.</td><td>Typed replies stay in the message, not in a global callback registry.</td></tr>
+                <tr><td><code>ActorNode&lt;M&gt;</code></td><td>Node with mailbox, lifecycle, store, timers, and receive.</td><td>Subclass owns implementation; callers talk through messages or narrow convenience APIs that enqueue messages.</td></tr>
+                <tr><td><code>MailboxPolicy</code></td><td>Capacity and overflow.</td><td>Default is bounded and suspending to avoid hidden overload.</td></tr>
+                <tr><td><code>ActorDirective</code></td><td>Failure response.</td><td>Resume by default; restart, stop, and escalate are explicit.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>The critical contract</h3>
+          <pre><code>ActorRef.send(message)
+  -&gt; mailbox accepts the message
+  -&gt; actor loop receives messages FIFO
+  -&gt; receive(message) mutates owned state
+  -&gt; state flows, object state, services, and ports observe the result</code></pre>
+        </section>
+
+        <section id="api">
+          <h2>4. API Shape</h2>
+          <p>Actor code should feel like normal Reaktor code. The key is the only actor-specific identifier.</p>
+          <pre><code>object ChatActors {
+    val Session = actorKey&lt;ChatMsg&gt;("bestbuds.chat.session")
+}
+
+sealed interface ChatMsg {
+    data class Open(val user: User, val chatId: String, val existing: Chat?) : ChatMsg
+    data class IncomingSocketText(val text: String) : ChatMsg
+    data class FetchChats(val reply: Reply&lt;Result&lt;List&lt;Chat&gt;&gt;&gt;) : ChatMsg
+}
+
+class ChatActor(graph: Graph) : ActorNode&lt;ChatMsg&gt;(
+    graph = graph,
+    key = ChatActors.Session,
+) {
+    override suspend fun receive(message: ChatMsg) {
+        when (message) {
+            is ChatMsg.Open -&gt; openChatNow(message.user, message.chatId, message.existing)
+            is ChatMsg.IncomingSocketText -&gt; applyIncomingSocketText(message.text)
+            is ChatMsg.FetchChats -&gt; message.reply.complete(fetchChatsNow())
+        }
+    }
+}</code></pre>
+
+          <h3>Graph declaration</h3>
+          <pre><code>class BestBuds : Graph(...) {
+    init {
+        provides(ChatActors.Session, ::ChatActor)
+        autoWire()
+    }
+}</code></pre>
+
+          <h3>Node consumption</h3>
+          <pre><code>class ChatSessionInteractor(graph: Graph) : BasicNode(graph) {
+    private val chatActor: ConsumerPort&lt;ChatActor&gt; by consumes(ChatActors.Session)
+
+    fun open(user: User, chatId: String, existing: Chat?) {
+        launch {
+            chatActor.impl?.send(ChatMsg.Open(user, chatId, existing))
+        }
+    }
+}</code></pre>
+        </section>
+
+        <section id="lifecycle">
+          <h2>5. Lifecycle and Supervision</h2>
+          <p>Actor lifecycle is node lifecycle. Attach starts the mailbox loop; save pauses it; restore starts it again; destroy closes it.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Lifecycle</th><th>Actor behavior</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>Restoring</code></td><td>Start loop if needed and run <code>preStart</code>.</td></tr>
+                <tr><td><code>Attaching</code></td><td>Loop should already be running; start is idempotent.</td></tr>
+                <tr><td><code>Saving</code></td><td>Pause loop without closing the mailbox so <code>Saving -&gt; Restoring</code> can resume.</td></tr>
+                <tr><td><code>Destroying</code></td><td>Close mailbox, cancel loop, close ports and node scope.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Failure rule</h3>
+          <p>A failed message does not kill the actor by default. The failed ask is completed exceptionally, <code>onFailure</code> runs, and the default directive is <code>Resume</code>. This is right for app actors where one bad user event should not destroy an active session.</p>
+          <pre><code>protected open suspend fun onFailure(
+    message: M,
+    error: Throwable,
+): ActorDirective =
+    graph.actorSupervisorStrategy.onActorFailure(this, message, error)</code></pre>
+        </section>
+
+        <section id="storage">
+          <h2>6. Exclusive ObjectStore</h2>
+          <p>Every actor has one exclusive object store derived from its key. Actor state should use named records inside that store instead of splitting the actor hierarchy into memory and persistent subclasses.</p>
+          <pre><code>class RoomActor(graph: Graph) : ActorNode&lt;RoomMsg&gt;(graph, RoomActors.room("42")) {
+    private val summary = state&lt;RoomSummary&gt;("summary")
+    private val members = state&lt;RoomMembers&gt;("members")
+
+    override suspend fun receive(message: RoomMsg) {
+        when (message) {
+            is RoomMsg.Join -&gt; members.update { it + message.userId }
+        }
+    }
+}</code></pre>
+          <div class="callout warn">
+            <strong>Persistence rule:</strong> in-memory fields are valid for fast runtime state, sockets, pending reactions, timers, and caches. Durable decisions must be written into the actor store.
+          </div>
+        </section>
+
+        <section id="graph">
+          <h2>7. Graph Wiring</h2>
+          <p>The actor API deliberately stays close to Reaktor's port graph conventions.</p>
+          <div class="grid-2">
+            <div class="card">
+              <h3><code>provides(key, create)</code></h3>
+              <p>Creates the actor if it does not exist, attaches it as a normal node, and returns the existing activation if it is already present.</p>
+            </div>
+            <div class="card">
+              <h3><code>consumes(key)</code></h3>
+              <p>Registers a typed consumer port using the actor key name and the concrete actor type supplied by the property type.</p>
+            </div>
+          </div>
+          <p>Because the backing node store preserves <code>Collection</code>, existing code that iterates <code>graph.nodes</code> keeps working. Direct lookup is available through <code>graph.node(id)</code>, while actor lookup is exposed through <code>findActor</code>.</p>
+        </section>
+
+        <section id="bestbuds">
+          <h2>8. BestBuds ChatActor</h2>
+          <p>BestBuds chat is the first concrete product migration. It is a good actor because it receives concurrent events from UI, WebSocket, HTTP revalidation, timers, retries, pagination, reactions, and presence.</p>
+
+          <h3>Before</h3>
+          <ul>
+            <li>Chat interactor directly exposed mutable flows and launched side jobs that could mutate state from outside a single ordered path.</li>
+            <li>WebSocket collection parsed and applied frames in collector context.</li>
+            <li>Chat list fetch logic was duplicated in list logic and chat logic.</li>
+          </ul>
+
+          <h3>After</h3>
+          <ul>
+            <li><code>ChatActor</code> owns active chat state, messages, participants, failed ids, typing state, presence, sockets, and pending reaction aliases.</li>
+            <li>WebSocket frames become <code>ChatMsg.IncomingSocketText</code> before state changes.</li>
+            <li>Revalidation and group member fetches send actor messages before applying results.</li>
+            <li>Send, retry, discard, reaction, forward, load-older, typing, and close all enter through the mailbox.</li>
+          </ul>
+
+          <h3>Why this scales features</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Feature pressure</th><th>Actor benefit</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Fast incoming messages plus optimistic local sends</td><td>One serialized state owner resolves temp ids, server echoes, failed ids, and ordering.</td></tr>
+                <tr><td>Reactions on temp messages</td><td>Pending reactions are flushed when the real message id arrives.</td></tr>
+                <tr><td>Typing and presence</td><td>Timers send messages back into the actor rather than mutating state from timer jobs.</td></tr>
+                <tr><td>Pagination and revalidation</td><td>Older pages and fresh cache snapshots merge through one code path.</td></tr>
+                <tr><td>Backend room actor later</td><td>The same message discipline maps to one chat room identity on server or Durable Object.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="cloudflare">
+          <h2>9. Cloudflare Alignment</h2>
+          <p>Cloudflare Durable Objects are the backend reference point. Cloudflare describes Durable Objects as stateful serverless units with compute and storage, and its Actors package wraps Durable Objects with actor-oriented helpers.</p>
+          <div class="grid-2">
+            <div class="card">
+              <h3>Durable Object mapping</h3>
+              <pre><code>ActorKey.name
+  -&gt; Durable Object namespace id/name
+  -&gt; one backend actor instance
+  -&gt; actor-owned storage
+  -&gt; HTTP/RPC/WebSocket/alarm messages</code></pre>
+            </div>
+            <div class="card">
+              <h3>Reaktor superset path</h3>
+              <ul>
+                <li>Local app actor: graph node plus mailbox.</li>
+                <li>Worker actor: Durable Object wrapper plus same receive discipline.</li>
+                <li>Storage: ObjectStore abstraction over local DB or Durable Object storage.</li>
+                <li>Timers: local coroutine timers now, Durable Object alarms in the backend adapter.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Important:</strong> distributed mesh actors remain out of scope. Durable Object deployability is a backend adapter target, not a reason to add location-transparent remoting to the actor core.
+          </div>
+        </section>
+
+        <section id="invariants">
+          <h2>10. Invariants</h2>
+          <ul>
+            <li>There is no <code>ActorSystem</code>, <code>ActorGraph</code>, <code>ActorRepository</code>, or <code>DurableActorNode</code>.</li>
+            <li>Actor identity is the key. Activation is a graph node instance.</li>
+            <li>The raw mailbox channel is private.</li>
+            <li>Every external mutation enters through <code>send</code>, <code>trySend</code>, or <code>ask</code>, including socket and timer events.</li>
+            <li>Actor state helpers use the actor-owned ObjectStore.</li>
+            <li>Services remain transport endpoints. Repositories remain data access. Actors own serialized mutable behavior.</li>
+            <li>Convenience methods on concrete actors are acceptable only when they enqueue messages and do not mutate state directly.</li>
+            <li>Graph node collection remains the source of truth for actors and non-actors.</li>
+          </ul>
+        </section>
+
+        <section id="next">
+          <h2>11. Next Work</h2>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Hardening</span><span class="phase-meta">Short term</span></div>
+            <div class="phase-body">
+              <ul>
+                <li>Keep actor keys as stable node ids and stable actor store names.</li>
+                <li>Keep fatal failure status from being overwritten by normal stop status.</li>
+                <li>Add tests for lifecycle restart, actor lookup, timeout behavior, and duplicate key rejection.</li>
+                <li>Continue moving chat-adjacent state through <code>ChatActor</code> when it owns serialization semantics.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="phase-head"><span class="phase-title">Backend adapter</span><span class="phase-meta">Next Reaktor Cloudflare pass</span></div>
+            <div class="phase-body">
+              <ul>
+                <li>Create a Durable Object wrapper that deserializes requests into actor messages.</li>
+                <li>Back actor <code>state()</code> with Durable Object storage or SQLite-backed ObjectStore.</li>
+                <li>Map actor timers to Durable Object alarms.</li>
+                <li>Generate handler surfaces for typed ask/send endpoints.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="sources">
+          <h2>12. Sources</h2>
+          <ul>
+            <li><a href="https://github.com/cloudflare/actors">Cloudflare Actors GitHub repository</a></li>
+            <li><a href="https://developers.cloudflare.com/durable-objects/">Cloudflare Durable Objects overview</a></li>
+            <li><a href="https://developers.cloudflare.com/durable-objects/what-are-durable-objects/">Cloudflare Durable Objects actor model explanation</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor Actors are final as a local graph primitive. Durable Object deployment is the next adapter, not a new runtime.</footer>
+  </div>
+</body>
+</html>

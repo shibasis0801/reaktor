@@ -14,21 +14,35 @@ enum class ReaktorNodeKind(
     val bodyColor: Color,
     val borderColor: Color,
 ) {
-    Screen("Screen", Color(0xFF2D6B3F), Color(0xFF192820), Color(0xFF3D8C55)),
-    Route("Route", Color(0xFF2E4A80), Color(0xFF182040), Color(0xFF4A78CC)),
-    Container("Container", Color(0xFF5E3498), Color(0xFF221838), Color(0xFF8B60C8)),
-    Service("Service", Color(0xFF8B5A2B), Color(0xFF261E14), Color(0xFFCC8844)),
-    Node("Node", Color(0xFF3C4A6E), Color(0xFF1C2030), Color(0xFF4A5580)),
+    Screen("Screen", ReaktorGraphPalette.screenTitle, ReaktorGraphPalette.screenBody, ReaktorGraphPalette.screenBorder),
+    Route("Route", ReaktorGraphPalette.routeTitle, ReaktorGraphPalette.routeBody, ReaktorGraphPalette.routeBorder),
+    Container("Container", ReaktorGraphPalette.containerTitle, ReaktorGraphPalette.containerBody, ReaktorGraphPalette.containerBorder),
+    Ui("UI", ReaktorGraphPalette.uiTitle, ReaktorGraphPalette.uiBody, ReaktorGraphPalette.uiBorder),
+    Action("Action", ReaktorGraphPalette.actionTitle, ReaktorGraphPalette.actionBody, ReaktorGraphPalette.actionBorder),
+    Interactor("Interactor", ReaktorGraphPalette.interactorTitle, ReaktorGraphPalette.interactorBody, ReaktorGraphPalette.interactorBorder),
+    Service("Service", ReaktorGraphPalette.serviceTitle, ReaktorGraphPalette.serviceBody, ReaktorGraphPalette.serviceBorder),
+    Repository("Repository", ReaktorGraphPalette.repositoryTitle, ReaktorGraphPalette.repositoryBody, ReaktorGraphPalette.repositoryBorder),
+    Actor("Actor", ReaktorGraphPalette.actorTitle, ReaktorGraphPalette.actorBody, ReaktorGraphPalette.actorBorder),
+    Edge("Edge", ReaktorGraphPalette.edgeTitle, ReaktorGraphPalette.edgeBody, ReaktorGraphPalette.edgeBorder),
+    Data("Data", ReaktorGraphPalette.dataTitle, ReaktorGraphPalette.dataBody, ReaktorGraphPalette.dataBorder),
+    Topic("Topic", ReaktorGraphPalette.topicTitle, ReaktorGraphPalette.topicBody, ReaktorGraphPalette.topicBorder),
+    Telemetry("Telemetry", ReaktorGraphPalette.telemetryTitle, ReaktorGraphPalette.telemetryBody, ReaktorGraphPalette.telemetryBorder),
+    Test("Test", ReaktorGraphPalette.testTitle, ReaktorGraphPalette.testBody, ReaktorGraphPalette.testBorder),
+    Release("Release", ReaktorGraphPalette.releaseTitle, ReaktorGraphPalette.releaseBody, ReaktorGraphPalette.releaseBorder),
+    Auth("Auth", ReaktorGraphPalette.authTitle, ReaktorGraphPalette.authBody, ReaktorGraphPalette.authBorder),
+    Infra("Infra", ReaktorGraphPalette.infraTitle, ReaktorGraphPalette.infraBody, ReaktorGraphPalette.infraBorder),
+    Agent("Agent", ReaktorGraphPalette.agentTitle, ReaktorGraphPalette.agentBody, ReaktorGraphPalette.agentBorder),
+    Node("Node", ReaktorGraphPalette.nodeTitle, ReaktorGraphPalette.nodeBody, ReaktorGraphPalette.nodeBorder),
 }
 
 enum class ReaktorEdgeKind(
     val label: String,
     val color: Color,
 ) {
-    Attachment("Attachment", Color(0xFF7FB0FF)),
-    Navigation("Navigation", Color(0xFF55A8F4)),
-    Data("Data", Color(0xFF55D46E)),
-    Containment("Containment", Color(0xFFC38CFF)),
+    Attachment("Attachment", ReaktorGraphPalette.attachmentPort),
+    Navigation("Navigation", ReaktorGraphPalette.navigationPort),
+    Data("Data", ReaktorGraphPalette.dataPort),
+    Containment("Containment", ReaktorGraphPalette.containmentPort),
 }
 
 data class ReaktorPortData(

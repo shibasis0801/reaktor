@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Workbench Feature Gap Analysis · Reaktor Docs</title>
+  <link rel="stylesheet" href="/docs/assets/docs.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="doc-shell">
+    <header class="doc-hero">
+      <div class="doc-topbar"><a href="/docs">Reaktor Docs</a><span>Workbench</span><span>Claude</span></div>
+      <p class="eyebrow">Workbench · Claude</p>
+      <h1>Workbench Feature Gap Analysis</h1>
+      <p class="subtitle">Prototype gap analysis covering screen-level gaps, differentiators, and implementation priorities.</p>
+      <div class="hero-grid" aria-label="Document metadata">
+        <div class="stat"><b>Use when</b><span>Use when prioritizing visible workbench functionality.</span></div>
+        <div class="stat"><b>Source</b><span>Claude</span></div>
+        <div class="stat"><b>Route</b><span>/docs/reaktor-architecture-analysis</span></div>
+      </div>
+    </header>
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="Documentation navigation">
+        <a class="home-link" href="/docs">Docs home</a>
+        <h2>Documents</h2>
+        <div class="side-group"><h3>Start here</h3><a href="/docs/codex-roadmap">Codex Roadmap</a><a href="/docs/reaktor-workbench-roadmap">Strategic Roadmap</a><a href="/docs/reaktor-implementation-plan">Implementation Plan</a></div><div class="side-group"><h3>Critique</h3><a href="/docs/codex-critic-review">Codex Critic Review</a><a href="/docs/claude-critic-review">Claude Critic Review</a><a href="/docs/reaktor-competitive-analysis">Competitive Landscape</a></div><div class="side-group"><h3>Architecture</h3><a href="/docs/graph-kernel-analysis">Graph Kernel Analysis</a><a href="/docs/architecture-analysis">Framework Architecture Analysis</a><a href="/docs/multiplatform-analysis">Multiplatform Analysis</a><a href="/docs/flow-analysis">Flow Analysis</a></div><div class="side-group"><h3>Workbench</h3><a aria-current="page" href="/docs/reaktor-architecture-analysis">Workbench Feature Gap Analysis</a></div><div class="side-group"><h3>UI and interop</h3><a href="/docs/react-compose">React × Compose Blueprint</a><a href="/docs/react-compose-interop-roadmap">React × Compose Interop Roadmap</a><a href="/docs/reaktor-desktop-v3">Reaktor Desktop v3</a></div><div class="side-group"><h3>Security and auth</h3><a href="/docs/auth-analysis">Auth Architecture and Redesign</a><a href="/docs/security-plan">Security Implementation Plan</a></div>
+        <h2>On this page</h2>
+        <nav class="page-toc"><a href="#what-works">&amp;#10003; What the Prototype Gets Right</a><a href="#critical-gaps">! Critical Architectural Gaps</a><a href="#screen-gaps">&amp;#9632; Screen-Level Feature Gaps</a><a href="#five-diffs">&amp;#9733; The Five Differentiators</a><a href="#priorities">&amp;#9650; Prioritized Implementation Plan</a><a href="#node-type-coverage">&amp;#9679; Node Type Coverage</a><a href="#inspector-coverage">&amp;#9632; Inspector Coverage by Entity Type</a><a href="#overlay-coverage">&amp;#9673; Graph Overlay / Mode Coverage</a></nav>
+      </aside>
+      <main id="content" class="doc-content">
+<div class="doc-prose-block"><p class="subtitle">Cross-referencing the 14,284-line Reaktor specification against the v2.1 web prototype &middot; May 2025</p>
+
+
+
+<div class="stats">
+  <div class="stat ok"><div class="val">38</div><div class="label">Entities modeled</div></div>
+  <div class="stat accent"><div class="val">6,102</div><div class="label">Lines of prototype code</div></div>
+  <div class="stat warn"><div class="val">~35%</div><div class="label">Spec coverage</div></div>
+  <div class="stat error"><div class="val">5</div><div class="label">Critical architectural gaps</div></div>
+</div>
+
+
+<div class="card">
+  <h4>Contents</h4>
+  <ul class="toc">
+    <li><a href="#what-works">1. What the Prototype Gets Right</a></li>
+    <li><a href="#critical-gaps">2. Critical Architectural Gaps (5)</a></li>
+    <li><a href="#screen-gaps">3. Screen-Level Feature Gaps</a></li>
+    <li><a href="#five-diffs">4. The Five Differentiators That Must Be Visible</a></li>
+    <li><a href="#priorities">5. Prioritized Implementation Plan</a></li>
+    <li><a href="#node-type-coverage">6. Node Type Coverage</a></li>
+    <li><a href="#inspector-coverage">7. Inspector Coverage by Entity Type</a></li>
+    <li><a href="#overlay-coverage">8. Overlay / Mode Coverage</a></li>
+  </ul>
+</div>
+
+
+<h2 id="what-works"><span class="icon" style="background:rgba(63,191,120,0.2);color:#3fbf78">&#10003;</span> What the Prototype Gets Right</h2>
+
+<div class="section-grid">
+  <div class="card">
+    <h4>Layout &amp; Information Architecture</h4>
+    <p>5 screens (Graph, Run, DevTools, Deploy, Insights), type-aware inspector with 13 entity types, left sidebar with entity browser + component tree, bottom drawer with 7 tabs, breadcrumb navigation, floating graph-link card. All correct per spec.</p>
+  </div>
+  <div class="card">
+    <h4>Interactive Controls</h4>
+    <p>Cmd+K search palette, graph pan/zoom/fit, edge type overlay filters, cross-mode navigation (14+ buttons wired), device mode/theme/network controls, sidebar search filtering, deploy env switching, arrow key navigation.</p>
+  </div>
+  <div class="card">
+    <h4>Data Model</h4>
+    <p>38 entities across 10 types, 35 typed edges with 8 edge types, an active path trace (10-node causal chain), command bundle with 7 commands and code diffs. Reasonable for a prototype facade.</p>
+  </div>
+  <div class="card">
+    <h4>Visual Design</h4>
+    <p>Dark theme with proper design tokens, type hierarchy, color-coding per entity type, graph node cards with port pins and metrics, SVG bezier edges with animation, sparklines, pipe bars, CI pipeline visualization.</p>
+  </div>
+</div>
+
+
+<h2 id="critical-gaps"><span class="icon" style="background:rgba(239,91,91,0.2);color:#ef5b5b">!</span> Critical Architectural Gaps</h2>
+
+<p>These are not missing features &mdash; they are <strong>architectural mismatches</strong> between the prototype and Reaktor's core design. Each gap means the prototype misrepresents how Reaktor actually works.</p>
+
+<div class="card" style="border-color: rgba(239,91,91,0.3);">
+  <h4>Gap 1: Graph Model Missing Core Node Types</h4>
+  <p>The spec defines <strong>8 node types</strong> with distinct behaviors forming a hierarchy. The prototype has a flat type system with 10 ad-hoc types (route, screen, ui, action, container, interactor, service, edge, db, topic) that don't map to the real hierarchy.</p>
+  <table>
+    <tr><th>Spec Node Type</th><th>Prototype</th><th>Status</th></tr>
+    <tr><td><span class="mono">BasicNode</span></td><td>No equivalent</td><td><span class="badge error">Missing</span></td></tr>
+    <tr><td><span class="mono">ControllerNode</span></td><td><code>interactor</code> (partial)</td><td><span class="badge warn">Partial</span></td></tr>
+    <tr><td><span class="mono">ComposeNode</span></td><td><code>screen</code> (partial)</td><td><span class="badge warn">Partial</span></td></tr>
+    <tr><td><span class="mono">ContainerNode</span></td><td><code>container</code></td><td><span class="badge ok">Good</span></td></tr>
+    <tr><td><span class="mono">RouteNode</span></td><td><code>route</code></td><td><span class="badge ok">Good</span></td></tr>
+    <tr><td><span class="mono">ActorNode</span></td><td>No equivalent</td><td><span class="badge error">Missing</span></td></tr>
+    <tr><td><span class="mono">ServiceNode</span></td><td><code>service</code> (partial)</td><td><span class="badge warn">Partial</span></td></tr>
+    <tr><td><span class="mono">NativeNode</span></td><td>No equivalent</td><td><span class="badge error">Missing</span></td></tr>
+  </table>
+  <p class="dim" style="margin-top:8px;font-size:12px;">Impact: Viewers think Reaktor is a screen&rarr;service&rarr;database chain, not a typed actor graph with supervision trees.</p>
+</div>
+
+<div class="card" style="border-color: rgba(239,91,91,0.3);">
+  <h4>Gap 2: Port System is Absent</h4>
+  <p>The entire <span class="mono">ConsumerPort&lt;T&gt;</span> / <span class="mono">ProviderPort&lt;T&gt;</span> system &mdash; <strong>the core of Reaktor</strong> &mdash; is not modeled. Edges connect node-to-node, not port-to-port. Port pins on graph nodes are decorative.</p>
+  <p>The spec says: <em>"every architectural edge is typed"</em> and <em>"autoWire() matches by Key + Type"</em>. The prototype has untyped string connections.</p>
+  <p>Missing: typed port connections, autoWire visualization, port data flow animation, PortInvocationEvent concept, interactive port pins.</p>
+</div>
+
+<div class="card" style="border-color: rgba(239,91,91,0.3);">
+  <h4>Gap 3: No Live Runtime Connection Model</h4>
+  <p>The spec describes two modes: <strong>In-Process Mode</strong> (direct object access, zero latency) and <strong>Remote Mode</strong> (WebSocket debug protocol). The prototype has neither &mdash; all data is hardcoded.</p>
+  <p>Missing: connecting to running apps, live state observation, live edge animation from PortInvocationEvents, state/port data injection, node pause/resume/kill, edge breakpoints.</p>
+</div>
+
+<div class="card" style="border-color: rgba(240,169,58,0.3);">
+  <h4>Gap 4: GraphCommand System Partially Represented</h4>
+  <p>The command queue is well-designed but only shows <span class="mono">SetProperty</span> operations. Missing: <span class="mono">AddNode</span>, <span class="mono">ConnectPorts</span>, <span class="mono">CreateSubgraph</span> structural mutations. No ManifestDelta concept, no bidirectional code generation flow, no compilation self-healing loop.</p>
+</div>
+
+<div class="card" style="border-color: rgba(240,169,58,0.3);">
+  <h4>Gap 5: Agent-as-Visitor Model Not Represented</h4>
+  <p>The spec says agents are <strong>Visitors with LLM-powered decision-making</strong>, not chat interfaces. The prototype's "Code Agent" tab is a chat log. Missing: agent traversal visualization (colored overlays on graph), multiple agent types (Code/Schema/Performance/Deployment), RBAC permission model, Planning&rarr;Reasoning&rarr;Acting&rarr;Reflecting lifecycle.</p>
+</div>
+
+
+<h2 id="screen-gaps"><span class="icon" style="background:rgba(240,169,58,0.2);color:#f0a93a">&#9632;</span> Screen-Level Feature Gaps</h2>
+
+<h3>Graph Screen</h3>
+<table>
+  <tr><th>Feature (from spec)</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Semantic lane layout (services left, routes center, screens right)</td><td><span class="badge ok">Done</span></td><td>Approximate column layout</td></tr>
+  <tr><td>Pan / zoom / fit</td><td><span class="badge ok">Done</span></td><td>Wheel, buttons, fit-to-view</td></tr>
+  <tr><td>Edge type filtering</td><td><span class="badge ok">Done</span></td><td>8 edge types with overlay dropdown</td></tr>
+  <tr><td>Node hover tooltip</td><td><span class="badge ok">Done</span></td><td>Type, title, source, metrics</td></tr>
+  <tr><td>Container node rendering</td><td><span class="badge ok">Done</span></td><td>Dashed border style</td></tr>
+  <tr><td>Focus modes (selected/blast/trace/tests)</td><td><span class="badge ok">Done</span></td><td>Opacity dimming for non-focus nodes</td></tr>
+  <tr><td>Minimap</td><td><span class="badge ok">Done</span></td><td>Scaled projection with viewport rect</td></tr>
+  <tr><td>Port-to-port edge routing</td><td><span class="badge error">Missing</span></td><td>Edges connect node centers, not typed ports</td></tr>
+  <tr><td>Live edge animation (PortInvocationEvent)</td><td><span class="badge error">Missing</span></td><td>One hardcoded animated edge only</td></tr>
+  <tr><td>Node color by deployment runtime</td><td><span class="badge error">Missing</span></td><td>Color by type, not by Kotlin/JVM/Worker/Hermes target</td></tr>
+  <tr><td>Dead code overlay (zero incoming edges)</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Agent traversal overlay</td><td><span class="badge error">Missing</span></td><td>No visualization of agent visitors walking the graph</td></tr>
+  <tr><td>Mesh network overlay</td><td><span class="badge error">Missing</span></td><td>Peers, connections, RTT, packet loss</td></tr>
+  <tr><td>Data tier overlay (T0-T4)</td><td><span class="badge error">Missing</span></td><td>Cache layers, hit rates, replication lag</td></tr>
+  <tr><td>Actor mesh overlay</td><td><span class="badge error">Missing</span></td><td>Actors, in-flight messages, supervision trees</td></tr>
+  <tr><td>Edge breakpoints</td><td><span class="badge error">Missing</span></td><td>Pause graph on specific edge data flow</td></tr>
+  <tr><td>Container sub-graph nesting</td><td><span class="badge error">Missing</span></td><td>Containers are flat, no visual nesting with DI scope</td></tr>
+</table>
+
+<h3>Run Screen (WYSIWYG)</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Component &rarr; graph entity selection</td><td><span class="badge ok">Done</span></td><td>AppleButton + GoogleButton</td></tr>
+  <tr><td>Selection overlay with dimensions</td><td><span class="badge ok">Done</span></td><td>Corner handles, dp labels</td></tr>
+  <tr><td>Floating graph link card</td><td><span class="badge ok">Done</span></td><td>Action chain, trace, 6 buttons wired</td></tr>
+  <tr><td>Device mode switching (phone/tablet/desktop)</td><td><span class="badge ok">Done</span></td><td></td></tr>
+  <tr><td>Theme toggle (light/dark)</td><td><span class="badge ok">Done</span></td><td></td></tr>
+  <tr><td>Network simulation overlay</td><td><span class="badge ok">Done</span></td><td>Offline / Slow 3G bars</td></tr>
+  <tr><td>Multiple previewable screens</td><td><span class="badge error">Missing</span></td><td>Only OnboardingScreen; can't switch routes</td></tr>
+  <tr><td>Style editing (inspector &rarr; preview updates)</td><td><span class="badge error">Missing</span></td><td>Inspector values not bound to preview</td></tr>
+  <tr><td>ActionRef dispatch visualization</td><td><span class="badge error">Missing</span></td><td>Can't see action chains fire</td></tr>
+  <tr><td>Bridge edge visualization (React/RSD)</td><td><span class="badge error">Missing</span></td><td></td></tr>
+</table>
+
+<h3>DevTools / Drilldown</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Causal trace with duration bars</td><td><span class="badge ok">Done</span></td><td>Waterfall timing per step</td></tr>
+  <tr><td>Cross-mode navigation from steps</td><td><span class="badge ok">Done</span></td><td>Graph / Deploy buttons</td></tr>
+  <tr><td>Dynamic blast radius from graph</td><td><span class="badge ok">Done</span></td><td>3-hop walk, counts nodes/modules/targets</td></tr>
+  <tr><td>Multiple traces / trace picker</td><td><span class="badge error">Missing</span></td><td>Single hardcoded trace</td></tr>
+  <tr><td>State injection</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Port data injection</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Navigation simulation (fire NavCommands)</td><td><span class="badge error">Missing</span></td><td></td></tr>
+</table>
+
+<h3>Deploy Screen</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Partition topology visualization</td><td><span class="badge ok">Done</span></td><td>6 partitions with items</td></tr>
+  <tr><td>Environment switching (Local/Staging/Production)</td><td><span class="badge ok">Done</span></td><td>Different CI status per env</td></tr>
+  <tr><td>Partition item &rarr; entity selection</td><td><span class="badge ok">Done</span></td><td>6 items mapped</td></tr>
+  <tr><td>CI pipeline visualization</td><td><span class="badge ok">Done</span></td><td>11 steps with progress bars</td></tr>
+  <tr><td>GraphManifest diff driving deployment</td><td><span class="badge error">Missing</span></td><td>"Graph diff" badge is static text</td></tr>
+  <tr><td>Proxy node insertion visualization</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>JS bundle adoption % tracking</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Rollback orchestration</td><td><span class="badge error">Missing</span></td><td>Button exists, no-op</td></tr>
+</table>
+
+<h3>Insights Screen</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Timeline with deploy markers</td><td><span class="badge ok">Done</span></td><td>p95 + CVR series, deploy/spike markers</td></tr>
+  <tr><td>Metric cards with sparklines</td><td><span class="badge ok">Done</span></td><td>6 metrics, up/down coding</td></tr>
+  <tr><td>Graph heatmap (p95 by entity)</td><td><span class="badge ok">Done</span></td><td>4 lanes, color-coded cells</td></tr>
+  <tr><td>Time range switching</td><td><span class="badge ok">Done</span></td><td>1h/24h/7d/30d with axis label updates</td></tr>
+  <tr><td>Distinct sub-tab content (7 tabs)</td><td><span class="badge error">Missing</span></td><td>All 7 tabs render identical Performance content</td></tr>
+  <tr><td>Navigation heatmaps (user paths)</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Bus metrics panel (DLQ, outbox age)</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Per-RouteNode Web/App Vitals</td><td><span class="badge error">Missing</span></td><td></td></tr>
+  <tr><td>Flamegraph overlay (heat on nodes)</td><td><span class="badge error">Missing</span></td><td>Heatmap exists but not linked to profiling</td></tr>
+</table>
+
+
+<h2 id="five-diffs"><span class="icon" style="background:rgba(75,123,255,0.2);color:#6d8bff">&#9733;</span> The Five Differentiators</h2>
+
+<p>These are the properties that make Reaktor Desktop <strong>not another app builder</strong>. Every demo, screenshot, and prototype should make these visible:</p>
+
+<div class="five-diffs">
+  <div class="five-diff">
+    <div class="num">1</div>
+    <div class="label">The graph is <strong>typed</strong><br><span class="dim">Port-to-port connections, not node-to-node arrows</span></div>
+  </div>
+  <div class="five-diff">
+    <div class="num">2</div>
+    <div class="label">The graph is <strong>live</strong><br><span class="dim">Data flows through edges in real-time</span></div>
+  </div>
+  <div class="five-diff">
+    <div class="num">3</div>
+    <div class="label">The graph spans <strong>runtimes</strong><br><span class="dim">Same graph, color-coded by deploy target</span></div>
+  </div>
+  <div class="five-diff">
+    <div class="num">4</div>
+    <div class="label">Agents are <strong>visitors</strong><br><span class="dim">They walk the graph, not chat with you</span></div>
+  </div>
+  <div class="five-diff">
+    <div class="num">5</div>
+    <div class="label">Code is <strong>truth</strong><br><span class="dim">GraphCommand &rarr; CodeDiff, not diagram &rarr; code</span></div>
+  </div>
+</div>
+
+<div class="key-insight">
+  <p><strong>Key insight:</strong> The prototype currently looks like a <em>nice dashboard</em>. Making these 5 differentiators visible &mdash; even with mock data &mdash; turns it into <em>"this is the future of app development"</em>.</p>
+</div>
+
+
+<h2 id="priorities"><span class="icon" style="background:rgba(160,117,240,0.2);color:#a075f0">&#9650;</span> Prioritized Implementation Plan</h2>
+
+<div class="tier">
+  <div class="tier-head" style="border-color:rgba(239,91,91,0.3);">
+    <span class="badge error">Tier 1</span> Makes the Vision Click &mdash; High Visual Impact
+  </div>
+  <div class="tier-body">
+    <div class="tier-item"><span class="num">1</span><span class="desc"><strong>Port-to-port edges</strong> &mdash; Change edge model to connect typed port slots. Render port slots on nodes. Makes graph look like Unreal Blueprints.</span><span class="impact"><span class="badge error">Critical</span></span><span class="effort">Medium</span></div>
+    <div class="tier-item"><span class="num">2</span><span class="desc"><strong>Live edge animation</strong> &mdash; Simulated PortInvocationEvent flow. Edges pulse with data. Even fake data transforms static diagram into living system.</span><span class="impact"><span class="badge error">Critical</span></span><span class="effort">Medium</span></div>
+    <div class="tier-item"><span class="num">3</span><span class="desc"><strong>Runtime color-coding</strong> &mdash; Nodes colored by deployment target (Kotlin=gray, JVM=blue, Worker=orange, Web=cyan, Hermes=green). Communicates multi-runtime story instantly.</span><span class="impact"><span class="badge warn">High</span></span><span class="effort">Small</span></div>
+    <div class="tier-item"><span class="num">4</span><span class="desc"><strong>Insights sub-tab content</strong> &mdash; Each of 7 tabs shows distinct content (errors list, trace waterfall, cost breakdown, etc.).</span><span class="impact"><span class="badge warn">High</span></span><span class="effort">Medium</span></div>
+    <div class="tier-item"><span class="num">5</span><span class="desc"><strong>Inspector data binding</strong> &mdash; Connect inspector fields to actual entity data. Different entities show different schemas/ports/metrics.</span><span class="impact"><span class="badge warn">High</span></span><span class="effort">Medium</span></div>
+  </div>
+</div>
+
+<div class="tier">
+  <div class="tier-head" style="border-color:rgba(240,169,58,0.3);">
+    <span class="badge warn">Tier 2</span> Differentiators &mdash; What Makes This NOT FlutterFlow
+  </div>
+  <div class="tier-body">
+    <div class="tier-item"><span class="num">6</span><span class="desc"><strong>Agent traversal overlay</strong> &mdash; Show simulated agent walking the graph. Colored path lights up nodes. Most unique Reaktor concept.</span><span class="impact"><span class="badge warn">High</span></span><span class="effort">Medium</span></div>
+    <div class="tier-item"><span class="num">7</span><span class="desc"><strong>Data tier overlay</strong> &mdash; T0 (SQLite) &rarr; T1 (Durable Objects) &rarr; T2 (Postgres) &rarr; T3 (Memgraph) &rarr; T4 (R2). Cache hit rates per tier.</span><span class="impact"><span class="badge accent">Medium</span></span><span class="effort">Medium</span></div>
+    <div class="tier-item"><span class="num">8</span><span class="desc"><strong>GraphCommand diversity</strong> &mdash; Show AddNode, ConnectPorts, CreateSubgraph operations in command queue, not just SetProperty.</span><span class="impact"><span class="badge accent">Medium</span></span><span class="effort">Small</span></div>
+    <div class="tier-item"><span class="num">9</span><span class="desc"><strong>Multiple previewable screens</strong> &mdash; Run screen route switching (/onboarding, /chats, /chats/{id}) with different preview per route.</span><span class="impact"><span class="badge accent">Medium</span></span><span class="effort">Large</span></div>
+    <div class="tier-item"><span class="num">10</span><span class="desc"><strong>Navigation simulation</strong> &mdash; Fire NavCommand from graph &rarr; Run screen navigates. "The graph IS the runtime."</span><span class="impact"><span class="badge accent">Medium</span></span><span class="effort">Large</span></div>
+  </div>
+</div>
+
+<div class="tier">
+  <div class="tier-head" style="border-color:rgba(75,123,255,0.3);">
+    <span class="badge accent">Tier 3</span> Completeness &mdash; Demo Day Polish
+  </div>
+  <div class="tier-body">
+    <div class="tier-item"><span class="num">11</span><span class="desc"><strong>IDE deep links</strong> &mdash; Open in IntelliJ/VS Code via URL protocol (<span class="mono">idea://</span> / <span class="mono">vscode://</span>)</span><span class="impact"><span class="badge muted">Low</span></span><span class="effort">Small</span></div>
+    <div class="tier-item"><span class="num">12</span><span class="desc"><strong>Multiple traces in DevTools</strong> &mdash; Trace picker dropdown, not single hardcoded trace</span><span class="impact"><span class="badge muted">Low</span></span><span class="effort">Small</span></div>
+    <div class="tier-item"><span class="num">13</span><span class="desc"><strong>Actor node type</strong> &mdash; Add ActorNode entities with mailbox depth, address, supervision strategy to data model</span><span class="impact"><span class="badge accent">Medium</span></span><span class="effort">Medium</span></div>
+    <div class="tier-item"><span class="num">14</span><span class="desc"><strong>GraphManifest diff in deploy</strong> &mdash; Compute and display actual node/edge additions/removals/changes</span><span class="impact"><span class="badge muted">Low</span></span><span class="effort">Small</span></div>
+    <div class="tier-item"><span class="num">15</span><span class="desc"><strong>Bus metrics in insights</strong> &mdash; publish/consume latency, DLQ depth, outbox age gauges</span><span class="impact"><span class="badge muted">Low</span></span><span class="effort">Small</span></div>
+    <div class="tier-item"><span class="num">16</span><span class="desc"><strong>Notification flow visualization</strong></span><span class="impact"><span class="badge muted">Low</span></span><span class="effort">Medium</span></div>
+  </div>
+</div>
+
+
+<h2 id="node-type-coverage"><span class="icon" style="background:rgba(88,145,255,0.2);color:#5891ff">&#9679;</span> Node Type Coverage</h2>
+
+<table>
+  <tr><th>Spec Node Type</th><th>Role</th><th>Prototype Type</th><th>Inspector</th><th>Graph Rendering</th><th>Runtime Color</th></tr>
+  <tr><td><span class="mono">BasicNode</span></td><td>Stateless logic</td><td><span class="badge error">Missing</span></td><td>-</td><td>-</td><td>-</td></tr>
+  <tr><td><span class="mono">ControllerNode</span></td><td>Stateful ViewModel</td><td><span class="badge warn">interactor</span></td><td>ServiceInspector</td><td>Standard node</td><td><span class="badge error">No</span></td></tr>
+  <tr><td><span class="mono">ComposeNode</span></td><td>UI + Controller</td><td><span class="badge warn">screen</span></td><td>ScreenInspector</td><td>Standard node</td><td><span class="badge error">No</span></td></tr>
+  <tr><td><span class="mono">ContainerNode</span></td><td>Sub-graph group</td><td><span class="badge ok">container</span></td><td>ContainerInspector</td><td>Dashed border</td><td><span class="badge error">No</span></td></tr>
+  <tr><td><span class="mono">RouteNode</span></td><td>Navigation dest</td><td><span class="badge ok">route</span></td><td>RouteInspector</td><td>Standard node</td><td><span class="badge error">No</span></td></tr>
+  <tr><td><span class="mono">ActorNode</span></td><td>Mailbox + address</td><td><span class="badge error">Missing</span></td><td>-</td><td>-</td><td>-</td></tr>
+  <tr><td><span class="mono">ServiceNode</span></td><td>Request handlers</td><td><span class="badge warn">service</span></td><td>ServiceInspector</td><td>Standard node</td><td><span class="badge error">No</span></td></tr>
+  <tr><td><span class="mono">NativeNode</span></td><td>FFI bridge proxy</td><td><span class="badge error">Missing</span></td><td>-</td><td>-</td><td>-</td></tr>
+</table>
+
+
+<h2 id="inspector-coverage"><span class="icon" style="background:rgba(224,160,74,0.2);color:#e0a04a">&#9632;</span> Inspector Coverage by Entity Type</h2>
+
+<table>
+  <tr><th>Inspector</th><th>Tabs</th><th>Data Binding</th><th>Navigation</th><th>Key Gaps</th></tr>
+  <tr><td>RouteInspector</td><td><span class="badge ok">5 tabs</span></td><td><span class="badge warn">Partial</span></td><td><span class="badge ok">Wired</span></td><td>Sparkline seeded data; IdeLinks no-op</td></tr>
+  <tr><td>ScreenInspector</td><td><span class="badge ok">6 tabs</span></td><td><span class="badge warn">Partial</span></td><td><span class="badge ok">Wired</span></td><td>Recompose count hardcoded; source snippet always OnboardingScreen</td></tr>
+  <tr><td>UiInspector</td><td><span class="badge ok">9 tabs</span></td><td><span class="badge warn">Partial</span></td><td><span class="badge ok">Wired</span></td><td>PropInput not bound to entity; layout box hardcoded; CVR hardcoded</td></tr>
+  <tr><td>ActionInspector</td><td><span class="badge warn">4 tabs</span></td><td><span class="badge error">Static</span></td><td><span class="badge ok">Wired</span></td><td>Signature always shows loginWithApple; invocation list hardcoded</td></tr>
+  <tr><td>ContainerInspector</td><td><span class="badge warn">3 tabs</span></td><td><span class="badge ok">Dynamic</span></td><td>-</td><td>Members computed from edges (good); source section empty</td></tr>
+  <tr><td>ServiceInspector</td><td><span class="badge ok">6 tabs</span></td><td><span class="badge warn">Partial</span></td><td><span class="badge ok">Wired</span></td><td>Schema always SessionPayload; RBAC hardcoded; missing transport type</td></tr>
+  <tr><td>EdgeInspector</td><td><span class="badge warn">4 tabs</span></td><td><span class="badge warn">Partial</span></td><td><span class="badge ok">Wired</span></td><td>Deploy status hardcoded (always v4.2.1)</td></tr>
+  <tr><td>DbInspector</td><td><span class="badge warn">4 tabs</span></td><td><span class="badge error">Static</span></td><td>-</td><td>Schema SQL always d1.sessions; migration hardcoded</td></tr>
+  <tr><td>TopicInspector</td><td><span class="badge warn">3 tabs</span></td><td><span class="badge error">Static</span></td><td>-</td><td>Schema hardcoded EventEnvelope</td></tr>
+  <tr><td>TelemetryInspector</td><td><span class="badge error">2 tabs</span></td><td><span class="badge error">Static</span></td><td>-</td><td>Schema section empty</td></tr>
+  <tr><td>TestInspector</td><td><span class="badge error">2 tabs</span></td><td><span class="badge error">Static</span></td><td>-</td><td>Only identity + framework</td></tr>
+  <tr><td>ReleaseInspector</td><td><span class="badge ok">5 tabs</span></td><td><span class="badge warn">Partial</span></td><td><span class="badge ok">Wired</span></td><td>Affected targets and gates hardcoded; cost estimates static</td></tr>
+</table>
+
+
+<h2 id="overlay-coverage"><span class="icon" style="background:rgba(54,196,212,0.2);color:#36c4d4">&#9673;</span> Graph Overlay / Mode Coverage</h2>
+
+<table>
+  <tr><th>Overlay (from spec)</th><th>Status</th><th>Description</th></tr>
+  <tr><td>Default graph view</td><td><span class="badge ok">Implemented</span></td><td>Nodes, edges, type badges, metrics</td></tr>
+  <tr><td>Focus modes (selected/blast/trace/tests)</td><td><span class="badge ok">Implemented</span></td><td>Dim non-focus nodes</td></tr>
+  <tr><td>Edge type filtering</td><td><span class="badge ok">Implemented</span></td><td>8 types with checkboxes</td></tr>
+  <tr><td>Runtime color overlay</td><td><span class="badge error">Missing</span></td><td>Nodes colored by Kotlin/JVM/Worker/Web/Hermes target</td></tr>
+  <tr><td>Agent traversal overlay</td><td><span class="badge error">Missing</span></td><td>Colored paths showing active agent visits</td></tr>
+  <tr><td>Mesh network overlay</td><td><span class="badge error">Missing</span></td><td>Peers as nodes, WebRTC connections, RTT, packet loss</td></tr>
+  <tr><td>Data tier overlay (T0-T4)</td><td><span class="badge error">Missing</span></td><td>Cache layers, projection paths, hit rates</td></tr>
+  <tr><td>Actor mesh overlay</td><td><span class="badge error">Missing</span></td><td>Actors, mailboxes, supervision trees, in-flight messages</td></tr>
+  <tr><td>Bus topology overlay</td><td><span class="badge error">Missing</span></td><td>Pub/Sub kinds, routing, DLQ entries</td></tr>
+  <tr><td>Flamegraph heat overlay</td><td><span class="badge error">Missing</span></td><td>Blue/yellow/red heat indicators on nodes from profiler data</td></tr>
+  <tr><td>Dead code overlay</td><td><span class="badge error">Missing</span></td><td>Zero-incoming-edge nodes grayed out</td></tr>
+  <tr><td>Navigation heatmap overlay</td><td><span class="badge error">Missing</span></td><td>User path frequency, drop-off rates</td></tr>
+  <tr><td>Lifecycle state overlay</td><td><span class="badge error">Missing</span></td><td>Nodes colored by Created/Restoring/Attaching/Active/Destroying</td></tr>
+</table>
+
+<div style="margin-top:48px;padding:24px;border-top:1px solid #1a2031;color:var(--t-4);font-size:12px;text-align:center;">
+  Generated from analysis of Reaktor specification (14,284 lines) vs prototype codebase (6,102 lines) &middot; reaktor.build
+</div></div>
+      </main>
+    </div>
+    <footer class="doc-footer">Reaktor documentation hub. Existing source artifacts remain available at their legacy routes.</footer>
+  </div>
+</body>
+</html>
