@@ -153,8 +153,8 @@ iosLibs
 # powershell to find all files with extension .hprof
 # Get-ChildItem -Path . -Filter *.hprof -Recurse -ErrorAction SilentlyContinue -Force -File
 
-googletest
-flatbuffers
+/reaktor-security/cpp/external/googletest/
+/.github_modules/flatbuffers/
 cmake-build-debug
 CMakeFiles
 skiko
