@@ -4,9 +4,10 @@ You are Gemini CLI invoked as a delegated executor by Claude Code. Claude has al
 
 ## Architecture briefing
 
-The full monorepo architecture briefing lives at `/Users/ovd/dev/AGENTS.md`. Sections 1, 2, 5, 6, and 8 are mandatory reading before any reaktor edit. Section 2 covers framework internals (adapter/capability, port-graph, navigation, DI, persistence, auth, IO, FlexBuffers/FFI, build system, telemetry). Section 8 has the AI-contributor rules.
+Reaktor's own briefing lives in `/Users/ovd/dev/reaktor/README.md` and `/Users/ovd/dev/reaktor/LLM_CONTEXT.md` — read these before any reaktor edit. For product/cross-repo context (how the closed-source product consumes the framework, and the design bar both repos share), see `/Users/ovd/dev/bestbuds/AGENTS.md`.
 
-@/Users/ovd/dev/AGENTS.md
+@/Users/ovd/dev/reaktor/README.md
+@/Users/ovd/dev/reaktor/LLM_CONTEXT.md
 
 ## Reaktor in 30 seconds
 

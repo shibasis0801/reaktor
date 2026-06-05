@@ -326,7 +326,7 @@ Organized in labeled groups (like a cloud architecture diagram):
 - cf.workers/chat — card with status, endpoint
 - cf.workers/feed — card with status
 - cf.queues — card with queue depth indicator
-- Realtime (PartyKit) — connection count indicator
+- Realtime (PartyServer) — connection count indicator
 - Email (Cloudflare Email) — send/receive indicator
 
 **DATA** (center-bottom):
@@ -1013,7 +1013,7 @@ The app being inspected (BestBuds) uses:
 - **TypeScript** only where Kotlin can't go (some CF Worker glue, FFI bindings)
 - **C++** for security-critical modules and FFI
 - **Compose Multiplatform** for UI (Android, iOS, Desktop, Web)
-- **Cloudflare** for edge: Workers, D1, R2, Durable Objects, Queues, Email, PartyKit (Realtime)
+- **Cloudflare** for edge: Workers, D1, R2, Durable Objects, Queues, Email, PartyServer (Realtime)
 - **Supabase** for primary database (Postgres) and email/magic-link auth only
 - **Firebase** for analytics, crashlytics, notifications, distribution (NO databases, NO cloud functions)
 - **GCP** for Compute Engine VMs running k3s clusters (Spring Boot servers, Memgraph, Keploy, Grafana)

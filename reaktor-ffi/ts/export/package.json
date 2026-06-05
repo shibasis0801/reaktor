@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-ffi",
-  "version": "2026.4.19-SNAPSHOT",
+  "version": "2026.6.3-SNAPSHOT",
   "main": "reaktor-reaktor-ffi.mjs",
   "types": "reaktor-reaktor-ffi.d.mts",
   "devDependencies": {

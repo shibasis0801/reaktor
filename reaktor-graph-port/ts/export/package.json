@@ -1,12 +1,14 @@
 {
   "name": "reaktor-reaktor-graph-port",
-  "version": "2026.4.19-SNAPSHOT",
+  "version": "2026.6.3-SNAPSHOT",
   "main": "reaktor-reaktor-graph-port.mjs",
   "types": "reaktor-reaktor-graph-port.d.mts",
   "devDependencies": {
     "typescript": "5.9.2"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@js-joda/core": "3.2.0"
+  },
   "peerDependencies": {},
   "optionalDependencies": {},
   "bundledDependencies": []

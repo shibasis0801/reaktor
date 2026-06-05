@@ -296,7 +296,7 @@
           <tr>
             <td>Tests and deploy targets</td>
             <td>Command queue, affected-tests view, and deploy gates need source-to-test and source-to-deploy mapping.</td>
-            <td><code>tests/</code> folders, Gradle tasks, npm scripts, Wrangler/Partykit targets, Playwright/Maestro specs.</td>
+            <td><code>tests/</code> folders, Gradle tasks, npm scripts, Wrangler/PartyServer targets, Playwright/Maestro specs.</td>
           </tr>
           <tr>
             <td>Known incompleteness markers</td>
@@ -349,7 +349,7 @@
           <tr>
             <td><code>screen-deploy.jsx</code></td>
             <td>Mock release activity over static topology.</td>
-            <td>Deploy catalog from npm scripts, Wrangler/Partykit configs, server deploy scripts, k3s scripts, secrets check, dry-run plan, approval gates, and rollback records.</td>
+            <td>Deploy catalog from npm scripts, Wrangler/PartyServer configs, server deploy scripts, k3s scripts, secrets check, dry-run plan, approval gates, and rollback records.</td>
           </tr>
         </tbody>
       </table>
@@ -377,7 +377,7 @@
           <tr>
             <td>Chat socket identity is raw query data</td>
             <td><code>ChatInteractor.connectWebSocket</code> passes <code>userId</code> and <code>userName</code> via query and comments that signed token auth is needed.</td>
-            <td>Issue short-lived room tokens, verify them in the PartyKit/chat worker, and add tests for rejected/expired tokens.</td>
+            <td>Issue short-lived room tokens, verify them in the PartyServer/chat worker, and add tests for rejected/expired tokens.</td>
           </tr>
           <tr>
             <td>Session lifecycle is incomplete</td>

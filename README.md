@@ -136,7 +136,7 @@ Every module has a stability level indicating its maturity:
 
 | Module | Stability | Platforms | Description |
 | --- | --- | --- | --- |
-| [reaktor-cloudflare](/Users/ovd/dev/reaktor/reaktor-cloudflare/README.md) | **Experimental** | JS (Cloudflare Workers) | Workers, D1, R2, Durable Objects, PartyKit, Hono, service bindings |
+| [reaktor-cloudflare](/Users/ovd/dev/reaktor/reaktor-cloudflare/README.md) | **Experimental** | JS (Cloudflare Workers) | Workers, D1, R2, Durable Objects, PartyServer, Hono, service bindings |
 | [reaktor-google](/Users/ovd/dev/reaktor/reaktor-google/README.md) | **Experimental** | JVM, JS, Android, iOS | Google Cloud Pub/Sub adapters |
 | [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | background task orchestration with platform-native schedulers |
 
@@ -298,7 +298,7 @@ Navigation is graph-native:
 - D1 SQLite integration
 - R2 object storage
 - Durable Objects
-- PartyKit for realtime WebSocket rooms
+- PartyServer for realtime WebSocket rooms
 - service bindings
 - vector and worker-platform integration points
 
@@ -414,7 +414,7 @@ cd /Users/ovd/dev/bestbuds
 | **Database** | SQLite, PostgreSQL, D1, Neo4j/Memgraph-adjacent graph usage |
 | **Auth** | Google Sign-In, Apple Sign-In, JWT, Spring Security integration points |
 | **Serialization** | kotlinx.serialization, FlexBuffers, FlatBuffers |
-| **Networking** | Ktor, WebSocket, PartyKit |
+| **Networking** | Ktor, WebSocket, PartyServer |
 | **Native** | JNI, FBJNI, Hermes, CMake, cinterop |
 | **Observability** | OpenTelemetry, Firebase Analytics, Firebase Crashlytics |
 | **Build** | Gradle, dependeasy, KSP |

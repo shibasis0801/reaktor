@@ -14,7 +14,7 @@
     "reaktor-reaktor-security": "file://./export"
   },
   "devDependencies": {
-    "karakum": "1.0.0-alpha.103",
-    "typescript": "^5.9.3"
+    "karakum": "^1.0.0-alpha.107",
+    "typescript": "^6.0.3"
   }
 }

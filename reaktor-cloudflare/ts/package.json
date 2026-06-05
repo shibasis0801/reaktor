@@ -12,7 +12,7 @@
     "reaktor-reaktor-cloudflare": "file://./export"
   },
   "devDependencies": {
-    "karakum": "^1.0.0-alpha.78",
-    "typescript": "^5.9.3"
+    "karakum": "^1.0.0-alpha.107",
+    "typescript": "^6.0.3"
   }
 }

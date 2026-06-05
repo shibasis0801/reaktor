@@ -36,6 +36,15 @@ export declare interface KtMutableList<E> extends KtList<E>/*, MutableCollection
 export declare namespace KtMutableList {
     function fromJsArray<E>(array: ReadonlyArray<E>): KtMutableList<E>;
 }
+export declare interface KtSet<E> /* extends Collection<E> */ {
+    asJsReadonlySetView(): ReadonlySet<E>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtSet": unique symbol;
+    };
+}
+export declare namespace KtSet {
+    function fromJsSet<E>(set: ReadonlySet<E>): KtSet<E>;
+}
 export declare class Pair<A, B> /* implements Serializable */ {
     constructor(first: A, second: B);
     get first(): A;
@@ -402,10 +411,11 @@ export declare class PortGraph<Self extends PortGraph<Self, N>, N extends PortNo
     constructor(id?: any/* Uuid */, label?: string);
     get id(): any/* Uuid */;
     get label(): string;
-    get nodes(): KtMutableList<N>/* ArrayList<N> */;
+    get nodes(): any/* Collection<N> */;
     attach(node: N): boolean;
     detach(node: N): boolean;
     close(): void;
+    node(id: any/* Uuid */): Nullable<N>;
     toString(): string;
     readonly __doNotUseOrImplementIt: Unique["__doNotUseOrImplementIt"] & Visitable["__doNotUseOrImplementIt"];
 }
@@ -771,6 +781,970 @@ export declare namespace FileAdapter {
         const constructor: abstract new <Controller>() => FileAdapter<Controller>;
     }
 }
+export declare abstract class SqlAdapter<Controller> /* extends Adapter<Controller> */ {
+    constructor(controller: Controller, dbName?: string, fileAdapter?: FileAdapter<any /*UnknownType **/>);
+    get dbName(): string;
+    get fileAdapter(): FileAdapter<any /*UnknownType **/>;
+    protected abstract createDriver(): any/* SqlDriver */;
+    getDriver(): any/* SqlDriver */;
+    closeDriver(): void;
+    transaction<T>(body: () => T): T;
+    execute(statement: Statement): bigint;
+    executeRaw(sql: string, args: Array<Nullable<any>>): bigint;
+    checkSize(): bigint;
+    vacuum(): void;
+    backup(backupName: string): Promise<void>;
+    restore(backupName: string): Promise<void>;
+}
+export declare namespace SqlAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <Controller>() => SqlAdapter<Controller>;
+    }
+}
+export declare class SyncAdapter {
+    constructor(client: any/* HttpClient */, sqlAdapter: SqlAdapter<any /*UnknownType **/>, fileAdapter: FileAdapter<any /*UnknownType **/>);
+    upload(uploadUrl: string, snapshotName?: string): Promise<void>;
+    download(downloadUrl: string, restoreName?: string): Promise<void>;
+}
+export declare namespace SyncAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SyncAdapter;
+    }
+}
+export declare interface SqlType<T> {
+    readonly sqlString: string;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.db.sql.SqlType": unique symbol;
+    };
+}
+export declare abstract class IntegerType {
+    static readonly getInstance: () => typeof IntegerType.$metadata$.type;
+    private constructor();
+}
+export declare namespace IntegerType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<number> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<number>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class TextType {
+    static readonly getInstance: () => typeof TextType.$metadata$.type;
+    private constructor();
+}
+export declare namespace TextType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<string> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<string>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class BooleanType {
+    static readonly getInstance: () => typeof BooleanType.$metadata$.type;
+    private constructor();
+}
+export declare namespace BooleanType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<boolean> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<boolean>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class DoubleType {
+    static readonly getInstance: () => typeof DoubleType.$metadata$.type;
+    private constructor();
+}
+export declare namespace DoubleType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<number> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<number>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare abstract class BlobType {
+    static readonly getInstance: () => typeof BlobType.$metadata$.type;
+    private constructor();
+}
+export declare namespace BlobType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements SqlType<Int8Array> {
+            get sqlString(): string;
+            readonly __doNotUseOrImplementIt: SqlType<Int8Array>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare class ColumnDefinition {
+    constructor(isPrimaryKey?: boolean, isAutoIncrement?: boolean, isNullable?: boolean, defaultValue?: Nullable<string>);
+    get isPrimaryKey(): boolean;
+    get isAutoIncrement(): boolean;
+    get isNullable(): boolean;
+    get defaultValue(): Nullable<string>;
+    copy(isPrimaryKey?: boolean, isAutoIncrement?: boolean, isNullable?: boolean, defaultValue?: Nullable<string>): ColumnDefinition;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ColumnDefinition {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ColumnDefinition;
+    }
+}
+export declare abstract class Table {
+    constructor(tableName: string);
+    get tableName(): string;
+    get columns(): KtList<Column<any /*UnknownType **/>>;
+    protected integer(name: string, primaryKey?: boolean, autoIncrement?: boolean, nullable?: boolean, _default?: Nullable<number>): Column<number>;
+    protected text(name: string, primaryKey?: boolean, nullable?: boolean, _default?: Nullable<string>): Column<string>;
+    protected bool(name: string, nullable?: boolean, _default?: Nullable<boolean>): Column<boolean>;
+    protected double(name: string, nullable?: boolean, _default?: Nullable<number>): Column<number>;
+    protected blob(name: string, nullable?: boolean): Column<Int8Array>;
+}
+export declare namespace Table {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Table;
+    }
+}
+export declare class Column<T> {
+    constructor(name: string, type: SqlType<T>, table: Table, definition: ColumnDefinition);
+    get name(): string;
+    get type(): SqlType<T>;
+    get table(): Table;
+    get definition(): ColumnDefinition;
+    copy(name?: string, type?: SqlType<T>, table?: Table, definition?: ColumnDefinition): Column<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace Column {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => Column<T>;
+    }
+}
+export declare abstract class Expression {
+    protected constructor();
+}
+export declare namespace Expression {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Expression;
+    }
+    class Eq<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Eq<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Eq {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Eq<T>;
+        }
+    }
+    class Neq<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Neq<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Neq {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Neq<T>;
+        }
+    }
+    class Gt<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Gt<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Gt {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Gt<T>;
+        }
+    }
+    class Lt<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Lt<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Lt {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Lt<T>;
+        }
+    }
+    class Gte<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Gte<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Gte {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Gte<T>;
+        }
+    }
+    class Lte<T> extends Expression.$metadata$.constructor {
+        constructor(column: Column<T>, value: T);
+        get column(): Column<T>;
+        get value(): T;
+        copy(column?: Column<T>, value?: T): Expression.Lte<T>;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Lte {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new <T>() => Lte<T>;
+        }
+    }
+    class Like extends Expression.$metadata$.constructor {
+        constructor(column: Column<string>, value: string);
+        get column(): Column<string>;
+        get value(): string;
+        copy(column?: Column<string>, value?: string): Expression.Like;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Like {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => Like;
+        }
+    }
+    class And extends Expression.$metadata$.constructor {
+        constructor(left: Expression, right: Expression);
+        get left(): Expression;
+        get right(): Expression;
+        copy(left?: Expression, right?: Expression): Expression.And;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace And {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => And;
+        }
+    }
+    class Or extends Expression.$metadata$.constructor {
+        constructor(left: Expression, right: Expression);
+        get left(): Expression;
+        get right(): Expression;
+        copy(left?: Expression, right?: Expression): Expression.Or;
+        toString(): string;
+        hashCode(): number;
+        equals(other: Nullable<any>): boolean;
+    }
+    namespace Or {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            const constructor: abstract new () => Or;
+        }
+    }
+    abstract class Empty extends KtSingleton<Empty.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Empty {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor extends Expression.$metadata$.constructor {
+                private constructor();
+            }
+        }
+    }
+}
+export declare interface Statement {
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.db.sql.Statement": unique symbol;
+    };
+}
+export declare class RenderResult {
+    constructor(sql: string, args: Array<Nullable<any>>);
+    get sql(): string;
+    get args(): Array<Nullable<any>>;
+    copy(sql?: string, args?: Array<Nullable<any>>): RenderResult;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace RenderResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RenderResult;
+    }
+}
+export declare class CreateTableStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace CreateTableStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => CreateTableStatement;
+    }
+}
+export declare class DropTableStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace DropTableStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DropTableStatement;
+    }
+}
+export declare class SelectStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, columns: KtList<Column<any /*UnknownType **/>>, where: Expression, limit?: Nullable<number>, offset?: Nullable<number>);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace SelectStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SelectStatement;
+    }
+}
+export declare class InsertStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, values: KtMap<Column<any /*UnknownType **/>, Nullable<any>>);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace InsertStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => InsertStatement;
+    }
+}
+export declare class UpdateStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, values: KtMap<Column<any /*UnknownType **/>, Nullable<any>>, where: Expression);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace UpdateStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => UpdateStatement;
+    }
+}
+export declare class DeleteStatement /* extends BaseStatement */ implements Statement {
+    constructor(table: Table, where: Expression);
+    renderSql(): string;
+    renderArgs(): Array<Nullable<any>>;
+    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
+}
+export declare namespace DeleteStatement {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DeleteStatement;
+    }
+}
+export declare abstract class SqlBuilder {
+    static readonly getInstance: () => typeof SqlBuilder.$metadata$.type;
+    private constructor();
+}
+export declare namespace SqlBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            create(table: Table): CreateTableStatement;
+            drop(table: Table): DropTableStatement;
+            select(columns: Array<Column<any /*UnknownType **/>>): SelectBuilder;
+            insert(table: Table): InsertBuilder;
+            update(table: Table): UpdateBuilder;
+            delete(table: Table): DeleteBuilder;
+            private constructor();
+        }
+    }
+}
+export declare class SelectBuilder {
+    constructor(columns: KtList<Column<any /*UnknownType **/>>);
+    from(table: Table): SelectFromBuilder;
+}
+export declare namespace SelectBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SelectBuilder;
+    }
+}
+export declare class SelectFromBuilder {
+    constructor(table: Table, columns: KtList<Column<any /*UnknownType **/>>);
+    where(expression: Expression): SelectStatement;
+    all(): SelectStatement;
+    limit(limit: number, offset?: number): SelectStatement;
+}
+export declare namespace SelectFromBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => SelectFromBuilder;
+    }
+}
+export declare class InsertBuilder {
+    constructor(table: Table);
+    set<T>(column: Column<T>, value: T): InsertBuilder;
+    build(): InsertStatement;
+}
+export declare namespace InsertBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => InsertBuilder;
+    }
+}
+export declare class UpdateBuilder {
+    constructor(table: Table);
+    set<T>(column: Column<T>, value: T): UpdateBuilder;
+    where(expression: Expression): UpdateStatement;
+}
+export declare namespace UpdateBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => UpdateBuilder;
+    }
+}
+export declare class DeleteBuilder {
+    constructor(table: Table);
+    where(expression: Expression): DeleteStatement;
+    all(): DeleteStatement;
+}
+export declare namespace DeleteBuilder {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => DeleteBuilder;
+    }
+}
+export declare abstract class ComponentSize {
+    private constructor();
+    static get Small(): ComponentSize & {
+        get name(): "Small";
+        get ordinal(): 0;
+    };
+    static get Medium(): ComponentSize & {
+        get name(): "Medium";
+        get ordinal(): 1;
+    };
+    static get Large(): ComponentSize & {
+        get name(): "Large";
+        get ordinal(): 2;
+    };
+    get name(): "Small" | "Medium" | "Large";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<ComponentSize>;
+    static valueOf(value: string): ComponentSize;
+}
+export declare namespace ComponentSize {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentSize;
+    }
+}
+export declare abstract class ComponentVariant {
+    private constructor();
+    static get Filled(): ComponentVariant & {
+        get name(): "Filled";
+        get ordinal(): 0;
+    };
+    static get Outlined(): ComponentVariant & {
+        get name(): "Outlined";
+        get ordinal(): 1;
+    };
+    static get Text(): ComponentVariant & {
+        get name(): "Text";
+        get ordinal(): 2;
+    };
+    static get Tonal(): ComponentVariant & {
+        get name(): "Tonal";
+        get ordinal(): 3;
+    };
+    static get Elevated(): ComponentVariant & {
+        get name(): "Elevated";
+        get ordinal(): 4;
+    };
+    get name(): "Filled" | "Outlined" | "Text" | "Tonal" | "Elevated";
+    get ordinal(): 0 | 1 | 2 | 3 | 4;
+    static values(): Array<ComponentVariant>;
+    static valueOf(value: string): ComponentVariant;
+}
+export declare namespace ComponentVariant {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentVariant;
+    }
+}
+export declare abstract class ComponentState {
+    private constructor();
+    static get Enabled(): ComponentState & {
+        get name(): "Enabled";
+        get ordinal(): 0;
+    };
+    static get Disabled(): ComponentState & {
+        get name(): "Disabled";
+        get ordinal(): 1;
+    };
+    static get Loading(): ComponentState & {
+        get name(): "Loading";
+        get ordinal(): 2;
+    };
+    get name(): "Enabled" | "Disabled" | "Loading";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<ComponentState>;
+    static valueOf(value: string): ComponentState;
+}
+export declare namespace ComponentState {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentState;
+    }
+}
+export declare abstract class TextRole {
+    private constructor();
+    static get Display(): TextRole & {
+        get name(): "Display";
+        get ordinal(): 0;
+    };
+    static get Headline(): TextRole & {
+        get name(): "Headline";
+        get ordinal(): 1;
+    };
+    static get Title(): TextRole & {
+        get name(): "Title";
+        get ordinal(): 2;
+    };
+    static get Body(): TextRole & {
+        get name(): "Body";
+        get ordinal(): 3;
+    };
+    static get Label(): TextRole & {
+        get name(): "Label";
+        get ordinal(): 4;
+    };
+    static get Caption(): TextRole & {
+        get name(): "Caption";
+        get ordinal(): 5;
+    };
+    get name(): "Display" | "Headline" | "Title" | "Body" | "Label" | "Caption";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<TextRole>;
+    static valueOf(value: string): TextRole;
+}
+export declare namespace TextRole {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TextRole;
+    }
+}
+export declare abstract class TextSize {
+    private constructor();
+    static get Small(): TextSize & {
+        get name(): "Small";
+        get ordinal(): 0;
+    };
+    static get Medium(): TextSize & {
+        get name(): "Medium";
+        get ordinal(): 1;
+    };
+    static get Large(): TextSize & {
+        get name(): "Large";
+        get ordinal(): 2;
+    };
+    get name(): "Small" | "Medium" | "Large";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<TextSize>;
+    static valueOf(value: string): TextSize;
+}
+export declare namespace TextSize {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TextSize;
+    }
+}
+export declare const ReaktorUIDemo: { get(): FC<ReaktorUIDemoProps>; };
+export declare abstract class PromiseState {
+    private constructor();
+    static get Initial(): PromiseState & {
+        get name(): "Initial";
+        get ordinal(): 0;
+    };
+    static get Pending(): PromiseState & {
+        get name(): "Pending";
+        get ordinal(): 1;
+    };
+    static get Resolved(): PromiseState & {
+        get name(): "Resolved";
+        get ordinal(): 2;
+    };
+    static get Rejected(): PromiseState & {
+        get name(): "Rejected";
+        get ordinal(): 3;
+    };
+    get name(): "Initial" | "Pending" | "Resolved" | "Rejected";
+    get ordinal(): 0 | 1 | 2 | 3;
+    static values(): Array<PromiseState>;
+    static valueOf(value: string): PromiseState;
+}
+export declare namespace PromiseState {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PromiseState;
+    }
+}
+export declare class PromiseResult<T> {
+    constructor(state: PromiseState, data?: Nullable<T>, error?: Nullable<Error>);
+    get state(): PromiseState;
+    get data(): Nullable<T>;
+    get error(): Nullable<Error>;
+    copy(state?: PromiseState, data?: Nullable<T>, error?: Nullable<Error>): PromiseResult<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace PromiseResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => PromiseResult<T>;
+    }
+}
+export declare function usePromise<T>(dependencies: Array<Nullable<any>>, promiseFactory: () => Nullable<Promise<T>>): PromiseResult<T>;
+export declare class WebColorScheme {
+    constructor(background: string, surface: string, surfaceVariant: string, surfaceContainer: string, surfaceContainerHigh: string, surfaceContainerLow: string, onBackground: string, onSurface: string, onSurfaceVariant: string, primary: string, primaryContainer: string, onPrimary: string, onPrimaryContainer: string, secondary: string, secondaryContainer: string, onSecondary: string, onSecondaryContainer: string, tertiary: string, tertiaryContainer: string, onTertiary: string, onTertiaryContainer: string, error: string, errorContainer: string, onError: string, onErrorContainer: string, success: string, onSuccess: string, warning: string, onWarning: string, info: string, onInfo: string, outline: string, outlineVariant: string, scrim: string, shadow: string, inverseSurface: string, inverseOnSurface: string, inversePrimary: string);
+    get background(): string;
+    get surface(): string;
+    get surfaceVariant(): string;
+    get surfaceContainer(): string;
+    get surfaceContainerHigh(): string;
+    get surfaceContainerLow(): string;
+    get onBackground(): string;
+    get onSurface(): string;
+    get onSurfaceVariant(): string;
+    get primary(): string;
+    get primaryContainer(): string;
+    get onPrimary(): string;
+    get onPrimaryContainer(): string;
+    get secondary(): string;
+    get secondaryContainer(): string;
+    get onSecondary(): string;
+    get onSecondaryContainer(): string;
+    get tertiary(): string;
+    get tertiaryContainer(): string;
+    get onTertiary(): string;
+    get onTertiaryContainer(): string;
+    get error(): string;
+    get errorContainer(): string;
+    get onError(): string;
+    get onErrorContainer(): string;
+    get success(): string;
+    get onSuccess(): string;
+    get warning(): string;
+    get onWarning(): string;
+    get info(): string;
+    get onInfo(): string;
+    get outline(): string;
+    get outlineVariant(): string;
+    get scrim(): string;
+    get shadow(): string;
+    get inverseSurface(): string;
+    get inverseOnSurface(): string;
+    get inversePrimary(): string;
+    copy(background?: string, surface?: string, surfaceVariant?: string, surfaceContainer?: string, surfaceContainerHigh?: string, surfaceContainerLow?: string, onBackground?: string, onSurface?: string, onSurfaceVariant?: string, primary?: string, primaryContainer?: string, onPrimary?: string, onPrimaryContainer?: string, secondary?: string, secondaryContainer?: string, onSecondary?: string, onSecondaryContainer?: string, tertiary?: string, tertiaryContainer?: string, onTertiary?: string, onTertiaryContainer?: string, error?: string, errorContainer?: string, onError?: string, onErrorContainer?: string, success?: string, onSuccess?: string, warning?: string, onWarning?: string, info?: string, onInfo?: string, outline?: string, outlineVariant?: string, scrim?: string, shadow?: string, inverseSurface?: string, inverseOnSurface?: string, inversePrimary?: string): WebColorScheme;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebColorScheme {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebColorScheme;
+    }
+}
+export declare class WebTextStyle {
+    constructor(fontSize: string, lineHeight: string, fontWeight: string, letterSpacing: string);
+    get fontSize(): string;
+    get lineHeight(): string;
+    get fontWeight(): string;
+    get letterSpacing(): string;
+    copy(fontSize?: string, lineHeight?: string, fontWeight?: string, letterSpacing?: string): WebTextStyle;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebTextStyle {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTextStyle;
+    }
+}
+export declare class WebTypography {
+    constructor(displayLarge: WebTextStyle, displayMedium: WebTextStyle, displaySmall: WebTextStyle, headlineLarge: WebTextStyle, headlineMedium: WebTextStyle, headlineSmall: WebTextStyle, titleLarge: WebTextStyle, titleMedium: WebTextStyle, titleSmall: WebTextStyle, bodyLarge: WebTextStyle, bodyMedium: WebTextStyle, bodySmall: WebTextStyle, labelLarge: WebTextStyle, labelMedium: WebTextStyle, labelSmall: WebTextStyle);
+    get displayLarge(): WebTextStyle;
+    get displayMedium(): WebTextStyle;
+    get displaySmall(): WebTextStyle;
+    get headlineLarge(): WebTextStyle;
+    get headlineMedium(): WebTextStyle;
+    get headlineSmall(): WebTextStyle;
+    get titleLarge(): WebTextStyle;
+    get titleMedium(): WebTextStyle;
+    get titleSmall(): WebTextStyle;
+    get bodyLarge(): WebTextStyle;
+    get bodyMedium(): WebTextStyle;
+    get bodySmall(): WebTextStyle;
+    get labelLarge(): WebTextStyle;
+    get labelMedium(): WebTextStyle;
+    get labelSmall(): WebTextStyle;
+    copy(displayLarge?: WebTextStyle, displayMedium?: WebTextStyle, displaySmall?: WebTextStyle, headlineLarge?: WebTextStyle, headlineMedium?: WebTextStyle, headlineSmall?: WebTextStyle, titleLarge?: WebTextStyle, titleMedium?: WebTextStyle, titleSmall?: WebTextStyle, bodyLarge?: WebTextStyle, bodyMedium?: WebTextStyle, bodySmall?: WebTextStyle, labelLarge?: WebTextStyle, labelMedium?: WebTextStyle, labelSmall?: WebTextStyle): WebTypography;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebTypography {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTypography;
+    }
+}
+export declare class WebSpacing {
+    constructor(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string);
+    get none(): string;
+    get xxs(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    get xxl(): string;
+    get xxxl(): string;
+    copy(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string): WebSpacing;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebSpacing {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebSpacing;
+    }
+}
+export declare class WebShapes {
+    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string);
+    get none(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    get full(): string;
+    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string): WebShapes;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebShapes {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebShapes;
+    }
+}
+export declare class WebElevation {
+    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string);
+    get none(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string): WebElevation;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebElevation {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebElevation;
+    }
+}
+export declare class WebSizing {
+    constructor(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string);
+    get touchTargetMin(): string;
+    get iconXs(): string;
+    get iconSm(): string;
+    get iconMd(): string;
+    get iconLg(): string;
+    get iconXl(): string;
+    get buttonSm(): string;
+    get buttonMd(): string;
+    get buttonLg(): string;
+    get inputSm(): string;
+    get inputMd(): string;
+    get inputLg(): string;
+    get avatarSm(): string;
+    get avatarMd(): string;
+    get avatarLg(): string;
+    get avatarXl(): string;
+    copy(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string): WebSizing;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebSizing {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebSizing;
+    }
+}
+export declare class WebBreakpoints {
+    constructor(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number);
+    get mobile(): number;
+    get tablet(): number;
+    get desktop(): number;
+    get largeDesktop(): number;
+    copy(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number): WebBreakpoints;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebBreakpoints {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebBreakpoints;
+    }
+}
+export declare class WebMotion {
+    constructor(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number);
+    get durationInstant(): number;
+    get durationFast(): number;
+    get durationNormal(): number;
+    get durationSlow(): number;
+    get durationSlowest(): number;
+    copy(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number): WebMotion;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebMotion {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebMotion;
+    }
+}
+export declare class WebDesignTokens {
+    constructor(colors: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion);
+    get colors(): WebColorScheme;
+    get typography(): WebTypography;
+    get spacing(): WebSpacing;
+    get shapes(): WebShapes;
+    get elevation(): WebElevation;
+    get sizing(): WebSizing;
+    get breakpoints(): WebBreakpoints;
+    get motion(): WebMotion;
+    copy(colors?: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion): WebDesignTokens;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebDesignTokens {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebDesignTokens;
+    }
+}
+export declare function defaultWebTypography(): WebTypography;
+export declare function lighten(hex: string, fraction: number): string;
+export declare function darken(hex: string, fraction: number): string;
+export declare function autoContentColor(background: string, lightContent?: string, darkContent?: string): string;
+export declare function withAlpha(hex: string, alpha: number): string;
+export declare function createLightColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
+export declare function createDarkColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
+export declare function createWebDesignTokens(colors: WebColorScheme): WebDesignTokens;
+export declare function createWebTokens(primary: string, secondary: string, tertiary?: Nullable<string>, darkMode?: boolean): WebDesignTokens;
+export declare abstract class WebMaterialTokens {
+    static readonly getInstance: () => typeof WebMaterialTokens.$metadata$.type;
+    private constructor();
+}
+export declare namespace WebMaterialTokens {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            get defaultLight(): WebDesignTokens;
+            get defaultDark(): WebDesignTokens;
+            get blueLight(): WebDesignTokens;
+            get blueDark(): WebDesignTokens;
+            get greenLight(): WebDesignTokens;
+            get greenDark(): WebDesignTokens;
+            get reaktorLight(): WebDesignTokens;
+            get reaktorDark(): WebDesignTokens;
+            private constructor();
+        }
+    }
+}
 export declare abstract class Reaktor {
     static readonly getInstance: () => typeof Reaktor.$metadata$.type;
     private constructor();
@@ -807,6 +1781,7 @@ export declare namespace Graph {
         const constructor: abstract new () => Graph;
     }
 }
+export declare function findNode(_this_: Graph, label: string): Nullable<Node>;
 export declare class NavigationEdge<P extends Payload> extends Edge.$metadata$.constructor<NavBinding<P>> {
     constructor(start: RouteNode<any /*UnknownType **/, any /*UnknownType **/>, end: RouteNode<P, any /*UnknownType **/>);
     get start(): RouteNode<any /*UnknownType **/, any /*UnknownType **/>;
@@ -820,6 +1795,21 @@ export declare namespace NavigationEdge {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
         const constructor: abstract new <P extends Payload>() => NavigationEdge<P>;
+    }
+}
+export declare class ActorAddress {
+    constructor(graphId: string, key: string);
+    get graphId(): string;
+    get key(): string;
+    toString(): string;
+    copy(graphId?: string, key?: string): ActorAddress;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ActorAddress {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ActorAddress;
     }
 }
 export declare class BasicNode extends Node.$metadata$.constructor {
@@ -853,6 +1843,7 @@ export declare namespace ContainerNode {
 export declare abstract class ControllerNode<State> extends Node.$metadata$.constructor implements Node.Routable {
     constructor(graph: Graph);
     abstract get state(): any/* MutableStateFlow<State> */;
+    update(transform: (p0: State) => State): void;
     toString(): string;
     abstract get routeBinding(): ConsumerPort<RouteBinding<Payload>>;
     readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & Node.Routable["__doNotUseOrImplementIt"];
@@ -894,6 +1885,10 @@ export declare class RouteBinding<P extends Payload> {
     get payload(): any/* MutableStateFlow<P> */;
     get dispatch(): (p0: NavCommand) => void;
     set dispatch(value: (p0: NavCommand) => void);
+    push<T extends Payload>(_this_: NavigationEdge<T>, payload: T): void;
+    replace<T extends Payload>(_this_: NavigationEdge<T>, payload: T): void;
+    pop(): void;
+    backWithResult<R>(result: R): void;
 }
 export declare namespace RouteBinding {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -1545,6 +2540,24 @@ export declare namespace WindowSize {
         }
     }
 }
+export declare class WebNavigationBridge {
+    constructor(graph: Graph);
+    resolveCurrentUrl(): boolean;
+    destroy(): void;
+}
+export declare namespace WebNavigationBridge {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebNavigationBridge;
+    }
+}
+export declare function ReactGraphContent(graph: Graph, isFocused?: boolean): Nullable<ReactNode>;
+export declare interface ReactContainer extends View {
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.ui.ReactContainer": unique symbol;
+    } & View["__doNotUseOrImplementIt"];
+}
 export declare const PersonViewDataKey: { get(): KeyType; };
 export declare interface ReactContent extends View {
     Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
@@ -1601,971 +2614,60 @@ export declare namespace TestBasic {
         const constructor: abstract new () => TestBasic;
     }
 }
+export declare class WebBottomNavigationContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
+    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string, bottomNavKeys?: KtSet<string>);
+    get children(): KtMap<string, any/* ChildGraph */>;
+    get bottomNavKeys(): KtSet<string>;
+    get selected(): any/* MutableStateFlow<string> */;
+    get controller(): ProviderPort<any/* Controller */>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
+}
+export declare namespace WebBottomNavigationContainer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebBottomNavigationContainer;
+    }
+}
+export declare class WebHost {
+    constructor(graph: Graph);
+    get graph(): Graph;
+    get bridge(): WebNavigationBridge;
+    start(): void;
+    Content(): Nullable<ReactNode>;
+    dispatch(command: NavCommand): void;
+    navigate(edge: NavigationEdge<Payload>, payload?: Payload): void;
+    goBack(): void;
+    topEntry(): Nullable<BackStackEntry<any /*UnknownType **/, any /*UnknownType **/>>;
+    topPattern(): string;
+    topParams(): (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */;
+    stackSize(): number;
+    navigateToPattern(pattern: string, params?: (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */): void;
+    destroy(): void;
+}
+export declare namespace WebHost {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebHost;
+    }
+}
+export declare class WebTabbedContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
+    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string);
+    get children(): KtMap<string, any/* ChildGraph */>;
+    get selected(): any/* MutableStateFlow<string> */;
+    get controller(): ProviderPort<any/* Controller */>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
+}
+export declare namespace WebTabbedContainer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTabbedContainer;
+    }
+}
 export declare function useWindowSize(): WindowSize;
-export declare abstract class ComponentSize {
-    private constructor();
-    static get Small(): ComponentSize & {
-        get name(): "Small";
-        get ordinal(): 0;
-    };
-    static get Medium(): ComponentSize & {
-        get name(): "Medium";
-        get ordinal(): 1;
-    };
-    static get Large(): ComponentSize & {
-        get name(): "Large";
-        get ordinal(): 2;
-    };
-    get name(): "Small" | "Medium" | "Large";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<ComponentSize>;
-    static valueOf(value: string): ComponentSize;
-}
-export declare namespace ComponentSize {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ComponentSize;
-    }
-}
-export declare abstract class ComponentVariant {
-    private constructor();
-    static get Filled(): ComponentVariant & {
-        get name(): "Filled";
-        get ordinal(): 0;
-    };
-    static get Outlined(): ComponentVariant & {
-        get name(): "Outlined";
-        get ordinal(): 1;
-    };
-    static get Text(): ComponentVariant & {
-        get name(): "Text";
-        get ordinal(): 2;
-    };
-    static get Tonal(): ComponentVariant & {
-        get name(): "Tonal";
-        get ordinal(): 3;
-    };
-    static get Elevated(): ComponentVariant & {
-        get name(): "Elevated";
-        get ordinal(): 4;
-    };
-    get name(): "Filled" | "Outlined" | "Text" | "Tonal" | "Elevated";
-    get ordinal(): 0 | 1 | 2 | 3 | 4;
-    static values(): Array<ComponentVariant>;
-    static valueOf(value: string): ComponentVariant;
-}
-export declare namespace ComponentVariant {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ComponentVariant;
-    }
-}
-export declare abstract class ComponentState {
-    private constructor();
-    static get Enabled(): ComponentState & {
-        get name(): "Enabled";
-        get ordinal(): 0;
-    };
-    static get Disabled(): ComponentState & {
-        get name(): "Disabled";
-        get ordinal(): 1;
-    };
-    static get Loading(): ComponentState & {
-        get name(): "Loading";
-        get ordinal(): 2;
-    };
-    get name(): "Enabled" | "Disabled" | "Loading";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<ComponentState>;
-    static valueOf(value: string): ComponentState;
-}
-export declare namespace ComponentState {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ComponentState;
-    }
-}
-export declare abstract class TextRole {
-    private constructor();
-    static get Display(): TextRole & {
-        get name(): "Display";
-        get ordinal(): 0;
-    };
-    static get Headline(): TextRole & {
-        get name(): "Headline";
-        get ordinal(): 1;
-    };
-    static get Title(): TextRole & {
-        get name(): "Title";
-        get ordinal(): 2;
-    };
-    static get Body(): TextRole & {
-        get name(): "Body";
-        get ordinal(): 3;
-    };
-    static get Label(): TextRole & {
-        get name(): "Label";
-        get ordinal(): 4;
-    };
-    static get Caption(): TextRole & {
-        get name(): "Caption";
-        get ordinal(): 5;
-    };
-    get name(): "Display" | "Headline" | "Title" | "Body" | "Label" | "Caption";
-    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
-    static values(): Array<TextRole>;
-    static valueOf(value: string): TextRole;
-}
-export declare namespace TextRole {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => TextRole;
-    }
-}
-export declare abstract class TextSize {
-    private constructor();
-    static get Small(): TextSize & {
-        get name(): "Small";
-        get ordinal(): 0;
-    };
-    static get Medium(): TextSize & {
-        get name(): "Medium";
-        get ordinal(): 1;
-    };
-    static get Large(): TextSize & {
-        get name(): "Large";
-        get ordinal(): 2;
-    };
-    get name(): "Small" | "Medium" | "Large";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<TextSize>;
-    static valueOf(value: string): TextSize;
-}
-export declare namespace TextSize {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => TextSize;
-    }
-}
-export declare const ReaktorUIDemo: { get(): FC<ReaktorUIDemoProps>; };
-export declare abstract class PromiseState {
-    private constructor();
-    static get Initial(): PromiseState & {
-        get name(): "Initial";
-        get ordinal(): 0;
-    };
-    static get Pending(): PromiseState & {
-        get name(): "Pending";
-        get ordinal(): 1;
-    };
-    static get Resolved(): PromiseState & {
-        get name(): "Resolved";
-        get ordinal(): 2;
-    };
-    static get Rejected(): PromiseState & {
-        get name(): "Rejected";
-        get ordinal(): 3;
-    };
-    get name(): "Initial" | "Pending" | "Resolved" | "Rejected";
-    get ordinal(): 0 | 1 | 2 | 3;
-    static values(): Array<PromiseState>;
-    static valueOf(value: string): PromiseState;
-}
-export declare namespace PromiseState {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => PromiseState;
-    }
-}
-export declare class PromiseResult<T> {
-    constructor(state: PromiseState, data?: Nullable<T>, error?: Nullable<Error>);
-    get state(): PromiseState;
-    get data(): Nullable<T>;
-    get error(): Nullable<Error>;
-    copy(state?: PromiseState, data?: Nullable<T>, error?: Nullable<Error>): PromiseResult<T>;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace PromiseResult {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <T>() => PromiseResult<T>;
-    }
-}
-export declare function usePromise<T>(dependencies: Array<Nullable<any>>, promiseFactory: () => Nullable<Promise<T>>): PromiseResult<T>;
-export declare class WebColorScheme {
-    constructor(background: string, surface: string, surfaceVariant: string, surfaceContainer: string, surfaceContainerHigh: string, surfaceContainerLow: string, onBackground: string, onSurface: string, onSurfaceVariant: string, primary: string, primaryContainer: string, onPrimary: string, onPrimaryContainer: string, secondary: string, secondaryContainer: string, onSecondary: string, onSecondaryContainer: string, tertiary: string, tertiaryContainer: string, onTertiary: string, onTertiaryContainer: string, error: string, errorContainer: string, onError: string, onErrorContainer: string, success: string, onSuccess: string, warning: string, onWarning: string, info: string, onInfo: string, outline: string, outlineVariant: string, scrim: string, shadow: string, inverseSurface: string, inverseOnSurface: string, inversePrimary: string);
-    get background(): string;
-    get surface(): string;
-    get surfaceVariant(): string;
-    get surfaceContainer(): string;
-    get surfaceContainerHigh(): string;
-    get surfaceContainerLow(): string;
-    get onBackground(): string;
-    get onSurface(): string;
-    get onSurfaceVariant(): string;
-    get primary(): string;
-    get primaryContainer(): string;
-    get onPrimary(): string;
-    get onPrimaryContainer(): string;
-    get secondary(): string;
-    get secondaryContainer(): string;
-    get onSecondary(): string;
-    get onSecondaryContainer(): string;
-    get tertiary(): string;
-    get tertiaryContainer(): string;
-    get onTertiary(): string;
-    get onTertiaryContainer(): string;
-    get error(): string;
-    get errorContainer(): string;
-    get onError(): string;
-    get onErrorContainer(): string;
-    get success(): string;
-    get onSuccess(): string;
-    get warning(): string;
-    get onWarning(): string;
-    get info(): string;
-    get onInfo(): string;
-    get outline(): string;
-    get outlineVariant(): string;
-    get scrim(): string;
-    get shadow(): string;
-    get inverseSurface(): string;
-    get inverseOnSurface(): string;
-    get inversePrimary(): string;
-    copy(background?: string, surface?: string, surfaceVariant?: string, surfaceContainer?: string, surfaceContainerHigh?: string, surfaceContainerLow?: string, onBackground?: string, onSurface?: string, onSurfaceVariant?: string, primary?: string, primaryContainer?: string, onPrimary?: string, onPrimaryContainer?: string, secondary?: string, secondaryContainer?: string, onSecondary?: string, onSecondaryContainer?: string, tertiary?: string, tertiaryContainer?: string, onTertiary?: string, onTertiaryContainer?: string, error?: string, errorContainer?: string, onError?: string, onErrorContainer?: string, success?: string, onSuccess?: string, warning?: string, onWarning?: string, info?: string, onInfo?: string, outline?: string, outlineVariant?: string, scrim?: string, shadow?: string, inverseSurface?: string, inverseOnSurface?: string, inversePrimary?: string): WebColorScheme;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebColorScheme {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebColorScheme;
-    }
-}
-export declare class WebTextStyle {
-    constructor(fontSize: string, lineHeight: string, fontWeight: string, letterSpacing: string);
-    get fontSize(): string;
-    get lineHeight(): string;
-    get fontWeight(): string;
-    get letterSpacing(): string;
-    copy(fontSize?: string, lineHeight?: string, fontWeight?: string, letterSpacing?: string): WebTextStyle;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebTextStyle {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebTextStyle;
-    }
-}
-export declare class WebTypography {
-    constructor(displayLarge: WebTextStyle, displayMedium: WebTextStyle, displaySmall: WebTextStyle, headlineLarge: WebTextStyle, headlineMedium: WebTextStyle, headlineSmall: WebTextStyle, titleLarge: WebTextStyle, titleMedium: WebTextStyle, titleSmall: WebTextStyle, bodyLarge: WebTextStyle, bodyMedium: WebTextStyle, bodySmall: WebTextStyle, labelLarge: WebTextStyle, labelMedium: WebTextStyle, labelSmall: WebTextStyle);
-    get displayLarge(): WebTextStyle;
-    get displayMedium(): WebTextStyle;
-    get displaySmall(): WebTextStyle;
-    get headlineLarge(): WebTextStyle;
-    get headlineMedium(): WebTextStyle;
-    get headlineSmall(): WebTextStyle;
-    get titleLarge(): WebTextStyle;
-    get titleMedium(): WebTextStyle;
-    get titleSmall(): WebTextStyle;
-    get bodyLarge(): WebTextStyle;
-    get bodyMedium(): WebTextStyle;
-    get bodySmall(): WebTextStyle;
-    get labelLarge(): WebTextStyle;
-    get labelMedium(): WebTextStyle;
-    get labelSmall(): WebTextStyle;
-    copy(displayLarge?: WebTextStyle, displayMedium?: WebTextStyle, displaySmall?: WebTextStyle, headlineLarge?: WebTextStyle, headlineMedium?: WebTextStyle, headlineSmall?: WebTextStyle, titleLarge?: WebTextStyle, titleMedium?: WebTextStyle, titleSmall?: WebTextStyle, bodyLarge?: WebTextStyle, bodyMedium?: WebTextStyle, bodySmall?: WebTextStyle, labelLarge?: WebTextStyle, labelMedium?: WebTextStyle, labelSmall?: WebTextStyle): WebTypography;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebTypography {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebTypography;
-    }
-}
-export declare class WebSpacing {
-    constructor(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string);
-    get none(): string;
-    get xxs(): string;
-    get xs(): string;
-    get sm(): string;
-    get md(): string;
-    get lg(): string;
-    get xl(): string;
-    get xxl(): string;
-    get xxxl(): string;
-    copy(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string): WebSpacing;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebSpacing {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebSpacing;
-    }
-}
-export declare class WebShapes {
-    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string);
-    get none(): string;
-    get xs(): string;
-    get sm(): string;
-    get md(): string;
-    get lg(): string;
-    get xl(): string;
-    get full(): string;
-    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string): WebShapes;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebShapes {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebShapes;
-    }
-}
-export declare class WebElevation {
-    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string);
-    get none(): string;
-    get xs(): string;
-    get sm(): string;
-    get md(): string;
-    get lg(): string;
-    get xl(): string;
-    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string): WebElevation;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebElevation {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebElevation;
-    }
-}
-export declare class WebSizing {
-    constructor(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string);
-    get touchTargetMin(): string;
-    get iconXs(): string;
-    get iconSm(): string;
-    get iconMd(): string;
-    get iconLg(): string;
-    get iconXl(): string;
-    get buttonSm(): string;
-    get buttonMd(): string;
-    get buttonLg(): string;
-    get inputSm(): string;
-    get inputMd(): string;
-    get inputLg(): string;
-    get avatarSm(): string;
-    get avatarMd(): string;
-    get avatarLg(): string;
-    get avatarXl(): string;
-    copy(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string): WebSizing;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebSizing {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebSizing;
-    }
-}
-export declare class WebBreakpoints {
-    constructor(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number);
-    get mobile(): number;
-    get tablet(): number;
-    get desktop(): number;
-    get largeDesktop(): number;
-    copy(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number): WebBreakpoints;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebBreakpoints {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebBreakpoints;
-    }
-}
-export declare class WebMotion {
-    constructor(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number);
-    get durationInstant(): number;
-    get durationFast(): number;
-    get durationNormal(): number;
-    get durationSlow(): number;
-    get durationSlowest(): number;
-    copy(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number): WebMotion;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebMotion {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebMotion;
-    }
-}
-export declare class WebDesignTokens {
-    constructor(colors: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion);
-    get colors(): WebColorScheme;
-    get typography(): WebTypography;
-    get spacing(): WebSpacing;
-    get shapes(): WebShapes;
-    get elevation(): WebElevation;
-    get sizing(): WebSizing;
-    get breakpoints(): WebBreakpoints;
-    get motion(): WebMotion;
-    copy(colors?: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion): WebDesignTokens;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebDesignTokens {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebDesignTokens;
-    }
-}
-export declare function defaultWebTypography(): WebTypography;
-export declare function lighten(hex: string, fraction: number): string;
-export declare function darken(hex: string, fraction: number): string;
-export declare function autoContentColor(background: string, lightContent?: string, darkContent?: string): string;
-export declare function withAlpha(hex: string, alpha: number): string;
-export declare function createLightColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
-export declare function createDarkColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
-export declare function createWebDesignTokens(colors: WebColorScheme): WebDesignTokens;
-export declare function createWebTokens(primary: string, secondary: string, tertiary?: Nullable<string>, darkMode?: boolean): WebDesignTokens;
-export declare abstract class WebMaterialTokens {
-    static readonly getInstance: () => typeof WebMaterialTokens.$metadata$.type;
-    private constructor();
-}
-export declare namespace WebMaterialTokens {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor {
-            get defaultLight(): WebDesignTokens;
-            get defaultDark(): WebDesignTokens;
-            get blueLight(): WebDesignTokens;
-            get blueDark(): WebDesignTokens;
-            get greenLight(): WebDesignTokens;
-            get greenDark(): WebDesignTokens;
-            get reaktorLight(): WebDesignTokens;
-            get reaktorDark(): WebDesignTokens;
-            private constructor();
-        }
-    }
-}
-export declare abstract class SqlAdapter<Controller> /* extends Adapter<Controller> */ {
-    constructor(controller: Controller, dbName?: string, fileAdapter?: FileAdapter<any /*UnknownType **/>);
-    get dbName(): string;
-    get fileAdapter(): FileAdapter<any /*UnknownType **/>;
-    protected abstract createDriver(): any/* SqlDriver */;
-    getDriver(): any/* SqlDriver */;
-    closeDriver(): void;
-    transaction<T>(body: () => T): T;
-    execute(statement: Statement): bigint;
-    executeRaw(sql: string, args: Array<Nullable<any>>): bigint;
-    checkSize(): bigint;
-    vacuum(): void;
-    backup(backupName: string): Promise<void>;
-    restore(backupName: string): Promise<void>;
-}
-export declare namespace SqlAdapter {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <Controller>() => SqlAdapter<Controller>;
-    }
-}
-export declare class SyncAdapter {
-    constructor(client: any/* HttpClient */, sqlAdapter: SqlAdapter<any /*UnknownType **/>, fileAdapter: FileAdapter<any /*UnknownType **/>);
-    upload(uploadUrl: string, snapshotName?: string): Promise<void>;
-    download(downloadUrl: string, restoreName?: string): Promise<void>;
-}
-export declare namespace SyncAdapter {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => SyncAdapter;
-    }
-}
-export declare interface SqlType<T> {
-    readonly sqlString: string;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.db.sql.SqlType": unique symbol;
-    };
-}
-export declare abstract class IntegerType {
-    static readonly getInstance: () => typeof IntegerType.$metadata$.type;
-    private constructor();
-}
-export declare namespace IntegerType {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor implements SqlType<number> {
-            get sqlString(): string;
-            readonly __doNotUseOrImplementIt: SqlType<number>["__doNotUseOrImplementIt"];
-            private constructor();
-        }
-    }
-}
-export declare abstract class TextType {
-    static readonly getInstance: () => typeof TextType.$metadata$.type;
-    private constructor();
-}
-export declare namespace TextType {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor implements SqlType<string> {
-            get sqlString(): string;
-            readonly __doNotUseOrImplementIt: SqlType<string>["__doNotUseOrImplementIt"];
-            private constructor();
-        }
-    }
-}
-export declare abstract class BooleanType {
-    static readonly getInstance: () => typeof BooleanType.$metadata$.type;
-    private constructor();
-}
-export declare namespace BooleanType {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor implements SqlType<boolean> {
-            get sqlString(): string;
-            readonly __doNotUseOrImplementIt: SqlType<boolean>["__doNotUseOrImplementIt"];
-            private constructor();
-        }
-    }
-}
-export declare abstract class DoubleType {
-    static readonly getInstance: () => typeof DoubleType.$metadata$.type;
-    private constructor();
-}
-export declare namespace DoubleType {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor implements SqlType<number> {
-            get sqlString(): string;
-            readonly __doNotUseOrImplementIt: SqlType<number>["__doNotUseOrImplementIt"];
-            private constructor();
-        }
-    }
-}
-export declare abstract class BlobType {
-    static readonly getInstance: () => typeof BlobType.$metadata$.type;
-    private constructor();
-}
-export declare namespace BlobType {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor implements SqlType<Int8Array> {
-            get sqlString(): string;
-            readonly __doNotUseOrImplementIt: SqlType<Int8Array>["__doNotUseOrImplementIt"];
-            private constructor();
-        }
-    }
-}
-export declare class ColumnDefinition {
-    constructor(isPrimaryKey?: boolean, isAutoIncrement?: boolean, isNullable?: boolean, defaultValue?: Nullable<string>);
-    get isPrimaryKey(): boolean;
-    get isAutoIncrement(): boolean;
-    get isNullable(): boolean;
-    get defaultValue(): Nullable<string>;
-    copy(isPrimaryKey?: boolean, isAutoIncrement?: boolean, isNullable?: boolean, defaultValue?: Nullable<string>): ColumnDefinition;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace ColumnDefinition {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ColumnDefinition;
-    }
-}
-export declare abstract class Table {
-    constructor(tableName: string);
-    get tableName(): string;
-    get columns(): KtList<Column<any /*UnknownType **/>>;
-    protected integer(name: string, primaryKey?: boolean, autoIncrement?: boolean, nullable?: boolean, _default?: Nullable<number>): Column<number>;
-    protected text(name: string, primaryKey?: boolean, nullable?: boolean, _default?: Nullable<string>): Column<string>;
-    protected bool(name: string, nullable?: boolean, _default?: Nullable<boolean>): Column<boolean>;
-    protected double(name: string, nullable?: boolean, _default?: Nullable<number>): Column<number>;
-    protected blob(name: string, nullable?: boolean): Column<Int8Array>;
-}
-export declare namespace Table {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Table;
-    }
-}
-export declare class Column<T> {
-    constructor(name: string, type: SqlType<T>, table: Table, definition: ColumnDefinition);
-    get name(): string;
-    get type(): SqlType<T>;
-    get table(): Table;
-    get definition(): ColumnDefinition;
-    copy(name?: string, type?: SqlType<T>, table?: Table, definition?: ColumnDefinition): Column<T>;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace Column {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <T>() => Column<T>;
-    }
-}
-export declare abstract class Expression {
-    protected constructor();
-}
-export declare namespace Expression {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Expression;
-    }
-    class Eq<T> extends Expression.$metadata$.constructor {
-        constructor(column: Column<T>, value: T);
-        get column(): Column<T>;
-        get value(): T;
-        copy(column?: Column<T>, value?: T): Expression.Eq<T>;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Eq {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new <T>() => Eq<T>;
-        }
-    }
-    class Neq<T> extends Expression.$metadata$.constructor {
-        constructor(column: Column<T>, value: T);
-        get column(): Column<T>;
-        get value(): T;
-        copy(column?: Column<T>, value?: T): Expression.Neq<T>;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Neq {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new <T>() => Neq<T>;
-        }
-    }
-    class Gt<T> extends Expression.$metadata$.constructor {
-        constructor(column: Column<T>, value: T);
-        get column(): Column<T>;
-        get value(): T;
-        copy(column?: Column<T>, value?: T): Expression.Gt<T>;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Gt {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new <T>() => Gt<T>;
-        }
-    }
-    class Lt<T> extends Expression.$metadata$.constructor {
-        constructor(column: Column<T>, value: T);
-        get column(): Column<T>;
-        get value(): T;
-        copy(column?: Column<T>, value?: T): Expression.Lt<T>;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Lt {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new <T>() => Lt<T>;
-        }
-    }
-    class Gte<T> extends Expression.$metadata$.constructor {
-        constructor(column: Column<T>, value: T);
-        get column(): Column<T>;
-        get value(): T;
-        copy(column?: Column<T>, value?: T): Expression.Gte<T>;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Gte {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new <T>() => Gte<T>;
-        }
-    }
-    class Lte<T> extends Expression.$metadata$.constructor {
-        constructor(column: Column<T>, value: T);
-        get column(): Column<T>;
-        get value(): T;
-        copy(column?: Column<T>, value?: T): Expression.Lte<T>;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Lte {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new <T>() => Lte<T>;
-        }
-    }
-    class Like extends Expression.$metadata$.constructor {
-        constructor(column: Column<string>, value: string);
-        get column(): Column<string>;
-        get value(): string;
-        copy(column?: Column<string>, value?: string): Expression.Like;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Like {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new () => Like;
-        }
-    }
-    class And extends Expression.$metadata$.constructor {
-        constructor(left: Expression, right: Expression);
-        get left(): Expression;
-        get right(): Expression;
-        copy(left?: Expression, right?: Expression): Expression.And;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace And {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new () => And;
-        }
-    }
-    class Or extends Expression.$metadata$.constructor {
-        constructor(left: Expression, right: Expression);
-        get left(): Expression;
-        get right(): Expression;
-        copy(left?: Expression, right?: Expression): Expression.Or;
-        toString(): string;
-        hashCode(): number;
-        equals(other: Nullable<any>): boolean;
-    }
-    namespace Or {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            const constructor: abstract new () => Or;
-        }
-    }
-    abstract class Empty extends KtSingleton<Empty.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Empty {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor extends Expression.$metadata$.constructor {
-                private constructor();
-            }
-        }
-    }
-}
-export declare interface Statement {
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.db.sql.Statement": unique symbol;
-    };
-}
-export declare class RenderResult {
-    constructor(sql: string, args: Array<Nullable<any>>);
-    get sql(): string;
-    get args(): Array<Nullable<any>>;
-    copy(sql?: string, args?: Array<Nullable<any>>): RenderResult;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace RenderResult {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => RenderResult;
-    }
-}
-export declare class CreateTableStatement /* extends BaseStatement */ implements Statement {
-    constructor(table: Table);
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
-}
-export declare namespace CreateTableStatement {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => CreateTableStatement;
-    }
-}
-export declare class DropTableStatement /* extends BaseStatement */ implements Statement {
-    constructor(table: Table);
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
-}
-export declare namespace DropTableStatement {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => DropTableStatement;
-    }
-}
-export declare class SelectStatement /* extends BaseStatement */ implements Statement {
-    constructor(table: Table, columns: KtList<Column<any /*UnknownType **/>>, where: Expression, limit?: Nullable<number>, offset?: Nullable<number>);
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
-}
-export declare namespace SelectStatement {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => SelectStatement;
-    }
-}
-export declare class InsertStatement /* extends BaseStatement */ implements Statement {
-    constructor(table: Table, values: KtMap<Column<any /*UnknownType **/>, Nullable<any>>);
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
-}
-export declare namespace InsertStatement {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => InsertStatement;
-    }
-}
-export declare class UpdateStatement /* extends BaseStatement */ implements Statement {
-    constructor(table: Table, values: KtMap<Column<any /*UnknownType **/>, Nullable<any>>, where: Expression);
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
-}
-export declare namespace UpdateStatement {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => UpdateStatement;
-    }
-}
-export declare class DeleteStatement /* extends BaseStatement */ implements Statement {
-    constructor(table: Table, where: Expression);
-    renderSql(): string;
-    renderArgs(): Array<Nullable<any>>;
-    readonly __doNotUseOrImplementIt: Statement["__doNotUseOrImplementIt"];
-}
-export declare namespace DeleteStatement {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => DeleteStatement;
-    }
-}
-export declare abstract class SqlBuilder {
-    static readonly getInstance: () => typeof SqlBuilder.$metadata$.type;
-    private constructor();
-}
-export declare namespace SqlBuilder {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor {
-            create(table: Table): CreateTableStatement;
-            drop(table: Table): DropTableStatement;
-            select(columns: Array<Column<any /*UnknownType **/>>): SelectBuilder;
-            insert(table: Table): InsertBuilder;
-            update(table: Table): UpdateBuilder;
-            delete(table: Table): DeleteBuilder;
-            private constructor();
-        }
-    }
-}
-export declare class SelectBuilder {
-    constructor(columns: KtList<Column<any /*UnknownType **/>>);
-    from(table: Table): SelectFromBuilder;
-}
-export declare namespace SelectBuilder {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => SelectBuilder;
-    }
-}
-export declare class SelectFromBuilder {
-    constructor(table: Table, columns: KtList<Column<any /*UnknownType **/>>);
-    where(expression: Expression): SelectStatement;
-    all(): SelectStatement;
-    limit(limit: number, offset?: number): SelectStatement;
-}
-export declare namespace SelectFromBuilder {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => SelectFromBuilder;
-    }
-}
-export declare class InsertBuilder {
-    constructor(table: Table);
-    set<T>(column: Column<T>, value: T): InsertBuilder;
-    build(): InsertStatement;
-}
-export declare namespace InsertBuilder {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => InsertBuilder;
-    }
-}
-export declare class UpdateBuilder {
-    constructor(table: Table);
-    set<T>(column: Column<T>, value: T): UpdateBuilder;
-    where(expression: Expression): UpdateStatement;
-}
-export declare namespace UpdateBuilder {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => UpdateBuilder;
-    }
-}
-export declare class DeleteBuilder {
-    constructor(table: Table);
-    where(expression: Expression): DeleteStatement;
-    all(): DeleteStatement;
-}
-export declare namespace DeleteBuilder {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => DeleteBuilder;
-    }
-}
 /** @deprecated  */
 export declare const initHook: { get(): any; };
 /** @deprecated  */

@@ -13,7 +13,7 @@
 - Service bindings for worker-to-worker calls
 - Vectorize for embedding/vector database queries
 - Secrets management via bindings
-- PartyKit integration for real-time WebSocket rooms (with hibernation support)
+- PartyServer integration for real-time WebSocket rooms (with hibernation support)
 
 ## Platforms
 
@@ -35,7 +35,7 @@ JavaScript/Kotlin/JS only (Cloudflare Workers runtime)
 | `DurableObjectNamespace` / `DurableObjectStub` / `DurableObjectStorage` | Persistent state |
 | `CloudflareDurableObject` | Durable Object definition |
 | `VectorIndex` / `VectorizeVector` / `VectorizeMatches` | Vector database queries |
-| `PartyKitServer` / `PartyKitRoom` / `PartyKitConnection` | Real-time WebSocket support |
+| `PartyServerDelegate` / `PartyServerRoom` / `PartyServerConnection` | Real-time WebSocket support |
 
 ## Design goals
 
@@ -51,9 +51,9 @@ BestBuds uses this module for:
 - Messaging worker
 - Media worker
 - Config worker
-- Realtime PartyKit chat
+- Realtime PartyServer chat
 
 ## Dependencies
 
 - `reaktor-core`, `reaktor-graph`, `reaktor-io`
-- NPM: `hono` (4.9.8), `partykit` (0.0.115), `postgres` (3.4.5)
+- NPM: `hono` (4.12.23), `partyserver` (0.5.6), `postgres` (3.4.9)

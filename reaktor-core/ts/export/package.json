@@ -1,6 +1,6 @@
 {
   "name": "reaktor-reaktor-core",
-  "version": "2026.4.19-SNAPSHOT",
+  "version": "2026.6.3-SNAPSHOT",
   "main": "reaktor-reaktor-core.mjs",
   "types": "reaktor-reaktor-core.d.mts",
   "devDependencies": {

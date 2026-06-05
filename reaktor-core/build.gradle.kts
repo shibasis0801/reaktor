@@ -59,6 +59,15 @@ android {
     defaults("dev.shibasis.reaktor.core")
 }
 
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    exclude(
+        "**/ChmAdapter.class",
+        "**/ReaktorChmAdapter.class",
+        "**/JavaChmAdapter.class",
+        "**/SyncHashChmAdapter.class",
+    )
+}
+
 
 
 

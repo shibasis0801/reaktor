@@ -22,7 +22,7 @@ import kotlin.js.JsExport
  *
  * ```kotlin
  * // Server side — provides real implementation
- * val authNode = graph.ServiceNode(AuthServer(loginInteractor))
+ * val authNode = graph.ServiceNode(authRuntime.service)
  *
  * // Client side — provides HTTP-proxying implementation
  * val authNode = graph.ServiceNode(AuthServiceClient("https://api.example.com"))

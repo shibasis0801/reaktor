@@ -19,9 +19,9 @@ kotlin {
     darwin {}
     web {
         dependencies {
-            api(npm("hono", "4.9.8"))
-            api(npm("partykit", "0.0.115"))
-            api(npm("postgres", "3.4.5"))
+            api(npm("hono", "4.12.23"))
+            api(npm("partyserver", "0.5.6"))
+            api(npm("postgres", "3.4.9"))
         }
     }
 }

@@ -2,12 +2,16 @@
   "name": "reaktor-core",
   "version": "1.0.0",
   "type": "module",
-  "exports": { ".": "./src/index.js" },
+  "exports": {
+    ".": "./src/index.js"
+  },
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
-  "scripts": { "build": "tsc -p ." },
+  "scripts": {
+    "build": "tsc -p ."
+  },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "@cloudflare/workers-types": "^4.20250712.0"
+    "typescript": "^6.0.3",
+    "@cloudflare/workers-types": "^4.20260528.1"
   }
 }

@@ -25,16 +25,16 @@
     "clsx": "^2.0.0",
     "docusaurus-plugin-search-local": "^2.1.2",
     "prism-react-renderer": "^2.3.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.0",
     "@docusaurus/tsconfig": "3.10.0",
     "@docusaurus/types": "3.10.0",
-    "@types/react": "^19.0.0",
-    "typescript": "~6.0.2",
-    "wrangler": "^4.28.1"
+    "@types/react": "^19.2.15",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.95.0"
   },
   "browserslist": {
     "production": [

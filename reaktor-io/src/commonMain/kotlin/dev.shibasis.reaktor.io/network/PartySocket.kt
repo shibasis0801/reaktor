@@ -26,7 +26,7 @@ typealias QueryProvider = suspend () -> Map<String, String>
 data class PartySocketOptions(
     val host: String,
     val room: String,
-    val party: String = "main",
+    val party: String,
     val prefix: String? = null,
     val path: String? = null,
     val protocol: String? = null,
@@ -65,7 +65,7 @@ suspend fun buildPartyUrl(options: PartySocketOptions): String {
     val protocol = options.protocol ?: if (normalizedHost.isInternal()) "ws" else "wss"
 
     // 4. Construct Base Path
-    // Default: parties/main/room-id
+    // PartyServer routes to the kebab-cased Durable Object binding name.
     val basePath = options.prefix ?: "parties/${options.party}/${options.room}"
 
     // 5. Build Query Params

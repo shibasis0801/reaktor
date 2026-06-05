@@ -37,17 +37,6 @@ if (typeof Array.prototype.fill === 'undefined') {
     Object.defineProperty(TypedArray.prototype, 'fill', {value: Array.prototype.fill});
   }
 });
-if (typeof Math.trunc === 'undefined') {
-  Math.trunc = function (x) {
-    if (isNaN(x)) {
-      return NaN;
-    }
-    if (x > 0) {
-      return Math.floor(x);
-    }
-    return Math.ceil(x);
-  };
-}
 if (typeof Math.clz32 === 'undefined') {
   Math.clz32 = function (log, LN2) {
     return function (x) {
@@ -58,6 +47,17 @@ if (typeof Math.clz32 === 'undefined') {
       return 31 - (log(asUint) / LN2 | 0) | 0; // the "| 0" acts like math.floor
     };
   }(Math.log, Math.LN2);
+}
+if (typeof Math.trunc === 'undefined') {
+  Math.trunc = function (x) {
+    if (isNaN(x)) {
+      return NaN;
+    }
+    if (x > 0) {
+      return Math.floor(x);
+    }
+    return Math.ceil(x);
+  };
 }
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
@@ -1574,6 +1574,37 @@ class LinkedHashSet extends HashSet {
   }
   checkIsMutable_jn1ih0_k$() {
     return this.internalMap_1.checkIsMutable_h5js84_k$();
+  }
+}
+class AtomicInt {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  load_1zbae_k$() {
+    return this.value_1;
+  }
+  store_8i1itj_k$(newValue) {
+    this.value_1 = newValue;
+  }
+  toString() {
+    return this.value_1.toString();
+  }
+}
+class AtomicReference {
+  constructor(value) {
+    this.value_1 = value;
+  }
+  load_1zbae_k$() {
+    return this.value_1;
+  }
+  compareAndSet_l3595a_k$(expectedValue, newValue) {
+    if (!(this.value_1 === expectedValue))
+      return false;
+    this.value_1 = newValue;
+    return true;
+  }
+  toString() {
+    return toString_0(this.value_1);
   }
 }
 class BaseOutput {
@@ -13341,38 +13372,46 @@ class FlexBufferPool {
   constructor() {
     FlexBufferPool_instance = this;
     this.DEFAULT_POOL_SIZE_1 = 16;
-    this.DEFAULT_BUFFER_SIZE_1 = 4096;
+    this.DEFAULT_BUFFER_SIZE_1 = 16384;
+    this.POOL_MASK_1 = 15;
     var tmp = this;
+    var tmp_0 = 0;
     // Inline function 'kotlin.arrayOfNulls' call
-    tmp.pool_1 = Array(16);
-    this.poolHead_1 = 0;
+    var tmp_1 = Array(16);
+    while (tmp_0 < 16) {
+      tmp_1[tmp_0] = new AtomicReference(null);
+      tmp_0 = tmp_0 + 1 | 0;
+    }
+    tmp.pool_1 = tmp_1;
+    this.poolHead_1 = new AtomicInt(0);
   }
   acquire_j95bmy_k$() {
+    var start = this.poolHead_1.load_1zbae_k$();
     var inductionVariable = 0;
     if (inductionVariable < 16)
       do {
         var i = inductionVariable;
         inductionVariable = inductionVariable + 1 | 0;
-        var idx = (this.poolHead_1 + i | 0) % 16 | 0;
-        var builder = this.pool_1[idx];
-        if (!(builder == null)) {
-          this.pool_1[idx] = null;
-          this.poolHead_1 = (idx + 1 | 0) % 16 | 0;
+        var idx = (start + i | 0) & 15;
+        var builder = this.pool_1[idx].load_1zbae_k$();
+        if (!(builder == null) && this.pool_1[idx].compareAndSet_l3595a_k$(builder, null)) {
+          this.poolHead_1.store_8i1itj_k$((idx + 1 | 0) & 15);
           builder.clear_j9egeb_k$();
           return builder;
         }
       }
        while (inductionVariable < 16);
-    return FlexBuffersBuilder.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_FlexBuffersBuilder_lbkv07_k$(4096, 1);
+    return FlexBuffersBuilder.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_FlexBuffersBuilder_lbkv07_k$(16384, 1);
   }
   release_trzk33_k$(builder) {
+    var start = this.poolHead_1.load_1zbae_k$();
     var inductionVariable = 0;
     if (inductionVariable < 16)
       do {
         var i = inductionVariable;
         inductionVariable = inductionVariable + 1 | 0;
-        if (this.pool_1[i] == null) {
-          this.pool_1[i] = builder;
+        var idx = (start + i | 0) & 15;
+        if (this.pool_1[idx].compareAndSet_l3595a_k$(null, builder)) {
           return Unit_instance;
         }
       }
@@ -13397,9 +13436,8 @@ class FlexBuffers {
   }
   encode_a1flln_k$(serializer, value) {
     var coder = FlexCoderRegistry_getInstance().getBySerialName_rqyjq2_k$(serializer.get_descriptor_wjt6a0_k$().get_serialName_u2rqhk_k$());
-    if (!(coder == null)) {
-      var tmp = isInterface(coder, FlexCoder) ? coder : THROW_CCE();
-      return this.encodeDirect_ng8dxc_k$(tmp, !(value == null) ? value : THROW_CCE());
+    if (!(coder == null) && !(value == null)) {
+      return this.encodeDirect_ng8dxc_k$(coder, !(value == null) ? value : THROW_CCE());
     }
     return Companion_getInstance_31().encode_a1flln_k$(serializer, value);
   }
@@ -13411,7 +13449,7 @@ class FlexBuffers {
   decode_5rqt5x_k$(deserializer, bytes) {
     var coder = FlexCoderRegistry_getInstance().getBySerialName_rqyjq2_k$(deserializer.get_descriptor_wjt6a0_k$().get_serialName_u2rqhk_k$());
     if (!(coder == null)) {
-      var tmp = this.decodeDirect_s6lw1y_k$(isInterface(coder, FlexCoder) ? coder : THROW_CCE(), bytes);
+      var tmp = this.decodeDirect_s6lw1y_k$(coder, bytes);
       return !(tmp == null) ? tmp : THROW_CCE();
     }
     return Companion_getInstance_30().decode_5rqt5x_k$(deserializer, bytes);
@@ -13476,21 +13514,28 @@ class Companion_30 {
   constructor() {
     Companion_instance_30 = this;
     this.MODULE_1 = EmptySerializersModule_0();
+    var tmp = this;
+    tmp.pool_1 = new PerPlatformPool(FlexDecoderV2$Companion$pool$lambda);
     this.fieldIndexCache_1 = HashMap.new_kotlin_collections_HashMap_2a5kxx_k$();
   }
   decode_5rqt5x_k$(deserializer, bytes) {
     var buffer = ArrayReadBuffer.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_ArrayReadBuffer_ocoso3_k$(bytes);
     var root = getRoot(buffer);
-    var decoder = new FlexDecoderV2(root, this.MODULE_1);
-    return decoder.decodeSerializableValue_xpnpad_k$(deserializer);
+    var decoder = acquire(this);
+    reset(decoder, root);
+    try {
+      return decoder.decodeSerializableValue_xpnpad_k$(deserializer);
+    }finally {
+      release(this, decoder);
+    }
   }
 }
 class FlexDecoderV2 extends AbstractDecoder {
-  constructor(root, serializersModule) {
+  constructor() {
     Companion_getInstance_30();
     super();
-    this.root_1 = root;
-    this.serializersModule_1 = serializersModule;
+    this.root_1 = _get_NullReference__ejr383(Companion_getInstance_30());
+    this.serializersModule_1 = EmptySerializersModule_0();
     this.contextStack_1 = new DecodingContextStack();
     this.currentContext_1 = null;
     this.elementIndex_1 = 0;
@@ -13538,10 +13583,10 @@ class FlexDecoderV2 extends AbstractDecoder {
         } else {
           while (ctx.fieldIndex_1 < count) {
             var fieldName = descriptor.getElementName_u4sqmf_k$(ctx.fieldIndex_1);
-            var ref = map.get_6bo4tg_k$(fieldName);
-            if (!(ref == null) && !ref.get_isNull_ew31lm_k$()) {
-              ctx.currentRef_1 = ref;
-              ctx.currentMapIndex_1 = -1;
+            var mapIdx_0 = map.indexOf_x62zdd_k$(fieldName);
+            if (mapIdx_0 >= 0 && !map.isNullAt_sgl4ac_k$(mapIdx_0)) {
+              ctx.currentRef_1 = null;
+              ctx.currentMapIndex_1 = mapIdx_0;
               var idx_0 = ctx.fieldIndex_1;
               ctx.fieldIndex_1 = ctx.fieldIndex_1 + 1 | 0;
               return idx_0;
@@ -13558,9 +13603,8 @@ class FlexDecoderV2 extends AbstractDecoder {
         if (ctx.vectorIndex_1 >= ctx.size_1) {
           tmp_3 = -1;
         } else {
-          var tmp_4 = ctx;
-          var tmp3_safe_receiver = ctx.vectorRef_1;
-          tmp_4.currentRef_1 = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.get_c1px32_k$(ctx.vectorIndex_1);
+          ctx.currentVectorIndex_1 = ctx.vectorIndex_1;
+          ctx.currentRef_1 = null;
           ctx.currentMapIndex_1 = -1;
           var idx_1 = ctx.vectorIndex_1;
           ctx.vectorIndex_1 = ctx.vectorIndex_1 + 1 | 0;
@@ -13570,42 +13614,41 @@ class FlexDecoderV2 extends AbstractDecoder {
         tmp_0 = tmp_3;
         break;
       case 3:
-        var tmp_5;
+        var tmp_4;
         if (ctx.mapEntryIndex_1 >= imul_0(ctx.size_1, 2)) {
-          tmp_5 = -1;
+          tmp_4 = -1;
         } else {
           var pairIndex = ctx.mapEntryIndex_1 / 2 | 0;
           var isKey = (ctx.mapEntryIndex_1 % 2 | 0) === 0;
           if (isKey) {
             ctx.currentRef_1 = null;
-            var tmp_6 = ctx;
-            var tmp4_safe_receiver = ctx.mapRef_1;
-            tmp_6.currentMapKey_1 = tmp4_safe_receiver == null ? null : tmp4_safe_receiver.keyAsString_2mamk6_k$(pairIndex);
+            var tmp_5 = ctx;
+            var tmp3_safe_receiver = ctx.mapRef_1;
+            tmp_5.currentMapKey_1 = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.keyAsString_2mamk6_k$(pairIndex);
+            ctx.currentMapIndex_1 = -1;
           } else {
-            var tmp_7 = ctx;
-            var tmp5_safe_receiver = ctx.mapRef_1;
-            tmp_7.currentRef_1 = tmp5_safe_receiver == null ? null : tmp5_safe_receiver.get_c1px32_k$(pairIndex);
+            ctx.currentRef_1 = null;
+            ctx.currentMapIndex_1 = pairIndex;
           }
-          ctx.currentMapIndex_1 = -1;
           var idx_2 = ctx.mapEntryIndex_1;
           ctx.mapEntryIndex_1 = ctx.mapEntryIndex_1 + 1 | 0;
-          tmp_5 = idx_2;
+          tmp_4 = idx_2;
         }
 
-        tmp_0 = tmp_5;
+        tmp_0 = tmp_4;
         break;
       case 0:
-        var tmp_8;
+        var tmp_6;
         if (this.elementIndex_1 > 0) {
-          tmp_8 = -1;
+          tmp_6 = -1;
         } else {
           ctx.currentRef_1 = this.root_1;
           ctx.currentMapIndex_1 = -1;
           this.elementIndex_1 = this.elementIndex_1 + 1 | 0;
-          tmp_8 = 0;
+          tmp_6 = 0;
         }
 
-        tmp_0 = tmp_8;
+        tmp_0 = tmp_6;
         break;
       default:
         noWhenBranchMatchedException();
@@ -13623,7 +13666,16 @@ class FlexDecoderV2 extends AbstractDecoder {
   }
   decodeSerializableValue_xpnpad_k$(deserializer) {
     var descriptor = deserializer.get_descriptor_wjt6a0_k$();
-    if (endsWith(descriptor.get_serialName_u2rqhk_k$(), 'Array')) {
+    // Inline function 'kotlin.collections.isNotEmpty' call
+    if (!FlexCoderRegistry_getInstance().codersBySerialName_1.isEmpty_y1axqb_k$()) {
+      var coder = FlexCoderRegistry_getInstance().getBySerialName_rqyjq2_k$(descriptor.get_serialName_u2rqhk_k$());
+      if (!(coder == null)) {
+        var ref = resolveCurrentReference(this);
+        var tmp = coder.decode_pmxrf8_k$(ref);
+        return !(tmp == null) ? tmp : THROW_CCE();
+      }
+    }
+    if (equals(descriptor.get_kind_wop7ml_k$(), LIST_getInstance()) && endsWith(descriptor.get_serialName_u2rqhk_k$(), 'Array')) {
       var tmp0_safe_receiver = tryDecodeBulkValue(this, descriptor);
       if (tmp0_safe_receiver == null)
         null;
@@ -13636,142 +13688,197 @@ class FlexDecoderV2 extends AbstractDecoder {
   }
   decodeBoolean_m0aca_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getBoolean_oe92jq_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getBoolean_oe92jq_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readBoolean_cgeeu2_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      var tmp0_elvis_lhs = toBooleanStrictOrNull(tmp2_safe_receiver);
+      var tmp0_elvis_lhs = toBooleanStrictOrNull(tmp0_safe_receiver);
       return tmp0_elvis_lhs == null ? false : tmp0_elvis_lhs;
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toBoolean_qfphar_k$();
-    return tmp4_elvis_lhs == null ? false : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toBoolean_qfphar_k$();
+    return tmp2_elvis_lhs == null ? false : tmp2_elvis_lhs;
   }
   decodeByte_jzz7je_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return toByte(ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi));
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return toByte(ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi));
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return toByte(ensureNotNull(ctx.vectorRef_1).readInt_1kkmv3_k$(vi));
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return toByte_0(tmp2_safe_receiver);
+      return toByte_0(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toByte_edm0nx_k$();
-    return tmp4_elvis_lhs == null ? 0 : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toByte_edm0nx_k$();
+    return tmp2_elvis_lhs == null ? 0 : tmp2_elvis_lhs;
   }
   decodeShort_jjqk32_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return toShort(ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi));
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return toShort(ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi));
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return toShort(ensureNotNull(ctx.vectorRef_1).readInt_1kkmv3_k$(vi));
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return toShort_0(tmp2_safe_receiver);
+      return toShort_0(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toShort_ja8oqn_k$();
-    return tmp4_elvis_lhs == null ? 0 : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toShort_ja8oqn_k$();
+    return tmp2_elvis_lhs == null ? 0 : tmp2_elvis_lhs;
   }
   decodeInt_8iq8f5_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readInt_1kkmv3_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return toInt(tmp2_safe_receiver);
+      return toInt(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toInt_1tsl84_k$();
-    return tmp4_elvis_lhs == null ? 0 : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toInt_1tsl84_k$();
+    return tmp2_elvis_lhs == null ? 0 : tmp2_elvis_lhs;
   }
   decodeLong_jzt186_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getLong_rneply_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getLong_rneply_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readLong_sku8di_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return toLong(tmp2_safe_receiver);
+      return toLong(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toLong_edfucp_k$();
-    return tmp4_elvis_lhs == null ? 0n : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toLong_edfucp_k$();
+    return tmp2_elvis_lhs == null ? 0n : tmp2_elvis_lhs;
   }
   decodeFloat_jcnrwu_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getFloat_m7y41e_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getFloat_m7y41e_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readDouble_yfl3zl_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
       // Inline function 'kotlin.text.toFloat' call
       // Inline function 'kotlin.js.unsafeCast' call
       // Inline function 'kotlin.js.asDynamic' call
-      return toDouble(tmp2_safe_receiver);
+      return toDouble(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toFloat_jhbgwv_k$();
-    return tmp4_elvis_lhs == null ? 0.0 : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toFloat_jhbgwv_k$();
+    return tmp2_elvis_lhs == null ? 0.0 : tmp2_elvis_lhs;
   }
   decodeDouble_ur8l0f_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getDouble_5me5vz_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getDouble_5me5vz_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readDouble_yfl3zl_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return toDouble(tmp2_safe_receiver);
+      return toDouble(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toDouble_ygsx0s_k$();
-    return tmp4_elvis_lhs == null ? 0.0 : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toDouble_ygsx0s_k$();
+    return tmp2_elvis_lhs == null ? 0.0 : tmp2_elvis_lhs;
   }
   decodeChar_dcmcfa_k$() {
+    var ctx = this.currentContext_1;
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return numberToChar(ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi));
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return numberToChar(ensureNotNull(ctx.vectorRef_1).readInt_1kkmv3_k$(vi));
+      }
+    }
     var tmp0_safe_receiver = consumeMapKey(this);
     if (tmp0_safe_receiver == null)
       null;
@@ -13787,67 +13894,82 @@ class FlexDecoderV2 extends AbstractDecoder {
       }
       return tmp;
     }
-    var ctx = this.currentContext_1;
-    var tmp2_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp2_elvis_lhs == null ? -1 : tmp2_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return numberToChar(ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi));
-    }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_safe_receiver = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toInt_1tsl84_k$();
-    var tmp5_elvis_lhs = tmp4_safe_receiver == null ? null : numberToChar(tmp4_safe_receiver);
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_safe_receiver = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toInt_1tsl84_k$();
+    var tmp3_elvis_lhs = tmp2_safe_receiver == null ? null : numberToChar(tmp2_safe_receiver);
     var tmp_1;
-    var tmp_2 = tmp5_elvis_lhs;
+    var tmp_2 = tmp3_elvis_lhs;
     if ((tmp_2 == null ? null : new Char(tmp_2)) == null) {
       tmp_1 = _Char___init__impl__6a9atx(0);
     } else {
-      tmp_1 = tmp5_elvis_lhs;
+      tmp_1 = tmp3_elvis_lhs;
     }
     return tmp_1;
   }
   decodeString_x3hxsx_k$() {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getString_5demq7_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getString_5demq7_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readString_yokn5d_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return tmp2_safe_receiver;
+      return tmp0_safe_receiver;
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toString();
-    return tmp4_elvis_lhs == null ? '' : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toString();
+    return tmp2_elvis_lhs == null ? '' : tmp2_elvis_lhs;
   }
   decodeEnum_slg6lu_k$(enumDescriptor) {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    if (mi >= 0) {
-      ensureNotNull(ctx).currentMapIndex_1 = -1;
-      return ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi);
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      if (mi >= 0) {
+        ctx.currentMapIndex_1 = -1;
+        return ensureNotNull(ctx.mapRef_1).getInt_s8uc8x_k$(mi);
+      }
+      var vi = ctx.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctx.currentVectorIndex_1 = -1;
+        return ensureNotNull(ctx.vectorRef_1).readInt_1kkmv3_k$(vi);
+      }
     }
-    var tmp2_safe_receiver = consumeMapKey(this);
-    if (tmp2_safe_receiver == null)
+    var tmp0_safe_receiver = consumeMapKey(this);
+    if (tmp0_safe_receiver == null)
       null;
     else {
       // Inline function 'kotlin.let' call
-      return toInt(tmp2_safe_receiver);
+      return toInt(tmp0_safe_receiver);
     }
-    var tmp3_safe_receiver = getCurrentReference(this);
-    var tmp4_elvis_lhs = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.toInt_1tsl84_k$();
-    return tmp4_elvis_lhs == null ? 0 : tmp4_elvis_lhs;
+    var tmp1_safe_receiver = getCurrentReference(this);
+    var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.toInt_1tsl84_k$();
+    return tmp2_elvis_lhs == null ? 0 : tmp2_elvis_lhs;
   }
   decodeNull_jzrmuj_k$() {
     return null;
   }
   decodeNotNullMark_us4ba1_k$() {
+    var ctxv = this.currentContext_1;
+    if (!(ctxv == null)) {
+      var vi = ctxv.currentVectorIndex_1;
+      if (vi >= 0) {
+        ctxv.currentVectorIndex_1 = -1;
+        var r = ensureNotNull(ctxv.vectorRef_1).get_c1px32_k$(vi);
+        ctxv.currentRef_1 = r;
+        return !r.get_isNull_ew31lm_k$();
+      }
+    }
     var ctx = this.currentContext_1;
     var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
     var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
@@ -13859,37 +13981,77 @@ class FlexDecoderV2 extends AbstractDecoder {
   }
   beginStructure_yljocp_k$(descriptor) {
     var ctx = this.currentContext_1;
-    var tmp1_elvis_lhs = ctx == null ? null : ctx.currentMapIndex_1;
-    var mi = tmp1_elvis_lhs == null ? -1 : tmp1_elvis_lhs;
-    var ref;
-    if (mi >= 0) {
-      ref = ensureNotNull(ensureNotNull(ctx).mapRef_1).get_c1px32_k$(mi);
-      ctx.currentMapIndex_1 = -1;
-    } else {
-      var tmp2_elvis_lhs = getCurrentReference(this);
-      ref = tmp2_elvis_lhs == null ? this.root_1 : tmp2_elvis_lhs;
+    if (!(ctx == null)) {
+      var mi = ctx.currentMapIndex_1;
+      var vi = ctx.currentVectorIndex_1;
+      var tmp0_subject = descriptor.get_kind_wop7ml_k$();
+      if (equals(tmp0_subject, CLASS_getInstance()) || equals(tmp0_subject, OBJECT_getInstance())) {
+        if (mi >= 0) {
+          ctx.currentMapIndex_1 = -1;
+          var map = ensureNotNull(ctx.mapRef_1).getMap_8q93ta_k$(mi);
+          pushMapObject(this, map, descriptor);
+          this.currentContext_1 = this.contextStack_1.peek_21nx7_k$();
+          return this;
+        }
+        if (vi >= 0) {
+          ctx.currentVectorIndex_1 = -1;
+          var map_0 = ensureNotNull(ctx.vectorRef_1).readMap_l35vaq_k$(vi);
+          pushMapObject(this, map_0, descriptor);
+          this.currentContext_1 = this.contextStack_1.peek_21nx7_k$();
+          return this;
+        }
+      } else if (equals(tmp0_subject, LIST_getInstance())) {
+        if (mi >= 0) {
+          ctx.currentMapIndex_1 = -1;
+          var vec = ensureNotNull(ctx.mapRef_1).getVector_2abi7z_k$(mi);
+          this.contextStack_1.push$default_9yv5cv_k$(ContextType_VECTOR_getInstance(), VOID, vec, vec.get_size_woubt6_k$());
+          this.currentContext_1 = this.contextStack_1.peek_21nx7_k$();
+          return this;
+        }
+        if (vi >= 0) {
+          ctx.currentVectorIndex_1 = -1;
+          var vec_0 = ensureNotNull(ctx.vectorRef_1).readVector_sot9vl_k$(vi);
+          this.contextStack_1.push$default_9yv5cv_k$(ContextType_VECTOR_getInstance(), VOID, vec_0, vec_0.get_size_woubt6_k$());
+          this.currentContext_1 = this.contextStack_1.peek_21nx7_k$();
+          return this;
+        }
+      } else if (equals(tmp0_subject, MAP_getInstance())) {
+        if (mi >= 0) {
+          ctx.currentMapIndex_1 = -1;
+          var map_1 = ensureNotNull(ctx.mapRef_1).getMap_8q93ta_k$(mi);
+          this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_ENTRIES_getInstance(), map_1, VOID, map_1.get_size_woubt6_k$());
+          this.currentContext_1 = this.contextStack_1.peek_21nx7_k$();
+          return this;
+        }
+        if (vi >= 0) {
+          ctx.currentVectorIndex_1 = -1;
+          var map_2 = ensureNotNull(ctx.vectorRef_1).readMap_l35vaq_k$(vi);
+          this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_ENTRIES_getInstance(), map_2, VOID, map_2.get_size_woubt6_k$());
+          this.currentContext_1 = this.contextStack_1.peek_21nx7_k$();
+          return this;
+        }
+      }
     }
-    var tmp3_subject = descriptor.get_kind_wop7ml_k$();
-    if (equals(tmp3_subject, CLASS_getInstance()) || equals(tmp3_subject, OBJECT_getInstance())) {
+    var tmp1_elvis_lhs = getCurrentReference(this);
+    var ref = tmp1_elvis_lhs == null ? this.root_1 : tmp1_elvis_lhs;
+    var tmp2_subject = descriptor.get_kind_wop7ml_k$();
+    if (equals(tmp2_subject, CLASS_getInstance()) || equals(tmp2_subject, OBJECT_getInstance())) {
       if (ref.get_isMap_it6x0p_k$()) {
-        var map = ref.toMap_1tsnvl_k$();
-        var allFieldsPresent = map.get_size_woubt6_k$() === descriptor.get_elementsCount_288r0x_k$();
-        var indices = allFieldsPresent ? getOrBuildFieldIndices(Companion_getInstance_30(), descriptor) : null;
-        this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_OBJECT_getInstance(), map, VOID, map.get_size_woubt6_k$(), indices);
+        pushMapObject(this, ref.toMap_1tsnvl_k$(), descriptor);
       } else {
         this.contextStack_1.push$default_9yv5cv_k$(ContextType_ROOT_getInstance());
       }
-    } else if (equals(tmp3_subject, LIST_getInstance())) {
+    } else if (equals(tmp2_subject, LIST_getInstance())) {
       if (ref.get_isVector_y82lnu_k$() || ref.get_isTypedVector_llv7ty_k$()) {
-        var vec = ref.toVector_s7b04i_k$();
-        this.contextStack_1.push$default_9yv5cv_k$(ContextType_VECTOR_getInstance(), VOID, vec, vec.get_size_woubt6_k$());
+        var vec_1 = ref.toVector_s7b04i_k$();
+        this.contextStack_1.push$default_9yv5cv_k$(ContextType_VECTOR_getInstance(), VOID, vec_1, vec_1.get_size_woubt6_k$());
       } else {
         this.contextStack_1.push$default_9yv5cv_k$(ContextType_VECTOR_getInstance(), VOID, VOID, 0);
       }
-    } else if (equals(tmp3_subject, MAP_getInstance())) {
+    } else if (equals(tmp2_subject, MAP_getInstance())) {
       if (ref.get_isMap_it6x0p_k$()) {
-        var map_0 = ref.toMap_1tsnvl_k$();
-        this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_ENTRIES_getInstance(), map_0, VOID, map_0.get_size_woubt6_k$());
+        var map_3 = ref.toMap_1tsnvl_k$();
+        this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_ENTRIES_getInstance(), map_3, VOID, map_3.get_size_woubt6_k$());
       } else {
         this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_ENTRIES_getInstance(), VOID, VOID, 0);
       }
@@ -13921,6 +14083,7 @@ class DecodingContext {
     this.currentMapIndex_1 = -1;
     this.vectorRef_1 = null;
     this.vectorIndex_1 = 0;
+    this.currentVectorIndex_1 = -1;
     this.mapEntryIndex_1 = 0;
     this.currentMapKey_1 = null;
     this.currentRef_1 = null;
@@ -13933,6 +14096,7 @@ class DecodingContext {
     this.fieldIndex_1 = 0;
     this.fieldIndices_1 = fieldIndices;
     this.currentMapIndex_1 = -1;
+    this.currentVectorIndex_1 = -1;
     this.vectorIndex_1 = 0;
     this.mapEntryIndex_1 = 0;
     this.currentMapKey_1 = null;
@@ -13941,31 +14105,13 @@ class DecodingContext {
 }
 class DecodingContextStack {
   constructor(initialCapacity) {
-    initialCapacity = initialCapacity === VOID ? 16 : initialCapacity;
+    initialCapacity = initialCapacity === VOID ? 4 : initialCapacity;
     this.contexts_1 = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(initialCapacity);
     this.size_1 = 0;
-    // Inline function 'kotlin.repeat' call
-    var inductionVariable = 0;
-    if (inductionVariable < initialCapacity)
-      do {
-        var index = inductionVariable;
-        inductionVariable = inductionVariable + 1 | 0;
-        this.contexts_1.add_utx5q5_k$(new DecodingContext());
-      }
-       while (inductionVariable < initialCapacity);
   }
   push_huvzkp_k$(type, mapRef, vectorRef, size, fieldIndices) {
     if (this.size_1 >= this.contexts_1.get_size_woubt6_k$()) {
-      var growBy = this.contexts_1.get_size_woubt6_k$();
-      // Inline function 'kotlin.repeat' call
-      var inductionVariable = 0;
-      if (inductionVariable < growBy)
-        do {
-          var index = inductionVariable;
-          inductionVariable = inductionVariable + 1 | 0;
-          this.contexts_1.add_utx5q5_k$(new DecodingContext());
-        }
-         while (inductionVariable < growBy);
+      this.contexts_1.add_utx5q5_k$(new DecodingContext());
     }
     this.contexts_1.get_c1px32_k$(this.size_1).reset_3h1k7m_k$(type, mapRef, vectorRef, size, fieldIndices);
     this.size_1 = this.size_1 + 1 | 0;
@@ -13995,11 +14141,16 @@ class DecodingContextStack {
       return null;
     return this.contexts_1.get_c1px32_k$(this.size_1 - 1 | 0);
   }
+  clear_j9egeb_k$() {
+    this.size_1 = 0;
+  }
 }
 class Companion_31 {
   constructor() {
     Companion_instance_31 = this;
-    this.MODULE_1 = EmptySerializersModule_0();
+    this.SENTINEL_BUILDER_1 = FlexBuffersBuilder.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_FlexBuffersBuilder_lbkv07_k$(8);
+    var tmp = this;
+    tmp.pool_1 = new PerPlatformPool(FlexEncoderV2$Companion$pool$lambda);
   }
   encode_a1flln_k$(serializer, value) {
     // Inline function 'dev.shibasis.reaktor.flexbuffer.core.FlexBufferPool.withEncoder' call
@@ -14007,9 +14158,16 @@ class Companion_31 {
     var builder = this_0.acquire_j95bmy_k$();
     var tmp;
     try {
-      var encoder = FlexEncoderV2.new_dev_shibasis_reaktor_flexbuffer_core_FlexEncoderV2_x6417c_k$(builder, Companion_getInstance_31().MODULE_1);
-      encoder.encodeSerializableValue_3uuzip_k$(serializer, value);
-      tmp = toByteArray(builder.finish_l2rq7h_k$());
+      var encoder = acquire_0(Companion_getInstance_31());
+      reset_0(encoder, builder);
+      var tmp_0;
+      try {
+        encoder.encodeSerializableValue_3uuzip_k$(serializer, value);
+        tmp_0 = toByteArray(builder.finish_l2rq7h_k$());
+      }finally {
+        release_0(Companion_getInstance_31(), encoder);
+      }
+      tmp = tmp_0;
     }finally {
       this_0.release_trzk33_k$(builder);
     }
@@ -14017,11 +14175,11 @@ class Companion_31 {
   }
 }
 class FlexEncoderV2 extends AbstractEncoder {
-  static new_dev_shibasis_reaktor_flexbuffer_core_FlexEncoderV2_x6417c_k$(builder, serializersModule) {
+  static new_dev_shibasis_reaktor_flexbuffer_core_FlexEncoderV2_ox5ld8_k$() {
     Companion_getInstance_31();
     var $this = this.new_kotlinx_serialization_encoding_AbstractEncoder_5rmec_k$();
-    $this.builder_1 = builder;
-    $this.serializersModule_1 = serializersModule;
+    $this.builder_1 = Companion_getInstance_31().SENTINEL_BUILDER_1;
+    $this.serializersModule_1 = EmptySerializersModule_0();
     $this.structureStack_1 = new StructureStack();
     $this.pendingKey_1 = null;
     return $this;
@@ -14031,7 +14189,16 @@ class FlexEncoderV2 extends AbstractEncoder {
   }
   encodeSerializableValue_3uuzip_k$(serializer, value) {
     var descriptor = serializer.get_descriptor_wjt6a0_k$();
-    if (equals(descriptor.get_kind_wop7ml_k$(), LIST_getInstance()) || endsWith(descriptor.get_serialName_u2rqhk_k$(), 'Array')) {
+    var tmp;
+    // Inline function 'kotlin.collections.isNotEmpty' call
+    if (!FlexCoderRegistry_getInstance().codersBySerialName_1.isEmpty_y1axqb_k$()) {
+      tmp = tryEncodeRegisteredCoder(this, descriptor.get_serialName_u2rqhk_k$(), value);
+    } else {
+      tmp = false;
+    }
+    if (tmp)
+      return Unit_instance;
+    if (equals(descriptor.get_kind_wop7ml_k$(), LIST_getInstance())) {
       if (tryEncodeBulkValue(this, descriptor, value))
         return Unit_instance;
     }
@@ -14235,31 +14402,13 @@ class StructureEntry {
 }
 class StructureStack {
   constructor(initialCapacity) {
-    initialCapacity = initialCapacity === VOID ? 16 : initialCapacity;
+    initialCapacity = initialCapacity === VOID ? 4 : initialCapacity;
     this.entries_1 = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(initialCapacity);
     this.size_1 = 0;
-    // Inline function 'kotlin.repeat' call
-    var inductionVariable = 0;
-    if (inductionVariable < initialCapacity)
-      do {
-        var index = inductionVariable;
-        inductionVariable = inductionVariable + 1 | 0;
-        this.entries_1.add_utx5q5_k$(new StructureEntry());
-      }
-       while (inductionVariable < initialCapacity);
   }
   push_7jwogh_k$(kind, position, key) {
     if (this.size_1 >= this.entries_1.get_size_woubt6_k$()) {
-      var growBy = this.entries_1.get_size_woubt6_k$();
-      // Inline function 'kotlin.repeat' call
-      var inductionVariable = 0;
-      if (inductionVariable < growBy)
-        do {
-          var index = inductionVariable;
-          inductionVariable = inductionVariable + 1 | 0;
-          this.entries_1.add_utx5q5_k$(new StructureEntry());
-        }
-         while (inductionVariable < growBy);
+      this.entries_1.add_utx5q5_k$(new StructureEntry());
     }
     this.entries_1.get_c1px32_k$(this.size_1).reset_irx886_k$(kind, position, key);
     this.size_1 = this.size_1 + 1 | 0;
@@ -14274,6 +14423,9 @@ class StructureStack {
     if (this.size_1 === 0)
       return null;
     return this.entries_1.get_c1px32_k$(this.size_1 - 1 | 0);
+  }
+  clear_j9egeb_k$() {
+    this.size_1 = 0;
   }
 }
 class ReadBuffer {}
@@ -14307,14 +14459,13 @@ class ArrayReadBuffer {
     var b = this.get_limit_iuokuq_k$();
     var e = Math.min(end, b);
     // Inline function 'kotlin.math.max' call
-    var b_0 = this.offset_1 + start | 0;
-    var s = Math.max(0, b_0);
+    var s = Math.max(0, start);
     var inductionVariable = s;
     if (inductionVariable < e)
       do {
         var i = inductionVariable;
         inductionVariable = inductionVariable + 1 | 0;
-        if (this.buffer_1[i] === value)
+        if (this.buffer_1[this.offset_1 + i | 0] === value)
           return i;
       }
        while (inductionVariable < e);
@@ -14424,7 +14575,7 @@ class ArrayReadBuffer {
     return doubleFromBits(bits);
   }
   getString_nld54p_k$(start, size) {
-    return decodeToString(this.buffer_1, this.offset_1 + start | 0, (this.offset_1 + start | 0) + size | 0);
+    return fastDecodeUtf8(this.buffer_1, this.offset_1 + start | 0, (this.offset_1 + start | 0) + size | 0);
   }
   data_1txgq_k$() {
     return this.buffer_1;
@@ -17324,6 +17475,541 @@ class Vector extends Sized {
     var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
     return Reference.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_Reference_re31g1_k$(this.buffer_1, objEnd, this.byteWidth_1, packedType);
   }
+  readInt_1kkmv3_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecPackedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + imul_0(this.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(this.byteWidth_1)) | 0) + index | 0);
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var type = _FlexBufferType___init__impl__clqzke(packedType >> 2);
+    var tmp;
+    if (isIndirectScalar(type)) {
+      var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+      var tmp0 = this.buffer_1;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var this_0 = this.buffer_1;
+      var tmp_0;
+      switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_1 = this_0.getUByte_rkb5ds_k$(objEnd);
+          tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_1)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_2 = this_0.getUShort_lubxoy_k$(objEnd);
+          tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_2)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_3 = this_0.getUInt_6yakcu_k$(objEnd);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value = _UInt___get_data__impl__f0vqqw(this_3);
+          var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+          tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$4);
+          break;
+        case 8:
+          tmp_0 = this_0.getULong_82ljq0_k$(objEnd);
+          break;
+        default:
+          var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+      }
+      // Inline function 'kotlin.ULong.toInt' call
+      var this_4 = tmp_0;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var end = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_4)) | 0;
+      var tmp_1;
+      switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_5 = tmp0.getUByte_rkb5ds_k$(end);
+          tmp_1 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_5)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_6 = tmp0.getUShort_lubxoy_k$(end);
+          tmp_1 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_6)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_7 = tmp0.getUInt_6yakcu_k$(end);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value_0 = _UInt___get_data__impl__f0vqqw(this_7);
+          var tmp$ret$13 = fromInt_0(value_0) & 4294967295n;
+          tmp_1 = _ULong___init__impl__c78o9k(tmp$ret$13);
+          break;
+        case 8:
+          tmp_1 = tmp0.getULong_82ljq0_k$(end);
+          break;
+        default:
+          var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+      }
+      // Inline function 'kotlin.ULong.toInt' call
+      var this_8 = tmp_1;
+      tmp = convertToInt(_ULong___get_data__impl__fggpzb(this_8));
+    } else {
+      var tmp0_0 = this.buffer_1;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var byteWidth = this.byteWidth_1;
+      var tmp_2;
+      switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_9 = tmp0_0.getUByte_rkb5ds_k$(objEnd);
+          tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_9)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_10 = tmp0_0.getUShort_lubxoy_k$(objEnd);
+          tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_10)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_11 = tmp0_0.getUInt_6yakcu_k$(objEnd);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value_1 = _UInt___get_data__impl__f0vqqw(this_11);
+          var tmp$ret$20 = fromInt_0(value_1) & 4294967295n;
+          tmp_2 = _ULong___init__impl__c78o9k(tmp$ret$20);
+          break;
+        case 8:
+          tmp_2 = tmp0_0.getULong_82ljq0_k$(objEnd);
+          break;
+        default:
+          var message_1 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_1));
+      }
+      // Inline function 'kotlin.ULong.toInt' call
+      var this_12 = tmp_2;
+      tmp = convertToInt(_ULong___get_data__impl__fggpzb(this_12));
+    }
+    return tmp;
+  }
+  readLong_sku8di_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecPackedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + imul_0(this.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(this.byteWidth_1)) | 0) + index | 0);
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var type = _FlexBufferType___init__impl__clqzke(packedType >> 2);
+    var tmp;
+    if (isIndirectScalar(type)) {
+      var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+      var tmp0 = this.buffer_1;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var this_0 = this.buffer_1;
+      var tmp_0;
+      switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_1 = this_0.getUByte_rkb5ds_k$(objEnd);
+          tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_1)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_2 = this_0.getUShort_lubxoy_k$(objEnd);
+          tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_2)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_3 = this_0.getUInt_6yakcu_k$(objEnd);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value = _UInt___get_data__impl__f0vqqw(this_3);
+          var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+          tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$4);
+          break;
+        case 8:
+          tmp_0 = this_0.getULong_82ljq0_k$(objEnd);
+          break;
+        default:
+          var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+      }
+      // Inline function 'kotlin.ULong.toInt' call
+      var this_4 = tmp_0;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var end = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_4)) | 0;
+      var tmp_1;
+      switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_5 = tmp0.getUByte_rkb5ds_k$(end);
+          tmp_1 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_5)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_6 = tmp0.getUShort_lubxoy_k$(end);
+          tmp_1 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_6)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_7 = tmp0.getUInt_6yakcu_k$(end);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value_0 = _UInt___get_data__impl__f0vqqw(this_7);
+          var tmp$ret$13 = fromInt_0(value_0) & 4294967295n;
+          tmp_1 = _ULong___init__impl__c78o9k(tmp$ret$13);
+          break;
+        case 8:
+          tmp_1 = tmp0.getULong_82ljq0_k$(end);
+          break;
+        default:
+          var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+      }
+      // Inline function 'kotlin.ULong.toLong' call
+      var this_8 = tmp_1;
+      tmp = _ULong___get_data__impl__fggpzb(this_8);
+    } else {
+      var tmp0_0 = this.buffer_1;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var byteWidth = this.byteWidth_1;
+      var tmp_2;
+      switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_9 = tmp0_0.getUByte_rkb5ds_k$(objEnd);
+          tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_9)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_10 = tmp0_0.getUShort_lubxoy_k$(objEnd);
+          tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_10)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_11 = tmp0_0.getUInt_6yakcu_k$(objEnd);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value_1 = _UInt___get_data__impl__f0vqqw(this_11);
+          var tmp$ret$20 = fromInt_0(value_1) & 4294967295n;
+          tmp_2 = _ULong___init__impl__c78o9k(tmp$ret$20);
+          break;
+        case 8:
+          tmp_2 = tmp0_0.getULong_82ljq0_k$(objEnd);
+          break;
+        default:
+          var message_1 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_1));
+      }
+      // Inline function 'kotlin.ULong.toLong' call
+      var this_12 = tmp_2;
+      tmp = _ULong___get_data__impl__fggpzb(this_12);
+    }
+    return tmp;
+  }
+  readDouble_yfl3zl_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecPackedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + imul_0(this.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(this.byteWidth_1)) | 0) + index | 0);
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var type = _FlexBufferType___init__impl__clqzke(packedType >> 2);
+    var tmp;
+    if (isIndirectScalar(type)) {
+      var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+      var tmp0 = this.buffer_1;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+      var this_0 = this.buffer_1;
+      var tmp_0;
+      switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+        case 1:
+          // Inline function 'kotlin.UByte.toULong' call
+
+          var this_1 = this_0.getUByte_rkb5ds_k$(objEnd);
+          tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_1)) & 255n);
+          break;
+        case 2:
+          // Inline function 'kotlin.UShort.toULong' call
+
+          var this_2 = this_0.getUShort_lubxoy_k$(objEnd);
+          tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_2)) & 65535n);
+          break;
+        case 4:
+          // Inline function 'kotlin.UInt.toULong' call
+
+          var this_3 = this_0.getUInt_6yakcu_k$(objEnd);
+          // Inline function 'kotlin.uintToULong' call
+
+          // Inline function 'kotlin.uintToLong' call
+
+          var value = _UInt___get_data__impl__f0vqqw(this_3);
+          var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+          tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$4);
+          break;
+        case 8:
+          tmp_0 = this_0.getULong_82ljq0_k$(objEnd);
+          break;
+        default:
+          var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for scalar unsigned integer';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+      }
+      // Inline function 'kotlin.ULong.toInt' call
+      var this_4 = tmp_0;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readFloat' call
+      var end = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_4)) | 0;
+      var tmp_1;
+      switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+        case 4:
+          tmp_1 = tmp0.getFloat_m7y41e_k$(end);
+          break;
+        case 8:
+          tmp_1 = tmp0.getDouble_5me5vz_k$(end);
+          break;
+        default:
+          var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for floating point scalar';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+      }
+      tmp = tmp_1;
+    } else {
+      var tmp0_0 = this.buffer_1;
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readFloat' call
+      var byteWidth = this.byteWidth_1;
+      var tmp_2;
+      switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+        case 4:
+          tmp_2 = tmp0_0.getFloat_m7y41e_k$(objEnd);
+          break;
+        case 8:
+          tmp_2 = tmp0_0.getDouble_5me5vz_k$(objEnd);
+          break;
+        default:
+          var message_1 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for floating point scalar';
+          throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_1));
+      }
+      tmp = tmp_2;
+    }
+    return tmp;
+  }
+  readString_yokn5d_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecPackedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + imul_0(this.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(this.byteWidth_1)) | 0) + index | 0);
+    var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+    var tmp0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = this.byteWidth_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(objEnd);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$4);
+        break;
+      case 8:
+        tmp = tmp0.getULong_82ljq0_k$(objEnd);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp;
+    var start = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    var tmp0_0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var end = minus(start, bw);
+    var tmp_0;
+    switch (_ByteWidth___get_value__impl__bpyvkh(bw)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_4 = tmp0_0.getUByte_rkb5ds_k$(end);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_4)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_5 = tmp0_0.getUShort_lubxoy_k$(end);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_5)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_6 = tmp0_0.getUInt_6yakcu_k$(end);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value_0 = _UInt___get_data__impl__f0vqqw(this_6);
+        var tmp$ret$13 = fromInt_0(value_0) & 4294967295n;
+        tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$13);
+        break;
+      case 8:
+        tmp_0 = tmp0_0.getULong_82ljq0_k$(end);
+        break;
+      default:
+        var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(bw) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_7 = tmp_0;
+    var strSize = convertToInt(_ULong___get_data__impl__fggpzb(this_7));
+    return this.buffer_1.getString_nld54p_k$(start, strSize);
+  }
+  readBoolean_cgeeu2_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var tmp$ret$0 = this.end_1 + times(index, this.byteWidth_1) | 0;
+    return this.buffer_1.getBoolean_oe92jq_k$(tmp$ret$0);
+  }
+  readMap_l35vaq_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecPackedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + imul_0(this.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(this.byteWidth_1)) | 0) + index | 0);
+    var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+    var tmp0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = this.byteWidth_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(objEnd);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$4);
+        break;
+      case 8:
+        tmp = tmp0.getULong_82ljq0_k$(objEnd);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp;
+    var tmp$ret$10 = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    return new Map_0(this.buffer_1, tmp$ret$10, bw);
+  }
+  readVector_sot9vl_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecObjEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector.vecPackedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + imul_0(this.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(this.byteWidth_1)) | 0) + index | 0);
+    var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+    var tmp0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = this.byteWidth_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(objEnd);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$4);
+        break;
+      case 8:
+        tmp = tmp0.getULong_82ljq0_k$(objEnd);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp;
+    var tmp$ret$10 = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    return new Vector(this.buffer_1, tmp$ret$10, bw);
+  }
   isEmpty_y1axqb_k$() {
     return this.get_size_woubt6_k$() === 0;
   }
@@ -17447,6 +18133,203 @@ class TypedVector extends Vector {
     }
     return tmp;
   }
+  readInt_1kkmv3_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.TypedVector.resolveAt' call
+    var childPos = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var width = this.byteWidth_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var this_0 = this.buffer_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(width)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_1 = this_0.getUByte_rkb5ds_k$(childPos);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_1)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_2 = this_0.getUShort_lubxoy_k$(childPos);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_2)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_3 = this_0.getUInt_6yakcu_k$(childPos);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_3);
+        var tmp$ret$2 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$2);
+        break;
+      case 8:
+        tmp = this_0.getULong_82ljq0_k$(childPos);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(width) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_4 = tmp;
+    return convertToInt(_ULong___get_data__impl__fggpzb(this_4));
+  }
+  readLong_sku8di_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.TypedVector.resolveAt' call
+    var childPos = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var width = this.byteWidth_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var this_0 = this.buffer_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(width)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_1 = this_0.getUByte_rkb5ds_k$(childPos);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_1)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_2 = this_0.getUShort_lubxoy_k$(childPos);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_2)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_3 = this_0.getUInt_6yakcu_k$(childPos);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_3);
+        var tmp$ret$2 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$2);
+        break;
+      case 8:
+        tmp = this_0.getULong_82ljq0_k$(childPos);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(width) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toLong' call
+    var this_4 = tmp;
+    return _ULong___get_data__impl__fggpzb(this_4);
+  }
+  readDouble_yfl3zl_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.TypedVector.resolveAt' call
+    var childPos = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var width = this.byteWidth_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readFloat' call
+    var this_0 = this.buffer_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(width)) {
+      case 4:
+        tmp = this_0.getFloat_m7y41e_k$(childPos);
+        break;
+      case 8:
+        tmp = this_0.getDouble_5me5vz_k$(childPos);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(width) + ' for floating point scalar';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    return tmp;
+  }
+  readBoolean_cgeeu2_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.TypedVector.resolveAt' call
+    var childPos = this.end_1 + times(index, this.byteWidth_1) | 0;
+    this.byteWidth_1;
+    return this.buffer_1.getBoolean_oe92jq_k$(childPos);
+  }
+  readString_yokn5d_k$(index) {
+    var childPos = this.end_1 + times(index, this.byteWidth_1) | 0;
+    var tmp0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = this.byteWidth_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(childPos);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(childPos);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(childPos);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$2 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$2);
+        break;
+      case 8:
+        tmp = tmp0.getULong_82ljq0_k$(childPos);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp;
+    var start = childPos - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    var tmp0_0 = this.buffer_1;
+    var tmp2 = minus(start, this.byteWidth_1);
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth_0 = this.byteWidth_1;
+    var tmp_0;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth_0)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_4 = tmp0_0.getUByte_rkb5ds_k$(tmp2);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_4)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_5 = tmp0_0.getUShort_lubxoy_k$(tmp2);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_5)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_6 = tmp0_0.getUInt_6yakcu_k$(tmp2);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value_0 = _UInt___get_data__impl__f0vqqw(this_6);
+        var tmp$ret$11 = fromInt_0(value_0) & 4294967295n;
+        tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$11);
+        break;
+      case 8:
+        tmp_0 = tmp0_0.getULong_82ljq0_k$(tmp2);
+        break;
+      default:
+        var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth_0) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_7 = tmp_0;
+    var strSize = convertToInt(_ULong___get_data__impl__fggpzb(this_7));
+    return this.buffer_1.getString_nld54p_k$(start, strSize);
+  }
 }
 class Key_1 {
   constructor(buffer, start, end) {
@@ -17480,6 +18363,23 @@ class Key_1 {
     return true;
   }
 }
+class Map$entries$1$iterator$1 {
+  constructor(this$0) {
+    this.this$0__1 = this$0;
+    this.index_1 = 0;
+  }
+  hasNext_bitz1p_k$() {
+    return this.index_1 < this.this$0__1.get_size_woubt6_k$();
+  }
+  next_20eer_k$() {
+    if (!this.hasNext_bitz1p_k$())
+      throw NoSuchElementException.new_kotlin_NoSuchElementException_wy3d4q_k$();
+    var _unary__edvuaz = this.index_1;
+    this.index_1 = _unary__edvuaz + 1 | 0;
+    var current = _unary__edvuaz;
+    return new Entry_0(this.this$0__1.keyAt_v5apcq_k$(current), this.this$0__1.get_c1px32_k$(current));
+  }
+}
 class Entry_0 {
   constructor(key, value) {
     this.key_1 = key;
@@ -17511,91 +18411,25 @@ class Entry_0 {
     return true;
   }
 }
+class Map$entries$1 extends AbstractSet {
+  static new_dev_shibasis_reaktor_flexbuffer_flatbuffers_Map__no_name_provided__dcs8l3_k$(this$0, $box) {
+    if ($box === VOID)
+      $box = {};
+    $box.this$0__1 = this$0;
+    return this.new_kotlin_collections_AbstractSet_l10baj_k$($box);
+  }
+  get_size_woubt6_k$() {
+    return this.this$0__1.get_size_woubt6_k$();
+  }
+  iterator_jk1svi_k$() {
+    return new Map$entries$1$iterator$1(this.this$0__1);
+  }
+}
 class Map_0 extends Sized {
   constructor(buffer, end, byteWidth) {
     super(buffer, end, byteWidth);
-    var keysOffset = end - times(3, byteWidth) | 0;
-    var tmp = this;
-    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
-    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
-    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
-    var tmp_0;
-    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
-      case 1:
-        // Inline function 'kotlin.UByte.toULong' call
-
-        var this_0 = buffer.getUByte_rkb5ds_k$(keysOffset);
-        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
-        break;
-      case 2:
-        // Inline function 'kotlin.UShort.toULong' call
-
-        var this_1 = buffer.getUShort_lubxoy_k$(keysOffset);
-        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
-        break;
-      case 4:
-        // Inline function 'kotlin.UInt.toULong' call
-
-        var this_2 = buffer.getUInt_6yakcu_k$(keysOffset);
-        // Inline function 'kotlin.uintToULong' call
-
-        // Inline function 'kotlin.uintToLong' call
-
-        var value = _UInt___get_data__impl__f0vqqw(this_2);
-        var tmp$ret$2 = fromInt_0(value) & 4294967295n;
-        tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$2);
-        break;
-      case 8:
-        tmp_0 = buffer.getULong_82ljq0_k$(keysOffset);
-        break;
-      default:
-        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
-        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
-    }
-    // Inline function 'kotlin.ULong.toInt' call
-    var this_3 = tmp_0;
-    tmp.keyVectorEnd_1 = keysOffset - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
-    var tmp_1 = this;
-    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
-    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
-    var end_0 = plus_1(keysOffset, byteWidth);
-    var tmp_2;
-    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
-      case 1:
-        // Inline function 'kotlin.UByte.toULong' call
-
-        var this_4 = buffer.getUByte_rkb5ds_k$(end_0);
-        tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_4)) & 255n);
-        break;
-      case 2:
-        // Inline function 'kotlin.UShort.toULong' call
-
-        var this_5 = buffer.getUShort_lubxoy_k$(end_0);
-        tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_5)) & 65535n);
-        break;
-      case 4:
-        // Inline function 'kotlin.UInt.toULong' call
-
-        var this_6 = buffer.getUInt_6yakcu_k$(end_0);
-        // Inline function 'kotlin.uintToULong' call
-
-        // Inline function 'kotlin.uintToLong' call
-
-        var value_0 = _UInt___get_data__impl__f0vqqw(this_6);
-        var tmp$ret$11 = fromInt_0(value_0) & 4294967295n;
-        tmp_2 = _ULong___init__impl__c78o9k(tmp$ret$11);
-        break;
-      case 8:
-        tmp_2 = buffer.getULong_82ljq0_k$(end_0);
-        break;
-      default:
-        var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
-        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
-    }
-    // Inline function 'kotlin.ULong.toInt' call
-    var this_7 = tmp_2;
-    var tmp$ret$16 = convertToInt(_ULong___get_data__impl__fggpzb(this_7));
-    tmp_1.keyVectorByteWidth_1 = _ByteWidth___init__impl__ebgb8b(tmp$ret$16);
+    this._keyVectorEnd_1 = -1;
+    this._keyVectorByteWidth_1 = _ByteWidth___init__impl__ebgb8b(0);
   }
   get_c1px32_k$(index) {
     if (index >= this.get_size_woubt6_k$())
@@ -18043,22 +18877,117 @@ class Map_0 extends Sized {
     var strSize = convertToInt(_ULong___get_data__impl__fggpzb(this_7));
     return this.buffer_1.getString_nld54p_k$(start, strSize);
   }
+  getVector_2abi7z_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.objEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.packedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + times(this.get_size_woubt6_k$(), this.byteWidth_1) | 0) + index | 0);
+    var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+    var type = _FlexBufferType___init__impl__clqzke(packedType >> 2);
+    var tmp0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = this.byteWidth_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(objEnd);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$4);
+        break;
+      case 8:
+        tmp = tmp0.getULong_82ljq0_k$(objEnd);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp;
+    var indirect = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    var tmp_0;
+    if (isTypedVector(type)) {
+      tmp_0 = new TypedVector(toElementTypedVector(type), this.buffer_1, indirect, bw);
+    } else {
+      tmp_0 = new Vector(this.buffer_1, indirect, bw);
+    }
+    return tmp_0;
+  }
+  getMap_8q93ta_k$(index) {
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.objEndAt' call
+    var objEnd = this.end_1 + times(index, this.byteWidth_1) | 0;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.packedTypeAt' call
+    var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + times(this.get_size_woubt6_k$(), this.byteWidth_1) | 0) + index | 0);
+    var bw = _ByteWidth___init__impl__ebgb8b(1 << (packedType & 3));
+    var tmp0 = this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = this.byteWidth_1;
+    var tmp;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(objEnd);
+        tmp = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(objEnd);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$4 = fromInt_0(value) & 4294967295n;
+        tmp = _ULong___init__impl__c78o9k(tmp$ret$4);
+        break;
+      case 8:
+        tmp = tmp0.getULong_82ljq0_k$(objEnd);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp;
+    var tmp$ret$10 = objEnd - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    return new Map_0(this.buffer_1, tmp$ret$10, bw);
+  }
   isNullAt_sgl4ac_k$(index) {
     if (index >= this.get_size_woubt6_k$())
       return true;
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.packedTypeAt' call
     var packedType = this.buffer_1.get_c1px32_k$((this.end_1 + times(this.get_size_woubt6_k$(), this.byteWidth_1) | 0) + index | 0);
     return _FlexBufferType___init__impl__clqzke(packedType >> 2) === get_T_NULL();
-  }
-  get_6bo4tg_k$(key) {
-    var index = binarySearch(this, key);
-    var tmp;
-    if (0 <= index ? index < this.get_size_woubt6_k$() : false) {
-      tmp = this.get_c1px32_k$(index);
-    } else {
-      tmp = nullReference();
-    }
-    return tmp;
   }
   get_n5jk7s_k$(key) {
     var index = binarySearch_0(this, key);
@@ -18075,13 +19004,16 @@ class Map_0 extends Sized {
       return null;
     return this.get_n5jk7s_k$(key instanceof Key_1 ? key : THROW_CCE());
   }
+  indexOf_x62zdd_k$(key) {
+    return binarySearch(this, key);
+  }
   keyAt_v5apcq_k$(index) {
-    var childPos = this.keyVectorEnd_1 + times(index, this.keyVectorByteWidth_1) | 0;
+    var childPos = _get_keyVectorEnd__yv909a(this) + times(index, _get_keyVectorByteWidth__3lf0a9(this)) | 0;
     var tmp0 = this.buffer_1;
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
-    var byteWidth = this.keyVectorByteWidth_1;
+    var byteWidth = _get_keyVectorByteWidth__3lf0a9(this);
     var tmp;
     switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
       case 1:
@@ -18121,12 +19053,12 @@ class Map_0 extends Sized {
     return new Key_1(this.buffer_1, tmp$ret$8);
   }
   keyAsString_2mamk6_k$(index) {
-    var childPos = this.keyVectorEnd_1 + times(index, this.keyVectorByteWidth_1) | 0;
+    var childPos = _get_keyVectorEnd__yv909a(this) + times(index, _get_keyVectorByteWidth__3lf0a9(this)) | 0;
     var tmp0 = this.buffer_1;
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
     // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
-    var byteWidth = this.keyVectorByteWidth_1;
+    var byteWidth = _get_keyVectorByteWidth__3lf0a9(this);
     var tmp;
     switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
       case 1:
@@ -18167,17 +19099,7 @@ class Map_0 extends Sized {
     return end > start ? this.buffer_1.getString_nld54p_k$(start, end - start | 0) : '';
   }
   get_entries_p20ztl_k$() {
-    // Inline function 'kotlin.collections.map' call
-    var this_0 = this.get_keys_wop4xp_k$();
-    // Inline function 'kotlin.collections.mapTo' call
-    var destination = ArrayList.new_kotlin_collections_ArrayList_tdd6ob_k$(collectionSizeOrDefault(this_0, 10));
-    var _iterator__ex2g4s = this_0.iterator_jk1svi_k$();
-    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
-      var item = _iterator__ex2g4s.next_20eer_k$();
-      var tmp$ret$0 = new Entry_0(item, this.get_6bo4tg_k$(item.toString()));
-      destination.add_utx5q5_k$(tmp$ret$0);
-    }
-    return toSet_0(destination);
+    return Map$entries$1.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_Map__no_name_provided__dcs8l3_k$(this);
   }
   get_keys_wop4xp_k$() {
     var set = LinkedHashSet.new_kotlin_collections_LinkedHashSet_wmub5z_k$(this.get_size_woubt6_k$());
@@ -18219,38 +19141,6 @@ class Map_0 extends Sized {
   }
 }
 class Companion_32 {}
-class sam$kotlin_Comparator$0_1 {
-  constructor(function_0) {
-    this.function_1 = function_0;
-  }
-  compare_bczr_k$(a, b) {
-    return this.function_1(a, b);
-  }
-  compare(a, b) {
-    return this.compare_bczr_k$(a, b);
-  }
-  getFunctionDelegate_jtodtf_k$() {
-    return this.function_1;
-  }
-  equals(other) {
-    var tmp;
-    if (!(other == null) ? isInterface(other, Comparator) : false) {
-      var tmp_0;
-      if (!(other == null) ? isInterface(other, FunctionAdapter) : false) {
-        tmp_0 = equals(this.getFunctionDelegate_jtodtf_k$(), other.getFunctionDelegate_jtodtf_k$());
-      } else {
-        tmp_0 = false;
-      }
-      tmp = tmp_0;
-    } else {
-      tmp = false;
-    }
-    return tmp;
-  }
-  hashCode() {
-    return hashCode(this.getFunctionDelegate_jtodtf_k$());
-  }
-}
 class ValueStack {
   constructor() {
     this.types_1 = new Int32Array(64);
@@ -18335,60 +19225,13 @@ class ValueStack {
     this.size_1 = 0;
   }
   compareKeys_d5yyq5_k$(a, b, buffer) {
-    var ia = this.keys_1[a];
-    var ib = this.keys_1[b];
-    var c1;
-    var c2;
-    do {
-      c1 = buffer.get_c1px32_k$(ia);
-      c2 = buffer.get_c1px32_k$(ib);
-      if (c1 === 0)
-        return c1 - c2;
-      ia = ia + 1 | 0;
-      ib = ib + 1 | 0;
-    }
-     while (c1 === c2);
-    return c1 - c2;
+    return compareKeyToRaw(this, a, this.keys_1[b], buffer);
   }
   sortByKeys_6mtisn_k$(start, buffer) {
-    if ((this.size_1 - start | 0) <= 1)
+    var end = this.size_1 - 1 | 0;
+    if (end <= start)
       return Unit_instance;
-    var indices = toMutableList_1(until(start, this.size_1));
-    var tmp = FlexBuffersBuilder$ValueStack$sortByKeys$lambda(this, buffer);
-    sortWith_0(indices, new sam$kotlin_Comparator$0_1(tmp));
-    var tmpT = new Int32Array(this.size_1 - start | 0);
-    var tmpK = new Int32Array(this.size_1 - start | 0);
-    var tmpBW = new Int32Array(this.size_1 - start | 0);
-    var tmpI = new BigInt64Array(this.size_1 - start | 0);
-    var tmpD = new Float64Array(this.size_1 - start | 0);
-    var inductionVariable = 0;
-    var last = indices.get_size_woubt6_k$() - 1 | 0;
-    if (inductionVariable <= last)
-      do {
-        var j = inductionVariable;
-        inductionVariable = inductionVariable + 1 | 0;
-        var src = indices.get_c1px32_k$(j);
-        tmpT[j] = this.types_1[src];
-        tmpK[j] = this.keys_1[src];
-        tmpBW[j] = this.minBWs_1[src];
-        tmpI[j] = this.iVals_1[src];
-        tmpD[j] = this.dVals_1[src];
-      }
-       while (inductionVariable <= last);
-    var inductionVariable_0 = 0;
-    var last_0 = indices.get_size_woubt6_k$() - 1 | 0;
-    if (inductionVariable_0 <= last_0)
-      do {
-        var j_0 = inductionVariable_0;
-        inductionVariable_0 = inductionVariable_0 + 1 | 0;
-        var dst = start + j_0 | 0;
-        this.types_1[dst] = tmpT[j_0];
-        this.keys_1[dst] = tmpK[j_0];
-        this.minBWs_1[dst] = tmpBW[j_0];
-        this.iVals_1[dst] = tmpI[j_0];
-        this.dVals_1[dst] = tmpD[j_0];
-      }
-       while (inductionVariable_0 <= last_0);
+    quickSortByKeys(this, start, end, buffer);
   }
 }
 class Companion_33 {
@@ -18457,7 +19300,7 @@ class FlexBuffersBuilder {
         var tmp_1;
         if (value == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18470,7 +19313,7 @@ class FlexBuffersBuilder {
         tmp_0 = tmp_1;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18499,7 +19342,7 @@ class FlexBuffersBuilder {
         var tmp_1;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18512,7 +19355,7 @@ class FlexBuffersBuilder {
         tmp_0 = tmp_1;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18528,12 +19371,14 @@ class FlexBuffersBuilder {
   }
   set_7rzucd_k$(key, value) {
     // Inline function 'kotlin.run' call
+    // Inline function 'kotlin.toULong' call
+    var v = _ULong___init__impl__c78o9k(value);
     var tmp = get_T_INT();
-    var tmp$ret$0;
+    var tmp$ret$1;
     $l$block: {
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.putKey' call
       if (key == null) {
-        tmp$ret$0 = -1;
+        tmp$ret$1 = -1;
         break $l$block;
       }
       var tmp_0;
@@ -18544,7 +19389,7 @@ class FlexBuffersBuilder {
         var tmp_1;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18557,21 +19402,15 @@ class FlexBuffersBuilder {
         tmp_0 = tmp_1;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
         tmp_0 = pos_0;
       }
-      tmp$ret$0 = tmp_0;
+      tmp$ret$1 = tmp_0;
     }
-    var tmp_2 = tmp$ret$0;
-    // Inline function 'kotlin.toULong' call
-    var tmp$ret$3 = _ULong___init__impl__c78o9k(value);
-    var tmp_3 = widthInUBits_2(tmp$ret$3);
-    // Inline function 'kotlin.toULong' call
-    var tmp$ret$4 = _ULong___init__impl__c78o9k(value);
-    this.stack_1.push$default_qzkkta_k$(tmp, tmp_2, tmp_3, tmp$ret$4);
+    this.stack_1.push$default_qzkkta_k$(tmp, tmp$ret$1, widthInUBits_2(v), v);
     return Unit_instance;
   }
   put_t6mvbh_k$(value) {
@@ -18598,6 +19437,7 @@ class FlexBuffersBuilder {
   }
   set_sq36t1_k$(key, value) {
     // Inline function 'kotlin.run' call
+    var w = widthInUBits_2(value);
     var tmp = get_T_UINT();
     var tmp$ret$0;
     $l$block: {
@@ -18614,7 +19454,7 @@ class FlexBuffersBuilder {
         var tmp_1;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18627,7 +19467,7 @@ class FlexBuffersBuilder {
         tmp_0 = tmp_1;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18635,7 +19475,7 @@ class FlexBuffersBuilder {
       }
       tmp$ret$0 = tmp_0;
     }
-    this.stack_1.push$default_qzkkta_k$(tmp, tmp$ret$0, widthInUBits_2(value), value);
+    this.stack_1.push$default_qzkkta_k$(tmp, tmp$ret$0, w, value);
     return Unit_instance;
   }
   set_10hgcz_k$(key, value) {
@@ -18656,7 +19496,7 @@ class FlexBuffersBuilder {
         var tmp_1;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18669,7 +19509,7 @@ class FlexBuffersBuilder {
         tmp_0 = tmp_1;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18698,7 +19538,7 @@ class FlexBuffersBuilder {
         var tmp_1;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18711,7 +19551,7 @@ class FlexBuffersBuilder {
         tmp_0 = tmp_1;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18738,7 +19578,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18751,7 +19591,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18802,7 +19642,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18815,7 +19655,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18872,7 +19712,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18885,7 +19725,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18923,7 +19763,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18936,7 +19776,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -18974,7 +19814,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -18987,7 +19827,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -19025,7 +19865,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -19038,7 +19878,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -19076,7 +19916,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value_0 == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -19089,7 +19929,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -19155,6 +19995,386 @@ class FlexBuffersBuilder {
     }
     return this.endTypedVector_hra2u9_k$(pos, key);
   }
+  setIntCollection_lajsqd_k$(key, value) {
+    var tmp4 = value.get_size_woubt6_k$();
+    var tmp6 = get_T_VECTOR_INT();
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.collectionWidthInUBits' call
+    var tmp0 = get_W_8();
+    // Inline function 'kotlin.toULong' call
+    var this_0 = value.get_size_woubt6_k$();
+    var tmp$ret$0 = _ULong___init__impl__c78o9k(fromInt_0(this_0));
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.BitWidth.max' call
+    var other = widthInUBits_2(tmp$ret$0);
+    var bitWidth = _BitWidth___get_value__impl__9xiwzo(tmp0) >= _BitWidth___get_value__impl__9xiwzo(other) ? tmp0 : other;
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s = value.iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var element = _iterator__ex2g4s.next_20eer_k$();
+      var tmp0_0 = bitWidth;
+      // Inline function 'kotlin.toULong' call
+      var tmp$ret$3 = _ULong___init__impl__c78o9k(fromInt_0(element));
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.BitWidth.max' call
+      var other_0 = widthInUBits_2(tmp$ret$3);
+      bitWidth = _BitWidth___get_value__impl__9xiwzo(tmp0_0) >= _BitWidth___get_value__impl__9xiwzo(other_0) ? tmp0_0 : other_0;
+    }
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.setTypedVector' call
+    var bitWidth_0 = bitWidth;
+    var tmp$ret$8;
+    $l$block: {
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.putKey' call
+      if (key == null) {
+        tmp$ret$8 = -1;
+        break $l$block;
+      }
+      var tmp;
+      if (!((this.shareFlag_1 & 1) === 0)) {
+        // Inline function 'kotlin.collections.getOrPut' call
+        var this_1 = this.stringKeyPool_1;
+        var value_0 = this_1.get_wei43m_k$(key);
+        var tmp_0;
+        if (value_0 == null) {
+          var pos = this.buffer_1.get_writePosition_jdt81t_k$();
+          var encodedKeySize = fastEncodedLength(key);
+          this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
+          this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
+          this.buffer_1.put_jl134p_k$(0);
+          var answer = pos;
+          this_1.put_4fpzoq_k$(key, answer);
+          tmp_0 = answer;
+        } else {
+          tmp_0 = value_0;
+        }
+        tmp = tmp_0;
+      } else {
+        var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
+        var encodedKeySize_0 = fastEncodedLength(key);
+        this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
+        this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
+        this.buffer_1.put_jl134p_k$(0);
+        tmp = pos_0;
+      }
+      tmp$ret$8 = tmp;
+    }
+    var keyPos = tmp$ret$8;
+    var byteWidth = align(this, bitWidth_0);
+    writeInt_0(this, tmp4, byteWidth);
+    var vloc = this.buffer_1.get_writePosition_jdt81t_k$();
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.writeIntegerCollection' call
+    this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(imul_0(value.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(byteWidth)));
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_0 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_0.hasNext_bitz1p_k$()) {
+          var element_0 = _iterator__ex2g4s_0.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          // Inline function 'kotlin.ULong.toUByte' call
+          var this_2 = _ULong___init__impl__c78o9k(fromInt_0(element_0));
+          // Inline function 'kotlin.toUByte' call
+          var this_3 = _ULong___get_data__impl__fggpzb(this_2);
+          var tmp$ret$14 = _UByte___init__impl__g9hnc4(convertToByte(this_3));
+          this.buffer_1.put_t6mvbh_k$(tmp$ret$14);
+        }
+
+        break;
+      case 2:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_1 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_1.hasNext_bitz1p_k$()) {
+          var element_1 = _iterator__ex2g4s_1.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          // Inline function 'kotlin.ULong.toUShort' call
+          var this_4 = _ULong___init__impl__c78o9k(fromInt_0(element_1));
+          // Inline function 'kotlin.toUShort' call
+          var this_5 = _ULong___get_data__impl__fggpzb(this_4);
+          var tmp$ret$20 = _UShort___init__impl__jigrne(convertToShort(this_5));
+          this.buffer_1.put_jy5yml_k$(tmp$ret$20);
+        }
+
+        break;
+      case 4:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_2 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_2.hasNext_bitz1p_k$()) {
+          var element_2 = _iterator__ex2g4s_2.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          // Inline function 'kotlin.ULong.toUInt' call
+          var this_6 = _ULong___init__impl__c78o9k(fromInt_0(element_2));
+          // Inline function 'kotlin.toUInt' call
+          var this_7 = _ULong___get_data__impl__fggpzb(this_6);
+          var tmp$ret$26 = _UInt___init__impl__l7qpdl(convertToInt(this_7));
+          this.buffer_1.put_2db456_k$(tmp$ret$26);
+        }
+
+        break;
+      case 8:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_3 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_3.hasNext_bitz1p_k$()) {
+          var element_3 = _iterator__ex2g4s_3.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          var tmp$ret$30 = _ULong___init__impl__c78o9k(fromInt_0(element_3));
+          this.buffer_1.put_j9xurl_k$(tmp$ret$30);
+        }
+
+        break;
+    }
+    // Inline function 'kotlin.toULong' call
+    var tmp$ret$35 = _ULong___init__impl__c78o9k(fromInt_0(vloc));
+    this.stack_1.push$default_qzkkta_k$(tmp6, keyPos, bitWidth_0, tmp$ret$35);
+    return vloc;
+  }
+  setLongCollection_585vjg_k$(key, value) {
+    var tmp4 = value.get_size_woubt6_k$();
+    var tmp6 = get_T_VECTOR_INT();
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.collectionWidthInUBits' call
+    var tmp0 = get_W_8();
+    // Inline function 'kotlin.toULong' call
+    var this_0 = value.get_size_woubt6_k$();
+    var tmp$ret$0 = _ULong___init__impl__c78o9k(fromInt_0(this_0));
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.BitWidth.max' call
+    var other = widthInUBits_2(tmp$ret$0);
+    var bitWidth = _BitWidth___get_value__impl__9xiwzo(tmp0) >= _BitWidth___get_value__impl__9xiwzo(other) ? tmp0 : other;
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s = value.iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var element = _iterator__ex2g4s.next_20eer_k$();
+      var tmp0_0 = bitWidth;
+      // Inline function 'kotlin.toULong' call
+      var tmp$ret$3 = _ULong___init__impl__c78o9k(element);
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.BitWidth.max' call
+      var other_0 = widthInUBits_2(tmp$ret$3);
+      bitWidth = _BitWidth___get_value__impl__9xiwzo(tmp0_0) >= _BitWidth___get_value__impl__9xiwzo(other_0) ? tmp0_0 : other_0;
+    }
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.setTypedVector' call
+    var bitWidth_0 = bitWidth;
+    var tmp$ret$8;
+    $l$block: {
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.putKey' call
+      if (key == null) {
+        tmp$ret$8 = -1;
+        break $l$block;
+      }
+      var tmp;
+      if (!((this.shareFlag_1 & 1) === 0)) {
+        // Inline function 'kotlin.collections.getOrPut' call
+        var this_1 = this.stringKeyPool_1;
+        var value_0 = this_1.get_wei43m_k$(key);
+        var tmp_0;
+        if (value_0 == null) {
+          var pos = this.buffer_1.get_writePosition_jdt81t_k$();
+          var encodedKeySize = fastEncodedLength(key);
+          this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
+          this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
+          this.buffer_1.put_jl134p_k$(0);
+          var answer = pos;
+          this_1.put_4fpzoq_k$(key, answer);
+          tmp_0 = answer;
+        } else {
+          tmp_0 = value_0;
+        }
+        tmp = tmp_0;
+      } else {
+        var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
+        var encodedKeySize_0 = fastEncodedLength(key);
+        this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
+        this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
+        this.buffer_1.put_jl134p_k$(0);
+        tmp = pos_0;
+      }
+      tmp$ret$8 = tmp;
+    }
+    var keyPos = tmp$ret$8;
+    var byteWidth = align(this, bitWidth_0);
+    writeInt_0(this, tmp4, byteWidth);
+    var vloc = this.buffer_1.get_writePosition_jdt81t_k$();
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.writeIntegerCollection' call
+    this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(imul_0(value.get_size_woubt6_k$(), _ByteWidth___get_value__impl__bpyvkh(byteWidth)));
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_0 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_0.hasNext_bitz1p_k$()) {
+          var element_0 = _iterator__ex2g4s_0.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          // Inline function 'kotlin.ULong.toUByte' call
+          var this_2 = _ULong___init__impl__c78o9k(element_0);
+          // Inline function 'kotlin.toUByte' call
+          var this_3 = _ULong___get_data__impl__fggpzb(this_2);
+          var tmp$ret$14 = _UByte___init__impl__g9hnc4(convertToByte(this_3));
+          this.buffer_1.put_t6mvbh_k$(tmp$ret$14);
+        }
+
+        break;
+      case 2:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_1 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_1.hasNext_bitz1p_k$()) {
+          var element_1 = _iterator__ex2g4s_1.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          // Inline function 'kotlin.ULong.toUShort' call
+          var this_4 = _ULong___init__impl__c78o9k(element_1);
+          // Inline function 'kotlin.toUShort' call
+          var this_5 = _ULong___get_data__impl__fggpzb(this_4);
+          var tmp$ret$20 = _UShort___init__impl__jigrne(convertToShort(this_5));
+          this.buffer_1.put_jy5yml_k$(tmp$ret$20);
+        }
+
+        break;
+      case 4:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_2 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_2.hasNext_bitz1p_k$()) {
+          var element_2 = _iterator__ex2g4s_2.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          // Inline function 'kotlin.ULong.toUInt' call
+          var this_6 = _ULong___init__impl__c78o9k(element_2);
+          // Inline function 'kotlin.toUInt' call
+          var this_7 = _ULong___get_data__impl__fggpzb(this_6);
+          var tmp$ret$26 = _UInt___init__impl__l7qpdl(convertToInt(this_7));
+          this.buffer_1.put_2db456_k$(tmp$ret$26);
+        }
+
+        break;
+      case 8:
+        // Inline function 'kotlin.collections.forEach' call
+
+        var _iterator__ex2g4s_3 = value.iterator_jk1svi_k$();
+        while (_iterator__ex2g4s_3.hasNext_bitz1p_k$()) {
+          var element_3 = _iterator__ex2g4s_3.next_20eer_k$();
+          // Inline function 'kotlin.toULong' call
+          var tmp$ret$30 = _ULong___init__impl__c78o9k(element_3);
+          this.buffer_1.put_j9xurl_k$(tmp$ret$30);
+        }
+
+        break;
+    }
+    // Inline function 'kotlin.toULong' call
+    var tmp$ret$35 = _ULong___init__impl__c78o9k(fromInt_0(vloc));
+    this.stack_1.push$default_qzkkta_k$(tmp6, keyPos, bitWidth_0, tmp$ret$35);
+    return vloc;
+  }
+  setDoubleCollection_j5k7bf_k$(key, value) {
+    var tmp4 = value.get_size_woubt6_k$();
+    var tmp6 = get_T_VECTOR_FLOAT();
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.setTypedVector' call
+    var bitWidth = get_W_64();
+    var tmp$ret$0;
+    $l$block: {
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.putKey' call
+      if (key == null) {
+        tmp$ret$0 = -1;
+        break $l$block;
+      }
+      var tmp;
+      if (!((this.shareFlag_1 & 1) === 0)) {
+        // Inline function 'kotlin.collections.getOrPut' call
+        var this_0 = this.stringKeyPool_1;
+        var value_0 = this_0.get_wei43m_k$(key);
+        var tmp_0;
+        if (value_0 == null) {
+          var pos = this.buffer_1.get_writePosition_jdt81t_k$();
+          var encodedKeySize = fastEncodedLength(key);
+          this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
+          this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
+          this.buffer_1.put_jl134p_k$(0);
+          var answer = pos;
+          this_0.put_4fpzoq_k$(key, answer);
+          tmp_0 = answer;
+        } else {
+          tmp_0 = value_0;
+        }
+        tmp = tmp_0;
+      } else {
+        var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
+        var encodedKeySize_0 = fastEncodedLength(key);
+        this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
+        this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
+        this.buffer_1.put_jl134p_k$(0);
+        tmp = pos_0;
+      }
+      tmp$ret$0 = tmp;
+    }
+    var keyPos = tmp$ret$0;
+    var byteWidth = align(this, bitWidth);
+    writeInt_0(this, tmp4, byteWidth);
+    var vloc = this.buffer_1.get_writePosition_jdt81t_k$();
+    this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(imul_0(8, value.get_size_woubt6_k$()));
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s = value.iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var element = _iterator__ex2g4s.next_20eer_k$();
+      this.buffer_1.put_crsi61_k$(element);
+    }
+    // Inline function 'kotlin.toULong' call
+    var tmp$ret$6 = _ULong___init__impl__c78o9k(fromInt_0(vloc));
+    this.stack_1.push$default_qzkkta_k$(tmp6, keyPos, bitWidth, tmp$ret$6);
+    return vloc;
+  }
+  setFloatCollection_9cyraj_k$(key, value) {
+    var tmp4 = value.get_size_woubt6_k$();
+    var tmp6 = get_T_VECTOR_FLOAT();
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.setTypedVector' call
+    var bitWidth = get_W_32();
+    var tmp$ret$0;
+    $l$block: {
+      // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder.putKey' call
+      if (key == null) {
+        tmp$ret$0 = -1;
+        break $l$block;
+      }
+      var tmp;
+      if (!((this.shareFlag_1 & 1) === 0)) {
+        // Inline function 'kotlin.collections.getOrPut' call
+        var this_0 = this.stringKeyPool_1;
+        var value_0 = this_0.get_wei43m_k$(key);
+        var tmp_0;
+        if (value_0 == null) {
+          var pos = this.buffer_1.get_writePosition_jdt81t_k$();
+          var encodedKeySize = fastEncodedLength(key);
+          this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
+          this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
+          this.buffer_1.put_jl134p_k$(0);
+          var answer = pos;
+          this_0.put_4fpzoq_k$(key, answer);
+          tmp_0 = answer;
+        } else {
+          tmp_0 = value_0;
+        }
+        tmp = tmp_0;
+      } else {
+        var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
+        var encodedKeySize_0 = fastEncodedLength(key);
+        this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
+        this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
+        this.buffer_1.put_jl134p_k$(0);
+        tmp = pos_0;
+      }
+      tmp$ret$0 = tmp;
+    }
+    var keyPos = tmp$ret$0;
+    var byteWidth = align(this, bitWidth);
+    writeInt_0(this, tmp4, byteWidth);
+    var vloc = this.buffer_1.get_writePosition_jdt81t_k$();
+    this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(imul_0(4, value.get_size_woubt6_k$()));
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s = value.iterator_jk1svi_k$();
+    while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
+      var element = _iterator__ex2g4s.next_20eer_k$();
+      this.buffer_1.put_xkgzbb_k$(element);
+    }
+    // Inline function 'kotlin.toULong' call
+    var tmp$ret$6 = _ULong___init__impl__c78o9k(fromInt_0(vloc));
+    this.stack_1.push$default_qzkkta_k$(tmp6, keyPos, bitWidth, tmp$ret$6);
+    return vloc;
+  }
   startVector_tofk57_k$() {
     return this.stack_1.size_1;
   }
@@ -19175,7 +20395,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -19188,7 +20408,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -19296,7 +20516,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -19309,7 +20529,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -19346,7 +20566,7 @@ class FlexBuffersBuilder {
         var tmp_0;
         if (value == null) {
           var pos = this.buffer_1.get_writePosition_jdt81t_k$();
-          var encodedKeySize = Utf8_instance.encodedLength_p8gapj_k$(key);
+          var encodedKeySize = fastEncodedLength(key);
           this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize + 1 | 0);
           this.buffer_1.put_slk5nu_k$(key, encodedKeySize);
           this.buffer_1.put_jl134p_k$(0);
@@ -19359,7 +20579,7 @@ class FlexBuffersBuilder {
         tmp = tmp_0;
       } else {
         var pos_0 = this.buffer_1.get_writePosition_jdt81t_k$();
-        var encodedKeySize_0 = Utf8_instance.encodedLength_p8gapj_k$(key);
+        var encodedKeySize_0 = fastEncodedLength(key);
         this.buffer_1.requestAdditionalCapacity$default_e0mrey_k$(encodedKeySize_0 + 1 | 0);
         this.buffer_1.put_slk5nu_k$(key, encodedKeySize_0);
         this.buffer_1.put_jl134p_k$(0);
@@ -19743,6 +20963,27 @@ class Utf8 {
     return Char__toInt_impl_vasixd(c1);
   }
 }
+class PerPlatformPool {
+  constructor(factory) {
+    this.factory_1 = factory;
+    this.slot_1 = this.factory_1();
+  }
+  acquire_j95bmy_k$() {
+    var current = this.slot_1;
+    var tmp;
+    if (!(current == null)) {
+      this.slot_1 = null;
+      tmp = current;
+    } else {
+      tmp = this.factory_1();
+    }
+    return tmp;
+  }
+  release_phxfqh_k$(instance) {
+    if (this.slot_1 == null)
+      this.slot_1 = instance;
+  }
+}
 //endregion
 function throwIrLinkageError(message) {
   throw IrLinkageError.new_kotlin_internal_IrLinkageError_ncs8uw_k$(message);
@@ -19954,31 +21195,6 @@ function last(_this__u8e3s4) {
 }
 function singleOrNull(_this__u8e3s4) {
   return _this__u8e3s4.get_size_woubt6_k$() === 1 ? _this__u8e3s4.get_c1px32_k$(0) : null;
-}
-function toSet_0(_this__u8e3s4) {
-  if (isInterface(_this__u8e3s4, Collection)) {
-    var tmp;
-    switch (_this__u8e3s4.get_size_woubt6_k$()) {
-      case 0:
-        tmp = emptySet();
-        break;
-      case 1:
-        var tmp_0;
-        if (isInterface(_this__u8e3s4, KtList)) {
-          tmp_0 = _this__u8e3s4.get_c1px32_k$(0);
-        } else {
-          tmp_0 = _this__u8e3s4.iterator_jk1svi_k$().next_20eer_k$();
-        }
-
-        tmp = setOf(tmp_0);
-        break;
-      default:
-        tmp = toCollection_0(_this__u8e3s4, LinkedHashSet.new_kotlin_collections_LinkedHashSet_wmub5z_k$(mapCapacity(_this__u8e3s4.get_size_woubt6_k$())));
-        break;
-    }
-    return tmp;
-  }
-  return optimizeReadOnlySet(toCollection_0(_this__u8e3s4, LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$()));
 }
 function toMutableList_0(_this__u8e3s4) {
   return ArrayList.new_kotlin_collections_ArrayList_nk3udn_k$(_this__u8e3s4);
@@ -21406,10 +22622,6 @@ function doubleToInt(a) {
   }
   return tmp;
 }
-function numberToDouble(a) {
-  // Inline function 'kotlin.js.unsafeCast' call
-  return Number(a);
-}
 function numberToShort(a) {
   return toShort(numberToInt(a));
 }
@@ -22037,14 +23249,20 @@ function listOf(element) {
 function mapOf(pair) {
   return hashMapOf([pair]);
 }
-function sortWith_0(_this__u8e3s4, comparator) {
-  collectionsSort(_this__u8e3s4, comparator);
-}
 function mapCapacity(expectedSize) {
   return expectedSize;
 }
 function setOf(element) {
   return hashSetOf([element]);
+}
+function sortWith_0(_this__u8e3s4, comparator) {
+  collectionsSort(_this__u8e3s4, comparator);
+}
+function checkIndexOverflow(index) {
+  if (index < 0) {
+    throwIndexOverflow();
+  }
+  return index;
 }
 function copyToArray(collection) {
   var tmp;
@@ -22059,12 +23277,6 @@ function copyToArray(collection) {
     tmp = collectionToArray(collection);
   }
   return tmp;
-}
-function checkIndexOverflow(index) {
-  if (index < 0) {
-    throwIndexOverflow();
-  }
-  return index;
 }
 function arrayCopy(source, destination, destinationOffset, startIndex, endIndex) {
   Companion_instance_4.checkRangeIndexes_mmy49x_k$(startIndex, endIndex, source.length);
@@ -24027,16 +25239,6 @@ function EmptySet_getInstance() {
 }
 function emptySet() {
   return EmptySet_instance;
-}
-function optimizeReadOnlySet(_this__u8e3s4) {
-  switch (_this__u8e3s4.get_size_woubt6_k$()) {
-    case 0:
-      return emptySet();
-    case 1:
-      return setOf(_this__u8e3s4.iterator_jk1svi_k$().next_20eer_k$());
-    default:
-      return _this__u8e3s4;
-  }
 }
 function hashSetOf(elements) {
   return toCollection(elements, HashSet.new_kotlin_collections_HashSet_9nbh5e_k$(mapCapacity(elements.length)));
@@ -30850,6 +32052,17 @@ function FlexCoderRegistry_getInstance() {
     new FlexCoderRegistry();
   return FlexCoderRegistry_instance;
 }
+function acquire($this) {
+  return $this.pool_1.acquire_j95bmy_k$();
+}
+function release($this, d) {
+  return $this.pool_1.release_phxfqh_k$(d);
+}
+function _get_NullReference__ejr383($this) {
+  // Inline function 'kotlin.byteArrayOf' call
+  var tmp$ret$0 = new Int8Array([0, 0, 0]);
+  return getRoot(ArrayReadBuffer.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_ArrayReadBuffer_ocoso3_k$(tmp$ret$0));
+}
 function getOrBuildFieldIndices($this, descriptor) {
   var serialName = descriptor.get_serialName_u2rqhk_k$();
   var tmp0_safe_receiver = $this.fieldIndexCache_1.get_wei43m_k$(serialName);
@@ -30889,6 +32102,9 @@ function getOrBuildFieldIndices($this, descriptor) {
   $this.fieldIndexCache_1.put_4fpzoq_k$(serialName, result);
   return result;
 }
+function FlexDecoderV2$Companion$pool$lambda() {
+  return new FlexDecoderV2();
+}
 function FlexDecoderV2$Companion$getOrBuildFieldIndices$lambda($names) {
   return (a, b) => {
     // Inline function 'kotlin.comparisons.compareValuesBy' call
@@ -30897,11 +32113,39 @@ function FlexDecoderV2$Companion$getOrBuildFieldIndices$lambda($names) {
     return compareValues(tmp, tmp$ret$1);
   };
 }
+function reset($this, root) {
+  $this.root_1 = root;
+  $this.contextStack_1.clear_j9egeb_k$();
+  $this.currentContext_1 = null;
+  $this.elementIndex_1 = 0;
+}
 var Companion_instance_30;
 function Companion_getInstance_30() {
   if (Companion_instance_30 === VOID)
     new Companion_30();
   return Companion_instance_30;
+}
+function resolveCurrentReference($this) {
+  var ctx = $this.currentContext_1;
+  if (!(ctx == null)) {
+    var mi = ctx.currentMapIndex_1;
+    if (mi >= 0) {
+      ctx.currentMapIndex_1 = -1;
+      return ensureNotNull(ctx.mapRef_1).get_c1px32_k$(mi);
+    }
+    var vi = ctx.currentVectorIndex_1;
+    if (vi >= 0) {
+      ctx.currentVectorIndex_1 = -1;
+      return ensureNotNull(ctx.vectorRef_1).get_c1px32_k$(vi);
+    }
+  }
+  var tmp0_elvis_lhs = getCurrentReference($this);
+  return tmp0_elvis_lhs == null ? $this.root_1 : tmp0_elvis_lhs;
+}
+function pushMapObject($this, map, descriptor) {
+  var allFieldsPresent = map.get_size_woubt6_k$() === descriptor.get_elementsCount_288r0x_k$();
+  var indices = allFieldsPresent ? getOrBuildFieldIndices(Companion_getInstance_30(), descriptor) : null;
+  $this.contextStack_1.push$default_9yv5cv_k$(ContextType_MAP_OBJECT_getInstance(), map, VOID, map.get_size_woubt6_k$(), indices);
 }
 function getCurrentReference($this) {
   var tmp0_safe_receiver = $this.currentContext_1;
@@ -31014,6 +32258,20 @@ function ContextType_MAP_ENTRIES_getInstance() {
   ContextType_initEntries();
   return ContextType_MAP_ENTRIES_instance;
 }
+function acquire_0($this) {
+  return $this.pool_1.acquire_j95bmy_k$();
+}
+function release_0($this, e) {
+  return $this.pool_1.release_phxfqh_k$(e);
+}
+function FlexEncoderV2$Companion$pool$lambda() {
+  return FlexEncoderV2.new_dev_shibasis_reaktor_flexbuffer_core_FlexEncoderV2_ox5ld8_k$();
+}
+function reset_0($this, builder) {
+  $this.builder_1 = builder;
+  $this.structureStack_1.clear_j9egeb_k$();
+  $this.pendingKey_1 = null;
+}
 var Companion_instance_31;
 function Companion_getInstance_31() {
   if (Companion_instance_31 === VOID)
@@ -31033,6 +32291,24 @@ function consumeKey($this) {
   $this.pendingKey_1 = null;
   return key;
 }
+function tryEncodeRegisteredCoder($this, serialName, value) {
+  if (value == null)
+    return false;
+  var current = $this.structureStack_1.peek_21nx7_k$();
+  if (!(current == null) && current.kind_1.equals(StructureType_MAP_getInstance()) && current.expectingKey_1)
+    return false;
+  var tmp0_elvis_lhs = FlexCoderRegistry_getInstance().getBySerialName_rqyjq2_k$(serialName);
+  var tmp;
+  if (tmp0_elvis_lhs == null) {
+    return false;
+  } else {
+    tmp = tmp0_elvis_lhs;
+  }
+  var coder = tmp;
+  var tmp_0 = $this.builder_1;
+  coder.encode_grwcig_k$(tmp_0, !(value == null) ? value : THROW_CCE(), resolveKeyFrom($this, current));
+  return true;
+}
 function tryEncodeBulkValue($this, descriptor, value) {
   var current = $this.structureStack_1.peek_21nx7_k$();
   if (!(current == null) && current.kind_1.equals(StructureType_MAP_getInstance()) && current.expectingKey_1)
@@ -31040,28 +32316,29 @@ function tryEncodeBulkValue($this, descriptor, value) {
   var tmp;
   switch (descriptor.get_serialName_u2rqhk_k$()) {
     case 'kotlin.ByteArray':
-      var tmp_0 = resolveKeyFrom($this, current);
+      var tmp_0 = $this.builder_1;
+      var tmp_1 = resolveKeyFrom($this, current);
       var tmp1_elvis_lhs = (!(value == null) ? isByteArray(value) : false) ? value : null;
-      var tmp_1;
+      var tmp_2;
       if (tmp1_elvis_lhs == null) {
         return false;
       } else {
-        tmp_1 = tmp1_elvis_lhs;
+        tmp_2 = tmp1_elvis_lhs;
       }
 
-      $this.builder_1.set_yfice3_k$(tmp_0, tmp_1);
+      tmp_0.set_yfice3_k$(tmp_1, tmp_2);
       tmp = true;
       break;
     case 'kotlin.ShortArray':
       var tmp2_elvis_lhs = (!(value == null) ? isShortArray(value) : false) ? value : null;
-      var tmp_2;
+      var tmp_3;
       if (tmp2_elvis_lhs == null) {
         return false;
       } else {
-        tmp_2 = tmp2_elvis_lhs;
+        tmp_3 = tmp2_elvis_lhs;
       }
 
-      var array = tmp_2;
+      var array = tmp_3;
       if (!allNonNegative(array))
         return false;
       $this.builder_1.set_qha2t9_k$(resolveKeyFrom($this, current), array);
@@ -31069,14 +32346,14 @@ function tryEncodeBulkValue($this, descriptor, value) {
       break;
     case 'kotlin.IntArray':
       var tmp3_elvis_lhs = (!(value == null) ? isIntArray(value) : false) ? value : null;
-      var tmp_3;
+      var tmp_4;
       if (tmp3_elvis_lhs == null) {
         return false;
       } else {
-        tmp_3 = tmp3_elvis_lhs;
+        tmp_4 = tmp3_elvis_lhs;
       }
 
-      var array_0 = tmp_3;
+      var array_0 = tmp_4;
       if (!allNonNegative_0(array_0))
         return false;
       $this.builder_1.set_ayeewg_k$(resolveKeyFrom($this, current), array_0);
@@ -31084,143 +32361,149 @@ function tryEncodeBulkValue($this, descriptor, value) {
       break;
     case 'kotlin.LongArray':
       var tmp4_elvis_lhs = (!(value == null) ? isLongArray(value) : false) ? value : null;
-      var tmp_4;
+      var tmp_5;
       if (tmp4_elvis_lhs == null) {
         return false;
       } else {
-        tmp_4 = tmp4_elvis_lhs;
+        tmp_5 = tmp4_elvis_lhs;
       }
 
-      var array_1 = tmp_4;
+      var array_1 = tmp_5;
       if (!allNonNegative_1(array_1))
         return false;
       $this.builder_1.set_xxyw5t_k$(resolveKeyFrom($this, current), array_1);
       tmp = true;
       break;
     case 'kotlin.FloatArray':
-      var tmp_5 = resolveKeyFrom($this, current);
+      var tmp_6 = $this.builder_1;
+      var tmp_7 = resolveKeyFrom($this, current);
       var tmp5_elvis_lhs = (!(value == null) ? isFloatArray(value) : false) ? value : null;
-      var tmp_6;
+      var tmp_8;
       if (tmp5_elvis_lhs == null) {
         return false;
       } else {
-        tmp_6 = tmp5_elvis_lhs;
+        tmp_8 = tmp5_elvis_lhs;
       }
 
-      $this.builder_1.set_l88al9_k$(tmp_5, tmp_6);
+      tmp_6.set_l88al9_k$(tmp_7, tmp_8);
       tmp = true;
       break;
     case 'kotlin.DoubleArray':
-      var tmp_7 = resolveKeyFrom($this, current);
+      var tmp_9 = $this.builder_1;
+      var tmp_10 = resolveKeyFrom($this, current);
       var tmp6_elvis_lhs = (!(value == null) ? isDoubleArray(value) : false) ? value : null;
-      var tmp_8;
+      var tmp_11;
       if (tmp6_elvis_lhs == null) {
         return false;
       } else {
-        tmp_8 = tmp6_elvis_lhs;
+        tmp_11 = tmp6_elvis_lhs;
       }
 
-      $this.builder_1.set_osw27w_k$(tmp_7, tmp_8);
+      tmp_9.set_osw27w_k$(tmp_10, tmp_11);
       tmp = true;
       break;
     case 'kotlin.UByteArray':
-      var tmp_9 = resolveKeyFrom($this, current);
-      var tmp_10;
+      var tmp_12 = $this.builder_1;
+      var tmp_13 = resolveKeyFrom($this, current);
+      var tmp_14;
       if (value instanceof UByteArray) {
-        var tmp_11 = value;
-        tmp_10 = tmp_11 == null ? null : tmp_11.storage_1;
+        var tmp_15 = value;
+        tmp_14 = tmp_15 == null ? null : tmp_15.storage_1;
       } else {
-        tmp_10 = null;
+        tmp_14 = null;
       }
 
-      var tmp7_elvis_lhs = tmp_10;
-      var tmp_12;
-      var tmp_13 = tmp7_elvis_lhs;
-      if ((tmp_13 == null ? null : new UByteArray(tmp_13)) == null) {
+      var tmp7_elvis_lhs = tmp_14;
+      var tmp_16;
+      var tmp_17 = tmp7_elvis_lhs;
+      if ((tmp_17 == null ? null : new UByteArray(tmp_17)) == null) {
         return false;
       } else {
-        tmp_12 = tmp7_elvis_lhs;
+        tmp_16 = tmp7_elvis_lhs;
       }
 
-      $this.builder_1.set_t7w8b7_k$(tmp_9, tmp_12);
+      tmp_12.set_t7w8b7_k$(tmp_13, tmp_16);
       tmp = true;
       break;
     case 'kotlin.UShortArray':
-      var tmp_14 = resolveKeyFrom($this, current);
-      var tmp_15;
-      if (value instanceof UShortArray) {
-        var tmp_16 = value;
-        tmp_15 = tmp_16 == null ? null : tmp_16.storage_1;
-      } else {
-        tmp_15 = null;
-      }
-
-      var tmp8_elvis_lhs = tmp_15;
-      var tmp_17;
-      var tmp_18 = tmp8_elvis_lhs;
-      if ((tmp_18 == null ? null : new UShortArray(tmp_18)) == null) {
-        return false;
-      } else {
-        tmp_17 = tmp8_elvis_lhs;
-      }
-
-      $this.builder_1.set_mxq65n_k$(tmp_14, tmp_17);
-      tmp = true;
-      break;
-    case 'kotlin.UIntArray':
+      var tmp_18 = $this.builder_1;
       var tmp_19 = resolveKeyFrom($this, current);
       var tmp_20;
-      if (value instanceof UIntArray) {
+      if (value instanceof UShortArray) {
         var tmp_21 = value;
         tmp_20 = tmp_21 == null ? null : tmp_21.storage_1;
       } else {
         tmp_20 = null;
       }
 
-      var tmp9_elvis_lhs = tmp_20;
+      var tmp8_elvis_lhs = tmp_20;
       var tmp_22;
-      var tmp_23 = tmp9_elvis_lhs;
-      if ((tmp_23 == null ? null : new UIntArray(tmp_23)) == null) {
+      var tmp_23 = tmp8_elvis_lhs;
+      if ((tmp_23 == null ? null : new UShortArray(tmp_23)) == null) {
         return false;
       } else {
-        tmp_22 = tmp9_elvis_lhs;
+        tmp_22 = tmp8_elvis_lhs;
       }
 
-      $this.builder_1.set_ovwen2_k$(tmp_19, tmp_22);
+      tmp_18.set_mxq65n_k$(tmp_19, tmp_22);
+      tmp = true;
+      break;
+    case 'kotlin.UIntArray':
+      var tmp_24 = $this.builder_1;
+      var tmp_25 = resolveKeyFrom($this, current);
+      var tmp_26;
+      if (value instanceof UIntArray) {
+        var tmp_27 = value;
+        tmp_26 = tmp_27 == null ? null : tmp_27.storage_1;
+      } else {
+        tmp_26 = null;
+      }
+
+      var tmp9_elvis_lhs = tmp_26;
+      var tmp_28;
+      var tmp_29 = tmp9_elvis_lhs;
+      if ((tmp_29 == null ? null : new UIntArray(tmp_29)) == null) {
+        return false;
+      } else {
+        tmp_28 = tmp9_elvis_lhs;
+      }
+
+      tmp_24.set_ovwen2_k$(tmp_25, tmp_28);
       tmp = true;
       break;
     case 'kotlin.ULongArray':
-      var tmp_24 = resolveKeyFrom($this, current);
-      var tmp_25;
+      var tmp_30 = $this.builder_1;
+      var tmp_31 = resolveKeyFrom($this, current);
+      var tmp_32;
       if (value instanceof ULongArray) {
-        var tmp_26 = value;
-        tmp_25 = tmp_26 == null ? null : tmp_26.storage_1;
+        var tmp_33 = value;
+        tmp_32 = tmp_33 == null ? null : tmp_33.storage_1;
       } else {
-        tmp_25 = null;
+        tmp_32 = null;
       }
 
-      var tmp10_elvis_lhs = tmp_25;
-      var tmp_27;
-      var tmp_28 = tmp10_elvis_lhs;
-      if ((tmp_28 == null ? null : new ULongArray(tmp_28)) == null) {
+      var tmp10_elvis_lhs = tmp_32;
+      var tmp_34;
+      var tmp_35 = tmp10_elvis_lhs;
+      if ((tmp_35 == null ? null : new ULongArray(tmp_35)) == null) {
         return false;
       } else {
-        tmp_27 = tmp10_elvis_lhs;
+        tmp_34 = tmp10_elvis_lhs;
       }
 
-      $this.builder_1.set_66sz33_k$(tmp_24, tmp_27);
+      tmp_30.set_66sz33_k$(tmp_31, tmp_34);
       tmp = true;
       break;
     default:
       var tmp11_elvis_lhs = (!(value == null) ? isInterface(value, Collection) : false) ? value : null;
-      var tmp_29;
+      var tmp_36;
       if (tmp11_elvis_lhs == null) {
         return false;
       } else {
-        tmp_29 = tmp11_elvis_lhs;
+        tmp_36 = tmp11_elvis_lhs;
       }
 
-      var collection = tmp_29;
+      var collection = tmp_36;
       tmp = tryEncodeBulkCollection($this, descriptor, current, collection);
       break;
   }
@@ -31233,163 +32516,171 @@ function tryEncodeBulkCollection($this, descriptor, current, values) {
   var tmp;
   switch (elementDescriptor.get_serialName_u2rqhk_k$()) {
     case 'kotlin.Boolean':
-      var tmp_0 = resolveKeyFrom($this, current);
+      var tmp_0 = $this.builder_1;
+      var tmp_1 = resolveKeyFrom($this, current);
       var tmp1_elvis_lhs = toBooleanIntArray(values);
-      var tmp_1;
+      var tmp_2;
       if (tmp1_elvis_lhs == null) {
         return false;
       } else {
-        tmp_1 = tmp1_elvis_lhs;
+        tmp_2 = tmp1_elvis_lhs;
       }
 
-      $this.builder_1.set_ayeewg_k$(tmp_0, tmp_1);
+      tmp_0.set_ayeewg_k$(tmp_1, tmp_2);
       tmp = true;
       break;
     case 'kotlin.Byte':
       var tmp2_elvis_lhs = toNonNegativeShortArray(values);
-      var tmp_2;
+      var tmp_3;
       if (tmp2_elvis_lhs == null) {
         return false;
       } else {
-        tmp_2 = tmp2_elvis_lhs;
+        tmp_3 = tmp2_elvis_lhs;
       }
 
-      var array = tmp_2;
+      var array = tmp_3;
       $this.builder_1.set_qha2t9_k$(resolveKeyFrom($this, current), array);
       tmp = true;
       break;
     case 'kotlin.Short':
       var tmp3_elvis_lhs = toNonNegativeShortArray(values);
-      var tmp_3;
+      var tmp_4;
       if (tmp3_elvis_lhs == null) {
         return false;
       } else {
-        tmp_3 = tmp3_elvis_lhs;
+        tmp_4 = tmp3_elvis_lhs;
       }
 
-      var array_0 = tmp_3;
+      var array_0 = tmp_4;
       $this.builder_1.set_qha2t9_k$(resolveKeyFrom($this, current), array_0);
       tmp = true;
       break;
     case 'kotlin.Int':
-      var tmp4_elvis_lhs = toNonNegativeIntArray(values);
-      var tmp_4;
+      var tmp4_elvis_lhs = asNonNegativeIntCollection(values);
+      var tmp_5;
       if (tmp4_elvis_lhs == null) {
         return false;
       } else {
-        tmp_4 = tmp4_elvis_lhs;
+        tmp_5 = tmp4_elvis_lhs;
       }
 
-      var array_1 = tmp_4;
-      $this.builder_1.set_ayeewg_k$(resolveKeyFrom($this, current), array_1);
+      var ints = tmp_5;
+      $this.builder_1.setIntCollection_lajsqd_k$(resolveKeyFrom($this, current), ints);
       tmp = true;
       break;
     case 'kotlin.Long':
-      var tmp5_elvis_lhs = toNonNegativeLongArray(values);
-      var tmp_5;
+      var tmp5_elvis_lhs = asNonNegativeLongCollection(values);
+      var tmp_6;
       if (tmp5_elvis_lhs == null) {
         return false;
       } else {
-        tmp_5 = tmp5_elvis_lhs;
+        tmp_6 = tmp5_elvis_lhs;
       }
 
-      var array_2 = tmp_5;
-      $this.builder_1.set_xxyw5t_k$(resolveKeyFrom($this, current), array_2);
+      var longs = tmp_6;
+      $this.builder_1.setLongCollection_585vjg_k$(resolveKeyFrom($this, current), longs);
       tmp = true;
       break;
     case 'kotlin.Float':
-      var tmp_6 = resolveKeyFrom($this, current);
-      var tmp6_elvis_lhs = toFloatArrayOrNull(values);
-      var tmp_7;
+      var tmp_7 = $this.builder_1;
+      var tmp_8 = resolveKeyFrom($this, current);
+      var tmp6_elvis_lhs = asFloatCollection(values);
+      var tmp_9;
       if (tmp6_elvis_lhs == null) {
         return false;
       } else {
-        tmp_7 = tmp6_elvis_lhs;
+        tmp_9 = tmp6_elvis_lhs;
       }
 
-      $this.builder_1.set_l88al9_k$(tmp_6, tmp_7);
+      tmp_7.setFloatCollection_9cyraj_k$(tmp_8, tmp_9);
       tmp = true;
       break;
     case 'kotlin.Double':
-      var tmp_8 = resolveKeyFrom($this, current);
-      var tmp7_elvis_lhs = toDoubleArrayOrNull(values);
-      var tmp_9;
+      var tmp_10 = $this.builder_1;
+      var tmp_11 = resolveKeyFrom($this, current);
+      var tmp7_elvis_lhs = asDoubleCollection(values);
+      var tmp_12;
       if (tmp7_elvis_lhs == null) {
         return false;
       } else {
-        tmp_9 = tmp7_elvis_lhs;
+        tmp_12 = tmp7_elvis_lhs;
       }
 
-      $this.builder_1.set_osw27w_k$(tmp_8, tmp_9);
+      tmp_10.setDoubleCollection_j5k7bf_k$(tmp_11, tmp_12);
       tmp = true;
       break;
     case 'kotlin.Char':
-      var tmp_10 = resolveKeyFrom($this, current);
+      var tmp_13 = $this.builder_1;
+      var tmp_14 = resolveKeyFrom($this, current);
       var tmp8_elvis_lhs = toCharCodeArray(values);
-      var tmp_11;
+      var tmp_15;
       if (tmp8_elvis_lhs == null) {
         return false;
       } else {
-        tmp_11 = tmp8_elvis_lhs;
+        tmp_15 = tmp8_elvis_lhs;
       }
 
-      $this.builder_1.set_ayeewg_k$(tmp_10, tmp_11);
+      tmp_13.set_ayeewg_k$(tmp_14, tmp_15);
       tmp = true;
       break;
     case 'kotlin.UByte':
-      var tmp_12 = resolveKeyFrom($this, current);
+      var tmp_16 = $this.builder_1;
+      var tmp_17 = resolveKeyFrom($this, current);
       var tmp9_elvis_lhs = toUByteArrayOrNull(values);
-      var tmp_13;
-      var tmp_14 = tmp9_elvis_lhs;
-      if ((tmp_14 == null ? null : new UByteArray(tmp_14)) == null) {
+      var tmp_18;
+      var tmp_19 = tmp9_elvis_lhs;
+      if ((tmp_19 == null ? null : new UByteArray(tmp_19)) == null) {
         return false;
       } else {
-        tmp_13 = tmp9_elvis_lhs;
+        tmp_18 = tmp9_elvis_lhs;
       }
 
-      $this.builder_1.set_t7w8b7_k$(tmp_12, tmp_13);
+      tmp_16.set_t7w8b7_k$(tmp_17, tmp_18);
       tmp = true;
       break;
     case 'kotlin.UShort':
-      var tmp_15 = resolveKeyFrom($this, current);
+      var tmp_20 = $this.builder_1;
+      var tmp_21 = resolveKeyFrom($this, current);
       var tmp10_elvis_lhs = toUShortArrayOrNull(values);
-      var tmp_16;
-      var tmp_17 = tmp10_elvis_lhs;
-      if ((tmp_17 == null ? null : new UShortArray(tmp_17)) == null) {
+      var tmp_22;
+      var tmp_23 = tmp10_elvis_lhs;
+      if ((tmp_23 == null ? null : new UShortArray(tmp_23)) == null) {
         return false;
       } else {
-        tmp_16 = tmp10_elvis_lhs;
+        tmp_22 = tmp10_elvis_lhs;
       }
 
-      $this.builder_1.set_mxq65n_k$(tmp_15, tmp_16);
+      tmp_20.set_mxq65n_k$(tmp_21, tmp_22);
       tmp = true;
       break;
     case 'kotlin.UInt':
-      var tmp_18 = resolveKeyFrom($this, current);
+      var tmp_24 = $this.builder_1;
+      var tmp_25 = resolveKeyFrom($this, current);
       var tmp11_elvis_lhs = toUIntArrayOrNull(values);
-      var tmp_19;
-      var tmp_20 = tmp11_elvis_lhs;
-      if ((tmp_20 == null ? null : new UIntArray(tmp_20)) == null) {
+      var tmp_26;
+      var tmp_27 = tmp11_elvis_lhs;
+      if ((tmp_27 == null ? null : new UIntArray(tmp_27)) == null) {
         return false;
       } else {
-        tmp_19 = tmp11_elvis_lhs;
+        tmp_26 = tmp11_elvis_lhs;
       }
 
-      $this.builder_1.set_ovwen2_k$(tmp_18, tmp_19);
+      tmp_24.set_ovwen2_k$(tmp_25, tmp_26);
       tmp = true;
       break;
     case 'kotlin.ULong':
-      var tmp_21 = resolveKeyFrom($this, current);
+      var tmp_28 = $this.builder_1;
+      var tmp_29 = resolveKeyFrom($this, current);
       var tmp12_elvis_lhs = toULongArrayOrNull(values);
-      var tmp_22;
-      var tmp_23 = tmp12_elvis_lhs;
-      if ((tmp_23 == null ? null : new ULongArray(tmp_23)) == null) {
+      var tmp_30;
+      var tmp_31 = tmp12_elvis_lhs;
+      if ((tmp_31 == null ? null : new ULongArray(tmp_31)) == null) {
         return false;
       } else {
-        tmp_22 = tmp12_elvis_lhs;
+        tmp_30 = tmp12_elvis_lhs;
       }
 
-      $this.builder_1.set_66sz33_k$(tmp_21, tmp_22);
+      tmp_28.set_66sz33_k$(tmp_29, tmp_30);
       tmp = true;
       break;
     default:
@@ -31509,91 +32800,57 @@ function toNonNegativeShortArray(_this__u8e3s4) {
   }
   return result;
 }
-function toNonNegativeIntArray(_this__u8e3s4) {
-  var result = new Int32Array(_this__u8e3s4.get_size_woubt6_k$());
-  var index = 0;
+function asNonNegativeIntCollection(_this__u8e3s4) {
   var _iterator__ex2g4s = _this__u8e3s4.iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var value = _iterator__ex2g4s.next_20eer_k$();
-    var tmp0_elvis_lhs = isNumber(value) ? value : null;
+    var tmp0_elvis_lhs = (!(value == null) ? typeof value === 'number' : false) ? value : null;
     var tmp;
     if (tmp0_elvis_lhs == null) {
       return null;
     } else {
       tmp = tmp0_elvis_lhs;
     }
-    var number = tmp;
-    var intValue = numberToInt(number);
+    var intValue = tmp;
     if (intValue < 0)
       return null;
-    var _unary__edvuaz = index;
-    index = _unary__edvuaz + 1 | 0;
-    result[_unary__edvuaz] = intValue;
   }
-  return result;
+  return isInterface(_this__u8e3s4, Collection) ? _this__u8e3s4 : THROW_CCE();
 }
-function toNonNegativeLongArray(_this__u8e3s4) {
-  var result = new BigInt64Array(_this__u8e3s4.get_size_woubt6_k$());
-  var index = 0;
+function asNonNegativeLongCollection(_this__u8e3s4) {
   var _iterator__ex2g4s = _this__u8e3s4.iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var value = _iterator__ex2g4s.next_20eer_k$();
-    var tmp0_elvis_lhs = isNumber(value) ? value : null;
+    var tmp0_elvis_lhs = (!(value == null) ? typeof value === 'bigint' : false) ? value : null;
     var tmp;
     if (tmp0_elvis_lhs == null) {
       return null;
     } else {
       tmp = tmp0_elvis_lhs;
     }
-    var number = tmp;
-    var longValue = numberToLong(number);
+    var longValue = tmp;
     if (longValue < 0n)
       return null;
-    var _unary__edvuaz = index;
-    index = _unary__edvuaz + 1 | 0;
-    result[_unary__edvuaz] = longValue;
   }
-  return result;
+  return isInterface(_this__u8e3s4, Collection) ? _this__u8e3s4 : THROW_CCE();
 }
-function toFloatArrayOrNull(_this__u8e3s4) {
-  var result = new Float32Array(_this__u8e3s4.get_size_woubt6_k$());
-  var index = 0;
+function asFloatCollection(_this__u8e3s4) {
   var _iterator__ex2g4s = _this__u8e3s4.iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var value = _iterator__ex2g4s.next_20eer_k$();
-    var tmp0_elvis_lhs = isNumber(value) ? value : null;
-    var tmp;
-    if (tmp0_elvis_lhs == null) {
+    if (!(!(value == null) ? typeof value === 'number' : false))
       return null;
-    } else {
-      tmp = tmp0_elvis_lhs;
-    }
-    var number = tmp;
-    var _unary__edvuaz = index;
-    index = _unary__edvuaz + 1 | 0;
-    result[_unary__edvuaz] = numberToDouble(number);
   }
-  return result;
+  return isInterface(_this__u8e3s4, Collection) ? _this__u8e3s4 : THROW_CCE();
 }
-function toDoubleArrayOrNull(_this__u8e3s4) {
-  var result = new Float64Array(_this__u8e3s4.get_size_woubt6_k$());
-  var index = 0;
+function asDoubleCollection(_this__u8e3s4) {
   var _iterator__ex2g4s = _this__u8e3s4.iterator_jk1svi_k$();
   while (_iterator__ex2g4s.hasNext_bitz1p_k$()) {
     var value = _iterator__ex2g4s.next_20eer_k$();
-    var tmp0_elvis_lhs = isNumber(value) ? value : null;
-    var tmp;
-    if (tmp0_elvis_lhs == null) {
+    if (!(!(value == null) ? typeof value === 'number' : false))
       return null;
-    } else {
-      tmp = tmp0_elvis_lhs;
-    }
-    var number = tmp;
-    var _unary__edvuaz = index;
-    index = _unary__edvuaz + 1 | 0;
-    result[_unary__edvuaz] = numberToDouble(number);
   }
-  return result;
+  return isInterface(_this__u8e3s4, Collection) ? _this__u8e3s4 : THROW_CCE();
 }
 function toCharCodeArray(_this__u8e3s4) {
   var result = new Int32Array(_this__u8e3s4.get_size_woubt6_k$());
@@ -31757,7 +33014,7 @@ function _init_properties_Buffers_kt__f7ncsh() {
   }
 }
 function setCharSequence(_this__u8e3s4, index, value) {
-  return Utf8_instance.encodeUtf8Array_rn6z3p_k$(value, _this__u8e3s4, index, _this__u8e3s4.length - index | 0);
+  return fastEncodeUtf8(value, _this__u8e3s4, index);
 }
 var ByteArrayOps_instance;
 function ByteArrayOps_getInstance() {
@@ -31778,6 +33035,190 @@ function Reference$toString$lambda(it) {
 function Reference$toString$lambda_0(it) {
   return it.toString();
 }
+function _get_keyVectorEnd__yv909a($this) {
+  // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.ensureKeyVector' call
+  if ($this._keyVectorEnd_1 < 0) {
+    var keysOffset = $this.end_1 - times(3, $this.byteWidth_1) | 0;
+    var tmp = $this;
+    var tmp0 = $this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = $this.byteWidth_1;
+    var tmp_0;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(keysOffset);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(keysOffset);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(keysOffset);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$2 = fromInt_0(value) & 4294967295n;
+        tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$2);
+        break;
+      case 8:
+        tmp_0 = tmp0.getULong_82ljq0_k$(keysOffset);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp_0;
+    tmp._keyVectorEnd_1 = keysOffset - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    var tmp_1 = $this;
+    var tmp0_0 = $this.buffer_1;
+    var tmp2 = plus_1(keysOffset, $this.byteWidth_1);
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth_0 = $this.byteWidth_1;
+    var tmp_2;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth_0)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_4 = tmp0_0.getUByte_rkb5ds_k$(tmp2);
+        tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_4)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_5 = tmp0_0.getUShort_lubxoy_k$(tmp2);
+        tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_5)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_6 = tmp0_0.getUInt_6yakcu_k$(tmp2);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value_0 = _UInt___get_data__impl__f0vqqw(this_6);
+        var tmp$ret$11 = fromInt_0(value_0) & 4294967295n;
+        tmp_2 = _ULong___init__impl__c78o9k(tmp$ret$11);
+        break;
+      case 8:
+        tmp_2 = tmp0_0.getULong_82ljq0_k$(tmp2);
+        break;
+      default:
+        var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth_0) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_7 = tmp_2;
+    var tmp$ret$16 = convertToInt(_ULong___get_data__impl__fggpzb(this_7));
+    tmp_1._keyVectorByteWidth_1 = _ByteWidth___init__impl__ebgb8b(tmp$ret$16);
+  }
+  return $this._keyVectorEnd_1;
+}
+function _get_keyVectorByteWidth__3lf0a9($this) {
+  // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.Map.ensureKeyVector' call
+  if ($this._keyVectorEnd_1 < 0) {
+    var keysOffset = $this.end_1 - times(3, $this.byteWidth_1) | 0;
+    var tmp = $this;
+    var tmp0 = $this.buffer_1;
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth = $this.byteWidth_1;
+    var tmp_0;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_0 = tmp0.getUByte_rkb5ds_k$(keysOffset);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_0)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_1 = tmp0.getUShort_lubxoy_k$(keysOffset);
+        tmp_0 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_1)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_2 = tmp0.getUInt_6yakcu_k$(keysOffset);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value = _UInt___get_data__impl__f0vqqw(this_2);
+        var tmp$ret$2 = fromInt_0(value) & 4294967295n;
+        tmp_0 = _ULong___init__impl__c78o9k(tmp$ret$2);
+        break;
+      case 8:
+        tmp_0 = tmp0.getULong_82ljq0_k$(keysOffset);
+        break;
+      default:
+        var message = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_3 = tmp_0;
+    tmp._keyVectorEnd_1 = keysOffset - convertToInt(_ULong___get_data__impl__fggpzb(this_3)) | 0;
+    var tmp_1 = $this;
+    var tmp0_0 = $this.buffer_1;
+    var tmp2 = plus_1(keysOffset, $this.byteWidth_1);
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
+    // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
+    var byteWidth_0 = $this.byteWidth_1;
+    var tmp_2;
+    switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth_0)) {
+      case 1:
+        // Inline function 'kotlin.UByte.toULong' call
+
+        var this_4 = tmp0_0.getUByte_rkb5ds_k$(tmp2);
+        tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UByte___get_data__impl__jof9qr(this_4)) & 255n);
+        break;
+      case 2:
+        // Inline function 'kotlin.UShort.toULong' call
+
+        var this_5 = tmp0_0.getUShort_lubxoy_k$(tmp2);
+        tmp_2 = _ULong___init__impl__c78o9k(fromInt_0(_UShort___get_data__impl__g0245(this_5)) & 65535n);
+        break;
+      case 4:
+        // Inline function 'kotlin.UInt.toULong' call
+
+        var this_6 = tmp0_0.getUInt_6yakcu_k$(tmp2);
+        // Inline function 'kotlin.uintToULong' call
+
+        // Inline function 'kotlin.uintToLong' call
+
+        var value_0 = _UInt___get_data__impl__f0vqqw(this_6);
+        var tmp$ret$11 = fromInt_0(value_0) & 4294967295n;
+        tmp_2 = _ULong___init__impl__c78o9k(tmp$ret$11);
+        break;
+      case 8:
+        tmp_2 = tmp0_0.getULong_82ljq0_k$(tmp2);
+        break;
+      default:
+        var message_0 = 'invalid byte width ' + ByteWidth__toString_impl_rkljy5(byteWidth_0) + ' for scalar unsigned integer';
+        throw IllegalStateException.new_kotlin_IllegalStateException_w47ei6_k$(toString_1(message_0));
+    }
+    // Inline function 'kotlin.ULong.toInt' call
+    var this_7 = tmp_2;
+    var tmp$ret$16 = convertToInt(_ULong___get_data__impl__fggpzb(this_7));
+    tmp_1._keyVectorByteWidth_1 = _ByteWidth___init__impl__ebgb8b(tmp$ret$16);
+  }
+  return $this._keyVectorByteWidth_1;
+}
 function binarySearch($this, searchedKey) {
   var tmp$ret$10;
   $l$block: {
@@ -31787,11 +33228,11 @@ function binarySearch($this, searchedKey) {
     while (low <= high) {
       var mid = (low + high | 0) >>> 1 | 0;
       var tmp0 = $this.buffer_1;
-      var tmp2 = $this.keyVectorEnd_1 + times(mid, $this.keyVectorByteWidth_1) | 0;
+      var tmp2 = _get_keyVectorEnd__yv909a($this) + times(mid, _get_keyVectorByteWidth__3lf0a9($this)) | 0;
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
-      var byteWidth = $this.keyVectorByteWidth_1;
+      var byteWidth = _get_keyVectorByteWidth__3lf0a9($this);
       var tmp;
       switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
         case 1:
@@ -31851,11 +33292,11 @@ function binarySearch_0($this, key) {
     while (low <= high) {
       var mid = (low + high | 0) >>> 1 | 0;
       var tmp0 = $this.buffer_1;
-      var tmp2 = $this.keyVectorEnd_1 + times(mid, $this.keyVectorByteWidth_1) | 0;
+      var tmp2 = _get_keyVectorEnd__yv909a($this) + times(mid, _get_keyVectorByteWidth__3lf0a9($this)) | 0;
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.indirect' call
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readInt' call
       // Inline function 'dev.shibasis.reaktor.flexbuffer.flatbuffers.readULong' call
-      var byteWidth = $this.keyVectorByteWidth_1;
+      var byteWidth = _get_keyVectorByteWidth__3lf0a9($this);
       var tmp;
       switch (_ByteWidth___get_value__impl__bpyvkh(byteWidth)) {
         case 1:
@@ -31958,10 +33399,14 @@ function compareCharSequence($this, start, other) {
     bufferPos = bufferPos + 1 | 0;
     otherPos = otherPos + 1 | 0;
   }
-  if (bufferPos < limit)
-    return 0;
+  if (otherPos === otherLimit) {
+    if (bufferPos >= limit)
+      return 0;
+    var b_0 = $this.buffer_1.get_c1px32_k$(bufferPos);
+    return b_0 === 0 ? 0 : b_0;
+  }
   var comparisonBuffer = new Int8Array(4);
-  while (bufferPos < limit) {
+  while (otherPos < otherLimit && bufferPos < limit) {
     var sizeInBuff = Utf8_instance.encodeUtf8CodePoint_qiy77b_k$(other, otherPos, comparisonBuffer);
     if (sizeInBuff === 0) {
       return $this.buffer_1.get_c1px32_k$(bufferPos);
@@ -31983,7 +33428,15 @@ function compareCharSequence($this, start, other) {
        while (inductionVariable < sizeInBuff);
     otherPos = otherPos + (sizeInBuff === 4 ? 2 : 1) | 0;
   }
-  return 0;
+  if (otherPos < otherLimit) {
+    // Inline function 'kotlin.code' call
+    var this_0 = charSequenceGet(other, otherPos);
+    return -Char__toInt_impl_vasixd(this_0) | 0;
+  }
+  if (bufferPos >= limit)
+    return 0;
+  var b_1 = $this.buffer_1.get_c1px32_k$(bufferPos);
+  return b_1 === 0 ? 0 : b_1;
 }
 function writeInt($this, value, buffer, byteWidth) {
   buffer.requestAdditionalCapacity$default_e0mrey_k$(_ByteWidth___get_value__impl__bpyvkh(byteWidth));
@@ -32079,12 +33532,86 @@ function grow($this, needed) {
   $this.iVals_1 = copyOf_3($this.iVals_1, cap);
   $this.dVals_1 = copyOf_1($this.dVals_1, cap);
 }
+function compareKeyToRaw($this, a, rawKeyPos, buffer) {
+  var ia = $this.keys_1[a];
+  var ib = rawKeyPos;
+  var c1;
+  var c2;
+  do {
+    c1 = buffer.get_c1px32_k$(ia);
+    c2 = buffer.get_c1px32_k$(ib);
+    if (c1 === 0)
+      return c1 - c2;
+    ia = ia + 1 | 0;
+    ib = ib + 1 | 0;
+  }
+   while (c1 === c2);
+  return c1 - c2;
+}
+function quickSortByKeys($this, left, right, buffer) {
+  if ((right - left | 0) <= 12) {
+    insertionSortByKeys($this, left, right, buffer);
+    return Unit_instance;
+  }
+  var i = left;
+  var j = right;
+  var pivotKey = $this.keys_1[(left + right | 0) >>> 1 | 0];
+  while (i <= j) {
+    while (compareKeyToRaw($this, i, pivotKey, buffer) < 0) {
+      i = i + 1 | 0;
+    }
+    while (compareKeyToRaw($this, j, pivotKey, buffer) > 0) {
+      j = j - 1 | 0;
+    }
+    if (i <= j) {
+      swap($this, i, j);
+      i = i + 1 | 0;
+      j = j - 1 | 0;
+    }
+  }
+  if (left < j) {
+    quickSortByKeys($this, left, j, buffer);
+  }
+  if (i < right) {
+    quickSortByKeys($this, i, right, buffer);
+  }
+}
+function insertionSortByKeys($this, left, right, buffer) {
+  var inductionVariable = left + 1 | 0;
+  if (inductionVariable <= right)
+    do {
+      var i = inductionVariable;
+      inductionVariable = inductionVariable + 1 | 0;
+      var j = i;
+      while (j > left && $this.compareKeys_d5yyq5_k$(j - 1 | 0, j, buffer) > 0) {
+        swap($this, j - 1 | 0, j);
+        j = j - 1 | 0;
+      }
+    }
+     while (!(i === right));
+}
+function swap($this, a, b) {
+  if (a === b)
+    return Unit_instance;
+  var t = $this.types_1[a];
+  $this.types_1[a] = $this.types_1[b];
+  $this.types_1[b] = t;
+  t = $this.keys_1[a];
+  $this.keys_1[a] = $this.keys_1[b];
+  $this.keys_1[b] = t;
+  t = $this.minBWs_1[a];
+  $this.minBWs_1[a] = $this.minBWs_1[b];
+  $this.minBWs_1[b] = t;
+  var i = $this.iVals_1[a];
+  $this.iVals_1[a] = $this.iVals_1[b];
+  $this.iVals_1[b] = i;
+  var d = $this.dVals_1[a];
+  $this.dVals_1[a] = $this.dVals_1[b];
+  $this.dVals_1[b] = d;
+}
 var Companion_instance_32;
 function Companion_getInstance_32() {
   return Companion_instance_32;
-}
-function FlexBuffersBuilder$ValueStack$sortByKeys$lambda(this$0, $buffer) {
-  return (a, b) => this$0.compareKeys_d5yyq5_k$(a, b, $buffer);
 }
 function isKeySorted($this, start) {
   var end = $this.stack_1.size_1;
@@ -32103,7 +33630,7 @@ function isKeySorted($this, start) {
   return true;
 }
 function writeString($this, key, s) {
-  var encodedSize = Utf8_instance.encodedLength_p8gapj_k$(s);
+  var encodedSize = fastEncodedLength(s);
   // Inline function 'kotlin.toULong' call
   var tmp$ret$0 = _ULong___init__impl__c78o9k(fromInt_0(encodedSize));
   var bitWidth = widthInUBits_2(tmp$ret$0);
@@ -33166,6 +34693,15 @@ function runJsFlameChart() {
   println_0();
   FlameChartRunner_getInstance().runAll_4y8j0u_k$(5000);
 }
+function fastDecodeUtf8(bytes, startIndex, endIndex) {
+  return decodeToString(bytes, startIndex, endIndex);
+}
+function fastEncodeUtf8(input, out, offset) {
+  return Utf8_instance.encodeUtf8Array_rn6z3p_k$(input, out, offset, out.length - offset | 0);
+}
+function fastEncodedLength(input) {
+  return Utf8_instance.encodedLength_p8gapj_k$(input);
+}
 //region block: post-declaration
 initMetadataForInterface(CharSequence, 'CharSequence');
 initMetadataForInterface(Comparable, 'Comparable');
@@ -33227,6 +34763,8 @@ protoOf(InternalHashMap).containsAllEntries_m9iqdx_k$ = containsAllEntries;
 initMetadataForClass(InternalHashMap, 'InternalHashMap', InternalHashMap.new_kotlin_collections_InternalHashMap_iefrky_k$, VOID, [InternalMap]);
 initMetadataForClass(LinkedHashMap, 'LinkedHashMap', LinkedHashMap.new_kotlin_collections_LinkedHashMap_ga0any_k$, VOID, [HashMap, KtMutableMap]);
 initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet.new_kotlin_collections_LinkedHashSet_ahyf7j_k$, VOID, [HashSet, KtMutableSet]);
+initMetadataForClass(AtomicInt, 'AtomicInt');
+initMetadataForClass(AtomicReference, 'AtomicReference');
 initMetadataForClass(BaseOutput, 'BaseOutput');
 initMetadataForClass(NodeJsOutput, 'NodeJsOutput');
 initMetadataForClass(BufferedOutput, 'BufferedOutput', BufferedOutput);
@@ -33635,10 +35173,11 @@ initMetadataForClass(Vector$iterator$1);
 initMetadataForClass(Vector, 'Vector', VOID, VOID, [Collection, Sized]);
 initMetadataForClass(TypedVector, 'TypedVector');
 initMetadataForClass(Key_1, 'Key');
+initMetadataForClass(Map$entries$1$iterator$1);
 initMetadataForClass(Entry_0, 'Entry', VOID, VOID, [Entry]);
+initMetadataForClass(Map$entries$1);
 initMetadataForClass(Map_0, 'Map', VOID, VOID, [Sized, KtMap]);
 initMetadataForCompanion(Companion_32);
-initMetadataForClass(sam$kotlin_Comparator$0_1, 'sam$kotlin_Comparator$0', VOID, VOID, [Comparator, FunctionAdapter]);
 initMetadataForClass(ValueStack, 'ValueStack', ValueStack);
 initMetadataForCompanion(Companion_33);
 initMetadataForClass(FlexBuffersBuilder, 'FlexBuffersBuilder', FlexBuffersBuilder.new_dev_shibasis_reaktor_flexbuffer_flatbuffers_FlexBuffersBuilder_lbkv07_k$);
@@ -33646,6 +35185,7 @@ initMetadataForClass(BitWidth, 'BitWidth');
 initMetadataForClass(FlexBufferType, 'FlexBufferType');
 initMetadataForClass(Value, 'Value', Value);
 initMetadataForObject(Utf8, 'Utf8');
+initMetadataForClass(PerPlatformPool, 'PerPlatformPool');
 //endregion
 //region block: init
 Companion_instance_0 = new Companion_0();

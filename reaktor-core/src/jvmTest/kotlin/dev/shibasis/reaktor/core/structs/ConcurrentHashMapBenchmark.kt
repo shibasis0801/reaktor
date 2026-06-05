@@ -10,6 +10,41 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+private interface ChmAdapter<K, V> {
+    fun put(key: K, value: V): V?
+    fun get(key: K): V?
+    fun remove(key: K): V?
+    fun size(): Int
+    val name: String
+}
+
+private class ReaktorChmAdapter : ChmAdapter<String, Int> {
+    val map = dev.shibasis.reaktor.core.structs.ConcurrentHashMap<String, Int>()
+    override fun put(key: String, value: Int) = map.put(key, value)
+    override fun get(key: String) = map.get(key)
+    override fun remove(key: String) = map.remove(key)
+    override fun size() = map.size
+    override val name = "Reaktor CHM"
+}
+
+private class JavaChmAdapter : ChmAdapter<String, Int> {
+    val map = JavaCHM<String, Int>()
+    override fun put(key: String, value: Int) = map.put(key, value)
+    override fun get(key: String) = map.get(key)
+    override fun remove(key: String) = map.remove(key)
+    override fun size() = map.size
+    override val name = "Java CHM"
+}
+
+private class SyncHashChmAdapter : ChmAdapter<String, Int> {
+    val map: MutableMap<String, Int> = Collections.synchronizedMap(HashMap())
+    override fun put(key: String, value: Int) = map.put(key, value)
+    override fun get(key: String) = map.get(key)
+    override fun remove(key: String) = map.remove(key)
+    override fun size() = map.size
+    override val name = "Synchronized HashMap"
+}
+
 /**
  * Comparative benchmarks: ReaktorConcurrentHashMap vs java.util.concurrent.ConcurrentHashMap
  * vs synchronized HashMap.
@@ -23,49 +58,12 @@ class ConcurrentHashMapBenchmark {
     private val benchOps = 500_000
     private val threadCounts = listOf(1, 4, 8)
 
-    // ─── Adapters to unify the three map types under one interface ───
-
-    private interface MapAdapter<K, V> {
-        fun put(key: K, value: V): V?
-        fun get(key: K): V?
-        fun remove(key: K): V?
-        fun size(): Int
-        val name: String
-    }
-
-    private class ReaktorAdapter : MapAdapter<String, Int> {
-        val map = dev.shibasis.reaktor.core.structs.ConcurrentHashMap<String, Int>()
-        override fun put(key: String, value: Int) = map.put(key, value)
-        override fun get(key: String) = map.get(key)
-        override fun remove(key: String) = map.remove(key)
-        override fun size() = map.size
-        override val name = "Reaktor CHM"
-    }
-
-    private class JavaAdapter : MapAdapter<String, Int> {
-        val map = JavaCHM<String, Int>()
-        override fun put(key: String, value: Int) = map.put(key, value)
-        override fun get(key: String) = map.get(key)
-        override fun remove(key: String) = map.remove(key)
-        override fun size() = map.size
-        override val name = "Java CHM"
-    }
-
-    private class SyncHashMapAdapter : MapAdapter<String, Int> {
-        val map: MutableMap<String, Int> = Collections.synchronizedMap(HashMap())
-        override fun put(key: String, value: Int) = map.put(key, value)
-        override fun get(key: String) = map.get(key)
-        override fun remove(key: String) = map.remove(key)
-        override fun size() = map.size
-        override val name = "Synchronized HashMap"
-    }
-
     // ─── Sequential benchmarks ───
 
     @Test
     fun sequentialPutThroughput() {
         val results = mutableListOf<String>()
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (factory in maps) {
             // warmup
@@ -88,7 +86,7 @@ class ConcurrentHashMapBenchmark {
     @Test
     fun sequentialGetThroughput() {
         val results = mutableListOf<String>()
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (factory in maps) {
             val m = factory()
@@ -111,7 +109,7 @@ class ConcurrentHashMapBenchmark {
     @Test
     fun sequentialMixedReadWrite() {
         val results = mutableListOf<String>()
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (factory in maps) {
             val m = factory()
@@ -142,7 +140,7 @@ class ConcurrentHashMapBenchmark {
     @Test
     fun concurrentPutThroughput() {
         println("\n=== Concurrent Put ($benchOps ops total) ===")
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (threads in threadCounts) {
             println("  --- $threads threads ---")
@@ -164,7 +162,7 @@ class ConcurrentHashMapBenchmark {
     @Test
     fun concurrentGetThroughput() {
         println("\n=== Concurrent Get ($benchOps ops total) ===")
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (threads in threadCounts) {
             println("  --- $threads threads ---")
@@ -184,7 +182,7 @@ class ConcurrentHashMapBenchmark {
     @Test
     fun concurrentMixedReadWrite() {
         println("\n=== Concurrent Mixed 80/10/10 ($benchOps ops total) ===")
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (threads in threadCounts) {
             println("  --- $threads threads ---")
@@ -209,7 +207,7 @@ class ConcurrentHashMapBenchmark {
     fun concurrentHighContention() {
         val ops = 200_000
         println("\n=== Concurrent High Contention — 8 threads, 100 keys ($ops ops) ===")
-        val maps = listOf(::ReaktorAdapter, ::JavaAdapter, ::SyncHashMapAdapter)
+        val maps = listOf(::ReaktorChmAdapter, ::JavaChmAdapter, ::SyncHashChmAdapter)
 
         for (factory in maps) {
             val m = factory()
