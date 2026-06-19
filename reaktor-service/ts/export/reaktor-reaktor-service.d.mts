@@ -1,0 +1,747 @@
+type Nullable<T> = T | null | undefined
+declare function KtSingleton<T>(): T & (abstract new() => any);
+export declare interface KtList<E> /* extends Collection<E> */ {
+    asJsReadonlyArrayView(): ReadonlyArray<E>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtList": unique symbol;
+    };
+}
+export declare namespace KtList {
+    function fromJsArray<E>(array: ReadonlyArray<E>): KtList<E>;
+}
+export declare interface KtMutableMap<K, V> /* extends KtMap<K, V> */ {
+    asJsMapView(): Map<K, V>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "kotlin.collections.KtMutableMap": unique symbol;
+    };
+}
+export declare namespace KtMutableMap {
+    function fromJsMap<K, V>(map: ReadonlyMap<K, V>): KtMutableMap<K, V>;
+}
+export declare class Pair<A, B> /* implements Serializable */ {
+    constructor(first: A, second: B);
+    get first(): A;
+    get second(): B;
+    toString(): string;
+    copy(first?: A, second?: B): Pair<A, B>;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace Pair {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <A, B>() => Pair<A, B>;
+    }
+}
+export declare abstract class StatusCode {
+    private constructor();
+    static get CONTINUE(): StatusCode & {
+        get name(): "CONTINUE";
+        get ordinal(): 0;
+    };
+    static get SWITCHING_PROTOCOLS(): StatusCode & {
+        get name(): "SWITCHING_PROTOCOLS";
+        get ordinal(): 1;
+    };
+    static get PROCESSING(): StatusCode & {
+        get name(): "PROCESSING";
+        get ordinal(): 2;
+    };
+    static get OK(): StatusCode & {
+        get name(): "OK";
+        get ordinal(): 3;
+    };
+    static get CREATED(): StatusCode & {
+        get name(): "CREATED";
+        get ordinal(): 4;
+    };
+    static get ACCEPTED(): StatusCode & {
+        get name(): "ACCEPTED";
+        get ordinal(): 5;
+    };
+    static get NON_AUTHORITATIVE_INFORMATION(): StatusCode & {
+        get name(): "NON_AUTHORITATIVE_INFORMATION";
+        get ordinal(): 6;
+    };
+    static get NO_CONTENT(): StatusCode & {
+        get name(): "NO_CONTENT";
+        get ordinal(): 7;
+    };
+    static get RESET_CONTENT(): StatusCode & {
+        get name(): "RESET_CONTENT";
+        get ordinal(): 8;
+    };
+    static get PARTIAL_CONTENT(): StatusCode & {
+        get name(): "PARTIAL_CONTENT";
+        get ordinal(): 9;
+    };
+    static get MULTI_STATUS(): StatusCode & {
+        get name(): "MULTI_STATUS";
+        get ordinal(): 10;
+    };
+    static get ALREADY_REPORTED(): StatusCode & {
+        get name(): "ALREADY_REPORTED";
+        get ordinal(): 11;
+    };
+    static get IM_USED(): StatusCode & {
+        get name(): "IM_USED";
+        get ordinal(): 12;
+    };
+    static get MULTIPLE_CHOICES(): StatusCode & {
+        get name(): "MULTIPLE_CHOICES";
+        get ordinal(): 13;
+    };
+    static get MOVED_PERMANENTLY(): StatusCode & {
+        get name(): "MOVED_PERMANENTLY";
+        get ordinal(): 14;
+    };
+    static get FOUND(): StatusCode & {
+        get name(): "FOUND";
+        get ordinal(): 15;
+    };
+    static get SEE_OTHER(): StatusCode & {
+        get name(): "SEE_OTHER";
+        get ordinal(): 16;
+    };
+    static get NOT_MODIFIED(): StatusCode & {
+        get name(): "NOT_MODIFIED";
+        get ordinal(): 17;
+    };
+    static get USE_PROXY(): StatusCode & {
+        get name(): "USE_PROXY";
+        get ordinal(): 18;
+    };
+    static get TEMPORARY_REDIRECT(): StatusCode & {
+        get name(): "TEMPORARY_REDIRECT";
+        get ordinal(): 19;
+    };
+    static get PERMANENT_REDIRECT(): StatusCode & {
+        get name(): "PERMANENT_REDIRECT";
+        get ordinal(): 20;
+    };
+    static get BAD_REQUEST(): StatusCode & {
+        get name(): "BAD_REQUEST";
+        get ordinal(): 21;
+    };
+    static get UNAUTHORIZED(): StatusCode & {
+        get name(): "UNAUTHORIZED";
+        get ordinal(): 22;
+    };
+    static get PAYMENT_REQUIRED(): StatusCode & {
+        get name(): "PAYMENT_REQUIRED";
+        get ordinal(): 23;
+    };
+    static get FORBIDDEN(): StatusCode & {
+        get name(): "FORBIDDEN";
+        get ordinal(): 24;
+    };
+    static get NOT_FOUND(): StatusCode & {
+        get name(): "NOT_FOUND";
+        get ordinal(): 25;
+    };
+    static get METHOD_NOT_ALLOWED(): StatusCode & {
+        get name(): "METHOD_NOT_ALLOWED";
+        get ordinal(): 26;
+    };
+    static get NOT_ACCEPTABLE(): StatusCode & {
+        get name(): "NOT_ACCEPTABLE";
+        get ordinal(): 27;
+    };
+    static get PROXY_AUTHENTICATION_REQUIRED(): StatusCode & {
+        get name(): "PROXY_AUTHENTICATION_REQUIRED";
+        get ordinal(): 28;
+    };
+    static get REQUEST_TIMEOUT(): StatusCode & {
+        get name(): "REQUEST_TIMEOUT";
+        get ordinal(): 29;
+    };
+    static get CONFLICT(): StatusCode & {
+        get name(): "CONFLICT";
+        get ordinal(): 30;
+    };
+    static get GONE(): StatusCode & {
+        get name(): "GONE";
+        get ordinal(): 31;
+    };
+    static get LENGTH_REQUIRED(): StatusCode & {
+        get name(): "LENGTH_REQUIRED";
+        get ordinal(): 32;
+    };
+    static get PRECONDITION_FAILED(): StatusCode & {
+        get name(): "PRECONDITION_FAILED";
+        get ordinal(): 33;
+    };
+    static get PAYLOAD_TOO_LARGE(): StatusCode & {
+        get name(): "PAYLOAD_TOO_LARGE";
+        get ordinal(): 34;
+    };
+    static get URI_TOO_LONG(): StatusCode & {
+        get name(): "URI_TOO_LONG";
+        get ordinal(): 35;
+    };
+    static get UNSUPPORTED_MEDIA_TYPE(): StatusCode & {
+        get name(): "UNSUPPORTED_MEDIA_TYPE";
+        get ordinal(): 36;
+    };
+    static get RANGE_NOT_SATISFIABLE(): StatusCode & {
+        get name(): "RANGE_NOT_SATISFIABLE";
+        get ordinal(): 37;
+    };
+    static get EXPECTATION_FAILED(): StatusCode & {
+        get name(): "EXPECTATION_FAILED";
+        get ordinal(): 38;
+    };
+    static get IM_A_TEAPOT(): StatusCode & {
+        get name(): "IM_A_TEAPOT";
+        get ordinal(): 39;
+    };
+    static get MISDIRECTED_REQUEST(): StatusCode & {
+        get name(): "MISDIRECTED_REQUEST";
+        get ordinal(): 40;
+    };
+    static get UNPROCESSABLE_ENTITY(): StatusCode & {
+        get name(): "UNPROCESSABLE_ENTITY";
+        get ordinal(): 41;
+    };
+    static get LOCKED(): StatusCode & {
+        get name(): "LOCKED";
+        get ordinal(): 42;
+    };
+    static get FAILED_DEPENDENCY(): StatusCode & {
+        get name(): "FAILED_DEPENDENCY";
+        get ordinal(): 43;
+    };
+    static get TOO_EARLY(): StatusCode & {
+        get name(): "TOO_EARLY";
+        get ordinal(): 44;
+    };
+    static get UPGRADE_REQUIRED(): StatusCode & {
+        get name(): "UPGRADE_REQUIRED";
+        get ordinal(): 45;
+    };
+    static get PRECONDITION_REQUIRED(): StatusCode & {
+        get name(): "PRECONDITION_REQUIRED";
+        get ordinal(): 46;
+    };
+    static get TOO_MANY_REQUESTS(): StatusCode & {
+        get name(): "TOO_MANY_REQUESTS";
+        get ordinal(): 47;
+    };
+    static get REQUEST_HEADER_FIELDS_TOO_LARGE(): StatusCode & {
+        get name(): "REQUEST_HEADER_FIELDS_TOO_LARGE";
+        get ordinal(): 48;
+    };
+    static get UNAVAILABLE_FOR_LEGAL_REASONS(): StatusCode & {
+        get name(): "UNAVAILABLE_FOR_LEGAL_REASONS";
+        get ordinal(): 49;
+    };
+    static get INTERNAL_SERVER_ERROR(): StatusCode & {
+        get name(): "INTERNAL_SERVER_ERROR";
+        get ordinal(): 50;
+    };
+    static get NOT_IMPLEMENTED(): StatusCode & {
+        get name(): "NOT_IMPLEMENTED";
+        get ordinal(): 51;
+    };
+    static get BAD_GATEWAY(): StatusCode & {
+        get name(): "BAD_GATEWAY";
+        get ordinal(): 52;
+    };
+    static get SERVICE_UNAVAILABLE(): StatusCode & {
+        get name(): "SERVICE_UNAVAILABLE";
+        get ordinal(): 53;
+    };
+    static get GATEWAY_TIMEOUT(): StatusCode & {
+        get name(): "GATEWAY_TIMEOUT";
+        get ordinal(): 54;
+    };
+    static get HTTP_VERSION_NOT_SUPPORTED(): StatusCode & {
+        get name(): "HTTP_VERSION_NOT_SUPPORTED";
+        get ordinal(): 55;
+    };
+    static get VARIANT_ALSO_NEGOTIATES(): StatusCode & {
+        get name(): "VARIANT_ALSO_NEGOTIATES";
+        get ordinal(): 56;
+    };
+    static get INSUFFICIENT_STORAGE(): StatusCode & {
+        get name(): "INSUFFICIENT_STORAGE";
+        get ordinal(): 57;
+    };
+    static get LOOP_DETECTED(): StatusCode & {
+        get name(): "LOOP_DETECTED";
+        get ordinal(): 58;
+    };
+    static get NOT_EXTENDED(): StatusCode & {
+        get name(): "NOT_EXTENDED";
+        get ordinal(): 59;
+    };
+    static get NETWORK_AUTHENTICATION_REQUIRED(): StatusCode & {
+        get name(): "NETWORK_AUTHENTICATION_REQUIRED";
+        get ordinal(): 60;
+    };
+    get name(): "CONTINUE" | "SWITCHING_PROTOCOLS" | "PROCESSING" | "OK" | "CREATED" | "ACCEPTED" | "NON_AUTHORITATIVE_INFORMATION" | "NO_CONTENT" | "RESET_CONTENT" | "PARTIAL_CONTENT" | "MULTI_STATUS" | "ALREADY_REPORTED" | "IM_USED" | "MULTIPLE_CHOICES" | "MOVED_PERMANENTLY" | "FOUND" | "SEE_OTHER" | "NOT_MODIFIED" | "USE_PROXY" | "TEMPORARY_REDIRECT" | "PERMANENT_REDIRECT" | "BAD_REQUEST" | "UNAUTHORIZED" | "PAYMENT_REQUIRED" | "FORBIDDEN" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "NOT_ACCEPTABLE" | "PROXY_AUTHENTICATION_REQUIRED" | "REQUEST_TIMEOUT" | "CONFLICT" | "GONE" | "LENGTH_REQUIRED" | "PRECONDITION_FAILED" | "PAYLOAD_TOO_LARGE" | "URI_TOO_LONG" | "UNSUPPORTED_MEDIA_TYPE" | "RANGE_NOT_SATISFIABLE" | "EXPECTATION_FAILED" | "IM_A_TEAPOT" | "MISDIRECTED_REQUEST" | "UNPROCESSABLE_ENTITY" | "LOCKED" | "FAILED_DEPENDENCY" | "TOO_EARLY" | "UPGRADE_REQUIRED" | "PRECONDITION_REQUIRED" | "TOO_MANY_REQUESTS" | "REQUEST_HEADER_FIELDS_TOO_LARGE" | "UNAVAILABLE_FOR_LEGAL_REASONS" | "INTERNAL_SERVER_ERROR" | "NOT_IMPLEMENTED" | "BAD_GATEWAY" | "SERVICE_UNAVAILABLE" | "GATEWAY_TIMEOUT" | "HTTP_VERSION_NOT_SUPPORTED" | "VARIANT_ALSO_NEGOTIATES" | "INSUFFICIENT_STORAGE" | "LOOP_DETECTED" | "NOT_EXTENDED" | "NETWORK_AUTHENTICATION_REQUIRED";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60;
+    get code(): number;
+    static values(): Array<StatusCode>;
+    static valueOf(value: string): StatusCode;
+}
+export declare namespace StatusCode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => StatusCode;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor /* implements SerializerFactory */ {
+                invoke(code: number): StatusCode;
+                private constructor();
+            }
+        }
+    }
+}
+export declare abstract class JsResult<T> {
+    protected constructor(status: string);
+    get status(): string;
+}
+export declare namespace JsResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => JsResult<T>;
+    }
+}
+export declare class JsSuccessResult<T> extends JsResult.$metadata$.constructor<T> {
+    constructor(value: T);
+    get value(): T;
+    copy(value?: T): JsSuccessResult<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace JsSuccessResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => JsSuccessResult<T>;
+    }
+}
+export declare class JsFailureResult<T> extends JsResult.$metadata$.constructor<T> {
+    constructor(error: Error);
+    get error(): Error;
+    copy(error?: Error): JsFailureResult<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace JsFailureResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => JsFailureResult<T>;
+    }
+}
+export declare function getPatnaikUserAgent(): string;
+/** @deprecated  */
+export declare const initHook: { get(): any; };
+export declare abstract class FileAdapter<Controller> /* extends Adapter<Controller> */ {
+    constructor(controller: Controller);
+    abstract get cacheDirectory(): string;
+    abstract get documentDirectory(): string;
+    resolvePath(fileName: string, directory?: string): string;
+    bufferedSink(path: string, actions: (p0: any/* Sink */) => void): Promise<void>;
+    bufferedSource(path: string, actions: (p0: any/* Source */) => void): Promise<void>;
+    exists(path: string): Promise<boolean>;
+    delete(path: string): Promise<void>;
+    copy(sourcePath: string, destPath: string): Promise<void>;
+    readBinaryFile(path: string): Promise<Nullable<Int8Array>>;
+    readTextFile(path: string): Promise<Nullable<string>>;
+    writeTextFile(path: string, data: string): Promise<void>;
+    writeBinaryFile(path: string, data: Int8Array): Promise<void>;
+}
+export declare namespace FileAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <Controller>() => FileAdapter<Controller>;
+    }
+}
+export declare class DeleteHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace DeleteHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => DeleteHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): DeleteHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class GetHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace GetHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => GetHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): GetHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class HeadHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace HeadHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => HeadHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): HeadHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class OptionsHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace OptionsHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => OptionsHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): OptionsHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PatchHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PatchHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PatchHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PatchHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PostHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PostHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PostHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PostHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PutHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PutHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PutHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PutHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class Request {
+    constructor(headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+}
+export declare namespace Request {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Request;
+    }
+}
+export declare abstract class RequestHandler<In extends Request, Out extends Response> {
+    protected constructor(endpoint: ServiceEndpoint, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    get endpoint(): ServiceEndpoint;
+    get requestSerializer(): any/* KSerializer<In> */;
+    get responseSerializer(): any/* KSerializer<Out> */;
+    get handler(): any /*Suspend functions are not supported*/;
+    get transport(): ServiceTransport;
+    get method(): HttpMethod;
+    get route(): string;
+    get routePattern(): any/* RoutePattern */;
+    url(request: In, extraPathParams: Array<Pair<string, string>>): string;
+    invoke(request: In): Promise<Out>;
+}
+export declare namespace RequestHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => RequestHandler<In, Out>;
+    }
+    interface Factory {
+        create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+        invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+        readonly __doNotUseOrImplementIt: {
+            readonly "dev.shibasis.reaktor.service.RequestHandler.Factory": unique symbol;
+        };
+    }
+}
+export declare class Response {
+    constructor(headers?: KtMutableMap<string, string>, statusCode?: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    get statusCode(): StatusCode;
+    get transportHeaders(): KtMutableMap<string, string>;
+    get transportStatusCode(): StatusCode;
+    get isSuccess(): boolean;
+}
+export declare namespace Response {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Response;
+    }
+}
+export declare abstract class Service {
+    constructor(baseUrl?: string, httpClient?: any/* HttpClient */);
+    get httpClient(): any/* HttpClient */;
+    get handlers(): KtList<RequestHandler<any /*UnknownType **/, any /*UnknownType **/>>/* ArrayList<RequestHandler<UnknownType *, UnknownType *>> */;
+    get baseUrl(): string;
+    use(interceptor: Array<any/* ServiceInterceptor */>): Service;
+    protected serviceInterceptors(): KtList<any/* ServiceInterceptor */>;
+    server<In extends Request, Out extends Response>(factory: RequestHandler.Factory, endpoint: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+    client<In extends Request, Out extends Response>(factory: RequestHandler.Factory, route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */): RequestHandler<In, Out>;
+}
+export declare namespace Service {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Service;
+    }
+}
+export declare abstract class ServiceTransport {
+    private constructor();
+    static get HTTP(): ServiceTransport & {
+        get name(): "HTTP";
+        get ordinal(): 0;
+    };
+    static get LOCAL(): ServiceTransport & {
+        get name(): "LOCAL";
+        get ordinal(): 1;
+    };
+    static get PEER(): ServiceTransport & {
+        get name(): "PEER";
+        get ordinal(): 2;
+    };
+    static get PUBSUB(): ServiceTransport & {
+        get name(): "PUBSUB";
+        get ordinal(): 3;
+    };
+    static get QUEUE(): ServiceTransport & {
+        get name(): "QUEUE";
+        get ordinal(): 4;
+    };
+    static get WORKFLOW(): ServiceTransport & {
+        get name(): "WORKFLOW";
+        get ordinal(): 5;
+    };
+    get name(): "HTTP" | "LOCAL" | "PEER" | "PUBSUB" | "QUEUE" | "WORKFLOW";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<ServiceTransport>;
+    static valueOf(value: string): ServiceTransport;
+}
+export declare namespace ServiceTransport {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceTransport;
+    }
+}
+export declare class ServiceEndpoint {
+    constructor(transport: ServiceTransport, address: string, operation?: string, method?: Nullable<HttpMethod>);
+    get transport(): ServiceTransport;
+    get address(): string;
+    get operation(): string;
+    get method(): Nullable<HttpMethod>;
+    get portKey(): string;
+    get portType(): string;
+    copy(transport?: ServiceTransport, address?: string, operation?: string, method?: Nullable<HttpMethod>): ServiceEndpoint;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ServiceEndpoint {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceEndpoint;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                http(method: HttpMethod, route: string, operation?: string): ServiceEndpoint;
+                local(operation: string): ServiceEndpoint;
+                peer(operation: string): ServiceEndpoint;
+                pubSub(topic: string): ServiceEndpoint;
+                queue(name: string): ServiceEndpoint;
+                workflow(name: string): ServiceEndpoint;
+                private constructor();
+            }
+        }
+    }
+}
+export declare abstract class HttpMethod {
+    private constructor();
+    static get GET(): HttpMethod & {
+        get name(): "GET";
+        get ordinal(): 0;
+    };
+    static get POST(): HttpMethod & {
+        get name(): "POST";
+        get ordinal(): 1;
+    };
+    static get PUT(): HttpMethod & {
+        get name(): "PUT";
+        get ordinal(): 2;
+    };
+    static get DELETE(): HttpMethod & {
+        get name(): "DELETE";
+        get ordinal(): 3;
+    };
+    static get PATCH(): HttpMethod & {
+        get name(): "PATCH";
+        get ordinal(): 4;
+    };
+    static get OPTIONS(): HttpMethod & {
+        get name(): "OPTIONS";
+        get ordinal(): 5;
+    };
+    static get HEAD(): HttpMethod & {
+        get name(): "HEAD";
+        get ordinal(): 6;
+    };
+    get name(): "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    toKtorMethod(): any/* HttpMethod */;
+    static values(): Array<HttpMethod>;
+    static valueOf(value: string): HttpMethod;
+}
+export declare namespace HttpMethod {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => HttpMethod;
+    }
+}
+export declare abstract class Environment {
+    private constructor();
+    static get STAGE(): Environment & {
+        get name(): "STAGE";
+        get ordinal(): 0;
+    };
+    static get PROD(): Environment & {
+        get name(): "PROD";
+        get ordinal(): 1;
+    };
+    get name(): "STAGE" | "PROD";
+    get ordinal(): 0 | 1;
+    static values(): Array<Environment>;
+    static valueOf(value: string): Environment;
+}
+export declare namespace Environment {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Environment;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                get Header(): string;
+                invoke(value: string): Environment;
+                private constructor();
+            }
+        }
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@reaktor/performance-lighthouse",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standard Lighthouse runner for reaktor-performance: config -> run -> map LHR -> ReaktorPerformanceReport -> budgets -> assert. Heavy node deps live here so @reaktor/performance (../ts) stays types-only.",
+  "bin": {
+    "reaktor-lighthouse": "./lighthouse-report.mjs"
+  },
+  "scripts": {
+    "self-test": "node lighthouse-report.mjs --self-test fixtures/lighthouse-sample.json"
+  },
+  "dependencies": {
+    "chrome-launcher": "^1.1.2",
+    "lighthouse": "^12.2.1"
+  }
+}

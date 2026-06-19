@@ -369,6 +369,409 @@ export declare namespace JsFailureResult {
     }
 }
 export declare function getPatnaikUserAgent(): string;
+/** @deprecated  */
+export declare const initHook: { get(): any; };
+export declare abstract class FileAdapter<Controller> /* extends Adapter<Controller> */ {
+    constructor(controller: Controller);
+    abstract get cacheDirectory(): string;
+    abstract get documentDirectory(): string;
+    resolvePath(fileName: string, directory?: string): string;
+    bufferedSink(path: string, actions: (p0: any/* Sink */) => void): Promise<void>;
+    bufferedSource(path: string, actions: (p0: any/* Source */) => void): Promise<void>;
+    exists(path: string): Promise<boolean>;
+    delete(path: string): Promise<void>;
+    copy(sourcePath: string, destPath: string): Promise<void>;
+    readBinaryFile(path: string): Promise<Nullable<Int8Array>>;
+    readTextFile(path: string): Promise<Nullable<string>>;
+    writeTextFile(path: string, data: string): Promise<void>;
+    writeBinaryFile(path: string, data: Int8Array): Promise<void>;
+}
+export declare namespace FileAdapter {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <Controller>() => FileAdapter<Controller>;
+    }
+}
+export declare class DeleteHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace DeleteHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => DeleteHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): DeleteHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class GetHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace GetHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => GetHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): GetHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class HeadHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace HeadHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => HeadHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): HeadHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class OptionsHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace OptionsHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => OptionsHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): OptionsHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PatchHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PatchHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PatchHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PatchHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PostHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PostHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PostHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PostHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class PutHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
+    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+}
+export declare namespace PutHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => PutHandler<In, Out>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor implements RequestHandler.Factory {
+                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PutHandler<In, Out>;
+                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
+                private constructor();
+            }
+        }
+    }
+}
+export declare class Request {
+    constructor(headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+}
+export declare namespace Request {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Request;
+    }
+}
+export declare abstract class RequestHandler<In extends Request, Out extends Response> {
+    protected constructor(endpoint: ServiceEndpoint, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
+    get endpoint(): ServiceEndpoint;
+    get requestSerializer(): any/* KSerializer<In> */;
+    get responseSerializer(): any/* KSerializer<Out> */;
+    get handler(): any /*Suspend functions are not supported*/;
+    get transport(): ServiceTransport;
+    get method(): HttpMethod;
+    get route(): string;
+    get routePattern(): any/* RoutePattern */;
+    url(request: In, extraPathParams: Array<Pair<string, string>>): string;
+    invoke(request: In): Promise<Out>;
+}
+export declare namespace RequestHandler {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <In extends Request, Out extends Response>() => RequestHandler<In, Out>;
+    }
+    interface Factory {
+        create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+        invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+        readonly __doNotUseOrImplementIt: {
+            readonly "dev.shibasis.reaktor.service.RequestHandler.Factory": unique symbol;
+        };
+    }
+}
+export declare class Response {
+    constructor(headers?: KtMutableMap<string, string>, statusCode?: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    get statusCode(): StatusCode;
+    get transportHeaders(): KtMutableMap<string, string>;
+    get transportStatusCode(): StatusCode;
+    get isSuccess(): boolean;
+}
+export declare namespace Response {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Response;
+    }
+}
+export declare abstract class Service {
+    constructor(baseUrl?: string, httpClient?: any/* HttpClient */);
+    get httpClient(): any/* HttpClient */;
+    get handlers(): KtMutableList<RequestHandler<any /*UnknownType **/, any /*UnknownType **/>>/* ArrayList<RequestHandler<UnknownType *, UnknownType *>> */;
+    get baseUrl(): string;
+    use(interceptor: Array<any/* ServiceInterceptor */>): Service;
+    protected serviceInterceptors(): KtList<any/* ServiceInterceptor */>;
+    server<In extends Request, Out extends Response>(factory: RequestHandler.Factory, endpoint: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
+    client<In extends Request, Out extends Response>(factory: RequestHandler.Factory, route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */): RequestHandler<In, Out>;
+}
+export declare namespace Service {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Service;
+    }
+}
+export declare abstract class ServiceTransport {
+    private constructor();
+    static get HTTP(): ServiceTransport & {
+        get name(): "HTTP";
+        get ordinal(): 0;
+    };
+    static get LOCAL(): ServiceTransport & {
+        get name(): "LOCAL";
+        get ordinal(): 1;
+    };
+    static get PEER(): ServiceTransport & {
+        get name(): "PEER";
+        get ordinal(): 2;
+    };
+    static get PUBSUB(): ServiceTransport & {
+        get name(): "PUBSUB";
+        get ordinal(): 3;
+    };
+    static get QUEUE(): ServiceTransport & {
+        get name(): "QUEUE";
+        get ordinal(): 4;
+    };
+    static get WORKFLOW(): ServiceTransport & {
+        get name(): "WORKFLOW";
+        get ordinal(): 5;
+    };
+    get name(): "HTTP" | "LOCAL" | "PEER" | "PUBSUB" | "QUEUE" | "WORKFLOW";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<ServiceTransport>;
+    static valueOf(value: string): ServiceTransport;
+}
+export declare namespace ServiceTransport {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceTransport;
+    }
+}
+export declare class ServiceEndpoint {
+    constructor(transport: ServiceTransport, address: string, operation?: string, method?: Nullable<HttpMethod>);
+    get transport(): ServiceTransport;
+    get address(): string;
+    get operation(): string;
+    get method(): Nullable<HttpMethod>;
+    get portKey(): string;
+    get portType(): string;
+    copy(transport?: ServiceTransport, address?: string, operation?: string, method?: Nullable<HttpMethod>): ServiceEndpoint;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ServiceEndpoint {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceEndpoint;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                http(method: HttpMethod, route: string, operation?: string): ServiceEndpoint;
+                local(operation: string): ServiceEndpoint;
+                peer(operation: string): ServiceEndpoint;
+                pubSub(topic: string): ServiceEndpoint;
+                queue(name: string): ServiceEndpoint;
+                workflow(name: string): ServiceEndpoint;
+                private constructor();
+            }
+        }
+    }
+}
+export declare abstract class HttpMethod {
+    private constructor();
+    static get GET(): HttpMethod & {
+        get name(): "GET";
+        get ordinal(): 0;
+    };
+    static get POST(): HttpMethod & {
+        get name(): "POST";
+        get ordinal(): 1;
+    };
+    static get PUT(): HttpMethod & {
+        get name(): "PUT";
+        get ordinal(): 2;
+    };
+    static get DELETE(): HttpMethod & {
+        get name(): "DELETE";
+        get ordinal(): 3;
+    };
+    static get PATCH(): HttpMethod & {
+        get name(): "PATCH";
+        get ordinal(): 4;
+    };
+    static get OPTIONS(): HttpMethod & {
+        get name(): "OPTIONS";
+        get ordinal(): 5;
+    };
+    static get HEAD(): HttpMethod & {
+        get name(): "HEAD";
+        get ordinal(): 6;
+    };
+    get name(): "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    toKtorMethod(): any/* HttpMethod */;
+    static values(): Array<HttpMethod>;
+    static valueOf(value: string): HttpMethod;
+}
+export declare namespace HttpMethod {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => HttpMethod;
+    }
+}
+export declare abstract class Environment {
+    private constructor();
+    static get STAGE(): Environment & {
+        get name(): "STAGE";
+        get ordinal(): 0;
+    };
+    static get PROD(): Environment & {
+        get name(): "PROD";
+        get ordinal(): 1;
+    };
+    get name(): "STAGE" | "PROD";
+    get ordinal(): 0 | 1;
+    static values(): Array<Environment>;
+    static valueOf(value: string): Environment;
+}
+export declare namespace Environment {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Environment;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                get Header(): string;
+                invoke(value: string): Environment;
+                private constructor();
+            }
+        }
+    }
+}
 export declare interface Unique {
     readonly id: any/* Uuid */;
     readonly label: string;
@@ -411,10 +814,11 @@ export declare class PortGraph<Self extends PortGraph<Self, N>, N extends PortNo
     constructor(id?: any/* Uuid */, label?: string);
     get id(): any/* Uuid */;
     get label(): string;
-    get nodes(): KtMutableList<N>/* ArrayList<N> */;
+    get nodes(): any/* Collection<N> */;
     attach(node: N): boolean;
     detach(node: N): boolean;
     close(): void;
+    node(id: any/* Uuid */): Nullable<N>;
     toString(): string;
     readonly __doNotUseOrImplementIt: Unique["__doNotUseOrImplementIt"] & Visitable["__doNotUseOrImplementIt"];
 }
@@ -757,1396 +1161,6 @@ export declare namespace HierarchyVisitor {
         const constructor: abstract new () => HierarchyVisitor;
     }
 }
-/** @deprecated  */
-export declare const initHook: { get(): any; };
-export declare abstract class FileAdapter<Controller> /* extends Adapter<Controller> */ {
-    constructor(controller: Controller);
-    abstract get cacheDirectory(): string;
-    abstract get documentDirectory(): string;
-    resolvePath(fileName: string, directory?: string): string;
-    bufferedSink(path: string, actions: (p0: any/* Sink */) => void): Promise<void>;
-    bufferedSource(path: string, actions: (p0: any/* Source */) => void): Promise<void>;
-    exists(path: string): Promise<boolean>;
-    delete(path: string): Promise<void>;
-    copy(sourcePath: string, destPath: string): Promise<void>;
-    readBinaryFile(path: string): Promise<Nullable<Int8Array>>;
-    readTextFile(path: string): Promise<Nullable<string>>;
-    writeTextFile(path: string, data: string): Promise<void>;
-    writeBinaryFile(path: string, data: Int8Array): Promise<void>;
-}
-export declare namespace FileAdapter {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <Controller>() => FileAdapter<Controller>;
-    }
-}
-export declare abstract class ComponentSize {
-    private constructor();
-    static get Small(): ComponentSize & {
-        get name(): "Small";
-        get ordinal(): 0;
-    };
-    static get Medium(): ComponentSize & {
-        get name(): "Medium";
-        get ordinal(): 1;
-    };
-    static get Large(): ComponentSize & {
-        get name(): "Large";
-        get ordinal(): 2;
-    };
-    get name(): "Small" | "Medium" | "Large";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<ComponentSize>;
-    static valueOf(value: string): ComponentSize;
-}
-export declare namespace ComponentSize {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ComponentSize;
-    }
-}
-export declare abstract class ComponentVariant {
-    private constructor();
-    static get Filled(): ComponentVariant & {
-        get name(): "Filled";
-        get ordinal(): 0;
-    };
-    static get Outlined(): ComponentVariant & {
-        get name(): "Outlined";
-        get ordinal(): 1;
-    };
-    static get Text(): ComponentVariant & {
-        get name(): "Text";
-        get ordinal(): 2;
-    };
-    static get Tonal(): ComponentVariant & {
-        get name(): "Tonal";
-        get ordinal(): 3;
-    };
-    static get Elevated(): ComponentVariant & {
-        get name(): "Elevated";
-        get ordinal(): 4;
-    };
-    get name(): "Filled" | "Outlined" | "Text" | "Tonal" | "Elevated";
-    get ordinal(): 0 | 1 | 2 | 3 | 4;
-    static values(): Array<ComponentVariant>;
-    static valueOf(value: string): ComponentVariant;
-}
-export declare namespace ComponentVariant {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ComponentVariant;
-    }
-}
-export declare abstract class ComponentState {
-    private constructor();
-    static get Enabled(): ComponentState & {
-        get name(): "Enabled";
-        get ordinal(): 0;
-    };
-    static get Disabled(): ComponentState & {
-        get name(): "Disabled";
-        get ordinal(): 1;
-    };
-    static get Loading(): ComponentState & {
-        get name(): "Loading";
-        get ordinal(): 2;
-    };
-    get name(): "Enabled" | "Disabled" | "Loading";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<ComponentState>;
-    static valueOf(value: string): ComponentState;
-}
-export declare namespace ComponentState {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ComponentState;
-    }
-}
-export declare abstract class TextRole {
-    private constructor();
-    static get Display(): TextRole & {
-        get name(): "Display";
-        get ordinal(): 0;
-    };
-    static get Headline(): TextRole & {
-        get name(): "Headline";
-        get ordinal(): 1;
-    };
-    static get Title(): TextRole & {
-        get name(): "Title";
-        get ordinal(): 2;
-    };
-    static get Body(): TextRole & {
-        get name(): "Body";
-        get ordinal(): 3;
-    };
-    static get Label(): TextRole & {
-        get name(): "Label";
-        get ordinal(): 4;
-    };
-    static get Caption(): TextRole & {
-        get name(): "Caption";
-        get ordinal(): 5;
-    };
-    get name(): "Display" | "Headline" | "Title" | "Body" | "Label" | "Caption";
-    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
-    static values(): Array<TextRole>;
-    static valueOf(value: string): TextRole;
-}
-export declare namespace TextRole {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => TextRole;
-    }
-}
-export declare abstract class TextSize {
-    private constructor();
-    static get Small(): TextSize & {
-        get name(): "Small";
-        get ordinal(): 0;
-    };
-    static get Medium(): TextSize & {
-        get name(): "Medium";
-        get ordinal(): 1;
-    };
-    static get Large(): TextSize & {
-        get name(): "Large";
-        get ordinal(): 2;
-    };
-    get name(): "Small" | "Medium" | "Large";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<TextSize>;
-    static valueOf(value: string): TextSize;
-}
-export declare namespace TextSize {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => TextSize;
-    }
-}
-export declare const ReaktorUIDemo: { get(): FC<ReaktorUIDemoProps>; };
-export declare abstract class PromiseState {
-    private constructor();
-    static get Initial(): PromiseState & {
-        get name(): "Initial";
-        get ordinal(): 0;
-    };
-    static get Pending(): PromiseState & {
-        get name(): "Pending";
-        get ordinal(): 1;
-    };
-    static get Resolved(): PromiseState & {
-        get name(): "Resolved";
-        get ordinal(): 2;
-    };
-    static get Rejected(): PromiseState & {
-        get name(): "Rejected";
-        get ordinal(): 3;
-    };
-    get name(): "Initial" | "Pending" | "Resolved" | "Rejected";
-    get ordinal(): 0 | 1 | 2 | 3;
-    static values(): Array<PromiseState>;
-    static valueOf(value: string): PromiseState;
-}
-export declare namespace PromiseState {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => PromiseState;
-    }
-}
-export declare class PromiseResult<T> {
-    constructor(state: PromiseState, data?: Nullable<T>, error?: Nullable<Error>);
-    get state(): PromiseState;
-    get data(): Nullable<T>;
-    get error(): Nullable<Error>;
-    copy(state?: PromiseState, data?: Nullable<T>, error?: Nullable<Error>): PromiseResult<T>;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace PromiseResult {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <T>() => PromiseResult<T>;
-    }
-}
-export declare function usePromise<T>(dependencies: Array<Nullable<any>>, promiseFactory: () => Nullable<Promise<T>>): PromiseResult<T>;
-export declare class WebColorScheme {
-    constructor(background: string, surface: string, surfaceVariant: string, surfaceContainer: string, surfaceContainerHigh: string, surfaceContainerLow: string, onBackground: string, onSurface: string, onSurfaceVariant: string, primary: string, primaryContainer: string, onPrimary: string, onPrimaryContainer: string, secondary: string, secondaryContainer: string, onSecondary: string, onSecondaryContainer: string, tertiary: string, tertiaryContainer: string, onTertiary: string, onTertiaryContainer: string, error: string, errorContainer: string, onError: string, onErrorContainer: string, success: string, onSuccess: string, warning: string, onWarning: string, info: string, onInfo: string, outline: string, outlineVariant: string, scrim: string, shadow: string, inverseSurface: string, inverseOnSurface: string, inversePrimary: string);
-    get background(): string;
-    get surface(): string;
-    get surfaceVariant(): string;
-    get surfaceContainer(): string;
-    get surfaceContainerHigh(): string;
-    get surfaceContainerLow(): string;
-    get onBackground(): string;
-    get onSurface(): string;
-    get onSurfaceVariant(): string;
-    get primary(): string;
-    get primaryContainer(): string;
-    get onPrimary(): string;
-    get onPrimaryContainer(): string;
-    get secondary(): string;
-    get secondaryContainer(): string;
-    get onSecondary(): string;
-    get onSecondaryContainer(): string;
-    get tertiary(): string;
-    get tertiaryContainer(): string;
-    get onTertiary(): string;
-    get onTertiaryContainer(): string;
-    get error(): string;
-    get errorContainer(): string;
-    get onError(): string;
-    get onErrorContainer(): string;
-    get success(): string;
-    get onSuccess(): string;
-    get warning(): string;
-    get onWarning(): string;
-    get info(): string;
-    get onInfo(): string;
-    get outline(): string;
-    get outlineVariant(): string;
-    get scrim(): string;
-    get shadow(): string;
-    get inverseSurface(): string;
-    get inverseOnSurface(): string;
-    get inversePrimary(): string;
-    copy(background?: string, surface?: string, surfaceVariant?: string, surfaceContainer?: string, surfaceContainerHigh?: string, surfaceContainerLow?: string, onBackground?: string, onSurface?: string, onSurfaceVariant?: string, primary?: string, primaryContainer?: string, onPrimary?: string, onPrimaryContainer?: string, secondary?: string, secondaryContainer?: string, onSecondary?: string, onSecondaryContainer?: string, tertiary?: string, tertiaryContainer?: string, onTertiary?: string, onTertiaryContainer?: string, error?: string, errorContainer?: string, onError?: string, onErrorContainer?: string, success?: string, onSuccess?: string, warning?: string, onWarning?: string, info?: string, onInfo?: string, outline?: string, outlineVariant?: string, scrim?: string, shadow?: string, inverseSurface?: string, inverseOnSurface?: string, inversePrimary?: string): WebColorScheme;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebColorScheme {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebColorScheme;
-    }
-}
-export declare class WebTextStyle {
-    constructor(fontSize: string, lineHeight: string, fontWeight: string, letterSpacing: string);
-    get fontSize(): string;
-    get lineHeight(): string;
-    get fontWeight(): string;
-    get letterSpacing(): string;
-    copy(fontSize?: string, lineHeight?: string, fontWeight?: string, letterSpacing?: string): WebTextStyle;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebTextStyle {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebTextStyle;
-    }
-}
-export declare class WebTypography {
-    constructor(displayLarge: WebTextStyle, displayMedium: WebTextStyle, displaySmall: WebTextStyle, headlineLarge: WebTextStyle, headlineMedium: WebTextStyle, headlineSmall: WebTextStyle, titleLarge: WebTextStyle, titleMedium: WebTextStyle, titleSmall: WebTextStyle, bodyLarge: WebTextStyle, bodyMedium: WebTextStyle, bodySmall: WebTextStyle, labelLarge: WebTextStyle, labelMedium: WebTextStyle, labelSmall: WebTextStyle);
-    get displayLarge(): WebTextStyle;
-    get displayMedium(): WebTextStyle;
-    get displaySmall(): WebTextStyle;
-    get headlineLarge(): WebTextStyle;
-    get headlineMedium(): WebTextStyle;
-    get headlineSmall(): WebTextStyle;
-    get titleLarge(): WebTextStyle;
-    get titleMedium(): WebTextStyle;
-    get titleSmall(): WebTextStyle;
-    get bodyLarge(): WebTextStyle;
-    get bodyMedium(): WebTextStyle;
-    get bodySmall(): WebTextStyle;
-    get labelLarge(): WebTextStyle;
-    get labelMedium(): WebTextStyle;
-    get labelSmall(): WebTextStyle;
-    copy(displayLarge?: WebTextStyle, displayMedium?: WebTextStyle, displaySmall?: WebTextStyle, headlineLarge?: WebTextStyle, headlineMedium?: WebTextStyle, headlineSmall?: WebTextStyle, titleLarge?: WebTextStyle, titleMedium?: WebTextStyle, titleSmall?: WebTextStyle, bodyLarge?: WebTextStyle, bodyMedium?: WebTextStyle, bodySmall?: WebTextStyle, labelLarge?: WebTextStyle, labelMedium?: WebTextStyle, labelSmall?: WebTextStyle): WebTypography;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebTypography {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebTypography;
-    }
-}
-export declare class WebSpacing {
-    constructor(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string);
-    get none(): string;
-    get xxs(): string;
-    get xs(): string;
-    get sm(): string;
-    get md(): string;
-    get lg(): string;
-    get xl(): string;
-    get xxl(): string;
-    get xxxl(): string;
-    copy(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string): WebSpacing;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebSpacing {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebSpacing;
-    }
-}
-export declare class WebShapes {
-    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string);
-    get none(): string;
-    get xs(): string;
-    get sm(): string;
-    get md(): string;
-    get lg(): string;
-    get xl(): string;
-    get full(): string;
-    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string): WebShapes;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebShapes {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebShapes;
-    }
-}
-export declare class WebElevation {
-    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string);
-    get none(): string;
-    get xs(): string;
-    get sm(): string;
-    get md(): string;
-    get lg(): string;
-    get xl(): string;
-    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string): WebElevation;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebElevation {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebElevation;
-    }
-}
-export declare class WebSizing {
-    constructor(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string);
-    get touchTargetMin(): string;
-    get iconXs(): string;
-    get iconSm(): string;
-    get iconMd(): string;
-    get iconLg(): string;
-    get iconXl(): string;
-    get buttonSm(): string;
-    get buttonMd(): string;
-    get buttonLg(): string;
-    get inputSm(): string;
-    get inputMd(): string;
-    get inputLg(): string;
-    get avatarSm(): string;
-    get avatarMd(): string;
-    get avatarLg(): string;
-    get avatarXl(): string;
-    copy(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string): WebSizing;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebSizing {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebSizing;
-    }
-}
-export declare class WebBreakpoints {
-    constructor(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number);
-    get mobile(): number;
-    get tablet(): number;
-    get desktop(): number;
-    get largeDesktop(): number;
-    copy(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number): WebBreakpoints;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebBreakpoints {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebBreakpoints;
-    }
-}
-export declare class WebMotion {
-    constructor(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number);
-    get durationInstant(): number;
-    get durationFast(): number;
-    get durationNormal(): number;
-    get durationSlow(): number;
-    get durationSlowest(): number;
-    copy(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number): WebMotion;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebMotion {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebMotion;
-    }
-}
-export declare class WebDesignTokens {
-    constructor(colors: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion);
-    get colors(): WebColorScheme;
-    get typography(): WebTypography;
-    get spacing(): WebSpacing;
-    get shapes(): WebShapes;
-    get elevation(): WebElevation;
-    get sizing(): WebSizing;
-    get breakpoints(): WebBreakpoints;
-    get motion(): WebMotion;
-    copy(colors?: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion): WebDesignTokens;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WebDesignTokens {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebDesignTokens;
-    }
-}
-export declare function defaultWebTypography(): WebTypography;
-export declare function lighten(hex: string, fraction: number): string;
-export declare function darken(hex: string, fraction: number): string;
-export declare function autoContentColor(background: string, lightContent?: string, darkContent?: string): string;
-export declare function withAlpha(hex: string, alpha: number): string;
-export declare function createLightColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
-export declare function createDarkColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
-export declare function createWebDesignTokens(colors: WebColorScheme): WebDesignTokens;
-export declare function createWebTokens(primary: string, secondary: string, tertiary?: Nullable<string>, darkMode?: boolean): WebDesignTokens;
-export declare abstract class WebMaterialTokens {
-    static readonly getInstance: () => typeof WebMaterialTokens.$metadata$.type;
-    private constructor();
-}
-export declare namespace WebMaterialTokens {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor {
-            get defaultLight(): WebDesignTokens;
-            get defaultDark(): WebDesignTokens;
-            get blueLight(): WebDesignTokens;
-            get blueDark(): WebDesignTokens;
-            get greenLight(): WebDesignTokens;
-            get greenDark(): WebDesignTokens;
-            get reaktorLight(): WebDesignTokens;
-            get reaktorDark(): WebDesignTokens;
-            private constructor();
-        }
-    }
-}
-export declare abstract class Reaktor {
-    static readonly getInstance: () => typeof Reaktor.$metadata$.type;
-    private constructor();
-}
-export declare namespace Reaktor {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor {
-            start(featureInitializer?: (p0: any/* typeof Feature.$metadata$.type */) => void): void;
-            web(): void;
-            private constructor();
-        }
-    }
-}
-export declare class Graph extends PortGraph.$metadata$.constructor<Graph, Node> /* implements LifecycleCapability, DependencyCapability, ConcurrencyCapability, NavigationCapability */ {
-    constructor(parentGraph?: Nullable<Graph>, dispatcher?: any/* CoroutineDispatcher */, dependencyAdapter?: any/* DependencyAdapter<UnknownType *> */, id?: any/* Uuid */, label?: string, dependencies?: (p0: any/* DependencyAdapter.ScopeBuilder */) => void, builder?: (p0: Graph) => void);
-    get parentGraph(): Nullable<Graph>;
-    get id(): any/* Uuid */;
-    get label(): string;
-    get dependencies(): (p0: any/* DependencyAdapter.ScopeBuilder */) => void;
-    get sentinel(): RouteNode<Payload, RouteBinding<Payload>>;
-    attach(node: Node): boolean;
-    detach(node: Node): boolean;
-    addRoot<P extends Payload>(routeNode: RouteNode<P, any /*UnknownType **/>, payload: P): void;
-    close(): void;
-    toString(): string;
-}
-export declare namespace Graph {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Graph;
-    }
-}
-export declare class NavigationEdge<P extends Payload> extends Edge.$metadata$.constructor<NavBinding<P>> {
-    constructor(start: RouteNode<any /*UnknownType **/, any /*UnknownType **/>, end: RouteNode<P, any /*UnknownType **/>);
-    get start(): RouteNode<any /*UnknownType **/, any /*UnknownType **/>;
-    get end(): RouteNode<P, any /*UnknownType **/>;
-    get sourceGraph(): Graph;
-    get destinationGraph(): Graph;
-    get isCrossGraph(): boolean;
-    toString(): string;
-}
-export declare namespace NavigationEdge {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <P extends Payload>() => NavigationEdge<P>;
-    }
-}
-export declare class BasicNode extends Node.$metadata$.constructor {
-    constructor(graph: Graph);
-    static build(graph: Graph, build: (p0: BasicNode) => void): BasicNode;
-    toString(): string;
-}
-export declare namespace BasicNode {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => BasicNode;
-    }
-}
-export declare class ContainerNode extends Node.$metadata$.constructor implements Node.Routable {
-    constructor(parent: Graph, pattern?: string, graphs?: KtMutableList<Graph>/* ArrayList<Graph> */);
-    get graphs(): KtMutableList<Graph>/* ArrayList<Graph> */;
-    get routeBinding(): ConsumerPort<RouteBinding<Payload>>;
-    get route(): RouteNode<Payload, RouteBinding<Payload>>;
-    get activeGraphIndex(): any/* MutableStateFlow<number> */;
-    get activeGraph(): Nullable<Graph>;
-    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
-    toString(): string;
-    readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & Node.Routable["__doNotUseOrImplementIt"];
-}
-export declare namespace ContainerNode {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ContainerNode;
-    }
-}
-export declare abstract class ControllerNode<State> extends Node.$metadata$.constructor implements Node.Routable {
-    constructor(graph: Graph);
-    abstract get state(): any/* MutableStateFlow<State> */;
-    toString(): string;
-    abstract get routeBinding(): ConsumerPort<RouteBinding<Payload>>;
-    readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & Node.Routable["__doNotUseOrImplementIt"];
-}
-export declare namespace ControllerNode {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <State>() => ControllerNode<State>;
-    }
-}
-export declare abstract class Node extends PortNode.$metadata$.constructor<Graph> /* implements LifecycleCapability, ConcurrencyCapability */ {
-    protected constructor(graph: Graph, dispatcher?: any/* CoroutineDispatcher */, id?: any/* Uuid */, label?: string, portCapability?: PortCapability);
-    get graph(): Graph;
-    get id(): any/* Uuid */;
-    get label(): string;
-    close(): void;
-    toString(): string;
-}
-export declare namespace Node {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Node;
-    }
-    interface Stateful<State> {
-        readonly state: any/* MutableStateFlow<State> */;
-        readonly __doNotUseOrImplementIt: {
-            readonly "dev.shibasis.reaktor.graph.core.node.Node.Stateful": unique symbol;
-        };
-    }
-    interface Routable {
-        readonly routeBinding: ConsumerPort<RouteBinding<Payload>>;
-        readonly __doNotUseOrImplementIt: {
-            readonly "dev.shibasis.reaktor.graph.core.node.Node.Routable": unique symbol;
-        };
-    }
-}
-export declare class RouteBinding<P extends Payload> {
-    constructor(initial: P);
-    get payload(): any/* MutableStateFlow<P> */;
-    get dispatch(): (p0: NavCommand) => void;
-    set dispatch(value: (p0: NavCommand) => void);
-}
-export declare namespace RouteBinding {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <P extends Payload>() => RouteBinding<P>;
-    }
-}
-export declare interface NavBinding<P extends Payload> {
-    updateFn(fn: (p0: P) => P): void;
-    update(payload: Payload): void;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.core.node.NavBinding": unique symbol;
-    };
-}
-export declare class RouteNode<P extends Payload, Binding extends RouteBinding<P>> extends Node.$metadata$.constructor {
-    constructor(graph: Graph, pattern: any/* RoutePattern */, portName: string, binder: (p0: RouteNode<P, Binding>) => Binding);
-    get pattern(): any/* RoutePattern */;
-    static constructNamed<P extends Payload, Binding extends RouteBinding<P>>(graph: Graph, pattern: string, portName: string, binder: (p0: RouteNode<P, Binding>) => Binding): RouteNode<P, Binding>;
-    static construct<P extends Payload, Binding extends RouteBinding<P>>(graph: Graph, pattern: string, binder: (p0: RouteNode<P, Binding>) => Binding): RouteNode<P, Binding>;
-    get routeBinding(): ProviderPort<Binding>;
-    get navBinding(): ProviderPort<NavBinding<P>>;
-    attachedNodes(): KtList<Node.Routable>;
-    navigationTargets(): KtList<RouteNode<any /*UnknownType **/, any /*UnknownType **/>>;
-    attachedNode(): Nullable<Node.Routable>;
-    edge<D extends Payload>(destination: RouteNode<D, any /*UnknownType **/>): NavigationEdge<D>;
-    toString(): string;
-}
-export declare namespace RouteNode {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <P extends Payload, Binding extends RouteBinding<P>>() => RouteNode<P, Binding>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor {
-                invoke(graph: Graph, pattern: string): RouteNode<Payload, RouteBinding<Payload>>;
-                private constructor();
-            }
-        }
-    }
-}
-export declare interface NavCommand {
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.navigation.NavCommand": unique symbol;
-    };
-}
-export declare interface Forward<P extends Payload, R> extends NavCommand {
-    readonly entry: BackStackEntry<P, R>;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.navigation.Forward": unique symbol;
-    } & NavCommand["__doNotUseOrImplementIt"];
-}
-export declare interface Back<R> extends NavCommand {
-    readonly value: R;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.navigation.Back": unique symbol;
-    } & NavCommand["__doNotUseOrImplementIt"];
-}
-export declare class Push<P extends Payload, R> implements Forward<P, R> {
-    constructor(entry: BackStackEntry<P, R>);
-    get entry(): BackStackEntry<P, R>;
-    readonly __doNotUseOrImplementIt: Forward<P, R>["__doNotUseOrImplementIt"];
-}
-export declare namespace Push {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <P extends Payload, R>() => Push<P, R>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor {
-                construct<P extends Payload, R>(edge: NavigationEdge<P>, payload: P, result: any/* CompletableDeferred<R> */): Push<P, R>;
-                construstUnit<P extends Payload>(edge: NavigationEdge<P>, payload: P): Push<P, void>;
-                private constructor();
-            }
-        }
-    }
-}
-export declare class Replace<P extends Payload, R> implements Forward<P, R> {
-    constructor(entry: BackStackEntry<P, R>);
-    get entry(): BackStackEntry<P, R>;
-    readonly __doNotUseOrImplementIt: Forward<P, R>["__doNotUseOrImplementIt"];
-}
-export declare namespace Replace {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <P extends Payload, R>() => Replace<P, R>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor {
-                construct<P extends Payload, R>(edge: NavigationEdge<P>, payload: P, result: any/* CompletableDeferred<R> */): Replace<P, R>;
-                constructUnit<P extends Payload>(edge: NavigationEdge<P>, payload: P): Replace<P, void>;
-                private constructor();
-            }
-        }
-    }
-}
-export declare class Return<R> implements Back<R> {
-    constructor(value: R);
-    get value(): R;
-    readonly __doNotUseOrImplementIt: Back<R>["__doNotUseOrImplementIt"];
-}
-export declare namespace Return {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <R>() => Return<R>;
-    }
-}
-export declare abstract class Pop {
-    static readonly getInstance: () => typeof Pop.$metadata$.type;
-    private constructor();
-}
-export declare namespace Pop {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        abstract class type extends KtSingleton<constructor>() {
-            private constructor();
-        }
-        abstract class constructor implements Back<void> {
-            get value(): void;
-            readonly __doNotUseOrImplementIt: Back<void>["__doNotUseOrImplementIt"];
-            private constructor();
-        }
-    }
-}
-export declare class Payload {
-    constructor(routeParams?: (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */);
-    get routeParams(): (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */;
-}
-export declare namespace Payload {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Payload;
-    }
-}
-export declare class BackStackEntry<P extends Payload, R> implements Unique {
-    constructor(edge: NavigationEdge<P>, payload: P, result?: any/* CompletableDeferred<R> */);
-    get edge(): NavigationEdge<P>;
-    get payload(): P;
-    get result(): any/* CompletableDeferred<R> */;
-    complete(value: any): boolean;
-    completeExceptionally(exception: Error): boolean;
-    copy(edge?: NavigationEdge<P>, payload?: P, result?: any/* CompletableDeferred<R> */): BackStackEntry<P, R>;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    get id(): any/* Uuid */;
-    get label(): string;
-    readonly __doNotUseOrImplementIt: Unique["__doNotUseOrImplementIt"];
-}
-export declare namespace BackStackEntry {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <P extends Payload, R>() => BackStackEntry<P, R>;
-    }
-}
-export declare class DeleteHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace DeleteHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => DeleteHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): DeleteHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class GetHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace GetHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => GetHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): GetHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class HeadHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace HeadHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => HeadHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): HeadHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class OptionsHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace OptionsHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => OptionsHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): OptionsHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class PatchHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace PatchHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => PatchHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PatchHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class PostHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace PostHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => PostHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PostHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class PutHandler<In extends Request, Out extends Response> extends RequestHandler.$metadata$.constructor<In, Out> {
-    constructor(route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-}
-export declare namespace PutHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => PutHandler<In, Out>;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor implements RequestHandler.Factory {
-                create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): PutHandler<In, Out>;
-                invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-                readonly __doNotUseOrImplementIt: RequestHandler.Factory["__doNotUseOrImplementIt"];
-                private constructor();
-            }
-        }
-    }
-}
-export declare class Request {
-    constructor(headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
-    get headers(): KtMutableMap<string, string>;
-    get queryParams(): KtMutableMap<string, string>;
-    get pathParams(): KtMutableMap<string, string>;
-    get environment(): Environment;
-    set environment(value: Environment);
-}
-export declare namespace Request {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Request;
-    }
-}
-export declare abstract class RequestHandler<In extends Request, Out extends Response> {
-    protected constructor(endpoint: ServiceEndpoint, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, handler: any /*Suspend functions are not supported*/);
-    get endpoint(): ServiceEndpoint;
-    get requestSerializer(): any/* KSerializer<In> */;
-    get responseSerializer(): any/* KSerializer<Out> */;
-    get handler(): any /*Suspend functions are not supported*/;
-    get transport(): ServiceTransport;
-    get method(): HttpMethod;
-    get route(): string;
-    get routePattern(): any/* RoutePattern */;
-    url(request: In, extraPathParams: Array<Pair<string, string>>): string;
-    invoke(request: In): Promise<Out>;
-}
-export declare namespace RequestHandler {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <In extends Request, Out extends Response>() => RequestHandler<In, Out>;
-    }
-    interface Factory {
-        create<In extends Request, Out extends Response>(route: string, operation: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-        invoke<In extends Request, Out extends Response>(route: string, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-        readonly __doNotUseOrImplementIt: {
-            readonly "dev.shibasis.reaktor.graph.service.RequestHandler.Factory": unique symbol;
-        };
-    }
-}
-export declare class Response {
-    constructor(headers?: KtMutableMap<string, string>, statusCode?: StatusCode);
-    get headers(): KtMutableMap<string, string>;
-    get statusCode(): StatusCode;
-    get transportHeaders(): KtMutableMap<string, string>;
-    get transportStatusCode(): StatusCode;
-    get isSuccess(): boolean;
-}
-export declare namespace Response {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Response;
-    }
-}
-export declare abstract class Service {
-    constructor(baseUrl?: string, httpClient?: any/* HttpClient */);
-    get httpClient(): any/* HttpClient */;
-    get handlers(): KtMutableList<RequestHandler<any /*UnknownType **/, any /*UnknownType **/>>/* ArrayList<RequestHandler<UnknownType *, UnknownType *>> */;
-    get baseUrl(): string;
-    use(interceptor: Array<any/* ServiceInterceptor */>): Service;
-    protected serviceInterceptors(): KtList<any/* ServiceInterceptor */>;
-    server<In extends Request, Out extends Response>(factory: RequestHandler.Factory, endpoint: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */, block: any /*Suspend functions are not supported*/): RequestHandler<In, Out>;
-    client<In extends Request, Out extends Response>(factory: RequestHandler.Factory, route: string, operation: string | undefined, requestSerializer: any/* KSerializer<In> */, responseSerializer: any/* KSerializer<Out> */): RequestHandler<In, Out>;
-}
-export declare namespace Service {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Service;
-    }
-}
-export declare class ServiceNode extends BasicNode.$metadata$.constructor {
-    constructor(graph: Graph, service: Service, label?: string);
-    get service(): Service;
-    toString(): string;
-}
-export declare namespace ServiceNode {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ServiceNode;
-    }
-}
-export declare abstract class ServiceTransport {
-    private constructor();
-    static get HTTP(): ServiceTransport & {
-        get name(): "HTTP";
-        get ordinal(): 0;
-    };
-    static get LOCAL(): ServiceTransport & {
-        get name(): "LOCAL";
-        get ordinal(): 1;
-    };
-    static get PEER(): ServiceTransport & {
-        get name(): "PEER";
-        get ordinal(): 2;
-    };
-    static get PUBSUB(): ServiceTransport & {
-        get name(): "PUBSUB";
-        get ordinal(): 3;
-    };
-    static get QUEUE(): ServiceTransport & {
-        get name(): "QUEUE";
-        get ordinal(): 4;
-    };
-    static get WORKFLOW(): ServiceTransport & {
-        get name(): "WORKFLOW";
-        get ordinal(): 5;
-    };
-    get name(): "HTTP" | "LOCAL" | "PEER" | "PUBSUB" | "QUEUE" | "WORKFLOW";
-    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
-    static values(): Array<ServiceTransport>;
-    static valueOf(value: string): ServiceTransport;
-}
-export declare namespace ServiceTransport {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ServiceTransport;
-    }
-}
-export declare class ServiceEndpoint {
-    constructor(transport: ServiceTransport, address: string, operation?: string, method?: Nullable<HttpMethod>);
-    get transport(): ServiceTransport;
-    get address(): string;
-    get operation(): string;
-    get method(): Nullable<HttpMethod>;
-    get portKey(): string;
-    get portType(): string;
-    copy(transport?: ServiceTransport, address?: string, operation?: string, method?: Nullable<HttpMethod>): ServiceEndpoint;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace ServiceEndpoint {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ServiceEndpoint;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor {
-                http(method: HttpMethod, route: string, operation?: string): ServiceEndpoint;
-                local(operation: string): ServiceEndpoint;
-                peer(operation: string): ServiceEndpoint;
-                pubSub(topic: string): ServiceEndpoint;
-                queue(name: string): ServiceEndpoint;
-                workflow(name: string): ServiceEndpoint;
-                private constructor();
-            }
-        }
-    }
-}
-export declare abstract class HttpMethod {
-    private constructor();
-    static get GET(): HttpMethod & {
-        get name(): "GET";
-        get ordinal(): 0;
-    };
-    static get POST(): HttpMethod & {
-        get name(): "POST";
-        get ordinal(): 1;
-    };
-    static get PUT(): HttpMethod & {
-        get name(): "PUT";
-        get ordinal(): 2;
-    };
-    static get DELETE(): HttpMethod & {
-        get name(): "DELETE";
-        get ordinal(): 3;
-    };
-    static get PATCH(): HttpMethod & {
-        get name(): "PATCH";
-        get ordinal(): 4;
-    };
-    static get OPTIONS(): HttpMethod & {
-        get name(): "OPTIONS";
-        get ordinal(): 5;
-    };
-    static get HEAD(): HttpMethod & {
-        get name(): "HEAD";
-        get ordinal(): 6;
-    };
-    get name(): "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
-    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5 | 6;
-    toKtorMethod(): any/* HttpMethod */;
-    static values(): Array<HttpMethod>;
-    static valueOf(value: string): HttpMethod;
-}
-export declare namespace HttpMethod {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => HttpMethod;
-    }
-}
-export declare abstract class Environment {
-    private constructor();
-    static get STAGE(): Environment & {
-        get name(): "STAGE";
-        get ordinal(): 0;
-    };
-    static get PROD(): Environment & {
-        get name(): "PROD";
-        get ordinal(): 1;
-    };
-    get name(): "STAGE" | "PROD";
-    get ordinal(): 0 | 1;
-    static values(): Array<Environment>;
-    static valueOf(value: string): Environment;
-}
-export declare namespace Environment {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Environment;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor {
-                get Header(): string;
-                invoke(value: string): Environment;
-                private constructor();
-            }
-        }
-    }
-}
-export declare interface View {
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.ui.View": unique symbol;
-    };
-}
-export declare abstract class WindowWidthClass {
-    private constructor();
-    static get COMPACT(): WindowWidthClass & {
-        get name(): "COMPACT";
-        get ordinal(): 0;
-    };
-    static get MEDIUM(): WindowWidthClass & {
-        get name(): "MEDIUM";
-        get ordinal(): 1;
-    };
-    static get EXPANDED(): WindowWidthClass & {
-        get name(): "EXPANDED";
-        get ordinal(): 2;
-    };
-    static get LARGE(): WindowWidthClass & {
-        get name(): "LARGE";
-        get ordinal(): 3;
-    };
-    static get EXTRA_LARGE(): WindowWidthClass & {
-        get name(): "EXTRA_LARGE";
-        get ordinal(): 4;
-    };
-    get name(): "COMPACT" | "MEDIUM" | "EXPANDED" | "LARGE" | "EXTRA_LARGE";
-    get ordinal(): 0 | 1 | 2 | 3 | 4;
-    static values(): Array<WindowWidthClass>;
-    static valueOf(value: string): WindowWidthClass;
-}
-export declare namespace WindowWidthClass {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WindowWidthClass;
-    }
-}
-export declare abstract class WindowHeightClass {
-    private constructor();
-    static get COMPACT(): WindowHeightClass & {
-        get name(): "COMPACT";
-        get ordinal(): 0;
-    };
-    static get MEDIUM(): WindowHeightClass & {
-        get name(): "MEDIUM";
-        get ordinal(): 1;
-    };
-    static get EXPANDED(): WindowHeightClass & {
-        get name(): "EXPANDED";
-        get ordinal(): 2;
-    };
-    get name(): "COMPACT" | "MEDIUM" | "EXPANDED";
-    get ordinal(): 0 | 1 | 2;
-    static values(): Array<WindowHeightClass>;
-    static valueOf(value: string): WindowHeightClass;
-}
-export declare namespace WindowHeightClass {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WindowHeightClass;
-    }
-}
-export declare class WindowSize {
-    constructor(width?: WindowWidthClass, height?: WindowHeightClass);
-    get width(): WindowWidthClass;
-    get height(): WindowHeightClass;
-    toString(): string;
-    copy(width?: WindowWidthClass, height?: WindowHeightClass): WindowSize;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace WindowSize {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WindowSize;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor /* implements AutoCloseable */ {
-                get state(): any/* MutableStateFlow<WindowSize> */;
-                startListening(onStart: () => any/* Flow<WindowSize> */, onStop?: (p0: WindowSize) => void): any/* Result<void> */;
-                private constructor();
-            }
-        }
-    }
-}
-export declare class WebNavigationBridge {
-    constructor(graph: Graph);
-    resolveCurrentUrl(): boolean;
-    destroy(): void;
-}
-export declare namespace WebNavigationBridge {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebNavigationBridge;
-    }
-}
-export declare function ReactGraphContent(graph: Graph, isFocused?: boolean): Nullable<ReactNode>;
-export declare interface ReactContainer extends View {
-    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.ui.ReactContainer": unique symbol;
-    } & View["__doNotUseOrImplementIt"];
-}
-export declare const PersonViewDataKey: { get(): KeyType; };
-export declare interface ReactContent extends View {
-    Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.ui.ReactContent": unique symbol;
-    } & View["__doNotUseOrImplementIt"];
-}
-export declare class ReactNode<State> extends ControllerNode.$metadata$.constructor<State> implements ReactContent {
-    constructor(graph: Graph, build: (p0: ReactNode<State>) => State, render: (p0: ReactNode<State>) => Nullable<ReactNode>);
-    get build(): (p0: ReactNode<State>) => State;
-    get render(): (p0: ReactNode<State>) => Nullable<ReactNode>;
-    useNodeState(): StateInstance<State>;
-    get children(): Nullable<ReactNode>;
-    set children(value: Nullable<ReactNode>);
-    Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
-    readonly __doNotUseOrImplementIt: ControllerNode<State>["__doNotUseOrImplementIt"] & ReactContent["__doNotUseOrImplementIt"];
-}
-export declare namespace ReactNode {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new <State>() => ReactNode<State>;
-    }
-}
-export declare function ViewNode<P extends Payload, State>(build: (p0: ReactNode<State>) => State, render: (p0: ReactNode<State>) => Nullable<ReactNode>): (p0: Graph) => ReactNode<State>;
-export declare function Logic(build: (p0: BasicNode) => void): (p0: Graph) => BasicNode;
-export declare class Person {
-    constructor(name: string, age: number);
-    get name(): string;
-    get age(): number;
-    copy(name?: string, age?: number): Person;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace Person {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Person;
-    }
-}
-export declare interface ViewData {
-    getPerson(): Person;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.graph.ui.ViewData": unique symbol;
-    };
-}
-export declare class TestBasic extends BasicNode.$metadata$.constructor {
-    constructor(graph: Graph);
-    get data(): ProviderPort<ViewData>;
-}
-export declare namespace TestBasic {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => TestBasic;
-    }
-}
-export declare class WebBottomNavigationContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
-    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string, bottomNavKeys?: KtSet<string>);
-    get children(): KtMap<string, any/* ChildGraph */>;
-    get bottomNavKeys(): KtSet<string>;
-    get selected(): any/* MutableStateFlow<string> */;
-    get controller(): ProviderPort<any/* Controller */>;
-    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
-    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
-    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
-}
-export declare namespace WebBottomNavigationContainer {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebBottomNavigationContainer;
-    }
-}
-export declare class WebHost {
-    constructor(graph: Graph);
-    get graph(): Graph;
-    get bridge(): WebNavigationBridge;
-    start(): void;
-    Content(): Nullable<ReactNode>;
-    dispatch(command: NavCommand): void;
-    navigate(edge: NavigationEdge<Payload>, payload?: Payload): void;
-    goBack(): void;
-    topEntry(): Nullable<BackStackEntry<any /*UnknownType **/, any /*UnknownType **/>>;
-    topPattern(): string;
-    topParams(): (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */;
-    stackSize(): number;
-    destroy(): void;
-}
-export declare namespace WebHost {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebHost;
-    }
-}
-export declare class WebTabbedContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
-    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string);
-    get children(): KtMap<string, any/* ChildGraph */>;
-    get selected(): any/* MutableStateFlow<string> */;
-    get controller(): ProviderPort<any/* Controller */>;
-    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
-    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
-    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
-}
-export declare namespace WebTabbedContainer {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => WebTabbedContainer;
-    }
-}
-export declare function useWindowSize(): WindowSize;
 export declare abstract class SqlAdapter<Controller> /* extends Adapter<Controller> */ {
     constructor(controller: Controller, dbName?: string, fileAdapter?: FileAdapter<any /*UnknownType **/>);
     get dbName(): string;
@@ -2645,94 +1659,1021 @@ export declare namespace DeleteBuilder {
         const constructor: abstract new () => DeleteBuilder;
     }
 }
-/** @deprecated  */
-export declare const initHook: { get(): any; };
-/** @deprecated  */
-export declare const initHook: { get(): any; };
-/** @deprecated  */
-export declare const initHook: { get(): any; };
-export declare interface AuditableDto {
-    data: any/* JsonElement */;
-    createdAt: any/* Instant */;
-    updatedAt: any/* Instant */;
-    readonly __doNotUseOrImplementIt: {
-        readonly "dev.shibasis.reaktor.auth.AuditableDto": unique symbol;
-    };
-}
-export declare class App implements AuditableDto {
-    constructor(id: string, name: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get name(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, name?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): App;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace App {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => App;
-    }
-}
-export declare class Entity implements AuditableDto {
-    constructor(id: string, name: string, appId: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get name(): string;
-    get appId(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, name?: string, appId?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): Entity;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace Entity {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Entity;
-    }
-}
-export declare abstract class UserStatus {
+export declare abstract class ComponentSize {
     private constructor();
-    static get ONBOARDING(): UserStatus & {
-        get name(): "ONBOARDING";
+    static get Small(): ComponentSize & {
+        get name(): "Small";
         get ordinal(): 0;
     };
-    static get ACTIVE(): UserStatus & {
-        get name(): "ACTIVE";
+    static get Medium(): ComponentSize & {
+        get name(): "Medium";
         get ordinal(): 1;
     };
-    static get INACTIVE(): UserStatus & {
-        get name(): "INACTIVE";
+    static get Large(): ComponentSize & {
+        get name(): "Large";
         get ordinal(): 2;
     };
-    static get BANNED(): UserStatus & {
-        get name(): "BANNED";
-        get ordinal(): 3;
-    };
-    get name(): "ONBOARDING" | "ACTIVE" | "INACTIVE" | "BANNED";
-    get ordinal(): 0 | 1 | 2 | 3;
-    static values(): Array<UserStatus>;
-    static valueOf(value: string): UserStatus;
+    get name(): "Small" | "Medium" | "Large";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<ComponentSize>;
+    static valueOf(value: string): ComponentSize;
 }
-export declare namespace UserStatus {
+export declare namespace ComponentSize {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
-        const constructor: abstract new () => UserStatus;
+        const constructor: abstract new () => ComponentSize;
     }
 }
+export declare abstract class ComponentVariant {
+    private constructor();
+    static get Filled(): ComponentVariant & {
+        get name(): "Filled";
+        get ordinal(): 0;
+    };
+    static get Outlined(): ComponentVariant & {
+        get name(): "Outlined";
+        get ordinal(): 1;
+    };
+    static get Text(): ComponentVariant & {
+        get name(): "Text";
+        get ordinal(): 2;
+    };
+    static get Tonal(): ComponentVariant & {
+        get name(): "Tonal";
+        get ordinal(): 3;
+    };
+    static get Elevated(): ComponentVariant & {
+        get name(): "Elevated";
+        get ordinal(): 4;
+    };
+    get name(): "Filled" | "Outlined" | "Text" | "Tonal" | "Elevated";
+    get ordinal(): 0 | 1 | 2 | 3 | 4;
+    static values(): Array<ComponentVariant>;
+    static valueOf(value: string): ComponentVariant;
+}
+export declare namespace ComponentVariant {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentVariant;
+    }
+}
+export declare abstract class ComponentState {
+    private constructor();
+    static get Enabled(): ComponentState & {
+        get name(): "Enabled";
+        get ordinal(): 0;
+    };
+    static get Disabled(): ComponentState & {
+        get name(): "Disabled";
+        get ordinal(): 1;
+    };
+    static get Loading(): ComponentState & {
+        get name(): "Loading";
+        get ordinal(): 2;
+    };
+    get name(): "Enabled" | "Disabled" | "Loading";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<ComponentState>;
+    static valueOf(value: string): ComponentState;
+}
+export declare namespace ComponentState {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ComponentState;
+    }
+}
+export declare abstract class TextRole {
+    private constructor();
+    static get Display(): TextRole & {
+        get name(): "Display";
+        get ordinal(): 0;
+    };
+    static get Headline(): TextRole & {
+        get name(): "Headline";
+        get ordinal(): 1;
+    };
+    static get Title(): TextRole & {
+        get name(): "Title";
+        get ordinal(): 2;
+    };
+    static get Body(): TextRole & {
+        get name(): "Body";
+        get ordinal(): 3;
+    };
+    static get Label(): TextRole & {
+        get name(): "Label";
+        get ordinal(): 4;
+    };
+    static get Caption(): TextRole & {
+        get name(): "Caption";
+        get ordinal(): 5;
+    };
+    get name(): "Display" | "Headline" | "Title" | "Body" | "Label" | "Caption";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<TextRole>;
+    static valueOf(value: string): TextRole;
+}
+export declare namespace TextRole {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TextRole;
+    }
+}
+export declare abstract class TextSize {
+    private constructor();
+    static get Small(): TextSize & {
+        get name(): "Small";
+        get ordinal(): 0;
+    };
+    static get Medium(): TextSize & {
+        get name(): "Medium";
+        get ordinal(): 1;
+    };
+    static get Large(): TextSize & {
+        get name(): "Large";
+        get ordinal(): 2;
+    };
+    get name(): "Small" | "Medium" | "Large";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<TextSize>;
+    static valueOf(value: string): TextSize;
+}
+export declare namespace TextSize {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TextSize;
+    }
+}
+export declare const ReaktorUIDemo: { get(): FC<ReaktorUIDemoProps>; };
+export declare abstract class PromiseState {
+    private constructor();
+    static get Initial(): PromiseState & {
+        get name(): "Initial";
+        get ordinal(): 0;
+    };
+    static get Pending(): PromiseState & {
+        get name(): "Pending";
+        get ordinal(): 1;
+    };
+    static get Resolved(): PromiseState & {
+        get name(): "Resolved";
+        get ordinal(): 2;
+    };
+    static get Rejected(): PromiseState & {
+        get name(): "Rejected";
+        get ordinal(): 3;
+    };
+    get name(): "Initial" | "Pending" | "Resolved" | "Rejected";
+    get ordinal(): 0 | 1 | 2 | 3;
+    static values(): Array<PromiseState>;
+    static valueOf(value: string): PromiseState;
+}
+export declare namespace PromiseState {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PromiseState;
+    }
+}
+export declare class PromiseResult<T> {
+    constructor(state: PromiseState, data?: Nullable<T>, error?: Nullable<Error>);
+    get state(): PromiseState;
+    get data(): Nullable<T>;
+    get error(): Nullable<Error>;
+    copy(state?: PromiseState, data?: Nullable<T>, error?: Nullable<Error>): PromiseResult<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace PromiseResult {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => PromiseResult<T>;
+    }
+}
+export declare function usePromise<T>(dependencies: Array<Nullable<any>>, promiseFactory: () => Nullable<Promise<T>>): PromiseResult<T>;
+export declare class WebColorScheme {
+    constructor(background: string, surface: string, surfaceVariant: string, surfaceContainer: string, surfaceContainerHigh: string, surfaceContainerLow: string, onBackground: string, onSurface: string, onSurfaceVariant: string, primary: string, primaryContainer: string, onPrimary: string, onPrimaryContainer: string, secondary: string, secondaryContainer: string, onSecondary: string, onSecondaryContainer: string, tertiary: string, tertiaryContainer: string, onTertiary: string, onTertiaryContainer: string, error: string, errorContainer: string, onError: string, onErrorContainer: string, success: string, onSuccess: string, warning: string, onWarning: string, info: string, onInfo: string, outline: string, outlineVariant: string, scrim: string, shadow: string, inverseSurface: string, inverseOnSurface: string, inversePrimary: string);
+    get background(): string;
+    get surface(): string;
+    get surfaceVariant(): string;
+    get surfaceContainer(): string;
+    get surfaceContainerHigh(): string;
+    get surfaceContainerLow(): string;
+    get onBackground(): string;
+    get onSurface(): string;
+    get onSurfaceVariant(): string;
+    get primary(): string;
+    get primaryContainer(): string;
+    get onPrimary(): string;
+    get onPrimaryContainer(): string;
+    get secondary(): string;
+    get secondaryContainer(): string;
+    get onSecondary(): string;
+    get onSecondaryContainer(): string;
+    get tertiary(): string;
+    get tertiaryContainer(): string;
+    get onTertiary(): string;
+    get onTertiaryContainer(): string;
+    get error(): string;
+    get errorContainer(): string;
+    get onError(): string;
+    get onErrorContainer(): string;
+    get success(): string;
+    get onSuccess(): string;
+    get warning(): string;
+    get onWarning(): string;
+    get info(): string;
+    get onInfo(): string;
+    get outline(): string;
+    get outlineVariant(): string;
+    get scrim(): string;
+    get shadow(): string;
+    get inverseSurface(): string;
+    get inverseOnSurface(): string;
+    get inversePrimary(): string;
+    copy(background?: string, surface?: string, surfaceVariant?: string, surfaceContainer?: string, surfaceContainerHigh?: string, surfaceContainerLow?: string, onBackground?: string, onSurface?: string, onSurfaceVariant?: string, primary?: string, primaryContainer?: string, onPrimary?: string, onPrimaryContainer?: string, secondary?: string, secondaryContainer?: string, onSecondary?: string, onSecondaryContainer?: string, tertiary?: string, tertiaryContainer?: string, onTertiary?: string, onTertiaryContainer?: string, error?: string, errorContainer?: string, onError?: string, onErrorContainer?: string, success?: string, onSuccess?: string, warning?: string, onWarning?: string, info?: string, onInfo?: string, outline?: string, outlineVariant?: string, scrim?: string, shadow?: string, inverseSurface?: string, inverseOnSurface?: string, inversePrimary?: string): WebColorScheme;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebColorScheme {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebColorScheme;
+    }
+}
+export declare class WebTextStyle {
+    constructor(fontSize: string, lineHeight: string, fontWeight: string, letterSpacing: string);
+    get fontSize(): string;
+    get lineHeight(): string;
+    get fontWeight(): string;
+    get letterSpacing(): string;
+    copy(fontSize?: string, lineHeight?: string, fontWeight?: string, letterSpacing?: string): WebTextStyle;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebTextStyle {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTextStyle;
+    }
+}
+export declare class WebTypography {
+    constructor(displayLarge: WebTextStyle, displayMedium: WebTextStyle, displaySmall: WebTextStyle, headlineLarge: WebTextStyle, headlineMedium: WebTextStyle, headlineSmall: WebTextStyle, titleLarge: WebTextStyle, titleMedium: WebTextStyle, titleSmall: WebTextStyle, bodyLarge: WebTextStyle, bodyMedium: WebTextStyle, bodySmall: WebTextStyle, labelLarge: WebTextStyle, labelMedium: WebTextStyle, labelSmall: WebTextStyle);
+    get displayLarge(): WebTextStyle;
+    get displayMedium(): WebTextStyle;
+    get displaySmall(): WebTextStyle;
+    get headlineLarge(): WebTextStyle;
+    get headlineMedium(): WebTextStyle;
+    get headlineSmall(): WebTextStyle;
+    get titleLarge(): WebTextStyle;
+    get titleMedium(): WebTextStyle;
+    get titleSmall(): WebTextStyle;
+    get bodyLarge(): WebTextStyle;
+    get bodyMedium(): WebTextStyle;
+    get bodySmall(): WebTextStyle;
+    get labelLarge(): WebTextStyle;
+    get labelMedium(): WebTextStyle;
+    get labelSmall(): WebTextStyle;
+    copy(displayLarge?: WebTextStyle, displayMedium?: WebTextStyle, displaySmall?: WebTextStyle, headlineLarge?: WebTextStyle, headlineMedium?: WebTextStyle, headlineSmall?: WebTextStyle, titleLarge?: WebTextStyle, titleMedium?: WebTextStyle, titleSmall?: WebTextStyle, bodyLarge?: WebTextStyle, bodyMedium?: WebTextStyle, bodySmall?: WebTextStyle, labelLarge?: WebTextStyle, labelMedium?: WebTextStyle, labelSmall?: WebTextStyle): WebTypography;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebTypography {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTypography;
+    }
+}
+export declare class WebSpacing {
+    constructor(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string);
+    get none(): string;
+    get xxs(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    get xxl(): string;
+    get xxxl(): string;
+    copy(none?: string, xxs?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, xxl?: string, xxxl?: string): WebSpacing;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebSpacing {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebSpacing;
+    }
+}
+export declare class WebShapes {
+    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string);
+    get none(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    get full(): string;
+    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string, full?: string): WebShapes;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebShapes {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebShapes;
+    }
+}
+export declare class WebElevation {
+    constructor(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string);
+    get none(): string;
+    get xs(): string;
+    get sm(): string;
+    get md(): string;
+    get lg(): string;
+    get xl(): string;
+    copy(none?: string, xs?: string, sm?: string, md?: string, lg?: string, xl?: string): WebElevation;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebElevation {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebElevation;
+    }
+}
+export declare class WebSizing {
+    constructor(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string);
+    get touchTargetMin(): string;
+    get iconXs(): string;
+    get iconSm(): string;
+    get iconMd(): string;
+    get iconLg(): string;
+    get iconXl(): string;
+    get buttonSm(): string;
+    get buttonMd(): string;
+    get buttonLg(): string;
+    get inputSm(): string;
+    get inputMd(): string;
+    get inputLg(): string;
+    get avatarSm(): string;
+    get avatarMd(): string;
+    get avatarLg(): string;
+    get avatarXl(): string;
+    copy(touchTargetMin?: string, iconXs?: string, iconSm?: string, iconMd?: string, iconLg?: string, iconXl?: string, buttonSm?: string, buttonMd?: string, buttonLg?: string, inputSm?: string, inputMd?: string, inputLg?: string, avatarSm?: string, avatarMd?: string, avatarLg?: string, avatarXl?: string): WebSizing;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebSizing {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebSizing;
+    }
+}
+export declare class WebBreakpoints {
+    constructor(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number);
+    get mobile(): number;
+    get tablet(): number;
+    get desktop(): number;
+    get largeDesktop(): number;
+    copy(mobile?: number, tablet?: number, desktop?: number, largeDesktop?: number): WebBreakpoints;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebBreakpoints {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebBreakpoints;
+    }
+}
+export declare class WebMotion {
+    constructor(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number);
+    get durationInstant(): number;
+    get durationFast(): number;
+    get durationNormal(): number;
+    get durationSlow(): number;
+    get durationSlowest(): number;
+    copy(durationInstant?: number, durationFast?: number, durationNormal?: number, durationSlow?: number, durationSlowest?: number): WebMotion;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebMotion {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebMotion;
+    }
+}
+export declare class WebDesignTokens {
+    constructor(colors: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion);
+    get colors(): WebColorScheme;
+    get typography(): WebTypography;
+    get spacing(): WebSpacing;
+    get shapes(): WebShapes;
+    get elevation(): WebElevation;
+    get sizing(): WebSizing;
+    get breakpoints(): WebBreakpoints;
+    get motion(): WebMotion;
+    copy(colors?: WebColorScheme, typography?: WebTypography, spacing?: WebSpacing, shapes?: WebShapes, elevation?: WebElevation, sizing?: WebSizing, breakpoints?: WebBreakpoints, motion?: WebMotion): WebDesignTokens;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WebDesignTokens {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebDesignTokens;
+    }
+}
+export declare function defaultWebTypography(): WebTypography;
+export declare function lighten(hex: string, fraction: number): string;
+export declare function darken(hex: string, fraction: number): string;
+export declare function autoContentColor(background: string, lightContent?: string, darkContent?: string): string;
+export declare function withAlpha(hex: string, alpha: number): string;
+export declare function createLightColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
+export declare function createDarkColorScheme(primary: string, secondary: string, tertiary?: string, background?: string, surface?: string, error?: string, success?: string, warning?: string, info?: string): WebColorScheme;
+export declare function createWebDesignTokens(colors: WebColorScheme): WebDesignTokens;
+export declare function createWebTokens(primary: string, secondary: string, tertiary?: Nullable<string>, darkMode?: boolean): WebDesignTokens;
+export declare abstract class WebMaterialTokens {
+    static readonly getInstance: () => typeof WebMaterialTokens.$metadata$.type;
+    private constructor();
+}
+export declare namespace WebMaterialTokens {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            get defaultLight(): WebDesignTokens;
+            get defaultDark(): WebDesignTokens;
+            get blueLight(): WebDesignTokens;
+            get blueDark(): WebDesignTokens;
+            get greenLight(): WebDesignTokens;
+            get greenDark(): WebDesignTokens;
+            get reaktorLight(): WebDesignTokens;
+            get reaktorDark(): WebDesignTokens;
+            private constructor();
+        }
+    }
+}
+export declare abstract class Reaktor {
+    static readonly getInstance: () => typeof Reaktor.$metadata$.type;
+    private constructor();
+}
+export declare namespace Reaktor {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            start(featureInitializer?: (p0: any/* typeof Feature.$metadata$.type */) => void): void;
+            web(): void;
+            private constructor();
+        }
+    }
+}
+export declare class ServiceNode extends BasicNode.$metadata$.constructor {
+    constructor(graph: Graph, service: Service, label?: string);
+    get service(): Service;
+    toString(): string;
+}
+export declare namespace ServiceNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ServiceNode;
+    }
+}
+export declare class Graph extends PortGraph.$metadata$.constructor<Graph, Node> /* implements LifecycleCapability, DependencyCapability, ConcurrencyCapability, NavigationCapability */ {
+    constructor(parentGraph?: Nullable<Graph>, dispatcher?: any/* CoroutineDispatcher */, dependencyAdapter?: any/* DependencyAdapter<UnknownType *> */, id?: any/* Uuid */, label?: string, dependencies?: (p0: any/* DependencyAdapter.ScopeBuilder */) => void, builder?: (p0: Graph) => void);
+    get parentGraph(): Nullable<Graph>;
+    get id(): any/* Uuid */;
+    get label(): string;
+    get dependencies(): (p0: any/* DependencyAdapter.ScopeBuilder */) => void;
+    get sentinel(): RouteNode<Payload, RouteBinding<Payload>>;
+    attach(node: Node): boolean;
+    detach(node: Node): boolean;
+    addRoot<P extends Payload>(routeNode: RouteNode<P, any /*UnknownType **/>, payload: P): void;
+    close(): void;
+    toString(): string;
+}
+export declare namespace Graph {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Graph;
+    }
+}
+export declare function findNode(_this_: Graph, label: string): Nullable<Node>;
+export declare class NavigationEdge<P extends Payload> extends Edge.$metadata$.constructor<NavBinding<P>> {
+    constructor(start: RouteNode<any /*UnknownType **/, any /*UnknownType **/>, end: RouteNode<P, any /*UnknownType **/>);
+    get start(): RouteNode<any /*UnknownType **/, any /*UnknownType **/>;
+    get end(): RouteNode<P, any /*UnknownType **/>;
+    get sourceGraph(): Graph;
+    get destinationGraph(): Graph;
+    get isCrossGraph(): boolean;
+    toString(): string;
+}
+export declare namespace NavigationEdge {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <P extends Payload>() => NavigationEdge<P>;
+    }
+}
+export declare class ActorAddress {
+    constructor(graphId: string, key: string);
+    get graphId(): string;
+    get key(): string;
+    toString(): string;
+    copy(graphId?: string, key?: string): ActorAddress;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace ActorAddress {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ActorAddress;
+    }
+}
+export declare class BasicNode extends Node.$metadata$.constructor {
+    constructor(graph: Graph);
+    static build(graph: Graph, build: (p0: BasicNode) => void): BasicNode;
+    toString(): string;
+}
+export declare namespace BasicNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => BasicNode;
+    }
+}
+export declare class ContainerNode extends Node.$metadata$.constructor implements Node.Routable {
+    constructor(parent: Graph, pattern?: string, graphs?: KtMutableList<Graph>/* ArrayList<Graph> */);
+    get graphs(): KtMutableList<Graph>/* ArrayList<Graph> */;
+    get routeBinding(): ConsumerPort<RouteBinding<Payload>>;
+    get route(): RouteNode<Payload, RouteBinding<Payload>>;
+    get activeGraphIndex(): any/* MutableStateFlow<number> */;
+    get activeGraph(): Nullable<Graph>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    toString(): string;
+    readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & Node.Routable["__doNotUseOrImplementIt"];
+}
+export declare namespace ContainerNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ContainerNode;
+    }
+}
+export declare abstract class ControllerNode<State> extends Node.$metadata$.constructor implements Node.Routable {
+    constructor(graph: Graph);
+    abstract get state(): any/* MutableStateFlow<State> */;
+    update(transform: (p0: State) => State): void;
+    toString(): string;
+    abstract get routeBinding(): ConsumerPort<RouteBinding<Payload>>;
+    readonly __doNotUseOrImplementIt: Node["__doNotUseOrImplementIt"] & Node.Routable["__doNotUseOrImplementIt"];
+}
+export declare namespace ControllerNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <State>() => ControllerNode<State>;
+    }
+}
+export declare abstract class Node extends PortNode.$metadata$.constructor<Graph> /* implements LifecycleCapability, ConcurrencyCapability */ {
+    protected constructor(graph: Graph, dispatcher?: any/* CoroutineDispatcher */, id?: any/* Uuid */, label?: string, portCapability?: PortCapability);
+    get graph(): Graph;
+    get id(): any/* Uuid */;
+    get label(): string;
+    close(): void;
+    toString(): string;
+}
+export declare namespace Node {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Node;
+    }
+    interface Stateful<State> {
+        readonly state: any/* MutableStateFlow<State> */;
+        readonly __doNotUseOrImplementIt: {
+            readonly "dev.shibasis.reaktor.graph.core.node.Node.Stateful": unique symbol;
+        };
+    }
+    interface Routable {
+        readonly routeBinding: ConsumerPort<RouteBinding<Payload>>;
+        readonly __doNotUseOrImplementIt: {
+            readonly "dev.shibasis.reaktor.graph.core.node.Node.Routable": unique symbol;
+        };
+    }
+}
+export declare class RouteBinding<P extends Payload> {
+    constructor(initial: P);
+    get payload(): any/* MutableStateFlow<P> */;
+    get dispatch(): (p0: NavCommand) => void;
+    set dispatch(value: (p0: NavCommand) => void);
+    push<T extends Payload>(_this_: NavigationEdge<T>, payload: T): void;
+    replace<T extends Payload>(_this_: NavigationEdge<T>, payload: T): void;
+    pop(): void;
+    backWithResult<R>(result: R): void;
+}
+export declare namespace RouteBinding {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <P extends Payload>() => RouteBinding<P>;
+    }
+}
+export declare interface NavBinding<P extends Payload> {
+    updateFn(fn: (p0: P) => P): void;
+    update(payload: Payload): void;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.core.node.NavBinding": unique symbol;
+    };
+}
+export declare class RouteNode<P extends Payload, Binding extends RouteBinding<P>> extends Node.$metadata$.constructor {
+    constructor(graph: Graph, pattern: any/* RoutePattern */, portName: string, binder: (p0: RouteNode<P, Binding>) => Binding);
+    get pattern(): any/* RoutePattern */;
+    static constructNamed<P extends Payload, Binding extends RouteBinding<P>>(graph: Graph, pattern: string, portName: string, binder: (p0: RouteNode<P, Binding>) => Binding): RouteNode<P, Binding>;
+    static construct<P extends Payload, Binding extends RouteBinding<P>>(graph: Graph, pattern: string, binder: (p0: RouteNode<P, Binding>) => Binding): RouteNode<P, Binding>;
+    get routeBinding(): ProviderPort<Binding>;
+    get navBinding(): ProviderPort<NavBinding<P>>;
+    attachedNodes(): KtList<Node.Routable>;
+    navigationTargets(): KtList<RouteNode<any /*UnknownType **/, any /*UnknownType **/>>;
+    attachedNode(): Nullable<Node.Routable>;
+    edge<D extends Payload>(destination: RouteNode<D, any /*UnknownType **/>): NavigationEdge<D>;
+    toString(): string;
+}
+export declare namespace RouteNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <P extends Payload, Binding extends RouteBinding<P>>() => RouteNode<P, Binding>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                invoke(graph: Graph, pattern: string): RouteNode<Payload, RouteBinding<Payload>>;
+                private constructor();
+            }
+        }
+    }
+}
+export declare interface NavCommand {
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.navigation.NavCommand": unique symbol;
+    };
+}
+export declare interface Forward<P extends Payload, R> extends NavCommand {
+    readonly entry: BackStackEntry<P, R>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.navigation.Forward": unique symbol;
+    } & NavCommand["__doNotUseOrImplementIt"];
+}
+export declare interface Back<R> extends NavCommand {
+    readonly value: R;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.navigation.Back": unique symbol;
+    } & NavCommand["__doNotUseOrImplementIt"];
+}
+export declare class Push<P extends Payload, R> implements Forward<P, R> {
+    constructor(entry: BackStackEntry<P, R>);
+    get entry(): BackStackEntry<P, R>;
+    readonly __doNotUseOrImplementIt: Forward<P, R>["__doNotUseOrImplementIt"];
+}
+export declare namespace Push {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <P extends Payload, R>() => Push<P, R>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                construct<P extends Payload, R>(edge: NavigationEdge<P>, payload: P, result: any/* CompletableDeferred<R> */): Push<P, R>;
+                construstUnit<P extends Payload>(edge: NavigationEdge<P>, payload: P): Push<P, void>;
+                private constructor();
+            }
+        }
+    }
+}
+export declare class Replace<P extends Payload, R> implements Forward<P, R> {
+    constructor(entry: BackStackEntry<P, R>);
+    get entry(): BackStackEntry<P, R>;
+    readonly __doNotUseOrImplementIt: Forward<P, R>["__doNotUseOrImplementIt"];
+}
+export declare namespace Replace {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <P extends Payload, R>() => Replace<P, R>;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                construct<P extends Payload, R>(edge: NavigationEdge<P>, payload: P, result: any/* CompletableDeferred<R> */): Replace<P, R>;
+                constructUnit<P extends Payload>(edge: NavigationEdge<P>, payload: P): Replace<P, void>;
+                private constructor();
+            }
+        }
+    }
+}
+export declare class Return<R> implements Back<R> {
+    constructor(value: R);
+    get value(): R;
+    readonly __doNotUseOrImplementIt: Back<R>["__doNotUseOrImplementIt"];
+}
+export declare namespace Return {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <R>() => Return<R>;
+    }
+}
+export declare abstract class Pop {
+    static readonly getInstance: () => typeof Pop.$metadata$.type;
+    private constructor();
+}
+export declare namespace Pop {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor implements Back<void> {
+            get value(): void;
+            readonly __doNotUseOrImplementIt: Back<void>["__doNotUseOrImplementIt"];
+            private constructor();
+        }
+    }
+}
+export declare class Payload {
+    constructor(routeParams?: (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */);
+    get routeParams(): (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */;
+}
+export declare namespace Payload {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Payload;
+    }
+}
+export declare class BackStackEntry<P extends Payload, R> implements Unique {
+    constructor(edge: NavigationEdge<P>, payload: P, result?: any/* CompletableDeferred<R> */);
+    get edge(): NavigationEdge<P>;
+    get payload(): P;
+    get result(): any/* CompletableDeferred<R> */;
+    complete(value: any): boolean;
+    completeExceptionally(exception: Error): boolean;
+    copy(edge?: NavigationEdge<P>, payload?: P, result?: any/* CompletableDeferred<R> */): BackStackEntry<P, R>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+    get id(): any/* Uuid */;
+    get label(): string;
+    readonly __doNotUseOrImplementIt: Unique["__doNotUseOrImplementIt"];
+}
+export declare namespace BackStackEntry {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <P extends Payload, R>() => BackStackEntry<P, R>;
+    }
+}
+export declare interface View {
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.ui.View": unique symbol;
+    };
+}
+export declare abstract class WindowWidthClass {
+    private constructor();
+    static get COMPACT(): WindowWidthClass & {
+        get name(): "COMPACT";
+        get ordinal(): 0;
+    };
+    static get MEDIUM(): WindowWidthClass & {
+        get name(): "MEDIUM";
+        get ordinal(): 1;
+    };
+    static get EXPANDED(): WindowWidthClass & {
+        get name(): "EXPANDED";
+        get ordinal(): 2;
+    };
+    static get LARGE(): WindowWidthClass & {
+        get name(): "LARGE";
+        get ordinal(): 3;
+    };
+    static get EXTRA_LARGE(): WindowWidthClass & {
+        get name(): "EXTRA_LARGE";
+        get ordinal(): 4;
+    };
+    get name(): "COMPACT" | "MEDIUM" | "EXPANDED" | "LARGE" | "EXTRA_LARGE";
+    get ordinal(): 0 | 1 | 2 | 3 | 4;
+    static values(): Array<WindowWidthClass>;
+    static valueOf(value: string): WindowWidthClass;
+}
+export declare namespace WindowWidthClass {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WindowWidthClass;
+    }
+}
+export declare abstract class WindowHeightClass {
+    private constructor();
+    static get COMPACT(): WindowHeightClass & {
+        get name(): "COMPACT";
+        get ordinal(): 0;
+    };
+    static get MEDIUM(): WindowHeightClass & {
+        get name(): "MEDIUM";
+        get ordinal(): 1;
+    };
+    static get EXPANDED(): WindowHeightClass & {
+        get name(): "EXPANDED";
+        get ordinal(): 2;
+    };
+    get name(): "COMPACT" | "MEDIUM" | "EXPANDED";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<WindowHeightClass>;
+    static valueOf(value: string): WindowHeightClass;
+}
+export declare namespace WindowHeightClass {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WindowHeightClass;
+    }
+}
+export declare class WindowSize {
+    constructor(width?: WindowWidthClass, height?: WindowHeightClass);
+    get width(): WindowWidthClass;
+    get height(): WindowHeightClass;
+    toString(): string;
+    copy(width?: WindowWidthClass, height?: WindowHeightClass): WindowSize;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace WindowSize {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WindowSize;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor /* implements AutoCloseable */ {
+                get state(): any/* MutableStateFlow<WindowSize> */;
+                startListening(onStart: () => any/* Flow<WindowSize> */, onStop?: (p0: WindowSize) => void): any/* Result<void> */;
+                private constructor();
+            }
+        }
+    }
+}
+export declare class WebNavigationBridge {
+    constructor(graph: Graph);
+    resolveCurrentUrl(): boolean;
+    destroy(): void;
+}
+export declare namespace WebNavigationBridge {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebNavigationBridge;
+    }
+}
+export declare function ReactGraphContent(graph: Graph, isFocused?: boolean): Nullable<ReactNode>;
+export declare interface ReactContainer extends View {
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.ui.ReactContainer": unique symbol;
+    } & View["__doNotUseOrImplementIt"];
+}
+export declare const PersonViewDataKey: { get(): KeyType; };
+export declare interface ReactContent extends View {
+    Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.ui.ReactContent": unique symbol;
+    } & View["__doNotUseOrImplementIt"];
+}
+export declare class ReactNode<State> extends ControllerNode.$metadata$.constructor<State> implements ReactContent {
+    constructor(graph: Graph, build: (p0: ReactNode<State>) => State, render: (p0: ReactNode<State>) => Nullable<ReactNode>);
+    get build(): (p0: ReactNode<State>) => State;
+    get render(): (p0: ReactNode<State>) => Nullable<ReactNode>;
+    useNodeState(): StateInstance<State>;
+    get children(): Nullable<ReactNode>;
+    set children(value: Nullable<ReactNode>);
+    Content(children: Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ControllerNode<State>["__doNotUseOrImplementIt"] & ReactContent["__doNotUseOrImplementIt"];
+}
+export declare namespace ReactNode {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <State>() => ReactNode<State>;
+    }
+}
+export declare function ViewNode<P extends Payload, State>(build: (p0: ReactNode<State>) => State, render: (p0: ReactNode<State>) => Nullable<ReactNode>): (p0: Graph) => ReactNode<State>;
+export declare function Logic(build: (p0: BasicNode) => void): (p0: Graph) => BasicNode;
+export declare class Person {
+    constructor(name: string, age: number);
+    get name(): string;
+    get age(): number;
+    copy(name?: string, age?: number): Person;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace Person {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => Person;
+    }
+}
+export declare interface ViewData {
+    getPerson(): Person;
+    readonly __doNotUseOrImplementIt: {
+        readonly "dev.shibasis.reaktor.graph.ui.ViewData": unique symbol;
+    };
+}
+export declare class TestBasic extends BasicNode.$metadata$.constructor {
+    constructor(graph: Graph);
+    get data(): ProviderPort<ViewData>;
+}
+export declare namespace TestBasic {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => TestBasic;
+    }
+}
+export declare class WebBottomNavigationContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
+    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string, bottomNavKeys?: KtSet<string>);
+    get children(): KtMap<string, any/* ChildGraph */>;
+    get bottomNavKeys(): KtSet<string>;
+    get selected(): any/* MutableStateFlow<string> */;
+    get controller(): ProviderPort<any/* Controller */>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
+}
+export declare namespace WebBottomNavigationContainer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebBottomNavigationContainer;
+    }
+}
+export declare class WebHost {
+    constructor(graph: Graph);
+    get graph(): Graph;
+    get bridge(): WebNavigationBridge;
+    start(): void;
+    Content(): Nullable<ReactNode>;
+    dispatch(command: NavCommand): void;
+    navigate(edge: NavigationEdge<Payload>, payload?: Payload): void;
+    goBack(): void;
+    topEntry(): Nullable<BackStackEntry<any /*UnknownType **/, any /*UnknownType **/>>;
+    topPattern(): string;
+    topParams(): (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */;
+    stackSize(): number;
+    navigateToPattern(pattern: string, params?: (KtMap<string, string> & KtMutableMap<string, string>)/* HashMap<string, string> */): void;
+    destroy(): void;
+}
+export declare namespace WebHost {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebHost;
+    }
+}
+export declare class WebTabbedContainer extends ContainerNode.$metadata$.constructor implements ReactContainer {
+    constructor(graph: Graph, pattern: string, children: KtMap<string, any/* ChildGraph */>, initialSelection: string);
+    get children(): KtMap<string, any/* ChildGraph */>;
+    get selected(): any/* MutableStateFlow<string> */;
+    get controller(): ProviderPort<any/* Controller */>;
+    activateGraphForRoute(route: RouteNode<any /*UnknownType **/, any /*UnknownType **/>): boolean;
+    Content(renderer: (p0: Graph, p1: boolean) => Nullable<ReactNode>): Nullable<ReactNode>;
+    readonly __doNotUseOrImplementIt: ContainerNode["__doNotUseOrImplementIt"] & ReactContainer["__doNotUseOrImplementIt"];
+}
+export declare namespace WebTabbedContainer {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => WebTabbedContainer;
+    }
+}
+export declare function useWindowSize(): WindowSize;
+/** @deprecated  */
+export declare const initHook: { get(): any; };
+/** @deprecated  */
+export declare const initHook: { get(): any; };
+/** @deprecated  */
+export declare const initHook: { get(): any; };
 export declare abstract class UserProvider {
     private constructor();
     static get GOOGLE(): UserProvider & {
@@ -2747,8 +2688,12 @@ export declare abstract class UserProvider {
         get name(): "SUPABASE";
         get ordinal(): 2;
     };
-    get name(): "GOOGLE" | "APPLE" | "SUPABASE";
-    get ordinal(): 0 | 1 | 2;
+    static get REAKTOR(): UserProvider & {
+        get name(): "REAKTOR";
+        get ordinal(): 3;
+    };
+    get name(): "GOOGLE" | "APPLE" | "SUPABASE" | "REAKTOR";
+    get ordinal(): 0 | 1 | 2 | 3;
     static values(): Array<UserProvider>;
     static valueOf(value: string): UserProvider;
 }
@@ -2758,226 +2703,70 @@ export declare namespace UserProvider {
         const constructor: abstract new () => UserProvider;
     }
 }
-export declare abstract class AccountType {
-    private constructor();
-    static get USER(): AccountType & {
-        get name(): "USER";
-        get ordinal(): 0;
-    };
-    static get SERVICE_ACCOUNT(): AccountType & {
-        get name(): "SERVICE_ACCOUNT";
-        get ordinal(): 1;
-    };
-    get name(): "USER" | "SERVICE_ACCOUNT";
-    get ordinal(): 0 | 1;
-    static values(): Array<AccountType>;
-    static valueOf(value: string): AccountType;
-}
-export declare namespace AccountType {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => AccountType;
-    }
-}
-export declare class User implements AuditableDto {
-    constructor(id: string, name: string, socialId: Nullable<string>, appId: string, provider: Nullable<UserProvider>, status: UserStatus, accountType: AccountType | undefined, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get name(): string;
-    get socialId(): Nullable<string>;
+export declare class AuthContextSnapshot {
+    constructor(principalId: string, principalKind: PrincipalKind, identityId: Nullable<string> | undefined, appId: string, tenantId: Nullable<string> | undefined, contextId: Nullable<string> | undefined, sessionId: Nullable<string> | undefined, tokenId: Nullable<string> | undefined, credentialId: Nullable<string> | undefined, issuer: string | undefined, audience: string, scopes: KtList<string> | undefined, roles: KtList<string> | undefined, permissions: KtList<string> | undefined, method: AuthMethod);
+    get principalId(): string;
+    get principalKind(): PrincipalKind;
+    get identityId(): Nullable<string>;
     get appId(): string;
-    get provider(): Nullable<UserProvider>;
-    get status(): UserStatus;
-    get accountType(): AccountType;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, name?: string, socialId?: Nullable<string>, appId?: string, provider?: Nullable<UserProvider>, status?: UserStatus, accountType?: AccountType, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): User;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace User {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => User;
-    }
-}
-export declare class Role implements AuditableDto {
-    constructor(id: string, name: string, appId: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get name(): string;
-    get appId(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, name?: string, appId?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): Role;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace Role {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Role;
-    }
-}
-export declare class Permission implements AuditableDto {
-    constructor(id: string, name: string, appId: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get name(): string;
-    get appId(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, name?: string, appId?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): Permission;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace Permission {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Permission;
-    }
-}
-export declare class Session implements AuditableDto {
-    constructor(id: string, userId: string, appId: string, contextId: string, expiresAt: any/* Instant */ | undefined, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get userId(): string;
-    get appId(): string;
-    get contextId(): string;
-    get expiresAt(): any/* Instant */;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, userId?: string, appId?: string, contextId?: string, expiresAt?: any/* Instant */, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): Session;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace Session {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Session;
-    }
-}
-export declare class Context implements AuditableDto {
-    constructor(id: string, name: string, appId: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get name(): string;
-    get appId(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, name?: string, appId?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): Context;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace Context {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => Context;
-    }
-}
-export declare class RolePermission implements AuditableDto {
-    constructor(id: string, roleId: string, permissionId: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get roleId(): string;
-    get permissionId(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, roleId?: string, permissionId?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): RolePermission;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace RolePermission {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => RolePermission;
-    }
-}
-export declare class UserRole implements AuditableDto {
-    constructor(id: string, userId: string, roleId: string, contextId: string, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get userId(): string;
-    get roleId(): string;
-    get contextId(): string;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, userId?: string, roleId?: string, contextId?: string, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): UserRole;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
-}
-export declare namespace UserRole {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => UserRole;
-    }
-}
-export declare class PersonalAccessToken implements AuditableDto {
-    constructor(id: string, userId: Nullable<string>, name: string, tokenHash: string, scopes: string, contextId: Nullable<string>, expiresAt: Nullable<any>/* Nullable<Instant> */ | undefined, lastUsedAt: Nullable<any>/* Nullable<Instant> */ | undefined, revokedAt: Nullable<any>/* Nullable<Instant> */ | undefined, data: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */);
-    get id(): string;
-    get userId(): Nullable<string>;
-    get name(): string;
-    get tokenHash(): string;
-    get scopes(): string;
+    get tenantId(): Nullable<string>;
     get contextId(): Nullable<string>;
-    get expiresAt(): Nullable<any>/* Nullable<Instant> */;
-    get lastUsedAt(): Nullable<any>/* Nullable<Instant> */;
-    get revokedAt(): Nullable<any>/* Nullable<Instant> */;
-    get data(): any/* JsonElement */;
-    set data(value: any/* JsonElement */);
-    get createdAt(): any/* Instant */;
-    set createdAt(value: any/* Instant */);
-    get updatedAt(): any/* Instant */;
-    set updatedAt(value: any/* Instant */);
-    copy(id?: string, userId?: Nullable<string>, name?: string, tokenHash?: string, scopes?: string, contextId?: Nullable<string>, expiresAt?: Nullable<any>/* Nullable<Instant> */, lastUsedAt?: Nullable<any>/* Nullable<Instant> */, revokedAt?: Nullable<any>/* Nullable<Instant> */, data?: any/* JsonElement */, createdAt?: any/* Instant */, updatedAt?: any/* Instant */): PersonalAccessToken;
+    get sessionId(): Nullable<string>;
+    get tokenId(): Nullable<string>;
+    get credentialId(): Nullable<string>;
+    get issuer(): string;
+    get audience(): string;
+    get scopes(): KtList<string>;
+    get roles(): KtList<string>;
+    get permissions(): KtList<string>;
+    get method(): AuthMethod;
+    copy(principalId?: string, principalKind?: PrincipalKind, identityId?: Nullable<string>, appId?: string, tenantId?: Nullable<string>, contextId?: Nullable<string>, sessionId?: Nullable<string>, tokenId?: Nullable<string>, credentialId?: Nullable<string>, issuer?: string, audience?: string, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, method?: AuthMethod): AuthContextSnapshot;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
-    readonly __doNotUseOrImplementIt: AuditableDto["__doNotUseOrImplementIt"];
 }
-export declare namespace PersonalAccessToken {
+export declare namespace AuthContextSnapshot {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
-        const constructor: abstract new () => PersonalAccessToken;
+        const constructor: abstract new () => AuthContextSnapshot;
+    }
+}
+export declare class AnonymousAuthRequest extends Request.$metadata$.constructor {
+    constructor(appId: string, tenantHint: Nullable<string> | undefined, contextHint: Nullable<string> | undefined, profile: any/* JsonElement */ | undefined, headers: KtMutableMap<string, string> | undefined, queryParams: KtMutableMap<string, string> | undefined, pathParams: KtMutableMap<string, string> | undefined, environment: Environment);
+    get appId(): string;
+    get tenantHint(): Nullable<string>;
+    get contextHint(): Nullable<string>;
+    get profile(): any/* JsonElement */;
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(appId?: string, tenantHint?: Nullable<string>, contextHint?: Nullable<string>, profile?: any/* JsonElement */, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): AnonymousAuthRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+    static invoke(appId: string, environment: Environment): AnonymousAuthRequest;
+}
+export declare namespace AnonymousAuthRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AnonymousAuthRequest;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                private constructor();
+            }
+        }
     }
 }
 export declare class LoginRequest extends Request.$metadata$.constructor {
-    constructor(idToken: string, appId: string, provider: UserProvider | undefined, nonce: Nullable<string> | undefined, state: Nullable<string> | undefined, tenantHint: Nullable<string> | undefined, contextHint: Nullable<string> | undefined, givenName: Nullable<string> | undefined, familyName: Nullable<string> | undefined, newUserProfile: any/* JsonElement */ | undefined, headers: KtMutableMap<string, string> | undefined, queryParams: KtMutableMap<string, string> | undefined, pathParams: KtMutableMap<string, string> | undefined, environment: Environment);
+    constructor(idToken: string, appId: string, provider: UserProvider | undefined, nonce: Nullable<string> | undefined, state: Nullable<string> | undefined, tenantHint: Nullable<string> | undefined, contextHint: Nullable<string> | undefined, givenName: Nullable<string> | undefined, familyName: Nullable<string> | undefined, profile: any/* JsonElement */ | undefined, headers: KtMutableMap<string, string> | undefined, queryParams: KtMutableMap<string, string> | undefined, pathParams: KtMutableMap<string, string> | undefined, environment: Environment);
     get idToken(): string;
     get appId(): string;
     get provider(): UserProvider;
@@ -2987,17 +2776,17 @@ export declare class LoginRequest extends Request.$metadata$.constructor {
     get contextHint(): Nullable<string>;
     get givenName(): Nullable<string>;
     get familyName(): Nullable<string>;
-    get newUserProfile(): any/* JsonElement */;
+    get profile(): any/* JsonElement */;
     get headers(): KtMutableMap<string, string>;
     get queryParams(): KtMutableMap<string, string>;
     get pathParams(): KtMutableMap<string, string>;
     get environment(): Environment;
     set environment(value: Environment);
-    copy(idToken?: string, appId?: string, provider?: UserProvider, nonce?: Nullable<string>, state?: Nullable<string>, tenantHint?: Nullable<string>, contextHint?: Nullable<string>, givenName?: Nullable<string>, familyName?: Nullable<string>, newUserProfile?: any/* JsonElement */, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): LoginRequest;
+    copy(idToken?: string, appId?: string, provider?: UserProvider, nonce?: Nullable<string>, state?: Nullable<string>, tenantHint?: Nullable<string>, contextHint?: Nullable<string>, givenName?: Nullable<string>, familyName?: Nullable<string>, profile?: any/* JsonElement */, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): LoginRequest;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
-    static Create(idToken: string, appId: string, provider: UserProvider | undefined, environment: Environment): LoginRequest;
+    static invoke(idToken: string, appId: string, provider: UserProvider | undefined, environment: Environment): LoginRequest;
 }
 export declare namespace LoginRequest {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -3048,13 +2837,11 @@ export declare namespace LoginResponse {
         const constructor: abstract new () => LoginResponse;
     }
     class Success extends LoginResponse.$metadata$.constructor {
-        constructor(user: User, profile: any/* JsonElement */, accessToken: string, refreshToken: string, tokenSet?: TokenSet);
-        get user(): User;
+        constructor(context: AuthContextSnapshot, profile: any/* JsonElement */, tokenSet: TokenSet);
+        get context(): AuthContextSnapshot;
         get profile(): any/* JsonElement */;
-        get accessToken(): string;
-        get refreshToken(): string;
         get tokenSet(): TokenSet;
-        copy(user?: User, profile?: any/* JsonElement */, accessToken?: string, refreshToken?: string, tokenSet?: TokenSet): LoginResponse.Success;
+        copy(context?: AuthContextSnapshot, profile?: any/* JsonElement */, tokenSet?: TokenSet): LoginResponse.Success;
         toString(): string;
         hashCode(): number;
         equals(other: Nullable<any>): boolean;
@@ -3066,7 +2853,7 @@ export declare namespace LoginResponse {
         }
     }
     abstract class Failure extends LoginResponse.$metadata$.constructor {
-        protected constructor(hack: StatusCode);
+        protected constructor(failureStatus: StatusCode);
     }
     namespace Failure {
         /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -3115,10 +2902,10 @@ export declare namespace LoginResponse {
                 }
             }
         }
-        abstract class RequiresUserName extends KtSingleton<RequiresUserName.$metadata$.constructor>() {
+        abstract class RequiresUserProfile extends KtSingleton<RequiresUserProfile.$metadata$.constructor>() {
             private constructor();
         }
-        namespace RequiresUserName {
+        namespace RequiresUserProfile {
             /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
             namespace $metadata$ {
                 abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
@@ -3129,10 +2916,10 @@ export declare namespace LoginResponse {
                 }
             }
         }
-        abstract class RequiresUserProfile extends KtSingleton<RequiresUserProfile.$metadata$.constructor>() {
+        abstract class PrincipalUnavailable extends KtSingleton<PrincipalUnavailable.$metadata$.constructor>() {
             private constructor();
         }
-        namespace RequiresUserProfile {
+        namespace PrincipalUnavailable {
             /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
             namespace $metadata$ {
                 abstract class constructor extends LoginResponse.Failure.$metadata$.constructor /* implements SerializerFactory */ {
@@ -3170,15 +2957,19 @@ export declare namespace LoginResponse {
     }
 }
 export declare class MintPatRequest extends Request.$metadata$.constructor {
-    constructor(name: string, scopes?: KtList<string>, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    constructor(name: string, scopes?: KtList<string>, principalId?: Nullable<string>, appId?: Nullable<string>, allowedAudiences?: KtList<string>, expiresInDays?: Nullable<number>, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
     get name(): string;
     get scopes(): KtList<string>;
+    get principalId(): Nullable<string>;
+    get appId(): Nullable<string>;
+    get allowedAudiences(): KtList<string>;
+    get expiresInDays(): Nullable<number>;
     get headers(): KtMutableMap<string, string>;
     get queryParams(): KtMutableMap<string, string>;
     get pathParams(): KtMutableMap<string, string>;
     get environment(): Environment;
     set environment(value: Environment);
-    copy(name?: string, scopes?: KtList<string>, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): MintPatRequest;
+    copy(name?: string, scopes?: KtList<string>, principalId?: Nullable<string>, appId?: Nullable<string>, allowedAudiences?: KtList<string>, expiresInDays?: Nullable<number>, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): MintPatRequest;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
@@ -3324,7 +3115,7 @@ export declare namespace ExchangePatResponse {
     }
 }
 export declare class TokenRequest extends Request.$metadata$.constructor {
-    constructor(grantType?: string, rawToken?: string, clientId?: Nullable<string>, clientSecret?: Nullable<string>, audience?: string, scopes?: KtList<string>, subjectToken?: Nullable<string>, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    constructor(grantType?: string, rawToken?: string, clientId?: Nullable<string>, clientSecret?: Nullable<string>, audience?: string, scopes?: KtList<string>, subjectToken?: Nullable<string>, subjectTokenType?: Nullable<string>, actorToken?: Nullable<string>, actorTokenType?: Nullable<string>, requestedTokenType?: Nullable<string>, clientAssertion?: Nullable<string>, clientAssertionType?: Nullable<string>, contextId?: Nullable<string>, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
     get grantType(): string;
     get rawToken(): string;
     get clientId(): Nullable<string>;
@@ -3332,13 +3123,20 @@ export declare class TokenRequest extends Request.$metadata$.constructor {
     get audience(): string;
     get scopes(): KtList<string>;
     get subjectToken(): Nullable<string>;
+    get subjectTokenType(): Nullable<string>;
+    get actorToken(): Nullable<string>;
+    get actorTokenType(): Nullable<string>;
+    get requestedTokenType(): Nullable<string>;
+    get clientAssertion(): Nullable<string>;
+    get clientAssertionType(): Nullable<string>;
+    get contextId(): Nullable<string>;
     get ttlSeconds(): number;
     get headers(): KtMutableMap<string, string>;
     get queryParams(): KtMutableMap<string, string>;
     get pathParams(): KtMutableMap<string, string>;
     get environment(): Environment;
     set environment(value: Environment);
-    copy(grantType?: string, rawToken?: string, clientId?: Nullable<string>, clientSecret?: Nullable<string>, audience?: string, scopes?: KtList<string>, subjectToken?: Nullable<string>, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): TokenRequest;
+    copy(grantType?: string, rawToken?: string, clientId?: Nullable<string>, clientSecret?: Nullable<string>, audience?: string, scopes?: KtList<string>, subjectToken?: Nullable<string>, subjectTokenType?: Nullable<string>, actorToken?: Nullable<string>, actorTokenType?: Nullable<string>, requestedTokenType?: Nullable<string>, clientAssertion?: Nullable<string>, clientAssertionType?: Nullable<string>, contextId?: Nullable<string>, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): TokenRequest;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
@@ -3350,16 +3148,18 @@ export declare namespace TokenRequest {
     }
 }
 export declare class TokenResponse extends Response.$metadata$.constructor {
-    constructor(accessToken: string, tokenType?: string, expiresInSeconds?: number, tokenId?: Nullable<string>, scopes?: KtList<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    constructor(accessToken: string, tokenType?: string, expiresInSeconds?: number, tokenId?: Nullable<string>, scopes?: KtList<string>, audience?: Nullable<string>, contextId?: Nullable<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
     get accessToken(): string;
     get tokenType(): string;
     get expiresInSeconds(): number;
     get tokenId(): Nullable<string>;
     get scopes(): KtList<string>;
+    get audience(): Nullable<string>;
+    get contextId(): Nullable<string>;
     get statusCode(): StatusCode;
     set statusCode(value: StatusCode);
     get headers(): KtMutableMap<string, string>;
-    copy(accessToken?: string, tokenType?: string, expiresInSeconds?: number, tokenId?: Nullable<string>, scopes?: KtList<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): TokenResponse;
+    copy(accessToken?: string, tokenType?: string, expiresInSeconds?: number, tokenId?: Nullable<string>, scopes?: KtList<string>, audience?: Nullable<string>, contextId?: Nullable<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): TokenResponse;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
@@ -3370,13 +3170,193 @@ export declare namespace TokenResponse {
         const constructor: abstract new () => TokenResponse;
     }
 }
+export declare class RefreshRequest extends Request.$metadata$.constructor {
+    constructor(refreshToken?: string, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get refreshToken(): string;
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(refreshToken?: string, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): RefreshRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+    static Create(refreshToken: string, environment: Environment): RefreshRequest;
+}
+export declare namespace RefreshRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RefreshRequest;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                private constructor();
+            }
+        }
+    }
+}
+export declare class RefreshResponse extends Response.$metadata$.constructor {
+    constructor(tokenSet?: Nullable<TokenSet>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    get tokenSet(): Nullable<TokenSet>;
+    get statusCode(): StatusCode;
+    set statusCode(value: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    copy(tokenSet?: Nullable<TokenSet>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): RefreshResponse;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace RefreshResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RefreshResponse;
+    }
+}
+export declare class LogoutRequest extends Request.$metadata$.constructor {
+    constructor(refreshToken?: string, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get refreshToken(): string;
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(refreshToken?: string, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): LogoutRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+    static Create(refreshToken: string, environment: Environment): LogoutRequest;
+}
+export declare namespace LogoutRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => LogoutRequest;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                private constructor();
+            }
+        }
+    }
+}
+export declare class LogoutResponse extends Response.$metadata$.constructor {
+    constructor(success?: boolean, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    get success(): boolean;
+    get statusCode(): StatusCode;
+    set statusCode(value: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    copy(success?: boolean, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): LogoutResponse;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace LogoutResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => LogoutResponse;
+    }
+}
+export declare class MeRequest extends Request.$metadata$.constructor {
+    constructor(headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): MeRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace MeRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => MeRequest;
+    }
+}
+export declare class MeResponse extends Response.$metadata$.constructor {
+    constructor(principalId?: Nullable<string>, principalKind?: Nullable<string>, appId?: Nullable<string>, audience?: Nullable<string>, sessionId?: Nullable<string>, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, actorId?: Nullable<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    get principalId(): Nullable<string>;
+    get principalKind(): Nullable<string>;
+    get appId(): Nullable<string>;
+    get audience(): Nullable<string>;
+    get sessionId(): Nullable<string>;
+    get scopes(): KtList<string>;
+    get roles(): KtList<string>;
+    get permissions(): KtList<string>;
+    get actorId(): Nullable<string>;
+    get statusCode(): StatusCode;
+    set statusCode(value: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    copy(principalId?: Nullable<string>, principalKind?: Nullable<string>, appId?: Nullable<string>, audience?: Nullable<string>, sessionId?: Nullable<string>, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, actorId?: Nullable<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): MeResponse;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace MeResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => MeResponse;
+    }
+}
+export declare class LogoutAllRequest extends Request.$metadata$.constructor {
+    constructor(audience?: string, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get audience(): string;
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(audience?: string, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): LogoutAllRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace LogoutAllRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => LogoutAllRequest;
+    }
+}
+export declare class LogoutAllResponse extends Response.$metadata$.constructor {
+    constructor(revokedSessions?: number, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    get revokedSessions(): number;
+    get statusCode(): StatusCode;
+    set statusCode(value: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    copy(revokedSessions?: number, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): LogoutAllResponse;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace LogoutAllResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => LogoutAllResponse;
+    }
+}
 export declare abstract class AuthService extends Service.$metadata$.constructor {
     constructor(baseUrl?: string);
+    abstract get anonymous(): PostHandler<AnonymousAuthRequest, LoginResponse>;
     abstract get login(): PostHandler<LoginRequest, LoginResponse>;
     abstract get token(): PostHandler<TokenRequest, TokenResponse>;
     abstract get mintPat(): PostHandler<MintPatRequest, MintPatResponse>;
     abstract get verifyPat(): PostHandler<VerifyPatRequest, VerifyPatResponse>;
     abstract get exchangePat(): PostHandler<ExchangePatRequest, ExchangePatResponse>;
+    abstract get sessionRefresh(): PostHandler<RefreshRequest, RefreshResponse>;
+    abstract get sessionLogout(): PostHandler<LogoutRequest, LogoutResponse>;
+    abstract get sessionMe(): PostHandler<MeRequest, MeResponse>;
+    abstract get sessionLogoutAll(): PostHandler<LogoutAllRequest, LogoutAllResponse>;
 }
 export declare namespace AuthService {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -3386,11 +3366,16 @@ export declare namespace AuthService {
 }
 export declare class AuthServiceClient extends AuthService.$metadata$.constructor {
     constructor(baseUrl: string);
+    get anonymous(): PostHandler<AnonymousAuthRequest, LoginResponse>;
     get login(): PostHandler<LoginRequest, LoginResponse>;
     get mintPat(): PostHandler<MintPatRequest, MintPatResponse>;
     get token(): PostHandler<TokenRequest, TokenResponse>;
     get verifyPat(): PostHandler<VerifyPatRequest, VerifyPatResponse>;
     get exchangePat(): PostHandler<ExchangePatRequest, ExchangePatResponse>;
+    get sessionRefresh(): PostHandler<RefreshRequest, RefreshResponse>;
+    get sessionLogout(): PostHandler<LogoutRequest, LogoutResponse>;
+    get sessionMe(): PostHandler<MeRequest, MeResponse>;
+    get sessionLogoutAll(): PostHandler<LogoutAllRequest, LogoutAllResponse>;
 }
 export declare namespace AuthServiceClient {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
@@ -3398,3 +3383,277 @@ export declare namespace AuthServiceClient {
         const constructor: abstract new () => AuthServiceClient;
     }
 }
+export declare class RealtimeTokenRequest extends Request.$metadata$.constructor {
+    constructor(transport: string, service: string, contextId: string, audience: string, ttlSeconds?: Nullable<number>, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
+    get transport(): string;
+    get service(): string;
+    get contextId(): string;
+    get audience(): string;
+    get ttlSeconds(): Nullable<number>;
+    get headers(): KtMutableMap<string, string>;
+    get queryParams(): KtMutableMap<string, string>;
+    get pathParams(): KtMutableMap<string, string>;
+    get environment(): Environment;
+    set environment(value: Environment);
+    copy(transport?: string, service?: string, contextId?: string, audience?: string, ttlSeconds?: Nullable<number>, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): RealtimeTokenRequest;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace RealtimeTokenRequest {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RealtimeTokenRequest;
+    }
+}
+export declare class RealtimeTokenResponse extends Response.$metadata$.constructor {
+    constructor(accessToken: string, tokenType: string | undefined, expiresInSeconds: number | undefined, audience: string, contextId: string, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    get accessToken(): string;
+    get tokenType(): string;
+    get expiresInSeconds(): number;
+    get audience(): string;
+    get contextId(): string;
+    get statusCode(): StatusCode;
+    set statusCode(value: StatusCode);
+    get headers(): KtMutableMap<string, string>;
+    copy(accessToken?: string, tokenType?: string, expiresInSeconds?: number, audience?: string, contextId?: string, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): RealtimeTokenResponse;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace RealtimeTokenResponse {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RealtimeTokenResponse;
+    }
+}
+export declare abstract class RealtimeTokenService extends Service.$metadata$.constructor {
+    constructor(baseUrl?: string);
+    abstract get realtimeToken(): PostHandler<RealtimeTokenRequest, RealtimeTokenResponse>;
+}
+export declare namespace RealtimeTokenService {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RealtimeTokenService;
+    }
+}
+export declare class RealtimeTokenServiceClient extends RealtimeTokenService.$metadata$.constructor {
+    constructor(baseUrl: string);
+    get realtimeToken(): PostHandler<RealtimeTokenRequest, RealtimeTokenResponse>;
+}
+export declare namespace RealtimeTokenServiceClient {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => RealtimeTokenServiceClient;
+    }
+}
+export declare abstract class AuthProviderKind {
+    private constructor();
+    static get GOOGLE(): AuthProviderKind & {
+        get name(): "GOOGLE";
+        get ordinal(): 0;
+    };
+    static get APPLE(): AuthProviderKind & {
+        get name(): "APPLE";
+        get ordinal(): 1;
+    };
+    static get SUPABASE(): AuthProviderKind & {
+        get name(): "SUPABASE";
+        get ordinal(): 2;
+    };
+    static get REAKTOR(): AuthProviderKind & {
+        get name(): "REAKTOR";
+        get ordinal(): 3;
+    };
+    get name(): "GOOGLE" | "APPLE" | "SUPABASE" | "REAKTOR";
+    get ordinal(): 0 | 1 | 2 | 3;
+    static values(): Array<AuthProviderKind>;
+    static valueOf(value: string): AuthProviderKind;
+}
+export declare namespace AuthProviderKind {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AuthProviderKind;
+    }
+}
+export declare abstract class PlatformKind {
+    private constructor();
+    static get ANDROID(): PlatformKind & {
+        get name(): "ANDROID";
+        get ordinal(): 0;
+    };
+    static get IOS(): PlatformKind & {
+        get name(): "IOS";
+        get ordinal(): 1;
+    };
+    static get WEB(): PlatformKind & {
+        get name(): "WEB";
+        get ordinal(): 2;
+    };
+    static get DESKTOP(): PlatformKind & {
+        get name(): "DESKTOP";
+        get ordinal(): 3;
+    };
+    static get SERVER(): PlatformKind & {
+        get name(): "SERVER";
+        get ordinal(): 4;
+    };
+    get name(): "ANDROID" | "IOS" | "WEB" | "DESKTOP" | "SERVER";
+    get ordinal(): 0 | 1 | 2 | 3 | 4;
+    static values(): Array<PlatformKind>;
+    static valueOf(value: string): PlatformKind;
+}
+export declare namespace PlatformKind {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PlatformKind;
+    }
+}
+export declare abstract class IdentityStatus {
+    private constructor();
+    static get ACTIVE(): IdentityStatus & {
+        get name(): "ACTIVE";
+        get ordinal(): 0;
+    };
+    static get DISABLED(): IdentityStatus & {
+        get name(): "DISABLED";
+        get ordinal(): 1;
+    };
+    static get MERGED(): IdentityStatus & {
+        get name(): "MERGED";
+        get ordinal(): 2;
+    };
+    get name(): "ACTIVE" | "DISABLED" | "MERGED";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<IdentityStatus>;
+    static valueOf(value: string): IdentityStatus;
+}
+export declare namespace IdentityStatus {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => IdentityStatus;
+    }
+}
+export declare abstract class PrincipalKind {
+    private constructor();
+    static get USER(): PrincipalKind & {
+        get name(): "USER";
+        get ordinal(): 0;
+    };
+    static get SERVICE(): PrincipalKind & {
+        get name(): "SERVICE";
+        get ordinal(): 1;
+    };
+    static get AGENT(): PrincipalKind & {
+        get name(): "AGENT";
+        get ordinal(): 2;
+    };
+    static get ACTOR(): PrincipalKind & {
+        get name(): "ACTOR";
+        get ordinal(): 3;
+    };
+    get name(): "USER" | "SERVICE" | "AGENT" | "ACTOR";
+    get ordinal(): 0 | 1 | 2 | 3;
+    static values(): Array<PrincipalKind>;
+    static valueOf(value: string): PrincipalKind;
+}
+export declare namespace PrincipalKind {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PrincipalKind;
+    }
+}
+export declare abstract class PrincipalStatus {
+    private constructor();
+    static get ACTIVE(): PrincipalStatus & {
+        get name(): "ACTIVE";
+        get ordinal(): 0;
+    };
+    static get DISABLED(): PrincipalStatus & {
+        get name(): "DISABLED";
+        get ordinal(): 1;
+    };
+    static get SUSPENDED(): PrincipalStatus & {
+        get name(): "SUSPENDED";
+        get ordinal(): 2;
+    };
+    get name(): "ACTIVE" | "DISABLED" | "SUSPENDED";
+    get ordinal(): 0 | 1 | 2;
+    static values(): Array<PrincipalStatus>;
+    static valueOf(value: string): PrincipalStatus;
+}
+export declare namespace PrincipalStatus {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => PrincipalStatus;
+    }
+}
+export declare abstract class MembershipStatus {
+    private constructor();
+    static get ACTIVE(): MembershipStatus & {
+        get name(): "ACTIVE";
+        get ordinal(): 0;
+    };
+    static get INVITED(): MembershipStatus & {
+        get name(): "INVITED";
+        get ordinal(): 1;
+    };
+    static get SUSPENDED(): MembershipStatus & {
+        get name(): "SUSPENDED";
+        get ordinal(): 2;
+    };
+    static get REMOVED(): MembershipStatus & {
+        get name(): "REMOVED";
+        get ordinal(): 3;
+    };
+    get name(): "ACTIVE" | "INVITED" | "SUSPENDED" | "REMOVED";
+    get ordinal(): 0 | 1 | 2 | 3;
+    static values(): Array<MembershipStatus>;
+    static valueOf(value: string): MembershipStatus;
+}
+export declare namespace MembershipStatus {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => MembershipStatus;
+    }
+}
+export declare abstract class AuthMethod {
+    private constructor();
+    static get ACCESS_TOKEN(): AuthMethod & {
+        get name(): "ACCESS_TOKEN";
+        get ordinal(): 0;
+    };
+    static get REFRESH_TOKEN(): AuthMethod & {
+        get name(): "REFRESH_TOKEN";
+        get ordinal(): 1;
+    };
+    static get EXTERNAL_LOGIN(): AuthMethod & {
+        get name(): "EXTERNAL_LOGIN";
+        get ordinal(): 2;
+    };
+    static get SERVICE_CREDENTIAL(): AuthMethod & {
+        get name(): "SERVICE_CREDENTIAL";
+        get ordinal(): 3;
+    };
+    static get PERSONAL_ACCESS_TOKEN(): AuthMethod & {
+        get name(): "PERSONAL_ACCESS_TOKEN";
+        get ordinal(): 4;
+    };
+    static get ANONYMOUS(): AuthMethod & {
+        get name(): "ANONYMOUS";
+        get ordinal(): 5;
+    };
+    get name(): "ACCESS_TOKEN" | "REFRESH_TOKEN" | "EXTERNAL_LOGIN" | "SERVICE_CREDENTIAL" | "PERSONAL_ACCESS_TOKEN" | "ANONYMOUS";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5;
+    static values(): Array<AuthMethod>;
+    static valueOf(value: string): AuthMethod;
+}
+export declare namespace AuthMethod {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AuthMethod;
+    }
+}
+export declare const AUTHORIZATION_HEADER: { get(): string; };
+export declare function bearerAuthorization(token: string): string;
+export declare function bearerTokenFromHeader(value: Nullable<string>): Nullable<string>;

@@ -1,0 +1,3 @@
+name: reaktor-observability
+runtime: java
+description: Reaktor observability stack (Kotlin/JVM Pulumi) — Grafana folder, datasources, and dashboards over Cloudflare, Supabase, GCP, k3s, Pub/Sub, plus the k3s k8s-monitoring Helm release. Config-driven; each app supplies its own Pulumi.<stack>.yaml.

@@ -1,0 +1,8 @@
+# Grafana Java SDK is generated here at build time (no Maven artifact exists)
+build/
+.gradle/
+.kotlin/
+
+# Pulumi stack config holds encrypted secrets — keep only examples checked in
+Pulumi.*.yaml
+!Pulumi.*.yaml.example

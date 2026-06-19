@@ -1,0 +1,16 @@
+{
+  "name": "reaktor-reaktor-service",
+  "version": "2026.6.7-SNAPSHOT",
+  "main": "reaktor-reaktor-service.mjs",
+  "types": "reaktor-reaktor-service.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "ws": "8.18.0",
+    "@js-joda/core": "3.2.0"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

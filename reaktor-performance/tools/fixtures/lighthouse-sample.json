@@ -1,0 +1,19 @@
+{
+  "requestedUrl": "http://127.0.0.1:8788/",
+  "finalDisplayedUrl": "http://127.0.0.1:8788/",
+  "categories": {
+    "performance": { "score": 0.96 },
+    "accessibility": { "score": 0.98 },
+    "best-practices": { "score": 1.0 },
+    "seo": { "score": 0.95 }
+  },
+  "audits": {
+    "first-contentful-paint": { "numericValue": 1200 },
+    "largest-contentful-paint": { "numericValue": 2000 },
+    "speed-index": { "numericValue": 2500 },
+    "total-blocking-time": { "numericValue": 120 },
+    "interactive": { "numericValue": 2800 },
+    "cumulative-layout-shift": { "numericValue": 0.04 },
+    "server-response-time": { "numericValue": 90 }
+  }
+}

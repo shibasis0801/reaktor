@@ -27,8 +27,15 @@ frames, and reusable collection logic should live here.
   Kotlin module graph loaded.
 - `tools/size-report.mjs`: Node utility for producing report JSON from build
   artifacts and gzip-compressed sizes.
-- `ts/src/index.ts`: TypeScript report helpers for browser, Playwright, and
-  Lighthouse adapters.
+- `ReaktorLighthouse`: the standard Lighthouse surface in commonMain — category
+  taxonomy, the durable `lighthouse.*` metric-name identities, the recommended
+  "good" budget set (`ReaktorLighthouseBudgets`), and a pure `lighthouseReport(...)`
+  builder onto `ReaktorPerformanceReport`.
+- `tools/lighthouse-report.mjs`: the Node runner (`config -> run -> map LHR ->
+  report -> budgets -> assert`). Imports the one mapper from `ts/src/index.ts`;
+  `--self-test <lhr.json>` maps a fixture with no Chrome for CI.
+- `ts/src/index.ts`: TypeScript report helpers for browser and Playwright hosts,
+  and the `lighthouseReport(...)` / `budgetViolations(...)` mapper the runner uses.
 - `cpp/reaktor_perf_timer.hpp`: header-only native scoped timer for FFI and
   FlexBuffer hot-path probes.
 
@@ -43,6 +50,46 @@ frames, and reusable collection logic should live here.
   async-profiler, JFR, simpleperf, Perfetto, Instruments, CDP, or custom tools.
 - Tool runs: normalized run envelopes for external harnesses so CI can compare
   results and enforce budgets consistently.
+
+## Lighthouse
+
+Lighthouse is the one standard web-perf driver. The contract — category taxonomy,
+`lighthouse.*` metric names, and the recommended budgets — lives once in
+`ReaktorLighthouse.kt` (commonMain) and is mirrored for the Node runner in
+`ts/src/index.ts`. The runner produces a normal `ReaktorPerformanceReport`, so
+Lighthouse results flow through the same budgets, report writer, and (later) OTel
+pipeline as every other surface.
+
+Recommended budgets (`ReaktorLighthouseBudgets.recommended()`), at the web.dev
+"good" thresholds:
+
+| Metric | Name | Budget | Direction |
+| --- | --- | --- | --- |
+| Largest Contentful Paint | `lighthouse.lcp` | ≤ 2500 ms | Max |
+| Total Blocking Time | `lighthouse.tbt` | ≤ 200 ms | Max |
+| Cumulative Layout Shift | `lighthouse.cls` | ≤ 0.1 | Max |
+| Speed Index | `lighthouse.speed-index` | ≤ 3400 ms | Max |
+| First Contentful Paint | `lighthouse.fcp` | ≤ 1800 ms | Max |
+| Performance / A11y / Best-Practices / SEO score | `lighthouse.performance` … | ≥ 90 | Min |
+
+`Min`-direction budgets (the higher-is-better category scores) are why
+`ReaktorPerformanceBudget` carries a `direction`; everything else defaults to `Max`.
+
+Run it:
+
+```sh
+# CI-safe unit: map a saved LHR fixture, no Chrome required.
+node tools/lighthouse-report.mjs --self-test tools/fixtures/lighthouse-sample.json
+
+# Live audit (needs Chrome; chrome-launcher honors CHROME_PATH).
+cd tools && npm install
+node lighthouse-report.mjs --target my-app --url https://example.com/ --preset desktop --assert \
+  --out ../../build/reports/performance/my-app-lighthouse.json
+```
+
+`--assert` exits non-zero on any `Error`-severity violation, mirroring
+`ReaktorPerformanceReport.requireWithinBudgets()`. In BestBuds the reference wiring is
+`npm run perf:reaktorWeb:lighthouse`.
 
 ## Verification
 
