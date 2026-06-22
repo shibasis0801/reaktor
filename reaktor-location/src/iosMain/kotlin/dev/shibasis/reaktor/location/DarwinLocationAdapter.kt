@@ -11,11 +11,14 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 class DarwinLocationAdapter(
-    uiViewController: UIViewController
+    uiViewController: UIViewController,
+    // Coarse by default: friend-matching only needs neighbourhood-level accuracy, which is
+    // cheaper and more privacy-preserving. Opt in to GPS-grade (`kCLLocationAccuracyBest`) when needed.
+    private val highAccuracy: Boolean = false,
 ) : LocationAdapter<UIViewController>(uiViewController) {
 
     private val manager = CLLocationManager().apply {
-        desiredAccuracy = kCLLocationAccuracyBest
+        desiredAccuracy = if (highAccuracy) kCLLocationAccuracyBest else kCLLocationAccuracyHundredMeters
     }
 
     override suspend fun getLocation(): Location = suspendCancellableCoroutine { cont ->

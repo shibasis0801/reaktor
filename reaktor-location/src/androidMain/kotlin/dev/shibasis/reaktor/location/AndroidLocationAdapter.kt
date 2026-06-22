@@ -1,39 +1,49 @@
 package dev.shibasis.reaktor.location
 
-import android.Manifest
 import android.app.Activity
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import dev.shibasis.reaktor.core.adapters.Permission
+import dev.shibasis.reaktor.core.framework.Feature
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.getValue
 
 class AndroidLocationAdapter(
-    activity: Activity
+    activity: Activity,
+    // Coarse / balanced-power by default: friend-matching only needs neighbourhood-level
+    // accuracy, which is cheaper and more privacy-preserving. Opt in to GPS-grade when needed.
+    private val highAccuracy: Boolean = false,
 ) : LocationAdapter<Activity>(activity) {
 
     private val fused by lazy { LocationServices.getFusedLocationProviderClient(activity) }
 
-    override suspend fun getLocation(): Location = suspendCancellableCoroutine { cont ->
-        val act = controller ?: return@suspendCancellableCoroutine cont.resumeWithException(
-            NULL_CONTROLLER
-        )
+    override suspend fun getLocation(): Location {
+        controller ?: throw NULL_CONTROLLER
 
-        // 1) Ensure permission up front (throws if still pending)
-        ensurePermissionGranted(act)
+        // Request through the shared permission adapter so the system dialog is actually
+        // awaited and resumed, instead of throwing on the first call. Requires a
+        // PermissionAdapter to be registered (Feature.Permission); falls back to denied.
+        val granted = Feature.Permission?.request(Permission.LOCATION) ?: false
+        if (!granted) throw Error("Location permission denied")
 
-        // 2) Try cached last-known location first (cheap)
+        return fetch()
+    }
+
+    private suspend fun fetch(): Location = suspendCancellableCoroutine { cont ->
+        val priority =
+            if (highAccuracy) Priority.PRIORITY_HIGH_ACCURACY
+            else Priority.PRIORITY_BALANCED_POWER_ACCURACY
+
+        // 1) Try cached last-known location first (cheap)
         fused.lastLocation.addOnSuccessListener { cached ->
             if (cached != null) {
                 cont.resume(Location(cached.longitude, cached.latitude))
             } else {
-                // 3) Fall back to an active single-shot request
+                // 2) Fall back to an active single-shot request
                 val req = CurrentLocationRequest.Builder()
-                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .setPriority(priority)
                     .build()
 
                 fused.getCurrentLocation(req, null)
@@ -48,29 +58,7 @@ class AndroidLocationAdapter(
             }
         }.addOnFailureListener(cont::resumeWithException)
 
-        // 4) Stop request automatically if coroutine is cancelled
+        // 3) Stop request automatically if coroutine is cancelled
         cont.invokeOnCancellation { fused.flushLocations() }
-    }
-
-    /* ---------- private helpers ---------- */
-
-    private fun ensurePermissionGranted(act: Activity) {
-        val fine = Manifest.permission.ACCESS_FINE_LOCATION
-        val coarse = Manifest.permission.ACCESS_COARSE_LOCATION
-        if (
-            ActivityCompat.checkSelfPermission(act, fine) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(act, coarse) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                act,
-                arrayOf(fine, coarse),
-                PERM_REQ_CODE
-            )
-            throw Error("Location permission is not yet granted")
-        }
-    }
-
-    private companion object {
-        const val PERM_REQ_CODE = 0xCAFE
     }
 }
