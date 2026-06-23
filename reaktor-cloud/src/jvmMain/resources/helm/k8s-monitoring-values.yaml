@@ -1,0 +1,75 @@
+# Grafana k8s-monitoring helm chart values.
+# This chart deploys Grafana Alloy (the successor to Grafana Agent) which scrapes
+# metrics + logs + traces from the cluster and remote_writes to Grafana Cloud.
+#
+# Tokens are populated at render time by src/k3s.ts — placeholders below.
+
+cluster:
+  name: ${CLUSTER_NAME}
+
+destinations:
+  - name: grafana-cloud-metrics
+    type: prometheus
+    url: ${PROM_URL}
+    auth:
+      type: basic
+      username: "${PROM_USER}"
+      password: "${API_KEY}"
+
+  - name: grafana-cloud-logs
+    type: loki
+    url: ${LOKI_URL}
+    auth:
+      type: basic
+      username: "${LOKI_USER}"
+      password: "${API_KEY}"
+
+clusterMetrics:
+  enabled: true
+  node-exporter:
+    enabled: true
+  kube-state-metrics:
+    enabled: true
+  kepler:
+    enabled: false
+  cost:
+    enabled: true
+    metricsTuning:
+      useDefaultAllowList: true
+  opencost:
+    enabled: false  # flip on if you want $ dashboards; adds opencost deployment
+
+clusterEvents:
+  enabled: true
+
+podLogs:
+  enabled: true
+  gatherMethod: filelog
+  collector: alloy-logs
+
+# Application observability: scrape /metrics from pods with prometheus.io/scrape=true
+applicationObservability:
+  enabled: true
+  receivers:
+    prometheus:
+      enabled: true
+    otlp:
+      grpc:
+        enabled: false   # flip on once you instrument with OTel
+      http:
+        enabled: false
+
+# Alloy components — required by the receivers above
+alloy-metrics:
+  enabled: true
+alloy-singleton:
+  enabled: true
+alloy-logs:
+  enabled: true
+alloy-receiver:
+  enabled: false   # only needed if otlp receivers are on
+
+# Disable the bundled prometheus-operator-crds to avoid clobbering whatever the
+# cluster already has. If you don't have CRDs installed, set this true.
+prometheus-operator-crds:
+  enabled: false

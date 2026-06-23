@@ -181,7 +181,7 @@ object ReaktorWebVitals {
                 graphBootImport: duration('graphBootImportStart', 'graphBootModuleLoaded'),
                 graphBootRuntime: duration('graphBootStart', 'graphBootReady'),
                 entryToGraphBootReady: duration('entry', 'graphBootReady'),
-                entryToBestBudsFlowReady: duration('entry', 'bestBudsFlowReady')
+                entryToFlowReady: duration('entry', 'flowReady')
               },
               longTasks: {
                 count: state.longTasks.length,

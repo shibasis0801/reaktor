@@ -29,12 +29,12 @@ object Switch {
 
     fun invokeSync(flexBuffer: ByteArray): Long {
         val (vector, invokable) = fetchModule(flexBuffer)
-        return invokable.invokeSync(vector.buffer.data())
+        return invokable.invokeSync(vector.buf)
     }
 
     fun invokeAsync(flexBuffer: ByteArray): Flow<Long> {
         val (vector, invokable) = fetchModule(flexBuffer)
-        return invokable.invokeAsync(vector.buffer.data())
+        return invokable.invokeAsync(vector.buf)
     }
 }
 

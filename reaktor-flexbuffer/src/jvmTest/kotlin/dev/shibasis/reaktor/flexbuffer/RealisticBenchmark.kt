@@ -204,7 +204,7 @@ class RealisticBenchmark {
 
     @Test
     fun securityAuditTrail() = benchCase("SecurityAuditTrail (110 audit events)", BenchmarkData.securityAuditTrail()) { decoded ->
-        assertEquals("bestbuds-prod", decoded.appId)
+        assertEquals("sample-prod", decoded.appId)
         assertEquals(110, decoded.events.size)
         assertEquals(4, decoded.summary.size)
         assertEquals("rbac-2026.05", decoded.policyVersion)

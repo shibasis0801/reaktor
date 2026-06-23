@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import dev.shibasis.reaktor.flexbuffer.core.toByteArray
 import dev.shibasis.reaktor.flexbuffer.core.toFlexMap
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexRead
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
@@ -61,14 +62,18 @@ class AdversarialPerformanceHarnessTest {
         }
 
         override fun decode(ref: Reference): TinyStatus {
-            val map = ref.toMap()
+            // Positional decode, mirroring KSP-generated decodeAt: zero Map/Vector
+            // allocations, hoisted (buf, end, bw, tb) locals.
+            val m = ref.toMap()
+            val buf = m.buf; val end = m.end; val bw = m.byteWidth
+            val tb = end + FlexRead.size(buf, end, bw) * bw
             return TinyStatus(
-                createdAt = map.getLong(0),
-                id = map.getLong(1),
-                score = map.getDouble(2),
-                status = map.getString(3),
-                username = map.getString(4),
-                verified = map.getBoolean(5)
+                createdAt = FlexRead.getLong(buf, end, bw, tb, 0),
+                id = FlexRead.getLong(buf, end, bw, tb, 1),
+                score = FlexRead.getDouble(buf, end, bw, tb, 2),
+                status = FlexRead.getString(buf, end, bw, tb, 3),
+                username = FlexRead.getString(buf, end, bw, tb, 4),
+                verified = FlexRead.getBoolean(buf, end, bw, 5)
             )
         }
     }
@@ -90,15 +95,23 @@ class AdversarialPerformanceHarnessTest {
         }
 
         override fun decode(ref: Reference): StringTable {
-            val rows = ref.toMap().getVector(0)
+            val m = ref.toMap()
+            val buf = m.buf; val end = m.end; val bw = m.byteWidth
+            val tb = end + FlexRead.size(buf, end, bw) * bw
+            val ve = FlexRead.childEnd(buf, end, bw, 0)
+            val vw = FlexRead.childWidth(buf, tb, 0)
+            val n = FlexRead.size(buf, ve, vw)
+            val vtb = ve + n * vw
             return StringTable(
-                rows = List(rows.size) { index ->
-                    val row = rows[index].toMap()
+                rows = List(n) { j ->
+                    val re = FlexRead.childEnd(buf, ve, vw, j)
+                    val rw = FlexRead.childWidth(buf, vtb, j)
+                    val rtb = re + FlexRead.size(buf, re, rw) * rw
                     StringRow(
-                        body = row.getString(0),
-                        id = row.getInt(1),
-                        tag = row.getString(2),
-                        title = row.getString(3)
+                        body = FlexRead.getString(buf, re, rw, rtb, 0),
+                        id = FlexRead.getInt(buf, re, rw, rtb, 1),
+                        tag = FlexRead.getString(buf, re, rw, rtb, 2),
+                        title = FlexRead.getString(buf, re, rw, rtb, 3)
                     )
                 }
             )
@@ -423,9 +436,75 @@ class AdversarialPerformanceHarnessTest {
         }
         val sizeLosses = rows.count { it.jsonBytes < it.flexBytes }
         println("\nFlexCoder lost $fullRoundTripLosses/${rows.size} full roundtrip time comparisons to kotlinx JSON.")
-        println("Best Flex path lost $bestPathLosses/${rows.size} time comparisons to the best JSON path (including controlled token scans).")
+        println("Mixed best-path Flex lost $bestPathLosses/${rows.size} time comparisons to the best JSON path (including controlled token scans).")
         println("Flex lost $sizeLosses/${rows.size} size comparisons against JSON in this Kotlin adversarial set.")
+        printSeparatedJsonFlexLedgers(rows)
         println("sinkType=${sink?.let { it::class.simpleName } ?: "null"}")
+    }
+
+    private fun printSeparatedJsonFlexLedgers(rows: List<JsonFlexRow>) {
+        println("\nFULL ROUND-TRIP LEDGER")
+        println("  %-18s %12s %12s %12s %9s  %s".format(
+            "Case", "FlexCoder", "kotlinxFlex", "kxJSON", "Winner", "Note"
+        ))
+        println("  " + "-".repeat(116))
+        rows.forEach { row ->
+            val bestFlex = listOfNotNull(row.flexCoderUs, row.serializerUs).minOrNull() ?: Double.POSITIVE_INFINITY
+            val json = row.jsonUs ?: Double.POSITIVE_INFINITY
+            val winner = if (json < bestFlex) "JSON" else "Flex"
+            println("  %-18s %9.2f us %9.2f us %9.2f us %9s  %s".format(
+                row.case,
+                row.flexCoderUs ?: -1.0,
+                row.serializerUs ?: -1.0,
+                row.jsonUs ?: -1.0,
+                winner,
+                row.note
+            ))
+        }
+        val fullLosses = rows.count {
+            (it.jsonUs ?: Double.POSITIVE_INFINITY) < (listOfNotNull(it.flexCoderUs, it.serializerUs).minOrNull() ?: Double.POSITIVE_INFINITY)
+        }
+        println("Full round-trip Flex lost $fullLosses/${rows.size} comparisons against kotlinx JSON.")
+
+        println("\nACCESSOR VS TOKEN-SCAN LEDGER")
+        println("  %-18s %12s %12s %9s  %s".format("Case", "FlexAccessor", "JSONScan", "Winner", "Note"))
+        println("  " + "-".repeat(102))
+        rows.forEach { row ->
+            val flex = row.accessorUs ?: Double.POSITIVE_INFINITY
+            val json = row.jsonScanUs ?: Double.POSITIVE_INFINITY
+            val winner = when {
+                row.jsonScanUs == null -> "Flex"
+                json < flex -> "JSON"
+                else -> "Flex"
+            }
+            println("  %-18s %9.2f us %9.2f us %9s  %s".format(
+                row.case,
+                row.accessorUs ?: -1.0,
+                row.jsonScanUs ?: -1.0,
+                winner,
+                row.note
+            ))
+        }
+        val tokenScanLosses = rows.count {
+            it.jsonScanUs != null && it.jsonScanUs < (it.accessorUs ?: Double.POSITIVE_INFINITY)
+        }
+        println("Accessor-only Flex lost $tokenScanLosses/${rows.size} comparisons against controlled JSON token scans.")
+
+        println("\nWIRE SIZE LEDGER")
+        println("  %-18s %10s %10s %9s  %s".format("Case", "FlexBytes", "JSONBytes", "Winner", "Note"))
+        println("  " + "-".repeat(98))
+        rows.forEach { row ->
+            val winner = if (row.jsonBytes < row.flexBytes) "JSON" else "Flex"
+            println("  %-18s %10d %10d %9s  %s".format(
+                row.case,
+                row.flexBytes,
+                row.jsonBytes,
+                winner,
+                row.note
+            ))
+        }
+        val sizeLosses = rows.count { it.jsonBytes < it.flexBytes }
+        println("Wire-size Flex lost $sizeLosses/${rows.size} comparisons against JSON.")
     }
 
     private fun addExpandedJsonFlexRows(rows: MutableList<JsonFlexRow>) {
@@ -1262,7 +1341,7 @@ class AdversarialPerformanceHarnessTest {
     }
 
     private fun decodeTinyStatusKey(bytes: ByteArray): Long {
-        val root = getRoot(ArrayReadBuffer(bytes)).toMap()
+        val root = getRoot(bytes).toMap()
         return root.getLong("createdAt") +
             root.getLong("id") +
             root.getDouble("score").toLong() +
@@ -1272,7 +1351,7 @@ class AdversarialPerformanceHarnessTest {
     }
 
     private fun decodeTinyStatusPartialKey(bytes: ByteArray): Long {
-        val root = getRoot(ArrayReadBuffer(bytes)).toMap()
+        val root = getRoot(bytes).toMap()
         return root.getDouble("score").toLong() +
             root.getStringByteLength("status") +
             if (root.getBoolean("verified")) 1 else 0
@@ -1289,7 +1368,7 @@ class AdversarialPerformanceHarnessTest {
     }
 
     private fun decodeSparseMissing(bytes: ByteArray, missingKeys: List<String>): Int {
-        val root = getRoot(ArrayReadBuffer(bytes)).toMap()
+        val root = getRoot(bytes).toMap()
         var hits = 0
         for (key in missingKeys) {
             if (root.indexOf(key) >= 0) hits++
@@ -1312,16 +1391,18 @@ class AdversarialPerformanceHarnessTest {
     }
 
     private fun decodeWideRandomKeys(bytes: ByteArray, keys: List<String>): Long {
-        val root = getRoot(ArrayReadBuffer(bytes)).toMap()
+        val root = getRoot(bytes).toMap()
         var sum = 0L
         keys.forEach { key -> sum += root.getLong(key) }
         return sum
     }
 
     private fun decodeWideSequentialIndexes(bytes: ByteArray, reads: Int): Long {
-        val root = getRoot(ArrayReadBuffer(bytes)).toMap()
+        val root = getRoot(bytes).toMap()
+        val buf = root.buf; val end = root.end; val bw = root.byteWidth
+        val tb = end + root.size * bw
         var sum = 0L
-        repeat(reads) { index -> sum += root[index].toLong() }
+        repeat(reads) { index -> sum += FlexRead.getLong(buf, end, bw, tb, index) }
         return sum
     }
 

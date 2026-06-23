@@ -29,6 +29,7 @@ private val FLEX_STRING_BOOLEAN_MAP = ClassName("dev.shibasis.reaktor.flexbuffer
 private val FLEX_ACCESSOR_MAP = ClassName("dev.shibasis.reaktor.flexbuffer.core", "FlexAccessorMap")
 private val ARRAY_READ_BUFFER = ClassName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "ArrayReadBuffer")
 private val GET_ROOT = MemberName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "getRoot")
+private val FLEX_READ = ClassName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "FlexRead")
 
 class FlexCoderProcessor(
     private val codeGenerator: CodeGenerator,
@@ -81,15 +82,41 @@ class FlexCoderProcessor(
 
         val sortedProps = properties.sortedBy { it.simpleName.asString() }
 
-        val encodeMethod = buildEncodeMethod(className, sortedProps)
-        val decodeMethod = buildDecodeMethod(className, properties, sortedProps)
-        val decodeMapMethod = buildDecodeMapMethod(className, properties, sortedProps)
+        // Pre-encoded key block: sorted field names, null-terminated, concatenated.
+        // Written once per buffer via builder.keyBlock(); every map of this type
+        // shares the key bytes AND the key vector — zero per-field key work.
+        val sortedNames = sortedProps.map { it.simpleName.asString() }
+        val keyStarts = IntArray(sortedNames.size)
+        var keyCursor = 0
+        for ((i, n) in sortedNames.withIndex()) {
+            keyStarts[i] = keyCursor
+            keyCursor += n.encodeToByteArray().size + 1
+        }
+        val keysLiteral = sortedNames.joinToString("\u0000", postfix = "\u0000")
+
+        val encodeMethod = buildEncodeMethod(className)
+        val encodeKeyedMethod = buildEncodeKeyedMethod(className, sortedProps)
+        val decodeMethod = buildDecodeMethod(className)
+        val decodeMapMethod = buildDecodeMapMethod(className)
+        val decodeAtMethod = buildDecodeAtMethod(className, properties, sortedProps)
 
         val coderObject = TypeSpec.objectBuilder(coderName)
             .addSuperinterface(FLEX_CODER.parameterizedBy(className))
+            .addProperty(
+                PropertySpec.builder("KEYS", ByteArray::class, KModifier.PRIVATE)
+                    .initializer("%S.encodeToByteArray()", keysLiteral)
+                    .build()
+            )
+            .addProperty(
+                PropertySpec.builder("KEY_STARTS", IntArray::class, KModifier.PRIVATE)
+                    .initializer("intArrayOf(${keyStarts.joinToString(", ")})")
+                    .build()
+            )
             .addFunction(encodeMethod)
+            .addFunction(encodeKeyedMethod)
             .addFunction(decodeMethod)
             .addFunction(decodeMapMethod)
+            .addFunction(decodeAtMethod)
             .build()
 
         val accessorClass = buildAccessorClass(className, accessorName, properties, sortedProps)
@@ -113,7 +140,7 @@ class FlexCoderProcessor(
                 FunSpec.builder("as${className.simpleName}")
                     .receiver(ByteArray::class)
                     .returns(accessorName)
-                    .addStatement("return %T(%M(%T(this, 0)).toMap())", accessorName, GET_ROOT, ARRAY_READ_BUFFER)
+                    .addStatement("return %T(%M(this).toMap())", accessorName, GET_ROOT)
                     .build()
             )
             .build()
@@ -126,25 +153,39 @@ class FlexCoderProcessor(
         return className to coderName
     }
 
-    private fun buildEncodeMethod(
-        className: ClassName,
-        sortedProps: List<KSPropertyDeclaration>
-    ): FunSpec {
-        val builder = FunSpec.builder("encode")
+    private fun buildEncodeMethod(className: ClassName): FunSpec =
+        FunSpec.builder("encode")
             .addModifiers(KModifier.OVERRIDE)
             .addParameter("builder", FLEX_BUFFERS_BUILDER)
             .addParameter("value", className)
             .addParameter("key", String::class.asTypeName().copy(nullable = true))
+            .addStatement("encodeKeyed(builder, value, builder.resolveKey(key))")
+            .build()
 
+    /**
+     * The keyed fast path: field keys resolve to precomputed buffer offsets via the
+     * shared key block — no per-field hashing, no per-map key-vector writes after
+     * the first map of this type, no runtime sort, no key-width loops.
+     */
+    private fun buildEncodeKeyedMethod(
+        className: ClassName,
+        sortedProps: List<KSPropertyDeclaration>
+    ): FunSpec {
+        val builder = FunSpec.builder("encodeKeyed")
+            .addParameter("builder", FLEX_BUFFERS_BUILDER)
+            .addParameter("value", className)
+            .addParameter("keyOffset", Int::class)
+
+        builder.addStatement("val ko = builder.keyBlock(KEYS, KEY_STARTS)")
         builder.addStatement("val m = builder.startMap()")
 
-        for (prop in sortedProps) {
+        for ((index, prop) in sortedProps.withIndex()) {
             val name = prop.simpleName.asString()
             val type = prop.type.resolve()
-            generateEncodeField(builder, name, type, "value.$name")
+            generateEncodeField(builder, name, type, "value.$name", index)
         }
 
-        builder.addStatement("builder.endMap(m, key, presorted = true)")
+        builder.addStatement("builder.endMapKeyed(m, keyOffset, KEYS, ko)")
         return builder.build()
     }
 
@@ -152,49 +193,51 @@ class FlexCoderProcessor(
         builder: FunSpec.Builder,
         fieldName: String,
         type: KSType,
-        accessor: String
+        accessor: String,
+        index: Int
     ) {
         val typeName = type.declaration.qualifiedName?.asString() ?: return
         val nullable = type.isMarkedNullable
+        val ko = "ko[$index]"
 
         if (nullable) {
             builder.beginControlFlow("if ($accessor != null)")
         }
 
         when (typeName) {
-            "kotlin.Boolean" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Byte" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Short" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Int" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Long" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Float" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Double" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.Char" -> builder.addStatement("builder.set(%S, $accessor.code)", fieldName)
-            "kotlin.String" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.ByteArray" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.ShortArray" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.IntArray" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.LongArray" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.FloatArray" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
-            "kotlin.DoubleArray" -> builder.addStatement("builder.set(%S, $accessor)", fieldName)
+            "kotlin.Boolean" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.Byte" -> builder.addStatement("builder.setKeyed($ko, $accessor.toLong())")
+            "kotlin.Short" -> builder.addStatement("builder.setKeyed($ko, $accessor.toLong())")
+            "kotlin.Int" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.Long" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.Float" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.Double" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.Char" -> builder.addStatement("builder.setKeyed($ko, $accessor.code)")
+            "kotlin.String" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.ByteArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.ShortArray" -> builder.addStatement("builder.setKeyed($ko, IntArray($accessor.size) { $accessor[it].toInt() })")
+            "kotlin.IntArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.LongArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.FloatArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
+            "kotlin.DoubleArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
             "kotlin.collections.List", "kotlin.collections.MutableList",
             "kotlin.collections.Set", "kotlin.collections.MutableSet",
             "kotlin.collections.ArrayList" -> {
-                generateEncodeCollection(builder, fieldName, type, accessor)
+                generateEncodeCollection(builder, fieldName, type, accessor, ko)
             }
             "kotlin.collections.Map", "kotlin.collections.MutableMap",
             "kotlin.collections.LinkedHashMap", "kotlin.collections.HashMap" -> {
-                generateEncodeMap(builder, fieldName, type, accessor)
+                generateEncodeMap(builder, fieldName, type, accessor, ko)
             }
             else -> {
-                // Nested class — delegate to its FlexCoder
+                // Nested class — delegate to its FlexCoder's keyed path (direct object call)
                 val decl = type.declaration
                 if (decl is KSClassDeclaration && hasStruct(decl)) {
                     val coderName = ClassName(
                         decl.packageName.asString(),
                         "${decl.simpleName.asString()}FlexCoder"
                     )
-                    builder.addStatement("%T.encode(builder, $accessor, %S)", coderName, fieldName)
+                    builder.addStatement("%T.encodeKeyed(builder, $accessor, $ko)", coderName)
                 } else {
                     builder.addComment("TODO: unsupported type $typeName for field $fieldName")
                 }
@@ -203,7 +246,7 @@ class FlexCoderProcessor(
 
         if (nullable) {
             builder.nextControlFlow("else")
-            builder.addStatement("builder.putNull(%S)", fieldName)
+            builder.addStatement("builder.putNullKeyed($ko)")
             builder.endControlFlow()
         }
     }
@@ -212,7 +255,8 @@ class FlexCoderProcessor(
         builder: FunSpec.Builder,
         fieldName: String,
         type: KSType,
-        accessor: String
+        accessor: String,
+        ko: String
     ) {
         val elementType = type.arguments.firstOrNull()?.type?.resolve() ?: return
         val elemTypeName = elementType.declaration.qualifiedName?.asString() ?: return
@@ -223,27 +267,27 @@ class FlexCoderProcessor(
         // Try typed vector for primitive collections — more compact wire format
         when (elemTypeName) {
             "kotlin.Int" -> {
-                builder.addStatement("builder.setIntList(%S, $listAccessor)", fieldName)
+                builder.addStatement("builder.setIntListKeyed($ko, $listAccessor)")
                 return
             }
             "kotlin.Long" -> {
-                builder.addStatement("builder.setLongList(%S, $listAccessor)", fieldName)
+                builder.addStatement("builder.setLongListKeyed($ko, $listAccessor)")
                 return
             }
             "kotlin.Float" -> {
-                builder.addStatement("builder.setFloatList(%S, $listAccessor)", fieldName)
+                builder.addStatement("builder.setFloatListKeyed($ko, $listAccessor)")
                 return
             }
             "kotlin.Double" -> {
-                builder.addStatement("builder.setDoubleList(%S, $listAccessor)", fieldName)
+                builder.addStatement("builder.setDoubleListKeyed($ko, $listAccessor)")
                 return
             }
             "kotlin.Short" -> {
-                builder.addStatement("builder.setIntList(%S, $accessor.map { it.toInt() })", fieldName)
+                builder.addStatement("builder.setIntListKeyed($ko, $accessor.map { it.toInt() })")
                 return
             }
             "kotlin.Char" -> {
-                builder.addStatement("builder.setIntList(%S, $accessor.map { it.code })", fieldName)
+                builder.addStatement("builder.setIntListKeyed($ko, $accessor.map { it.code })")
                 return
             }
         }
@@ -267,7 +311,7 @@ class FlexCoderProcessor(
                         elemDecl.packageName.asString(),
                         "${elemDecl.simpleName.asString()}FlexCoder"
                     )
-                    builder.addStatement("%T.encode(builder, elem, null)", coderName)
+                    builder.addStatement("%T.encodeKeyed(builder, elem, -1)", coderName)
                 } else if (elemTypeName.startsWith("kotlin.collections.List") ||
                     elemTypeName.startsWith("kotlin.collections.Set")) {
                     val innerElemType = elementType.arguments.firstOrNull()?.type?.resolve()
@@ -287,14 +331,15 @@ class FlexCoderProcessor(
         }
 
         builder.endControlFlow()
-        builder.addStatement("builder.endVector(%S, v_${fieldName})", fieldName)
+        builder.addStatement("builder.endVectorKeyed($ko, v_${fieldName})")
     }
 
     private fun generateEncodeMap(
         builder: FunSpec.Builder,
         fieldName: String,
         type: KSType,
-        accessor: String
+        accessor: String,
+        ko: String
     ) {
         val keyType = type.arguments.getOrNull(0)?.type?.resolve() ?: return
         val valueType = type.arguments.getOrNull(1)?.type?.resolve() ?: return
@@ -339,46 +384,43 @@ class FlexCoderProcessor(
         }
 
         builder.endControlFlow()
-        builder.addStatement("builder.endMap(m_${fieldName}, %S)", fieldName)
+        builder.addStatement("builder.endMapDynamicKeyed(m_${fieldName}, $ko)")
     }
 
-    private fun buildDecodeMethod(
-        className: ClassName,
-        originalProps: List<KSPropertyDeclaration>,
-        sortedProps: List<KSPropertyDeclaration>
-    ): FunSpec {
-        val builder = FunSpec.builder("decode")
+    private fun buildDecodeMethod(className: ClassName): FunSpec =
+        FunSpec.builder("decode")
             .addModifiers(KModifier.OVERRIDE)
             .addParameter("ref", REFERENCE)
             .returns(className)
+            .addStatement("val m = ref.toMap()")
+            .addStatement("return decodeAt(m.buf, m.end, m.byteWidth)")
+            .build()
 
-        builder.addStatement("val map = ref.toMap()")
+    private fun buildDecodeMapMethod(className: ClassName): FunSpec =
+        FunSpec.builder("decodeMap")
+            .addParameter("map", FLEX_MAP)
+            .returns(className)
+            .addStatement("return decodeAt(map.buf, map.end, map.byteWidth)")
+            .build()
 
-        // Decode fields in alphabetical order using O(1) index access
-        for ((index, prop) in sortedProps.withIndex()) {
-            val name = prop.simpleName.asString()
-            val type = prop.type.resolve()
-            generateDecodeField(builder, name, type, index)
-        }
-
-        // Build constructor call in original declaration order
-        val constructorArgs = originalProps.joinToString(",\n    ") { prop ->
-            val name = prop.simpleName.asString()
-            "$name = _$name"
-        }
-        builder.addStatement("return %T(\n    $constructorArgs\n)", className)
-
-        return builder.build()
-    }
-
-    private fun buildDecodeMapMethod(
+    /**
+     * Allocation-free positional decode: navigates with hoisted (buf, end, bw, tb)
+     * locals through FlexRead statics. No Map/Vector objects anywhere in the tree —
+     * the only allocations are the result objects.
+     */
+    private fun buildDecodeAtMethod(
         className: ClassName,
         originalProps: List<KSPropertyDeclaration>,
         sortedProps: List<KSPropertyDeclaration>
     ): FunSpec {
-        val builder = FunSpec.builder("decodeMap")
-            .addParameter("map", FLEX_MAP)
+        val builder = FunSpec.builder("decodeAt")
+            .addParameter("buf", ByteArray::class)
+            .addParameter("end", Int::class)
+            .addParameter("bw", Int::class)
             .returns(className)
+
+        builder.addStatement("val sz = %T.size(buf, end, bw)", FLEX_READ)
+        builder.addStatement("val tb = end + sz * bw")
 
         for ((index, prop) in sortedProps.withIndex()) {
             val name = prop.simpleName.asString()
@@ -391,7 +433,6 @@ class FlexCoderProcessor(
             "$name = _$name"
         }
         builder.addStatement("return %T(\n    $constructorArgs\n)", className)
-
         return builder.build()
     }
 
@@ -401,68 +442,64 @@ class FlexCoderProcessor(
         type: KSType,
         index: Int
     ) {
-        val typeName = type.declaration.qualifiedName?.asString() ?: return
         val nullable = type.isMarkedNullable
-        val mapAccess = "map[$index]"
-
-        // For nullable fields, wrap with isNullAt check
         if (nullable) {
-            builder.beginControlFlow("val _$fieldName = if (map.isNullAt($index))")
+            builder.beginControlFlow("val _$fieldName = if (%T.isNull(buf, tb, $index))", FLEX_READ)
             builder.addStatement("null")
             builder.nextControlFlow("else")
-            generateDecodeFieldInner(builder, fieldName, typeName, type, index, mapAccess)
+            generateDecodeFieldInner(builder, fieldName, type, index, prefixed = false)
             builder.endControlFlow()
         } else {
-            generateDecodeFieldInner(builder, fieldName, typeName, type, index, mapAccess)
+            generateDecodeFieldInner(builder, fieldName, type, index, prefixed = true)
         }
     }
 
     private fun generateDecodeFieldInner(
         builder: FunSpec.Builder,
         fieldName: String,
-        typeName: String,
         type: KSType,
         index: Int,
-        mapAccess: String
+        prefixed: Boolean
     ) {
-        // When called from nullable context, we don't prefix "val _$fieldName ="
-        // because the outer if/else expression handles it
-        val isInNullableBlock = type.isMarkedNullable
-        val prefix = if (isInNullableBlock) "" else "val _$fieldName = "
+        val typeName = type.declaration.qualifiedName?.asString() ?: return
+        val prefix = if (prefixed) "val _$fieldName = " else ""
 
         when (typeName) {
-            "kotlin.Boolean" -> builder.addStatement("${prefix}map.getBoolean($index)")
-            "kotlin.Byte" -> builder.addStatement("${prefix}map.getInt($index).toByte()")
-            "kotlin.Short" -> builder.addStatement("${prefix}map.getInt($index).toShort()")
-            "kotlin.Int" -> builder.addStatement("${prefix}map.getInt($index)")
-            "kotlin.Long" -> builder.addStatement("${prefix}map.getLong($index)")
-            "kotlin.Float" -> builder.addStatement("${prefix}map.getFloat($index)")
-            "kotlin.Double" -> builder.addStatement("${prefix}map.getDouble($index)")
-            "kotlin.Char" -> builder.addStatement("${prefix}map.getInt($index).toChar()")
-            "kotlin.String" -> builder.addStatement("${prefix}map.getString($index)")
-            "kotlin.ByteArray" -> builder.addStatement("${prefix}$mapAccess.toBlob().toByteArray()")
+            "kotlin.Boolean" -> builder.addStatement("${prefix}%T.getBoolean(buf, end, bw, $index)", FLEX_READ)
+            "kotlin.Byte" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index).toByte()", FLEX_READ)
+            "kotlin.Short" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index).toShort()", FLEX_READ)
+            "kotlin.Int" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index)", FLEX_READ)
+            "kotlin.Long" -> builder.addStatement("${prefix}%T.getLong(buf, end, bw, tb, $index)", FLEX_READ)
+            "kotlin.Float" -> builder.addStatement("${prefix}%T.getFloat(buf, end, bw, tb, $index)", FLEX_READ)
+            "kotlin.Double" -> builder.addStatement("${prefix}%T.getDouble(buf, end, bw, tb, $index)", FLEX_READ)
+            "kotlin.Char" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index).toChar()", FLEX_READ)
+            "kotlin.String" -> builder.addStatement("${prefix}%T.getString(buf, end, bw, tb, $index)", FLEX_READ)
+            "kotlin.ByteArray" -> builder.addStatement("${prefix}%T.getBlob(buf, end, bw, tb, $index)", FLEX_READ)
             "kotlin.IntArray" -> {
-                builder.addStatement("${prefix}map.getVector($index).toIntArray()")
+                emitVecHeader(builder, fieldName, index)
+                builder.addStatement("${prefix}%T.toIntArray(buf, _${fieldName}_ve, _${fieldName}_vw, %T.size(buf, _${fieldName}_ve, _${fieldName}_vw))", FLEX_READ, FLEX_READ)
             }
             "kotlin.LongArray" -> {
-                builder.addStatement("${prefix}map.getVector($index).toLongArray()")
+                emitVecHeader(builder, fieldName, index)
+                builder.addStatement("${prefix}%T.toLongArray(buf, _${fieldName}_ve, _${fieldName}_vw, %T.size(buf, _${fieldName}_ve, _${fieldName}_vw))", FLEX_READ, FLEX_READ)
             }
             "kotlin.FloatArray" -> {
-                builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-                builder.addStatement("${prefix}FloatArray(_${fieldName}_vec.size) { _${fieldName}_vec.readDouble(it).toFloat() }")
+                emitVecHeader(builder, fieldName, index)
+                builder.addStatement("${prefix}%T.toFloatArray(buf, _${fieldName}_ve, _${fieldName}_vw, %T.size(buf, _${fieldName}_ve, _${fieldName}_vw))", FLEX_READ, FLEX_READ)
             }
             "kotlin.DoubleArray" -> {
-                builder.addStatement("${prefix}map.getVector($index).toDoubleArray()")
+                emitVecHeader(builder, fieldName, index)
+                builder.addStatement("${prefix}%T.toDoubleArray(buf, _${fieldName}_ve, _${fieldName}_vw, %T.size(buf, _${fieldName}_ve, _${fieldName}_vw))", FLEX_READ, FLEX_READ)
             }
             "kotlin.collections.List", "kotlin.collections.MutableList", "kotlin.collections.ArrayList" -> {
-                generateDecodeList(builder, fieldName, type, index, isInNullableBlock)
+                generateDecodeList(builder, fieldName, type, index, prefix, asSet = false)
             }
             "kotlin.collections.Set", "kotlin.collections.MutableSet", "kotlin.collections.LinkedHashSet" -> {
-                generateDecodeSet(builder, fieldName, type, index, isInNullableBlock)
+                generateDecodeList(builder, fieldName, type, index, prefix, asSet = true)
             }
             "kotlin.collections.Map", "kotlin.collections.MutableMap",
             "kotlin.collections.LinkedHashMap", "kotlin.collections.HashMap" -> {
-                generateDecodeMap(builder, fieldName, type, index, isInNullableBlock)
+                generateDecodeMap(builder, fieldName, type, index, prefix)
             }
             else -> {
                 val decl = type.declaration
@@ -471,7 +508,10 @@ class FlexCoderProcessor(
                         decl.packageName.asString(),
                         "${decl.simpleName.asString()}FlexCoder"
                     )
-                    builder.addStatement("${prefix}%T.decodeMap(map.getMap($index))", coderName)
+                    builder.addStatement(
+                        "${prefix}%T.decodeAt(buf, %T.childEnd(buf, end, bw, $index), %T.childWidth(buf, tb, $index))",
+                        coderName, FLEX_READ, FLEX_READ
+                    )
                 } else {
                     builder.addComment("TODO: unsupported type $typeName for field $fieldName")
                     builder.addStatement("${prefix}error(%S)", "unsupported type $typeName")
@@ -480,114 +520,168 @@ class FlexCoderProcessor(
         }
     }
 
-    private fun generateDecodeList(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int, skipPrefix: Boolean = false) {
+    /** Emits `_x_ve` / `_x_vw` locals: the child container's data position and width. */
+    private fun emitVecHeader(builder: FunSpec.Builder, fieldName: String, index: Int) {
+        builder.addStatement("val _${fieldName}_ve = %T.childEnd(buf, end, bw, $index)", FLEX_READ)
+        builder.addStatement("val _${fieldName}_vw = %T.childWidth(buf, tb, $index)", FLEX_READ)
+    }
+
+    private fun generateDecodeList(
+        builder: FunSpec.Builder,
+        fieldName: String,
+        type: KSType,
+        index: Int,
+        prefix: String,
+        asSet: Boolean
+    ) {
         val elemType = type.arguments.firstOrNull()?.type?.resolve() ?: return
         val elemName = elemType.declaration.qualifiedName?.asString() ?: return
-        val prefix = if (skipPrefix) "" else "val _$fieldName = "
+        val f = fieldName
+        val collCtor = if (asSet) "LinkedHashSet" else "ArrayList"
+        val collVar = if (asSet) "s" else "list"
 
-        builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
+        emitVecHeader(builder, f, index)
+        builder.addStatement("val _${f}_n = %T.size(buf, _${f}_ve, _${f}_vw)", FLEX_READ)
+
+        fun typedLoop(kt: String, readCall: String) {
+            builder.addStatement(
+                "${prefix}$collCtor<$kt>(_${f}_n).also { $collVar -> for (j in 0 until _${f}_n) $collVar.add($readCall) }",
+                FLEX_READ
+            )
+        }
 
         when (elemName) {
-            "kotlin.Int" -> builder.addStatement("${prefix}ArrayList<Int>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i)) }")
-            "kotlin.Long" -> builder.addStatement("${prefix}ArrayList<Long>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readLong(i)) }")
-            "kotlin.Float" -> builder.addStatement("${prefix}ArrayList<Float>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readDouble(i).toFloat()) }")
-            "kotlin.Double" -> builder.addStatement("${prefix}ArrayList<Double>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readDouble(i)) }")
-            "kotlin.String" -> builder.addStatement("${prefix}ArrayList<String>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readString(i)) }")
-            "kotlin.Short" -> builder.addStatement("${prefix}ArrayList<Short>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i).toShort()) }")
-            "kotlin.Char" -> builder.addStatement("${prefix}ArrayList<Char>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(_${fieldName}_vec.readInt(i).toChar()) }")
+            // Primitive lists are written as typed vectors by the keyed encoder.
+            "kotlin.Int" -> typedLoop("Int", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Long" -> typedLoop("Long", "%T.typedLong(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Float" -> typedLoop("Float", "%T.typedFloat(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Double" -> typedLoop("Double", "%T.typedDouble(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Short" -> typedLoop("Short", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j).toShort()")
+            "kotlin.Char" -> typedLoop("Char", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j).toChar()")
+            // Booleans go through the generic vector path (inline values).
+            "kotlin.Boolean" -> typedLoop("Boolean", "%T.getBoolean(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.String" -> {
+                builder.addStatement("val _${f}_tb = _${f}_ve + _${f}_n * _${f}_vw")
+                typedLoop("String", "%T.vecString(buf, _${f}_ve, _${f}_vw, _${f}_tb, j)")
+            }
             else -> {
                 val elemDecl = elemType.declaration
                 if (elemDecl is KSClassDeclaration && hasStruct(elemDecl)) {
                     val coderName = ClassName(elemDecl.packageName.asString(), "${elemDecl.simpleName.asString()}FlexCoder")
-                    builder.addStatement("${prefix}ArrayList<${elemDecl.simpleName.asString()}>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) list.add(%T.decodeMap(_${fieldName}_vec.readMap(i))) }", coderName)
-                } else if (elemName.startsWith("kotlin.collections.List")) {
+                    builder.addStatement("val _${f}_tb = _${f}_ve + _${f}_n * _${f}_vw")
+                    builder.addStatement(
+                        "${prefix}$collCtor<${elemDecl.simpleName.asString()}>(_${f}_n).also { $collVar -> for (j in 0 until _${f}_n) $collVar.add(%T.decodeAt(buf, %T.childEnd(buf, _${f}_ve, _${f}_vw, j), %T.childWidth(buf, _${f}_tb, j))) }",
+                        coderName, FLEX_READ, FLEX_READ
+                    )
+                } else if (elemName.startsWith("kotlin.collections.List") || elemName.startsWith("kotlin.collections.Set")) {
                     val innerType = elemType.arguments.firstOrNull()?.type?.resolve()
                     val innerName = innerType?.declaration?.qualifiedName?.asString()
+                    val innerIsSet = elemName.contains("Set")
+                    val innerCtor = if (innerIsSet) "LinkedHashSet" else "ArrayList"
+                    val outerElem = if (innerIsSet) "Set" else "List"
+                    builder.addStatement("val _${f}_tb = _${f}_ve + _${f}_n * _${f}_vw")
+                    fun innerLoop(kt: String, readCall: String) {
+                        builder.addStatement(
+                            "${prefix}$collCtor<$outerElem<$kt>>(_${f}_n).also { $collVar -> for (j in 0 until _${f}_n) { " +
+                                "val ie = %T.childEnd(buf, _${f}_ve, _${f}_vw, j); val iw = %T.childWidth(buf, _${f}_tb, j); " +
+                                "val im = %T.size(buf, ie, iw); " +
+                                "$collVar.add($innerCtor<$kt>(im).also { inner -> for (q in 0 until im) inner.add($readCall) }) } }",
+                            FLEX_READ, FLEX_READ, FLEX_READ, FLEX_READ
+                        )
+                    }
                     when (innerName) {
-                        "kotlin.Int" -> builder.addStatement("${prefix}ArrayList<List<Int>>(_${fieldName}_vec.size).also { list -> for (i in 0 until _${fieldName}_vec.size) { val inner = _${fieldName}_vec.readVector(i); list.add(ArrayList<Int>(inner.size).also { il -> for (j in 0 until inner.size) il.add(inner.readInt(j)) }) } }")
-                        else -> builder.addComment("TODO: unsupported List<List<$innerName>> for $fieldName")
+                        "kotlin.Int" -> innerLoop("Int", "%T.typedInt(buf, ie, iw, q)")
+                        "kotlin.Float" -> innerLoop("Float", "%T.typedFloat(buf, ie, iw, q)")
+                        "kotlin.Double" -> innerLoop("Double", "%T.typedDouble(buf, ie, iw, q)")
+                        else -> {
+                            builder.addComment("TODO: unsupported nested collection element $innerName for $fieldName")
+                            builder.addStatement("${prefix}error(%S)", "unsupported")
+                        }
                     }
                 } else {
                     builder.addComment("TODO: unsupported list element $elemName for $fieldName")
-                    if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
-                    else builder.addStatement("error(%S)", "unsupported")
+                    builder.addStatement("${prefix}error(%S)", "unsupported")
                 }
             }
         }
     }
 
-    private fun generateDecodeSet(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int, skipPrefix: Boolean = false) {
-        val elemType = type.arguments.firstOrNull()?.type?.resolve() ?: return
-        val elemName = elemType.declaration.qualifiedName?.asString() ?: return
-        val prefix = if (skipPrefix) "" else "val _$fieldName = "
-
-        builder.addStatement("val _${fieldName}_vec = map.getVector($index)")
-
-        when (elemName) {
-            "kotlin.Int" -> builder.addStatement("${prefix}LinkedHashSet<Int>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readInt(i)) }")
-            "kotlin.Float" -> builder.addStatement("${prefix}LinkedHashSet<Float>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readDouble(i).toFloat()) }")
-            "kotlin.String" -> builder.addStatement("${prefix}LinkedHashSet<String>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) s.add(_${fieldName}_vec.readString(i)) }")
-            else -> {
-                if (elemName.startsWith("kotlin.collections.Set")) {
-                    val innerType = elemType.arguments.firstOrNull()?.type?.resolve()
-                    val innerName = innerType?.declaration?.qualifiedName?.asString()
-                    when (innerName) {
-                        "kotlin.Float" -> builder.addStatement("${prefix}LinkedHashSet<Set<Float>>(_${fieldName}_vec.size).also { s -> for (i in 0 until _${fieldName}_vec.size) { val inner = _${fieldName}_vec.readVector(i); s.add(LinkedHashSet<Float>(inner.size).also { is2 -> for (j in 0 until inner.size) is2.add(inner.readDouble(j).toFloat()) }) } }")
-                        else -> builder.addComment("TODO: unsupported Set<Set<$innerName>>")
-                    }
-                } else {
-                    builder.addComment("TODO: unsupported set element $elemName for $fieldName")
-                    if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
-                    else builder.addStatement("error(%S)", "unsupported")
-                }
-            }
-        }
-    }
-
-    private fun generateDecodeMap(builder: FunSpec.Builder, fieldName: String, type: KSType, index: Int, skipPrefix: Boolean = false) {
+    private fun generateDecodeMap(
+        builder: FunSpec.Builder,
+        fieldName: String,
+        type: KSType,
+        index: Int,
+        prefix: String
+    ) {
         val keyType = type.arguments.getOrNull(0)?.type?.resolve() ?: return
         val valueType = type.arguments.getOrNull(1)?.type?.resolve() ?: return
         val keyTypeName = keyType.declaration.qualifiedName?.asString() ?: return
         val valueTypeName = valueType.declaration.qualifiedName?.asString() ?: return
-        val prefix = if (skipPrefix) "" else "val _$fieldName = "
+        val f = fieldName
 
-        builder.addStatement("val _${fieldName}_map = map.getMap($index)")
+        emitVecHeader(builder, f, index)
+        builder.addStatement("val _${f}_n = %T.size(buf, _${f}_ve, _${f}_vw)", FLEX_READ)
+        builder.addStatement("val _${f}_tb = _${f}_ve + _${f}_n * _${f}_vw")
+        builder.addStatement("val _${f}_ke = %T.keysEnd(buf, _${f}_ve, _${f}_vw)", FLEX_READ)
+        builder.addStatement("val _${f}_kw = %T.keysWidth(buf, _${f}_ve, _${f}_vw)", FLEX_READ)
 
-        val keyConvert = when (keyTypeName) {
-            "kotlin.String" -> "_${fieldName}_map.keyAsString(i)"
-            "kotlin.Int" -> "_${fieldName}_map.keyAsString(i).toInt()"
-            "kotlin.Long" -> "_${fieldName}_map.keyAsString(i).toLong()"
-            else -> "_${fieldName}_map.keyAsString(i)"
+        val keyKt = keyType.toSimpleType()
+        val keyConvertSuffix = when (keyTypeName) {
+            "kotlin.String" -> ""
+            "kotlin.Int" -> ".toInt()"
+            "kotlin.Long" -> ".toLong()"
+            else -> ""
+        }
+        val keyCall = "%T.keyString(buf, _${f}_ke, _${f}_kw, j)$keyConvertSuffix"
+
+        fun mapLoop(valKt: String, valCall: String, extraTypes: Int) {
+            val types = mutableListOf<Any>(FLEX_READ)
+            repeat(extraTypes) { types.add(FLEX_READ) }
+            builder.addStatement(
+                "${prefix}LinkedHashMap<$keyKt, $valKt>(_${f}_n).also { m -> for (j in 0 until _${f}_n) m[$keyCall] = $valCall }",
+                *types.toTypedArray()
+            )
         }
 
         when (valueTypeName) {
-            "kotlin.Boolean" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Boolean>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getBoolean(i) }")
-            "kotlin.Int" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Int>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getInt(i) }")
-            "kotlin.Long" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Long>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getLong(i) }")
-            "kotlin.Float" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Float>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getFloat(i) }")
-            "kotlin.String" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, String>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getString(i) }")
-            "kotlin.Double" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, Double>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = _${fieldName}_map.getDouble(i) }")
+            "kotlin.Boolean" -> mapLoop("Boolean", "%T.getBoolean(buf, _${f}_ve, _${f}_vw, j)", 1)
+            "kotlin.Int" -> mapLoop("Int", "%T.getInt(buf, _${f}_ve, _${f}_vw, _${f}_tb, j)", 1)
+            "kotlin.Long" -> mapLoop("Long", "%T.getLong(buf, _${f}_ve, _${f}_vw, _${f}_tb, j)", 1)
+            "kotlin.Float" -> mapLoop("Float", "%T.getFloat(buf, _${f}_ve, _${f}_vw, _${f}_tb, j)", 1)
+            "kotlin.Double" -> mapLoop("Double", "%T.getDouble(buf, _${f}_ve, _${f}_vw, _${f}_tb, j)", 1)
+            "kotlin.String" -> mapLoop("String", "%T.getString(buf, _${f}_ve, _${f}_vw, _${f}_tb, j)", 1)
             else -> {
                 val valueDecl = valueType.declaration
                 if (valueDecl is KSClassDeclaration && hasStruct(valueDecl)) {
                     val coderName = ClassName(valueDecl.packageName.asString(), "${valueDecl.simpleName.asString()}FlexCoder")
-                    builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, ${valueDecl.simpleName.asString()}>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) m[$keyConvert] = %T.decodeMap(_${fieldName}_map.getMap(i)) }", coderName)
+                    builder.addStatement(
+                        "${prefix}LinkedHashMap<$keyKt, ${valueDecl.simpleName.asString()}>(_${f}_n).also { m -> for (j in 0 until _${f}_n) m[$keyCall] = %T.decodeAt(buf, %T.childEnd(buf, _${f}_ve, _${f}_vw, j), %T.childWidth(buf, _${f}_tb, j)) }",
+                        FLEX_READ, coderName, FLEX_READ, FLEX_READ
+                    )
                 } else if (valueTypeName.startsWith("kotlin.collections.List")) {
                     val innerType = valueType.arguments.firstOrNull()?.type?.resolve()
                     val innerName = innerType?.declaration?.qualifiedName?.asString()
+                    fun listValLoop(kt: String, readCall: String) {
+                        builder.addStatement(
+                            "${prefix}LinkedHashMap<$keyKt, List<$kt>>(_${f}_n).also { m -> for (j in 0 until _${f}_n) { " +
+                                "val ie = %T.childEnd(buf, _${f}_ve, _${f}_vw, j); val iw = %T.childWidth(buf, _${f}_tb, j); " +
+                                "val im = %T.size(buf, ie, iw); " +
+                                "m[$keyCall] = ArrayList<$kt>(im).also { inner -> for (q in 0 until im) inner.add($readCall) } } }",
+                            FLEX_READ, FLEX_READ, FLEX_READ, FLEX_READ, FLEX_READ
+                        )
+                    }
                     when (innerName) {
-                        "kotlin.Double" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, List<Double>>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) { val vec = _${fieldName}_map.getVector(i); m[$keyConvert] = ArrayList<Double>(vec.size).also { list -> for (j in 0 until vec.size) list.add(vec.readDouble(j)) } } }")
-                        "kotlin.Int" -> builder.addStatement("${prefix}LinkedHashMap<${keyType.toSimpleType()}, List<Int>>(_${fieldName}_map.size).also { m -> for (i in 0 until _${fieldName}_map.size) { val vec = _${fieldName}_map.getVector(i); m[$keyConvert] = ArrayList<Int>(vec.size).also { list -> for (j in 0 until vec.size) list.add(vec.readInt(j)) } } }")
+                        "kotlin.Double" -> listValLoop("Double", "%T.typedDouble(buf, ie, iw, q)")
+                        "kotlin.Int" -> listValLoop("Int", "%T.typedInt(buf, ie, iw, q)")
+                        "kotlin.Float" -> listValLoop("Float", "%T.typedFloat(buf, ie, iw, q)")
                         else -> {
                             builder.addComment("TODO: unsupported Map value List<$innerName>")
-                            if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
-                            else builder.addStatement("error(%S)", "unsupported")
+                            builder.addStatement("${prefix}error(%S)", "unsupported")
                         }
                     }
                 } else {
                     builder.addComment("TODO: unsupported map value $valueTypeName for $fieldName")
-                    if (!skipPrefix) builder.addStatement("val _$fieldName: Nothing = error(%S)", "unsupported")
-                    else builder.addStatement("error(%S)", "unsupported")
+                    builder.addStatement("${prefix}error(%S)", "unsupported")
                 }
             }
         }
@@ -622,22 +716,15 @@ class FlexCoderProcessor(
             }
         }
 
-        // toDataClass() — materializes the full data class using index-based reads
-        val toDataClassMethod = FunSpec.builder("toDataClass")
-            .returns(className)
-
-        for ((index, prop) in sortedProps.withIndex()) {
-            val name = prop.simpleName.asString()
-            val type = prop.type.resolve()
-            generateDecodeField(toDataClassMethod, name, type, index)
-        }
-
-        val constructorArgs = originalProps.joinToString(",\n    ") { prop ->
-            val name = prop.simpleName.asString()
-            "$name = _$name"
-        }
-        toDataClassMethod.addStatement("return %T(\n    $constructorArgs\n)", className)
-        builder.addFunction(toDataClassMethod.build())
+        // toDataClass() — materializes the full data class via the coder's
+        // allocation-free positional decode.
+        val coderName = ClassName(className.packageName, "${className.simpleName}FlexCoder")
+        builder.addFunction(
+            FunSpec.builder("toDataClass")
+                .returns(className)
+                .addStatement("return %T.decodeAt(map.buf, map.end, map.byteWidth)", coderName)
+                .build()
+        )
 
         return builder.build()
     }

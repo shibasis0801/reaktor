@@ -65,3 +65,40 @@ public actual inline fun ByteArray.setDouble(index: Int, value: Double): Unit =
 public actual inline fun ByteArray.getFloat(index: Int): Float = Float.fromBits(getIntAt(index))
 
 public actual inline fun ByteArray.getDouble(index: Int): Double = Double.fromBits(getLongAt(index))
+
+// ─── Direct memory layer: Kotlin/Native unaligned-load intrinsics ───
+// getIntAt/getLongAt compile to single unaligned loads (plus a bounds check the
+// AOT compiler can often hoist). Apple targets are little-endian.
+
+internal actual inline fun ByteArray.ld8(index: Int): Int = this[index].toInt()
+
+internal actual inline fun ByteArray.ldU8(index: Int): Int = this[index].toInt() and 0xFF
+
+internal actual inline fun ByteArray.ld16(index: Int): Int = getShortAt(index).toInt()
+
+internal actual inline fun ByteArray.ldU16(index: Int): Int = getShortAt(index).toInt() and 0xFFFF
+
+internal actual inline fun ByteArray.ld32(index: Int): Int = getIntAt(index)
+
+internal actual inline fun ByteArray.ld64(index: Int): Long = getLongAt(index)
+
+internal actual inline fun ByteArray.ldF32(index: Int): Float = Float.fromBits(getIntAt(index))
+
+internal actual inline fun ByteArray.ldF64(index: Int): Double = Double.fromBits(getLongAt(index))
+
+internal actual inline fun ByteArray.st8(index: Int, value: Int) {
+  this[index] = value.toByte()
+}
+
+internal actual inline fun ByteArray.st16(index: Int, value: Int): Unit =
+  setShortAt(index, value.toShort())
+
+internal actual inline fun ByteArray.st32(index: Int, value: Int): Unit = setIntAt(index, value)
+
+internal actual inline fun ByteArray.st64(index: Int, value: Long): Unit = setLongAt(index, value)
+
+internal actual inline fun ByteArray.stF32(index: Int, value: Float): Unit =
+  setIntAt(index, value.toRawBits())
+
+internal actual inline fun ByteArray.stF64(index: Int, value: Double): Unit =
+  setLongAt(index, value.toRawBits())

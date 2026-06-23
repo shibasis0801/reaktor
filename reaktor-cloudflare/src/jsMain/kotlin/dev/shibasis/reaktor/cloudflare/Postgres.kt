@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
 import kotlinx.coroutines.await
-import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.service.Request
 import kotlin.js.Promise
 import kotlin.js.jsTypeOf
 

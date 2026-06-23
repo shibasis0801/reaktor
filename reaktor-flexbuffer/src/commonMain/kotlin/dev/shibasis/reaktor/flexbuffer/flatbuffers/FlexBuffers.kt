@@ -18,19 +18,38 @@
 
 package dev.shibasis.reaktor.flexbuffer.flatbuffers
 
+import kotlin.jvm.JvmField
+
 /**
- * Reads a FlexBuffer message in ReadBuf and returns [Reference] to the root element.
+ * Reads a FlexBuffer message from a raw [ByteArray] and returns a [Reference] to the root.
  *
- * @param buffer ReadBuf containing FlexBuffer message
- * @return [Reference] to the root object
+ * The reader operates directly on the array — no wrapper, no interface dispatch.
+ * Every scalar access compiles to a direct load via the platform memory layer.
+ *
+ * @param bytes array containing the FlexBuffer message
+ * @param limit logical end of the message (defaults to the full array)
  */
-public fun getRoot(buffer: ReadBuffer): Reference {
-  var end: Int = buffer.limit
-  val byteWidth = buffer[--end].toInt()
-  val packetType = buffer[--end].toInt()
+public fun getRoot(bytes: ByteArray, limit: Int = bytes.size): Reference {
+  var end = limit
+  val byteWidth = bytes.ldU8(--end)
+  val packedType = bytes.ldU8(--end)
   end -= byteWidth // The root data item.
-  return Reference(buffer, end, ByteWidth(byteWidth), packetType)
+  return Reference(bytes, end, byteWidth, packedType)
 }
+
+/**
+ * Compatibility entry point for [ReadBuffer]-typed callers.
+ *
+ * Array-backed buffers (the only implementation in practice) are unwrapped to their
+ * backing array with zero copies — positions in the message are relative to its end,
+ * so a non-zero slice offset needs no translation. Exotic implementations fall back
+ * to one defensive copy.
+ */
+public fun getRoot(buffer: ReadBuffer): Reference =
+  when (buffer) {
+    is ArrayReadBuffer -> getRoot(buffer.data(), buffer.offset + buffer.limit)
+    else -> getRoot(buffer.data(), buffer.limit)
+  }
 
 /**
  * Represents an generic element in the buffer. It can be specialized into scalar types, using for
@@ -40,24 +59,24 @@ public fun getRoot(buffer: ReadBuffer): Reference {
 @Suppress("NOTHING_TO_INLINE")
 public class Reference
 internal constructor(
-  internal val buffer: ReadBuffer,
-  internal val end: Int,
-  internal val parentWidth: ByteWidth,
-  internal val byteWidth: ByteWidth,
+  @JvmField internal val buf: ByteArray,
+  @JvmField internal val end: Int,
+  @JvmField internal val parentWidth: Int,
+  @JvmField internal val byteWidth: Int,
   public val type: FlexBufferType,
 ) {
 
   internal constructor(
-    bb: ReadBuffer,
+    buf: ByteArray,
     end: Int,
-    parentWidth: ByteWidth,
+    parentWidth: Int,
     packedType: Int,
   ) : this(
-    bb,
+    buf,
     end,
     parentWidth,
-    ByteWidth(1 shl (packedType and 3)),
-    FlexBufferType((packedType shr 2)),
+    1 shl (packedType and 3),
+    FlexBufferType(packedType shr 2),
   )
 
   /**
@@ -177,34 +196,37 @@ internal constructor(
    *
    * @return element as [Boolean]
    */
-  public fun toBoolean(): Boolean = if (isBoolean) buffer.getBoolean(end) else toUInt() != 0u
+  public fun toBoolean(): Boolean =
+    if (isBoolean) buf.ldU8(end) != 0 else toULong() != 0UL
 
   /**
-   * Returns element as [Byte]. For vector types, it will return size of the vector. For String
-   * type, it will be parsed as integer. Unsigned elements will become signed (with possible
-   * overflow). Float elements will be casted to [Byte].
+   * Returns element as [Byte]. Unsigned elements will become signed (with possible overflow).
    *
    * @return [Byte] or 0 if fail to convert element to integer.
    */
-  public fun toByte(): Byte = toULong().toByte()
+  public fun toByte(): Byte = toLong().toByte()
 
   /**
-   * Returns element as [Short]. For vector types, it will return size of the vector. For String
-   * type, it will type to be parsed as integer. Unsigned elements will become signed (with possible
-   * overflow). Float elements will be casted to [Short]
+   * Returns element as [Short]. Unsigned elements will become signed (with possible overflow).
    *
    * @return [Short] or 0 if fail to convert element to integer.
    */
-  public fun toShort(): Short = toULong().toShort()
+  public fun toShort(): Short = toLong().toShort()
 
   /**
-   * Returns element as [Int]. For vector types, it will return size of the vector. For String type,
-   * it will type to be parsed as integer. Unsigned elements will become signed (with possible
-   * overflow). Float elements will be casted to [Int]
+   * Returns element as [Int]. Unsigned elements will become signed (with possible overflow).
    *
    * @return [Int] or 0 if fail to convert element to integer.
    */
-  public fun toInt(): Int = toULong().toInt()
+  public fun toInt(): Int =
+    when (type) {
+      T_INT -> buf.ldSIntW(end, parentWidth)
+      T_UINT,
+      T_BOOL -> buf.ldUOffW(end, parentWidth)
+      T_INDIRECT_INT -> buf.ldSIntW(buf.indirectAt(end, parentWidth), byteWidth)
+      T_INDIRECT_UINT -> buf.ldUOffW(buf.indirectAt(end, parentWidth), byteWidth)
+      else -> toLong().toInt()
+    }
 
   /**
    * Returns element as [Long]. For vector types, it will return size of the vector For String type,
@@ -213,30 +235,36 @@ internal constructor(
    *
    * @return [Long] integer or 0 if fail to convert element to long.
    */
-  public fun toLong(): Long = toULong().toLong()
+  public fun toLong(): Long =
+    when (type) {
+      T_INT -> buf.ldSLongW(end, parentWidth)
+      T_UINT,
+      T_BOOL -> buf.ldULongW(end, parentWidth)
+      T_INDIRECT_INT -> buf.ldSLongW(buf.indirectAt(end, parentWidth), byteWidth)
+      T_INDIRECT_UINT -> buf.ldULongW(buf.indirectAt(end, parentWidth), byteWidth)
+      T_FLOAT -> buf.ldFloatW(end, parentWidth).toLong()
+      T_INDIRECT_FLOAT -> buf.ldFloatW(buf.indirectAt(end, parentWidth), byteWidth).toLong()
+      T_STRING -> toString().toLong()
+      T_VECTOR -> toVector().size.toLong()
+      else -> 0L
+    }
 
   /**
-   * Returns element as [UByte]. For vector types, it will return size of the vector. For String
-   * type, it will type to be parsed as integer. Negative elements will become unsigned counterpart.
-   * Float elements will be casted to [UByte]
+   * Returns element as [UByte]. Negative elements will become unsigned counterpart.
    *
    * @return [UByte] or 0 if fail to convert element to integer.
    */
   public fun toUByte(): UByte = toULong().toUByte()
 
   /**
-   * Returns element as [UShort]. For vector types, it will return size of the vector. For String
-   * type, it will type to be parsed as integer. Negative elements will become unsigned counterpart.
-   * Float elements will be casted to [UShort]
+   * Returns element as [UShort]. Negative elements will become unsigned counterpart.
    *
    * @return [UShort] or 0 if fail to convert element to integer.
    */
   public fun toUShort(): UShort = toULong().toUShort()
 
   /**
-   * Returns element as [UInt]. For vector types, it will return size of the vector. For String
-   * type, it will type to be parsed as integer. Negative elements will become unsigned counterpart.
-   * Float elements will be casted to [UInt]
+   * Returns element as [UInt]. Negative elements will become unsigned counterpart.
    *
    * @return [UInt] or 0 if fail to convert element to integer.
    */
@@ -249,69 +277,51 @@ internal constructor(
    *
    * @return [ULong] integer or 0 if fail to convert element to long.
    */
-  public fun toULong(): ULong = resolve { pos: Int, width: ByteWidth ->
+  public fun toULong(): ULong =
     when (type) {
-      T_INDIRECT_INT,
-      T_INDIRECT_UINT,
-      T_INT,
-      T_BOOL,
-      T_UINT -> buffer.readULong(pos, width)
-      T_FLOAT,
-      T_INDIRECT_FLOAT -> buffer.readFloat(pos, width).toULong()
+      T_INT -> buf.ldSLongW(end, parentWidth).toULong()
+      T_UINT,
+      T_BOOL -> buf.ldULongW(end, parentWidth).toULong()
+      T_INDIRECT_INT -> buf.ldSLongW(buf.indirectAt(end, parentWidth), byteWidth).toULong()
+      T_INDIRECT_UINT -> buf.ldULongW(buf.indirectAt(end, parentWidth), byteWidth).toULong()
+      T_FLOAT -> buf.ldFloatW(end, parentWidth).toULong()
+      T_INDIRECT_FLOAT -> buf.ldFloatW(buf.indirectAt(end, parentWidth), byteWidth).toULong()
       T_STRING -> toString().toULong()
       T_VECTOR -> toVector().size.toULong()
       else -> 0UL
     }
-  }
 
   /**
-   * Returns element as [Float]. For vector types, it will return size of the vector For String
-   * type, it will type to be parsed as [Float] Float elements will be casted to integer
+   * Returns element as [Float].
    *
-   * @return [Float] integer or 0 if fail to convert element to long.
+   * @return [Float] or 0 if fail to convert element to float.
    */
-  public fun toFloat(): Float = resolve { pos: Int, width: ByteWidth ->
-    when (type) {
-      T_INDIRECT_FLOAT,
-      T_FLOAT -> buffer.readFloat(pos, width).toFloat()
-      T_INT -> buffer.readInt(end, parentWidth).toFloat()
-      T_UINT,
-      T_BOOL -> buffer.readUInt(end, parentWidth).toFloat()
-      T_INDIRECT_INT -> buffer.readInt(pos, width).toFloat()
-      T_INDIRECT_UINT -> buffer.readUInt(pos, width).toFloat()
-      T_NULL -> 0.0f
-      T_STRING -> toString().toFloat()
-      T_VECTOR -> toVector().size.toFloat()
-      else -> 0f
-    }
-  }
+  public fun toFloat(): Float = toDouble().toFloat()
 
   /**
-   * Returns element as [Double]. For vector types, it will return size of the vector For String
-   * type, it will type to be parsed as [Double]
+   * Returns element as [Double].
    *
-   * @return [Float] integer or 0 if fail to convert element to long.
+   * @return [Double] or 0 if fail to convert element to double.
    */
-  public fun toDouble(): Double = resolve { pos: Int, width: ByteWidth ->
+  public fun toDouble(): Double =
     when (type) {
-      T_INDIRECT_FLOAT,
-      T_FLOAT -> buffer.readFloat(pos, width)
-      T_INT -> buffer.readInt(pos, width).toDouble()
+      T_FLOAT -> buf.ldFloatW(end, parentWidth)
+      T_INDIRECT_FLOAT -> buf.ldFloatW(buf.indirectAt(end, parentWidth), byteWidth)
+      T_INT -> buf.ldSLongW(end, parentWidth).toDouble()
       T_UINT,
-      T_BOOL -> buffer.readUInt(pos, width).toDouble()
-      T_INDIRECT_INT -> buffer.readInt(pos, width).toDouble()
-      T_INDIRECT_UINT -> buffer.readUInt(pos, width).toDouble()
+      T_BOOL -> buf.ldULongW(end, parentWidth).toDouble()
+      T_INDIRECT_INT -> buf.ldSLongW(buf.indirectAt(end, parentWidth), byteWidth).toDouble()
+      T_INDIRECT_UINT -> buf.ldULongW(buf.indirectAt(end, parentWidth), byteWidth).toDouble()
       T_NULL -> 0.0
       T_STRING -> toString().toDouble()
       T_VECTOR -> toVector().size.toDouble()
       else -> 0.0
     }
-  }
 
   /** Returns element as [Key] or invalid key. */
   public fun toKey(): Key =
     when (type) {
-      T_KEY -> Key(buffer, buffer.indirect(end, parentWidth))
+      T_KEY -> Key(buf, buf.indirectAt(end, parentWidth))
       else -> nullKey()
     }
 
@@ -323,11 +333,11 @@ internal constructor(
   override fun toString(): String =
     when (type) {
       T_STRING -> {
-        val start = buffer.indirect(end, parentWidth)
-        val size = buffer.readULong(start - byteWidth, byteWidth).toInt()
-        buffer.getString(start, size)
+        val start = buf.indirectAt(end, parentWidth)
+        val size = buf.ldUOffW(start - byteWidth, byteWidth)
+        fastDecodeUtf8(buf, start, start + size)
       }
-      T_KEY -> buffer.getKeyString(buffer.indirect(end, parentWidth))
+      T_KEY -> buf.getKeyString(buf.indirectAt(end, parentWidth))
       T_MAP -> "{ ${toMap().entries.joinToString(", ") { "${it.key}: ${it.value}"}} }"
       T_VECTOR,
       T_VECTOR_BOOL,
@@ -348,8 +358,7 @@ internal constructor(
    * @return element as [ByteArray] or empty [ByteArray] if fail.
    */
   public fun toByteArray(): ByteArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> ByteArray(vec.size) { vec.readTypedInt(it).toByte() }
       T_VECTOR_UINT -> ByteArray(vec.size) { vec.readTypedUInt(it).toByte() }
@@ -360,13 +369,12 @@ internal constructor(
   }
 
   /**
-   * Returns element as a [ByteArray], converting scalar types when possible.
+   * Returns element as a [ShortArray], converting scalar types when possible.
    *
-   * @return element as [ByteArray] or empty [ByteArray] if fail.
+   * @return element as [ShortArray] or empty [ShortArray] if fail.
    */
   public fun toShortArray(): ShortArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> ShortArray(vec.size) { vec.readTypedInt(it).toShort() }
       T_VECTOR_UINT -> ShortArray(vec.size) { vec.readTypedUInt(it).toShort() }
@@ -382,10 +390,9 @@ internal constructor(
    * @return element as [IntArray] or empty [IntArray] if fail.
    */
   public fun toIntArray(): IntArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> IntArray(vec.size) { vec.readTypedInt(it).toInt() }
+      T_VECTOR_INT -> vec.toIntArray()
       T_VECTOR_UINT -> IntArray(vec.size) { vec.readTypedUInt(it).toInt() }
       T_VECTOR -> IntArray(vec.size) { vec[it].toInt() }
       T_VECTOR_FLOAT -> IntArray(vec.size) { vec.readTypedFloat(it).toInt() }
@@ -399,10 +406,9 @@ internal constructor(
    * @return element as [LongArray] or empty [LongArray] if fail.
    */
   public fun toLongArray(): LongArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> LongArray(vec.size) { vec.readTypedInt(it) }
+      T_VECTOR_INT -> vec.toLongArray()
       T_VECTOR_UINT -> LongArray(vec.size) { vec.readTypedUInt(it).toLong() }
       T_VECTOR -> LongArray(vec.size) { vec[it].toLong() }
       T_VECTOR_FLOAT -> LongArray(vec.size) { vec.readTypedFloat(it).toLong() }
@@ -416,8 +422,7 @@ internal constructor(
    * @return element as [UByteArray] or empty [UByteArray] if fail.
    */
   public fun toUByteArray(): UByteArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> UByteArray(vec.size) { vec.readTypedInt(it).toUByte() }
       T_VECTOR_UINT -> UByteArray(vec.size) { vec.readTypedUInt(it).toUByte() }
@@ -428,13 +433,12 @@ internal constructor(
   }
 
   /**
-   * Returns element as a [UIntArray], converting scalar types when possible.
+   * Returns element as a [UShortArray], converting scalar types when possible.
    *
-   * @return element as [UIntArray] or empty [UIntArray] if fail.
+   * @return element as [UShortArray] or empty [UShortArray] if fail.
    */
   public fun toUShortArray(): UShortArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> UShortArray(vec.size) { vec.readTypedInt(it).toUShort() }
       T_VECTOR_UINT -> UShortArray(vec.size) { vec.readTypedUInt(it).toUShort() }
@@ -450,8 +454,7 @@ internal constructor(
    * @return element as [UIntArray] or empty [UIntArray] if fail.
    */
   public fun toUIntArray(): UIntArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> UIntArray(vec.size) { vec.readTypedInt(it).toUInt() }
       T_VECTOR_UINT -> UIntArray(vec.size) { vec.readTypedUInt(it).toUInt() }
@@ -467,8 +470,7 @@ internal constructor(
    * @return element as [ULongArray] or empty [ULongArray] if fail.
    */
   public fun toULongArray(): ULongArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> ULongArray(vec.size) { vec.readTypedUInt(it) }
       T_VECTOR_UINT -> ULongArray(vec.size) { vec.readTypedUInt(it) }
@@ -484,10 +486,9 @@ internal constructor(
    * @return element as [FloatArray] or empty [FloatArray] if fail.
    */
   public fun toFloatArray(): FloatArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_FLOAT -> FloatArray(vec.size) { vec.readTypedFloat(it).toFloat() }
+      T_VECTOR_FLOAT -> vec.toFloatArray()
       T_VECTOR_INT -> FloatArray(vec.size) { vec.readTypedInt(it).toFloat() }
       T_VECTOR_UINT -> FloatArray(vec.size) { vec.readTypedUInt(it).toFloat() }
       T_VECTOR -> FloatArray(vec.size) { vec[it].toFloat() }
@@ -501,12 +502,11 @@ internal constructor(
    * @return element as [DoubleArray] or empty [DoubleArray] if fail.
    */
   public fun toDoubleArray(): DoubleArray {
-    val vec =
-      TypedVector(type.toElementTypedVector(), buffer, buffer.indirect(end, parentWidth), byteWidth)
+    val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_FLOAT -> DoubleArray(vec.size) { vec[it].toDouble() }
-      T_VECTOR_INT -> DoubleArray(vec.size) { vec[it].toDouble() }
-      T_VECTOR_UINT -> DoubleArray(vec.size) { vec[it].toDouble() }
+      T_VECTOR_FLOAT -> vec.toDoubleArray()
+      T_VECTOR_INT -> DoubleArray(vec.size) { vec.readTypedInt(it).toDouble() }
+      T_VECTOR_UINT -> DoubleArray(vec.size) { vec.readTypedUInt(it).toDouble() }
       T_VECTOR -> DoubleArray(vec.size) { vec[it].toDouble() }
       else -> DoubleArray(0)
     }
@@ -519,14 +519,9 @@ internal constructor(
    */
   public fun toVector(): Vector {
     return when {
-      isVector -> Vector(buffer, buffer.indirect(end, parentWidth), byteWidth)
+      isVector -> Vector(buf, buf.indirectAt(end, parentWidth), byteWidth)
       isTypedVector ->
-        TypedVector(
-          type.toElementTypedVector(),
-          buffer,
-          buffer.indirect(end, parentWidth),
-          byteWidth,
-        )
+        TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
       else -> emptyVector()
     }
   }
@@ -539,7 +534,7 @@ internal constructor(
   public fun toBlob(): Blob {
     return when (type) {
       T_BLOB,
-      T_STRING -> Blob(buffer, buffer.indirect(end, parentWidth), byteWidth)
+      T_STRING -> Blob(buf, buf.indirectAt(end, parentWidth), byteWidth)
       else -> emptyBlob()
     }
   }
@@ -551,24 +546,16 @@ internal constructor(
    */
   public fun toMap(): Map =
     when (type) {
-      T_MAP -> Map(buffer, buffer.indirect(end, parentWidth), byteWidth)
+      T_MAP -> Map(buf, buf.indirectAt(end, parentWidth), byteWidth)
       else -> emptyMap()
     }
-
-  private inline fun <T> resolve(crossinline block: (pos: Int, width: ByteWidth) -> T): T {
-    return if (type.isIndirectScalar()) {
-      block(buffer.indirect(end, byteWidth), byteWidth)
-    } else {
-      block(end, parentWidth)
-    }
-  }
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other == null || this::class != other::class) return false
     other as Reference
     if (
-      buffer != other.buffer ||
+      buf !== other.buf ||
         end != other.end ||
         parentWidth != other.parentWidth ||
         byteWidth != other.byteWidth ||
@@ -579,10 +566,10 @@ internal constructor(
   }
 
   override fun hashCode(): Int {
-    var result = buffer.hashCode()
+    var result = buf.hashCode()
     result = 31 * result + end
-    result = 31 * result + parentWidth.value
-    result = 31 * result + byteWidth.value
+    result = 31 * result + parentWidth
+    result = 31 * result + byteWidth
     result = 31 * result + type.hashCode()
     return result
   }
@@ -593,22 +580,22 @@ internal constructor(
  */
 public open class Sized
 internal constructor(
-  public val buffer: ReadBuffer,
-  public val end: Int,
-  public val byteWidth: ByteWidth,
+  @JvmField public val buf: ByteArray,
+  @JvmField public val end: Int,
+  @JvmField public val byteWidth: Int,
 ) {
-  public open val size: Int = buffer.readSize(end, byteWidth)
+  public open val size: Int = buf.ldUOffW(end - byteWidth, byteWidth)
 }
 
 /** Represent an array of bytes in the buffer. */
-public open class Blob internal constructor(buffer: ReadBuffer, end: Int, byteWidth: ByteWidth) :
-  Sized(buffer, end, byteWidth) {
+public open class Blob internal constructor(buf: ByteArray, end: Int, byteWidth: Int) :
+  Sized(buf, end, byteWidth) {
   /**
    * Return [Blob] as [ReadBuffer]
    *
    * @return blob as [ReadBuffer]
    */
-  public fun data(): ReadBuffer = buffer.slice(end, size)
+  public fun data(): ReadBuffer = ArrayReadBuffer(buf, end, size)
 
   /**
    * Copy [Blob] into a [ByteArray]
@@ -617,9 +604,7 @@ public open class Blob internal constructor(buffer: ReadBuffer, end: Int, byteWi
    */
   public fun toByteArray(): ByteArray {
     val result = ByteArray(size)
-    for (i in 0 until size) {
-      result[i] = buffer[end + i]
-    }
+    buf.copyInto(result, 0, end, end + size)
     return result
   }
 
@@ -630,15 +615,28 @@ public open class Blob internal constructor(buffer: ReadBuffer, end: Int, byteWi
    */
   public operator fun get(pos: Int): Byte {
     if (pos !in 0..size) error("$pos index out of bounds. Should be in range 0..$size")
-    return buffer[end + pos]
+    return buf[end + pos]
   }
 
-  override fun toString(): String = buffer.getString(end, size)
+  override fun toString(): String = fastDecodeUtf8(buf, end, end + size)
 }
 
-/** [Vector] represents an array of elements in the buffer. The element can be of any type. */
-public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byteWidth: ByteWidth) :
-  Collection<Reference>, Sized(buffer, end, byteWidth) {
+/**
+ * [Vector] represents an array of elements in the buffer. The element can be of any type.
+ *
+ * Typed vectors are folded into this class via [elemType] (>= 0 means every element has that
+ * fixed scalar type and the per-element packed-type array is absent). A data-dependent branch
+ * on a final field replaces virtual dispatch — monomorphic call sites on every platform.
+ */
+public open class Vector internal constructor(
+  buf: ByteArray,
+  end: Int,
+  byteWidth: Int,
+  @JvmField internal val elemType: Int = -1,
+) : Collection<Reference>, Sized(buf, end, byteWidth) {
+
+  /** Start of the packed-type byte array (untyped vectors only), computed once. */
+  @JvmField internal val typesBase: Int = end + size * byteWidth
 
   /**
    * Returns a [Reference] from the [Vector] at position [index]. Returns a null reference
@@ -646,86 +644,135 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
    * @param index position in the vector.
    * @return [Reference] for a key or a null [Reference] if not found.
    */
-  public open operator fun get(index: Int): Reference {
+  public operator fun get(index: Int): Reference {
     if (index >= size) return nullReference()
-    val packedType = buffer[(end + size * byteWidth.value + index)].toInt()
-    val objEnd = end + index * byteWidth
-    return Reference(buffer, objEnd, byteWidth, packedType)
+    if (elemType >= 0) {
+      return Reference(buf, end + index * byteWidth, byteWidth, 1, FlexBufferType(elemType))
+    }
+    val packedType = buf.ldU8(typesBase + index)
+    return Reference(buf, end + index * byteWidth, byteWidth, packedType)
   }
 
   // ─── Direct scalar reads: bypass Reference allocation ───
 
-  private inline fun vecPackedTypeAt(index: Int): Int = buffer[(end + size * byteWidth.value + index)].toInt()
-  private inline fun vecObjEndAt(index: Int): Int = end + index * byteWidth
-
-  public open fun readInt(index: Int): Int {
-    val packedType = vecPackedTypeAt(index)
-    val objEnd = vecObjEndAt(index)
-    val type = FlexBufferType(packedType shr 2)
-    return if (type.isIndirectScalar()) {
-      val bw = ByteWidth(1 shl (packedType and 3))
-      buffer.readULong(buffer.indirect(objEnd, bw), bw).toInt()
-    } else {
-      buffer.readULong(objEnd, byteWidth).toInt()
+  public fun readInt(index: Int): Int {
+    val pos = end + index * byteWidth
+    val et = elemType
+    if (et >= 0) {
+      return if (et == 2 /* T_UINT */) buf.ldUOffW(pos, byteWidth) else buf.ldSIntW(pos, byteWidth)
+    }
+    val packedType = buf.ldU8(typesBase + index)
+    val t = packedType shr 2
+    if (t == 1 /* T_INT */) return buf.ldSIntW(pos, byteWidth)
+    if (t == 2 || t == 26 /* T_UINT, T_BOOL */) return buf.ldUOffW(pos, byteWidth)
+    val bw = 1 shl (packedType and 3)
+    return when (t) {
+      6 /* T_INDIRECT_INT */ -> buf.ldSIntW(buf.indirectAt(pos, byteWidth), bw)
+      7 /* T_INDIRECT_UINT */ -> buf.ldUOffW(buf.indirectAt(pos, byteWidth), bw)
+      else -> buf.ldUOffW(pos, byteWidth)
     }
   }
 
-  public open fun readLong(index: Int): Long {
-    val packedType = vecPackedTypeAt(index)
-    val objEnd = vecObjEndAt(index)
-    val type = FlexBufferType(packedType shr 2)
-    return if (type.isIndirectScalar()) {
-      val bw = ByteWidth(1 shl (packedType and 3))
-      buffer.readULong(buffer.indirect(objEnd, bw), bw).toLong()
-    } else {
-      buffer.readULong(objEnd, byteWidth).toLong()
+  public fun readLong(index: Int): Long {
+    val pos = end + index * byteWidth
+    val et = elemType
+    if (et >= 0) {
+      return if (et == 2 /* T_UINT */) buf.ldULongW(pos, byteWidth) else buf.ldSLongW(pos, byteWidth)
+    }
+    val packedType = buf.ldU8(typesBase + index)
+    val t = packedType shr 2
+    if (t == 1 /* T_INT */) return buf.ldSLongW(pos, byteWidth)
+    if (t == 2 || t == 26 /* T_UINT, T_BOOL */) return buf.ldULongW(pos, byteWidth)
+    val bw = 1 shl (packedType and 3)
+    return when (t) {
+      6 /* T_INDIRECT_INT */ -> buf.ldSLongW(buf.indirectAt(pos, byteWidth), bw)
+      7 /* T_INDIRECT_UINT */ -> buf.ldULongW(buf.indirectAt(pos, byteWidth), bw)
+      else -> buf.ldULongW(pos, byteWidth)
     }
   }
 
-  public open fun readDouble(index: Int): Double {
-    val packedType = vecPackedTypeAt(index)
-    val objEnd = vecObjEndAt(index)
-    val type = FlexBufferType(packedType shr 2)
-    return if (type.isIndirectScalar()) {
-      val bw = ByteWidth(1 shl (packedType and 3))
-      buffer.readFloat(buffer.indirect(objEnd, bw), bw)
-    } else {
-      buffer.readFloat(objEnd, byteWidth)
+  public fun readDouble(index: Int): Double {
+    val pos = end + index * byteWidth
+    if (elemType >= 0) return buf.ldFloatW(pos, byteWidth)
+    val packedType = buf.ldU8(typesBase + index)
+    val t = packedType shr 2
+    return when (t) {
+      3 /* T_FLOAT */ -> buf.ldFloatW(pos, byteWidth)
+      1 /* T_INT */ -> buf.ldSLongW(pos, byteWidth).toDouble()
+      2, 26 -> buf.ldULongW(pos, byteWidth).toDouble()
+      8 /* T_INDIRECT_FLOAT */ -> {
+        val bw = 1 shl (packedType and 3)
+        buf.ldFloatW(buf.indirectAt(pos, byteWidth), bw)
+      }
+      else -> buf.ldFloatW(pos, byteWidth)
     }
   }
 
-  public open fun readString(index: Int): String {
-    val objEnd = vecObjEndAt(index)
-    val packedType = vecPackedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val start = buffer.indirect(objEnd, byteWidth)
-    val strSize = buffer.readULong(start - bw, bw).toInt()
-    return buffer.getString(start, strSize)
+  public fun readString(index: Int): String {
+    val pos = end + index * byteWidth
+    if (elemType >= 0) {
+      val start = buf.indirectAt(pos, byteWidth)
+      val strSize = buf.ldUOffW(start - byteWidth, byteWidth)
+      return fastDecodeUtf8(buf, start, start + strSize)
+    }
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    val start = buf.indirectAt(pos, byteWidth)
+    val strSize = buf.ldUOffW(start - bw, bw)
+    return fastDecodeUtf8(buf, start, start + strSize)
   }
 
   public fun readStringByteLength(index: Int): Int {
-    val objEnd = vecObjEndAt(index)
-    val packedType = vecPackedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val start = buffer.indirect(objEnd, byteWidth)
-    return buffer.readULong(start - bw, bw).toInt()
+    val pos = end + index * byteWidth
+    if (elemType >= 0) {
+      val start = buf.indirectAt(pos, byteWidth)
+      return buf.ldUOffW(start - byteWidth, byteWidth)
+    }
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    val start = buf.indirectAt(pos, byteWidth)
+    return buf.ldUOffW(start - bw, bw)
   }
 
-  public open fun readBoolean(index: Int): Boolean = buffer.getBoolean(vecObjEndAt(index))
+  public fun readBoolean(index: Int): Boolean = buf.ldU8(end + index * byteWidth) != 0
+
+  /** O(1) null check: reads the element's packed type byte. Typed vectors are never null. */
+  public fun isNullAt(index: Int): Boolean {
+    if (index >= size) return true
+    if (elemType >= 0) return false
+    return buf.ldU8(typesBase + index) shr 2 == 0
+  }
 
   public fun readMap(index: Int): Map {
-    val objEnd = vecObjEndAt(index)
-    val packedType = vecPackedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    return Map(buffer, buffer.indirect(objEnd, byteWidth), bw)
+    val pos = end + index * byteWidth
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    return Map(buf, buf.indirectAt(pos, byteWidth), bw)
   }
 
   public fun readVector(index: Int): Vector {
-    val objEnd = vecObjEndAt(index)
-    val packedType = vecPackedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    return Vector(buffer, buffer.indirect(objEnd, byteWidth), bw)
+    val pos = end + index * byteWidth
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    val t = FlexBufferType(packedType shr 2)
+    val indirect = buf.indirectAt(pos, byteWidth)
+    return if (t.isTypedVector()) {
+      TypedVector(t.toElementTypedVector(), buf, indirect, bw)
+    } else {
+      Vector(buf, indirect, bw)
+    }
   }
+
+  // Fixed-type element reads used by Reference.toXxxArray (vector type known from parent).
+
+  internal fun readTypedBoolean(index: Int): Boolean = buf.ldU8(end + index * byteWidth) != 0
+
+  internal fun readTypedInt(index: Int): Long = buf.ldSLongW(end + index * byteWidth, byteWidth)
+
+  internal fun readTypedUInt(index: Int): ULong =
+    buf.ldULongW(end + index * byteWidth, byteWidth).toULong()
+
+  internal fun readTypedFloat(index: Int): Double = buf.ldFloatW(end + index * byteWidth, byteWidth)
 
   public inline fun forEachInt(block: (Int) -> Unit) {
     for (i in 0 until size) block(readInt(i))
@@ -750,25 +797,83 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
   }
 
   /**
-   * Bulk read all ints. TypedVector overrides with a more efficient path.
+   * Bulk read all ints. Width-specialized loops: constant stride, single load per element —
+   * the same loop shape C++ ScalarVector reads compile to.
    */
-  open fun toIntArray(): IntArray = IntArray(size) { readInt(it) }
+  public fun toIntArray(): IntArray {
+    val n = size
+    if (elemType < 0) return IntArray(n) { readInt(it) }
+    val result = IntArray(n)
+    var pos = end
+    if (elemType == 2 /* T_UINT */) {
+      when (byteWidth) {
+        1 -> for (i in 0 until n) { result[i] = buf.ldU8(pos); pos++ }
+        2 -> for (i in 0 until n) { result[i] = buf.ldU16(pos); pos += 2 }
+        4 -> for (i in 0 until n) { result[i] = buf.ld32(pos); pos += 4 }
+        else -> for (i in 0 until n) { result[i] = buf.ld64(pos).toInt(); pos += 8 }
+      }
+    } else {
+      when (byteWidth) {
+        1 -> for (i in 0 until n) { result[i] = buf.ld8(pos); pos++ }
+        2 -> for (i in 0 until n) { result[i] = buf.ld16(pos); pos += 2 }
+        4 -> for (i in 0 until n) { result[i] = buf.ld32(pos); pos += 4 }
+        else -> for (i in 0 until n) { result[i] = buf.ld64(pos).toInt(); pos += 8 }
+      }
+    }
+    return result
+  }
 
-  /**
-   * Bulk read all longs. TypedVector overrides with a more efficient path.
-   */
-  open fun toLongArray(): LongArray = LongArray(size) { readLong(it) }
+  /** Bulk read all longs. Width-specialized, sign-extending for T_INT elements. */
+  public fun toLongArray(): LongArray {
+    val n = size
+    if (elemType < 0) return LongArray(n) { readLong(it) }
+    val result = LongArray(n)
+    var pos = end
+    if (elemType == 2 /* T_UINT */) {
+      when (byteWidth) {
+        1 -> for (i in 0 until n) { result[i] = buf.ldU8(pos).toLong(); pos++ }
+        2 -> for (i in 0 until n) { result[i] = buf.ldU16(pos).toLong(); pos += 2 }
+        4 -> for (i in 0 until n) { result[i] = buf.ld32(pos).toLong() and 0xFFFFFFFFL; pos += 4 }
+        else -> for (i in 0 until n) { result[i] = buf.ld64(pos); pos += 8 }
+      }
+    } else {
+      when (byteWidth) {
+        1 -> for (i in 0 until n) { result[i] = buf.ld8(pos).toLong(); pos++ }
+        2 -> for (i in 0 until n) { result[i] = buf.ld16(pos).toLong(); pos += 2 }
+        4 -> for (i in 0 until n) { result[i] = buf.ld32(pos).toLong(); pos += 4 }
+        else -> for (i in 0 until n) { result[i] = buf.ld64(pos); pos += 8 }
+      }
+    }
+    return result
+  }
 
-  /**
-   * Bulk read all doubles. TypedVector overrides with a more efficient path.
-   */
-  open fun toDoubleArray(): DoubleArray = DoubleArray(size) { readDouble(it) }
+  /** Bulk read all doubles. Width-specialized. */
+  public fun toDoubleArray(): DoubleArray {
+    val n = size
+    if (elemType < 0) return DoubleArray(n) { readDouble(it) }
+    val result = DoubleArray(n)
+    var pos = end
+    when (byteWidth) {
+      8 -> for (i in 0 until n) { result[i] = buf.ldF64(pos); pos += 8 }
+      4 -> for (i in 0 until n) { result[i] = buf.ldF32(pos).toDouble(); pos += 4 }
+      else -> for (i in 0 until n) { result[i] = readDouble(i) }
+    }
+    return result
+  }
 
-  /**
-   * Bulk read all floats. Reads doubles and narrows to Float; this matches the
-   * `List<Float>` decode emitted by KSP.
-   */
-  open fun toFloatArray(): FloatArray = FloatArray(size) { readDouble(it).toFloat() }
+  /** Bulk read all floats. Direct f32 loads when stored 4-wide. */
+  public fun toFloatArray(): FloatArray {
+    val n = size
+    if (elemType < 0) return FloatArray(n) { readDouble(it).toFloat() }
+    val result = FloatArray(n)
+    var pos = end
+    when (byteWidth) {
+      4 -> for (i in 0 until n) { result[i] = buf.ldF32(pos); pos += 4 }
+      8 -> for (i in 0 until n) { result[i] = buf.ldF64(pos).toFloat(); pos += 8 }
+      else -> for (i in 0 until n) { result[i] = readDouble(i).toFloat() }
+    }
+    return result
+  }
 
   // ─── End direct scalar reads ───
 
@@ -794,113 +899,18 @@ public open class Vector internal constructor(buffer: ReadBuffer, end: Int, byte
 }
 
 /** [TypedVector] represents an array of scalar elements of the same type in the buffer. */
-public open class TypedVector(
-  private val elementType: FlexBufferType,
-  buffer: ReadBuffer,
+public class TypedVector internal constructor(
+  elementType: FlexBufferType,
+  buf: ByteArray,
   end: Int,
-  byteWidth: ByteWidth,
-) : Vector(buffer, end, byteWidth) {
-
-  /**
-   * Returns a [Reference] from the [TypedVector] at position [index]. Returns a null reference
-   *
-   * @param index position in the vector.
-   * @return [Reference] for a key or a null [Reference] if not found.
-   */
-  override operator fun get(index: Int): Reference {
-    if (index >= size) return nullReference()
-    val childPos: Int = end + index * byteWidth
-    return Reference(buffer, childPos, byteWidth, ByteWidth(1), elementType)
-  }
-
-  private inline fun <T> resolveAt(index: Int, crossinline block: (Int, ByteWidth) -> T): T {
-    val childPos: Int = end + index * byteWidth
-    return block(childPos, byteWidth)
-  }
-
-  internal fun readTypedBoolean(index: Int): Boolean =
-    resolveAt(index) { pos: Int, _: ByteWidth -> buffer.getBoolean(pos) }
-
-  internal fun readTypedInt(index: Int): Long =
-    resolveAt(index) { pos: Int, width: ByteWidth -> buffer.readLong(pos, width) }
-
-  internal fun readTypedUInt(index: Int): ULong =
-    resolveAt(index) { pos: Int, width: ByteWidth -> buffer.readULong(pos, width) }
-
-  internal fun readTypedFloat(index: Int): Double =
-    resolveAt(index) { pos: Int, width: ByteWidth -> buffer.readFloat(pos, width) }
-
-  override fun readInt(index: Int): Int =
-    resolveAt(index) { pos, width -> buffer.readULong(pos, width).toInt() }
-
-  override fun readLong(index: Int): Long =
-    resolveAt(index) { pos, width -> buffer.readULong(pos, width).toLong() }
-
-  override fun readDouble(index: Int): Double =
-    resolveAt(index) { pos, width -> buffer.readFloat(pos, width) }
-
-  override fun readBoolean(index: Int): Boolean =
-    resolveAt(index) { pos, _ -> buffer.getBoolean(pos) }
-
-  override fun readString(index: Int): String {
-    val childPos = end + index * byteWidth
-    val start = buffer.indirect(childPos, byteWidth)
-    val strSize = buffer.readULong(start - byteWidth, byteWidth).toInt()
-    return buffer.getString(start, strSize)
-  }
-
-  /**
-   * Bulk read all ints into an IntArray. Avoids per-element virtual dispatch
-   * by hoisting the byteWidth outside the loop.
-   */
-  override fun toIntArray(): IntArray {
-    val n = size
-    val result = IntArray(n)
-    val bw = byteWidth
-    var pos = end
-    for (i in 0 until n) {
-      result[i] = buffer.readULong(pos, bw).toInt()
-      pos += bw
-    }
-    return result
-  }
-
-  /**
-   * Bulk read all longs into a LongArray.
-   */
-  override fun toLongArray(): LongArray {
-    val n = size
-    val result = LongArray(n)
-    val bw = byteWidth
-    var pos = end
-    for (i in 0 until n) {
-      result[i] = buffer.readULong(pos, bw).toLong()
-      pos += bw
-    }
-    return result
-  }
-
-  /**
-   * Bulk read all doubles into a DoubleArray.
-   */
-  override fun toDoubleArray(): DoubleArray {
-    val n = size
-    val result = DoubleArray(n)
-    val bw = byteWidth
-    var pos = end
-    for (i in 0 until n) {
-      result[i] = buffer.readFloat(pos, bw)
-      pos += bw
-    }
-    return result
-  }
-}
+  byteWidth: Int,
+) : Vector(buf, end, byteWidth, elementType.value)
 
 /** Represents a key element in the buffer. Keys are used to reference objects in a [Map] */
 public data class Key(
-  public val buffer: ReadBuffer,
+  public val buf: ByteArray,
   public val start: Int,
-  public val end: Int = buffer.findFirst(ZeroByte, start),
+  public val end: Int = buf.findZero(start),
 ) {
 
   val sizeInBytes: Int = end - start
@@ -932,11 +942,11 @@ public data class Key(
     }
     return when {
       count == index -> {
-        Utf8.decodeUtf8CodePoint(buffer, i, codePoint)
+        Utf8.decodeUtf8CodePoint(buf, i, codePoint)
         codePoint[0]
       }
       count == index + 1 && size == 4 -> {
-        Utf8.decodeUtf8CodePoint(buffer, i - size, codePoint)
+        Utf8.decodeUtf8CodePoint(buf, i - size, codePoint)
         codePoint[1]
       }
       else -> error("Invalid count=$count, index=$index")
@@ -944,7 +954,7 @@ public data class Key(
   }
 
   private inline fun codePointSizeInBytes(pos: Int): Int {
-    val b = buffer[pos]
+    val b = buf[pos]
     return when {
       Utf8.isOneByte(b) -> 1
       Utf8.isTwoBytes(b) -> 2
@@ -954,15 +964,18 @@ public data class Key(
   }
 
   override fun toString(): String =
-    if (sizeInBytes > 0) buffer.getString(start, sizeInBytes) else ""
+    if (sizeInBytes > 0) fastDecodeUtf8(buf, start, end) else ""
 
   /** Checks whether Key is invalid or not. */
   public fun isInvalid(): Boolean = sizeInBytes <= 0
 }
 
 /** A Map class that provide support to access Key-Value data from Flexbuffers. */
-public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: ByteWidth) :
-  Sized(buffer, end, byteWidth), kotlin.collections.Map<Key, Reference> {
+public class Map internal constructor(buf: ByteArray, end: Int, byteWidth: Int) :
+  Sized(buf, end, byteWidth), kotlin.collections.Map<Key, Reference> {
+
+  /** Start of the packed-type byte array: end + size * byteWidth, computed once. */
+  @JvmField internal val typesBase: Int = end + size * byteWidth
 
   // Key-vector state is computed on first access. Index-based field reads
   // (Map.getInt/getString/getMap/getVector with an Int index) NEVER touch the
@@ -972,22 +985,16 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
   // pay the cost, lazily, when first needed.
   //
   // -1 is the sentinel: keyVectorEnd is always > 0 in a valid map.
-  private var _keyVectorEnd: Int = -1
-  private var _keyVectorByteWidth: ByteWidth = ByteWidth(0)
+  @JvmField internal var keyVectorEnd: Int = -1
+  @JvmField internal var keyVectorByteWidth: Int = 0
 
   private inline fun ensureKeyVector() {
-    if (_keyVectorEnd < 0) {
-      val keysOffset = end - (3 * byteWidth) // 3 is number of prefixed fields
-      _keyVectorEnd = buffer.indirect(keysOffset, byteWidth)
-      _keyVectorByteWidth = ByteWidth(buffer.readInt(keysOffset + byteWidth, byteWidth))
+    if (keyVectorEnd < 0) {
+      val keysOffset = end - 3 * byteWidth // 3 is number of prefixed fields
+      keyVectorEnd = buf.indirectAt(keysOffset, byteWidth)
+      keyVectorByteWidth = buf.ldUOffW(keysOffset + byteWidth, byteWidth)
     }
   }
-
-  private val keyVectorEnd: Int
-    get() { ensureKeyVector(); return _keyVectorEnd }
-
-  private val keyVectorByteWidth: ByteWidth
-    get() { ensureKeyVector(); return _keyVectorByteWidth }
 
   /**
    * Returns a [Reference] from the [Map] at position [index]. Returns a null reference
@@ -997,64 +1004,79 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
    */
   public operator fun get(index: Int): Reference {
     if (index >= size) return nullReference()
-    val packedPos = end + size * byteWidth + index
-    val packedType = buffer[packedPos].toInt()
-    val objEnd = end + index * byteWidth
-    return Reference(buffer, objEnd, byteWidth, packedType)
+    val packedType = buf.ldU8(typesBase + index)
+    return Reference(buf, end + index * byteWidth, byteWidth, packedType)
   }
 
   // ─── Direct scalar reads: bypass Reference allocation ───
 
-  private inline fun packedTypeAt(index: Int): Int = buffer[(end + size * byteWidth + index)].toInt()
-  private inline fun objEndAt(index: Int): Int = end + index * byteWidth
+  public fun getInt(index: Int): Int {
+    val pos = end + index * byteWidth
+    val t = buf.ldU8(typesBase + index) shr 2
+    if (t == 1 /* T_INT */) return buf.ldSIntW(pos, byteWidth)
+    if (t == 2 || t == 26 /* T_UINT, T_BOOL */) return buf.ldUOffW(pos, byteWidth)
+    return getIntSlow(t, buf.ldU8(typesBase + index), pos)
+  }
 
-  private inline fun resolveScalar(index: Int, block: (pos: Int, width: ByteWidth) -> ULong): ULong {
-    val packedType = packedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val type = FlexBufferType(packedType shr 2)
-    val objEnd = objEndAt(index)
-    return if (type.isIndirectScalar()) {
-      block(buffer.indirect(objEnd, bw), bw)
-    } else {
-      block(objEnd, byteWidth)
+  private fun getIntSlow(t: Int, packedType: Int, pos: Int): Int {
+    val bw = 1 shl (packedType and 3)
+    return when (t) {
+      6 /* T_INDIRECT_INT */ -> buf.ldSIntW(buf.indirectAt(pos, byteWidth), bw)
+      7 /* T_INDIRECT_UINT */ -> buf.ldUOffW(buf.indirectAt(pos, byteWidth), bw)
+      else -> buf.ldUOffW(pos, byteWidth)
     }
   }
 
-  public fun getInt(index: Int): Int = resolveScalar(index) { pos, width -> buffer.readULong(pos, width) }.toInt()
+  public fun getLong(index: Int): Long {
+    val pos = end + index * byteWidth
+    val t = buf.ldU8(typesBase + index) shr 2
+    if (t == 1 /* T_INT */) return buf.ldSLongW(pos, byteWidth)
+    if (t == 2 || t == 26 /* T_UINT, T_BOOL */) return buf.ldULongW(pos, byteWidth)
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    return when (t) {
+      6 /* T_INDIRECT_INT */ -> buf.ldSLongW(buf.indirectAt(pos, byteWidth), bw)
+      7 /* T_INDIRECT_UINT */ -> buf.ldULongW(buf.indirectAt(pos, byteWidth), bw)
+      else -> buf.ldULongW(pos, byteWidth)
+    }
+  }
 
-  public fun getLong(index: Int): Long = resolveScalar(index) { pos, width -> buffer.readULong(pos, width) }.toLong()
+  public fun getBoolean(index: Int): Boolean = buf.ldU8(end + index * byteWidth) != 0
 
-  public fun getBoolean(index: Int): Boolean = buffer.getBoolean(objEndAt(index))
+  /** Reads the packed type byte for [index] — O(1) via the precomputed base. */
+  internal inline fun packedAt(index: Int): Int = buf.ldU8(typesBase + index)
 
   public fun getDouble(index: Int): Double {
-    val packedType = packedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val type = FlexBufferType(packedType shr 2)
-    val objEnd = objEndAt(index)
-    return if (type.isIndirectScalar()) {
-      buffer.readFloat(buffer.indirect(objEnd, bw), bw)
-    } else {
-      buffer.readFloat(objEnd, byteWidth)
+    val pos = end + index * byteWidth
+    val packedType = buf.ldU8(typesBase + index)
+    val t = packedType shr 2
+    if (t == 3 /* T_FLOAT */) return buf.ldFloatW(pos, byteWidth)
+    return when (t) {
+      1 /* T_INT */ -> buf.ldSLongW(pos, byteWidth).toDouble()
+      2, 26 -> buf.ldULongW(pos, byteWidth).toDouble()
+      8 /* T_INDIRECT_FLOAT */ -> {
+        val bw = 1 shl (packedType and 3)
+        buf.ldFloatW(buf.indirectAt(pos, byteWidth), bw)
+      }
+      else -> buf.ldFloatW(pos, byteWidth)
     }
   }
 
   public fun getFloat(index: Int): Float = getDouble(index).toFloat()
 
   public fun getString(index: Int): String {
-    val packedType = packedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val objEnd = objEndAt(index)
-    val start = buffer.indirect(objEnd, byteWidth)
-    val strSize = buffer.readULong(start - bw, bw).toInt()
-    return buffer.getString(start, strSize)
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    val start = buf.indirectAt(end + index * byteWidth, byteWidth)
+    val strSize = buf.ldUOffW(start - bw, bw)
+    return fastDecodeUtf8(buf, start, start + strSize)
   }
 
   public fun getStringByteLength(index: Int): Int {
-    val packedType = packedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val objEnd = objEndAt(index)
-    val start = buffer.indirect(objEnd, byteWidth)
-    return buffer.readULong(start - bw, bw).toInt()
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    val start = buf.indirectAt(end + index * byteWidth, byteWidth)
+    return buf.ldUOffW(start - bw, bw)
   }
 
   public fun getInt(key: String, default: Int = 0): Int {
@@ -1088,23 +1110,21 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
   }
 
   public fun getVector(index: Int): Vector {
-    val objEnd = objEndAt(index)
-    val packedType = packedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    val type = FlexBufferType(packedType shr 2)
-    val indirect = buffer.indirect(objEnd, byteWidth)
-    return if (type.isTypedVector()) {
-      TypedVector(type.toElementTypedVector(), buffer, indirect, bw)
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    val t = FlexBufferType(packedType shr 2)
+    val indirect = buf.indirectAt(end + index * byteWidth, byteWidth)
+    return if (t.isTypedVector()) {
+      TypedVector(t.toElementTypedVector(), buf, indirect, bw)
     } else {
-      Vector(buffer, indirect, bw)
+      Vector(buf, indirect, bw)
     }
   }
 
   public fun getMap(index: Int): Map {
-    val objEnd = objEndAt(index)
-    val packedType = packedTypeAt(index)
-    val bw = ByteWidth(1 shl (packedType and 3))
-    return Map(buffer, buffer.indirect(objEnd, byteWidth), bw)
+    val packedType = buf.ldU8(typesBase + index)
+    val bw = 1 shl (packedType and 3)
+    return Map(buf, buf.indirectAt(end + index * byteWidth, byteWidth), bw)
   }
 
   /**
@@ -1112,8 +1132,7 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
    */
   public fun isNullAt(index: Int): Boolean {
     if (index >= size) return true
-    val packedType = packedTypeAt(index)
-    return FlexBufferType(packedType shr 2) == T_NULL
+    return buf.ldU8(typesBase + index) shr 2 == 0
   }
 
   // ─── End direct scalar reads ───
@@ -1167,8 +1186,9 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
    * @return a Key for the given index. Out of bounds indexes returns invalid keys.
    */
   public fun keyAt(index: Int): Key {
+    ensureKeyVector()
     val childPos: Int = keyVectorEnd + index * keyVectorByteWidth
-    return Key(buffer, buffer.indirect(childPos, keyVectorByteWidth))
+    return Key(buf, buf.indirectAt(childPos, keyVectorByteWidth))
   }
 
   /**
@@ -1178,33 +1198,36 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
    * @return a Key for the given index. Out of bounds indexes returns empty string.
    */
   public fun keyAsString(index: Int): String {
+    ensureKeyVector()
     val childPos: Int = keyVectorEnd + index * keyVectorByteWidth
-    val start = buffer.indirect(childPos, keyVectorByteWidth)
-    val end = buffer.findFirst(ZeroByte, start)
-    return if (end > start) buffer.getString(start, end - start) else ""
+    val start = buf.indirectAt(childPos, keyVectorByteWidth)
+    val keyEnd = buf.findZero(start)
+    return if (keyEnd > start) fastDecodeUtf8(buf, start, keyEnd) else ""
   }
 
   public fun keyByteLength(index: Int): Int {
+    ensureKeyVector()
     val childPos: Int = keyVectorEnd + index * keyVectorByteWidth
-    val start = buffer.indirect(childPos, keyVectorByteWidth)
-    val end = buffer.findFirst(ZeroByte, start)
-    return if (end > start) end - start else 0
+    val start = buf.indirectAt(childPos, keyVectorByteWidth)
+    val keyEnd = buf.findZero(start)
+    return if (keyEnd > start) keyEnd - start else 0
   }
 
   public fun keyEquals(index: Int, other: CharSequence): Boolean {
+    ensureKeyVector()
     val childPos: Int = keyVectorEnd + index * keyVectorByteWidth
-    val start = buffer.indirect(childPos, keyVectorByteWidth)
+    val start = buf.indirectAt(childPos, keyVectorByteWidth)
     var bufferPos = start
     var otherPos = 0
     while (otherPos < other.length) {
       val c = other[otherPos]
       if (c.code >= 0x80) return keyAsString(index) == other.toString()
-      val b = buffer[bufferPos]
+      val b = buf[bufferPos]
       if (b == ZeroByte || b < 0 || b != c.code.toByte()) return false
       bufferPos++
       otherPos++
     }
-    return buffer[bufferPos] == ZeroByte
+    return buf[bufferPos] == ZeroByte
   }
 
   public inline fun forEachStringInt(block: (key: String, value: Int) -> Unit) {
@@ -1267,7 +1290,7 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
    * @return [Vector] of values.
    */
   override val values: Collection<Reference>
-    get() = Vector(buffer, end, byteWidth)
+    get() = Vector(buf, end, byteWidth)
 
   override fun containsKey(key: Key): Boolean {
     for (i in 0 until size) {
@@ -1281,7 +1304,7 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
   override fun isEmpty(): Boolean = size == 0
 
   // Performs a binary search on a key vector and return index of the key in key vector
-  private fun binarySearch(searchedKey: String) = binarySearch {
+  private fun binarySearch(searchedKey: String): Int = binarySearch {
     compareCharSequence(it, searchedKey)
   }
 
@@ -1289,27 +1312,30 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
   private fun binarySearch(key: Key): Int = binarySearch { compareKeys(it, key.start) }
 
   private inline fun binarySearch(crossinline comparisonBlock: (Int) -> Int): Int {
+    ensureKeyVector()
+    val kvEnd = keyVectorEnd
+    val kvWidth = keyVectorByteWidth
     var low = 0
     var high = size - 1
     while (low <= high) {
       val mid = low + high ushr 1
-      val keyPos: Int = buffer.indirect(keyVectorEnd + mid * keyVectorByteWidth, keyVectorByteWidth)
+      val keyPos: Int = buf.indirectAt(kvEnd + mid * kvWidth, kvWidth)
       val cmp: Int = comparisonBlock(keyPos)
       if (cmp < 0) low = mid + 1 else if (cmp > 0) high = mid - 1 else return mid // key found
     }
     return -(low + 1) // key not found
   }
 
-  // compares a CharSequence against a T_KEY
+  // compares a T_KEY (null-terminated bytes at [start]) against another T_KEY at [other]
   private fun compareKeys(start: Int, other: Int): Int {
     var bufferPos = start
     var otherPos = other
-    val limit: Int = buffer.limit
+    val limit: Int = buf.size
     var c1: Byte = ZeroByte
     var c2: Byte = ZeroByte
     while (otherPos < limit) {
-      c1 = buffer[bufferPos++]
-      c2 = buffer[otherPos++]
+      c1 = buf[bufferPos++]
+      c2 = buf[otherPos++]
       when {
         c1 == ZeroByte -> return c1 - c2
         c1 != c2 -> return c1 - c2
@@ -1318,11 +1344,11 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
     return c1 - c2
   }
 
-  // compares a CharSequence against a [CharSequence]
+  // compares a T_KEY (null-terminated bytes at [start]) against a [CharSequence]
   private fun compareCharSequence(start: Int, other: CharSequence): Int {
     var bufferPos = start
     var otherPos = 0
-    val limit: Int = buffer.limit
+    val limit: Int = buf.size
     val otherLimit = other.length
     // special loop for ASCII characters. Most of keys should be ASCII only, so this
     // loop should be optimized for that.
@@ -1333,7 +1359,7 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
       if (c2.code >= 0x80) {
         break
       }
-      val b: Byte = buffer[bufferPos]
+      val b: Byte = buf[bufferPos]
       when {
         b == ZeroByte -> return -c2.code
         b < 0 -> break
@@ -1345,7 +1371,7 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
 
     if (otherPos == otherLimit) {
       if (bufferPos >= limit) return 0
-      val b = buffer[bufferPos]
+      val b = buf[bufferPos]
       return if (b == ZeroByte) 0 else b.toInt()
     }
 
@@ -1353,10 +1379,10 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
     while (otherPos < otherLimit && bufferPos < limit) {
       val sizeInBuff = Utf8.encodeUtf8CodePoint(other, otherPos, comparisonBuffer)
       if (sizeInBuff == 0) {
-        return buffer[bufferPos].toInt()
+        return buf[bufferPos].toInt()
       }
       for (i in 0 until sizeInBuff) {
-        val bufferByte: Byte = buffer[bufferPos++]
+        val bufferByte: Byte = buf[bufferPos++]
         val otherByte: Byte = comparisonBuffer[i]
         when {
           bufferByte == ZeroByte -> return -otherByte
@@ -1368,7 +1394,7 @@ public class Map internal constructor(buffer: ReadBuffer, end: Int, byteWidth: B
 
     if (otherPos < otherLimit) return -other[otherPos].code
     if (bufferPos >= limit) return 0
-    val b = buffer[bufferPos]
+    val b = buf[bufferPos]
     return if (b == ZeroByte) 0 else b.toInt()
   }
 }

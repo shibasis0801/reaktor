@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.cloudflare
 
-import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.io.adapters.FileAdapter
 
 class CloudflareR2FileAdapter(

@@ -52,15 +52,20 @@ class CrossPlatformBenchmark {
         printRow("Case", "FlexCoder", "Accel Ser", "Raw Ser", "JSON", "Speedup")
         println("-".repeat(75))
 
-        benchCase("UserProfile") { BenchmarkData.userProfile() }
-        benchCase("ChatThread")  { BenchmarkData.chatThread() }
-        benchCase("ApiResponse") { BenchmarkData.apiResponse() }
-        benchCase("TimeSeries")  { BenchmarkData.timeSeriesChunk() }
+        // Serializers passed explicitly: direct companion references survive JS DCE,
+        // unlike the reflective fallback of serializer<T>() inside inline frames.
+        benchCase("UserProfile", BenchUserProfile.serializer()) { BenchmarkData.userProfile() }
+        benchCase("ChatThread", BenchChatThread.serializer())  { BenchmarkData.chatThread() }
+        benchCase("ApiResponse", BenchApiResponse.serializer()) { BenchmarkData.apiResponse() }
+        benchCase("TimeSeries", BenchTimeSeriesChunk.serializer())  { BenchmarkData.timeSeriesChunk() }
     }
 
-    private inline fun <reified T : Any> benchCase(name: String, dataFactory: () -> T) {
+    private inline fun <reified T : Any> benchCase(
+        name: String,
+        serializer: kotlinx.serialization.KSerializer<T>,
+        dataFactory: () -> T
+    ) {
         val data = dataFactory()
-        val serializer = serializer<T>()
         registerGeneratedFlexCoders()
 
         // FlexCoder direct (encode+decode)

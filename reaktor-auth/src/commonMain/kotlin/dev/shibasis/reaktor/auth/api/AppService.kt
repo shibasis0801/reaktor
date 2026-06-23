@@ -7,10 +7,10 @@ import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.portgraph.port.consumes
-import dev.shibasis.reaktor.graph.service.GetHandler
-import dev.shibasis.reaktor.graph.service.Request
-import dev.shibasis.reaktor.graph.service.Response
-import dev.shibasis.reaktor.graph.service.Service
+import dev.shibasis.reaktor.service.GetHandler
+import dev.shibasis.reaktor.service.Request
+import dev.shibasis.reaktor.service.Response
+import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
 
 

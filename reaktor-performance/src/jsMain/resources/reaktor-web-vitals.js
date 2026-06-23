@@ -226,7 +226,7 @@ export function installReaktorWebVitals() {
         graphBootImport: duration('graphBootImportStart', 'graphBootModuleLoaded'),
         graphBootRuntime: duration('graphBootStart', 'graphBootReady'),
         entryToGraphBootReady: duration('entry', 'graphBootReady'),
-        entryToBestBudsFlowReady: duration('entry', 'bestBudsFlowReady'),
+        entryToFlowReady: duration('entry', 'flowReady'),
       },
       longTasks: {
         count: state.longTasks.length,
@@ -242,7 +242,7 @@ export function installReaktorWebVitals() {
         appStartMs: duration('processStart', 'appStarted') ?? marks.appStarted ?? null,
         firstFrameMs: marks.firstFrame ?? null,
         firstInteractiveMs: marks.firstInteractive ?? marks.reactMounted ?? null,
-        firstUsefulContentMs: marks.firstUsefulContent ?? marks.bestBudsFlowReady ?? null,
+        firstUsefulContentMs: marks.firstUsefulContent ?? marks.flowReady ?? null,
         graphReadyMs: marks.graphReady ?? marks.graphBootReady ?? null,
         routeReadyMs: marks.routeReady ?? null,
         dataReadyMs: marks.dataReady ?? null,

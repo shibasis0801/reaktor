@@ -45,8 +45,38 @@ internal operator fun Int.plus(width: ByteWidth): Int = this + width.value
 
 internal operator fun Int.minus(type: FlexBufferType): Int = this - type.value
 
-// Returns a Key string from the buffer starting at index [start]. Key Strings are stored as
-// C-Strings, ending with '\0'. If zero byte not found returns empty string.
+// ───────────────────────────────────────────────────────────────────────────
+// Direct ByteArray navigation — the reader hot path.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Resolves a relative offset: position of the element that [offset] points to. */
+internal inline fun ByteArray.indirectAt(offset: Int, byteWidth: Int): Int =
+  offset - ldUOffW(offset, byteWidth)
+
+/** Finds the next zero byte at or after [start] (T_KEY terminator). */
+internal fun ByteArray.findZero(start: Int): Int {
+  var i = start
+  val n = size
+  while (i < n) {
+    if (this[i] == ZeroByte) return i
+    i++
+  }
+  return n
+}
+
+/**
+ * Returns a Key string from the buffer starting at index [start]. Key Strings are stored as
+ * C-Strings, ending with '\0'. If zero byte not found returns empty string.
+ */
+internal inline fun ByteArray.getKeyString(start: Int): String {
+  val end = findZero(start)
+  return if (end > start) fastDecodeUtf8(this, start, end) else ""
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Legacy ReadBuffer helpers (kept for ArrayReadBuffer-facing compatibility).
+// ───────────────────────────────────────────────────────────────────────────
+
 internal inline fun ReadBuffer.getKeyString(start: Int): String {
   val i = findFirst(0.toByte(), start)
   return if (i >= 0) getString(start, i - start) else ""
@@ -90,20 +120,54 @@ internal inline fun ReadBuffer.readInt(end: Int, byteWidth: ByteWidth): Int =
 internal inline fun ReadBuffer.readLong(end: Int, byteWidth: ByteWidth): Long =
   readULong(end, byteWidth).toLong()
 
+// ───────────────────────────────────────────────────────────────────────────
+// Width computation.
+// ───────────────────────────────────────────────────────────────────────────
+
+internal fun ULong.widthInUBits(): BitWidth =
+  when {
+    this <= MAX_UBYTE_ULONG -> W_8
+    this <= UShort.MAX_VALUE -> W_16
+    this <= UInt.MAX_VALUE -> W_32
+    else -> W_64
+  }
+
+/**
+ * Minimum bit width that stores [this] as a sign-extended two's-complement value.
+ * Mirrors C++ flexbuffers::WidthI: shift the magnitude left so the sign bit is
+ * counted, then measure as unsigned. Negative values no longer force 64-bit
+ * storage — `-5` fits in one byte, exactly like the C++ reference.
+ */
+internal fun Long.signedWidthInUBits(): BitWidth {
+  val u = this shl 1
+  return (if (this >= 0) u else u.inv()).toULong().widthInUBits()
+}
+
+/** Int-only [signedWidthInUBits]: no Long math — JS encodes ints without emulation. */
+internal fun Int.signedWidthInUBits(): BitWidth {
+  val u = this shl 1
+  val x = if (this >= 0) u else u.inv()
+  return when {
+    x ushr 8 == 0 -> W_8
+    x ushr 16 == 0 -> W_16
+    else -> W_32
+  }
+}
+
 internal fun IntArray.widthInUBits(): BitWidth =
-  arrayWidthInUBits(this.size) { this[it].toULong().widthInUBits() }
+  arrayWidthInUBits(this.size) { this[it].signedWidthInUBits() }
 
 internal fun ShortArray.widthInUBits(): BitWidth =
-  arrayWidthInUBits(this.size) { this[it].toULong().widthInUBits() }
+  arrayWidthInUBits(this.size) { this[it].toInt().signedWidthInUBits() }
 
 internal fun LongArray.widthInUBits(): BitWidth =
-  arrayWidthInUBits(this.size) { this[it].toULong().widthInUBits() }
+  arrayWidthInUBits(this.size) { this[it].signedWidthInUBits() }
 
 internal fun listIntWidthInUBits(list: List<Int>): BitWidth =
-  arrayWidthInUBits(list.size) { list[it].toULong().widthInUBits() }
+  arrayWidthInUBits(list.size) { list[it].signedWidthInUBits() }
 
 internal fun listLongWidthInUBits(list: List<Long>): BitWidth =
-  arrayWidthInUBits(list.size) { list[it].toULong().widthInUBits() }
+  arrayWidthInUBits(list.size) { list[it].signedWidthInUBits() }
 
 private inline fun arrayWidthInUBits(
   size: Int,
@@ -118,14 +182,6 @@ private inline fun arrayWidthInUBits(
   }
   return bitWidth
 }
-
-internal fun ULong.widthInUBits(): BitWidth =
-  when {
-    this <= MAX_UBYTE_ULONG -> W_8
-    this <= UShort.MAX_VALUE -> W_16
-    this <= UInt.MAX_VALUE -> W_32
-    else -> W_64
-  }
 
 // returns the number of bytes needed for padding the scalar of size scalarSize.
 internal inline fun paddingBytes(bufSize: Int, scalarSize: Int): Int =
@@ -249,16 +305,19 @@ internal fun FlexBufferType.typeToString(): String =
     else -> "UnknownType"
   }
 
-// Few repeated values used in hot path is cached here
-internal fun emptyBlob() = Blob(emptyBuffer, 1, ByteWidth(1))
+// Few repeated values used in hot path are cached here.
+// EMPTY_BUFFER index 0 is a zero byte → size reads on the empty singletons return 0.
+internal val EMPTY_BUFFER = ByteArray(4)
 
-internal fun emptyVector() = Vector(emptyBuffer, 1, ByteWidth(1))
+internal fun emptyBlob() = Blob(EMPTY_BUFFER, 1, 1)
 
-internal fun emptyMap() = Map(ArrayReadWriteBuffer(3), 3, ByteWidth(1))
+internal fun emptyVector() = Vector(EMPTY_BUFFER, 1, 1)
 
-internal fun nullReference() = Reference(emptyBuffer, 1, ByteWidth(0), T_NULL.value)
+internal fun emptyMap() = Map(EMPTY_BUFFER, 3, 1)
 
-internal fun nullKey() = Key(emptyBuffer, 1)
+internal fun nullReference() = Reference(EMPTY_BUFFER, 1, 1, T_NULL.value)
+
+internal fun nullKey() = Key(EMPTY_BUFFER, 1)
 
 internal const val ZeroByte = 0.toByte()
 internal const val MAX_UBYTE_ULONG = 255UL

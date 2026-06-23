@@ -50,6 +50,9 @@ class CloudflareWorkerRequest internal constructor(
     fun requireQuery(name: String): String =
         query(name) ?: error("$name query parameter is required")
 
+    fun header(name: String): String? =
+        raw.headers.get(name)
+
     @JsExport.Ignore
     suspend fun text(): String = raw.text().await()
 

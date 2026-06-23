@@ -10,6 +10,7 @@ import dev.shibasis.dependeasy.web.*
 
 plugins {
     id("dev.shibasis.dependeasy.library")
+    id("org.jetbrains.kotlinx.benchmark")
     
 }
 dependeasy {
@@ -44,6 +45,15 @@ kotlin {
 
     darwin()
 
+    // Benchmark tests (CrossPlatformBenchmark, MicroBench) exceed Mocha's 2s default.
+    js {
+        nodejs {
+            testTask {
+                useMocha { timeout = "300s" }
+            }
+        }
+    }
+
     // Add -opt to the default debug test binaries so iOS benchmark numbers
     // reflect optimised compilation (close to what apps ship). Default Kotlin/Native
     // test binaries are built with -g and no optimisations — orders of magnitude slower.
@@ -77,6 +87,79 @@ kotlin {
         }
     }
 
+    targets.named<org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget>("jvm") {
+        val mainCompilation = compilations.getByName("main")
+        compilations.create("benchmark") {
+            associateWith(mainCompilation)
+            compileTaskProvider.configure {
+                compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+            }
+            defaultSourceSet {
+                kotlin.srcDir("src/jvmBenchmark/kotlin")
+                dependencies {
+                    implementation("org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.10")
+                }
+            }
+        }
+    }
+
+}
+
+benchmark {
+    targets {
+        register("jvmBenchmark") {
+            this as kotlinx.benchmark.gradle.JvmBenchmarkTarget
+            jmhVersion = "1.37"
+        }
+    }
+    configurations {
+        named("main") {
+            iterations = 7
+            warmups = 5
+            iterationTime = 750
+            iterationTimeUnit = "ms"
+            outputTimeUnit = "us"
+            reportFormat = "json"
+            include(".*FlexBufferJmhBenchmark.*")
+            advanced("jvmForks", 3)
+        }
+    }
+}
+
+val jvmBenchmarkAllocationStats by tasks.registering(Exec::class) {
+    group = "benchmark"
+    description = "Run JVM JMH benchmarks with the JMH gc profiler for allocation stats"
+    dependsOn("jvmBenchmarkBenchmarkJar")
+
+    doFirst {
+        val jarDir = layout.buildDirectory.dir("benchmarks/jvmBenchmark/jars").get().asFile
+        val jmhJar = fileTree(jarDir) { include("*-JMH.jar") }.singleFile
+        val report = layout.buildDirectory.file("reports/benchmarks/jvm-flexbuffer-jmh-gc.json").get().asFile
+        report.parentFile.mkdirs()
+        commandLine(
+            "java",
+            "-Xms1g",
+            "-Xmx1g",
+            "-jar",
+            jmhJar.absolutePath,
+            ".*FlexBufferJmhBenchmark.*",
+            "-f", "3",
+            "-wi", "5",
+            "-i", "7",
+            "-w", "750ms",
+            "-r", "750ms",
+            "-tu", "us",
+            "-rf", "json",
+            "-rff", report.absolutePath,
+            "-prof", "gc"
+        )
+    }
+}
+
+tasks.withType<org.gradle.jvm.tasks.Jar>().configureEach {
+    if (name == "jvmBenchmarkBenchmarkJar") {
+        exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+    }
 }
 
 dependencies {

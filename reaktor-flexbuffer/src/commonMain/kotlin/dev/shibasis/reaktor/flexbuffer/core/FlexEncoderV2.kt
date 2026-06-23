@@ -76,7 +76,7 @@ class FlexEncoderV2 private constructor() : AbstractEncoder() {
                 encoder.reset(builder)
                 try {
                     encoder.encodeSerializableValue(serializer, value)
-                    builder.finish().toByteArray()
+                    builder.finishToByteArray()
                 } finally {
                     release(encoder)
                 }
@@ -346,21 +346,15 @@ class FlexEncoderV2 private constructor() : AbstractEncoder() {
                 true
             }
             "kotlin.ShortArray" -> {
-                val array = value as? ShortArray ?: return false
-                if (!array.allNonNegative()) return false
-                builder.set(resolveKeyFrom(current), array)
+                builder.set(resolveKeyFrom(current), value as? ShortArray ?: return false)
                 true
             }
             "kotlin.IntArray" -> {
-                val array = value as? IntArray ?: return false
-                if (!array.allNonNegative()) return false
-                builder.set(resolveKeyFrom(current), array)
+                builder.set(resolveKeyFrom(current), value as? IntArray ?: return false)
                 true
             }
             "kotlin.LongArray" -> {
-                val array = value as? LongArray ?: return false
-                if (!array.allNonNegative()) return false
-                builder.set(resolveKeyFrom(current), array)
+                builder.set(resolveKeyFrom(current), value as? LongArray ?: return false)
                 true
             }
             "kotlin.FloatArray" -> {
@@ -408,22 +402,22 @@ class FlexEncoderV2 private constructor() : AbstractEncoder() {
                 true
             }
             "kotlin.Byte" -> {
-                val array = values.toNonNegativeShortArray() ?: return false
+                val array = values.toShortArrayOrNull() ?: return false
                 builder.set(resolveKeyFrom(current), array)
                 true
             }
             "kotlin.Short" -> {
-                val array = values.toNonNegativeShortArray() ?: return false
+                val array = values.toShortArrayOrNull() ?: return false
                 builder.set(resolveKeyFrom(current), array)
                 true
             }
             "kotlin.Int" -> {
-                val ints = values.asNonNegativeIntCollection() ?: return false
+                val ints = values.asIntCollection() ?: return false
                 builder.setIntCollection(resolveKeyFrom(current), ints)
                 true
             }
             "kotlin.Long" -> {
-                val longs = values.asNonNegativeLongCollection() ?: return false
+                val longs = values.asLongCollection() ?: return false
                 builder.setLongCollection(resolveKeyFrom(current), longs)
                 true
             }
@@ -525,12 +519,6 @@ class StructureStack(initialCapacity: Int = 4) {
     fun isEmpty(): Boolean = size == 0
 }
 
-private fun ShortArray.allNonNegative(): Boolean = all { it >= 0 }
-
-private fun IntArray.allNonNegative(): Boolean = all { it >= 0 }
-
-private fun LongArray.allNonNegative(): Boolean = all { it >= 0L }
-
 private fun Collection<*>.toBooleanIntArray(): IntArray? {
     val result = IntArray(size)
     var index = 0
@@ -544,33 +532,25 @@ private fun Collection<*>.toBooleanIntArray(): IntArray? {
     return result
 }
 
-private fun Collection<*>.toNonNegativeShortArray(): ShortArray? {
+private fun Collection<*>.toShortArrayOrNull(): ShortArray? {
     val result = ShortArray(size)
     var index = 0
     for (value in this) {
         val number = value as? Number ?: return null
-        val shortValue = number.toShort()
-        if (shortValue < 0) return null
-        result[index++] = shortValue
+        result[index++] = number.toShort()
     }
     return result
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun Collection<*>.asNonNegativeIntCollection(): Collection<Int>? {
-    for (value in this) {
-        val intValue = value as? Int ?: return null
-        if (intValue < 0) return null
-    }
+private fun Collection<*>.asIntCollection(): Collection<Int>? {
+    for (value in this) if (value !is Int) return null
     return this as Collection<Int>
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun Collection<*>.asNonNegativeLongCollection(): Collection<Long>? {
-    for (value in this) {
-        val longValue = value as? Long ?: return null
-        if (longValue < 0L) return null
-    }
+private fun Collection<*>.asLongCollection(): Collection<Long>? {
+    for (value in this) if (value !is Long) return null
     return this as Collection<Long>
 }
 

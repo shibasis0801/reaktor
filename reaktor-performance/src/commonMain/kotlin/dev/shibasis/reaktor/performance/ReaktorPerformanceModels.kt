@@ -8,6 +8,7 @@ data class ReaktorPerformanceBudget(
     val limit: Double,
     val unit: String,
     val severity: ReaktorPerformanceSeverity = ReaktorPerformanceSeverity.Error,
+    val direction: ReaktorPerformanceBudgetDirection = ReaktorPerformanceBudgetDirection.Max,
 )
 
 @Serializable
@@ -15,6 +16,17 @@ enum class ReaktorPerformanceSeverity {
     Info,
     Warning,
     Error,
+}
+
+/**
+ * Whether a budget caps the metric (lower is better, e.g. LCP/TBT ms) or floors it
+ * (higher is better, e.g. a Lighthouse 0..100 category score). Defaults to [Max] so
+ * existing budgets keep their "value must stay under limit" meaning.
+ */
+@Serializable
+enum class ReaktorPerformanceBudgetDirection {
+    Max,
+    Min,
 }
 
 @Serializable

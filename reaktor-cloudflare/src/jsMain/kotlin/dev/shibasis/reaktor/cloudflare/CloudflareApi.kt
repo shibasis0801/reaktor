@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
-import dev.shibasis.reaktor.graph.service.Service
+import dev.shibasis.reaktor.service.Service
 
 sealed class Binding<T : Any>(
     val name: String,
@@ -59,6 +59,15 @@ fun ai(name: String): AIBinding = AIBinding(name)
 operator fun <T : Any> CloudflareContext.get(binding: Binding<T>): T = binding.require(this)
 
 fun <T : Any> CloudflareContext.find(binding: Binding<T>): T? = binding.resolve(this)
+
+fun cloudflareContext(
+    env: Any,
+    executionContext: Any? = null,
+): CloudflareContext =
+    CloudflareContext(
+        env = env.unsafeCast<CloudflareEnv>(),
+        executionContextOrNull = executionContext?.unsafeCast<WorkerExecutionContext>(),
+    )
 
 class CloudflareWorker internal constructor(
     private val app: Hono,

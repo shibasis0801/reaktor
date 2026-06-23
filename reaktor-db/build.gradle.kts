@@ -51,8 +51,13 @@ kotlin {
         dependencies {
             implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
             implementation("app.cash.sqldelight:sqlite-driver:$sqldelightVersion")
+            api(project(":reaktor-service"))
             api("org.neo4j.driver:neo4j-java-driver:5.28.9")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${Version.Coroutines}")
+            // Exposed/Postgres for the service DB helpers (ExposedAdapter/CrudRepository).
+            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
+            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
+            api("org.postgresql:postgresql:42.7.3")
         }
     }
 }

@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
-import dev.shibasis.reaktor.graph.service.Environment
-import dev.shibasis.reaktor.graph.service.Request
+import dev.shibasis.reaktor.service.Environment
+import dev.shibasis.reaktor.service.Request
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 

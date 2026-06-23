@@ -1150,7 +1150,7 @@ object BenchmarkData {
     fun mediaLibrary() = BenchMediaLibrary(
         albumId = 65012L,
         ownerId = 8847291L,
-        title = "BestBuds launch media",
+        title = "Sample launch media",
         coverAssetId = 810001L,
         sharedWithUserIds = listOf(1234567L, 9876543L, 5555555L, 7788990L),
         permissions = mapOf(
@@ -1168,14 +1168,14 @@ object BenchmarkData {
                 height = if (i % 5 == 0) 1080 else 1440,
                 durationMs = if (i % 5 == 0) 12_000L + i * 800L else 0L,
                 sizeBytes = 180_000L + i * 42_000L,
-                cdnUrl = "https://media.bestbuds.ai/albums/65012/assets/${810000 + i}/original.webp",
+                cdnUrl = "https://media.example.com/albums/65012/assets/${810000 + i}/original.webp",
                 blurHash = "LKO2?U%2Tw=w]~RBVZRi};RPxuwH_$i",
                 createdAtMs = 1716307200000L + i * 30_000L,
-                labels = listOf("launch", "friends", if (i % 2 == 0) "portrait" else "group", "bestbuds"),
+                labels = listOf("launch", "friends", if (i % 2 == 0) "portrait" else "group", "sample"),
                 variants = mapOf(
-                    "thumb" to "https://media.bestbuds.ai/albums/65012/assets/${810000 + i}/thumb.webp",
-                    "preview" to "https://media.bestbuds.ai/albums/65012/assets/${810000 + i}/preview.webp",
-                    "original" to "https://media.bestbuds.ai/albums/65012/assets/${810000 + i}/original.webp"
+                    "thumb" to "https://media.example.com/albums/65012/assets/${810000 + i}/thumb.webp",
+                    "preview" to "https://media.example.com/albums/65012/assets/${810000 + i}/preview.webp",
+                    "original" to "https://media.example.com/albums/65012/assets/${810000 + i}/original.webp"
                 )
             )
         }
@@ -1273,7 +1273,7 @@ object BenchmarkData {
                 postedAtMs = 1714500000000L + i * 3_600_000L,
                 amountCents = if (i % 5 == 0) 125_000L + i * 40 else -(1_200L + i * 187L),
                 type = if (i % 5 == 0) "credit" else "debit",
-                merchant = listOf("Reaktor Cloud", "Kotlin Cafe", "Metro Transit", "BestBuds Store", "App Marketplace")[i % 5],
+                merchant = listOf("Reaktor Cloud", "Kotlin Cafe", "Metro Transit", "Sample Store", "App Marketplace")[i % 5],
                 category = listOf("software", "food", "transport", "shopping", "income")[i % 5],
                 description = "Ledger transaction $i with merchant, category, statement, and reconciliation metadata.",
                 tags = listOf("card_${i % 3}", "budget_${i % 8}", if (i % 5 == 0) "income" else "expense")
@@ -1373,7 +1373,7 @@ object BenchmarkData {
     )
 
     fun securityAuditTrail() = BenchSecurityAuditTrail(
-        appId = "bestbuds-prod",
+        appId = "sample-prod",
         policyVersion = "rbac-2026.05",
         generatedAtMs = 1716420000000L,
         summary = mapOf("success" to 93, "denied" to 17, "mfa" to 41, "high_risk" to 6),

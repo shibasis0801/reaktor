@@ -128,9 +128,7 @@ object FlexBuffers {
 
     @PublishedApi
     internal fun <T : Any> decodeDirect(coder: FlexCoder<T>, bytes: ByteArray): T {
-        val buffer = ArrayReadBuffer(bytes)
-        val root = getRoot(buffer)
-        return coder.decode(root)
+        return coder.decode(getRoot(bytes))
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -159,7 +157,7 @@ object FlexBuffers {
     }
 
     fun getRoot(bytes: ByteArray): dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference {
-        return getRoot(ArrayReadBuffer(bytes))
+        return dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot(bytes)
     }
 
     // ==================== Utilities ====================
@@ -169,14 +167,7 @@ object FlexBuffers {
     }
 
     fun isValid(bytes: ByteArray): Boolean {
-        if (bytes.size < 3) return false
-        return try {
-            val buffer = ArrayReadBuffer(bytes)
-            val root = getRoot(buffer)
-            !root.isNull || root.type.value >= 0
-        } catch (e: Exception) {
-            false
-        }
+        return dev.shibasis.reaktor.flexbuffer.flatbuffers.isValid(bytes)
     }
 
     fun toString(bytes: ByteArray): String {

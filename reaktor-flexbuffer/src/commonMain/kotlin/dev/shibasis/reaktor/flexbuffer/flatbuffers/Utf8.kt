@@ -242,6 +242,18 @@ public object Utf8 {
     }
   }
 
+  // Decodes a code point starting at index into out. Out parameter
+  // should have at least 2 chars.
+  public fun decodeUtf8CodePoint(bytes: ByteArray, index: Int, out: CharArray) {
+    val b1 = bytes[index]
+    when {
+      isOneByte(b1) -> handleOneByte(b1, out, 0)
+      isTwoBytes(b1) -> handleTwoBytes(b1, bytes[index + 1], out, 0)
+      isThreeBytes(b1) -> handleThreeBytes(b1, bytes[index + 1], bytes[index + 2], out, 0)
+      else -> handleFourBytes(b1, bytes[index + 1], bytes[index + 2], bytes[index + 3], out, 0)
+    }
+  }
+
   public fun decodeUtf8Array(bytes: ByteArray, index: Int = 0, size: Int = bytes.size): String {
     // Bitwise OR combines the sign bits so any negative value fails the check.
     if (index or size or bytes.size - index - size < 0) {

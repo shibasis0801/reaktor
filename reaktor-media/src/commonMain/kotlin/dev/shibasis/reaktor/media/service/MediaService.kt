@@ -1,12 +1,12 @@
 package dev.shibasis.reaktor.media.service
 
 import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.graph.service.Environment
-import dev.shibasis.reaktor.graph.service.GetHandler
-import dev.shibasis.reaktor.graph.service.PostHandler
-import dev.shibasis.reaktor.graph.service.Request
-import dev.shibasis.reaktor.graph.service.Response
-import dev.shibasis.reaktor.graph.service.Service
+import dev.shibasis.reaktor.service.Environment
+import dev.shibasis.reaktor.service.GetHandler
+import dev.shibasis.reaktor.service.PostHandler
+import dev.shibasis.reaktor.service.Request
+import dev.shibasis.reaktor.service.Response
+import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -52,6 +52,9 @@ sealed class MediaResponse(
     @Serializable
     sealed class Failure(private val hack: StatusCode) : MediaResponse(hack) {
         @Serializable
+        data object Unauthorized : Failure(StatusCode.UNAUTHORIZED)
+
+        @Serializable
         data class InvalidRequest(val message: String) : Failure(StatusCode.BAD_REQUEST)
 
         @Serializable
@@ -94,6 +97,7 @@ open class MediaServiceClient(baseUrl: String) : MediaService(baseUrl) {
 
 private fun failMedia(response: MediaResponse.Failure): Nothing =
     when (response) {
+        MediaResponse.Failure.Unauthorized -> error("Unauthorized")
         is MediaResponse.Failure.InvalidRequest -> error(response.message)
         is MediaResponse.Failure.NotFound -> error(response.message)
         is MediaResponse.Failure.ServerError -> error(response.message)

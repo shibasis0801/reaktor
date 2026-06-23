@@ -72,7 +72,7 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
         private fun release(d: FlexDecoderV2) = pool.release(d)
 
         private val NullReference: Reference
-            get() = getRoot(ArrayReadBuffer(byteArrayOf(0, 0, 0)))
+            get() = getRoot(byteArrayOf(0, 0, 0))
 
         /**
          * Field index cache: serialName → IntArray mapping descriptor index to map position.
@@ -106,8 +106,7 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
         }
 
         fun <T> decode(deserializer: DeserializationStrategy<T>, bytes: ByteArray): T {
-            val buffer = ArrayReadBuffer(bytes)
-            val root = getRoot(buffer)
+            val root = getRoot(bytes)
             val decoder = acquire()
             decoder.reset(root)
             try {

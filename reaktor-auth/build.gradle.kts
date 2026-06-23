@@ -21,6 +21,8 @@ kotlin {
         dependencies {
             api(project(":reaktor-ui"))
             api(project(":reaktor-graph"))
+            api(project(":reaktor-service"))
+            api(project(":reaktor-db"))
             api(project(":reaktor-io"))
             api("com.appstractive:jwt-kt:1.2.1")
         }
@@ -58,10 +60,28 @@ kotlin {
             api("org.jetbrains.kotlin:kotlin-reflect:${Version.SDK.Kotlin}")
         }
     }
+
+    sourceSets {
+        // JVM integration tests run against an ephemeral in-memory H2 (PostgreSQL mode) — the production
+        // Supabase database is never touched. See AuthTestDb.
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            implementation("com.h2database:h2:2.2.224")
+        }
+    }
 }
 
 android {
     defaults("dev.shibasis.reaktor.auth")
+}
+
+tasks.withType<Test> {
+    // Shared in-memory DB harnesses, stubs, and Kotlin file facades are test support, not runnable tests.
+    filter {
+        excludeTestsMatching("*Fixture*")
+        excludeTestsMatching("*Stub*")
+        excludeTestsMatching("*Kt*")
+    }
 }
 
 val normalizeGoogleSignInIosBuildSettings by tasks.registering {

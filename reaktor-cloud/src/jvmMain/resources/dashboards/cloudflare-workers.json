@@ -1,0 +1,142 @@
+{
+  "title": "Cloudflare — Workers & Zone",
+  "uid": "cloudflare-workers",
+  "schemaVersion": 38,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "tags": ["reaktor", "cloudflare", "workers"],
+  "templating": {
+    "list": [
+      {
+        "name": "script",
+        "label": "Worker script",
+        "type": "custom",
+        "current": { "text": "All", "value": ".*" },
+        "options": [{ "text": "All", "value": ".*", "selected": true }],
+        "query": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Worker invocations (requests/min)",
+      "datasource": { "uid": "__INFINITY_DS__", "type": "yesoreyeram-infinity-datasource" },
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "graphql",
+          "source": "url",
+          "format": "timeseries",
+          "url": "https://api.cloudflare.com/client/v4/graphql",
+          "url_options": { "method": "POST", "data": "{\"query\":\"query($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 10000, filter: { datetime_geq: $datetimeStart, datetime_lt: $datetimeEnd }, orderBy: [datetimeMinute_ASC]) { dimensions { datetimeMinute scriptName } sum { requests errors } } } } }\",\"variables\":{\"accountTag\":\"__ACCOUNT_ID__\",\"datetimeStart\":\"${__from:date:iso}\",\"datetimeEnd\":\"${__to:date:iso}\"}}" },
+          "root_selector": "data.viewer.accounts.0.workersInvocationsAdaptive",
+          "columns": [
+            { "selector": "dimensions.datetimeMinute", "text": "time", "type": "timestamp" },
+            { "selector": "dimensions.scriptName", "text": "script", "type": "string" },
+            { "selector": "sum.requests", "text": "requests", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Worker errors / min",
+      "datasource": { "uid": "__INFINITY_DS__", "type": "yesoreyeram-infinity-datasource" },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "graphql",
+          "source": "url",
+          "format": "timeseries",
+          "url": "https://api.cloudflare.com/client/v4/graphql",
+          "url_options": { "method": "POST", "data": "{\"query\":\"query($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 10000, filter: { datetime_geq: $datetimeStart, datetime_lt: $datetimeEnd }, orderBy: [datetimeMinute_ASC]) { dimensions { datetimeMinute scriptName } sum { errors } } } } }\",\"variables\":{\"accountTag\":\"__ACCOUNT_ID__\",\"datetimeStart\":\"${__from:date:iso}\",\"datetimeEnd\":\"${__to:date:iso}\"}}" },
+          "root_selector": "data.viewer.accounts.0.workersInvocationsAdaptive",
+          "columns": [
+            { "selector": "dimensions.datetimeMinute", "text": "time", "type": "timestamp" },
+            { "selector": "dimensions.scriptName", "text": "script", "type": "string" },
+            { "selector": "sum.errors", "text": "errors", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Worker CPU time p99 (µs)",
+      "datasource": { "uid": "__INFINITY_DS__", "type": "yesoreyeram-infinity-datasource" },
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "graphql",
+          "source": "url",
+          "format": "timeseries",
+          "url": "https://api.cloudflare.com/client/v4/graphql",
+          "url_options": { "method": "POST", "data": "{\"query\":\"query($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 10000, filter: { datetime_geq: $datetimeStart, datetime_lt: $datetimeEnd }, orderBy: [datetimeMinute_ASC]) { dimensions { datetimeMinute scriptName } quantiles { cpuTimeP99 } } } } }\",\"variables\":{\"accountTag\":\"__ACCOUNT_ID__\",\"datetimeStart\":\"${__from:date:iso}\",\"datetimeEnd\":\"${__to:date:iso}\"}}" },
+          "root_selector": "data.viewer.accounts.0.workersInvocationsAdaptive",
+          "columns": [
+            { "selector": "dimensions.datetimeMinute", "text": "time", "type": "timestamp" },
+            { "selector": "dimensions.scriptName", "text": "script", "type": "string" },
+            { "selector": "quantiles.cpuTimeP99", "text": "p99_cpu_us", "type": "number" }
+          ]
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "µs" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Worker duration p99 (µs)",
+      "datasource": { "uid": "__INFINITY_DS__", "type": "yesoreyeram-infinity-datasource" },
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "graphql",
+          "source": "url",
+          "format": "timeseries",
+          "url": "https://api.cloudflare.com/client/v4/graphql",
+          "url_options": { "method": "POST", "data": "{\"query\":\"query($accountTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) { viewer { accounts(filter: { accountTag: $accountTag }) { workersInvocationsAdaptive(limit: 10000, filter: { datetime_geq: $datetimeStart, datetime_lt: $datetimeEnd }, orderBy: [datetimeMinute_ASC]) { dimensions { datetimeMinute scriptName } quantiles { durationP99 } } } } }\",\"variables\":{\"accountTag\":\"__ACCOUNT_ID__\",\"datetimeStart\":\"${__from:date:iso}\",\"datetimeEnd\":\"${__to:date:iso}\"}}" },
+          "root_selector": "data.viewer.accounts.0.workersInvocationsAdaptive",
+          "columns": [
+            { "selector": "dimensions.datetimeMinute", "text": "time", "type": "timestamp" },
+            { "selector": "dimensions.scriptName", "text": "script", "type": "string" },
+            { "selector": "quantiles.durationP99", "text": "p99_duration_us", "type": "number" }
+          ]
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "µs" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Zone — requests & cache hit ratio (only if zone_id set)",
+      "description": "Replace __ZONE_ID__ with a zone tag if you have a Cloudflare zone in this account. Edit panel and re-run.",
+      "datasource": { "uid": "__INFINITY_DS__", "type": "yesoreyeram-infinity-datasource" },
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "type": "graphql",
+          "source": "url",
+          "format": "timeseries",
+          "url": "https://api.cloudflare.com/client/v4/graphql",
+          "url_options": { "method": "POST", "data": "{\"query\":\"query($zoneTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) { viewer { zones(filter: { zoneTag: $zoneTag }) { httpRequests1mGroups(limit: 10000, filter: { datetime_geq: $datetimeStart, datetime_lt: $datetimeEnd }, orderBy: [datetime_ASC]) { dimensions { datetime } sum { requests cachedRequests bytes } } } } }\",\"variables\":{\"zoneTag\":\"__ZONE_ID__\",\"datetimeStart\":\"${__from:date:iso}\",\"datetimeEnd\":\"${__to:date:iso}\"}}" },
+          "root_selector": "data.viewer.zones.0.httpRequests1mGroups",
+          "columns": [
+            { "selector": "dimensions.datetime", "text": "time", "type": "timestamp" },
+            { "selector": "sum.requests", "text": "requests", "type": "number" },
+            { "selector": "sum.cachedRequests", "text": "cached", "type": "number" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "title": "Supabase — Overview",
+  "uid": "supabase-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["reaktor", "supabase", "postgres"],
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Active connections",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT count(*)::float AS value FROM pg_stat_activity WHERE state = 'active';"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 60 }] } } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Database size",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT pg_database_size(current_database())::float AS value;"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Cache hit ratio",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (sum(heap_blks_hit) / NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0))::float AS value FROM pg_statio_user_tables;"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.9 }, { "color": "green", "value": 0.98 }] } } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Transactions/sec",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (sum(xact_commit + xact_rollback) / extract(epoch FROM (now() - stats_reset)))::float AS value FROM pg_stat_database WHERE datname = current_database();"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Connections by state",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT now() AS time, state, count(*)::float AS value FROM pg_stat_activity WHERE state IS NOT NULL GROUP BY state;"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Top tables by size",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT schemaname || '.' || relname AS table, pg_total_relation_size(c.oid) AS size_bytes, n_live_tup AS rows FROM pg_stat_user_tables s JOIN pg_class c ON c.oid = s.relid::oid ORDER BY pg_total_relation_size(c.oid) DESC LIMIT 20;"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [{ "matcher": { "id": "byName", "options": "size_bytes" }, "properties": [{ "id": "unit", "value": "bytes" }] }] }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Slowest queries (pg_stat_statements)",
+      "description": "Requires the pg_stat_statements extension. Enable in Supabase under Database > Extensions.",
+      "datasource": { "uid": "__POSTGRES_DS__", "type": "postgres" },
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT substring(query, 1, 120) AS query, calls, round(mean_exec_time::numeric, 2) AS mean_ms, round(total_exec_time::numeric, 0) AS total_ms, rows FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 20;"
+        }
+      ]
+    }
+  ]
+}

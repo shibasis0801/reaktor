@@ -10,9 +10,11 @@ plugins {
 kotlin {
     common {
         dependencies {
+            api(project(":reaktor-auth"))
             api(project(":reaktor-core"))
-            api(project(":reaktor-graph"))
+            api(project(":reaktor-service"))
             api(project(":reaktor-io"))
+            api(project(":reaktor-secrets"))
         }
     }
     droid {}

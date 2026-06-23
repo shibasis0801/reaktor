@@ -20,6 +20,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-graph-port"))
+            api(project(":reaktor-service"))
             api(project(":reaktor-ui"))
             api(project(":reaktor-db"))
             arrow()
@@ -30,12 +31,9 @@ kotlin {
     web {}
     server {
         dependencies {
+            // Spring beans/context for SpringDependencyAdapter. The service Spring router moved to
+            // :reaktor-service; the Exposed/Postgres helpers moved to :reaktor-db.
             springWebFlux()
-            api("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3")
-            api("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${Version.Coroutines}")
-            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
-            api("org.postgresql:postgresql:42.7.3")
         }
     }
     useKoin()

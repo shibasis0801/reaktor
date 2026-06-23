@@ -75,8 +75,7 @@ object FlexBufferPool {
     inline fun encode(block: FlexBuffersBuilder.() -> Unit): ByteArray {
         return withEncoder { builder ->
             builder.block()
-            val buffer = builder.finish()
-            buffer.toByteArray()
+            builder.finishToByteArray()
         }
     }
 

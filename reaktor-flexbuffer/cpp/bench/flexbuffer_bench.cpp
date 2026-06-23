@@ -32,6 +32,8 @@
  *   ./flexbuffer_bench --quick      # fast mode (fewer iterations)
  *   ./flexbuffer_bench --section 3  # run only phase 3
  *   ./flexbuffer_bench --adversarial # run only phase 15
+ *   ./flexbuffer_bench --golden     # print C++-encoded golden/fuzz hex fixtures
+ *   ./flexbuffer_bench --verify-hex golden_scalars <hex> # verify a Kotlin-encoded fixture
  *
  * Structures (10 realistic models):
  *   Original 4:
@@ -171,6 +173,232 @@ inline void sink(double v) { g_sink += (int64_t)v; }
 inline void sink(bool v) { g_sink += v ? 1 : 0; }
 inline void sink(const char* v) { g_sink += v[0]; }
 inline void sink(flexbuffers::String v) { if (v.size() > 0) g_sink += v.c_str()[0]; }
+
+// ─── Cross-language golden/fuzz fixtures ───
+
+std::string hex_encode(const std::vector<uint8_t>& bytes) {
+    static const char* digits = "0123456789abcdef";
+    std::string out;
+    out.resize(bytes.size() * 2);
+    for (size_t i = 0; i < bytes.size(); ++i) {
+        out[i * 2] = digits[bytes[i] >> 4];
+        out[i * 2 + 1] = digits[bytes[i] & 0x0f];
+    }
+    return out;
+}
+
+int hex_nibble(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return 10 + c - 'a';
+    if (c >= 'A' && c <= 'F') return 10 + c - 'A';
+    return -1;
+}
+
+std::vector<uint8_t> hex_decode(const char* hex) {
+    size_t len = strlen(hex);
+    if ((len & 1) != 0) {
+        fprintf(stderr, "hex input has odd length\n");
+        abort();
+    }
+    std::vector<uint8_t> bytes(len / 2);
+    for (size_t i = 0; i < bytes.size(); ++i) {
+        int hi = hex_nibble(hex[i * 2]);
+        int lo = hex_nibble(hex[i * 2 + 1]);
+        if (hi < 0 || lo < 0) {
+            fprintf(stderr, "hex input contains non-hex characters\n");
+            abort();
+        }
+        bytes[i] = static_cast<uint8_t>((hi << 4) | lo);
+    }
+    return bytes;
+}
+
+std::vector<uint8_t> encode_golden_scalars() {
+    flexbuffers::Builder b(512, flexbuffers::BUILDER_FLAG_SHARE_KEYS_AND_STRINGS);
+    b.Map([&] {
+        b.Bool("b", true);
+        b.Double("d", 3.5);
+        b.Int("i", -17);
+        b.Int("l", -1234567890123LL);
+        b.String("s", "golden");
+    });
+    b.Finish();
+    return b.GetBuffer();
+}
+
+std::vector<uint8_t> encode_golden_vectors() {
+    flexbuffers::Builder b(1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS_AND_STRINGS);
+    b.Map([&] {
+        b.TypedVector("doubles", [&] {
+            b.Double(-2.5);
+            b.Double(0.0);
+            b.Double(42.25);
+        });
+        b.TypedVector("ints", [&] {
+            b.Int(-129);
+            b.Int(-1);
+            b.Int(0);
+            b.Int(1);
+            b.Int(127);
+            b.Int(128);
+        });
+        b.TypedVector("longs", [&] {
+            b.Int(-1234567890123LL);
+            b.Int(0);
+            b.Int(1234567890123LL);
+        });
+    });
+    b.Finish();
+    return b.GetBuffer();
+}
+
+std::vector<uint8_t> encode_golden_nested() {
+    flexbuffers::Builder b(1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS_AND_STRINGS);
+    b.Map([&] {
+        b.Map("child", [&] {
+            b.Int("id", 7);
+            b.String("name", "child");
+        });
+        b.Int("count", 3);
+        b.Vector("tags", [&] {
+            b.String("alpha");
+            b.String("beta");
+            b.String("gamma");
+        });
+    });
+    b.Finish();
+    return b.GetBuffer();
+}
+
+std::vector<uint8_t> encode_fuzz_case(int seed) {
+    const int64_t l = -1234567890123LL + static_cast<int64_t>(seed) * 7919LL;
+    const double d = static_cast<double>(seed) * 0.5 - 7.25;
+    std::string s = "seed_" + std::to_string(seed) + "_" + static_cast<char>('a' + (seed % 26));
+
+    flexbuffers::Builder b(1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS_AND_STRINGS);
+    b.Map([&] {
+        b.Bool("b", (seed & 1) == 0);
+        b.Double("d", d);
+        b.TypedVector("doubles", [&] {
+            b.Double(d);
+            b.Double(d + 0.25);
+            b.Double(-d);
+        });
+        b.Int("i", seed * 104729 - 2048);
+        b.TypedVector("ints", [&] {
+            b.Int(seed - 3);
+            b.Int(-seed);
+            b.Int(0);
+            b.Int(seed * seed);
+        });
+        b.Int("l", l);
+        b.TypedVector("longs", [&] {
+            b.Int(l);
+            b.Int(l + 1);
+        });
+        b.String("s", s.c_str());
+    });
+    b.Finish();
+    return b.GetBuffer();
+}
+
+void verify_golden_scalars(const std::vector<uint8_t>& buf) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    ASSERT_EQ(root["b"].AsBool(), true);
+    ASSERT_NEAR(root["d"].AsDouble(), 3.5, 1e-9);
+    ASSERT_EQ(root["i"].AsInt64(), -17);
+    ASSERT_EQ(root["l"].AsInt64(), -1234567890123LL);
+    ASSERT_STREQ(root["s"].AsString().c_str(), "golden");
+}
+
+void verify_golden_vectors(const std::vector<uint8_t>& buf) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    auto ints = root["ints"].AsTypedVector();
+    ASSERT_EQ(ints.size(), 6);
+    ASSERT_EQ(ints[0].AsInt64(), -129);
+    ASSERT_EQ(ints[5].AsInt64(), 128);
+    auto longs = root["longs"].AsTypedVector();
+    ASSERT_EQ(longs.size(), 3);
+    ASSERT_EQ(longs[0].AsInt64(), -1234567890123LL);
+    ASSERT_EQ(longs[2].AsInt64(), 1234567890123LL);
+    auto doubles = root["doubles"].AsTypedVector();
+    ASSERT_EQ(doubles.size(), 3);
+    ASSERT_NEAR(doubles[0].AsDouble(), -2.5, 1e-9);
+    ASSERT_NEAR(doubles[2].AsDouble(), 42.25, 1e-9);
+}
+
+void verify_golden_nested(const std::vector<uint8_t>& buf) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    ASSERT_EQ(root["count"].AsInt64(), 3);
+    auto child = root["child"].AsMap();
+    ASSERT_EQ(child["id"].AsInt64(), 7);
+    ASSERT_STREQ(child["name"].AsString().c_str(), "child");
+    auto tags = root["tags"].AsVector();
+    ASSERT_EQ(tags.size(), 3);
+    ASSERT_STREQ(tags[0].AsString().c_str(), "alpha");
+    ASSERT_STREQ(tags[2].AsString().c_str(), "gamma");
+}
+
+void verify_fuzz_case(const std::vector<uint8_t>& buf, int seed) {
+    const int64_t l = -1234567890123LL + static_cast<int64_t>(seed) * 7919LL;
+    const double d = static_cast<double>(seed) * 0.5 - 7.25;
+    std::string s = "seed_" + std::to_string(seed) + "_" + static_cast<char>('a' + (seed % 26));
+
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    ASSERT_EQ(root["b"].AsBool(), (seed & 1) == 0);
+    ASSERT_NEAR(root["d"].AsDouble(), d, 1e-9);
+    ASSERT_EQ(root["i"].AsInt64(), seed * 104729 - 2048);
+    ASSERT_EQ(root["l"].AsInt64(), l);
+    ASSERT_STREQ(root["s"].AsString().c_str(), s.c_str());
+
+    auto ints = root["ints"].AsTypedVector();
+    ASSERT_EQ(ints.size(), 4);
+    ASSERT_EQ(ints[0].AsInt64(), seed - 3);
+    ASSERT_EQ(ints[1].AsInt64(), -seed);
+    ASSERT_EQ(ints[3].AsInt64(), seed * seed);
+    auto longs = root["longs"].AsTypedVector();
+    ASSERT_EQ(longs.size(), 2);
+    ASSERT_EQ(longs[0].AsInt64(), l);
+    ASSERT_EQ(longs[1].AsInt64(), l + 1);
+    auto doubles = root["doubles"].AsTypedVector();
+    ASSERT_EQ(doubles.size(), 3);
+    ASSERT_NEAR(doubles[0].AsDouble(), d, 1e-9);
+    ASSERT_NEAR(doubles[1].AsDouble(), d + 0.25, 1e-9);
+    ASSERT_NEAR(doubles[2].AsDouble(), -d, 1e-9);
+}
+
+void verify_golden_named(const char* name, const std::vector<uint8_t>& buf) {
+    if (strcmp(name, "golden_scalars") == 0) verify_golden_scalars(buf);
+    else if (strcmp(name, "golden_vectors") == 0) verify_golden_vectors(buf);
+    else if (strcmp(name, "golden_nested") == 0) verify_golden_nested(buf);
+    else if (strncmp(name, "fuzz_", 5) == 0) verify_fuzz_case(buf, atoi(name + 5));
+    else {
+        fprintf(stderr, "unknown golden fixture name: %s\n", name);
+        abort();
+    }
+}
+
+void print_hex_fixture(const char* kind, const char* name, const std::vector<uint8_t>& bytes) {
+    printf("%s|%s|%s\n", kind, name, hex_encode(bytes).c_str());
+}
+
+int print_golden_flexbuffers() {
+    print_hex_fixture("GOLDEN", "golden_scalars", encode_golden_scalars());
+    print_hex_fixture("GOLDEN", "golden_vectors", encode_golden_vectors());
+    print_hex_fixture("GOLDEN", "golden_nested", encode_golden_nested());
+    for (int seed = 0; seed < 16; ++seed) {
+        std::string name = "fuzz_" + std::to_string(seed);
+        print_hex_fixture("FUZZ", name.c_str(), encode_fuzz_case(seed));
+    }
+    return 0;
+}
+
+int verify_golden_hex(const char* name, const char* hex) {
+    auto bytes = hex_decode(hex);
+    verify_golden_named(name, bytes);
+    printf("VERIFY_HEX|%s|PASS\n", name);
+    return 0;
+}
 
 // ════════════════════════════════════════════════════════════════════════
 // 1. FlatPrimitives: 9 scalar fields
@@ -2007,6 +2235,9 @@ struct BenchCase {
 // ════════════════════════════════════════════════════════════════════════
 
 int main(int argc, char** argv) {
+    bool golden_mode = false;
+    const char* verify_hex_name = nullptr;
+    const char* verify_hex_value = nullptr;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--verify") == 0) g_verify = true;
         else if (strcmp(argv[i], "--runs") == 0 && i + 1 < argc) RUNS = atoi(argv[++i]);
@@ -2014,7 +2245,14 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "--quick") == 0) { WARMUP = 100; ITERATIONS = 1000; RUNS = 3; }
         else if (strcmp(argv[i], "--section") == 0 && i + 1 < argc) g_section = atoi(argv[++i]);
         else if (strcmp(argv[i], "--adversarial") == 0) g_section = 15;
+        else if (strcmp(argv[i], "--golden") == 0) golden_mode = true;
+        else if (strcmp(argv[i], "--verify-hex") == 0 && i + 2 < argc) {
+            verify_hex_name = argv[++i];
+            verify_hex_value = argv[++i];
+        }
     }
+    if (golden_mode) return print_golden_flexbuffers();
+    if (verify_hex_name != nullptr) return verify_golden_hex(verify_hex_name, verify_hex_value);
 
     BenchCase cases[] = {
         {"FlatPrimitives",  "9 scalar fields",

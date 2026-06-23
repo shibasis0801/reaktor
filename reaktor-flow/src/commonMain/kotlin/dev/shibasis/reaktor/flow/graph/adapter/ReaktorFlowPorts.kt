@@ -21,7 +21,7 @@ internal fun reaktorNodeKind(node: GraphNode): ReaktorNodeKind {
         node is ActorNode<*> -> return ReaktorNodeKind.Actor
     }
     // For BasicNode + sealed-class siblings, narrow by label/class-name conventions used across
-    // BestBuds / Reaktor (Interactor, Repository, Edge, Db, Topic, Telemetry, Test, Release,
+    // Reaktor graph conventions (Interactor, Repository, Edge, Db, Topic, Telemetry, Test, Release,
     // Auth, Infra, Agent, Ui, Action).
     val label = node.label
     val className = node::class.simpleName.orEmpty()

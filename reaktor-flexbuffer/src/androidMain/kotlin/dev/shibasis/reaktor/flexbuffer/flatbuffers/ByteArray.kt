@@ -19,6 +19,35 @@
 
 package dev.shibasis.reaktor.flexbuffer.flatbuffers
 
+/**
+ * sun.misc.Unsafe holder for ART. Android's libcore exposes theUnsafe and ART
+ * intrinsifies getInt/getLong/putInt/putLong(Object, long) — a single unaligned
+ * load/store, the same pattern protobuf and atomicfu rely on.
+ *
+ * 16-bit accesses are composed from byte loads because libcore's Unsafe does not
+ * reliably expose getShort(Object, long) across API levels; width-2 reads are rare
+ * (mid-size offsets only).
+ */
+@PublishedApi
+internal object UnsafeOps {
+  @JvmField val U: sun.misc.Unsafe? = try {
+    val f = sun.misc.Unsafe::class.java.getDeclaredField("theUnsafe")
+    f.isAccessible = true
+    f.get(null) as sun.misc.Unsafe
+  } catch (t: Throwable) {
+    null
+  }
+
+  @JvmField val BASE: Long = try {
+    (U?.arrayBaseOffset(ByteArray::class.java) ?: 16).toLong()
+  } catch (t: Throwable) {
+    16L
+  }
+
+  @JvmField val ON: Boolean =
+    U != null && java.nio.ByteOrder.nativeOrder() == java.nio.ByteOrder.LITTLE_ENDIAN
+}
+
 /** This implementation uses Little Endian order. */
 public actual inline fun ByteArray.getUByte(index: Int): UByte = ByteArrayOps.getUByte(this, index)
 
@@ -66,3 +95,52 @@ public actual inline fun ByteArray.setFloat(index: Int, value: Float): Unit =
 
 public actual inline fun ByteArray.setDouble(index: Int, value: Double): Unit =
   ByteArrayOps.setDouble(this, index, value)
+
+// ─── Direct memory layer: Unsafe-backed loads/stores (ART intrinsics) ───
+
+internal actual inline fun ByteArray.ld8(index: Int): Int = this[index].toInt()
+
+internal actual inline fun ByteArray.ldU8(index: Int): Int = this[index].toInt() and 0xFF
+
+internal actual inline fun ByteArray.ld16(index: Int): Int =
+  (this[index + 1].toInt() shl 8) or (this[index].toInt() and 0xFF)
+
+internal actual inline fun ByteArray.ldU16(index: Int): Int =
+  ((this[index + 1].toInt() and 0xFF) shl 8) or (this[index].toInt() and 0xFF)
+
+internal actual inline fun ByteArray.ld32(index: Int): Int =
+  if (UnsafeOps.ON) UnsafeOps.U!!.getInt(this, UnsafeOps.BASE + index)
+  else ByteArrayOps.getInt(this, index)
+
+internal actual inline fun ByteArray.ld64(index: Int): Long =
+  if (UnsafeOps.ON) UnsafeOps.U!!.getLong(this, UnsafeOps.BASE + index)
+  else ByteArrayOps.getLong(this, index)
+
+internal actual inline fun ByteArray.ldF32(index: Int): Float = Float.fromBits(ld32(index))
+
+internal actual inline fun ByteArray.ldF64(index: Int): Double = Double.fromBits(ld64(index))
+
+internal actual inline fun ByteArray.st8(index: Int, value: Int) {
+  this[index] = value.toByte()
+}
+
+internal actual inline fun ByteArray.st16(index: Int, value: Int) {
+  this[index] = value.toByte()
+  this[index + 1] = (value shr 8).toByte()
+}
+
+internal actual inline fun ByteArray.st32(index: Int, value: Int) {
+  if (UnsafeOps.ON) UnsafeOps.U!!.putInt(this, UnsafeOps.BASE + index, value)
+  else ByteArrayOps.setInt(this, index, value)
+}
+
+internal actual inline fun ByteArray.st64(index: Int, value: Long) {
+  if (UnsafeOps.ON) UnsafeOps.U!!.putLong(this, UnsafeOps.BASE + index, value)
+  else ByteArrayOps.setLong(this, index, value)
+}
+
+internal actual inline fun ByteArray.stF32(index: Int, value: Float): Unit =
+  st32(index, value.toRawBits())
+
+internal actual inline fun ByteArray.stF64(index: Int, value: Double): Unit =
+  st64(index, value.toRawBits())

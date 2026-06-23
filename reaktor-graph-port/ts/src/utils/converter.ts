@@ -41,7 +41,7 @@ export function convertPortGraphToFlow<S extends PortGraph<S, N>, N extends Port
     const nodeCount = kotlinNodes.length;
     const cols = Math.ceil(Math.sqrt(nodeCount));
 
-    kotlinNodes.forEach((portNode, index) => {
+    kotlinNodes.forEach((portNode: any, index: number) => {
         const row = Math.floor(index / cols);
         const col = index % cols;
         const nodeId = String(portNode.id);
@@ -49,9 +49,9 @@ export function convertPortGraphToFlow<S extends PortGraph<S, N>, N extends Port
         // Extract consumer ports
         const consumerPorts: PortData[] = [];
         const consumerPortsMap = portNode.consumerPorts.asJsMapView();
-        consumerPortsMap.forEach((keyMap, type) => {
+        consumerPortsMap.forEach((keyMap: any, type: any) => {
             const keyMapJs = keyMap.asJsMapView();
-            keyMapJs.forEach((port, key) => {
+            keyMapJs.forEach((port: any, key: any) => {
                 consumerPorts.push({
                     id: `${nodeId}-consumer-${type.type}-${key.key}`,
                     key: key.key,
@@ -64,9 +64,9 @@ export function convertPortGraphToFlow<S extends PortGraph<S, N>, N extends Port
         // Extract provider ports
         const providerPorts: PortData[] = [];
         const providerPortsMap = portNode.providerPorts.asJsMapView();
-        providerPortsMap.forEach((keyMap, type) => {
+        providerPortsMap.forEach((keyMap: any, type: any) => {
             const keyMapJs = keyMap.asJsMapView();
-            keyMapJs.forEach((port, key) => {
+            keyMapJs.forEach((port: any, key: any) => {
                 providerPorts.push({
                     id: `${nodeId}-provider-${type.type}-${key.key}`,
                     key: key.key,
@@ -76,7 +76,7 @@ export function convertPortGraphToFlow<S extends PortGraph<S, N>, N extends Port
 
                 // Extract edges from provider ports
                 const edgesMap = port.edges.asJsMapView();
-                edgesMap.forEach((edge, consumer) => {
+                edgesMap.forEach((edge: any, consumer: any) => {
                     const targetNodeId = getOwnerId(consumer.owner);
                     edges.push({
                         id: `edge-${edge.id}`,

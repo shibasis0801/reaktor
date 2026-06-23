@@ -1,19 +1,16 @@
 package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.graph.service.Environment
-import dev.shibasis.reaktor.graph.service.Request
-import dev.shibasis.reaktor.graph.service.RequestHandler
-import dev.shibasis.reaktor.graph.service.Response
-import dev.shibasis.reaktor.graph.service.Service
+import dev.shibasis.reaktor.service.Environment
+import dev.shibasis.reaktor.service.Request
+import dev.shibasis.reaktor.service.RequestHandler
+import dev.shibasis.reaktor.service.Response
+import dev.shibasis.reaktor.service.Service
 import dev.shibasis.reaktor.io.serialization.TextSerializer
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.promise
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 
 private val textSerializer = TextSerializer()
 
@@ -38,10 +35,7 @@ private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext
     val rawBody = runCatching { context.req.text().await() }.getOrNull().orEmpty().ifBlank { "{}" }
     val pathParams = toStringMap(context.req.param())
     val queryParams = toStringMap(context.req.query())
-    val request = textSerializer.deserialize(
-        requestSerializer,
-        mergeRequestPayload(rawBody, pathParams, queryParams),
-    )
+    val request = textSerializer.deserialize(requestSerializer, rawBody)
 
     request.pathParams.putAll(pathParams)
     request.queryParams.putAll(queryParams)
@@ -61,32 +55,6 @@ private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext
     val response = invoke(request)
     response.toWorkerResponse(textSerializer.serialize(responseSerializer, response))
 }
-
-private fun mergeRequestPayload(
-    rawBody: String,
-    pathParams: Map<String, String>,
-    queryParams: Map<String, String>,
-): String {
-    val baseObject = runCatching { json.parseToJsonElement(rawBody) }
-        .getOrNull()
-        ?.unsafeCast<JsonObject?>()
-        ?: JsonObject(emptyMap())
-
-    val merged = baseObject.toMutableMap()
-    queryParams.forEach { (key, value) -> merged[key] = value.toJsonScalar() }
-    pathParams.forEach { (key, value) -> merged[key] = value.toJsonScalar() }
-    return json.encodeToString(JsonObject(merged))
-}
-
-private fun String.toJsonScalar(): JsonElement =
-    toIntOrNull()?.let(::JsonPrimitive)
-        ?: toLongOrNull()?.let(::JsonPrimitive)
-        ?: toDoubleOrNull()?.let(::JsonPrimitive)
-        ?: when (lowercase()) {
-            "true" -> JsonPrimitive(true)
-            "false" -> JsonPrimitive(false)
-            else -> JsonPrimitive(this)
-        }
 
 private fun toStringMap(source: dynamic): MutableMap<String, String> {
     val result = mutableMapOf<String, String>()

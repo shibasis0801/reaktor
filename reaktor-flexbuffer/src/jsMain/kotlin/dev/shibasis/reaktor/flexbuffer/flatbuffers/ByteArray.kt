@@ -17,6 +17,11 @@
 
 package dev.shibasis.reaktor.flexbuffer.flatbuffers
 
+import org.khronos.webgl.ArrayBuffer
+import org.khronos.webgl.Float32Array
+import org.khronos.webgl.Float64Array
+import org.khronos.webgl.Int32Array
+
 /** This implementation uses Little Endian order. */
 public actual inline fun ByteArray.getUByte(index: Int): UByte = ByteArrayOps.getUByte(this, index)
 
@@ -64,3 +69,78 @@ public actual inline fun ByteArray.setFloat(index: Int, value: Float): Unit =
 
 public actual inline fun ByteArray.setDouble(index: Int, value: Double): Unit =
   ByteArrayOps.setDouble(this, index, value)
+
+// ─── Direct memory layer (JS) ───
+//
+// Kotlin Long is emulated on JS (a heap object per value), so the cardinal rule
+// here is: widths 1/2/4 never touch Long, and floats convert through a shared
+// 8-byte Float64Array/Int32Array view instead of Double.fromBits(Long).
+// Int composition from byte loads JITs to straight-line code in V8.
+
+/** Shared 8-byte conversion scratch: f64/f32 bits in, number out — no Long. */
+@PublishedApi internal val convBuf: ArrayBuffer = ArrayBuffer(8)
+@PublishedApi internal val convF64: Float64Array = Float64Array(convBuf)
+@PublishedApi internal val convF32: Float32Array = Float32Array(convBuf)
+@PublishedApi internal val convI32: Int32Array = Int32Array(convBuf)
+
+internal actual inline fun ByteArray.ld8(index: Int): Int = this[index].toInt()
+
+internal actual inline fun ByteArray.ldU8(index: Int): Int = this[index].toInt() and 0xFF
+
+internal actual inline fun ByteArray.ld16(index: Int): Int =
+  (this[index + 1].toInt() shl 8) or (this[index].toInt() and 0xFF)
+
+internal actual inline fun ByteArray.ldU16(index: Int): Int =
+  ((this[index + 1].toInt() and 0xFF) shl 8) or (this[index].toInt() and 0xFF)
+
+internal actual inline fun ByteArray.ld32(index: Int): Int =
+  (this[index + 3].toInt() shl 24) or
+    ((this[index + 2].toInt() and 0xFF) shl 16) or
+    ((this[index + 1].toInt() and 0xFF) shl 8) or
+    (this[index].toInt() and 0xFF)
+
+internal actual inline fun ByteArray.ld64(index: Int): Long =
+  (ld32(index).toLong() and 0xFFFFFFFFL) or (ld32(index + 4).toLong() shl 32)
+
+internal actual inline fun ByteArray.ldF32(index: Int): Float {
+  convI32.asDynamic()[0] = ld32(index)
+  return (convF32.asDynamic()[0] as Double).toFloat()
+}
+
+internal actual inline fun ByteArray.ldF64(index: Int): Double {
+  convI32.asDynamic()[0] = ld32(index)
+  convI32.asDynamic()[1] = ld32(index + 4)
+  return convF64.asDynamic()[0] as Double
+}
+
+internal actual inline fun ByteArray.st8(index: Int, value: Int) {
+  this[index] = value.toByte()
+}
+
+internal actual inline fun ByteArray.st16(index: Int, value: Int) {
+  this[index] = value.toByte()
+  this[index + 1] = (value shr 8).toByte()
+}
+
+internal actual inline fun ByteArray.st32(index: Int, value: Int) {
+  this[index] = value.toByte()
+  this[index + 1] = (value shr 8).toByte()
+  this[index + 2] = (value shr 16).toByte()
+  this[index + 3] = (value shr 24).toByte()
+}
+
+internal actual inline fun ByteArray.st64(index: Int, value: Long) {
+  st32(index, value.toInt())
+  st32(index + 4, (value shr 32).toInt())
+}
+
+internal actual inline fun ByteArray.stF32(index: Int, value: Float) {
+  convF32.asDynamic()[0] = value
+  st32(index, convI32.asDynamic()[0] as Int)
+}
+
+internal actual inline fun ByteArray.stF64(index: Int, value: Double) {
+  convF64.asDynamic()[0] = value
+  st32(index, convI32.asDynamic()[0] as Int)
+  st32(index + 4, convI32.asDynamic()[1] as Int)
+}

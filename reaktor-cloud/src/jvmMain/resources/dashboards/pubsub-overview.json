@@ -1,0 +1,175 @@
+{
+  "title": "GCP Pub/Sub — Overview",
+  "uid": "pubsub-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["reaktor", "gcp", "pubsub"],
+  "templating": {
+    "list": [
+      {
+        "name": "topic",
+        "label": "Topic",
+        "type": "query",
+        "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+        "query": {
+          "projectName": "__GCP_PROJECT__",
+          "selectorName": "selectedMetricLabel:topic_id",
+          "filters": [{ "key": "metric.type", "operator": "=", "value": "pubsub.googleapis.com/topic/send_message_operation_count" }]
+        },
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" },
+        "refresh": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Publish rate (messages/min) by topic",
+      "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "metrics",
+          "metricQuery": {
+            "projectName": "__GCP_PROJECT__",
+            "metricType": "pubsub.googleapis.com/topic/send_message_operation_count",
+            "filters": [],
+            "groupBys": ["resource.label.topic_id"],
+            "crossSeriesReducer": "REDUCE_SUM",
+            "perSeriesAligner": "ALIGN_RATE",
+            "alignmentPeriod": "60s",
+            "aliasBy": "{{resource.label.topic_id}}"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Subscription backlog (undelivered messages)",
+      "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "metrics",
+          "metricQuery": {
+            "projectName": "__GCP_PROJECT__",
+            "metricType": "pubsub.googleapis.com/subscription/num_undelivered_messages",
+            "filters": [],
+            "groupBys": ["resource.label.subscription_id"],
+            "crossSeriesReducer": "REDUCE_MAX",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "alignmentPeriod": "60s",
+            "aliasBy": "{{resource.label.subscription_id}}"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Oldest unacked message age (sec)",
+      "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "metrics",
+          "metricQuery": {
+            "projectName": "__GCP_PROJECT__",
+            "metricType": "pubsub.googleapis.com/subscription/oldest_unacked_message_age",
+            "filters": [],
+            "groupBys": ["resource.label.subscription_id"],
+            "crossSeriesReducer": "REDUCE_MAX",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "alignmentPeriod": "60s",
+            "aliasBy": "{{resource.label.subscription_id}}"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Ack message rate by subscription",
+      "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "metrics",
+          "metricQuery": {
+            "projectName": "__GCP_PROJECT__",
+            "metricType": "pubsub.googleapis.com/subscription/ack_message_count",
+            "filters": [],
+            "groupBys": ["resource.label.subscription_id"],
+            "crossSeriesReducer": "REDUCE_SUM",
+            "perSeriesAligner": "ALIGN_RATE",
+            "alignmentPeriod": "60s",
+            "aliasBy": "{{resource.label.subscription_id}}"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Push delivery latency p99",
+      "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "metrics",
+          "metricQuery": {
+            "projectName": "__GCP_PROJECT__",
+            "metricType": "pubsub.googleapis.com/subscription/push_request_latencies",
+            "filters": [],
+            "groupBys": ["resource.label.subscription_id"],
+            "crossSeriesReducer": "REDUCE_PERCENTILE_99",
+            "perSeriesAligner": "ALIGN_DELTA",
+            "alignmentPeriod": "60s",
+            "aliasBy": "{{resource.label.subscription_id}}"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Dead-letter forwarded messages",
+      "datasource": { "uid": "__GCP_DS__", "type": "stackdriver" },
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "metrics",
+          "metricQuery": {
+            "projectName": "__GCP_PROJECT__",
+            "metricType": "pubsub.googleapis.com/subscription/dead_letter_message_count",
+            "filters": [],
+            "groupBys": ["resource.label.subscription_id"],
+            "crossSeriesReducer": "REDUCE_SUM",
+            "perSeriesAligner": "ALIGN_RATE",
+            "alignmentPeriod": "60s",
+            "aliasBy": "{{resource.label.subscription_id}}"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    }
+  ]
+}

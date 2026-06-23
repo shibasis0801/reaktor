@@ -239,7 +239,7 @@ fun ReaktorFlowGraph.toReactFlowViewData(
     selectedId: String? = null,
     focus: String = "none",
     edgeFilters: Set<String> = setOf("route", "action", "parent", "consumes", "invokes", "writes", "emits", "deploys"),
-    sourceLabel: String = "BestBuds graph",
+    sourceLabel: String = "Reaktor graph",
 ): JsReaktorFlowData {
     val visuals = style.toJs()
     val graphNodes = nodes.map { node ->

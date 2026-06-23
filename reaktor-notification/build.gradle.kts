@@ -16,14 +16,31 @@ plugins {
 kotlin {
     common {
         dependencies {
+            api(project(":reaktor-core"))
             api(project(":reaktor-ui"))
+            commonCoroutines()
+            commonSerialization()
         }
     }
-    droid {}
+    droid {
+        dependencies {
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
+            implementation("com.google.firebase:firebase-messaging")
+        }
+    }
     darwin {}
     web {}
-    server {}
+    server {
+
+    }
     useKoin()
+
+    sourceSets {
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            commonCoroutines()
+        }
+    }
 }
 
 android {

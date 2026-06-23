@@ -62,6 +62,106 @@ internal expect inline fun ByteArray.setFloat(index: Int, value: Float)
 
 internal expect inline fun ByteArray.setDouble(index: Int, value: Double)
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Direct memory layer.
+//
+// Single-load little-endian reads/writes mirroring C++ ReadScalar<T>/Write<T>.
+// JVM/Android: sun.misc.Unsafe (one mov, no bounds check, ART/HotSpot intrinsic).
+// Native: getIntAt/getLongAt intrinsics (single load + bounds check).
+// JS: byte composition for ints; Float64Array view for floats — and crucially,
+//     no Kotlin Long is materialised for widths 1/2/4 (Long is emulated on JS).
+//
+// Naming: ld = load, st = store; U = zero-extended; number = bit width.
+// All Int-returning loads of widths 1/2 return the value in an Int register.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Sign-extended 8-bit load. */
+internal expect inline fun ByteArray.ld8(index: Int): Int
+
+/** Zero-extended 8-bit load. */
+internal expect inline fun ByteArray.ldU8(index: Int): Int
+
+/** Sign-extended little-endian 16-bit load. */
+internal expect inline fun ByteArray.ld16(index: Int): Int
+
+/** Zero-extended little-endian 16-bit load. */
+internal expect inline fun ByteArray.ldU16(index: Int): Int
+
+/** Little-endian 32-bit load. */
+internal expect inline fun ByteArray.ld32(index: Int): Int
+
+/** Little-endian 64-bit load. */
+internal expect inline fun ByteArray.ld64(index: Int): Long
+
+/** Little-endian IEEE-754 32-bit load. */
+internal expect inline fun ByteArray.ldF32(index: Int): Float
+
+/** Little-endian IEEE-754 64-bit load. */
+internal expect inline fun ByteArray.ldF64(index: Int): Double
+
+internal expect inline fun ByteArray.st8(index: Int, value: Int)
+
+internal expect inline fun ByteArray.st16(index: Int, value: Int)
+
+internal expect inline fun ByteArray.st32(index: Int, value: Int)
+
+internal expect inline fun ByteArray.st64(index: Int, value: Long)
+
+internal expect inline fun ByteArray.stF32(index: Int, value: Float)
+
+internal expect inline fun ByteArray.stF64(index: Int, value: Double)
+
+// ───────────────────────────────────────────────────────────────────────────
+// Width-dispatched reads. Two-comparison binary tree, like C++ ReadSizedScalar.
+// Offsets and sizes always fit in Int (buffers < 2 GB), so the Int-typed
+// variants never touch Long for widths 1/2/4 — the common case.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Unsigned read of width [w] as Int. Use for offsets, sizes, indices. */
+internal inline fun ByteArray.ldUOffW(pos: Int, w: Int): Int =
+  if (w < 4) {
+    if (w == 1) ldU8(pos) else ldU16(pos)
+  } else {
+    if (w == 4) ld32(pos) else ld64(pos).toInt()
+  }
+
+/** Zero-extended read of width [w] as Long. Use for T_UINT values. */
+internal inline fun ByteArray.ldULongW(pos: Int, w: Int): Long =
+  if (w < 4) {
+    (if (w == 1) ldU8(pos) else ldU16(pos)).toLong()
+  } else {
+    if (w == 4) ld32(pos).toLong() and 0xFFFFFFFFL else ld64(pos)
+  }
+
+/** Sign-extended read of width [w] as Long. Use for T_INT values. */
+internal inline fun ByteArray.ldSLongW(pos: Int, w: Int): Long =
+  if (w < 4) {
+    (if (w == 1) ld8(pos) else ld16(pos)).toLong()
+  } else {
+    if (w == 4) ld32(pos).toLong() else ld64(pos)
+  }
+
+/** Sign-extended read of width [w] as Int. Use for T_INT values known to fit. */
+internal inline fun ByteArray.ldSIntW(pos: Int, w: Int): Int =
+  if (w < 4) {
+    if (w == 1) ld8(pos) else ld16(pos)
+  } else {
+    if (w == 4) ld32(pos) else ld64(pos).toInt()
+  }
+
+/** Float read of width [w] (4 or 8) as Double. */
+internal inline fun ByteArray.ldFloatW(pos: Int, w: Int): Double =
+  if (w == 8) ldF64(pos) else ldF32(pos).toDouble()
+
+/** Width-dispatched write of the low [w] bytes of [value]. */
+internal inline fun ByteArray.stW(pos: Int, value: Long, w: Int) {
+  if (w < 4) {
+    if (w == 1) st8(pos, value.toInt()) else st16(pos, value.toInt())
+  } else {
+    if (w == 4) st32(pos, value.toInt()) else st64(pos, value)
+  }
+}
+
 /** This implementation uses Little Endian order. */
 public object ByteArrayOps {
   public inline fun getUByte(ary: ByteArray, index: Int): UByte = ary[index].toUByte()

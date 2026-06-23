@@ -215,12 +215,14 @@ class FlexDecoderTests {
     }
 
     @Test
-    fun testNegativeSignedCollectionsStayGenericVectors() {
+    fun testNegativeSignedCollectionsUseTypedVectors() {
+        // Signed minimal-width storage (C++ WidthI parity): negative collections are
+        // first-class typed vectors now — `-1` costs one sign-extended byte, not a
+        // generic-vector detour.
         val encoded = FlexBuffers.encode(NegativePrimitiveCase())
         val root = FlexBuffers.getRoot(encoded).toMap()
 
-        assertTrue(root["ints"].isVector)
-        assertFalse(root["ints"].isTypedVector)
+        assertTrue(root["ints"].isTypedVector)
 
         val decoded = FlexBuffers.decode<NegativePrimitiveCase>(encoded)
         assertEquals(listOf(-1, 0, 1), decoded.ints)
