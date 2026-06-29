@@ -14,9 +14,13 @@ data class ReaktorPerformanceBudgetViolation(
     val unit: String = "ms",
     val severity: ReaktorPerformanceSeverity = ReaktorPerformanceSeverity.Error,
     val domain: ReaktorPerformanceDomain = ReaktorPerformanceDomain.Runtime,
+    val direction: ReaktorPerformanceBudgetDirection = ReaktorPerformanceBudgetDirection.Max,
 ) {
     val message: String
-        get() = "$metric ${actual.display(unit)} exceeded ${limit.display(unit)} budget"
+        get() = when (direction) {
+            ReaktorPerformanceBudgetDirection.Max -> "$metric ${actual.display(unit)} exceeded ${limit.display(unit)} budget"
+            ReaktorPerformanceBudgetDirection.Min -> "$metric ${actual.display(unit)} fell below ${limit.display(unit)} budget"
+        }
 }
 
 fun ReaktorPerformanceReport.budgetViolations(): List<ReaktorPerformanceBudgetViolation> =
@@ -89,7 +93,11 @@ fun ReaktorPerformanceReport.budgetViolations(): List<ReaktorPerformanceBudgetVi
         budgets.forEach { budget ->
             val metric = metrics.lastOrNull { it.name == budget.metric }
                 ?: return@forEach
-            if (metric.value > budget.limit) {
+            val violated = when (budget.direction) {
+                ReaktorPerformanceBudgetDirection.Max -> metric.value > budget.limit
+                ReaktorPerformanceBudgetDirection.Min -> metric.value < budget.limit
+            }
+            if (violated) {
                 addViolation(
                     metric = budget.metric,
                     actual = metric.value,
@@ -97,6 +105,7 @@ fun ReaktorPerformanceReport.budgetViolations(): List<ReaktorPerformanceBudgetVi
                     unit = budget.unit,
                     severity = budget.severity,
                     domain = metric.domain,
+                    direction = budget.direction,
                 )
             }
         }
@@ -109,6 +118,7 @@ private fun MutableList<ReaktorPerformanceBudgetViolation>.addViolation(
     unit: String,
     severity: ReaktorPerformanceSeverity = ReaktorPerformanceSeverity.Error,
     domain: ReaktorPerformanceDomain,
+    direction: ReaktorPerformanceBudgetDirection = ReaktorPerformanceBudgetDirection.Max,
 ) {
     add(
         ReaktorPerformanceBudgetViolation(
@@ -121,6 +131,7 @@ private fun MutableList<ReaktorPerformanceBudgetViolation>.addViolation(
             unit = unit,
             severity = severity,
             domain = domain,
+            direction = direction,
         ),
     )
 }
@@ -132,5 +143,7 @@ private fun Double.display(unit: String): String =
     when (unit) {
         "bytes" -> "${roundToLong()} bytes"
         "count" -> "${roundToLong()} count"
+        "score" -> "$this"
+        "" -> "$this"
         else -> "$this$unit"
     }
