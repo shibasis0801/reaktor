@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.google
 
+import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.transport.bearerAuthorization
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.await
 import kotlinx.serialization.Serializable
@@ -115,7 +117,7 @@ class WebPubSubAdapter(
         val init = js("({})")
         init.method = method
         init.headers = js("({})")
-        init.headers["Authorization"] = "Bearer ${accessTokenProvider.token()}"
+        init.headers[AUTHORIZATION_HEADER] = bearerAuthorization(accessTokenProvider.token())
         if (body != null) {
             init.headers["Content-Type"] = "application/json"
             init.body = body

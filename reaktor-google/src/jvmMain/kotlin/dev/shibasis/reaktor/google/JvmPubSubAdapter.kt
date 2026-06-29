@@ -18,6 +18,8 @@ import com.google.pubsub.v1.ProjectTopicName
 import com.google.pubsub.v1.PubsubMessage
 import com.google.pubsub.v1.PullRequest
 import com.google.pubsub.v1.PushConfig
+import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.transport.bearerAuthorization
 import kotlinx.serialization.Serializable
 import java.net.URI
 import java.net.http.HttpClient
@@ -267,7 +269,7 @@ class JvmPubSubAdapter(
                 .send(
                     HttpRequest.newBuilder(URI.create("$PUBSUB_ENDPOINT/$path"))
                         .method(method, HttpRequest.BodyPublishers.ofString(body))
-                        .header("Authorization", "Bearer $token")
+                        .header(AUTHORIZATION_HEADER, bearerAuthorization(token))
                         .header("Content-Type", "application/json")
                         .build(),
                     HttpResponse.BodyHandlers.ofString(),

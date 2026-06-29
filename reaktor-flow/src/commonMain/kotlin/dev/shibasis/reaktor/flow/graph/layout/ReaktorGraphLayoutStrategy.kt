@@ -2,12 +2,11 @@
 
 package dev.shibasis.reaktor.flow.graph.layout
 
-import androidx.compose.ui.graphics.Color
 import dev.shibasis.reaktor.flow.graph.adapter.GraphNodeLayout
 import dev.shibasis.reaktor.flow.graph.adapter.ReaktorFlowBuilder
 import dev.shibasis.reaktor.flow.graph.adapter.graphLabel
 import dev.shibasis.reaktor.flow.graph.adapter.measureNodeWidth
-import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphPalette
+import dev.shibasis.reaktor.flow.graph.adapter.regionColorForDepth
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
@@ -230,13 +229,26 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
                             childX = childStartX
                             childY = rowBottom + style.region.childRegionGapYPx + style.region.boundsInsetTopPx
                         }
-                        val childBounds = builder.layoutGraph(
-                            graph = childGraph,
-                            originX = childX,
-                            originY = childY,
-                            depth = depth + 1,
-                            graphId = "$graphId/$index",
-                        )
+                        val childScopeId = "$graphId/$index"
+                        // Hierarchical projection: recurse only into expanded scopes; otherwise the
+                        // child graph collapses to a single boundary summary node at this level.
+                        val childBounds = if (builder.shouldExpand(childScopeId)) {
+                            builder.layoutGraph(
+                                graph = childGraph,
+                                originX = childX,
+                                originY = childY,
+                                depth = depth + 1,
+                                graphId = childScopeId,
+                            )
+                        } else {
+                            builder.addScopeSummary(
+                                child = childGraph,
+                                scopeId = childScopeId,
+                                originX = childX,
+                                originY = childY,
+                                depth = depth + 1,
+                            )
+                        }
                         childX = childBounds.right + style.region.childRegionGapXPx
                         rowBottom = max(rowBottom, childBounds.bottom)
                         childGraphRight = max(childGraphRight, childBounds.right)
@@ -271,7 +283,7 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
             y = bounds.top,
             width = bounds.width,
             height = bounds.height,
-            color = regionColor(depth),
+            color = regionColorForDepth(depth),
             depth = depth,
         )
         return bounds
@@ -301,11 +313,5 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
         screenCount <= 12 -> 2
         screenCount <= 20 -> 3
         else -> 4
-    }
-
-    private fun regionColor(depth: Int): Color = when (depth) {
-        0 -> ReaktorGraphPalette.rootRegion
-        1 -> ReaktorGraphPalette.nestedRegion
-        else -> ReaktorGraphPalette.deepRegion
     }
 }

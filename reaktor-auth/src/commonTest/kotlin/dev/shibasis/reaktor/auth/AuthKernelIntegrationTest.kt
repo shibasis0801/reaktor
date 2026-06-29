@@ -2,13 +2,14 @@ package dev.shibasis.reaktor.auth
 
 import dev.shibasis.reaktor.auth.api.ExchangePatRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
+import dev.shibasis.reaktor.auth.api.TokenSet
 import dev.shibasis.reaktor.auth.api.TokenRequest
-import dev.shibasis.reaktor.auth.graph.AuthSession
 import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.auth.kernel.AuthDenyReason
 import dev.shibasis.reaktor.auth.kernel.AuthMethod
+import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.Delegation
 import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
 import dev.shibasis.reaktor.auth.kernel.PermissionRef
@@ -70,7 +71,7 @@ class AuthKernelIntegrationTest {
 
         val invalidAudience = LocalAuthorizer.authorize(
             userContext,
-            requires("event.read").audience("bestbuds-api"),
+            requires("event.read").audience("other-api"),
         )
         assertIs<AuthDecision.Deny>(invalidAudience)
         assertEquals(401, invalidAudience.statusCode)
@@ -103,6 +104,29 @@ class AuthKernelIntegrationTest {
     }
 
     @Test
+    fun authorizerSupportsRolesAndPermissionsAsFirstClassRequirements() {
+        val requirement = AuthRequirement(
+            roles = setOf(RoleRef(name = "owner")),
+            permissions = setOf(PermissionRef(name = "event.create")),
+        )
+        assertIs<AuthDecision.Allow>(LocalAuthorizer.authorize(userContext, requirement))
+
+        val missingPermission = LocalAuthorizer.authorize(
+            userContext,
+            requirement.copy(permissions = setOf(PermissionRef(name = "event.delete"))),
+        )
+        assertIs<AuthDecision.Deny>(missingPermission)
+        assertEquals(AuthDenyReason.MISSING_PERMISSION, missingPermission.reason)
+
+        val missingRole = LocalAuthorizer.authorize(
+            userContext,
+            requirement.copy(roles = setOf(RoleRef(name = "admin"))),
+        )
+        assertIs<AuthDecision.Deny>(missingRole)
+        assertEquals(AuthDenyReason.MISSING_ROLE, missingRole.reason)
+    }
+
+    @Test
     fun delegatedCallsRequireExplicitDelegationAllowance() {
         val delegatedContext = userContext.copy(
             actor = PrincipalRef("principal_svc_worker", PrincipalKind.SERVICE),
@@ -125,53 +149,35 @@ class AuthKernelIntegrationTest {
     }
 
     @Test
-    fun legacyAuthSessionConvertsToKernelAuthContext() {
-        val user = User(
-            id = "principal_svc_worker",
-            name = "worker",
-            socialId = null,
-            appId = "app_manna",
-            provider = null,
-            status = UserStatus.ACTIVE,
-            accountType = AccountType.SERVICE_ACCOUNT,
-            data = JsonObject(emptyMap()),
-        )
+    fun authContextSnapshotRoundTrips() {
+        val snapshot = userContext.toSnapshot()
+        val context = snapshot.toAuthContext()
 
-        val context = AuthSession(
-            user = user,
-            scopes = listOf("knowledge.ingest"),
-            accessToken = "access",
-            refreshToken = "refresh",
-        ).toAuthContext()
-
-        assertEquals(PrincipalKind.SERVICE, context.principal.kind)
-        assertEquals("principal_svc_worker", context.principal.id)
-        assertEquals("app_manna", context.appId)
-        assertEquals(AuthDefaults.ISSUER, context.issuer)
-        assertEquals("app_manna", context.audience)
-        assertContains(context.scopes, Scope("knowledge.ingest"))
-        assertContains(context.permissions, PermissionRef(name = "knowledge.ingest"))
+        assertEquals(userContext.principal, context.principal)
+        assertEquals(userContext.identityId, context.identityId)
+        assertEquals(userContext.appId, context.appId)
+        assertEquals(userContext.tenantId, context.tenantId)
+        assertEquals(userContext.contextId, context.contextId)
+        assertEquals(userContext.sessionId, context.sessionId)
+        assertEquals(userContext.audience, context.audience)
+        assertContains(context.scopes, Scope("event.read"))
+        assertContains(context.permissions, PermissionRef(name = "event.create"))
     }
 
     @Test
-    fun tokenContractsKeepCompatibilityDefaults() {
-        val user = User(
-            id = "principal_usr_123",
-            name = "Ada",
-            socialId = "google-sub",
-            appId = "app_manna",
-            provider = UserProvider.GOOGLE,
-            status = UserStatus.ACTIVE,
-            data = JsonObject(emptyMap()),
-        )
-
+    fun tokenContractsExposeContextAndTokenSet() {
         val login = LoginResponse.Success(
-            user = user,
+            context = userContext.toSnapshot(),
             profile = JsonObject(emptyMap()),
-            accessToken = "access-token",
-            refreshToken = "refresh-token",
+            tokenSet = TokenSet(
+                accessToken = "access-token",
+                refreshToken = "refresh-token",
+                audience = "manna-api",
+                scopes = listOf("event.read"),
+            ),
         )
 
+        assertEquals("principal_usr_123", login.context.principalId)
         assertEquals("access-token", login.tokenSet.accessToken)
         assertEquals("refresh-token", login.tokenSet.refreshToken)
         assertEquals("Bearer", login.tokenSet.tokenType)

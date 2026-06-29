@@ -24,7 +24,7 @@ import kotlin.math.max
 // - Compose guidance pushes measurement and semantic model preparation ahead of composition. The
 //   editor renderer should consume prepared node/edge data, not discover graph semantics itself.
 
-internal fun ReaktorFlowBuilder.resolveEdges(graph: Graph) {
+internal fun ReaktorFlowBuilder.resolveEdges(graph: Graph, graphId: String) {
     graph.nodes.filterIsInstance<RouteNode<*, *>>().forEach { route ->
         val routeLayout = layouts[route] ?: return@forEach
 
@@ -81,19 +81,33 @@ internal fun ReaktorFlowBuilder.resolveEdges(graph: Graph) {
             }
 
         if (node is ContainerNode) {
-            node.graphs.forEach { child ->
-                graphRootRoute(child)?.let { rootRoute ->
-                    val rootLayout = layouts[rootRoute] ?: return@let
+            node.graphs.forEachIndexed { index, child ->
+                val childScopeId = "$graphId/$index"
+                if (shouldExpand(childScopeId)) {
+                    graphRootRoute(child)?.let { rootRoute ->
+                        val rootLayout = layouts[rootRoute] ?: return@let
+                        addEdge(
+                            source = sourceLayout.flowId,
+                            target = rootLayout.flowId,
+                            kind = ReaktorEdgeKind.Containment,
+                            label = graphLabel(child),
+                            sourceHandle = "__contains__",
+                            targetHandle = "routeBinding",
+                        )
+                    }
+                    resolveEdges(child, childScopeId)
+                } else {
+                    // Collapsed child graph: connect the parent container to the boundary summary
+                    // node (its flow id equals the scope id) instead of recursing into the child.
                     addEdge(
                         source = sourceLayout.flowId,
-                        target = rootLayout.flowId,
+                        target = childScopeId,
                         kind = ReaktorEdgeKind.Containment,
                         label = graphLabel(child),
                         sourceHandle = "__contains__",
-                        targetHandle = "routeBinding",
+                        targetHandle = null,
                     )
                 }
-                resolveEdges(child)
             }
         }
     }

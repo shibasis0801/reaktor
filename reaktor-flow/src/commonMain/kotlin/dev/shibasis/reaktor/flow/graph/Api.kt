@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
 typealias ReaktorEdgeKind = dev.shibasis.reaktor.flow.graph.model.ReaktorEdgeKind
 typealias ReaktorFlowGraph = dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+typealias ReaktorFlowScopeView = dev.shibasis.reaktor.flow.graph.model.ReaktorFlowScopeView
 typealias ReaktorGraphEdgeData = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 typealias ReaktorGraphNodeData = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 typealias ReaktorGraphRegion = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
@@ -19,8 +20,9 @@ typealias ReaktorPortData = dev.shibasis.reaktor.flow.graph.model.ReaktorPortDat
 fun buildReaktorFlowGraph(
     graph: Graph,
     style: ReaktorGraphStyle = dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle,
+    scopeView: ReaktorFlowScopeView? = null,
 ): ReaktorFlowGraph =
-    dev.shibasis.reaktor.flow.graph.adapter.buildReaktorFlowGraph(graph, style)
+    dev.shibasis.reaktor.flow.graph.adapter.buildReaktorFlowGraph(graph, style, scopeView)
 
 fun reaktorNodeKind(node: GraphNode): ReaktorNodeKind =
     dev.shibasis.reaktor.flow.graph.adapter.reaktorNodeKind(node)

@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.graph.service
+package dev.shibasis.reaktor.service
 
 import dev.shibasis.reaktor.core.framework.kSerializer
 import dev.shibasis.reaktor.core.framework.json
@@ -36,15 +36,25 @@ abstract class Service(
         interceptors += interceptor
     }
 
+    @JsExport.Ignore
+    fun use(
+        stages: Set<InterceptorStage>,
+        vararg interceptor: ServiceInterceptor,
+    ): Service = apply {
+        interceptors += interceptor.map { it.boundTo(stages) }
+    }
+
     protected open fun serviceInterceptors(): List<ServiceInterceptor> = interceptors
 
     private suspend fun <In : Request, Out : Response> invokeWithInterceptors(
         phase: ServiceExecutionPhase,
+        stage: InterceptorStage,
         handler: RequestHandler<In, Out>,
         request: In,
         terminal: suspend (In) -> Out,
     ): Out = DefaultServiceChain(
         phase = phase,
+        stage = stage,
         handler = handler,
         request = request,
         interceptors = serviceInterceptors(),
@@ -62,7 +72,7 @@ abstract class Service(
     ): RequestHandler<In, Out> {
         lateinit var created: RequestHandler<In, Out>
         created = factory.create(baseUrl + endpoint, operation, requestSerializer, responseSerializer) { request ->
-            invokeWithInterceptors(ServiceExecutionPhase.SERVER, created, request) { intercepted ->
+            invokeWithInterceptors(ServiceExecutionPhase.SERVER, InterceptorStage.SERVER_APPLICATION, created, request) { intercepted ->
                 block(created, intercepted)
             }
         }
@@ -79,7 +89,7 @@ abstract class Service(
     ): RequestHandler<In, Out> {
         lateinit var created: RequestHandler<In, Out>
         created = factory.create(route, operation, requestSerializer, responseSerializer) { request ->
-            invokeWithInterceptors(ServiceExecutionPhase.CLIENT, created, request) { intercepted ->
+            invokeWithInterceptors(ServiceExecutionPhase.CLIENT, InterceptorStage.CLIENT_APPLICATION, created, request) { intercepted ->
                 val fullUrl = baseUrl + created.url(intercepted)
                 val ktorMethod = created.method.toKtorMethod()
 
