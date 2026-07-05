@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.auth
 
 import dev.shibasis.reaktor.auth.api.LoginResponse
+import dev.shibasis.reaktor.auth.kernel.AuthContext
 
 sealed class AuthLoginMode {
     data object Interactive : AuthLoginMode()
@@ -32,11 +33,11 @@ sealed class AuthLoginState {
     ) : AuthLoginState()
 
     data class CachingSession(
-        val userId: String
+        val principalId: String
     ) : AuthLoginState()
 
     data class Authenticated(
-        val user: User
+        val context: AuthContext
     ) : AuthLoginState()
 
     data class Failed(

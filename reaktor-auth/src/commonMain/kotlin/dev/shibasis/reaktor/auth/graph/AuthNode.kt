@@ -1,111 +1,125 @@
 package dev.shibasis.reaktor.auth.graph
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.auth.AccountType
-import dev.shibasis.reaktor.auth.User
-import dev.shibasis.reaktor.auth.kernel.AuthContext
-import dev.shibasis.reaktor.auth.kernel.AuthDefaults
-import dev.shibasis.reaktor.auth.kernel.AuthMethod
-import dev.shibasis.reaktor.auth.kernel.PermissionRef
-import dev.shibasis.reaktor.auth.kernel.PrincipalKind
-import dev.shibasis.reaktor.auth.kernel.PrincipalRef
-import dev.shibasis.reaktor.auth.kernel.Scope
-import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.auth.db.AuthObjectStore
+import dev.shibasis.reaktor.auth.kernel.AuthContext
+import dev.shibasis.reaktor.auth.kernel.AuthDecision
+import dev.shibasis.reaktor.auth.kernel.AuthRequirement
+import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
+import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.db.Database
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.provides
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
-/**
- * A runtime representation of an active, authenticated context.
- * Useful for graph nodes that need to verify scopes dynamically.
- */
-data class AuthSession(
-    val user: User,
-    val scopes: List<String>?,
-    val accessToken: String? = null,
-    val refreshToken: String? = null,
-    val authContext: AuthContext? = null
-) {
-    fun toAuthContext(): AuthContext {
-        authContext?.let { return it }
-        val principalKind = when (user.accountType) {
-            AccountType.SERVICE_ACCOUNT -> PrincipalKind.SERVICE
-            AccountType.USER -> PrincipalKind.USER
-        }
-        val scopeSet = scopes.orEmpty().map(::Scope).toSet()
-        return AuthContext(
-            principal = PrincipalRef(user.id, principalKind),
-            identityId = null,
-            appId = user.appId,
-            tenantId = null,
-            contextId = null,
-            issuer = AuthDefaults.ISSUER,
-            audience = user.appId,
-            scopes = scopeSet,
-            permissions = scopeSet.map { PermissionRef(name = it.value) }.toSet(),
-            method = AuthMethod.ACCESS_TOKEN,
-        )
-    }
+interface AuthContextProvider {
+    val context: StateFlow<AuthContext?>
+    val current: AuthContext?
+        get() = context.value
+}
+
+interface AuthContextSink {
+    fun setContext(context: AuthContext)
+    fun clearContext()
+}
+
+interface AuthPolicy {
+    fun authorize(context: AuthContext?, requirement: AuthRequirement): AuthDecision
 }
 
 /**
- * A headless node instantiated near the Root Graph responsible for providing Auth state to the rest of the application.
+ * Graph-native auth state. Non-graph callers can still use AuthAdapter, but the runtime model is AuthContext.
  */
-open class AuthNode(graph: Graph): BasicNode(graph) {
-    private val _authState = MutableStateFlow<AuthSession?>(null)
-    val authState = _authState.asStateFlow()
+open class AuthNode(
+    graph: Graph,
+    initialContext: AuthContext? = null,
+    private val persist: Boolean = true
+) : BasicNode(graph), AuthContextProvider, AuthContextSink {
+    private val _context = MutableStateFlow(initialContext)
+    override val context: StateFlow<AuthContext?> = _context.asStateFlow()
 
-    // Expose the auth state as a ProviderPort so other parts of the graph can consume it via dependency injection rules.
-    val authPort by provides<MutableStateFlow<AuthSession?>>(_authState)
+    val contextProviderPort by provides<AuthContextProvider>(this)
+    val contextSinkPort by provides<AuthContextSink>(this)
 
     init {
-        // Attempt to rehydrate the user and tokens from ObjectDatabase on boot
-        launch {
-            val db = Feature.Database
-            if (db != null) {
-                try {
-                    val authStore = AuthObjectStore(db)
-                    val cachedUser = authStore.getUser()
-                    val cachedAccessToken = authStore.getAccessToken()
-                    val cachedRefreshToken = authStore.getRefreshToken()
+        if (initialContext == null) {
+            hydrate()
+        }
+    }
 
-                    if (cachedUser != null) {
-                        // Assuming basic scopes to user mapping or relying on a fetched permissions list.
-                        _authState.value = AuthSession(
-                            user = cachedUser,
-                            scopes = listOf("user"), // Default or fetched scopes
-                            accessToken = cachedAccessToken,
-                            refreshToken = cachedRefreshToken
-                        )
-                    }
-                } catch (e: Exception) {
-                    Logger.e(e) { "Failed to hydrate AuthSession from DB" }
-                    // Clear state on failure to ensure UI prompts login
-                    _authState.value = null
+    override fun setContext(context: AuthContext) {
+        _context.value = context
+        if (persist) {
+            launch {
+                runCatching {
+                    Feature.Database?.let { AuthObjectStore(it).setContext(context) }
+                }.onFailure { error ->
+                    Logger.e(error) { "Failed to persist AuthContext" }
                 }
             }
         }
     }
 
-    // Typical operations
-    fun login(session: AuthSession) {
-        _authState.value = session
+    override fun clearContext() {
+        _context.value = null
+        if (persist) {
+            launch {
+                runCatching {
+                    Feature.Database?.let { AuthObjectStore(it).clear() }
+                }.onFailure { error ->
+                    Logger.e(error) { "Failed to clear persisted AuthContext" }
+                }
+            }
+        }
     }
 
-    fun logout() {
-        _authState.value = null
-        // Trigger deletion from DB here
+    private fun hydrate() {
+        if (!persist) return
         launch {
-            val db = Feature.Database
-            if (db != null) {
-                val authStore = AuthObjectStore(db)
-                authStore.clear()
+            try {
+                Feature.Database?.let { db ->
+                    _context.value = AuthObjectStore(db).getContext()
+                }
+            } catch (e: Exception) {
+                Logger.e(e) { "Failed to hydrate AuthContext from ObjectDatabase" }
+                _context.value = null
             }
+        }
+    }
+}
+
+open class AuthPolicyNode(graph: Graph) : BasicNode(graph), AuthPolicy {
+    val policyPort by provides<AuthPolicy>(this)
+
+    override fun authorize(context: AuthContext?, requirement: AuthRequirement): AuthDecision =
+        LocalAuthorizer.authorize(context, requirement)
+}
+
+data class AuthGraph(
+    val graph: Graph,
+    val context: AuthNode,
+    val policy: AuthPolicyNode
+) {
+    companion object {
+        fun install(
+            graph: Graph,
+            initialContext: AuthContext? = null,
+            persist: Boolean = true,
+            autoWire: Boolean = true
+        ): AuthGraph {
+            val auth = AuthGraph(
+                graph = graph,
+                context = AuthNode(graph, initialContext, persist),
+                policy = AuthPolicyNode(graph)
+            )
+            graph.attach(auth.context)
+            graph.attach(auth.policy)
+            if (autoWire) graph.autoWire()
+            return auth
         }
     }
 }

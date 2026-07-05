@@ -79,7 +79,7 @@ class AuthRuntimeGraphIntegrationTest {
     fun springServerAdaptersExposeGraphHandlersToServiceRouters() {
         val fx = AuthRuntimeGraphFixture()
 
-        assertEquals(10, AuthServer(fx.runtime.service).handlers.size)
+        assertEquals(9, AuthServer(fx.runtime.service).handlers.size)
         assertEquals(2, AppServer(fx.runtime.appService).handlers.size)
     }
 }

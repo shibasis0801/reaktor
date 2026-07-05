@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.auth
 
 import dev.shibasis.reaktor.auth.api.AuthServer
 import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
-import dev.shibasis.reaktor.auth.api.ExchangePatRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.LogoutAllRequest
 import dev.shibasis.reaktor.auth.api.LogoutRequest
@@ -161,7 +160,7 @@ class AuthServerIntegrationTest {
             it.eventType == AuthAuditEventType.AUTH_FAILURE &&
                 it.outcome == AuthAuditOutcome.FAILURE &&
                 it.credentialType == "pat" &&
-                it.grantType == "exchange_pat" &&
+                it.grantType == "pat" &&
                 it.tokenId == verified.tokenId &&
                 it.reason == "audience_not_allowed"
         }
@@ -188,14 +187,14 @@ class AuthServerIntegrationTest {
             it.eventType == AuthAuditEventType.TOKEN_EXCHANGE &&
                 it.outcome == AuthAuditOutcome.SUCCESS &&
                 it.credentialType == "pat" &&
-                it.grantType == "exchange_pat" &&
+                it.grantType == "pat" &&
                 it.tokenId == exchanged.tokenId &&
                 it.audience == "manna-mcp"
         }
     }
 
     @Test
-    fun exchangePatEndpointMirrorsTokenEndpointPolicy() = runBlocking {
+    fun patGrantEnforcesTokenEndpointPolicy() = runBlocking {
         val fx = AuthServerFixture()
         val (_, raw) = fx.runtime.personalTokens.createPersonalAccessToken(
             principalId = null,
@@ -206,13 +205,13 @@ class AuthServerIntegrationTest {
 
         assertEquals(
             StatusCode.FORBIDDEN,
-            fx.server.exchangePat(
-                ExchangePatRequest(rawToken = raw, audience = "not-allowed", environment = Environment.STAGE)
+            fx.server.token(
+                TokenRequest(grantType = "pat", rawToken = raw, audience = "not-allowed", environment = Environment.STAGE)
             ).statusCode,
         )
 
-        val exchanged = fx.server.exchangePat(
-            ExchangePatRequest(rawToken = raw, audience = "manna-mcp", ttlSeconds = 9999, environment = Environment.STAGE)
+        val exchanged = fx.server.token(
+            TokenRequest(grantType = "pat", rawToken = raw, audience = "manna-mcp", ttlSeconds = 9999, environment = Environment.STAGE)
         )
         assertEquals(StatusCode.OK, exchanged.statusCode)
         assertEquals(15 * 60, exchanged.expiresInSeconds, "PAT exchanges clamp too-large TTLs")

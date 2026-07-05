@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.core.adapters
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.requestAccessForMediaType
@@ -14,8 +15,21 @@ import platform.Photos.PHAuthorizationStatusAuthorized
 import platform.Photos.PHPhotoLibrary
 import platform.Speech.SFSpeechRecognizer
 import platform.Speech.SFSpeechRecognizerAuthorizationStatus
+import platform.UserNotifications.UNAuthorizationOptionAlert
+import platform.UserNotifications.UNAuthorizationOptionBadge
+import platform.UserNotifications.UNAuthorizationOptionCriticalAlert
+import platform.UserNotifications.UNAuthorizationOptionProvisional
+import platform.UserNotifications.UNAuthorizationOptionSound
+import platform.UserNotifications.UNAuthorizationStatusAuthorized
+import platform.UserNotifications.UNAuthorizationStatusDenied
+import platform.UserNotifications.UNAuthorizationStatusEphemeral
+import platform.UserNotifications.UNAuthorizationStatusNotDetermined
+import platform.UserNotifications.UNAuthorizationStatusProvisional
+import platform.UserNotifications.UNUserNotificationCenter
 import kotlin.coroutines.resume
 import platform.CoreLocation.*
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 import platform.darwin.NSObject
 
 typealias PermissionRequestHandler = suspend () -> PermissionResult
@@ -27,6 +41,7 @@ class DarwinPermissionAdapter(): PermissionAdapter<Unit>(Unit) {
         addHandler(Permission.CAMERA, ::cameraPermissionHandler)
         addHandler(Permission.GALLERY, ::galleryPermissionHandler)
         addHandler(Permission.SPEECH_RECOGNITION, ::speechRecognitionHandler)
+        addHandler(Permission.NOTIFICATIONS) { requestNotificationPermission().toPermissionResult() }
     }
 
     fun addHandler(permission: String, handler: PermissionRequestHandler) {
@@ -56,6 +71,74 @@ class DarwinPermissionAdapter(): PermissionAdapter<Unit>(Unit) {
         }
         return granted
     }
+
+    override suspend fun getNotificationPermissionStatus(
+        options: NotificationPermissionOptions,
+    ): NotificationPermissionStatus =
+        suspendCancellableCoroutine { continuation ->
+            onMainQueue {
+                UNUserNotificationCenter.currentNotificationCenter()
+                    .getNotificationSettingsWithCompletionHandler { settings ->
+                        val authorizationStatus = settings?.authorizationStatus
+                        val state = when (authorizationStatus) {
+                            UNAuthorizationStatusAuthorized -> NotificationPermissionState.Granted
+                            UNAuthorizationStatusDenied -> NotificationPermissionState.Denied
+                            UNAuthorizationStatusProvisional -> NotificationPermissionState.Provisional
+                            UNAuthorizationStatusEphemeral -> NotificationPermissionState.Ephemeral
+                            UNAuthorizationStatusNotDetermined -> NotificationPermissionState.NotDetermined
+                            else -> NotificationPermissionState.Unavailable
+                        }
+                        if (continuation.isActive) {
+                            continuation.resume(
+                                NotificationPermissionStatus(
+                                    platform = PermissionPlatform.Ios,
+                                    state = state,
+                                    canRequest = state == NotificationPermissionState.NotDetermined,
+                                    appNotificationsEnabled = state == NotificationPermissionState.Granted ||
+                                        state == NotificationPermissionState.Provisional ||
+                                        state == NotificationPermissionState.Ephemeral,
+                                    detail = "authorizationStatus=${authorizationStatus ?: "missing"}",
+                                ),
+                            )
+                        }
+                    }
+            }
+        }
+
+    override suspend fun requestNotificationPermission(
+        options: NotificationPermissionOptions,
+    ): NotificationPermissionStatus =
+        getNotificationPermissionStatus().takeUnless { it.state == NotificationPermissionState.NotDetermined }
+            ?: withTimeoutOrNull(NotificationAuthorizationRequestTimeoutMillis) {
+                suspendCancellableCoroutine { continuation ->
+                    var nativeOptions = 0uL
+                    if (options.alert) nativeOptions = nativeOptions or UNAuthorizationOptionAlert
+                    if (options.badge) nativeOptions = nativeOptions or UNAuthorizationOptionBadge
+                    if (options.sound) nativeOptions = nativeOptions or UNAuthorizationOptionSound
+                    if (options.provisional) nativeOptions = nativeOptions or UNAuthorizationOptionProvisional
+                    if (options.criticalAlert) nativeOptions = nativeOptions or UNAuthorizationOptionCriticalAlert
+                    onMainQueue {
+                        UNUserNotificationCenter.currentNotificationCenter()
+                            .requestAuthorizationWithOptions(nativeOptions) { granted, error ->
+                                if (continuation.isActive) {
+                                    continuation.resume(
+                                        NotificationPermissionStatus(
+                                            platform = PermissionPlatform.Ios,
+                                            state = when {
+                                                granted -> NotificationPermissionState.Granted
+                                                error != null -> NotificationPermissionState.Unavailable
+                                                else -> NotificationPermissionState.Denied
+                                            },
+                                            canRequest = false,
+                                            appNotificationsEnabled = granted,
+                                            detail = error?.localizedDescription ?: "request completed",
+                                        ),
+                                    )
+                                }
+                            }
+                    }
+                }
+            } ?: getNotificationPermissionStatus()
 }
 
 
@@ -123,3 +206,11 @@ suspend fun locationPermissionHandler(
         manager.delegate = null
     }
 }
+
+private fun onMainQueue(block: () -> Unit) {
+    dispatch_async(dispatch_get_main_queue()) {
+        block()
+    }
+}
+
+private const val NotificationAuthorizationRequestTimeoutMillis = 10_000L

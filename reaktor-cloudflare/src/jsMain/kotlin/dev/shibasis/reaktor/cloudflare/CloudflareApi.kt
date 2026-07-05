@@ -99,10 +99,27 @@ open class CloudflareDurableObject(
     protected fun incomingRequest(request: Any): CloudflareWorkerRequest =
         CloudflareWorkerRequest(request.unsafeCast<RawWorkerRequest>())
 
-    protected fun text(body: String): dynamic = workerTextResponse(body)
+    protected fun text(
+        body: String,
+        status: Int = 200,
+        headers: Map<String, String> = emptyMap(),
+    ): dynamic =
+        workerResponse(
+            body = body,
+            status = status,
+            headers = headers + ("Content-Type" to "text/plain; charset=utf-8"),
+        )
 
-    protected inline fun <reified T> json(value: T): dynamic =
-        workerJsonResponse(json.encodeToString(kSerializer<T>(), value))
+    protected inline fun <reified T> json(
+        value: T,
+        status: Int = 200,
+        headers: Map<String, String> = emptyMap(),
+    ): dynamic =
+        workerResponse(
+            body = json.encodeToString(kSerializer<T>(), value),
+            status = status,
+            headers = headers + ("Content-Type" to "application/json; charset=utf-8"),
+        )
 
     protected suspend inline fun <reified T> decode(request: Any): T =
         incomingRequest(request).decode()

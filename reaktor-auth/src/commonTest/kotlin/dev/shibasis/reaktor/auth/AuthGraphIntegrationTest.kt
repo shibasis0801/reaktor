@@ -10,8 +10,7 @@ import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.PermissionRef
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
-import dev.shibasis.reaktor.auth.kernel.Scope
-import dev.shibasis.reaktor.auth.kernel.requires
+import dev.shibasis.reaktor.auth.kernel.permits
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.node.BasicNode
@@ -27,7 +26,7 @@ class AuthGraphIntegrationTest {
         principal = PrincipalRef("principal-1", PrincipalKind.USER),
         appId = "app-1",
         audience = "app-1",
-        scopes = setOf(Scope("project:read")),
+        scopes = setOf(PermissionRef(name = "project:read")),
         permissions = setOf(PermissionRef(name = "project:read")),
         method = AuthMethod.ACCESS_TOKEN,
     )
@@ -43,7 +42,7 @@ class AuthGraphIntegrationTest {
         assertTrue(consumer.contextProviderPort.isConnected())
         assertSame(context, consumer.contextProviderPort { current })
         assertIs<AuthDecision.Allow>(
-            auth.policy.authorize(consumer.contextProviderPort { current }, requires("project:read"))
+            auth.policy.authorize(consumer.contextProviderPort { current }, permits("project:read"))
         )
     }
 
@@ -57,7 +56,7 @@ class AuthGraphIntegrationTest {
         )
 
         assertTrue(port.canConnect(context))
-        assertFalse(port.canConnect(context.copy(permissions = emptySet())))
+        assertFalse(port.canConnect(context.copy(scopes = emptySet(), permissions = emptySet())))
     }
 }
 

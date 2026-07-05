@@ -131,11 +131,11 @@ one-shot APIs.
 | --- | --- |
 | `AuthRepositoryNode` | Database-backed app catalog and principal directory. Resolves external login into identity/provider/principal/membership plus roles/permissions. |
 | `AuthJwtNode` | Builds signing keys, `JwtMinter`, `JwtVerifier`, and external provider verification. |
-| `AuthPersonalTokenNode` | Wraps PAT creation, verification, revocation, and PAT access-token minting. |
+| `AuthPersonalTokenNode` | Wraps PAT creation, verification, revocation, and PAT access-token minting helpers. |
 | `AuthSessionLifecycleNode` | Wraps session creation, refresh rotation, family reuse detection, logout, and logout-all. |
 | `AuthServiceAccountNode` | Wraps service-account authentication, audience checks, scope down-scoping, and service token minting. |
-| `AuthLoginNode` | Composes app catalog, external verifier, principal directory, session lifecycle, and minter into login. |
-| `AuthPatNode` | Composes PAT mint/verify/exchange. |
+| `LoginInteractorNode` | Composes app catalog, external verifier, principal directory, session lifecycle, and minter into login. |
+| `AuthPatNode` | Composes PAT mint/verify. |
 | `AuthTokenGrantNode` | Implements `/auth/token` grants: PAT, `client_credentials`, and token exchange. |
 | `AuthSessionNode` | Implements refresh, logout, me, and logout-all. |
 | `AuthHttpServiceNode` | Projects graph capabilities into `AuthService` handlers. |

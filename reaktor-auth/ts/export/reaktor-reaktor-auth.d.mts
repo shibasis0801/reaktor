@@ -856,11 +856,11 @@ export declare namespace PortNode {
 }
 export declare class ConsumerPort<Functionality extends any> extends Port.$metadata$.constructor<Functionality> /* implements AutoCloseable */ {
     constructor(owner: PortCapability, key: Key, type: Type);
+    get impl(): Nullable<Functionality>;
     get edge(): Nullable<Edge<Functionality>>;
     set edge(value: Nullable<Edge<Functionality>>);
-    get impl(): Nullable<Functionality>;
     isConnected(): boolean;
-    __guard(): void;
+    target(): Functionality;
     invoke<R>(fn: (p0: Functionality) => R): R;
     suspended<R>(fn: any /*Suspend functions are not supported*/): Promise<R>;
     toString(): string;
@@ -1034,6 +1034,7 @@ export declare class ProviderPort<Functionality extends any> extends Port.$metad
     get edges(): (KtMap<ConsumerPort<Functionality>, Edge<Functionality>> & KtMutableMap<ConsumerPort<Functionality>, Edge<Functionality>>)/* LinkedHashMap<ConsumerPort<Functionality>, Edge<Functionality>> */;
     static create<Functionality extends any>(owner: PortCapability, key: string, impl: Functionality): ProviderPort<Functionality>;
     isConnected(): boolean;
+    target(): Functionality;
     invoke<R>(fn: (p0: Functionality) => R): R;
     suspended<R>(fn: any /*Suspend functions are not supported*/): Promise<R>;
     toString(): string;
@@ -2674,6 +2675,130 @@ export declare const initHook: { get(): any; };
 export declare const initHook: { get(): any; };
 /** @deprecated  */
 export declare const initHook: { get(): any; };
+export declare abstract class AuthCredentialType {
+    private constructor();
+    static get ACCESS_TOKEN(): AuthCredentialType & {
+        get name(): "ACCESS_TOKEN";
+        get ordinal(): 0;
+    };
+    static get REFRESH_TOKEN(): AuthCredentialType & {
+        get name(): "REFRESH_TOKEN";
+        get ordinal(): 1;
+    };
+    static get EXTERNAL_LOGIN(): AuthCredentialType & {
+        get name(): "EXTERNAL_LOGIN";
+        get ordinal(): 2;
+    };
+    static get CLIENT_CREDENTIALS(): AuthCredentialType & {
+        get name(): "CLIENT_CREDENTIALS";
+        get ordinal(): 3;
+    };
+    static get PERSONAL_ACCESS_TOKEN(): AuthCredentialType & {
+        get name(): "PERSONAL_ACCESS_TOKEN";
+        get ordinal(): 4;
+    };
+    static get DELEGATION(): AuthCredentialType & {
+        get name(): "DELEGATION";
+        get ordinal(): 5;
+    };
+    static get ANONYMOUS(): AuthCredentialType & {
+        get name(): "ANONYMOUS";
+        get ordinal(): 6;
+    };
+    get name(): "ACCESS_TOKEN" | "REFRESH_TOKEN" | "EXTERNAL_LOGIN" | "CLIENT_CREDENTIALS" | "PERSONAL_ACCESS_TOKEN" | "DELEGATION" | "ANONYMOUS";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    get wireName(): string;
+    static values(): Array<AuthCredentialType>;
+    static valueOf(value: string): AuthCredentialType;
+}
+export declare namespace AuthCredentialType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AuthCredentialType;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor /* implements SerializerFactory */ {
+                fromWireName(wireName: Nullable<string>): Nullable<AuthCredentialType>;
+                private constructor();
+            }
+        }
+    }
+}
+export declare abstract class AuthGrantType {
+    private constructor();
+    static get LOGIN(): AuthGrantType & {
+        get name(): "LOGIN";
+        get ordinal(): 0;
+    };
+    static get ANONYMOUS(): AuthGrantType & {
+        get name(): "ANONYMOUS";
+        get ordinal(): 1;
+    };
+    static get REFRESH_TOKEN(): AuthGrantType & {
+        get name(): "REFRESH_TOKEN";
+        get ordinal(): 2;
+    };
+    static get LOGOUT(): AuthGrantType & {
+        get name(): "LOGOUT";
+        get ordinal(): 3;
+    };
+    static get LOGOUT_ALL(): AuthGrantType & {
+        get name(): "LOGOUT_ALL";
+        get ordinal(): 4;
+    };
+    static get MINT_PAT(): AuthGrantType & {
+        get name(): "MINT_PAT";
+        get ordinal(): 5;
+    };
+    static get VERIFY_PAT(): AuthGrantType & {
+        get name(): "VERIFY_PAT";
+        get ordinal(): 6;
+    };
+    static get PAT(): AuthGrantType & {
+        get name(): "PAT";
+        get ordinal(): 7;
+    };
+    static get PERSONAL_ACCESS_TOKEN(): AuthGrantType & {
+        get name(): "PERSONAL_ACCESS_TOKEN";
+        get ordinal(): 8;
+    };
+    static get CLIENT_CREDENTIALS(): AuthGrantType & {
+        get name(): "CLIENT_CREDENTIALS";
+        get ordinal(): 9;
+    };
+    static get TOKEN_EXCHANGE(): AuthGrantType & {
+        get name(): "TOKEN_EXCHANGE";
+        get ordinal(): 10;
+    };
+    get name(): "LOGIN" | "ANONYMOUS" | "REFRESH_TOKEN" | "LOGOUT" | "LOGOUT_ALL" | "MINT_PAT" | "VERIFY_PAT" | "PAT" | "PERSONAL_ACCESS_TOKEN" | "CLIENT_CREDENTIALS" | "TOKEN_EXCHANGE";
+    get ordinal(): 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+    get wireName(): string;
+    static values(): Array<AuthGrantType>;
+    static valueOf(value: string): AuthGrantType;
+}
+export declare namespace AuthGrantType {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => AuthGrantType;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor /* implements SerializerFactory */ {
+                fromWireName(wireName: Nullable<string>): Nullable<AuthGrantType>;
+                private constructor();
+            }
+        }
+    }
+}
 export declare abstract class UserProvider {
     private constructor();
     static get GOOGLE(): UserProvider & {
@@ -3060,60 +3185,6 @@ export declare namespace VerifyPatResponse {
         const constructor: abstract new () => VerifyPatResponse;
     }
 }
-export declare class ExchangePatRequest extends Request.$metadata$.constructor {
-    constructor(rawToken?: string, audience?: string, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
-    get rawToken(): string;
-    get audience(): string;
-    get ttlSeconds(): number;
-    get headers(): KtMutableMap<string, string>;
-    get queryParams(): KtMutableMap<string, string>;
-    get pathParams(): KtMutableMap<string, string>;
-    get environment(): Environment;
-    set environment(value: Environment);
-    copy(rawToken?: string, audience?: string, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment): ExchangePatRequest;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-    static Create(rawToken: string, environment: Environment): ExchangePatRequest;
-}
-export declare namespace ExchangePatRequest {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ExchangePatRequest;
-    }
-    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
-        private constructor();
-    }
-    namespace Companion {
-        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-        namespace $metadata$ {
-            abstract class constructor {
-                private constructor();
-            }
-        }
-    }
-}
-export declare class ExchangePatResponse extends Response.$metadata$.constructor {
-    constructor(accessToken: string, tokenType?: string, expiresInSeconds?: number, tokenId?: Nullable<string>, scopes?: KtList<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
-    get accessToken(): string;
-    get tokenType(): string;
-    get expiresInSeconds(): number;
-    get tokenId(): Nullable<string>;
-    get scopes(): KtList<string>;
-    get statusCode(): StatusCode;
-    set statusCode(value: StatusCode);
-    get headers(): KtMutableMap<string, string>;
-    copy(accessToken?: string, tokenType?: string, expiresInSeconds?: number, tokenId?: Nullable<string>, scopes?: KtList<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): ExchangePatResponse;
-    toString(): string;
-    hashCode(): number;
-    equals(other: Nullable<any>): boolean;
-}
-export declare namespace ExchangePatResponse {
-    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
-    namespace $metadata$ {
-        const constructor: abstract new () => ExchangePatResponse;
-    }
-}
 export declare class TokenRequest extends Request.$metadata$.constructor {
     constructor(grantType?: string, rawToken?: string, clientId?: Nullable<string>, clientSecret?: Nullable<string>, audience?: string, scopes?: KtList<string>, subjectToken?: Nullable<string>, subjectTokenType?: Nullable<string>, actorToken?: Nullable<string>, actorTokenType?: Nullable<string>, requestedTokenType?: Nullable<string>, clientAssertion?: Nullable<string>, clientAssertionType?: Nullable<string>, contextId?: Nullable<string>, ttlSeconds?: number, headers?: KtMutableMap<string, string>, queryParams?: KtMutableMap<string, string>, pathParams?: KtMutableMap<string, string>, environment?: Environment);
     get grantType(): string;
@@ -3285,7 +3356,7 @@ export declare namespace MeRequest {
     }
 }
 export declare class MeResponse extends Response.$metadata$.constructor {
-    constructor(principalId?: Nullable<string>, principalKind?: Nullable<string>, appId?: Nullable<string>, audience?: Nullable<string>, sessionId?: Nullable<string>, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, actorId?: Nullable<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
+    constructor(principalId?: Nullable<string>, principalKind?: Nullable<string>, appId?: Nullable<string>, audience?: Nullable<string>, sessionId?: Nullable<string>, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, actorId?: Nullable<string>, context?: Nullable<AuthContextSnapshot>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>);
     get principalId(): Nullable<string>;
     get principalKind(): Nullable<string>;
     get appId(): Nullable<string>;
@@ -3295,10 +3366,11 @@ export declare class MeResponse extends Response.$metadata$.constructor {
     get roles(): KtList<string>;
     get permissions(): KtList<string>;
     get actorId(): Nullable<string>;
+    get context(): Nullable<AuthContextSnapshot>;
     get statusCode(): StatusCode;
     set statusCode(value: StatusCode);
     get headers(): KtMutableMap<string, string>;
-    copy(principalId?: Nullable<string>, principalKind?: Nullable<string>, appId?: Nullable<string>, audience?: Nullable<string>, sessionId?: Nullable<string>, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, actorId?: Nullable<string>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): MeResponse;
+    copy(principalId?: Nullable<string>, principalKind?: Nullable<string>, appId?: Nullable<string>, audience?: Nullable<string>, sessionId?: Nullable<string>, scopes?: KtList<string>, roles?: KtList<string>, permissions?: KtList<string>, actorId?: Nullable<string>, context?: Nullable<AuthContextSnapshot>, statusCode?: StatusCode, headers?: KtMutableMap<string, string>): MeResponse;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
@@ -3352,7 +3424,6 @@ export declare abstract class AuthService extends Service.$metadata$.constructor
     abstract get token(): PostHandler<TokenRequest, TokenResponse>;
     abstract get mintPat(): PostHandler<MintPatRequest, MintPatResponse>;
     abstract get verifyPat(): PostHandler<VerifyPatRequest, VerifyPatResponse>;
-    abstract get exchangePat(): PostHandler<ExchangePatRequest, ExchangePatResponse>;
     abstract get sessionRefresh(): PostHandler<RefreshRequest, RefreshResponse>;
     abstract get sessionLogout(): PostHandler<LogoutRequest, LogoutResponse>;
     abstract get sessionMe(): PostHandler<MeRequest, MeResponse>;
@@ -3371,7 +3442,6 @@ export declare class AuthServiceClient extends AuthService.$metadata$.constructo
     get mintPat(): PostHandler<MintPatRequest, MintPatResponse>;
     get token(): PostHandler<TokenRequest, TokenResponse>;
     get verifyPat(): PostHandler<VerifyPatRequest, VerifyPatResponse>;
-    get exchangePat(): PostHandler<ExchangePatRequest, ExchangePatResponse>;
     get sessionRefresh(): PostHandler<RefreshRequest, RefreshResponse>;
     get sessionLogout(): PostHandler<LogoutRequest, LogoutResponse>;
     get sessionMe(): PostHandler<MeRequest, MeResponse>;

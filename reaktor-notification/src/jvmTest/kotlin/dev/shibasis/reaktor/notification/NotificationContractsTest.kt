@@ -1,8 +1,13 @@
 package dev.shibasis.reaktor.notification
 
+import dev.shibasis.reaktor.core.adapters.Permission
+import dev.shibasis.reaktor.core.adapters.PermissionAdapter
+import dev.shibasis.reaktor.core.adapters.PermissionResult
+import dev.shibasis.reaktor.core.adapters.NotificationPermissionState
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -35,6 +40,41 @@ class NotificationContractsTest {
     }
 
     @Test
+    fun dispatchPayloadBuildsEnvelopeBackedProviderData() {
+        val payload = NotificationDispatchPayload(
+            deliveryId = "delivery-1",
+            notificationId = "notification-1",
+            endpointId = "endpoint-1",
+            userId = "user-1",
+            platform = "android",
+            provider = "fcm",
+            token = "token-1",
+            title = "Title",
+            body = "Body",
+            categoryId = "system",
+            dryRun = true,
+        )
+
+        val data = payload.providerData()
+        val fcmBody = payload.fcmRequestBody()
+        val result = payload.dispatchResult(
+            status = NotificationDeliveryStatuses.DryRunAccepted,
+            dispatched = false,
+            dryRun = true,
+        )
+
+        assertEquals("notification-1", data["reaktor_notification_id"])
+        assertEquals("reaktor.notification.delivery", data["reaktor_notification_type"])
+        assertEquals("delivery-1", data["reaktor_correlation_id"])
+        assertEquals("delivery-1", data["data_delivery_id"])
+        assertEquals("none", data["reaktor_route_type"])
+        assertTrue(fcmBody.contains("\"token\":\"token-1\""))
+        assertTrue(fcmBody.contains("\"data\""))
+        assertEquals("delivery-1", result.deliveryId)
+        assertEquals(NotificationDeliveryStatuses.DryRunAccepted, result.status)
+    }
+
+    @Test
     fun inMemoryClientSupportsFirstSliceOperations() {
         runBlocking {
             val client = InMemoryNotificationsClient(NotificationPlatform.Android)
@@ -57,6 +97,21 @@ class NotificationContractsTest {
             assertTrue(endpoint.registered)
             assertEquals("local-1", localId.value)
             assertEquals("local-1", client.lastLocal?.id)
+        }
+    }
+
+    @Test
+    fun notificationAdapterUsesCorePermissionAdapter() {
+        runBlocking {
+            val client = InMemoryNotificationsClient(NotificationPlatform.Android)
+            val permissionAdapter = client.permissionAdapter
+
+            assertFalse((client as Any) is PermissionAdapter<*>)
+            assertTrue(permissionAdapter.request(Permission.NOTIFICATIONS))
+            assertEquals(
+                PermissionResult.Granted,
+                permissionAdapter.requestOptional(Permission.NOTIFICATIONS)[Permission.NOTIFICATIONS],
+            )
         }
     }
 

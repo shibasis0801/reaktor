@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.portgraph.edge.Edge
 import dev.shibasis.reaktor.portgraph.graph.disconnectInternal
 import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import kotlin.js.JsExport
+import kotlin.js.JsName
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
@@ -13,28 +14,29 @@ open class ConsumerPort<Functionality: Any>(
     key: Key,
     type: Type
 ): Port<Functionality>(owner, key, type), AutoCloseable {
-    var edge: Edge<Functionality>? = null
-        internal set
-
+    private var implementation: Functionality? = null
     val impl: Functionality?
-        get() = edge?.provider?.impl
+        get() = implementation
 
-    override fun isConnected() = impl != null
-
-    fun __guard() {
-        require(isConnected()) {
-            "Can't invoke functions through unconnected ports. ${toString()}"
+    var edge: Edge<Functionality>? = null
+        internal set(value) {
+            field = value
+            implementation = value?.provider?.impl
         }
+
+    override fun isConnected() = implementation != null
+
+    @JsName("target")
+    inline operator fun invoke(): Functionality {
+        return impl ?: error("Can't invoke functions through unconnected ports. ${toString()}")
     }
 
     inline operator fun<R> invoke(fn: Functionality.() -> R): R {
-        __guard()
-        return fn(impl!!)
+        return fn(invoke())
     }
 
     suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R {
-        __guard()
-        return fn(impl!!)
+        return fn(invoke())
     }
 
     override fun close() {
@@ -72,10 +74,10 @@ inline fun <reified Functionality: Any> PortCapability.registerConsumer(key: Str
     return registerConsumer(Key(key), Type<Functionality>())
 }
 
-inline fun <reified Functionality: Any> PortCapability.consumes() =
+inline fun <reified Functionality: Any> PortCapability.consumes(name: String? = null) =
     PropertyDelegateProvider<PortCapability, PortDelegate<ConsumerPort<Functionality>>> { thisRef, property ->
-        val port = thisRef.registerConsumer<Functionality>(property.name)
-        ReadOnlyProperty { _, _ -> port }
+        val port = thisRef.registerConsumer<Functionality>(name ?: property.name)
+        PortDelegate { _, _ -> port }
     }
 
 inline fun <reified Functionality: Any> PortCapability.getConsumer(key: String = ""): ConsumerPort<Functionality>? {

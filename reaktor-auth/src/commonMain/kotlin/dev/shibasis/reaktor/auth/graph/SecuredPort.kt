@@ -2,10 +2,10 @@ package dev.shibasis.reaktor.auth.graph
 
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
+import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
-import dev.shibasis.reaktor.auth.kernel.Scope
-import dev.shibasis.reaktor.graph.core.node.Node
+import dev.shibasis.reaktor.auth.kernel.PermissionRef
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.Key
@@ -34,9 +34,11 @@ class SecuredProviderPort<Contract: Any>(
 ): ProviderPort<Contract>(owner, Key(key), type, contract) {
 
     // Ensures the auth session (e.g. hydrated from an AuthNode or the parent Graph Context) possesses the required scopes.
-    fun canConnect(session: AuthSession?): Boolean {
-        return LocalAuthorizer.authorize(session?.toAuthContext(), requirement) is AuthDecision.Allow
-    }
+    fun canConnect(context: AuthContext?): Boolean =
+        LocalAuthorizer.authorize(context, requirement) is AuthDecision.Allow
+
+    fun canConnect(provider: AuthContextProvider): Boolean =
+        canConnect(provider.current)
 }
 
 class SecuredConsumerPort<Contract: Any>(
@@ -47,8 +49,8 @@ class SecuredConsumerPort<Contract: Any>(
     type: Type
 ): ConsumerPort<Contract>(owner, Key(key), type) {
     
-    fun enforceConnectionSecurity(session: AuthSession?) {
-        when (val decision = LocalAuthorizer.authorize(session?.toAuthContext(), requirement)) {
+    fun enforceConnectionSecurity(context: AuthContext?) {
+        when (val decision = LocalAuthorizer.authorize(context, requirement)) {
             is AuthDecision.Allow -> Unit
             is AuthDecision.Deny -> {
                 Logger.e { "SecuredConsumerPort denied connection: ${decision.safeMessage}; requiredScopes=$requiredScopes" }
@@ -56,10 +58,14 @@ class SecuredConsumerPort<Contract: Any>(
             }
         }
     }
+
+    fun enforceConnectionSecurity(provider: AuthContextProvider) {
+        enforceConnectionSecurity(provider.current)
+    }
 }
 
 fun requirementFromScopes(requiredScopes: List<String>): AuthRequirement =
-    AuthRequirement(scopes = requiredScopes.map(::Scope).toSet())
+    AuthRequirement(scopes = requiredScopes.map { PermissionRef(name = it) }.toSet())
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerSecuredProvider(requiredScopes: List<String>, key: Key, type: Type, impl: Functionality): SecuredProviderPort<Functionality> {

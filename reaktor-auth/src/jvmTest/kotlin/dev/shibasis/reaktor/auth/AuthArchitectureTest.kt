@@ -49,7 +49,7 @@ class AuthArchitectureTest {
             "Node(::AuthPersonalTokenNode)",
             "Node(::AuthSessionLifecycleNode)",
             "Node(::AuthServiceAccountNode)",
-            "Node(::AuthLoginNode)",
+            "Node(::LoginInteractorNode)",
             "Node(::AuthPatNode)",
             "Node(::AuthTokenGrantNode)",
             "Node(::AuthSessionNode)",

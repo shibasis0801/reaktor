@@ -12,7 +12,6 @@ import dev.shibasis.reaktor.auth.jwt.toAuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.auth.kernel.PermissionRef
 import dev.shibasis.reaktor.auth.kernel.RoleRef
-import dev.shibasis.reaktor.auth.kernel.Scope
 import java.util.Date
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -51,14 +50,17 @@ class JwtRoundTripTest {
         assertEquals(listOf("a", "b"), claims.getStringListClaim("scp"))
         assertEquals(listOf("owner"), claims.getStringListClaim("roles"))
         assertEquals(listOf("project:read"), claims.getStringListClaim("permissions"))
+        assertNull(claims.getStringClaim("app_id"))
+        assertNull(claims.getStringClaim("appId"))
 
         val context = claims.toAuthContext()
         assertEquals("identity-1", context.identityId)
         assertEquals("tenant-1", context.tenantId)
         assertEquals("context-1", context.contextId)
-        assertTrue(Scope("a") in context.scopes)
+        assertTrue(PermissionRef(name = "a") in context.scopes)
         assertTrue(RoleRef(name = "owner") in context.roles)
         assertTrue(PermissionRef(name = "project:read") in context.permissions)
+        assertTrue(PermissionRef(name = "a") in context.permissions)
     }
 
     @Test

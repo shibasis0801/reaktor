@@ -24,6 +24,7 @@ import kotlin.js.Promise
 class WorkerJwtVerifier(
     private val issuer: String,
     private val jwksUrl: String,
+    private val jwksJson: String? = null,
     private val kv: KvNamespace? = null,
     private val cacheKey: String = "reaktor:jwks",
     private val cacheTtlSeconds: Int = 3600,
@@ -70,6 +71,8 @@ class WorkerJwtVerifier(
     }
 
     private suspend fun loadJwks(forceRefresh: Boolean): dynamic {
+        jwksJson?.takeIf { it.isNotBlank() }?.let { return parseJson(it) }
+
         val cache = kv // local val so the smart-cast survives into the inline runCatching lambdas below
         if (!forceRefresh && cache != null) {
             val cached = cache.getString(cacheKey)
@@ -100,11 +103,13 @@ fun verifyWorkerJwt(
     kv: Any? = null,
     cacheKey: String = "reaktor:jwks",
     cacheTtlSeconds: Int = 3600,
+    jwksJson: String? = null,
 ): Promise<Any?> =
     promiseOf {
         WorkerJwtVerifier(
             issuer = issuer,
             jwksUrl = jwksUrl,
+            jwksJson = jwksJson,
             kv = kv?.unsafeCast<KvNamespace>(),
             cacheKey = cacheKey,
             cacheTtlSeconds = cacheTtlSeconds,

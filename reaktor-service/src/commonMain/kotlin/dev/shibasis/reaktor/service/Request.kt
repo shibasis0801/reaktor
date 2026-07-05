@@ -10,13 +10,13 @@ open class Request(
     @Transient open val headers: MutableMap<String, String> = mutableMapOf(),
     @Transient open val queryParams: MutableMap<String, String> = mutableMapOf(),
     @Transient open val pathParams: MutableMap<String, String> = mutableMapOf(),
-    @Transient open var environment: Environment = Environment.STAGE
+    @Transient open var environment: Environment = Environment.PROD
 ) {
     @Transient
     @JsExport.Ignore
     val attributes: MutableMap<String, Any?> = mutableMapOf()
 
     @JsExport.Ignore
-    constructor(): this(mutableMapOf(), mutableMapOf(), mutableMapOf(), Environment.STAGE)
+    constructor(): this(mutableMapOf(), mutableMapOf(), mutableMapOf(), Environment.PROD)
 }
 

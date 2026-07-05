@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.service.ServiceChain
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import dev.shibasis.reaktor.service.ServiceInterceptor
 import dev.shibasis.reaktor.service.InterceptorStage
+import dev.shibasis.reaktor.service.serviceOperationKey
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
@@ -80,6 +81,18 @@ class ServiceIntegrationTest {
         assertEquals("HTTP:GET:Health.Ping", handler.endpoint.portType)
         assertEquals("/ping", handler.route)
     }
+
+    @Test
+    fun delegatedHandlerBindsOperationFromPropertyName() {
+        val service = DelegatedPingService()
+        val handler = service.handlers.single()
+        val expectedOperation = serviceOperationKey(PingRequest.serializer(), "ping")
+
+        assertEquals(service.ping, handler)
+        assertEquals(expectedOperation, handler.endpoint.portKey)
+        assertEquals("HTTP:GET:$expectedOperation", handler.endpoint.portType)
+        assertEquals("/ping", handler.route)
+    }
 }
 
 private class RecordingInterceptor : ServiceInterceptor {
@@ -104,6 +117,12 @@ private class PingService(
 
     init {
         use(interceptor)
+    }
+}
+
+private class DelegatedPingService : Service() {
+    val ping by GetHandler<PingRequest, PingResponse>("/ping") { request ->
+        PingResponse(message = request.message)
     }
 }
 

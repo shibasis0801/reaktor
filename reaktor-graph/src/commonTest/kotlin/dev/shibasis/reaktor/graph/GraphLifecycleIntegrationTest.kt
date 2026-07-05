@@ -15,6 +15,12 @@ import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.Push
 import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.portgraph.port.provides
+import dev.shibasis.reaktor.service.GetHandler
+import dev.shibasis.reaktor.service.Request
+import dev.shibasis.reaktor.service.Response
+import dev.shibasis.reaktor.service.Service
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -77,6 +83,22 @@ class GraphLifecycleIntegrationTest {
         assertEquals("/home", root.backStack.entries.value.last().edge.end.pattern.original)
         assertEquals("/chat", child.backStack.entries.value.last().edge.end.pattern.original)
     }
+
+    @Test
+    fun serviceApiConsumerAutoWiresToDelegatedHandlerProvider() = runTest {
+        val graph = Graph(dependencyAdapter = TestDependencyAdapter())
+        val service = CatalogClient()
+        val serviceNode = ServiceNode(graph, service)
+        val consumer = CatalogConsumerNode(graph)
+
+        graph.attach(serviceNode)
+        graph.attach(consumer)
+        graph.autoWire()
+
+        assertTrue(consumer.fetchApi.isConnected())
+        assertEquals(service.fetch, consumer.fetchApi())
+        assertEquals(CatalogResponse("catalog-1"), consumer.fetchApi(CatalogRequest("catalog-1")))
+    }
 }
 
 private class RecordingNode(
@@ -106,6 +128,32 @@ private class ConsumerNode(
 ) : BasicNode(graph) {
     val textPort by consumes<String>()
 }
+
+private abstract class CatalogService : Service() {
+    abstract val fetch: GetHandler<CatalogRequest, CatalogResponse>
+}
+
+private class CatalogClient : CatalogService() {
+    override val fetch by GetHandler<CatalogRequest, CatalogResponse>("/catalog") { request ->
+        CatalogResponse(request.id)
+    }
+}
+
+private class CatalogConsumerNode(
+    graph: Graph,
+) : BasicNode(graph) {
+    val fetchApi by api(CatalogService::fetch)
+}
+
+@Serializable
+private data class CatalogRequest(
+    val id: String = "",
+) : Request()
+
+@Serializable
+private data class CatalogResponse(
+    val id: String = "",
+) : Response()
 
 private class TestDependencyAdapter : DependencyAdapter<Unit>(Unit) {
     override fun createScope(

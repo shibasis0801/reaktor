@@ -24,6 +24,8 @@ open class ProviderPort<Functionality: Any>(
 
     override fun isConnected() = edges.isNotEmpty()
 
+    @JsName("target")
+    inline operator fun invoke(): Functionality = impl
     inline operator fun<R> invoke(fn: Functionality.() -> R): R = fn(impl)
     suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R = fn(impl)
 
@@ -65,10 +67,10 @@ inline fun <reified Functionality: Any> PortCapability.registerProvider(key: Str
     return registerProvider(Key(key), Type<Functionality>(), impl)
 }
 
-inline fun <reified Functionality: Any> PortCapability.provides(impl: Functionality) =
+inline fun <reified Functionality: Any> PortCapability.provides(impl: Functionality, name: String? = null) =
     PropertyDelegateProvider<PortCapability, PortDelegate<ProviderPort<Functionality>>> { thisRef, property ->
-        val port = thisRef.registerProvider(property.name, impl)
-        ReadOnlyProperty { _, _ -> port }
+        val port = thisRef.registerProvider(name ?: property.name, impl)
+        PortDelegate { _, _ -> port }
     }
 
 inline fun <reified Functionality: Any> PortCapability.getProvider(key: String = ""): ProviderPort<Functionality>? {

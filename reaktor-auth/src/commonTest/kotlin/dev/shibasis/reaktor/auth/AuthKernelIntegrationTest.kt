@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.auth
 
-import dev.shibasis.reaktor.auth.api.ExchangePatRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.TokenSet
 import dev.shibasis.reaktor.auth.api.TokenRequest
@@ -17,9 +16,8 @@ import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
 import dev.shibasis.reaktor.auth.kernel.ResourceRef
 import dev.shibasis.reaktor.auth.kernel.RoleRef
-import dev.shibasis.reaktor.auth.kernel.Scope
 import dev.shibasis.reaktor.auth.kernel.anyOf
-import dev.shibasis.reaktor.auth.kernel.requires
+import dev.shibasis.reaktor.auth.kernel.permits
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -37,7 +35,7 @@ class AuthKernelIntegrationTest {
         tokenId = "tok_123",
         issuer = AuthDefaults.ISSUER,
         audience = "manna-api",
-        scopes = setOf(Scope("event.read"), Scope("event.write")),
+        scopes = setOf(PermissionRef(name = "event.read"), PermissionRef(name = "event.write")),
         roles = setOf(RoleRef(name = "owner")),
         permissions = setOf(PermissionRef(name = "event.create")),
         method = AuthMethod.ACCESS_TOKEN,
@@ -45,7 +43,7 @@ class AuthKernelIntegrationTest {
 
     @Test
     fun authorizerAllowsAudienceAppTenantScopeAndResourceMatch() {
-        val requirement = requires("event.write")
+        val requirement = permits("event.write")
             .audience("manna-api")
             .inApp("app_manna")
             .inTenant("tenant_456")
@@ -64,14 +62,14 @@ class AuthKernelIntegrationTest {
 
     @Test
     fun authorizerDeniesMissingContextAndMismatchedAudienceBeforeAuthorizationChecks() {
-        val missingContext = LocalAuthorizer.authorize(null, requires("event.read"))
+        val missingContext = LocalAuthorizer.authorize(null, permits("event.read"))
         assertIs<AuthDecision.Deny>(missingContext)
         assertEquals(401, missingContext.statusCode)
         assertEquals(AuthDenyReason.MISSING_AUTH_CONTEXT, missingContext.reason)
 
         val invalidAudience = LocalAuthorizer.authorize(
             userContext,
-            requires("event.read").audience("other-api"),
+            permits("event.read").audience("other-api"),
         )
         assertIs<AuthDecision.Deny>(invalidAudience)
         assertEquals(401, invalidAudience.statusCode)
@@ -81,13 +79,13 @@ class AuthKernelIntegrationTest {
     @Test
     fun authorizerSupportsAnyOfAndPrincipalKindConstraints() {
         val readOrAdmin = anyOf(
-            requires("admin.all"),
-            requires("event.read"),
+            permits("admin.all"),
+            permits("event.read"),
         ).forUsers()
 
         assertIs<AuthDecision.Allow>(LocalAuthorizer.authorize(userContext, readOrAdmin))
 
-        val serviceOnly = requires("event.read").forServices()
+        val serviceOnly = permits("event.read").forServices()
         val denied = LocalAuthorizer.authorize(userContext, serviceOnly)
         assertIs<AuthDecision.Deny>(denied)
         assertEquals(AuthDenyReason.INVALID_PRINCIPAL_KIND, denied.reason)
@@ -137,13 +135,13 @@ class AuthKernelIntegrationTest {
             ),
         )
 
-        val denied = LocalAuthorizer.authorize(delegatedContext, requires("event.write"))
+        val denied = LocalAuthorizer.authorize(delegatedContext, permits("event.write"))
         assertIs<AuthDecision.Deny>(denied)
         assertEquals(AuthDenyReason.DELEGATION_DENIED, denied.reason)
 
         val allowed = LocalAuthorizer.authorize(
             delegatedContext,
-            requires("event.write").allowDelegatedActor(),
+            permits("event.write").allowDelegatedActor(),
         )
         assertIs<AuthDecision.Allow>(allowed)
     }
@@ -160,7 +158,7 @@ class AuthKernelIntegrationTest {
         assertEquals(userContext.contextId, context.contextId)
         assertEquals(userContext.sessionId, context.sessionId)
         assertEquals(userContext.audience, context.audience)
-        assertContains(context.scopes, Scope("event.read"))
+        assertContains(context.scopes, PermissionRef(name = "event.read"))
         assertContains(context.permissions, PermissionRef(name = "event.create"))
     }
 
@@ -187,8 +185,5 @@ class AuthKernelIntegrationTest {
         assertEquals("manna-mcp", token.audience)
         assertEquals(AuthDefaults.ACCESS_TOKEN_TTL_SECONDS, token.ttlSeconds)
 
-        val exchange = ExchangePatRequest()
-        assertEquals("manna-mcp", exchange.audience)
-        assertEquals(AuthDefaults.ACCESS_TOKEN_TTL_SECONDS, exchange.ttlSeconds)
     }
 }

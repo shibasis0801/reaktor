@@ -12,10 +12,16 @@ class D1Mutation internal constructor(
         get() = raw.success == true
 
     val changedRowCount: Int?
-        get() = raw.meta?.changes.asIntOrNull()
+        get() {
+            val changes: Any? = raw.meta?.changes
+            return changes.asIntOrNull()
+        }
 
     val durationMs: Double?
-        get() = raw.meta?.duration.asDoubleOrNull()
+        get() {
+            val duration: Any? = raw.meta?.duration
+            return duration.asDoubleOrNull()
+        }
 
     val lastRowId: String?
         get() = raw.meta?.last_row_id?.toString()

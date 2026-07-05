@@ -20,6 +20,9 @@ interface ConcurrencyCapability: Capability {
     fun cancel() = coroutineScope.cancel()
     fun<R> async(fn: suspend CoroutineScope.() -> R) = coroutineScope.async { fn() }
     fun launch(fn: suspend CoroutineScope.() -> Unit) = coroutineScope.launch { fn() }
+
+    operator fun invoke(fn: suspend CoroutineScope.() -> Unit) = launch { fn() }
+
     suspend fun<R> execute(fn: suspend () -> R): R = async { fn() }.await()
     suspend fun<R> withContext(fn: suspend CoroutineScope.() -> R): R = withContext(coroutineDispatcher, fn)
 }

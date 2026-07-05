@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.auth.kernel
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlin.js.JsExport
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -10,10 +11,10 @@ object AuthDefaults {
     const val ISSUER = "https://api.reaktor.build/auth"
     const val WEBSITE_ORIGIN = "https://reaktor.build"
     const val ACCESS_TOKEN_TTL_SECONDS = 15 * 60
-    const val LOGIN_ACCESS_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
 }
 
 @Serializable
+@JsExport
 enum class AuthProviderKind {
     GOOGLE,
     APPLE,
@@ -22,6 +23,7 @@ enum class AuthProviderKind {
 }
 
 @Serializable
+@JsExport
 enum class PlatformKind {
     ANDROID,
     IOS,
@@ -31,6 +33,7 @@ enum class PlatformKind {
 }
 
 @Serializable
+@JsExport
 enum class IdentityStatus {
     ACTIVE,
     DISABLED,
@@ -61,6 +64,7 @@ data class ProviderAccount(
 )
 
 @Serializable
+@JsExport
 enum class PrincipalKind {
     USER,
     SERVICE,
@@ -69,6 +73,7 @@ enum class PrincipalKind {
 }
 
 @Serializable
+@JsExport
 enum class PrincipalStatus {
     ACTIVE,
     DISABLED,
@@ -90,6 +95,7 @@ data class PrincipalRef(
 )
 
 @Serializable
+@JsExport
 enum class MembershipStatus {
     ACTIVE,
     INVITED,
@@ -144,7 +150,13 @@ data class ResourceRef(
 data class Action(val name: String)
 
 @Serializable
-data class Scope(val value: String)
+data class PermissionRef(
+    val id: String? = null,
+    val name: String
+) {
+    val value: String
+        get() = name
+}
 
 @Serializable
 data class RoleRef(
@@ -153,12 +165,7 @@ data class RoleRef(
 )
 
 @Serializable
-data class PermissionRef(
-    val id: String? = null,
-    val name: String
-)
-
-@Serializable
+@JsExport
 enum class AuthMethod {
     ACCESS_TOKEN,
     REFRESH_TOKEN,
@@ -187,7 +194,7 @@ data class AuthContext(
     val credentialId: String? = null,
     val issuer: String = AuthDefaults.ISSUER,
     val audience: String,
-    val scopes: Set<Scope> = emptySet(),
+    val scopes: Set<PermissionRef> = emptySet(),
     val roles: Set<RoleRef> = emptySet(),
     val permissions: Set<PermissionRef> = emptySet(),
     val method: AuthMethod,
@@ -212,7 +219,7 @@ data class AuthRequirement(
     val tenant: TenantConstraint? = null,
     val anyOf: List<AuthRequirement> = emptyList(),
     val allOf: List<AuthRequirement> = emptyList(),
-    val scopes: Set<Scope> = emptySet(),
+    val scopes: Set<PermissionRef> = emptySet(),
     val permissions: Set<PermissionRef> = emptySet(),
     val roles: Set<RoleRef> = emptySet(),
     val resource: ResourceRef? = null,
@@ -285,7 +292,7 @@ data class TokenClaims(
     val tenantId: String? = null,
     val contextId: String? = null,
     val principalKind: PrincipalKind = PrincipalKind.USER,
-    val scopes: Set<Scope> = emptySet(),
+    val scopes: Set<PermissionRef> = emptySet(),
     @Contextual val issuedAt: Instant? = null,
     @Contextual val expiresAt: Instant? = null,
     val raw: JsonObject = JsonObject(emptyMap())
@@ -300,7 +307,7 @@ data class AccessTokenRequest(
     val contextId: String? = null,
     val sessionId: String? = null,
     val credentialId: String? = null,
-    val scopes: Set<Scope> = emptySet(),
+    val scopes: Set<PermissionRef> = emptySet(),
     val ttlSeconds: Int = AuthDefaults.ACCESS_TOKEN_TTL_SECONDS,
     val actor: PrincipalRef? = null
 )
@@ -311,7 +318,7 @@ data class IssuedToken(
     val tokenType: String = "Bearer",
     val expiresInSeconds: Int,
     val tokenId: String? = null,
-    val scopes: Set<Scope> = emptySet()
+    val scopes: Set<PermissionRef> = emptySet()
 )
 
 @Serializable
@@ -382,12 +389,9 @@ object LocalAuthorizer {
             if (decision is AuthDecision.Deny) return decision
         }
 
-        if (!context.scopes.containsAll(requirement.scopes)) {
-            return deny(AuthDenyReason.MISSING_SCOPE, 403, "Required scope missing")
-        }
-
-        if (!hasPermissions(context, requirement.permissions)) {
-            return deny(AuthDenyReason.MISSING_PERMISSION, 403, "Required permission missing")
+        val requiredCapabilities = requirement.permissions + requirement.scopes
+        if (!hasPermissions(context, requiredCapabilities)) {
+            return deny(AuthDenyReason.MISSING_PERMISSION, 403, "Required capability missing")
         }
 
         if (!hasRoles(context, requirement.roles)) {
@@ -424,18 +428,6 @@ object LocalAuthorizer {
             return deny(AuthDenyReason.INVALID_PRINCIPAL_KIND, 403, "Principal type denied")
         }
 
-        if (!context.scopes.containsAll(requirement.scopes)) {
-            return deny(AuthDenyReason.MISSING_SCOPE, 403, "Required scope missing")
-        }
-
-        if (!hasPermissions(context, requirement.permissions)) {
-            return deny(AuthDenyReason.MISSING_PERMISSION, 403, "Required permission missing")
-        }
-
-        if (!hasRoles(context, requirement.roles)) {
-            return deny(AuthDenyReason.MISSING_ROLE, 403, "Required role missing")
-        }
-
         val resource = requirement.resource
         if (resource != null && !resourceMatches(context, resource)) {
             return deny(AuthDenyReason.RESOURCE_DENIED, 403, "Resource access denied")
@@ -446,8 +438,9 @@ object LocalAuthorizer {
 
     private fun hasPermissions(context: AuthContext, required: Set<PermissionRef>): Boolean {
         if (required.isEmpty()) return true
-        val ids = context.permissions.mapNotNull { it.id }.toSet()
-        val names = context.permissions.map { it.name }.toSet()
+        val capabilities = context.permissions + context.scopes
+        val ids = capabilities.mapNotNull { it.id }.toSet()
+        val names = capabilities.map { it.name }.toSet()
         return required.all { requiredPermission ->
             requiredPermission.id?.let { it in ids } ?: (requiredPermission.name in names)
         }
@@ -478,8 +471,9 @@ class SimpleAuthorizer : Authorizer {
         LocalAuthorizer.authorize(context, requirement)
 }
 
+@Deprecated("Use permits; auth scope and permission requirements are the same capability model.")
 fun requires(scope: String): AuthRequirement =
-    AuthRequirement(scopes = setOf(Scope(scope)))
+    permits(scope)
 
 fun requires(action: Action): AuthRequirement =
     AuthRequirement(permissions = setOf(PermissionRef(name = action.name)))

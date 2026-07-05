@@ -90,11 +90,11 @@ Lower-level graph consumers can use:
 | --- | --- |
 | `AuthRepositoryNode` | app catalog, principal directory |
 | `AuthJwtNode` | signing keys, JWT minter/verifier, external identity verifier |
-| `AuthPersonalTokenNode` | PAT storage, verify, revoke, PAT -> JWT |
+| `AuthPersonalTokenNode` | PAT storage, verify, revoke, PAT token mint helper |
 | `AuthSessionLifecycleNode` | session creation, refresh rotation, logout |
 | `AuthServiceAccountNode` | service-account auth and token minting |
-| `AuthLoginNode` | external login -> session + token set |
-| `AuthPatNode` | PAT mint/verify/exchange |
+| `LoginInteractorNode` | external login -> session + token set |
+| `AuthPatNode` | PAT mint/verify |
 | `AuthTokenGrantNode` | `pat`, `client_credentials`, token exchange |
 | `AuthSessionNode` | refresh, logout, me, logout-all |
 | `AuthHttpServiceNode` | `AuthService` route projection |

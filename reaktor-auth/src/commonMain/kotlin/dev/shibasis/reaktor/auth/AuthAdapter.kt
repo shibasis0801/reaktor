@@ -4,15 +4,22 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.auth.db.AuthObjectStore
 import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
+import dev.shibasis.reaktor.auth.api.RefreshRequest
+import dev.shibasis.reaktor.auth.api.TokenSet
+import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.transport.bearerAuthorization
+import dev.shibasis.reaktor.auth.db.AuthObjectStore
+import dev.shibasis.reaktor.auth.toAuthContext
+import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.db.Database
-import dev.shibasis.reaktor.graph.service.Environment
+import dev.shibasis.reaktor.service.Environment
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Clock
 
 abstract class AuthAdapter<Controller>(
     controller: Controller,
@@ -37,7 +44,7 @@ abstract class AuthAdapter<Controller>(
 
     suspend fun login(
         appId: String,
-        environment: Environment = Environment.STAGE,
+        environment: Environment = Environment.PROD,
         userProvider: UserProvider,
         mode: AuthLoginMode = AuthLoginMode.Interactive
     ): LoginResponse {
@@ -76,6 +83,7 @@ abstract class AuthAdapter<Controller>(
                     provider = userProvider,
                     givenName = providerUser.givenName,
                     familyName = providerUser.familyName,
+                    profile = providerUser.json(),
                     environment = environment
                 )
             )
@@ -85,8 +93,9 @@ abstract class AuthAdapter<Controller>(
 
         when (response) {
             is LoginResponse.Success -> {
+                val context = response.context.toAuthContext()
                 cache(response)
-                transitionTo(AuthLoginState.Authenticated(response.user))
+                transitionTo(AuthLoginState.Authenticated(context))
             }
             is LoginResponse.Failure -> {
                 transitionTo(AuthLoginState.Failed(userProvider, mode, AuthLoginFailure.ReaktorRejected(response)))
@@ -99,21 +108,90 @@ abstract class AuthAdapter<Controller>(
 
     abstract suspend fun logout(): Result<Unit>
 
+    suspend fun accessToken(): String? =
+        authStoreOrNull()?.getAccessToken()
+
+    suspend fun refreshToken(): String? =
+        authStoreOrNull()?.getRefreshToken()
+
+    suspend fun sessionHeaders(
+        environment: Environment = Environment.PROD,
+        refreshIfMissing: Boolean = true,
+    ): MutableMap<String, String> {
+        val store = authStoreOrNull()
+        val cached = store?.getFreshAccessToken()
+        val refreshed = if (cached == null && refreshIfMissing) {
+            refreshSession(environment)?.accessToken
+        } else {
+            null
+        }
+        val accessToken = cached ?: refreshed
+            ?: return mutableMapOf()
+
+        return mutableMapOf(AUTHORIZATION_HEADER to bearerAuthorization(accessToken))
+    }
+
+    suspend fun refreshSession(environment: Environment = Environment.PROD): TokenSet? {
+        val store = authStoreOrNull() ?: return null
+        val refreshToken = store.getRefreshToken() ?: return null
+        val response = runCatching {
+            authClient.sessionRefresh(RefreshRequest(refreshToken = refreshToken, environment = environment))
+        }.getOrElse { error ->
+            Logger.e(error) { "Failed to refresh Reaktor auth session" }
+            return null
+        }
+
+        if (response.statusCode != StatusCode.OK) return null
+        val tokenSet = response.tokenSet ?: return null
+        cache(tokenSet)
+        return tokenSet
+    }
+
     protected fun resetLoginState() {
         transitionTo(AuthLoginState.Idle)
     }
 
     private suspend fun cache(response: LoginResponse.Success) {
         val db = Feature.Database ?: return
-        transitionTo(AuthLoginState.CachingSession(response.user.id))
+        transitionTo(AuthLoginState.CachingSession(response.context.principalId))
         try {
             val authStore = AuthObjectStore(db)
-            authStore.setUser(response.user)
-            authStore.setAccessToken(response.accessToken)
-            authStore.setRefreshToken(response.refreshToken)
+            authStore.setContext(response.context.toAuthContext())
+            authStore.setTokenSet(response.tokenSet)
         } catch (e: Exception) {
             Logger.e(e) { "Failed to cache auth tokens to ObjectDatabase" }
         }
+    }
+
+    private suspend fun cache(tokenSet: TokenSet) {
+        val store = authStoreOrNull() ?: return
+        runCatching {
+            store.setTokenSet(tokenSet)
+        }.onFailure { error ->
+            Logger.e(error) { "Failed to cache refreshed auth tokens to ObjectDatabase" }
+        }
+    }
+
+    private fun authStoreOrNull(): AuthObjectStore? =
+        Feature.Database?.let(::AuthObjectStore)
+
+    private suspend fun AuthObjectStore.setTokenSet(tokenSet: TokenSet) {
+        setAccessToken(tokenSet.accessToken)
+        tokenSet.accessTokenExpiresAtEpochMillis()?.let {
+            setAccessTokenExpiresAtEpochMillis(it)
+        } ?: clearAccessTokenExpiresAtEpochMillis()
+        tokenSet.refreshToken?.let { setRefreshToken(it) }
+    }
+
+    private suspend fun AuthObjectStore.getFreshAccessToken(): String? {
+        val token = getAccessToken() ?: return null
+        val expiresAt = getAccessTokenExpiresAtEpochMillis() ?: return token
+        return token.takeIf { expiresAt > Clock.System.now().toEpochMilliseconds() + REFRESH_SKEW_MILLIS }
+    }
+
+    private fun TokenSet.accessTokenExpiresAtEpochMillis(): Long? {
+        if (expiresInSeconds <= 0) return null
+        return Clock.System.now().toEpochMilliseconds() + expiresInSeconds.toLong() * 1_000L
     }
 
     private fun failLogin(
@@ -129,6 +207,10 @@ abstract class AuthAdapter<Controller>(
     private fun transitionTo(state: AuthLoginState) {
         _loginState.value = state
         Logger.i { "Auth login state: ${state.debugName}" }
+    }
+
+    private companion object {
+        const val REFRESH_SKEW_MILLIS = 60_000L
     }
 }
 

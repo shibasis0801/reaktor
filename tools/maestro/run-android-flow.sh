@@ -29,6 +29,26 @@ if [[ -z "${DEVICE_ID}" ]]; then
   exit 1
 fi
 
+if [[ -n "${MAESTRO_APP_FILE:-}" ]]; then
+  if [[ ! -f "${MAESTRO_APP_FILE}" ]]; then
+    echo "MAESTRO_APP_FILE does not exist: ${MAESTRO_APP_FILE}" >&2
+    exit 1
+  fi
+
+  echo "Installing Android app on ${DEVICE_ID}: ${MAESTRO_APP_FILE}"
+  INSTALL_OUTPUT="$("${ADB_BIN}" -s "${DEVICE_ID}" install -r -d "${MAESTRO_APP_FILE}" 2>&1)" || {
+    if [[ "${INSTALL_OUTPUT}" == *"INSTALL_FAILED_UPDATE_INCOMPATIBLE"* && -n "${MAESTRO_APP_ID:-}" ]]; then
+      echo "${INSTALL_OUTPUT}"
+      echo "Existing ${MAESTRO_APP_ID} has an incompatible signature; uninstalling before debug install."
+      "${ADB_BIN}" -s "${DEVICE_ID}" uninstall "${MAESTRO_APP_ID}" >/dev/null
+      "${ADB_BIN}" -s "${DEVICE_ID}" install -r -d "${MAESTRO_APP_FILE}"
+    else
+      echo "${INSTALL_OUTPUT}" >&2
+      exit 1
+    fi
+  }
+fi
+
 prepare_android_device "${ADB_BIN}" "${DEVICE_ID}"
 
 OUTPUT_ROOT="$(resolve_output_root tmp/maestro-results/android)"
