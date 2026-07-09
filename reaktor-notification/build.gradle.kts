@@ -30,16 +30,15 @@ kotlin {
         }
     }
     darwin {
+        dependencies {
+            implementation("dev.gitlive:firebase-app:2.4.0")
+        }
         podDependencies {
             // FCM transport (DarwinRemoteMessaging) lives in this module now — these pods
             // moved out of the app. NOTE: the Xcode 26 "Catalyst-only" xcodebuild workaround
             // tasks in the app's build.gradle.kts (`darwinPods` loop) must be replicated here
             // for FirebaseCore + FirebaseMessaging, and shared FirebaseCore reconciled with
             // reaktor-telemetry (Analytics/Crashlytics) — verify with an on-device iOS build.
-            pod("FirebaseCore") {
-                version = "11.0"
-                extraOpts += listOf("-compiler-option", "-fmodules")
-            }
             pod("FirebaseMessaging") {
                 version = "11.0"
                 extraOpts += listOf("-compiler-option", "-fmodules")

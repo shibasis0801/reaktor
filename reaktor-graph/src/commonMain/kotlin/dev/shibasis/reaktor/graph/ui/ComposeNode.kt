@@ -22,7 +22,6 @@ interface ComposeContainer: View {
     fun Content(renderer: @Composable (graph: Graph, isFocused: Boolean) -> Unit)
 }
 
-// todo Make content impossible to render if there is no route binding
 interface ComposeContent: View {
     @Composable
     fun Content()

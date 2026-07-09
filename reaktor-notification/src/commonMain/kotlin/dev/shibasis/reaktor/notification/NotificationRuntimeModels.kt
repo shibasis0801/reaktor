@@ -36,6 +36,7 @@ data class DevicePushToken(
     val provider: String,
     val value: String,
     val projectId: String? = null,
+    val deviceId: String? = null,
 )
 
 @Serializable

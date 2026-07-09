@@ -1,9 +1,11 @@
 package dev.shibasis.reaktor.notification
 
 import co.touchlab.kermit.Logger
-import cocoapods.FirebaseCore.FIRApp
 import cocoapods.FirebaseMessaging.FIRMessaging
 import cocoapods.FirebaseMessaging.FIRMessagingDelegateProtocol
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.apps
+import dev.gitlive.firebase.initialize
 import dev.shibasis.reaktor.core.framework.AppLaunchHandler
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.RemoteNotificationHandler
@@ -87,7 +89,9 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
 
     /** [AppLaunchHandler]: configure Firebase + the messaging transport at launch. */
     override fun didFinishLaunching(application: UIApplication) {
-        FIRApp.configure()
+        if (Firebase.apps().isEmpty()) {
+            Firebase.initialize()
+        }
         configure()
         start()
     }

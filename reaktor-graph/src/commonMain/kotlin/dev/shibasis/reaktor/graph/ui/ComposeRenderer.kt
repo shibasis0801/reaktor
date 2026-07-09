@@ -58,7 +58,6 @@ fun GraphContent(
                     GraphContent(childGraph, childFocused && isFocused)
                 }
                 is ComposeContent -> node.Content()
-                else -> {}
             }
         }
     }

@@ -109,12 +109,24 @@ class AndroidNotificationsClient(
                     continuation.resume(if (task.isSuccessful) task.result else null)
                 }
         }
-        cachedToken = token?.let { DevicePushToken(provider = "fcm", value = it, projectId = config.fcmProjectId) }
+        cachedToken = token?.let {
+            DevicePushToken(
+                provider = "fcm",
+                value = it,
+                projectId = config.fcmProjectId,
+                deviceId = appContext.notificationDeviceId(),
+            )
+        }
         return cachedToken
     }
 
     fun recordNewToken(token: String) {
-        cachedToken = DevicePushToken(provider = "fcm", value = token, projectId = config.fcmProjectId)
+        cachedToken = DevicePushToken(
+            provider = "fcm",
+            value = token,
+            projectId = config.fcmProjectId,
+            deviceId = appContext.notificationDeviceId(),
+        )
         devHarness.recordToken(cachedToken)
     }
 
@@ -289,3 +301,7 @@ class AndroidNotificationsClient(
             deliveredIds.toList()
         }
 }
+
+private fun Context.notificationDeviceId(): String? =
+    Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+        ?.takeIf { it.isNotBlank() }

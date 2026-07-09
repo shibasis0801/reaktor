@@ -21,6 +21,7 @@ import platform.UserNotifications.UNTextInputNotificationResponse
 import platform.UserNotifications.UNUserNotificationCenter
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
+import platform.UIKit.UIDevice
 import kotlin.coroutines.resume
 import kotlin.math.absoluteValue
 
@@ -119,7 +120,13 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
     }
 
     fun recordFcmToken(value: String?) {
-        token = value?.let { DevicePushToken(provider = "fcm", value = it) }
+        token = value?.let {
+            DevicePushToken(
+                provider = "fcm",
+                value = it,
+                deviceId = UIDevice.currentDevice.identifierForVendor?.UUIDString,
+            )
+        }
         devHarness.recordToken(token, apnsTokenLength)
     }
 

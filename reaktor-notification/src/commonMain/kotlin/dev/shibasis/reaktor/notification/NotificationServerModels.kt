@@ -12,6 +12,7 @@ data class NotificationEndpointInput(
     val provider: String = "",
     val token: String = "",
     val projectId: String? = null,
+    val deviceId: String? = null,
     val appId: String? = null,
     val appVersion: String? = null,
     val locale: String? = null,
@@ -28,6 +29,7 @@ data class NotificationEndpointRecord(
     val provider: String,
     val tokenTail: String,
     val projectId: String? = null,
+    val deviceId: String? = null,
     val permissionState: String? = null,
     val enabled: Boolean = true,
     val updatedAt: String = "",
@@ -132,6 +134,7 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
         put(
             "message",
             buildJsonObject {
+                val providerData = providerData()
                 put("token", token)
                 put(
                     "notification",
@@ -143,7 +146,53 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
                 put(
                     "data",
                     buildJsonObject {
-                        providerData().forEach { (key, value) -> put(key, value) }
+                        providerData.forEach { (key, value) -> put(key, value) }
+                    },
+                )
+                put(
+                    "android",
+                    buildJsonObject {
+                        put("priority", "HIGH")
+                        put(
+                            "notification",
+                            buildJsonObject {
+                                put("channel_id", categoryId)
+                                put("tag", notificationId)
+                                put("notification_priority", "PRIORITY_HIGH")
+                                put("default_sound", true)
+                            },
+                        )
+                    },
+                )
+                put(
+                    "apns",
+                    buildJsonObject {
+                        put(
+                            "headers",
+                            buildJsonObject {
+                                put("apns-priority", "10")
+                            },
+                        )
+                        put(
+                            "payload",
+                            buildJsonObject {
+                                put(
+                                    "aps",
+                                    buildJsonObject {
+                                        put(
+                                            "alert",
+                                            buildJsonObject {
+                                                put("title", title)
+                                                put("body", body)
+                                            },
+                                        )
+                                        put("category", categoryId)
+                                        put("thread-id", data["chatId"] ?: categoryId)
+                                        put("sound", "default")
+                                    },
+                                )
+                            },
+                        )
                     },
                 )
             },

@@ -70,6 +70,12 @@ class NotificationContractsTest {
         assertEquals("none", data["reaktor_route_type"])
         assertTrue(fcmBody.contains("\"token\":\"token-1\""))
         assertTrue(fcmBody.contains("\"data\""))
+        assertTrue(fcmBody.contains("\"android\""))
+        assertTrue(fcmBody.contains("\"priority\":\"HIGH\""))
+        assertTrue(fcmBody.contains("\"channel_id\":\"system\""))
+        assertTrue(fcmBody.contains("\"apns\""))
+        assertTrue(fcmBody.contains("\"apns-priority\":\"10\""))
+        assertTrue(fcmBody.contains("\"thread-id\":\"system\""))
         assertEquals("delivery-1", result.deliveryId)
         assertEquals(NotificationDeliveryStatuses.DryRunAccepted, result.status)
     }
