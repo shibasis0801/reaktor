@@ -142,24 +142,26 @@ class ConcurrentHashMap<K : Any, V : Any>(
 
     /**
      * Returns the value associated with [key], or null.
-     * Wait-free: no CAS, no spin. Follows REDIRECT chains during resize.
+     * Wait-free: no CAS, no spin.
+     *
+     * During an in-progress resize a probe chain can interleave live entries and
+     * REDIRECT markers, and the key may live in either table. A REDIRECT therefore
+     * must not terminate the old-table probe (the key can sit later in the chain),
+     * and a miss in the old table must fall through to the next table.
      */
     operator fun get(key: K): V? {
         val hash = spread(key.hashCode())
-        var t = currentTable()
+        var t: Table<K, V>? = currentTable()
 
-        while (true) {
+        while (t != null) {
             var idx = hash and t.mask
             var probes = 0
+            var chainEnded = false
 
             while (probes <= t.maxProbe) {
                 when (val slot = t.buckets[idx].load()) {
-                    null -> return null
-                    TOMBSTONE -> { }
-                    REDIRECT -> {
-                        t = t.nextTable.load() ?: return null
-                        break
-                    }
+                    null -> { chainEnded = true }
+                    TOMBSTONE, REDIRECT -> { }
                     else -> {
                         @Suppress("UNCHECKED_CAST")
                         val entry = slot as Entry<K, V>
@@ -168,12 +170,14 @@ class ConcurrentHashMap<K : Any, V : Any>(
                         }
                     }
                 }
+                if (chainEnded) break
                 probes++
                 idx = (idx + 1) and t.mask
             }
 
-            if (probes > t.maxProbe) return null
+            t = t.nextTable.load()
         }
+        return null
     }
 
     /**
@@ -245,16 +249,40 @@ class ConcurrentHashMap<K : Any, V : Any>(
     /**
      * Weakly consistent iteration. May reflect concurrent modifications partially.
      * Guaranteed to visit each key at-most-once if no concurrent puts for that key.
+     *
+     * During an in-progress resize entries are split across the old and next tables
+     * (REDIRECT buckets have already moved), so both tables are walked; an entry
+     * that is momentarily present in both (migrated but not yet redirected) is
+     * deduplicated by key.
      */
     fun forEach(action: (K, V) -> Unit) {
         val t = currentTable()
-        for (i in 0 until t.capacity) {
-            val slot = t.buckets[i].load()
-            if (slot != null && slot !== TOMBSTONE && slot !== REDIRECT) {
-                @Suppress("UNCHECKED_CAST")
-                val entry = slot as Entry<K, V>
-                action(entry.key, entry.value)
+        val next = t.nextTable.load()
+
+        if (next == null) {
+            for (i in 0 until t.capacity) {
+                val slot = t.buckets[i].load()
+                if (slot != null && slot !== TOMBSTONE && slot !== REDIRECT) {
+                    @Suppress("UNCHECKED_CAST")
+                    val entry = slot as Entry<K, V>
+                    action(entry.key, entry.value)
+                }
             }
+            return
+        }
+
+        val seen = HashSet<K>()
+        var table: Table<K, V>? = t
+        while (table != null) {
+            for (i in 0 until table.capacity) {
+                val slot = table.buckets[i].load()
+                if (slot != null && slot !== TOMBSTONE && slot !== REDIRECT) {
+                    @Suppress("UNCHECKED_CAST")
+                    val entry = slot as Entry<K, V>
+                    if (seen.add(entry.key)) action(entry.key, entry.value)
+                }
+            }
+            table = table.nextTable.load()
         }
     }
 
