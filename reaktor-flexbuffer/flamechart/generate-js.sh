@@ -30,13 +30,10 @@ mkdir -p "$OUTPUT_DIR"
 
 cd "$ROOT_DIR"
 
-echo "[JS] Building Kotlin/JS (IR) Node.js distribution..."
+echo "[JS] Building Kotlin/JS (IR) production Node.js distribution..."
 ./gradlew :reaktor-flexbuffer:jsNodeProductionLibraryDistribution --quiet 2>&1 || {
-    echo "[JS] Production build failed, trying development build..."
-    ./gradlew :reaktor-flexbuffer:jsNodeDevelopmentLibraryDistribution --quiet 2>&1 || {
-        echo "[JS] JS build failed. Check that 'web {}' target is configured."
-        exit 1
-    }
+    echo "[JS] Production JS build failed. Refusing to substitute a development artifact."
+    exit 1
 }
 
 # Find the compiled JS output
@@ -44,19 +41,17 @@ JS_OUTPUT=""
 for candidate in \
     "$PROJECT_DIR/build/dist/js/productionLibrary/reaktor-flexbuffer.mjs" \
     "$PROJECT_DIR/build/dist/js/productionLibrary/reaktor-flexbuffer.js" \
-    "$PROJECT_DIR/build/dist/js/developmentLibrary/reaktor-flexbuffer.mjs" \
-    "$PROJECT_DIR/build/dist/js/developmentLibrary/reaktor-flexbuffer.js" \
     "$PROJECT_DIR/build/compileSync/js/main/productionLibrary/kotlin/reaktor-flexbuffer.mjs" \
     "$PROJECT_DIR/build/compileSync/js/main/productionLibrary/kotlin/reaktor-flexbuffer.js"; do
     [ -f "$candidate" ] && JS_OUTPUT="$candidate" && break
 done
 
 if [ -z "$JS_OUTPUT" ]; then
-    echo "[JS] WARNING: Could not find compiled JS output."
-    echo "[JS] Searching for any .mjs/.js output..."
-    JS_OUTPUT=$(find "$PROJECT_DIR/build" -name "*.mjs" -path "*/js/*" 2>/dev/null | head -1 || echo "")
+    echo "[JS] WARNING: Could not find production JS output at a known location."
+    echo "[JS] Searching production-library paths only..."
+    JS_OUTPUT=$(find "$PROJECT_DIR/build" -name "reaktor-flexbuffer*.mjs" -path "*/productionLibrary/*" -print -quit 2>/dev/null || echo "")
     if [ -z "$JS_OUTPUT" ]; then
-        JS_OUTPUT=$(find "$PROJECT_DIR/build" -name "reaktor-flexbuffer*.js" -path "*/js/*" 2>/dev/null | head -1 || echo "")
+        JS_OUTPUT=$(find "$PROJECT_DIR/build" -name "reaktor-flexbuffer*.js" -path "*/productionLibrary/*" -print -quit 2>/dev/null || echo "")
     fi
 fi
 
@@ -66,6 +61,8 @@ if [ -z "$JS_OUTPUT" ]; then
 fi
 
 echo "[JS] Found JS output: $JS_OUTPUT"
+echo "[JS] Matrix controls: REAKTOR_JS_BENCH_WARMUP_ITERATIONS, REAKTOR_JS_BENCH_ITERATIONS,"
+echo "[JS]                  REAKTOR_JS_BENCH_WARMUP_ROUNDS, REAKTOR_JS_BENCH_ROUNDS"
 
 # Create a Node.js runner script that imports and runs the benchmark
 JS_DIR="$(dirname "$JS_OUTPUT")"

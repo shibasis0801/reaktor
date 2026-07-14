@@ -7,7 +7,7 @@ import dev.shibasis.reaktor.flexbuffer.BenchChatThread
 import dev.shibasis.reaktor.flexbuffer.BenchTimeSeriesChunk
 import dev.shibasis.reaktor.flexbuffer.BenchUserProfile
 import dev.shibasis.reaktor.flexbuffer.BenchmarkData
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import kotlinx.serialization.json.Json
@@ -51,7 +51,7 @@ object PhaseProfiler {
             ?: "flamechart/output/phase"
         val outputDir = File(outputDirPath).absoluteFile.apply { mkdirs() }
         println("Output dir: ${outputDir.absolutePath}")
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         val userProfile = BenchmarkData.userProfile()
         val apiResponse = BenchmarkData.apiResponse()
@@ -111,16 +111,16 @@ object PhaseProfiler {
         for ((name, work) in phases) {
             // Toggle registry based on tier
             if (name.contains("-raw-")) FlexCoderRegistry.clear()
-            else registerGeneratedFlexCoders()
+            else ReaktorFlexbufferCoders.register()
             repeat(WARMUP) { sink = work() }
         }
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         println("Warmup done.")
 
         // For each phase: configure registry, capture CPU flamegraph, capture alloc flamegraph
         for ((name, work) in phases) {
             if (name.contains("-raw-")) FlexCoderRegistry.clear()
-            else registerGeneratedFlexCoders()
+            else ReaktorFlexbufferCoders.register()
 
             val cpuFile = File(outputDir, "$name-cpu.html")
             asprof.start("cpu", cpuFile.absolutePath)
@@ -140,7 +140,7 @@ object PhaseProfiler {
             val allocUs = allocTime.inWholeMicroseconds.toDouble() / MEASURE
             println("ALLOC %-38s %7.2f us/op -> %s".format(name, allocUs, allocFile.name))
         }
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         println("\nFlamegraphs written under ${outputDir.absolutePath}/")
     }
 }

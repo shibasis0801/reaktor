@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:OptIn(ExperimentalUnsignedTypes::class)
 @file:Suppress("NOTHING_TO_INLINE")
 
 package dev.shibasis.reaktor.flexbuffer.flatbuffers
@@ -155,30 +156,49 @@ internal fun Int.signedWidthInUBits(): BitWidth {
 }
 
 internal fun IntArray.widthInUBits(): BitWidth =
-  arrayWidthInUBits(this.size) { this[it].signedWidthInUBits() }
+  arrayWidthInUBits(this.size, W_32) { this[it].signedWidthInUBits() }
 
 internal fun ShortArray.widthInUBits(): BitWidth =
-  arrayWidthInUBits(this.size) { this[it].toInt().signedWidthInUBits() }
+  arrayWidthInUBits(this.size, W_16) { this[it].toInt().signedWidthInUBits() }
 
 internal fun LongArray.widthInUBits(): BitWidth =
-  arrayWidthInUBits(this.size) { this[it].signedWidthInUBits() }
+  arrayWidthInUBits(this.size, W_64) { this[it].signedWidthInUBits() }
+
+internal fun UByteArray.widthInUBits(): BitWidth =
+  arrayWidthInUBits(this.size, W_8) { W_8 }
+
+internal fun UShortArray.widthInUBits(): BitWidth =
+  arrayWidthInUBits(this.size, W_16) { this[it].toULong().widthInUBits() }
+
+internal fun UIntArray.widthInUBits(): BitWidth =
+  arrayWidthInUBits(this.size, W_32) { this[it].toULong().widthInUBits() }
+
+internal fun ULongArray.widthInUBits(): BitWidth =
+  arrayWidthInUBits(this.size, W_64) { this[it].widthInUBits() }
 
 internal fun listIntWidthInUBits(list: List<Int>): BitWidth =
-  arrayWidthInUBits(list.size) { list[it].signedWidthInUBits() }
+  arrayWidthInUBits(list.size, W_32) { list[it].signedWidthInUBits() }
 
 internal fun listLongWidthInUBits(list: List<Long>): BitWidth =
-  arrayWidthInUBits(list.size) { list[it].signedWidthInUBits() }
+  arrayWidthInUBits(list.size, W_64) { list[it].signedWidthInUBits() }
 
 private inline fun arrayWidthInUBits(
   size: Int,
+  maximumElementWidth: BitWidth,
   crossinline elemWidthBlock: (Int) -> BitWidth,
 ): BitWidth {
-  // Figure out smallest bit width we can store this vector with.
-  var bitWidth = W_8.max(size.toULong().widthInUBits())
+  // The vector prefix uses the same width as its elements. If the size prefix
+  // already reaches the element type's maximum, scanning cannot increase it.
+  val sizeWidth = size.toULong().widthInUBits()
+  var bitWidth = W_8.max(sizeWidth)
+  val terminalWidth = maximumElementWidth.max(sizeWidth)
+  if (bitWidth == terminalWidth) return bitWidth
+
   // Check bit widths and types for all elements.
   for (i in 0 until size) {
-    // since we know its inline types we can just assume elmentWidth to be the value width in bits.
+    // Since these are inline scalar types, element width is value width.
     bitWidth = bitWidth.max(elemWidthBlock(i))
+    if (bitWidth == terminalWidth) return terminalWidth
   }
   return bitWidth
 }

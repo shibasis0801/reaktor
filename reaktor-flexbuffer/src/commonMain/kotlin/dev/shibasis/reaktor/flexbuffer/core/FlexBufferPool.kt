@@ -3,6 +3,7 @@
 package dev.shibasis.reaktor.flexbuffer.core
 
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.ReadBuffer
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.AtomicReference
@@ -94,9 +95,8 @@ object FlexBufferPool {
  * copyInto() maps to System.arraycopy on JVM (intrinsified to memcpy by HotSpot)
  * and to optimized memcpy on Kotlin/Native.
  *
- * We copy [0, limit) from the backing array. This is correct because:
- * - FlexBuffersBuilder creates its internal ArrayReadWriteBuffer with offset=0
- * - ArrayReadWriteBuffer.limit returns writePosition (the actual data size, not buffer capacity)
+ * Array-backed slices copy [offset, offset + limit); other implementations use
+ * their public bulk-read contract. Builder buffers normally have offset zero.
  *
  * Ref: "Computer Systems: A Programmer's Perspective" (Bryant & O'Hallaron, §6.2)
  *      — spatial locality: sequential bulk copy is cache-line friendly
@@ -104,6 +104,10 @@ object FlexBufferPool {
 fun ReadBuffer.toByteArray(): ByteArray {
     val size = limit
     val result = ByteArray(size)
-    data().copyInto(result, 0, 0, size)
+    if (this is ArrayReadBuffer) {
+        data().copyInto(result, 0, offset, offset + size)
+    } else {
+        getBytes(result, 0, size)
+    }
     return result
 }

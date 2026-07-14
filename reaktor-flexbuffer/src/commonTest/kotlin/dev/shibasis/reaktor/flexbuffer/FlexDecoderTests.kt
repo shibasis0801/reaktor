@@ -7,10 +7,14 @@ import dev.shibasis.reaktor.core.EncodingSimpleCase
 import dev.shibasis.reaktor.core.InnerNestedData
 import dev.shibasis.reaktor.core.NestedData
 import dev.shibasis.reaktor.core.NullableTestStruct
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.core.ShortArrayStruct
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoder
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
+import dev.shibasis.reaktor.flexbuffer.core.toByteArray
+import dev.shibasis.reaktor.flexbuffer.core.toFlexMap
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference
 import kotlinx.serialization.KSerializer
@@ -20,6 +24,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.time.measureTime
 
@@ -67,6 +72,25 @@ class FlexDecoderTests {
         val nested: ManualNestedDirectCase,
         val items: List<ManualNestedDirectCase>,
         val byKey: Map<String, ManualNestedDirectCase>
+    )
+
+    @Serializable
+    sealed class PolymorphicEvent {
+        @Serializable
+        data class Message(
+            val id: Int,
+            val text: String
+        ) : PolymorphicEvent()
+
+        @Serializable
+        data object Complete : PolymorphicEvent()
+    }
+
+    @Serializable
+    data class PolymorphicEnvelope(
+        val primary: PolymorphicEvent,
+        val events: List<PolymorphicEvent>,
+        val byKey: Map<String, PolymorphicEvent>
     )
 
     private object CountingNestedDirectCoder : FlexCoder<ManualNestedDirectCase> {
@@ -128,6 +152,62 @@ class FlexDecoderTests {
         assertEquals(-1, map.getInt("aaaa", -1))
         assertTrue(map.indexOf("a") >= 0)
         assertTrue(map.indexOf("aaaa") < 0)
+    }
+
+    @Test
+    fun testMapUsesUnsignedUtf8KeyOrderAndFindsUnicodeKeys() {
+        val encoded = FlexBuffers.build {
+            val map = startMap()
+            // Deliberately not in UTF-8 byte order. Signed-Byte ordering used to
+            // place the C3 byte for é before ASCII z, unlike C/C++ strcmp.
+            set("Ωmega", 4)
+            set("zulu", 2)
+            set("中", 5)
+            set("éclair", 3)
+            set("alpha", 1)
+            endMap(map)
+        }
+        val map = FlexBuffers.getRoot(encoded).toMap()
+
+        assertEquals(
+            listOf("alpha", "zulu", "éclair", "Ωmega", "中"),
+            (0 until map.size).map(map::keyAsString)
+        )
+        assertEquals(1, map.getInt("alpha", -1))
+        assertEquals(2, map.getInt("zulu", -1))
+        assertEquals(3, map.getInt("éclair", -1))
+        assertEquals(4, map.getInt("Ωmega", -1))
+        assertEquals(5, map.getInt("中", -1))
+        assertEquals(-1, map.getInt("éclat", -1))
+    }
+
+    @Test
+    fun testBlobRejectsOnePastEndIndex() {
+        val encoded = FlexBuffers.build { put(byteArrayOf(10, 20)) }
+        val blob = FlexBuffers.getRoot(encoded).toBlob()
+
+        assertEquals(10.toByte(), blob[0])
+        assertEquals(20.toByte(), blob[1])
+        assertFailsWith<IllegalStateException> { blob[-1] }
+        assertFailsWith<IllegalStateException> { blob[blob.size] }
+    }
+
+    @Test
+    fun byteArrayToFlexMapDoesNotInterpretScalarRootsAsOffsets() {
+        val scalar = FlexBuffers.build { put(42) }
+
+        assertEquals(0, scalar.toFlexMap().size)
+    }
+
+    @Test
+    fun invalidNumericStringsReturnZeroAndSignedVectorsSignExtend() {
+        val invalid = FlexBuffers.getRoot(FlexBuffers.build { put("Fred") })
+        assertEquals(0L, invalid.toLong())
+        assertEquals(0UL, invalid.toULong())
+        assertEquals(0.0, invalid.toDouble())
+
+        val signed = FlexBuffers.getRoot(FlexBuffers.build { put(intArrayOf(-1, 0, 1)) })
+        assertContentEquals(ulongArrayOf(ULong.MAX_VALUE, 0UL, 1UL), signed.toULongArray())
     }
 
     // ---- Complex Case: all primitive types, collections, nested objects, maps ----
@@ -261,6 +341,25 @@ class FlexDecoderTests {
         } finally {
             FlexCoderRegistry.clear()
         }
+    }
+
+    @Test
+    fun sealedPolymorphicValuesRoundTripAtRootAndNestedPositions() {
+        val root: PolymorphicEvent = PolymorphicEvent.Message(7, "root")
+        assertEquals(root, roundTrip(root, PolymorphicEvent.serializer()))
+
+        val envelope = PolymorphicEnvelope(
+            primary = PolymorphicEvent.Message(8, "nested map field"),
+            events = listOf(
+                PolymorphicEvent.Message(9, "nested vector element"),
+                PolymorphicEvent.Complete
+            ),
+            byKey = mapOf(
+                "complete" to PolymorphicEvent.Complete,
+                "message" to PolymorphicEvent.Message(10, "nested map value")
+            )
+        )
+        assertEquals(envelope, roundTrip(envelope, PolymorphicEnvelope.serializer()))
     }
 
     @Test
@@ -454,7 +553,7 @@ class FlexDecoderTests {
 
     @Test
     fun nullableFieldsWithNulls() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         val data = NullableTestStruct(name = "test")
         val decoded = roundTrip(data)
         assertEquals("test", decoded.name)
@@ -467,7 +566,7 @@ class FlexDecoderTests {
 
     @Test
     fun nullableFieldsWithValues() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         val nested = InnerNestedData(innerValue = 42.0, innerList = listOf("a", "b"))
         val data = NullableTestStruct(
             name = "full",
@@ -484,6 +583,28 @@ class FlexDecoderTests {
         assertEquals(listOf(1, 2, 3), decoded.scores)
         assertEquals(mapOf("k" to "v"), decoded.metadata)
         assertEquals(nested, decoded.nested)
+    }
+
+    @Test
+    fun generatedCoderDecodesArrayBackedSliceWithoutRebasing() {
+        ReaktorFlexbufferCoders.register()
+        val original = NullableTestStruct(name = "slice", age = 17, scores = listOf(2, 4, 8))
+        val encoded = FlexBuffers.encode(original)
+        val padded = ByteArray(encoded.size + 11) { 0x55.toByte() }
+        encoded.copyInto(padded, destinationOffset = 7)
+        val slice = ArrayReadBuffer(padded, offset = 7, limit = encoded.size)
+
+        assertContentEquals(encoded, slice.toByteArray())
+        assertEquals(original, FlexBuffers.decode(NullableTestStruct.serializer(), slice))
+    }
+
+    @Test
+    fun generatedCoderRoundTripsShortArrayWithoutIntermediateIntArray() {
+        ReaktorFlexbufferCoders.register()
+        val original = shortArrayOf(Short.MIN_VALUE, -1, 0, 1, Short.MAX_VALUE)
+        val encoded = FlexBuffers.encode(ShortArrayStruct(original))
+        val decoded = FlexBuffers.decode<ShortArrayStruct>(encoded)
+        assertContentEquals(original, decoded.values)
     }
 
     // ---- Performance: encode-decode vs JSON ----

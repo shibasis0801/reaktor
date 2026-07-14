@@ -7,16 +7,15 @@ package dev.shibasis.reaktor.flexbuffer.core
  *   - HotSpot ThreadLocal.get() is a single field read; no CAS, no memory barrier.
  *   - Multiple threads each get their own slot, naturally concurrent.
  *
- * Native (iOS, macOS, etc): plain Volatile (atomic semantics for visibility only).
- *   - On single-threaded benchmarks the read is a simple load. No CAS.
- *   - For multi-threaded use, an in-flight acquire is detected and falls back to
- *     allocating a fresh instance — exactly the semantics of a bounded pool.
+ * Native (iOS, macOS, etc): one AtomicReference CAS slot.
+ *   - CAS prevents two threads from borrowing the same mutable instance.
+ *   - Contention falls back to a fresh instance, preserving bounded-pool semantics.
  *
  * JS: a module-level mutable var. JS is single-threaded; no synchronisation needed.
  *
  * Why not just `kotlin.concurrent.atomics.AtomicReference` everywhere?
  *   - JVM CAS is fast (CMPXCHG ~5 ns) but ThreadLocal is faster (~1 ns)
- *   - Native CAS is heavier (memory barriers, slower than JVM CAS)
+ *   - Native needs CAS for correctness but keeps it to one slot
  *   - JS atomics are not free either
  *   - Per-platform specialisation lets each runtime use its cheapest primitive.
  *

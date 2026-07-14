@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.core
 
 import dev.shibasis.reaktor.flexbuffer.core.Struct
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Struct
@@ -27,6 +28,26 @@ data class NullableTestStruct(
     val scores: List<Int>? = null,
     val metadata: Map<String, String>? = null,
     val nested: InnerNestedData? = null
+)
+
+@Struct
+@Serializable
+data class ShortArrayStruct(
+    val values: ShortArray
+)
+
+@Struct
+@Serializable
+@SerialName("reaktor.tests.serial-named-struct")
+data class SerialNamedStruct(
+    val value: Int,
+)
+
+@Struct
+@Serializable
+data class PropertySerialNamedStruct(
+    @SerialName("z-wire") val alphaSource: Int,
+    @SerialName("a-wire") val zetaSource: String,
 )
 
 @Serializable

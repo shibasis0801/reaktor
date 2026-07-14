@@ -2,7 +2,8 @@
 
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
+import dev.shibasis.reaktor.flexbuffer.core.FlexCoder
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import kotlinx.serialization.json.Json
@@ -28,8 +29,13 @@ class CrossPlatformBenchmark {
     private val json = Json { encodeDefaults = true }
     private val warmup = 500
     private val measure = 5_000
+    private val prime = 10_000
+    private var primeSink: Any? = null
 
-    private inline fun bench(crossinline block: () -> Any): Double {
+    // Keep a real call boundary. Inlining every timing loop into the test method
+    // produces one enormous DEX method that ART keeps interpreted throughout the
+    // first case; a non-inline runner lets hot codec methods tier up between phases.
+    private fun bench(block: () -> Any): Double {
         // Warmup
         repeat(warmup) { block() }
         // 3 runs, take min to reduce noise
@@ -44,10 +50,20 @@ class CrossPlatformBenchmark {
 
     @Test
     fun crossPlatformBenchmark() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
+
+        // ART compiles hot codec methods in the background. A per-cell inline warmup
+        // can finish before compilation is installed, making the first case look
+        // hundreds of microseconds slower than the same code later in the run.
+        // Prime every implementation and direction before any scored cell so test
+        // order does not decide the winner.
+        primeCase(BenchUserProfile.serializer(), BenchUserProfileFlexCoder, BenchmarkData.userProfile())
+        primeCase(BenchChatThread.serializer(), BenchChatThreadFlexCoder, BenchmarkData.chatThread())
+        primeCase(BenchApiResponse.serializer(), BenchApiResponseFlexCoder, BenchmarkData.apiResponse())
+        primeCase(BenchTimeSeriesChunk.serializer(), BenchTimeSeriesChunkFlexCoder, BenchmarkData.timeSeriesChunk())
 
         println("=== CROSS-PLATFORM BENCHMARK ===")
-        println("Warmup=$warmup, Measure=$measure, 3 runs (min reported)")
+        println("Prime=$prime, Warmup=$warmup, Measure=$measure, 3 runs (min reported)")
         println()
         printRow("Case", "FlexCoder", "Accel Ser", "Raw Ser", "JSON", "Speedup")
         println("-".repeat(75))
@@ -60,13 +76,34 @@ class CrossPlatformBenchmark {
         benchCase("TimeSeries", BenchTimeSeriesChunk.serializer())  { BenchmarkData.timeSeriesChunk() }
     }
 
+    private fun <T : Any> primeCase(
+        serializer: kotlinx.serialization.KSerializer<T>,
+        coder: FlexCoder<T>,
+        data: T,
+    ) {
+        ReaktorFlexbufferCoders.register()
+        val generated = FlexBuffers.encode(coder, data)
+        repeat(prime) { primeSink = FlexBuffers.encode(coder, data) }
+        repeat(prime) { primeSink = FlexBuffers.decode(coder, generated) }
+
+        FlexCoderRegistry.clear()
+        val raw = FlexBuffers.encode(serializer, data)
+        repeat(prime) { primeSink = FlexBuffers.encode(serializer, data) }
+        repeat(prime) { primeSink = FlexBuffers.decode(serializer, raw) }
+
+        val encodedJson = json.encodeToString(serializer, data)
+        repeat(prime) { primeSink = json.encodeToString(serializer, data) }
+        repeat(prime) { primeSink = json.decodeFromString(serializer, encodedJson) }
+        ReaktorFlexbufferCoders.register()
+    }
+
     private inline fun <reified T : Any> benchCase(
         name: String,
         serializer: kotlinx.serialization.KSerializer<T>,
         dataFactory: () -> T
     ) {
         val data = dataFactory()
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         // FlexCoder direct (encode+decode)
         val fb = FlexBuffers.encode(data)
@@ -88,7 +125,7 @@ class CrossPlatformBenchmark {
         val jsonEnc = bench { json.encodeToString(serializer, data) }
         val jsonDec = bench { json.decodeFromString(serializer, js) }
 
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         val fcTotal = fcEnc + fcDec
         val accelTotal = accelEnc + accelDec
@@ -96,6 +133,13 @@ class CrossPlatformBenchmark {
         val jsonTotal = jsonEnc + jsonDec
         val speedup = if (fcTotal > 0) jsonTotal / fcTotal else 0.0
         printRow(name, fmt(fcTotal), fmt(accelTotal), fmt(rawTotal), fmt(jsonTotal), fmtX(speedup))
+        println(
+            "CROSS_PLATFORM_PHASE|case=$name" +
+                "|flexEncode=${fmt(fcEnc)}|flexDecode=${fmt(fcDec)}" +
+                "|acceleratedEncode=${fmt(accelEnc)}|acceleratedDecode=${fmt(accelDec)}" +
+                "|rawEncode=${fmt(rawEnc)}|rawDecode=${fmt(rawDec)}" +
+                "|jsonEncode=${fmt(jsonEnc)}|jsonDecode=${fmt(jsonDec)}"
+        )
     }
 
     private fun printRow(c: String, a: String, b: String, d: String, e: String, f: String) {

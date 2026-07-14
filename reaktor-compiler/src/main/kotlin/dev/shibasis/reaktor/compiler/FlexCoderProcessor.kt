@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 
 private val STRUCT_FQ = "dev.shibasis.reaktor.flexbuffer.core.Struct"
+private val SERIAL_NAME_FQ = "kotlinx.serialization.SerialName"
 private val FLEX_CODER = ClassName("dev.shibasis.reaktor.flexbuffer.core", "FlexCoder")
 private val FLEX_CODER_REGISTRY = ClassName("dev.shibasis.reaktor.flexbuffer.core", "FlexCoderRegistry")
 private val FLEX_BUFFERS_BUILDER = ClassName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "FlexBuffersBuilder")
@@ -27,31 +28,145 @@ private val FLEX_STRING_DOUBLE_MAP = ClassName("dev.shibasis.reaktor.flexbuffer.
 private val FLEX_STRING_STRING_MAP = ClassName("dev.shibasis.reaktor.flexbuffer.core", "FlexStringStringMap")
 private val FLEX_STRING_BOOLEAN_MAP = ClassName("dev.shibasis.reaktor.flexbuffer.core", "FlexStringBooleanMap")
 private val FLEX_ACCESSOR_MAP = ClassName("dev.shibasis.reaktor.flexbuffer.core", "FlexAccessorMap")
-private val ARRAY_READ_BUFFER = ClassName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "ArrayReadBuffer")
-private val GET_ROOT = MemberName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "getRoot")
 private val FLEX_READ = ClassName("dev.shibasis.reaktor.flexbuffer.flatbuffers", "FlexRead")
+private val MATERIALIZED_INT_LIST = ClassName("dev.shibasis.reaktor.flexbuffer.core", "MaterializedIntList")
+private val MATERIALIZED_LONG_LIST = ClassName("dev.shibasis.reaktor.flexbuffer.core", "MaterializedLongList")
+private val MATERIALIZED_DOUBLE_LIST = ClassName("dev.shibasis.reaktor.flexbuffer.core", "MaterializedDoubleList")
+private val MATERIALIZED_FLOAT_LIST = ClassName("dev.shibasis.reaktor.flexbuffer.core", "MaterializedFloatList")
+
+internal const val FLEX_CODER_REGISTRAR_PACKAGE_OPTION = "reaktor.flexcoder.registrar.package"
+internal const val FLEX_CODER_REGISTRAR_OBJECT_OPTION = "reaktor.flexcoder.registrar.object"
+
+internal data class GeneratedFlexCoderRegistration(
+    val className: ClassName,
+    val coderName: ClassName,
+    val serialName: String,
+)
+
+internal fun buildFlexCoderRegisterMethod(
+    className: ClassName,
+    serialName: String,
+): FunSpec = FunSpec.builder("register")
+    .addKdoc(
+        "Registers this coder by Kotlin type and kotlinx.serialization serial name. " +
+            "Calling this function more than once is safe.\n",
+    )
+    .addStatement("%T.register(%T::class, this)", FLEX_CODER_REGISTRY, className)
+    .addStatement("%T.registerBySerialName(%S, this)", FLEX_CODER_REGISTRY, serialName)
+    .build()
+
+internal fun buildFlexCoderRegistrarFile(
+    packageName: String,
+    objectName: String,
+    registrations: Collection<GeneratedFlexCoderRegistration>,
+): FileSpec {
+    val register = FunSpec.builder("register")
+        .addKdoc("Registers every FlexCoder generated for this module. Calling this function more than once is safe.\n")
+
+    registrations
+        .sortedBy { it.className.canonicalName }
+        .distinctBy { it.className.canonicalName }
+        .forEach { registration ->
+            register.addStatement("%T.register()", registration.coderName)
+        }
+
+    return FileSpec.builder(packageName, objectName)
+        .addType(
+            TypeSpec.objectBuilder(objectName)
+                .addFunction(register.build())
+                .build(),
+        )
+        .build()
+}
+
+private fun compareUtf8Keys(left: String, right: String): Int {
+    val a = left.encodeToByteArray()
+    val b = right.encodeToByteArray()
+    val n = minOf(a.size, b.size)
+    for (i in 0 until n) {
+        val delta = (a[i].toInt() and 0xFF) - (b[i].toInt() and 0xFF)
+        if (delta != 0) return delta
+    }
+    return a.size - b.size
+}
+
+internal data class FlexPropertyName(
+    val sourceName: String,
+    val wireName: String,
+)
+
+internal data class FlexPropertyLayout(
+    val properties: List<FlexPropertyName>,
+    val keyStarts: List<Int>,
+    val keysLiteral: String,
+)
+
+/** Builds the exact key order/block used by generated coders. */
+internal fun buildFlexPropertyLayout(properties: Collection<FlexPropertyName>): FlexPropertyLayout {
+    val duplicateWireNames = properties.groupingBy(FlexPropertyName::wireName)
+        .eachCount()
+        .filterValues { it > 1 }
+        .keys
+    require(duplicateWireNames.isEmpty()) {
+        "Duplicate FlexBuffer wire names: ${duplicateWireNames.sorted().joinToString()}"
+    }
+
+    val sorted = properties.sortedWith { left, right ->
+        compareUtf8Keys(left.wireName, right.wireName)
+    }
+    val keyStarts = ArrayList<Int>(sorted.size)
+    var keyCursor = 0
+    for (property in sorted) {
+        keyStarts += keyCursor
+        keyCursor += property.wireName.encodeToByteArray().size + 1
+    }
+    return FlexPropertyLayout(
+        properties = sorted,
+        keyStarts = keyStarts,
+        keysLiteral = sorted.joinToString("\u0000", postfix = "\u0000", transform = FlexPropertyName::wireName),
+    )
+}
+
+/** Renders a source identifier, including Kotlin keywords and backtick-only names. */
+internal fun renderKotlinIdentifier(name: String): String = CodeBlock.of("%N", name).toString()
 
 class FlexCoderProcessor(
     private val codeGenerator: CodeGenerator,
-    private val logger: KSPLogger
+    private val logger: KSPLogger,
+    options: Map<String, String> = emptyMap(),
 ) : SymbolProcessor {
+
+    private val registrarPackage = options[FLEX_CODER_REGISTRAR_PACKAGE_OPTION]
+        ?.trim()
+        ?.takeIf(String::isNotEmpty)
+    private val registrarObject = options[FLEX_CODER_REGISTRAR_OBJECT_OPTION]
+        ?.trim()
+        ?.takeIf(String::isNotEmpty)
+    private val processedClasses = HashSet<String>()
+    private val registrations = LinkedHashMap<String, GeneratedFlexCoderRegistration>()
+    private val origins = LinkedHashMap<String, KSFile>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val symbols = resolver.getSymbolsWithAnnotation(STRUCT_FQ)
             .filterIsInstance<KSClassDeclaration>()
             .filter { it.classKind == ClassKind.CLASS }
+            .sortedBy { it.qualifiedName?.asString() ?: it.simpleName.asString() }
             .toList()
 
         if (symbols.isEmpty()) return emptyList()
 
         val deferred = mutableListOf<KSAnnotated>()
-        val generated = mutableListOf<Pair<ClassName, ClassName>>() // (class, coder)
-
         for (classDecl in symbols) {
+            val declarationName = classDecl.qualifiedName?.asString()
+                ?: classDecl.toClassName().canonicalName
+            if (declarationName in processedClasses) continue
+
             try {
                 val result = generateFlexCoder(classDecl)
                 if (result != null) {
-                    generated.add(result)
+                    processedClasses.add(declarationName)
+                    registrations[declarationName] = result
+                    classDecl.containingFile?.let { origins[it.filePath] = it }
                 } else {
                     deferred.add(classDecl)
                 }
@@ -60,17 +175,45 @@ class FlexCoderProcessor(
             }
         }
 
-        if (generated.isNotEmpty()) {
-            generateRegistrationFunction(generated, symbols.first().containingFile)
-        }
-
         return deferred
     }
 
-    private fun generateFlexCoder(classDecl: KSClassDeclaration): Pair<ClassName, ClassName>? {
+    override fun finish() {
+        if (registrations.isEmpty()) return
+
+        val packageName = registrarPackage
+        val objectName = registrarObject
+        if (packageName == null || objectName == null) {
+            logger.warn(
+                "FlexCoderProcessor: no module registrar generated. Configure both " +
+                    "$FLEX_CODER_REGISTRAR_PACKAGE_OPTION and $FLEX_CODER_REGISTRAR_OBJECT_OPTION. " +
+                    "Each generated coder can still be registered through its register() function.",
+            )
+            return
+        }
+
+        if (!isValidPackageName(packageName) || !isValidIdentifier(objectName)) {
+            logger.error(
+                "FlexCoderProcessor: invalid module registrar $packageName.$objectName configured through " +
+                    "$FLEX_CODER_REGISTRAR_PACKAGE_OPTION / $FLEX_CODER_REGISTRAR_OBJECT_OPTION",
+            )
+            return
+        }
+
+        buildFlexCoderRegistrarFile(packageName, objectName, registrations.values).writeTo(
+            codeGenerator,
+            Dependencies(true, *origins.values.sortedBy(KSFile::filePath).toTypedArray()),
+        )
+        logger.info(
+            "FlexCoderProcessor: generated $packageName.$objectName with ${registrations.size} coders",
+        )
+    }
+
+    private fun generateFlexCoder(classDecl: KSClassDeclaration): GeneratedFlexCoderRegistration? {
         val className = classDecl.toClassName()
         val coderName = ClassName(className.packageName, "${className.simpleName}FlexCoder")
         val accessorName = ClassName(className.packageName, "${className.simpleName}Accessor")
+        val serialName = classDecl.serializationSerialName()
         val properties = classDecl.getAllProperties()
             .filter { it.hasBackingField }
             .toList()
@@ -80,23 +223,33 @@ class FlexCoderProcessor(
             return null
         }
 
-        val sortedProps = properties.sortedBy { it.simpleName.asString() }
+        val propertiesBySourceName = properties.associateBy { it.simpleName.asString() }
+        val propertyLayout = buildFlexPropertyLayout(
+            properties.map { property ->
+                FlexPropertyName(
+                    sourceName = property.simpleName.asString(),
+                    wireName = property.serializationSerialName(),
+                )
+            },
+        )
+        // FlexBuffers map keys use unsigned UTF-8/strcmp order, not Kotlin's
+        // UTF-16 String order (the two diverge for some Unicode identifiers).
+        val sortedProps = propertyLayout.properties.map { property ->
+            propertiesBySourceName.getValue(property.sourceName)
+        }
 
-        // Pre-encoded key block: sorted field names, null-terminated, concatenated.
+        // Pre-encoded key block: sorted serialized names, null-terminated, concatenated.
         // Written once per buffer via builder.keyBlock(); every map of this type
         // shares the key bytes AND the key vector — zero per-field key work.
-        val sortedNames = sortedProps.map { it.simpleName.asString() }
-        val keyStarts = IntArray(sortedNames.size)
-        var keyCursor = 0
-        for ((i, n) in sortedNames.withIndex()) {
-            keyStarts[i] = keyCursor
-            keyCursor += n.encodeToByteArray().size + 1
-        }
-        val keysLiteral = sortedNames.joinToString("\u0000", postfix = "\u0000")
+        val keyStarts = propertyLayout.keyStarts.toIntArray()
+        val keysLiteral = propertyLayout.keysLiteral
 
         val encodeMethod = buildEncodeMethod(className)
-        val encodeKeyedMethod = buildEncodeKeyedMethod(className, sortedProps)
+        val encodeRootMethod = buildEncodeRootMethod(className)
+        val encodeKeyedMethod = buildEncodeKeyedMethod(className, sortedProps, keyStarts)
         val decodeMethod = buildDecodeMethod(className)
+        val decodeBytesMethod = buildDecodeBytesMethod(className)
+        val decodeBytesLimitMethod = buildDecodeBytesLimitMethod(className)
         val decodeMapMethod = buildDecodeMapMethod(className)
         val decodeAtMethod = buildDecodeAtMethod(className, properties, sortedProps)
 
@@ -112,9 +265,13 @@ class FlexCoderProcessor(
                     .initializer("intArrayOf(${keyStarts.joinToString(", ")})")
                     .build()
             )
+            .addFunction(buildFlexCoderRegisterMethod(className, serialName))
             .addFunction(encodeMethod)
+            .addFunction(encodeRootMethod)
             .addFunction(encodeKeyedMethod)
             .addFunction(decodeMethod)
+            .addFunction(decodeBytesMethod)
+            .addFunction(decodeBytesLimitMethod)
             .addFunction(decodeMapMethod)
             .addFunction(decodeAtMethod)
             .build()
@@ -140,7 +297,7 @@ class FlexCoderProcessor(
                 FunSpec.builder("as${className.simpleName}")
                     .receiver(ByteArray::class)
                     .returns(accessorName)
-                    .addStatement("return %T(%M(this).toMap())", accessorName, GET_ROOT)
+                    .addStatement("return %T(%T.rootMap(this))", accessorName, FLEX_READ)
                     .build()
             )
             .build()
@@ -150,7 +307,7 @@ class FlexCoderProcessor(
         fileSpec.writeTo(codeGenerator, deps)
 
         logger.info("FlexCoderProcessor: generated ${coderName.simpleName} + ${accessorName.simpleName} for ${className.simpleName}")
-        return className to coderName
+        return GeneratedFlexCoderRegistration(className, coderName, serialName)
     }
 
     private fun buildEncodeMethod(className: ClassName): FunSpec =
@@ -162,6 +319,14 @@ class FlexCoderProcessor(
             .addStatement("encodeKeyed(builder, value, builder.resolveKey(key))")
             .build()
 
+    private fun buildEncodeRootMethod(className: ClassName): FunSpec =
+        FunSpec.builder("encodeRoot")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("builder", FLEX_BUFFERS_BUILDER)
+            .addParameter("value", className)
+            .addStatement("encodeKeyed(builder, value, -1)")
+            .build()
+
     /**
      * The keyed fast path: field keys resolve to precomputed buffer offsets via the
      * shared key block — no per-field hashing, no per-map key-vector writes after
@@ -169,23 +334,30 @@ class FlexCoderProcessor(
      */
     private fun buildEncodeKeyedMethod(
         className: ClassName,
-        sortedProps: List<KSPropertyDeclaration>
+        sortedProps: List<KSPropertyDeclaration>,
+        keyStarts: IntArray
     ): FunSpec {
         val builder = FunSpec.builder("encodeKeyed")
             .addParameter("builder", FLEX_BUFFERS_BUILDER)
             .addParameter("value", className)
             .addParameter("keyOffset", Int::class)
 
-        builder.addStatement("val ko = builder.keyBlock(KEYS, KEY_STARTS)")
+        builder.addStatement("val kb = builder.keyBlockBase(KEYS)")
         builder.addStatement("val m = builder.startMap()")
 
         for ((index, prop) in sortedProps.withIndex()) {
             val name = prop.simpleName.asString()
             val type = prop.type.resolve()
-            generateEncodeField(builder, name, type, "value.$name", index)
+            generateEncodeField(
+                builder = builder,
+                fieldName = "p$index",
+                type = type,
+                accessor = "value.${renderKotlinIdentifier(name)}",
+                keyStart = keyStarts[index],
+            )
         }
 
-        builder.addStatement("builder.endMapKeyed(m, keyOffset, KEYS, ko)")
+        builder.addStatement("builder.endMapKeyed(m, keyOffset, KEYS, kb, KEY_STARTS)")
         return builder.build()
     }
 
@@ -194,11 +366,11 @@ class FlexCoderProcessor(
         fieldName: String,
         type: KSType,
         accessor: String,
-        index: Int
+        keyStart: Int
     ) {
         val typeName = type.declaration.qualifiedName?.asString() ?: return
         val nullable = type.isMarkedNullable
-        val ko = "ko[$index]"
+        val ko = if (keyStart == 0) "kb" else "kb + $keyStart"
 
         if (nullable) {
             builder.beginControlFlow("if ($accessor != null)")
@@ -215,7 +387,7 @@ class FlexCoderProcessor(
             "kotlin.Char" -> builder.addStatement("builder.setKeyed($ko, $accessor.code)")
             "kotlin.String" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
             "kotlin.ByteArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
-            "kotlin.ShortArray" -> builder.addStatement("builder.setKeyed($ko, IntArray($accessor.size) { $accessor[it].toInt() })")
+            "kotlin.ShortArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
             "kotlin.IntArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
             "kotlin.LongArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
             "kotlin.FloatArray" -> builder.addStatement("builder.setKeyed($ko, $accessor)")
@@ -396,6 +568,23 @@ class FlexCoderProcessor(
             .addStatement("return decodeAt(m.buf, m.end, m.byteWidth)")
             .build()
 
+    private fun buildDecodeBytesMethod(className: ClassName): FunSpec =
+        FunSpec.builder("decode")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("bytes", ByteArray::class)
+            .returns(className)
+            .addStatement("return decodeAt(bytes, %T.rootEnd(bytes), %T.rootByteWidth(bytes))", FLEX_READ, FLEX_READ)
+            .build()
+
+    private fun buildDecodeBytesLimitMethod(className: ClassName): FunSpec =
+        FunSpec.builder("decode")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("bytes", ByteArray::class)
+            .addParameter("limit", Int::class)
+            .returns(className)
+            .addStatement("return decodeAt(bytes, %T.rootEnd(bytes, limit), %T.rootByteWidth(bytes, limit))", FLEX_READ, FLEX_READ)
+            .build()
+
     private fun buildDecodeMapMethod(className: ClassName): FunSpec =
         FunSpec.builder("decodeMap")
             .addParameter("map", FLEX_MAP)
@@ -419,18 +608,19 @@ class FlexCoderProcessor(
             .addParameter("bw", Int::class)
             .returns(className)
 
-        builder.addStatement("val sz = %T.size(buf, end, bw)", FLEX_READ)
-        builder.addStatement("val tb = end + sz * bw")
+        builder.addStatement("val tb = end + ${sortedProps.size} * bw")
 
         for ((index, prop) in sortedProps.withIndex()) {
-            val name = prop.simpleName.asString()
             val type = prop.type.resolve()
-            generateDecodeField(builder, name, type, index)
+            generateDecodeField(builder, "p$index", type, index)
         }
 
+        val sortedIndexBySourceName = sortedProps.withIndex().associate { (index, property) ->
+            property.simpleName.asString() to index
+        }
         val constructorArgs = originalProps.joinToString(",\n    ") { prop ->
             val name = prop.simpleName.asString()
-            "$name = _$name"
+            "${renderKotlinIdentifier(name)} = _p${sortedIndexBySourceName.getValue(name)}"
         }
         builder.addStatement("return %T(\n    $constructorArgs\n)", className)
         return builder.build()
@@ -466,18 +656,22 @@ class FlexCoderProcessor(
 
         when (typeName) {
             "kotlin.Boolean" -> builder.addStatement("${prefix}%T.getBoolean(buf, end, bw, $index)", FLEX_READ)
-            "kotlin.Byte" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index).toByte()", FLEX_READ)
-            "kotlin.Short" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index).toShort()", FLEX_READ)
-            "kotlin.Int" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index)", FLEX_READ)
-            "kotlin.Long" -> builder.addStatement("${prefix}%T.getLong(buf, end, bw, tb, $index)", FLEX_READ)
-            "kotlin.Float" -> builder.addStatement("${prefix}%T.getFloat(buf, end, bw, tb, $index)", FLEX_READ)
-            "kotlin.Double" -> builder.addStatement("${prefix}%T.getDouble(buf, end, bw, tb, $index)", FLEX_READ)
-            "kotlin.Char" -> builder.addStatement("${prefix}%T.getInt(buf, end, bw, tb, $index).toChar()", FLEX_READ)
+            "kotlin.Byte" -> builder.addStatement("${prefix}%T.inlineInt(buf, end, bw, $index).toByte()", FLEX_READ)
+            "kotlin.Short" -> builder.addStatement("${prefix}%T.inlineInt(buf, end, bw, $index).toShort()", FLEX_READ)
+            "kotlin.Int" -> builder.addStatement("${prefix}%T.inlineInt(buf, end, bw, $index)", FLEX_READ)
+            "kotlin.Long" -> builder.addStatement("${prefix}%T.inlineLong(buf, end, bw, $index)", FLEX_READ)
+            "kotlin.Float" -> builder.addStatement("${prefix}%T.inlineFloat(buf, end, bw, $index)", FLEX_READ)
+            "kotlin.Double" -> builder.addStatement("${prefix}%T.inlineDouble(buf, end, bw, $index)", FLEX_READ)
+            "kotlin.Char" -> builder.addStatement("${prefix}%T.inlineInt(buf, end, bw, $index).toChar()", FLEX_READ)
             "kotlin.String" -> builder.addStatement("${prefix}%T.getString(buf, end, bw, tb, $index)", FLEX_READ)
             "kotlin.ByteArray" -> builder.addStatement("${prefix}%T.getBlob(buf, end, bw, tb, $index)", FLEX_READ)
             "kotlin.IntArray" -> {
                 emitVecHeader(builder, fieldName, index)
                 builder.addStatement("${prefix}%T.toIntArray(buf, _${fieldName}_ve, _${fieldName}_vw, %T.size(buf, _${fieldName}_ve, _${fieldName}_vw))", FLEX_READ, FLEX_READ)
+            }
+            "kotlin.ShortArray" -> {
+                emitVecHeader(builder, fieldName, index)
+                builder.addStatement("${prefix}%T.toShortArray(buf, _${fieldName}_ve, _${fieldName}_vw, %T.size(buf, _${fieldName}_ve, _${fieldName}_vw))", FLEX_READ, FLEX_READ)
             }
             "kotlin.LongArray" -> {
                 emitVecHeader(builder, fieldName, index)
@@ -536,6 +730,7 @@ class FlexCoderProcessor(
     ) {
         val elemType = type.arguments.firstOrNull()?.type?.resolve() ?: return
         val elemName = elemType.declaration.qualifiedName?.asString() ?: return
+        val readOnlyList = !asSet && type.declaration.qualifiedName?.asString() == "kotlin.collections.List"
         val f = fieldName
         val collCtor = if (asSet) "LinkedHashSet" else "ArrayList"
         val collVar = if (asSet) "s" else "list"
@@ -552,10 +747,18 @@ class FlexCoderProcessor(
 
         when (elemName) {
             // Primitive lists are written as typed vectors by the keyed encoder.
-            "kotlin.Int" -> typedLoop("Int", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j)")
-            "kotlin.Long" -> typedLoop("Long", "%T.typedLong(buf, _${f}_ve, _${f}_vw, j)")
-            "kotlin.Float" -> typedLoop("Float", "%T.typedFloat(buf, _${f}_ve, _${f}_vw, j)")
-            "kotlin.Double" -> typedLoop("Double", "%T.typedDouble(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Int" -> if (readOnlyList) {
+                builder.addStatement("${prefix}%T(%T.toIntArray(buf, _${f}_ve, _${f}_vw, _${f}_n))", MATERIALIZED_INT_LIST, FLEX_READ)
+            } else typedLoop("Int", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Long" -> if (readOnlyList) {
+                builder.addStatement("${prefix}%T(%T.toLongArray(buf, _${f}_ve, _${f}_vw, _${f}_n))", MATERIALIZED_LONG_LIST, FLEX_READ)
+            } else typedLoop("Long", "%T.typedLong(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Float" -> if (readOnlyList) {
+                builder.addStatement("${prefix}%T(%T.toFloatArray(buf, _${f}_ve, _${f}_vw, _${f}_n))", MATERIALIZED_FLOAT_LIST, FLEX_READ)
+            } else typedLoop("Float", "%T.typedFloat(buf, _${f}_ve, _${f}_vw, j)")
+            "kotlin.Double" -> if (readOnlyList) {
+                builder.addStatement("${prefix}%T(%T.toDoubleArray(buf, _${f}_ve, _${f}_vw, _${f}_n))", MATERIALIZED_DOUBLE_LIST, FLEX_READ)
+            } else typedLoop("Double", "%T.typedDouble(buf, _${f}_ve, _${f}_vw, j)")
             "kotlin.Short" -> typedLoop("Short", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j).toShort()")
             "kotlin.Char" -> typedLoop("Char", "%T.typedInt(buf, _${f}_ve, _${f}_vw, j).toChar()")
             // Booleans go through the generic vector path (inline values).
@@ -870,27 +1073,30 @@ class FlexCoderProcessor(
         }
     }
 
-    private fun generateRegistrationFunction(
-        generated: List<Pair<ClassName, ClassName>>,
-        sourceFile: KSFile?
-    ) {
-        val builder = FunSpec.builder("registerGeneratedFlexCoders")
-        for ((className, coderName) in generated) {
-            builder.addStatement("%T.register(%T::class, %T)", FLEX_CODER_REGISTRY, className, coderName)
-            // Also register by serial name so the serializer-based API
-            // (FlexBuffers.encode(serializer<T>(), value)) uses FlexCoder automatically
-            val serialName = "${className.packageName}.${className.simpleName}"
-            builder.addStatement("%T.registerBySerialName(%S, %T)", FLEX_CODER_REGISTRY, serialName, coderName)
-        }
-
-        val pkg = generated.first().first.packageName
-        val fileSpec = FileSpec.builder(pkg, "FlexCoderRegistration")
-            .addFunction(builder.build())
-            .build()
-
-        val deps = sourceFile?.let { Dependencies(false, it) } ?: Dependencies(false)
-        fileSpec.writeTo(codeGenerator, deps)
+    private fun KSAnnotated.annotatedSerialName(): String? {
+        val annotatedName = annotations
+            .firstOrNull {
+                it.annotationType.resolve().declaration.qualifiedName?.asString() == SERIAL_NAME_FQ
+            }
+            ?.arguments
+            ?.firstOrNull { it.name?.asString() == "value" }
+            ?.value as? String
+        return annotatedName
     }
+
+    private fun KSClassDeclaration.serializationSerialName(): String =
+        annotatedSerialName() ?: qualifiedName?.asString() ?: toClassName().canonicalName
+
+    private fun KSPropertyDeclaration.serializationSerialName(): String =
+        annotatedSerialName() ?: simpleName.asString()
+
+    private fun isValidPackageName(value: String): Boolean =
+        value.split('.').all(::isValidIdentifier)
+
+    private fun isValidIdentifier(value: String): Boolean =
+        value.isNotEmpty() &&
+            (value.first() == '_' || value.first().isLetter()) &&
+            value.drop(1).all { it == '_' || it.isLetterOrDigit() }
 
     private fun hasStruct(decl: KSClassDeclaration): Boolean {
         return decl.annotations.any {
@@ -913,6 +1119,6 @@ class FlexCoderProcessor(
 
 class FlexCoderProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        return FlexCoderProcessor(environment.codeGenerator, environment.logger)
+        return FlexCoderProcessor(environment.codeGenerator, environment.logger, environment.options)
     }
 }

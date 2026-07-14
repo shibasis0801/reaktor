@@ -28,6 +28,27 @@ internal object StringAccess {
   @JvmField val ON: Boolean = UnsafeOps.ON && VALUE_OFFSET >= 0 && CODER_OFFSET >= 0
 }
 
+private const val BYTE_HIGH_BITS: Long = -0x7F7F7F7F7F7F7F80L
+
+/** Returns the UTF-8 size of a compact LATIN1 String backing array. */
+private fun latin1Utf8Length(value: ByteArray): Int {
+    val u = UnsafeOps.U!!
+    var extra = 0
+    var index = 0
+    val wordLimit = value.size and -Long.SIZE_BYTES
+
+    while (index < wordLimit) {
+        val word = u.getLong(value, UnsafeOps.BASE + index)
+        extra += java.lang.Long.bitCount(word and BYTE_HIGH_BITS)
+        index += Long.SIZE_BYTES
+    }
+    while (index < value.size) {
+        if (value[index] < 0) extra++
+        index++
+    }
+    return value.size + extra
+}
+
 internal actual fun fastDecodeUtf8(bytes: ByteArray, startIndex: Int, endIndex: Int): String =
     bytes.decodeToString(startIndex, endIndex)
 
@@ -61,16 +82,42 @@ internal actual fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: 
     return Utf8.encodeUtf8Array(input, out, offset, out.size - offset)
 }
 
+internal actual fun fastEncodeUtf8KnownLength(
+    input: CharSequence,
+    out: ByteArray,
+    offset: Int,
+    encodedLength: Int,
+): Int {
+    if (StringAccess.ON && input is String) {
+        val u = UnsafeOps.U!!
+        if (u.getByte(input, StringAccess.CODER_OFFSET).toInt() == 0) { // LATIN1
+            val v = u.getObject(input, StringAccess.VALUE_OFFSET) as ByteArray
+            if (encodedLength == v.size) {
+                v.copyInto(out, offset)
+                return offset + v.size
+            }
+            var p = offset
+            for (b in v) {
+                val c = b.toInt() and 0xFF
+                if (c < 0x80) {
+                    out[p++] = b
+                } else {
+                    out[p++] = (0xC0 or (c shr 6)).toByte()
+                    out[p++] = (0x80 or (c and 0x3F)).toByte()
+                }
+            }
+            return p
+        }
+    }
+    return Utf8.encodeUtf8Array(input, out, offset, out.size - offset)
+}
+
 internal actual fun fastEncodedLength(input: CharSequence): Int {
     if (StringAccess.ON && input is String) {
         val u = UnsafeOps.U!!
         if (u.getByte(input, StringAccess.CODER_OFFSET).toInt() == 0) { // LATIN1
             val v = u.getObject(input, StringAccess.VALUE_OFFSET) as ByteArray
-            var extra = 0
-            for (b in v) {
-                if (b < 0) extra++
-            }
-            return v.size + extra
+            return latin1Utf8Length(v)
         }
     }
     return Utf8.encodedLength(input)

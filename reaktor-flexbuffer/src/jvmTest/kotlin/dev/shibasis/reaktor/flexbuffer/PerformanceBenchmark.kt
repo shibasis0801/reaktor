@@ -2,7 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import kotlinx.serialization.json.Json
@@ -55,7 +55,7 @@ class PerformanceBenchmark {
 
     @Test
     fun fullBenchmark() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         println("\n" + "═".repeat(90))
         println("  FLEXBUFFER PERFORMANCE BENCHMARK")
@@ -72,7 +72,7 @@ class PerformanceBenchmark {
             val data = BenchmarkData.userProfile()
             println("\n── $name ──")
 
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             val fEnc = benchMean("FlexCoder encode") { FlexBuffers.encode(data) }
             val fb = FlexBuffers.encode(data)
             val fDec = benchMean("FlexCoder decode") { FlexBuffers.decode<BenchUserProfile>(fb) }
@@ -85,7 +85,7 @@ class PerformanceBenchmark {
             val jEnc = benchMean("JSON encode") { json.encodeToString(serializer<BenchUserProfile>(), data) }
             val js = json.encodeToString(serializer<BenchUserProfile>(), data)
             val jDec = benchMean("JSON decode") { json.decodeFromString(serializer<BenchUserProfile>(), js) }
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             assertEquals(data, FlexBuffers.decode<BenchUserProfile>(fb))
             addCase(CaseRow(name, fEnc, fDec, aEnc, aDec, sEnc, sDec, jEnc, jDec, fb.size, js.length))
         }
@@ -96,7 +96,7 @@ class PerformanceBenchmark {
             val data = BenchmarkData.apiResponse()
             println("\n── $name ──")
 
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             val fEnc = benchMean("FlexCoder encode") { FlexBuffers.encode(data) }
             val fb = FlexBuffers.encode(data)
             val fDec = benchMean("FlexCoder decode") { FlexBuffers.decode<BenchApiResponse>(fb) }
@@ -109,7 +109,7 @@ class PerformanceBenchmark {
             val jEnc = benchMean("JSON encode") { json.encodeToString(serializer<BenchApiResponse>(), data) }
             val js = json.encodeToString(serializer<BenchApiResponse>(), data)
             val jDec = benchMean("JSON decode") { json.decodeFromString(serializer<BenchApiResponse>(), js) }
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             assertEquals(data, FlexBuffers.decode<BenchApiResponse>(fb))
             addCase(CaseRow(name, fEnc, fDec, aEnc, aDec, sEnc, sDec, jEnc, jDec, fb.size, js.length))
         }
@@ -120,7 +120,7 @@ class PerformanceBenchmark {
             val data = BenchmarkData.chatThread()
             println("\n── $name ──")
 
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             val fEnc = benchMean("FlexCoder encode") { FlexBuffers.encode(data) }
             val fb = FlexBuffers.encode(data)
             val fDec = benchMean("FlexCoder decode") { FlexBuffers.decode<BenchChatThread>(fb) }
@@ -133,7 +133,7 @@ class PerformanceBenchmark {
             val jEnc = benchMean("JSON encode") { json.encodeToString(serializer<BenchChatThread>(), data) }
             val js = json.encodeToString(serializer<BenchChatThread>(), data)
             val jDec = benchMean("JSON decode") { json.decodeFromString(serializer<BenchChatThread>(), js) }
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             assertEquals(data, FlexBuffers.decode<BenchChatThread>(fb))
             addCase(CaseRow(name, fEnc, fDec, aEnc, aDec, sEnc, sDec, jEnc, jDec, fb.size, js.length))
         }
@@ -144,7 +144,7 @@ class PerformanceBenchmark {
             val data = BenchmarkData.timeSeriesChunk()
             println("\n── $name ──")
 
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             val fEnc = benchMean("FlexCoder encode") { FlexBuffers.encode(data) }
             val fb = FlexBuffers.encode(data)
             val fDec = benchMean("FlexCoder decode") { FlexBuffers.decode<BenchTimeSeriesChunk>(fb) }
@@ -157,7 +157,7 @@ class PerformanceBenchmark {
             val jEnc = benchMean("JSON encode") { json.encodeToString(serializer<BenchTimeSeriesChunk>(), data) }
             val js = json.encodeToString(serializer<BenchTimeSeriesChunk>(), data)
             val jDec = benchMean("JSON decode") { json.decodeFromString(serializer<BenchTimeSeriesChunk>(), js) }
-            registerGeneratedFlexCoders()
+            ReaktorFlexbufferCoders.register()
             assertEquals(data, FlexBuffers.decode<BenchTimeSeriesChunk>(fb))
             addCase(CaseRow(name, fEnc, fDec, aEnc, aDec, sEnc, sDec, jEnc, jDec, fb.size, js.length))
         }

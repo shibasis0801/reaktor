@@ -4,6 +4,7 @@ package dev.shibasis.reaktor.flexbuffer.core
 
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.Reference
+import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
 import kotlin.reflect.KClass
 
 /**
@@ -22,15 +23,31 @@ import kotlin.reflect.KClass
  */
 interface FlexCoder<T> {
     fun encode(builder: FlexBuffersBuilder, value: T, key: String? = null)
+
+    /** Root-specialized entry point. Generated coders override this to skip nullable-key work. */
+    fun encodeRoot(builder: FlexBuffersBuilder, value: T) = encode(builder, value, null)
+
     fun decode(ref: Reference): T
+
+    /**
+     * Byte-array-specialized entry point. Generated coders override this to enter their
+     * positional decoder directly, without allocating a root [Reference] and [Map].
+     */
+    fun decode(bytes: ByteArray): T = decode(bytes, bytes.size)
+
+    /**
+     * Byte-array decode whose root trailer ends at [limit]. Generated coders use this
+     * to decode array-backed ReadBuffer slices without copying or root wrappers.
+     */
+    fun decode(bytes: ByteArray, limit: Int): T = decode(getRoot(bytes, limit))
 }
 
 /**
  * Registry for FlexCoder instances. Checked by FlexBuffers.encode/decode
  * before falling through to the kotlinx.serialization path.
  *
- * Thread-safe for reads after initialization (typical usage: register at startup).
- * Registration during encoding is safe but not recommended.
+ * Safe for concurrent reads after initialization (typical usage: register at startup).
+ * Registration and [clear] must not overlap reads or other mutations.
  */
 object FlexCoderRegistry {
     @PublishedApi
@@ -56,6 +73,11 @@ object FlexCoderRegistry {
      * FlexBuffers.encode(serializer<T>(), value) without reified T.
      */
     fun <T : Any> registerBySerialName(serialName: String, coder: FlexCoder<T>) {
+        val existing = codersBySerialName[serialName]
+        require(existing == null || existing === coder) {
+            "FlexCoder serial name '$serialName' is already registered to " +
+                "${existing!!::class}; refusing to replace it with ${coder::class}"
+        }
         codersBySerialName[serialName] = coder
     }
 

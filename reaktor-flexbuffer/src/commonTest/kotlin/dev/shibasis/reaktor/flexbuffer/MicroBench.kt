@@ -2,7 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.ArrayReadBuffer
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.ByteWidth
@@ -38,7 +38,7 @@ class MicroBench {
 
     @Test
     fun microBench() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         val data = BenchmarkData.userProfile()
         val bytes = FlexBuffers.encode(data)

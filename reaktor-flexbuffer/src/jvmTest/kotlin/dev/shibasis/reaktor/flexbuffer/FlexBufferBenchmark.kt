@@ -573,7 +573,7 @@ class FlexBufferBenchmark {
         FlexCoderRegistry.clear()
 
         // KSP-generated coders
-        dev.shibasis.reaktor.core.registerGeneratedFlexCoders()
+        dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders.register()
         val kspEnc = benchUs("KSP-generated encode") { FlexBuffers.encode(data) }
         val kspEncoded = FlexBuffers.encode(data)
         val kspDec = benchUs("KSP-generated decode") { FlexBuffers.decode<EncodingComplexCase>(kspEncoded) }

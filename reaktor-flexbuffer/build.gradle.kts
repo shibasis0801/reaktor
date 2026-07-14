@@ -63,12 +63,22 @@ kotlin {
         }
     }
 
-    // iOS-sim long-running benchmark executable for external profiling
-    // (sample, xctrace, Instruments). Runs ApiResponse decode in a tight loop
-    // so a sampler can capture meaningful stack traces.
+    // iOS-sim release benchmark executable for external profiling and scored
+    // per-case encode/decode batches (configured through BENCH_* variables).
     // Build:  ./gradlew :reaktor-flexbuffer:linkBenchReleaseExecutableIosSimulatorArm64
     // Run:    ./reaktor-flexbuffer/build/bin/iosSimulatorArm64/benchReleaseExecutable/bench.kexe
     iosSimulatorArm64 {
+        binaries {
+            executable("bench", listOf(org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE)) {
+                entryPoint = "dev.shibasis.reaktor.flexbuffer.bench.iosBenchMain"
+                freeCompilerArgs += listOf("-opt")
+            }
+        }
+    }
+
+    // Physical-device variant of the bench executable (wrap in a signed .app to run).
+    // Build:  ./gradlew :reaktor-flexbuffer:linkBenchReleaseExecutableIosArm64
+    iosArm64 {
         binaries {
             executable("bench", listOf(org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.RELEASE)) {
                 entryPoint = "dev.shibasis.reaktor.flexbuffer.bench.iosBenchMain"
@@ -92,6 +102,9 @@ kotlin {
         compilations.create("benchmark") {
             associateWith(mainCompilation)
             compileTaskProvider.configure {
+                // Keep the thin JMH wrapper at 21 because kotlinx-benchmark's bytecode
+                // generator currently runs on Gradle's Java 21 worker. Production code
+                // remains Java 25 and the scored forks are pinned to Java 25 below.
                 compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
             }
             defaultSourceSet {
@@ -132,12 +145,15 @@ val jvmBenchmarkAllocationStats by tasks.registering(Exec::class) {
     dependsOn("jvmBenchmarkBenchmarkJar")
 
     doFirst {
+        val java25 = project.extensions.getByType<JavaToolchainService>()
+            .launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) }
+            .get().executablePath.asFile.absolutePath
         val jarDir = layout.buildDirectory.dir("benchmarks/jvmBenchmark/jars").get().asFile
         val jmhJar = fileTree(jarDir) { include("*-JMH.jar") }.singleFile
         val report = layout.buildDirectory.file("reports/benchmarks/jvm-flexbuffer-jmh-gc.json").get().asFile
         report.parentFile.mkdirs()
         commandLine(
-            "java",
+            java25,
             "-Xms1g",
             "-Xmx1g",
             "-jar",
@@ -164,6 +180,11 @@ tasks.withType<org.gradle.jvm.tasks.Jar>().configureEach {
 
 dependencies {
     add("kspCommonMainMetadata", project(":reaktor-compiler"))
+}
+
+extensions.configure<com.google.devtools.ksp.gradle.KspExtension> {
+    arg("reaktor.flexcoder.registrar.package", "dev.shibasis.reaktor.flexbuffer.generated")
+    arg("reaktor.flexcoder.registrar.object", "ReaktorFlexbufferCoders")
 }
 
 kotlin.sourceSets.commonMain {

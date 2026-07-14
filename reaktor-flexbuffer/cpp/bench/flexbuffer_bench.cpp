@@ -174,6 +174,17 @@ inline void sink(bool v) { g_sink += v ? 1 : 0; }
 inline void sink(const char* v) { g_sink += v[0]; }
 inline void sink(flexbuffers::String v) { if (v.size() > 0) g_sink += v.c_str()[0]; }
 
+// Cross-language comparison rows consume exactly one primitive checksum per
+// operation. Keep this separate from the historical multi-sink benchmark paths.
+inline void consume_comparison_checksum(int64_t value) { g_sink = value; }
+
+void print_cpp_metric(const char* id, const BenchResult& result, size_t bytes,
+                      int64_t checksum, int warmup, int iters, int runs) {
+    printf("CPP_METRIC|%s|%.9f|%.9f|%.9f|%.9f|%.9f|%zu|%lld|%d|%d|%d\n",
+           id, result.median_us, result.min_us, result.max_us, result.mean_us,
+           result.stddev, bytes, static_cast<long long>(checksum), warmup, iters, runs);
+}
+
 // ─── Cross-language golden/fuzz fixtures ───
 
 std::string hex_encode(const std::vector<uint8_t>& bytes) {
@@ -1613,6 +1624,37 @@ void decode_time_series_indexed(const std::vector<uint8_t>& buf) {
     for (size_t i = 0; i < values.size(); ++i) sink(values[i].AsDouble());
 }
 
+int64_t checksum_time_series_indexed(const std::vector<uint8_t>& buf) {
+    auto values = flexbuffers::GetRoot(buf).AsMap().Values();
+    int64_t checksum = values[0].AsInt64() + values[1].AsInt64() +
+                       static_cast<int64_t>(values[2].AsDouble()) +
+                       static_cast<int64_t>(values[3].AsDouble()) +
+                       static_cast<int64_t>(values[4].AsDouble()) +
+                       static_cast<int64_t>(values[5].AsString().size()) +
+                       values[6].AsInt64();
+    auto timestamps_ref = values[7];
+    if (timestamps_ref.IsTypedVector()) {
+        auto timestamps = timestamps_ref.AsTypedVector();
+        for (size_t i = 0; i < timestamps.size(); ++i) checksum += timestamps[i].AsInt64();
+    } else {
+        auto timestamps = timestamps_ref.AsVector();
+        for (size_t i = 0; i < timestamps.size(); ++i) checksum += timestamps[i].AsInt64();
+    }
+    auto samples_ref = values[8];
+    if (samples_ref.IsTypedVector()) {
+        auto samples = samples_ref.AsTypedVector();
+        for (size_t i = 0; i < samples.size(); ++i) {
+            checksum += static_cast<int64_t>(samples[i].AsDouble());
+        }
+    } else {
+        auto samples = samples_ref.AsVector();
+        for (size_t i = 0; i < samples.size(); ++i) {
+            checksum += static_cast<int64_t>(samples[i].AsDouble());
+        }
+    }
+    return checksum;
+}
+
 void decode_time_series_partial(const std::vector<uint8_t>& buf) {
     auto root = flexbuffers::GetRoot(buf).AsMap();
     sink(root["seriesId"].AsString());
@@ -1964,6 +2006,31 @@ void decode_tiny_status_flex_partial(const std::vector<uint8_t>& buf) {
     sink(root["verified"].AsBool());
 }
 
+int64_t checksum_tiny_status_keyed(const std::vector<uint8_t>& buf) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    return root["createdAt"].AsInt64() + root["id"].AsInt64() +
+           static_cast<int64_t>(root["score"].AsDouble()) +
+           static_cast<int64_t>(root["status"].AsString().size()) +
+           static_cast<int64_t>(root["username"].AsString().size()) +
+           (root["verified"].AsBool() ? 1 : 0);
+}
+
+int64_t checksum_tiny_status_indexed(const std::vector<uint8_t>& buf) {
+    auto values = flexbuffers::GetRoot(buf).AsMap().Values();
+    return values[0].AsInt64() + values[1].AsInt64() +
+           static_cast<int64_t>(values[2].AsDouble()) +
+           static_cast<int64_t>(values[3].AsString().size()) +
+           static_cast<int64_t>(values[4].AsString().size()) +
+           (values[5].AsBool() ? 1 : 0);
+}
+
+int64_t checksum_tiny_status_partial(const std::vector<uint8_t>& buf) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    return static_cast<int64_t>(root["score"].AsDouble()) +
+           static_cast<int64_t>(root["status"].AsString().size()) +
+           (root["verified"].AsBool() ? 1 : 0);
+}
+
 void decode_tiny_status_json_full(const std::string& json) {
     sink(json_i64_after(json, "\"createdAt\":"));
     sink(json_i64_after(json, "\"id\":"));
@@ -2012,6 +2079,27 @@ void decode_sparse_options_flex_missing(const std::vector<uint8_t>& buf, int mis
         auto ref = root[key];
         sink(ref.IsNull() ? 0 : ref.AsInt64());
     }
+}
+
+std::vector<std::string> adversarial_missing_keys(int missing) {
+    std::vector<std::string> keys;
+    keys.reserve(missing);
+    for (int i = 0; i < missing; ++i) {
+        char key[32];
+        snprintf(key, sizeof(key), "optional_%04d", i);
+        keys.emplace_back(key);
+    }
+    return keys;
+}
+
+int64_t checksum_sparse_options_missing(const std::vector<uint8_t>& buf,
+                                        const std::vector<std::string>& keys) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    int64_t hits = 0;
+    for (const auto& key : keys) {
+        if (!root[key.c_str()].IsNull()) ++hits;
+    }
+    return hits;
 }
 
 void decode_sparse_options_json_missing(const std::string& json, int missing) {
@@ -2080,6 +2168,20 @@ void decode_string_table_flex_full(const std::vector<uint8_t>& buf) {
     }
 }
 
+int64_t checksum_string_table_indexed(const std::vector<uint8_t>& buf) {
+    auto root_values = flexbuffers::GetRoot(buf).AsMap().Values();
+    auto rows = root_values[0].AsVector();
+    int64_t checksum = 0;
+    for (size_t i = 0; i < rows.size(); ++i) {
+        auto values = rows[i].AsMap().Values();
+        checksum += static_cast<int64_t>(values[0].AsString().size());
+        checksum += values[1].AsInt64();
+        checksum += static_cast<int64_t>(values[2].AsString().size());
+        checksum += static_cast<int64_t>(values[3].AsString().size());
+    }
+    return checksum;
+}
+
 void decode_string_table_json_full(const std::string& json) {
     size_t cursor = 0;
     while (true) {
@@ -2140,7 +2242,7 @@ void decode_raw_time_series_full(const std::vector<uint8_t>& buf) {
 
 std::vector<int64_t> encode_raw_int_array(int n) {
     std::vector<int64_t> out(n);
-    for (int i = 0; i < n; ++i) out[i] = i * 13LL;
+    for (int i = 0; i < n; ++i) out[i] = i;
     return out;
 }
 
@@ -2168,6 +2270,21 @@ void decode_wide_map_random_keys(const std::vector<uint8_t>& buf, const std::vec
     for (const auto& key : keys) sink(root[key.c_str()].AsInt64());
 }
 
+int64_t checksum_wide_map_random_keys(const std::vector<uint8_t>& buf,
+                                      const std::vector<std::string>& keys) {
+    auto root = flexbuffers::GetRoot(buf).AsMap();
+    int64_t checksum = 0;
+    for (const auto& key : keys) checksum += root[key.c_str()].AsInt64();
+    return checksum;
+}
+
+int64_t checksum_wide_map_sequential(const std::vector<uint8_t>& buf, int reads) {
+    auto values = flexbuffers::GetRoot(buf).AsMap().Values();
+    int64_t checksum = 0;
+    for (int i = 0; i < reads; ++i) checksum += values[i].AsInt64();
+    return checksum;
+}
+
 void decode_wide_raw_array_random(const std::vector<int64_t>& values, const std::vector<int>& indexes) {
     for (int idx : indexes) sink(values[idx]);
 }
@@ -2191,6 +2308,78 @@ std::vector<uint8_t> encode_unique_string_payload(bool share, int rows, int len)
     });
     b.Finish();
     return b.GetBuffer();
+}
+
+int64_t checksum_unique_string_payload(const std::vector<uint8_t>& buf) {
+    auto items = flexbuffers::GetRoot(buf).AsMap()["items"].AsVector();
+    int64_t checksum = 0;
+    for (size_t i = 0; i < items.size(); ++i) {
+        auto row = items[i].AsMap();
+        checksum += row["id"].AsInt64();
+        checksum += static_cast<int64_t>(row["unique"].AsString().size());
+        checksum += static_cast<int64_t>(row["alsoUnique"].AsString().size());
+    }
+    return checksum;
+}
+
+template <typename Factory>
+std::vector<uint8_t> comparison_fixture_or(const char* hex, Factory&& fallback) {
+    return hex != nullptr ? hex_decode(hex) : fallback();
+}
+
+void verify_comparison_fixtures(const std::vector<uint8_t>& tiny,
+                                const std::vector<uint8_t>& sparse,
+                                const std::vector<uint8_t>& string_table,
+                                const std::vector<uint8_t>& time_series,
+                                const std::vector<uint8_t>& wide,
+                                const std::vector<uint8_t>& unique_share,
+                                const std::vector<uint8_t>& unique_none) {
+    const std::vector<const std::vector<uint8_t>*> buffers = {
+        &tiny, &sparse, &string_table, &time_series, &wide, &unique_share, &unique_none
+    };
+    for (const auto* buffer : buffers) {
+        ASSERT_EQ(flexbuffers::VerifyBuffer(buffer->data(), buffer->size(), nullptr), true);
+    }
+
+    auto expected_tiny = encode_tiny_status_flex();
+    ASSERT_EQ(checksum_tiny_status_keyed(tiny), checksum_tiny_status_keyed(expected_tiny));
+    ASSERT_EQ(checksum_tiny_status_indexed(tiny), checksum_tiny_status_keyed(tiny));
+
+    auto missing_keys = adversarial_missing_keys(256);
+    auto expected_sparse = encode_sparse_options_flex(10);
+    ASSERT_EQ(checksum_sparse_options_missing(sparse, missing_keys),
+              checksum_sparse_options_missing(expected_sparse, missing_keys));
+
+    auto expected_table = encode_string_table_flex(200, 80);
+    ASSERT_EQ(checksum_string_table_indexed(string_table),
+              checksum_string_table_indexed(expected_table));
+
+    auto expected_time_series = encode_time_series();
+    ASSERT_EQ(checksum_time_series_indexed(time_series),
+              checksum_time_series_indexed(expected_time_series));
+
+    auto wide_keys = adversarial_wide_keys(1024, 64);
+    auto expected_wide = encode_map_n_keys(1024);
+    ASSERT_EQ(checksum_wide_map_random_keys(wide, wide_keys),
+              checksum_wide_map_random_keys(expected_wide, wide_keys));
+    ASSERT_EQ(checksum_wide_map_sequential(wide, 64),
+              checksum_wide_map_sequential(expected_wide, 64));
+
+    auto expected_unique_share = encode_unique_string_payload(true, 200, 64);
+    auto expected_unique_none = encode_unique_string_payload(false, 200, 64);
+    auto expected_unique_checksum = checksum_unique_string_payload(expected_unique_share);
+    ASSERT_EQ(checksum_unique_string_payload(expected_unique_none), expected_unique_checksum);
+    ASSERT_EQ(checksum_unique_string_payload(unique_share), expected_unique_checksum);
+    ASSERT_EQ(checksum_unique_string_payload(unique_none), expected_unique_checksum);
+
+    printf("CPP_VERIFY|comparison|PASS|tiny=%lld|sparse=%lld|string_table=%lld|time_series=%lld|wide_random=%lld|wide_sequential=%lld|unique=%lld\n",
+           static_cast<long long>(checksum_tiny_status_keyed(tiny)),
+           static_cast<long long>(checksum_sparse_options_missing(sparse, missing_keys)),
+           static_cast<long long>(checksum_string_table_indexed(string_table)),
+           static_cast<long long>(checksum_time_series_indexed(time_series)),
+           static_cast<long long>(checksum_wide_map_random_keys(wide, wide_keys)),
+           static_cast<long long>(checksum_wide_map_sequential(wide, 64)),
+           static_cast<long long>(expected_unique_checksum));
 }
 
 void verify_adversarial_cases() {
@@ -2236,11 +2425,21 @@ struct BenchCase {
 
 int main(int argc, char** argv) {
     bool golden_mode = false;
+    bool verify_comparison_mode = false;
     const char* verify_hex_name = nullptr;
     const char* verify_hex_value = nullptr;
+    const char* fixture_tiny_hex = nullptr;
+    const char* fixture_sparse_hex = nullptr;
+    const char* fixture_string_table_hex = nullptr;
+    const char* fixture_time_series_hex = nullptr;
+    const char* fixture_wide_hex = nullptr;
+    const char* fixture_unique_share_hex = nullptr;
+    const char* fixture_unique_none_hex = nullptr;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--verify") == 0) g_verify = true;
+        else if (strcmp(argv[i], "--verify-comparison") == 0) verify_comparison_mode = true;
         else if (strcmp(argv[i], "--runs") == 0 && i + 1 < argc) RUNS = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--warmup") == 0 && i + 1 < argc) WARMUP = atoi(argv[++i]);
         else if (strcmp(argv[i], "--iters") == 0 && i + 1 < argc) ITERATIONS = atoi(argv[++i]);
         else if (strcmp(argv[i], "--quick") == 0) { WARMUP = 100; ITERATIONS = 1000; RUNS = 3; }
         else if (strcmp(argv[i], "--section") == 0 && i + 1 < argc) g_section = atoi(argv[++i]);
@@ -2250,9 +2449,29 @@ int main(int argc, char** argv) {
             verify_hex_name = argv[++i];
             verify_hex_value = argv[++i];
         }
+        else if (strcmp(argv[i], "--fixture-tiny-hex") == 0 && i + 1 < argc) fixture_tiny_hex = argv[++i];
+        else if (strcmp(argv[i], "--fixture-sparse-hex") == 0 && i + 1 < argc) fixture_sparse_hex = argv[++i];
+        else if (strcmp(argv[i], "--fixture-string-table-hex") == 0 && i + 1 < argc) fixture_string_table_hex = argv[++i];
+        else if (strcmp(argv[i], "--fixture-time-series-hex") == 0 && i + 1 < argc) fixture_time_series_hex = argv[++i];
+        else if (strcmp(argv[i], "--fixture-wide-hex") == 0 && i + 1 < argc) fixture_wide_hex = argv[++i];
+        else if (strcmp(argv[i], "--fixture-unique-share-hex") == 0 && i + 1 < argc) fixture_unique_share_hex = argv[++i];
+        else if (strcmp(argv[i], "--fixture-unique-none-hex") == 0 && i + 1 < argc) fixture_unique_none_hex = argv[++i];
     }
     if (golden_mode) return print_golden_flexbuffers();
     if (verify_hex_name != nullptr) return verify_golden_hex(verify_hex_name, verify_hex_value);
+
+    if (verify_comparison_mode) {
+        auto tiny = comparison_fixture_or(fixture_tiny_hex, encode_tiny_status_flex);
+        auto sparse = comparison_fixture_or(fixture_sparse_hex, [] { return encode_sparse_options_flex(10); });
+        auto string_table = comparison_fixture_or(fixture_string_table_hex, [] { return encode_string_table_flex(200, 80); });
+        auto time_series = comparison_fixture_or(fixture_time_series_hex, encode_time_series);
+        auto wide = comparison_fixture_or(fixture_wide_hex, [] { return encode_map_n_keys(1024); });
+        auto unique_share = comparison_fixture_or(fixture_unique_share_hex, [] { return encode_unique_string_payload(true, 200, 64); });
+        auto unique_none = comparison_fixture_or(fixture_unique_none_hex, [] { return encode_unique_string_payload(false, 200, 64); });
+        verify_comparison_fixtures(tiny, sparse, string_table, time_series, wide,
+                                   unique_share, unique_none);
+        return 0;
+    }
 
     BenchCase cases[] = {
         {"FlatPrimitives",  "9 scalar fields",
@@ -2793,8 +3012,36 @@ int main(int argc, char** argv) {
         printf("  encodings and controlled parsers, so they trade away schema evolution and\n");
         printf("  generality. They are included to falsify broad performance claims.\n\n");
 
+        const int missing_fields = 256;
+        const int string_table_rows = 200;
+        const int string_table_body_len = 80;
+        const int wide_n = 1024;
+        const int wide_lookups = 64;
+        const int unique_rows = 200;
+        const int unique_len = 64;
+        const int comparison_table_iters = std::min(ITERATIONS, 2000);
+
+        auto tiny_flex = comparison_fixture_or(fixture_tiny_hex, encode_tiny_status_flex);
+        auto sparse_flex = comparison_fixture_or(fixture_sparse_hex, [] { return encode_sparse_options_flex(10); });
+        auto table_flex = comparison_fixture_or(fixture_string_table_hex, [&] {
+            return encode_string_table_flex(string_table_rows, string_table_body_len);
+        });
+        auto ts_flex = comparison_fixture_or(fixture_time_series_hex, encode_time_series);
+        auto wide_flex = comparison_fixture_or(fixture_wide_hex, [&] { return encode_map_n_keys(wide_n); });
+        auto supplied_unique_share = comparison_fixture_or(fixture_unique_share_hex, [&] {
+            return encode_unique_string_payload(true, unique_rows, unique_len);
+        });
+        auto supplied_unique_none = comparison_fixture_or(fixture_unique_none_hex, [&] {
+            return encode_unique_string_payload(false, unique_rows, unique_len);
+        });
+        auto missing_keys = adversarial_missing_keys(missing_fields);
+        auto wide_keys = adversarial_wide_keys(wide_n, wide_lookups);
+        auto wide_indexes = adversarial_wide_indexes(wide_n, wide_lookups);
+
         if (g_verify) {
             verify_adversarial_cases();
+            verify_comparison_fixtures(tiny_flex, sparse_flex, table_flex, ts_flex,
+                                       wide_flex, supplied_unique_share, supplied_unique_none);
             printf("\n");
         }
 
@@ -2828,19 +3075,18 @@ int main(int argc, char** argv) {
                flat_flex_r.median_us / flat_raw_r.median_us, flat_flex.size(), flat_raw.size());
 
         printf("┌── Tiny status object: FlexBuffer vs controlled JSON scan ──\n");
-        auto tiny_flex = encode_tiny_status_flex();
         auto tiny_json = encode_tiny_status_json();
         auto tiny_flex_key = bench("  FlexBuffer full key decode", WARMUP, ITERATIONS, [&] {
-            decode_tiny_status_flex_full(tiny_flex);
+            consume_comparison_checksum(checksum_tiny_status_keyed(tiny_flex));
         }, RUNS);
         auto tiny_flex_idx = bench("  FlexBuffer full index decode", WARMUP, ITERATIONS, [&] {
-            decode_tiny_status_flex_indexed(tiny_flex);
+            consume_comparison_checksum(checksum_tiny_status_indexed(tiny_flex));
         }, RUNS);
         auto tiny_json_full = bench("  JSON scan full decode", WARMUP, ITERATIONS, [&] {
             decode_tiny_status_json_full(tiny_json);
         }, RUNS);
         auto tiny_flex_part = bench("  FlexBuffer 3-field read", WARMUP, ITERATIONS, [&] {
-            decode_tiny_status_flex_partial(tiny_flex);
+            consume_comparison_checksum(checksum_tiny_status_partial(tiny_flex));
         }, RUNS);
         auto tiny_json_part = bench("  JSON scan 3-field read", WARMUP, ITERATIONS, [&] {
             decode_tiny_status_json_partial(tiny_json);
@@ -2850,13 +3096,17 @@ int main(int argc, char** argv) {
         add_counter("TinyStatus key/index", "Flex key", "Flex index", tiny_flex_key, tiny_flex_idx, tiny_flex.size(), tiny_flex.size());
         printf("  Flex key/index/full JSON: %.2f / %.2f / %.2f us | sizes Flex=%zu B JSON=%zu B\n\n",
                tiny_flex_key.median_us, tiny_flex_idx.median_us, tiny_json_full.median_us, tiny_flex.size(), tiny_json.size());
+        print_cpp_metric("tiny_key", tiny_flex_key, tiny_flex.size(),
+                         checksum_tiny_status_keyed(tiny_flex), WARMUP, ITERATIONS, RUNS);
+        print_cpp_metric("tiny_index", tiny_flex_idx, tiny_flex.size(),
+                         checksum_tiny_status_indexed(tiny_flex), WARMUP, ITERATIONS, RUNS);
+        print_cpp_metric("tiny_partial", tiny_flex_part, tiny_flex.size(),
+                         checksum_tiny_status_partial(tiny_flex), WARMUP, ITERATIONS, RUNS);
 
         printf("┌── Sparse optional fields: many missing lookups ──\n");
-        auto sparse_flex = encode_sparse_options_flex(10);
         auto sparse_json = encode_sparse_options_json(10);
-        int missing_fields = 256;
         auto sparse_flex_r = bench("  FlexBuffer 256 missing optional lookups", WARMUP, ITERATIONS, [&] {
-            decode_sparse_options_flex_missing(sparse_flex, missing_fields);
+            consume_comparison_checksum(checksum_sparse_options_missing(sparse_flex, missing_keys));
         }, RUNS);
         auto sparse_json_r = bench("  JSON scan 256 missing optional probes", WARMUP, ITERATIONS, [&] {
             decode_sparse_options_json_missing(sparse_json, missing_fields);
@@ -2864,28 +3114,29 @@ int main(int argc, char** argv) {
         add_counter("Sparse optionals", "Flex missing", "JSON miss", sparse_flex_r, sparse_json_r, sparse_flex.size(), sparse_json.size());
         printf("  Missing-field workload ratio Flex/JSON: %.2fx | sizes Flex=%zu B JSON=%zu B\n\n",
                sparse_flex_r.median_us / sparse_json_r.median_us, sparse_flex.size(), sparse_json.size());
+        print_cpp_metric("sparse_missing", sparse_flex_r, sparse_flex.size(),
+                         checksum_sparse_options_missing(sparse_flex, missing_keys),
+                         WARMUP, ITERATIONS, RUNS);
 
         printf("┌── String-heavy row table: FlexBuffer vs controlled JSON scan ──\n");
-        int rows = 200;
-        int body_len = 80;
-        auto table_flex = encode_string_table_flex(rows, body_len);
-        auto table_json = encode_string_table_json(rows, body_len);
-        int table_iters = std::min(ITERATIONS, 2000);
-        auto table_flex_r = bench("  FlexBuffer scan 200 rows", WARMUP, table_iters, [&] {
-            decode_string_table_flex_full(table_flex);
+        auto table_json = encode_string_table_json(string_table_rows, string_table_body_len);
+        auto table_flex_r = bench("  FlexBuffer scan 200 rows", WARMUP, comparison_table_iters, [&] {
+            consume_comparison_checksum(checksum_string_table_indexed(table_flex));
         }, RUNS);
-        auto table_json_r = bench("  JSON scan 200 rows", WARMUP, table_iters, [&] {
+        auto table_json_r = bench("  JSON scan 200 rows", WARMUP, comparison_table_iters, [&] {
             decode_string_table_json_full(table_json);
         }, RUNS);
         add_counter("StringTable full scan", "Flex row scan", "JSON scan", table_flex_r, table_json_r, table_flex.size(), table_json.size());
         printf("  String table ratio Flex/JSON: %.2fx | sizes Flex=%zu B JSON=%zu B\n\n",
                table_flex_r.median_us / table_json_r.median_us, table_flex.size(), table_json.size());
+        print_cpp_metric("string_table_scan", table_flex_r, table_flex.size(),
+                         checksum_string_table_indexed(table_flex), WARMUP,
+                         comparison_table_iters, RUNS);
 
         printf("┌── TimeSeries: self-describing FlexBuffer vs fixed-order binary row ──\n");
-        auto ts_flex = encode_time_series();
         auto ts_raw = encode_raw_time_series();
         auto ts_flex_r = bench("  FlexBuffer indexed full decode", WARMUP, ITERATIONS, [&] {
-            decode_time_series_indexed(ts_flex);
+            consume_comparison_checksum(checksum_time_series_indexed(ts_flex));
         }, RUNS);
         auto ts_raw_r = bench("  Fixed binary full decode", WARMUP, ITERATIONS, [&] {
             decode_raw_time_series_full(ts_raw);
@@ -2893,47 +3144,44 @@ int main(int argc, char** argv) {
         add_counter("TimeSeries full decode", "Flex indexed", "Fixed binary", ts_flex_r, ts_raw_r, ts_flex.size(), ts_raw.size());
         printf("  Fixed binary speedup over Flex: %.2fx | sizes Flex=%zu B raw=%zu B\n\n",
                ts_flex_r.median_us / ts_raw_r.median_us, ts_flex.size(), ts_raw.size());
+        print_cpp_metric("time_series_index", ts_flex_r, ts_flex.size(),
+                         checksum_time_series_indexed(ts_flex), WARMUP, ITERATIONS, RUNS);
 
         printf("┌── Wide random access: 64 keyed map reads vs raw array reads ──\n");
-        int wide_n = 1024;
-        int lookups = 64;
-        auto wide_flex = encode_map_n_keys(wide_n);
         auto wide_raw = encode_raw_int_array(wide_n);
-        auto wide_keys = adversarial_wide_keys(wide_n, lookups);
-        auto wide_indexes = adversarial_wide_indexes(wide_n, lookups);
         auto wide_flex_r = bench("  FlexBuffer 64 random key reads", WARMUP, ITERATIONS, [&] {
-            decode_wide_map_random_keys(wide_flex, wide_keys);
+            consume_comparison_checksum(checksum_wide_map_random_keys(wide_flex, wide_keys));
         }, RUNS);
         auto wide_raw_r = bench("  Raw array 64 random reads", WARMUP, ITERATIONS, [&] {
             decode_wide_raw_array_random(wide_raw, wide_indexes);
         }, RUNS);
         auto wide_flex_seq_r = bench("  FlexBuffer 64 sequential index reads", WARMUP, ITERATIONS, [&] {
-            auto root = flexbuffers::GetRoot(wide_flex).AsMap();
-            auto values = root.Values();
-            int64_t sum = 0;
-            for (int i = 0; i < lookups; ++i) sum += values[i].AsInt64();
-            sink(sum);
+            consume_comparison_checksum(checksum_wide_map_sequential(wide_flex, wide_lookups));
         }, RUNS);
         auto wide_raw_seq_r = bench("  Raw array 64 sequential reads", WARMUP, ITERATIONS, [&] {
             int64_t sum = 0;
-            for (int i = 0; i < lookups; ++i) sum += wide_raw[i];
+            for (int i = 0; i < wide_lookups; ++i) sum += wide_raw[i];
             sink(sum);
         }, RUNS);
         add_counter("Wide random reads", "Flex map keys", "Raw array", wide_flex_r, wide_raw_r, wide_flex.size(), wide_raw.size() * sizeof(int64_t));
         add_counter("Wide sequential reads", "Flex index", "Raw array", wide_flex_seq_r, wide_raw_seq_r, wide_flex.size(), wide_raw.size() * sizeof(int64_t));
         printf("  Raw array speedup over Flex: %.2fx | sizes Flex=%zu B raw=%zu B\n\n",
                wide_flex_r.median_us / wide_raw_r.median_us, wide_flex.size(), wide_raw.size() * sizeof(int64_t));
+        print_cpp_metric("wide_random", wide_flex_r, wide_flex.size(),
+                         checksum_wide_map_random_keys(wide_flex, wide_keys),
+                         WARMUP, ITERATIONS, RUNS);
+        print_cpp_metric("wide_sequential", wide_flex_seq_r, wide_flex.size(),
+                         checksum_wide_map_sequential(wide_flex, wide_lookups),
+                         WARMUP, ITERATIONS, RUNS);
 
         printf("┌── Unique strings: key/string sharing can backfire ──\n");
-        int unique_rows = 200;
-        int unique_len = 64;
-        auto unique_share_r = bench("  Flex encode SHARE_KEYS_AND_STRINGS", WARMUP, table_iters, [&] {
+        auto unique_share_r = bench("  Flex encode SHARE_KEYS_AND_STRINGS", WARMUP, comparison_table_iters, [&] {
             auto buf = encode_unique_string_payload(true, unique_rows, unique_len);
-            sink((int64_t)buf.size());
+            consume_comparison_checksum(static_cast<int64_t>(buf.size()));
         }, RUNS);
-        auto unique_none_r = bench("  Flex encode no sharing", WARMUP, table_iters, [&] {
+        auto unique_none_r = bench("  Flex encode no sharing", WARMUP, comparison_table_iters, [&] {
             auto buf = encode_unique_string_payload(false, unique_rows, unique_len);
-            sink((int64_t)buf.size());
+            consume_comparison_checksum(static_cast<int64_t>(buf.size()));
         }, RUNS);
         auto unique_share_buf = encode_unique_string_payload(true, unique_rows, unique_len);
         auto unique_none_buf = encode_unique_string_payload(false, unique_rows, unique_len);
@@ -2941,6 +3189,12 @@ int main(int argc, char** argv) {
                     unique_share_buf.size(), unique_none_buf.size());
         printf("  Sharing/no-sharing ratio: %.2fx | sizes share=%zu B no-share=%zu B\n\n",
                unique_share_r.median_us / unique_none_r.median_us, unique_share_buf.size(), unique_none_buf.size());
+        auto unique_checksum = checksum_unique_string_payload(unique_share_buf);
+        print_cpp_metric("unique_share", unique_share_r, unique_share_buf.size(), unique_checksum,
+                         WARMUP, comparison_table_iters, RUNS);
+        print_cpp_metric("unique_none", unique_none_r, unique_none_buf.size(),
+                         checksum_unique_string_payload(unique_none_buf), WARMUP,
+                         comparison_table_iters, RUNS);
 
         printf("╔══════════════════════════════════════════════════════════════════════════════════════════════╗\n");
         printf("║                         ADVERSARIAL LOSS LEDGER                                             ║\n");

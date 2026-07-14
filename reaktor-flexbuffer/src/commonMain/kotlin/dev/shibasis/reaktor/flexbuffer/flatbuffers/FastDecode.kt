@@ -10,7 +10,7 @@ package dev.shibasis.reaktor.flexbuffer.flatbuffers
  * This expect/actual lets each platform pick the fastest UTF-8 decode path:
  *   - JVM: just delegate to stdlib (already calls into highly optimised native code)
  *   - Native: use ASCII fast-path with NSString fallback
- *   - JS: stdlib is also fine on V8
+ *   - JS: native TextDecoder/TextEncoder, bypassing the Kotlin StringBuilder path
  */
 internal expect fun fastDecodeUtf8(bytes: ByteArray, startIndex: Int, endIndex: Int): String
 
@@ -25,6 +25,17 @@ internal expect fun fastDecodeUtf8(bytes: ByteArray, startIndex: Int, endIndex: 
  * A cleaner direct loop is measurably faster.
  */
 internal expect fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: Int): Int
+
+/**
+ * Same operation when the caller already computed the exact UTF-8 [encodedLength].
+ * Platform fast paths use that fact to avoid scanning ASCII/Latin-1 input twice.
+ */
+internal expect fun fastEncodeUtf8KnownLength(
+    input: CharSequence,
+    out: ByteArray,
+    offset: Int,
+    encodedLength: Int,
+): Int
 
 /**
  * Per-platform fast UTF-8 byte-length computation for a CharSequence.

@@ -10,13 +10,14 @@
  *   FlatBuffers: fixed schema table/vector document with vtable field slots.
  *
  * Build:
- *   clang++ -O3 -DNDEBUG -std=c++17 \
+ *   clang++ -O3 -DNDEBUG -mcpu=native -std=c++17 \
  *     -I ../../../.github_modules/flatbuffers/include \
  *     flatbuffers_vs_flexbuffers.cpp -o flatbuffers_vs_flexbuffers
  *
  * Run:
  *   ./flatbuffers_vs_flexbuffers
  *   ./flatbuffers_vs_flexbuffers --quick
+ *   ./flatbuffers_vs_flexbuffers --verify-only
  *   ./flatbuffers_vs_flexbuffers --iters 50000 --runs 9
  */
 
@@ -29,6 +30,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <numeric>
 #include <string>
@@ -49,24 +51,83 @@ using FbStringVec = flatbuffers::Vector<flatbuffers::Offset<FbString>>;
 int warmup = 1000;
 int iterations = 10000;
 int runs = 7;
-volatile int64_t sink_value = 0;
+bool verify_only = false;
+volatile uint64_t sink_value = 0;
 
 constexpr flatbuffers::voffset_t fslot(int index) {
     return static_cast<flatbuffers::voffset_t>(4 + index * 2);
 }
 
-template <typename T, typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value, int>::type = 0>
-void sink(T v) { sink_value += static_cast<int64_t>(v); }
-void sink(double v) { sink_value += static_cast<int64_t>(v); }
-void sink(bool v) { sink_value += v ? 1 : 0; }
+// The timed readers build one local checksum. Its destructor performs exactly
+// one volatile store per operation. This prevents the
+// anti-optimization guard itself from dominating field access, while the type
+// tags and complete string contents make cross-format verification meaningful.
+class Checksum {
+public:
+    ~Checksum() { sink_value = state_; }
 
-void sinkFlexString(const flexbuffers::String& s) {
-    if (s.size() > 0) sink_value += s.c_str()[0] + static_cast<int64_t>(s.size());
-}
+    template <typename T, typename std::enable_if<
+        std::is_integral<T>::value && !std::is_same<T, bool>::value,
+        int>::type = 0>
+    void add(T value) {
+        mixByte(1);
+        mixWord(static_cast<uint64_t>(static_cast<int64_t>(value)));
+    }
 
-void sinkFbString(const FbString* s) {
-    if (s && s->size() > 0) sink_value += s->c_str()[0] + static_cast<int64_t>(s->size());
-}
+    void add(bool value) {
+        mixByte(2);
+        mixByte(value ? 1 : 0);
+    }
+
+    void add(double value) {
+        uint64_t bits = 0;
+        static_assert(sizeof(bits) == sizeof(value), "unexpected double width");
+        std::memcpy(&bits, &value, sizeof(bits));
+        mixByte(3);
+        mixWord(bits);
+    }
+
+    void addFlexString(const flexbuffers::String& value) {
+        addString(value.c_str(), value.size());
+    }
+
+    void addFbString(const FbString* value) {
+        if (!value) {
+            mixByte(4);
+            mixWord(UINT64_MAX);
+            return;
+        }
+        addString(value->c_str(), value->size());
+    }
+
+    uint64_t value() const { return state_; }
+
+private:
+    void addString(const char* data, size_t size) {
+        mixByte(4);
+        mixWord(static_cast<uint64_t>(size));
+        for (size_t i = 0; i < size; ++i) {
+            mixByte(static_cast<uint8_t>(data[i]));
+        }
+    }
+
+    void mixWord(uint64_t word) {
+        for (int shift = 0; shift < 64; shift += 8) {
+            mixByte(static_cast<uint8_t>(word >> shift));
+        }
+    }
+
+    void mixByte(uint8_t byte) {
+        state_ ^= byte;
+        state_ *= 1099511628211ULL;
+    }
+
+    uint64_t state_ = 1469598103934665603ULL;
+};
+
+#define sink(value) checksum.add(value)
+#define sinkFlexString(value) checksum.addFlexString(value)
+#define sinkFbString(value) checksum.addFbString(value)
 
 const FbTable* rootTable(const Bytes& bytes) {
     return flatbuffers::GetRoot<FbTable>(bytes.data());
@@ -86,8 +147,16 @@ std::string token(const char* prefix, int i) {
     return std::string(prefix) + "_" + std::to_string(i);
 }
 
+struct BenchStats {
+    double minimum;
+    double median;
+    double maximum;
+    double mean;
+    double standard_deviation;
+};
+
 template <typename Fn>
-double bench(Fn&& fn) {
+BenchStats bench(Fn&& fn) {
     for (int i = 0; i < warmup; ++i) fn();
 
     std::vector<double> samples;
@@ -102,7 +171,24 @@ double bench(Fn&& fn) {
         );
     }
     std::sort(samples.begin(), samples.end());
-    return samples[samples.size() / 2];
+    const size_t middle = samples.size() / 2;
+    const double median = (samples.size() % 2 == 0)
+        ? (samples[middle - 1] + samples[middle]) * 0.5
+        : samples[middle];
+    const double mean = std::accumulate(samples.begin(), samples.end(), 0.0) /
+        static_cast<double>(samples.size());
+    double squared_error = 0.0;
+    for (double sample : samples) {
+        const double delta = sample - mean;
+        squared_error += delta * delta;
+    }
+    return {
+        samples.front(),
+        median,
+        samples.back(),
+        mean,
+        std::sqrt(squared_error / static_cast<double>(samples.size())),
+    };
 }
 
 template <typename T>
@@ -165,6 +251,7 @@ Bytes flatFlatPrimitives() {
 }
 
 void scanFlexFlatPrimitives(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sink(values[0].AsBool());
     sink(values[1].AsInt64());
@@ -178,6 +265,7 @@ void scanFlexFlatPrimitives(const Bytes& bytes) {
 }
 
 void scanFlatFlatPrimitives(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sink(root->GetField<uint8_t>(fslot(0), 0) != 0);
     sink(root->GetField<int32_t>(fslot(1), 0));
@@ -218,8 +306,8 @@ Bytes flexUserProfile() {
         b.Vector("f07_tags", [&] {
             for (int i = 0; i < 8; ++i) b.String(token("tag", i).c_str());
         });
-        b.Map("f08_settings", [&] {
-            for (int i = 0; i < 12; ++i) b.Bool(token("setting", i).c_str(), (i % 3) == 0);
+        b.Vector("f08_settings", [&] {
+            for (int i = 0; i < 12; ++i) b.Bool((i % 3) == 0);
         });
     });
     b.Finish();
@@ -266,6 +354,7 @@ Bytes flatUserProfile() {
 }
 
 void scanFlexUserProfile(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     sinkFlexString(values[1].AsString());
@@ -276,11 +365,12 @@ void scanFlexUserProfile(const Bytes& bytes) {
     sink(address[3].AsDouble());
     auto tags = values[7].AsVector();
     for (size_t i = 0; i < tags.size(); i += 3) sinkFlexString(tags[i].AsString());
-    auto settings = values[8].AsMap().Values();
+    auto settings = values[8].AsVector();
     for (size_t i = 0; i < settings.size(); i += 4) sink(settings[i].AsBool());
 }
 
 void scanFlatUserProfile(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     sinkFbString(root->GetPointer<const FbString*>(fslot(1)));
@@ -296,6 +386,7 @@ void scanFlatUserProfile(const Bytes& bytes) {
 }
 
 void fullFlexUserProfile(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     for (int i = 0; i < 4; ++i) sinkFlexString(values[i].AsString());
     sink(values[4].AsInt64());
@@ -306,11 +397,12 @@ void fullFlexUserProfile(const Bytes& bytes) {
     sink(address[4].AsDouble());
     auto tags = values[7].AsVector();
     for (size_t i = 0; i < tags.size(); ++i) sinkFlexString(tags[i].AsString());
-    auto settings = values[8].AsMap().Values();
+    auto settings = values[8].AsVector();
     for (size_t i = 0; i < settings.size(); ++i) sink(settings[i].AsBool());
 }
 
 void fullFlatUserProfile(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     for (int i = 0; i < 4; ++i) sinkFbString(root->GetPointer<const FbString*>(fslot(i)));
     sink(root->GetField<int64_t>(fslot(4), 0));
@@ -379,6 +471,7 @@ Bytes flatDatabaseRows() {
 }
 
 void scanFlexDatabaseRows(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto rows = values[1].AsVector();
@@ -391,6 +484,7 @@ void scanFlexDatabaseRows(const Bytes& bytes) {
 }
 
 void scanFlatDatabaseRows(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto rows = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -403,6 +497,7 @@ void scanFlatDatabaseRows(const Bytes& bytes) {
 }
 
 void fullFlexDatabaseRows(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto rows = values[1].AsVector();
@@ -419,6 +514,7 @@ void fullFlexDatabaseRows(const Bytes& bytes) {
 }
 
 void fullFlatDatabaseRows(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto rows = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -506,6 +602,7 @@ Bytes flatGraphSnapshot() {
 }
 
 void scanFlexGraphSnapshot(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto nodes = values[1].AsVector();
     auto edges = values[2].AsVector();
@@ -523,6 +620,7 @@ void scanFlexGraphSnapshot(const Bytes& bytes) {
 }
 
 void scanFlatGraphSnapshot(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto nodes = root->GetPointer<const FbTableVec*>(fslot(1));
     auto edges = root->GetPointer<const FbTableVec*>(fslot(2));
@@ -540,6 +638,7 @@ void scanFlatGraphSnapshot(const Bytes& bytes) {
 }
 
 void fullFlexGraphSnapshot(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto nodes = values[1].AsVector();
@@ -564,6 +663,7 @@ void fullFlexGraphSnapshot(const Bytes& bytes) {
 }
 
 void fullFlatGraphSnapshot(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto nodes = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -640,6 +740,7 @@ Bytes flatCommandQueue() {
 }
 
 void scanFlexCommandQueue(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto commands = values[1].AsVector();
@@ -653,6 +754,7 @@ void scanFlexCommandQueue(const Bytes& bytes) {
 }
 
 void scanFlatCommandQueue(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto commands = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -666,6 +768,7 @@ void scanFlatCommandQueue(const Bytes& bytes) {
 }
 
 void fullFlexCommandQueue(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto commands = values[1].AsVector();
@@ -683,6 +786,7 @@ void fullFlexCommandQueue(const Bytes& bytes) {
 }
 
 void fullFlatCommandQueue(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto commands = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -756,6 +860,7 @@ Bytes flatAgentTrace() {
 }
 
 void scanFlexAgentTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto events = values[1].AsVector();
     for (size_t i = 0; i < events.size(); i += 9) {
@@ -770,6 +875,7 @@ void scanFlexAgentTrace(const Bytes& bytes) {
 }
 
 void scanFlatAgentTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto events = root->GetPointer<const FbTableVec*>(fslot(1));
     for (flatbuffers::uoffset_t i = 0; i < events->size(); i += 9) {
@@ -784,6 +890,7 @@ void scanFlatAgentTrace(const Bytes& bytes) {
 }
 
 void fullFlexAgentTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto events = values[1].AsVector();
@@ -802,6 +909,7 @@ void fullFlexAgentTrace(const Bytes& bytes) {
 }
 
 void fullFlatAgentTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto events = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -863,6 +971,7 @@ Bytes flatTimeSeries() {
 }
 
 void scanFlexTimeSeries(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto ts = values[3].AsTypedVector();
     auto samples = values[4].AsTypedVector();
@@ -873,6 +982,7 @@ void scanFlexTimeSeries(const Bytes& bytes) {
 }
 
 void scanFlatTimeSeries(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto ts = root->GetPointer<const flatbuffers::Vector<int64_t>*>(fslot(3));
     auto samples = root->GetPointer<const flatbuffers::Vector<double>*>(fslot(4));
@@ -883,6 +993,7 @@ void scanFlatTimeSeries(const Bytes& bytes) {
 }
 
 void fullFlexTimeSeries(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     sink(values[1].AsInt64());
@@ -897,6 +1008,7 @@ void fullFlexTimeSeries(const Bytes& bytes) {
 }
 
 void fullFlatTimeSeries(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     sink(root->GetField<int64_t>(fslot(1), 0));
@@ -977,6 +1089,7 @@ Bytes flatDeployInsights() {
 }
 
 void scanFlexDeployInsights(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto partitions = values[1].AsVector();
     for (size_t i = 0; i < partitions.size(); ++i) {
@@ -994,6 +1107,7 @@ void scanFlexDeployInsights(const Bytes& bytes) {
 }
 
 void scanFlatDeployInsights(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto partitions = root->GetPointer<const FbTableVec*>(fslot(1));
     for (flatbuffers::uoffset_t i = 0; i < partitions->size(); ++i) {
@@ -1011,6 +1125,7 @@ void scanFlatDeployInsights(const Bytes& bytes) {
 }
 
 void fullFlexDeployInsights(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     auto partitions = values[1].AsVector();
@@ -1033,6 +1148,7 @@ void fullFlexDeployInsights(const Bytes& bytes) {
 }
 
 void fullFlatDeployInsights(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto partitions = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -1165,6 +1281,7 @@ Bytes flatAuthPermissionMatrix() {
 }
 
 void scanFlexAuthPermissionMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto policies = values[3].AsVector();
     for (size_t i = 0; i < policies.size(); i += 23) {
@@ -1182,6 +1299,7 @@ void scanFlexAuthPermissionMatrix(const Bytes& bytes) {
 }
 
 void scanFlatAuthPermissionMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto policies = root->GetPointer<const FbTableVec*>(fslot(3));
     for (flatbuffers::uoffset_t i = 0; i < policies->size(); i += 23) {
@@ -1199,6 +1317,7 @@ void scanFlatAuthPermissionMatrix(const Bytes& bytes) {
 }
 
 void fullFlexAuthPermissionMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     sinkFlexString(values[0].AsString());
     for (size_t section = 1; section <= 4; ++section) {
@@ -1215,6 +1334,7 @@ void fullFlexAuthPermissionMatrix(const Bytes& bytes) {
 }
 
 void fullFlatAuthPermissionMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     sinkFbString(root->GetPointer<const FbString*>(fslot(0)));
     auto roles = root->GetPointer<const FbTableVec*>(fslot(1));
@@ -1307,6 +1427,7 @@ Bytes flatTestingMatrix() {
 }
 
 void scanFlexTestingMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto tests = values[4].AsVector();
     for (size_t i = 0; i < tests.size(); i += 29) {
@@ -1319,6 +1440,7 @@ void scanFlexTestingMatrix(const Bytes& bytes) {
 }
 
 void scanFlatTestingMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto tests = root->GetPointer<const FbTableVec*>(fslot(4));
     for (flatbuffers::uoffset_t i = 0; i < tests->size(); i += 29) {
@@ -1331,6 +1453,7 @@ void scanFlatTestingMatrix(const Bytes& bytes) {
 }
 
 void fullFlexTestingMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     for (int i = 0; i < 4; ++i) sink(values[i].AsInt64());
     auto tests = values[4].AsVector();
@@ -1348,6 +1471,7 @@ void fullFlexTestingMatrix(const Bytes& bytes) {
 }
 
 void fullFlatTestingMatrix(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     for (int i = 0; i < 4; ++i) sink(root->GetField<int32_t>(fslot(i), 0));
     auto tests = root->GetPointer<const FbTableVec*>(fslot(4));
@@ -1437,6 +1561,7 @@ Bytes flatAiRegistry() {
 }
 
 void scanFlexAiRegistry(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto models = values[0].AsVector();
     for (size_t i = 0; i < models.size(); i += 8) {
@@ -1449,6 +1574,7 @@ void scanFlexAiRegistry(const Bytes& bytes) {
 }
 
 void scanFlatAiRegistry(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto models = root->GetPointer<const FbTableVec*>(fslot(0));
     for (flatbuffers::uoffset_t i = 0; i < models->size(); i += 8) {
@@ -1461,6 +1587,7 @@ void scanFlatAiRegistry(const Bytes& bytes) {
 }
 
 void fullFlexAiRegistry(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto models = values[0].AsVector();
     for (size_t i = 0; i < models.size(); ++i) {
@@ -1486,6 +1613,7 @@ void fullFlexAiRegistry(const Bytes& bytes) {
 }
 
 void fullFlatAiRegistry(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto models = root->GetPointer<const FbTableVec*>(fslot(0));
     for (flatbuffers::uoffset_t i = 0; i < models->size(); ++i) {
@@ -1560,6 +1688,7 @@ Bytes flatNetworkTrace() {
 }
 
 void scanFlexNetworkTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto requests = values[0].AsVector();
     for (size_t i = 0; i < requests.size(); i += 31) {
@@ -1572,6 +1701,7 @@ void scanFlexNetworkTrace(const Bytes& bytes) {
 }
 
 void scanFlatNetworkTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto requests = root->GetPointer<const FbTableVec*>(fslot(0));
     for (flatbuffers::uoffset_t i = 0; i < requests->size(); i += 31) {
@@ -1584,6 +1714,7 @@ void scanFlatNetworkTrace(const Bytes& bytes) {
 }
 
 void fullFlexNetworkTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto requests = values[0].AsVector();
     for (size_t i = 0; i < requests.size(); ++i) {
@@ -1601,6 +1732,7 @@ void fullFlexNetworkTrace(const Bytes& bytes) {
 }
 
 void fullFlatNetworkTrace(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto requests = root->GetPointer<const FbTableVec*>(fslot(0));
     for (flatbuffers::uoffset_t i = 0; i < requests->size(); ++i) {
@@ -1664,6 +1796,7 @@ Bytes flatLogCorpus() {
 }
 
 void scanFlexLogCorpus(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto lines = values[0].AsVector();
     for (size_t i = 0; i < lines.size(); i += 53) {
@@ -1676,6 +1809,7 @@ void scanFlexLogCorpus(const Bytes& bytes) {
 }
 
 void scanFlatLogCorpus(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto lines = root->GetPointer<const FbTableVec*>(fslot(0));
     for (flatbuffers::uoffset_t i = 0; i < lines->size(); i += 53) {
@@ -1688,6 +1822,7 @@ void scanFlatLogCorpus(const Bytes& bytes) {
 }
 
 void fullFlexLogCorpus(const Bytes& bytes) {
+    Checksum checksum;
     auto values = flexbuffers::GetRoot(bytes).AsMap().Values();
     auto lines = values[0].AsVector();
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -1702,6 +1837,7 @@ void fullFlexLogCorpus(const Bytes& bytes) {
 }
 
 void fullFlatLogCorpus(const Bytes& bytes) {
+    Checksum checksum;
     auto root = rootTable(bytes);
     auto lines = root->GetPointer<const FbTableVec*>(fslot(0));
     for (flatbuffers::uoffset_t i = 0; i < lines->size(); ++i) {
@@ -1870,6 +2006,8 @@ void parseArgs(int argc, char** argv) {
             warmup = 100;
             iterations = 1000;
             runs = 5;
+        } else if (arg == "--verify" || arg == "--verify-only") {
+            verify_only = true;
         } else if (arg == "--iters" && i + 1 < argc) {
             iterations = std::atoi(argv[++i]);
         } else if (arg == "--runs" && i + 1 < argc) {
@@ -1881,6 +2019,79 @@ void parseArgs(int argc, char** argv) {
             std::exit(2);
         }
     }
+    if (warmup < 0 || iterations <= 0 || runs <= 0) {
+        std::fprintf(stderr, "warmup must be non-negative; iters and runs must be positive\n");
+        std::exit(2);
+    }
+}
+
+uint64_t checksumAfter(
+    const std::function<void(const Bytes&)>& scan,
+    const Bytes& bytes
+) {
+    scan(bytes);
+    return sink_value;
+}
+
+bool verifyCases(const std::vector<CaseDef>& all) {
+    bool all_ok = true;
+    for (const auto& c : all) {
+        const Bytes flex_bytes = c.flex_encode();
+        const Bytes flat_bytes = c.flat_encode();
+        const uint64_t flex_partial = checksumAfter(c.flex_partial, flex_bytes);
+        const uint64_t flat_partial = checksumAfter(c.flat_partial, flat_bytes);
+        const uint64_t flex_full = checksumAfter(c.flex_full, flex_bytes);
+        const uint64_t flat_full = checksumAfter(c.flat_full, flat_bytes);
+        const bool partial_ok = flex_partial == flat_partial;
+        const bool full_ok = flex_full == flat_full;
+        const bool ok = !flex_bytes.empty() && !flat_bytes.empty() && partial_ok && full_ok;
+        all_ok = all_ok && ok;
+        std::printf(
+            "CPP_VERIFY|cpp.flat_vs_flex.%s|status=%s|flex_bytes=%zu|flat_bytes=%zu|flat_plus_id_bytes=%zu|flat_plus_schema_bytes=%zu|flex_partial_checksum=%llu|flat_partial_checksum=%llu|flex_full_checksum=%llu|flat_full_checksum=%llu\n",
+            c.name,
+            ok ? "PASS" : "FAIL",
+            flex_bytes.size(),
+            flat_bytes.size(),
+            flat_bytes.size() + 8,
+            flat_bytes.size() + c.schema_bytes_estimate,
+            static_cast<unsigned long long>(flex_partial),
+            static_cast<unsigned long long>(flat_partial),
+            static_cast<unsigned long long>(flex_full),
+            static_cast<unsigned long long>(flat_full)
+        );
+    }
+    std::printf(
+        "CPP_VERIFY_SUMMARY|cpp.flat_vs_flex|status=%s|cases=%zu\n",
+        all_ok ? "PASS" : "FAIL",
+        all.size()
+    );
+    return all_ok;
+}
+
+void printMetric(
+    const CaseDef& c,
+    const char* format,
+    const char* phase,
+    const BenchStats& stats,
+    size_t bytes,
+    uint64_t semantic_checksum
+) {
+    std::printf(
+        "CPP_METRIC|cpp.flat_vs_flex.%s.%s.%s|median_us=%.9f|min_us=%.9f|max_us=%.9f|mean_us=%.9f|sd_us=%.9f|bytes=%zu|semantic_checksum=%llu|warmup=%d|iters=%d|runs=%d\n",
+        c.name,
+        format,
+        phase,
+        stats.median,
+        stats.minimum,
+        stats.maximum,
+        stats.mean,
+        stats.standard_deviation,
+        bytes,
+        static_cast<unsigned long long>(semantic_checksum),
+        warmup,
+        iterations,
+        runs
+    );
 }
 
 void printSchemaNote() {
@@ -1897,11 +2108,13 @@ void printSchemaNote() {
 int main(int argc, char** argv) {
     parseArgs(argc, argv);
 
+    auto all = cases();
+    if (!verifyCases(all)) return 1;
+    if (verify_only) return 0;
+
     std::printf("Reaktor FlatBuffers vs FlexBuffers C++ benchmark\n");
     std::printf("warmup=%d iterations=%d runs=%d\n", warmup, iterations, runs);
     printSchemaNote();
-
-    auto all = cases();
 
     std::printf("%-16s %9s %9s %6s %9s %9s %6s %9s %9s %6s %8s %8s %9s %11s\n",
                 "Case", "FlexEnc", "FlatEnc", "EncX", "FlexPart", "FlatPart", "PartX",
@@ -1922,33 +2135,33 @@ int main(int argc, char** argv) {
         Bytes flex_bytes = c.flex_encode();
         Bytes flat_bytes = c.flat_encode();
 
-        c.flex_partial(flex_bytes);
-        c.flat_partial(flat_bytes);
-        c.flex_full(flex_bytes);
-        c.flat_full(flat_bytes);
+        const uint64_t flex_partial_checksum = checksumAfter(c.flex_partial, flex_bytes);
+        const uint64_t flat_partial_checksum = checksumAfter(c.flat_partial, flat_bytes);
+        const uint64_t flex_full_checksum = checksumAfter(c.flex_full, flex_bytes);
+        const uint64_t flat_full_checksum = checksumAfter(c.flat_full, flat_bytes);
 
-        double flex_enc = bench([&] {
+        BenchStats flex_enc = bench([&] {
             auto bytes = c.flex_encode();
-            sink(static_cast<int64_t>(bytes.size()));
+            sink_value = static_cast<uint64_t>(bytes.size());
         });
-        double flat_enc = bench([&] {
+        BenchStats flat_enc = bench([&] {
             auto bytes = c.flat_encode();
-            sink(static_cast<int64_t>(bytes.size()));
+            sink_value = static_cast<uint64_t>(bytes.size());
         });
-        double flex_partial = bench([&] { c.flex_partial(flex_bytes); });
-        double flat_partial = bench([&] { c.flat_partial(flat_bytes); });
-        double flex_full = bench([&] { c.flex_full(flex_bytes); });
-        double flat_full = bench([&] { c.flat_full(flat_bytes); });
+        BenchStats flex_partial = bench([&] { c.flex_partial(flex_bytes); });
+        BenchStats flat_partial = bench([&] { c.flat_partial(flat_bytes); });
+        BenchStats flex_full = bench([&] { c.flex_full(flex_bytes); });
+        BenchStats flat_full = bench([&] { c.flat_full(flat_bytes); });
 
-        double enc_ratio = flex_enc / flat_enc;
-        double partial_ratio = flex_partial / flat_partial;
-        double full_ratio = flex_full / flat_full;
+        double enc_ratio = flex_enc.median / flat_enc.median;
+        double partial_ratio = flex_partial.median / flat_partial.median;
+        double full_ratio = flex_full.median / flat_full.median;
         size_t flat_with_id = flat_bytes.size() + 8;
         size_t flat_with_schema = flat_bytes.size() + c.schema_bytes_estimate;
 
-        if (flat_enc < flex_enc) ++flat_faster_encode;
-        if (flat_partial < flex_partial) ++flat_faster_partial;
-        if (flat_full < flex_full) ++flat_faster_full;
+        if (flat_enc.median < flex_enc.median) ++flat_faster_encode;
+        if (flat_partial.median < flex_partial.median) ++flat_faster_partial;
+        if (flat_full.median < flex_full.median) ++flat_faster_full;
         if (flat_bytes.size() < flex_bytes.size()) ++flat_smaller;
         if (flat_with_id < flex_bytes.size()) ++flat_id_smaller;
         if (flat_with_schema < flex_bytes.size()) ++flat_schema_smaller;
@@ -1958,19 +2171,35 @@ int main(int argc, char** argv) {
 
         std::printf("%-16s %7.3fus %7.3fus %5.1fx %7.3fus %7.3fus %5.1fx %7.3fus %7.3fus %5.1fx %8zu %8zu %9zu %11zu\n",
                     c.name,
-                    flex_enc,
-                    flat_enc,
+                    flex_enc.median,
+                    flat_enc.median,
                     enc_ratio,
-                    flex_partial,
-                    flat_partial,
+                    flex_partial.median,
+                    flat_partial.median,
                     partial_ratio,
-                    flex_full,
-                    flat_full,
+                    flex_full.median,
+                    flat_full.median,
                     full_ratio,
                     flex_bytes.size(),
                     flat_bytes.size(),
                     flat_with_id,
                     flat_with_schema);
+
+        std::printf(
+            "CPP_SIZE|cpp.flat_vs_flex.%s|flex_bytes=%zu|flat_bytes=%zu|flat_plus_id_bytes=%zu|flat_plus_schema_bytes=%zu|semantic_checksum=%llu\n",
+            c.name,
+            flex_bytes.size(),
+            flat_bytes.size(),
+            flat_with_id,
+            flat_with_schema,
+            static_cast<unsigned long long>(flex_full_checksum)
+        );
+        printMetric(c, "flex", "encode", flex_enc, flex_bytes.size(), flex_full_checksum);
+        printMetric(c, "flat", "encode", flat_enc, flat_bytes.size(), flat_full_checksum);
+        printMetric(c, "flex", "partial", flex_partial, flex_bytes.size(), flex_partial_checksum);
+        printMetric(c, "flat", "partial", flat_partial, flat_bytes.size(), flat_partial_checksum);
+        printMetric(c, "flex", "full", flex_full, flex_bytes.size(), flex_full_checksum);
+        printMetric(c, "flat", "full", flat_full, flat_bytes.size(), flat_full_checksum);
     }
 
     std::printf("%s\n", std::string(142, '-').c_str());
@@ -1984,6 +2213,6 @@ int main(int argc, char** argv) {
                 std::exp(enc_log / all.size()),
                 std::exp(partial_log / all.size()),
                 std::exp(full_log / all.size()));
-    std::printf("sink=%lld\n", static_cast<long long>(sink_value));
+    std::printf("sink=%llu\n", static_cast<unsigned long long>(sink_value));
     return 0;
 }

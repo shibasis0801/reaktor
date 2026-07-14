@@ -2,7 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBufferPool
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers as CoreFlexBuffers
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
@@ -47,7 +47,7 @@ class FlexBufferHardeningTest {
 
     @Test
     fun corruptAndTruncatedInputsAreRejectedByValidator() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         val validPayloads = fixtureNames().map { it to kotlinFixture(it) } +
             ("generated_user_profile" to CoreFlexBuffers.encode(BenchmarkData.userProfile()))
 

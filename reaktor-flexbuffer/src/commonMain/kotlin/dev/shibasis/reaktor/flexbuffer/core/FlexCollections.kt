@@ -3,6 +3,45 @@ package dev.shibasis.reaktor.flexbuffer.core
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.Map
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.Vector
 
+/**
+ * Fully materialized primitive lists used by generated decoders.
+ *
+ * Kotlin's ordinary ArrayList stores every primitive in a separate boxed object.
+ * Keeping the decoded values in primitive arrays makes construction and traversal
+ * cache-friendly while preserving the public read-only List contract.
+ */
+class MaterializedIntList(private val values: IntArray) : AbstractList<Int>() {
+    override val size: Int get() = values.size
+    override fun get(index: Int): Int = values[index]
+    fun forEachValue(block: (Int) -> Unit) {
+        for (value in values) block(value)
+    }
+}
+
+class MaterializedLongList(private val values: LongArray) : AbstractList<Long>() {
+    override val size: Int get() = values.size
+    override fun get(index: Int): Long = values[index]
+    fun forEachValue(block: (Long) -> Unit) {
+        for (value in values) block(value)
+    }
+}
+
+class MaterializedDoubleList(private val values: DoubleArray) : AbstractList<Double>() {
+    override val size: Int get() = values.size
+    override fun get(index: Int): Double = values[index]
+    fun forEachValue(block: (Double) -> Unit) {
+        for (value in values) block(value)
+    }
+}
+
+class MaterializedFloatList(private val values: FloatArray) : AbstractList<Float>() {
+    override val size: Int get() = values.size
+    override fun get(index: Int): Float = values[index]
+    fun forEachValue(block: (Float) -> Unit) {
+        for (value in values) block(value)
+    }
+}
+
 class FlexIntList(val vec: Vector) : AbstractList<Int>() {
     override val size get() = vec.size
     override fun get(index: Int) = vec.readInt(index)

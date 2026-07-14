@@ -2,7 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer.bench
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.BenchUserProfile
 import dev.shibasis.reaktor.flexbuffer.BenchApiResponse
 import dev.shibasis.reaktor.flexbuffer.BenchChatThread
@@ -26,15 +26,13 @@ import kotlinx.cinterop.toKString
  * Build:
  *   ./gradlew :reaktor-flexbuffer:linkBenchReleaseExecutableIosSimulatorArm64
  *
- * Run + sample:
- *   ./reaktor-flexbuffer/build/bin/iosSimulatorArm64/benchReleaseExecutable/bench.kexe &
- *   BENCH_PID=$!
- *   sleep 2              # let JIT warm up (well, AOT but allocator cache)
- *   sample $BENCH_PID 10 1 -mayDie -file ios-bench-sample.txt
- *   kill $BENCH_PID
- *
- * Convert sample output to flamegraph:
- *   ./flamechart/sample-to-flamegraph.sh ios-bench-sample.txt > ios-flame.svg
+ * Run in a booted simulator:
+ *   SIMCTL_CHILD_BENCH_CASE=apiresponse \
+ *   SIMCTL_CHILD_BENCH_OP=decode \
+ *   SIMCTL_CHILD_BENCH_ITERS=100000 \
+ *   SIMCTL_CHILD_BENCH_ROUNDS=8 \
+ *   xcrun simctl spawn booted \
+ *     "$PWD/reaktor-flexbuffer/build/bin/iosSimulatorArm64/benchReleaseExecutable/bench.kexe"
  *
  * Environment variables:
  *   BENCH_CASE   — userprofile | apiresponse | chatthread | timeseries | all (default)
@@ -51,12 +49,19 @@ object IosBenchRunner {
     private fun envOrNull(name: String): String? = getenv(name)?.toKString()
 
     fun run() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         val case = envOrNull("BENCH_CASE") ?: "all"
         val op = envOrNull("BENCH_OP") ?: "both"
         val iters = envOrNull("BENCH_ITERS")?.toIntOrNull() ?: 100_000
         val rounds = envOrNull("BENCH_ROUNDS")?.toIntOrNull() ?: 0
+
+        // Self-contained adversarial/realistic suite — used for physical-device runs.
+        if (case == "adversarial") {
+            println("=== IosBenchRunner pid=${getpid()} mode=adversarial ===")
+            AdversarialBench.run()
+            return
+        }
 
         println("=== IosBenchRunner pid=${getpid()} ===")
         println("case=$case op=$op iters=$iters rounds=${if (rounds == 0) "infinite" else rounds.toString()}")

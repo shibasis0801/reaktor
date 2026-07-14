@@ -57,6 +57,7 @@ public class FlexBuffersBuilder(
   // ─── Key-block cache (identity-keyed; one slot per @Struct type in the tree) ───
   private var kbBlobs = arrayOfNulls<ByteArray>(8)
   private var kbOffsets = arrayOfNulls<IntArray>(8)
+  private var kbBases = IntArray(8)
   private var kbVectorLoc = IntArray(8)
   private var kbVectorWidth = IntArray(8)
   private var kbCount = 0
@@ -65,6 +66,7 @@ public class FlexBuffersBuilder(
     val cap = kbBlobs.size * 2
     kbBlobs = kbBlobs.copyOf(cap)
     kbOffsets = kbOffsets.copyOf(cap)
+    kbBases = kbBases.copyOf(cap)
     kbVectorLoc = kbVectorLoc.copyOf(cap)
     kbVectorWidth = kbVectorWidth.copyOf(cap)
   }
@@ -371,7 +373,10 @@ public class FlexBuffersBuilder(
       when (w) {
         1 -> for (v in value) { ba.st8(p, v); p++ }
         2 -> for (v in value) { ba.st16(p, v); p += 2 }
-        4 -> for (v in value) { ba.st32(p, v); p += 4 }
+        4 -> {
+          writeNaturalIntArray(value, ba, p)
+          p += value.size * 4
+        }
         else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
       }
       pos = p
@@ -398,7 +403,10 @@ public class FlexBuffersBuilder(
       var p = pos
       when (w) {
         1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
-        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        2 -> {
+          writeNaturalShortArray(value, ba, p)
+          p += value.size * 2
+        }
         4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
         else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
       }
@@ -428,7 +436,10 @@ public class FlexBuffersBuilder(
         1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
         2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
         4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
-        else -> for (v in value) { ba.st64(p, v); p += 8 }
+        else -> {
+          writeNaturalLongArray(value, ba, p)
+          p += value.size * 8
+        }
       }
       pos = p
     }
@@ -451,9 +462,8 @@ public class FlexBuffersBuilder(
   public operator fun set(key: String? = null, value: FloatArray): Int =
     setTypedVector(key, value.size, T_VECTOR_FLOAT, W_32) {
       ensure(value.size * 4)
-      var p = pos
-      for (v in value) { ba.stF32(p, v); p += 4 }
-      pos = p
+      writeNaturalFloatArray(value, ba, pos)
+      pos += value.size * 4
     }
 
   /**
@@ -474,9 +484,8 @@ public class FlexBuffersBuilder(
   public operator fun set(key: String? = null, value: DoubleArray): Int =
     setTypedVector(key, value.size, T_VECTOR_FLOAT, W_64) {
       ensure(value.size * 8)
-      var p = pos
-      for (v in value) { ba.stF64(p, v); p += 8 }
-      pos = p
+      writeNaturalDoubleArray(value, ba, pos)
+      pos += value.size * 8
     }
 
   /**
@@ -495,7 +504,20 @@ public class FlexBuffersBuilder(
    * @return position in buffer as the start of byte array
    */
   public operator fun set(key: String? = null, value: UByteArray): Int =
-    setTypedVec(key) { value.forEach { put(it) } }
+    setTypedVector(key, value.size, T_VECTOR_UINT, value.widthInUBits()) { w ->
+      ensure(value.size * w)
+      var p = pos
+      when (w) {
+        1 -> {
+          value.asByteArray().copyInto(ba, p)
+          p += value.size
+        }
+        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
+      pos = p
+    }
 
   /**
    * Adds a [UShortArray] into the message as a typed vector of fixed size.
@@ -513,7 +535,20 @@ public class FlexBuffersBuilder(
    * @return position in buffer as the start of byte array
    */
   public operator fun set(key: String? = null, value: UShortArray): Int =
-    setTypedVec(key) { value.forEach { put(it) } }
+    setTypedVector(key, value.size, T_VECTOR_UINT, value.widthInUBits()) { w ->
+      ensure(value.size * w)
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> {
+          writeNaturalShortArray(value.asShortArray(), ba, p)
+          p += value.size * 2
+        }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
+      pos = p
+    }
 
   /**
    * Adds a [UIntArray] into the message as a typed vector of fixed size.
@@ -531,7 +566,20 @@ public class FlexBuffersBuilder(
    * @return position in buffer as the start of byte array
    */
   public fun set(key: String? = null, value: UIntArray): Int =
-    setTypedVec(key) { value.forEach { put(it) } }
+    setTypedVector(key, value.size, T_VECTOR_UINT, value.widthInUBits()) { w ->
+      ensure(value.size * w)
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        4 -> {
+          writeNaturalIntArray(value.asIntArray(), ba, p)
+          p += value.size * 4
+        }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
+      pos = p
+    }
 
   /**
    * Adds a [ULongArray] into the message as a typed vector of fixed size.
@@ -549,7 +597,20 @@ public class FlexBuffersBuilder(
    * @return position in buffer as the start of byte array
    */
   public operator fun set(key: String? = null, value: ULongArray): Int =
-    setTypedVec(key) { value.forEach { put(it) } }
+    setTypedVector(key, value.size, T_VECTOR_UINT, value.widthInUBits()) { w ->
+      ensure(value.size * w)
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
+        else -> {
+          writeNaturalLongArray(value.asLongArray(), ba, p)
+          p += value.size * 8
+        }
+      }
+      pos = p
+    }
 
   public fun setIntList(key: String? = null, value: List<Int>): Int =
     setTypedVector(key, value.size, T_VECTOR_INT, listIntWidthInUBits(value)) { w ->
@@ -584,7 +645,7 @@ public class FlexBuffersBuilder(
       key,
       value.size,
       T_VECTOR_INT,
-      collectionWidthInUBits(value) { it.toLong() },
+      collectionWidthInUBits(value, W_32) { it.toLong() },
     ) { w ->
       ensure(value.size * w)
       var p = pos
@@ -602,7 +663,7 @@ public class FlexBuffersBuilder(
       key,
       value.size,
       T_VECTOR_INT,
-      collectionWidthInUBits(value) { it },
+      collectionWidthInUBits(value, W_64) { it },
     ) { w ->
       ensure(value.size * w)
       var p = pos
@@ -756,22 +817,43 @@ public class FlexBuffersBuilder(
    * absolute buffer offset. Subsequent calls with the same [blob] instance are a
    * single identity compare.
    */
-  public fun keyBlock(blob: ByteArray, starts: IntArray): IntArray {
+  private fun findKeyBlockSlot(blob: ByteArray): Int {
+    for (i in 0 until kbCount) if (kbBlobs[i] === blob) return i
+    return -1
+  }
+
+  /**
+   * Registers [blob] once and returns its absolute base offset. Generated coders add
+   * compile-time key-start constants to this base, avoiding an IntArray allocation and
+   * one array load per field on every encode.
+   */
+  public fun keyBlockBase(blob: ByteArray): Int {
+    val existing = findKeyBlockSlot(blob)
+    if (existing >= 0) return kbBases[existing]
+
     val n = kbCount
-    for (i in 0 until n) {
-      if (kbBlobs[i] === blob) return kbOffsets[i]!!
-    }
     ensure(blob.size)
     val base = pos
     blob.copyInto(ba, base)
     pos += blob.size
-    val abs = IntArray(starts.size)
-    for (i in starts.indices) abs[i] = base + starts[i]
     if (n == kbBlobs.size) growKeyBlockCache()
     kbBlobs[n] = blob
-    kbOffsets[n] = abs
+    kbBases[n] = base
     kbVectorLoc[n] = -1
     kbCount = n + 1
+    return base
+  }
+
+  /** Legacy absolute-offset API retained for manually generated/external callers. */
+  public fun keyBlock(blob: ByteArray, starts: IntArray): IntArray {
+    val base = keyBlockBase(blob)
+    val slot = findKeyBlockSlot(blob)
+    var abs = kbOffsets[slot]
+    if (abs == null || abs.size != starts.size) {
+      abs = IntArray(starts.size)
+      kbOffsets[slot] = abs
+    }
+    for (i in starts.indices) abs[i] = base + starts[i]
     return abs
   }
 
@@ -879,7 +961,27 @@ public class FlexBuffersBuilder(
       when (w) {
         1 -> for (v in value) { ba.st8(p, v); p++ }
         2 -> for (v in value) { ba.st16(p, v); p += 2 }
-        4 -> for (v in value) { ba.st32(p, v); p += 4 }
+        4 -> {
+          writeNaturalIntArray(value, ba, p)
+          p += value.size * 4
+        }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
+      pos = p
+    }
+
+  /** [set] for [ShortArray] with a precomputed key offset. */
+  public fun setKeyed(keyOffset: Int, value: ShortArray): Int =
+    setTypedVectorKeyed(keyOffset, value.size, T_VECTOR_INT, value.widthInUBits()) { w ->
+      ensure(value.size * w)
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> {
+          writeNaturalShortArray(value, ba, p)
+          p += value.size * 2
+        }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
         else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
       }
       pos = p
@@ -894,7 +996,10 @@ public class FlexBuffersBuilder(
         1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
         2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
         4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
-        else -> for (v in value) { ba.st64(p, v); p += 8 }
+        else -> {
+          writeNaturalLongArray(value, ba, p)
+          p += value.size * 8
+        }
       }
       pos = p
     }
@@ -903,19 +1008,88 @@ public class FlexBuffersBuilder(
   public fun setKeyed(keyOffset: Int, value: FloatArray): Int =
     setTypedVectorKeyed(keyOffset, value.size, T_VECTOR_FLOAT, W_32) {
       ensure(value.size * 4)
-      var p = pos
-      for (v in value) { ba.stF32(p, v); p += 4 }
-      pos = p
+      writeNaturalFloatArray(value, ba, pos)
+      pos += value.size * 4
     }
 
   /** [set] for [DoubleArray] with a precomputed key offset. */
   public fun setKeyed(keyOffset: Int, value: DoubleArray): Int =
     setTypedVectorKeyed(keyOffset, value.size, T_VECTOR_FLOAT, W_64) {
       ensure(value.size * 8)
+      writeNaturalDoubleArray(value, ba, pos)
+      pos += value.size * 8
+    }
+
+  /** Unsigned primitive-array fast paths used by manual and future generated coders. */
+  public fun setKeyed(keyOffset: Int, value: UByteArray): Int =
+    setUnsignedArrayKeyed(keyOffset, value.size, value.widthInUBits()) { w ->
       var p = pos
-      for (v in value) { ba.stF64(p, v); p += 8 }
+      when (w) {
+        1 -> {
+          value.asByteArray().copyInto(ba, p)
+          p += value.size
+        }
+        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
       pos = p
     }
+
+  public fun setKeyed(keyOffset: Int, value: UShortArray): Int =
+    setUnsignedArrayKeyed(keyOffset, value.size, value.widthInUBits()) { w ->
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> {
+          writeNaturalShortArray(value.asShortArray(), ba, p)
+          p += value.size * 2
+        }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
+      pos = p
+    }
+
+  public fun setKeyed(keyOffset: Int, value: UIntArray): Int =
+    setUnsignedArrayKeyed(keyOffset, value.size, value.widthInUBits()) { w ->
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        4 -> {
+          writeNaturalIntArray(value.asIntArray(), ba, p)
+          p += value.size * 4
+        }
+        else -> for (v in value) { ba.st64(p, v.toLong()); p += 8 }
+      }
+      pos = p
+    }
+
+  public fun setKeyed(keyOffset: Int, value: ULongArray): Int =
+    setUnsignedArrayKeyed(keyOffset, value.size, value.widthInUBits()) { w ->
+      var p = pos
+      when (w) {
+        1 -> for (v in value) { ba.st8(p, v.toInt()); p++ }
+        2 -> for (v in value) { ba.st16(p, v.toInt()); p += 2 }
+        4 -> for (v in value) { ba.st32(p, v.toInt()); p += 4 }
+        else -> {
+          writeNaturalLongArray(value.asLongArray(), ba, p)
+          p += value.size * 8
+        }
+      }
+      pos = p
+    }
+
+  private inline fun setUnsignedArrayKeyed(
+    keyOffset: Int,
+    length: Int,
+    bitWidth: BitWidth,
+    crossinline writeBlock: (Int) -> Unit,
+  ): Int = setTypedVectorKeyed(keyOffset, length, T_VECTOR_UINT, bitWidth) { w ->
+    ensure(length * w)
+    writeBlock(w)
+  }
 
   private inline fun setTypedVectorKeyed(
     keyOffset: Int,
@@ -972,6 +1146,42 @@ public class FlexBuffersBuilder(
     return vec.iValue.toInt()
   }
 
+  /**
+   * Allocation-free generated-coder variant: [keyBase] plus the compile-time relative
+   * [keyStarts] replaces the legacy per-encode absolute-offset array.
+   */
+  public fun endMapKeyed(
+    start: Int,
+    keyOffset: Int,
+    blockBlob: ByteArray,
+    keyBase: Int,
+    keyStarts: IntArray,
+  ): Int {
+    val length = stack.size - start
+    if (length != keyStarts.size) {
+      error("endMapKeyed: pushed $length values for a ${keyStarts.size}-key block — generated coders must emit every field (nulls included)")
+    }
+    val slot = findKeyBlockSlot(blockBlob)
+    val kvLoc: Int
+    val kvWidth: Int
+    if (slot >= 0 && kbVectorLoc[slot] >= 0) {
+      kvLoc = kbVectorLoc[slot]
+      kvWidth = kbVectorWidth[slot]
+    } else {
+      createKeyVectorFromBase(keyBase, keyStarts, length)
+      kvLoc = keyScratch.iValue.toInt()
+      kvWidth = 1 shl keyScratch.minBitWidth.value
+      if (slot >= 0) {
+        kbVectorLoc[slot] = kvLoc
+        kbVectorWidth[slot] = kvWidth
+      }
+    }
+    val vec = putMapVector(keyOffset, start, length, kvLoc, kvWidth)
+    stack.clearFrom(start)
+    stack.push(vec.type, vec.key, vec.minBitWidth, vec.iValue)
+    return vec.iValue.toInt()
+  }
+
   // ─── End key-block fast path ───
 
   private fun isKeySorted(start: Int): Boolean {
@@ -1002,15 +1212,6 @@ public class FlexBuffersBuilder(
     return vloc
   }
 
-  private inline fun setTypedVec(
-    key: String? = null,
-    crossinline block: FlexBuffersBuilder.() -> Unit,
-  ): Int {
-    val pos = startVector()
-    this.block()
-    return endTypedVector(pos, key)
-  }
-
   public fun endTypedVector(position: Int, key: String? = null): Int =
     endAnyVector(position) { createTypedVector(putKey(key), position, stack.size - position) }
 
@@ -1038,7 +1239,7 @@ public class FlexBuffersBuilder(
     val start = pos
     val encodedKeySize = fastEncodedLength(key)
     ensure(encodedKeySize + 1)
-    fastEncodeUtf8(key, ba, pos)
+    fastEncodeUtf8KnownLength(key, ba, pos, encodedKeySize)
     pos += encodedKeySize
     ba[pos] = ZeroByte
     pos++
@@ -1055,7 +1256,7 @@ public class FlexBuffersBuilder(
     ensure(encodedSize + 1)
     val sloc: Int = pos
     if (encodedSize > 0) {
-      fastEncodeUtf8(s, ba, pos)
+      fastEncodeUtf8KnownLength(s, ba, pos, encodedSize)
       pos += encodedSize
     }
     ba[pos] = ZeroByte
@@ -1090,7 +1291,7 @@ public class FlexBuffersBuilder(
     var width = bitWidth
     val prefixElems = 1
     for (i in start until stack.size) {
-      val ew = elemWidth(T_KEY, W_8, stack.key(i).toLong(), pos, i + prefixElems)
+      val ew = elemWidth(T_KEY, W_8, stack.key(i).toLong(), pos, i - start + prefixElems)
       width = width.max(ew)
     }
     return width
@@ -1098,10 +1299,17 @@ public class FlexBuffersBuilder(
 
   private inline fun <T> collectionWidthInUBits(
     values: Collection<T>,
+    maximumElementWidth: BitWidth,
     crossinline valueBlock: (T) -> Long,
   ): BitWidth {
-    var bitWidth = W_8.max(values.size.toULong().widthInUBits())
-    values.forEach { bitWidth = bitWidth.max(valueBlock(it).signedWidthInUBits()) }
+    val sizeWidth = values.size.toULong().widthInUBits()
+    var bitWidth = W_8.max(sizeWidth)
+    val terminalWidth = maximumElementWidth.max(sizeWidth)
+    if (bitWidth == terminalWidth) return bitWidth
+    for (value in values) {
+      bitWidth = bitWidth.max(valueBlock(value).signedWidthInUBits())
+      if (bitWidth == terminalWidth) return terminalWidth
+    }
     return bitWidth
   }
 
@@ -1139,13 +1347,31 @@ public class FlexBuffersBuilder(
     keyScratch.also { it.type = T_VECTOR_KEY; it.key = -1; it.minBitWidth = bitWidth; it.iValue = vloc.toULong() }
   }
 
+  private fun createKeyVectorFromBase(keyBase: Int, keyStarts: IntArray, length: Int) {
+    var bitWidth = length.toULong().widthInUBits()
+    val prefixElems = 1
+    for (i in 0 until length) {
+      val keyOffset = keyBase + keyStarts[i]
+      val ew = elemWidth(T_KEY, W_8, keyOffset.toLong(), pos, i + prefixElems)
+      bitWidth = bitWidth.max(ew)
+    }
+    val byteWidth = align(bitWidth)
+    putW(length.toLong(), byteWidth)
+    val vloc = pos
+    ensure(length * byteWidth)
+    for (i in 0 until length) {
+      putWRaw((pos - keyBase - keyStarts[i]).toLong(), byteWidth)
+    }
+    keyScratch.also { it.type = T_VECTOR_KEY; it.key = -1; it.minBitWidth = bitWidth; it.iValue = vloc.toULong() }
+  }
+
   private fun createVector(key: Int, start: Int, length: Int): Value {
     return createAnyVector(key, start, length, T_VECTOR, true)
   }
 
   private fun createTypedVector(key: Int, start: Int, length: Int): Value {
     val elementType: FlexBufferType = stack.type(start)
-    for (i in start + 1 until length) {
+    for (i in start + 1 until start + length) {
       if (elementType != stack.type(i))
         error("TypedVector does not support array of different element types")
     }
@@ -1165,7 +1391,7 @@ public class FlexBuffersBuilder(
     var bitWidth = W_8.max(length.toULong().widthInUBits())
     val prefixElems = 1
     for (i in start until stack.size) {
-      val ew = stack.elemWidth(i, pos, i + prefixElems)
+      val ew = stack.elemWidth(i, pos, i - start + prefixElems)
       bitWidth = bitWidth.max(ew)
     }
     val byteWidth = align(bitWidth)
@@ -1201,7 +1427,7 @@ public class FlexBuffersBuilder(
     bitWidth = bitWidth.max(elemWidth(T_VECTOR_KEY, W_8, keyVecLoc.toLong(), pos, 0))
     bitWidth = bitWidth.max(keyVecWidth.toULong().widthInUBits())
     for (i in start until stack.size) {
-      val ew = stack.elemWidth(i, pos, i + prefixElems)
+      val ew = stack.elemWidth(i, pos, i - start + prefixElems)
       bitWidth = bitWidth.max(ew)
     }
     val byteWidth = align(bitWidth)
@@ -1301,12 +1527,14 @@ public class FlexBuffersBuilder(
     private fun compareKeyToRaw(a: Int, rawKeyPos: Int, ba: ByteArray): Int {
       var ia = keys[a]
       var ib = rawKeyPos
-      var c1: Byte
-      var c2: Byte
+      var c1: Int
+      var c2: Int
       do {
-        c1 = ba[ia]
-        c2 = ba[ib]
-        if (c1.toInt() == 0) return c1 - c2
+        // FlexBuffer keys use C string ordering. C/C++ strcmp compares the
+        // underlying values as unsigned char; Kotlin Byte is signed.
+        c1 = ba[ia].toInt() and 0xFF
+        c2 = ba[ib].toInt() and 0xFF
+        if (c1 == 0) return c1 - c2
         ia++; ib++
       } while (c1 == c2)
       return c1 - c2

@@ -2,7 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.BenchUserProfileAccessor
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
@@ -29,7 +29,7 @@ class AccessorBenchmarkTest {
 
     @Test
     fun accessorCorrectnessTest() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         val profile = BenchmarkData.userProfile()
         val bytes = FlexBuffers.encode(profile)
         val map = bytes.toFlexMap()
@@ -64,7 +64,7 @@ class AccessorBenchmarkTest {
 
     @Test
     fun accessorVsDecodeBenchmark() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         val profile = BenchmarkData.userProfile()
         val bytes = FlexBuffers.encode(profile)
 
@@ -106,7 +106,7 @@ class AccessorBenchmarkTest {
 
     @Test
     fun encodeBenchmark() {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         val profile = BenchmarkData.userProfile()
         val chatThread = BenchmarkData.chatThread()
         val apiResponse = BenchmarkData.apiResponse()

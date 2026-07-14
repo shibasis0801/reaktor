@@ -952,7 +952,11 @@ object BenchmarkData {
                 priceInCents = 1999 + (i * 500),
                 currency = "USD",
                 inStock = i % 3 != 0,
-                rating = 3.5f + (i % 5) * 0.3f,
+                // Kotlin/JS evaluates Float arithmetic as a JavaScript Number. Force the
+                // benchmark fixture through its IEEE-754 binary32 representation so codecs
+                // that correctly persist a Float are compared against identical input on
+                // every target.
+                rating = Float.fromBits((3.5f + (i % 5) * 0.3f).toRawBits()),
                 reviewCount = 42 + i * 17,
                 categoryIds = listOf(100 + i, 200 + i % 5, 300 + i % 3),
                 imageUrls = listOf(

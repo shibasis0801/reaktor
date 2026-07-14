@@ -28,6 +28,35 @@ package dev.shibasis.reaktor.flexbuffer.flatbuffers
  */
 public object FlexRead {
 
+  /** Root container byte width, read directly from the root packed-type trailer. */
+  public fun rootByteWidth(buf: ByteArray, limit: Int = buf.size): Int =
+    1 shl (buf.ldU8(limit - 2) and 3)
+
+  /**
+   * Root map data position, resolved directly from the trailer without a [Reference].
+   * Generated coders only call this for their map-shaped roots.
+   */
+  public fun rootEnd(buf: ByteArray, limit: Int = buf.size): Int {
+    val parentWidth = buf.ldU8(limit - 1)
+    return buf.indirectAt(limit - 2 - parentWidth, parentWidth)
+  }
+
+  /**
+   * Direct, checked root-map view used by zero-copy accessors.
+   *
+   * The packed root type is validated before interpreting the root value as a relative
+   * map offset. This retains the old [Reference.toMap] behavior for non-map roots while
+   * avoiding an intermediate [Reference] allocation on the map hot path.
+   */
+  public fun rootMap(buf: ByteArray, limit: Int = buf.size): Map {
+    if (limit < 2 || buf.ldU8(limit - 2) shr 2 != T_MAP.value) return emptyMap()
+    return rootMapUnchecked(buf, limit)
+  }
+
+  /** Unchecked root-map view for callers that have already established the root schema. */
+  internal fun rootMapUnchecked(buf: ByteArray, limit: Int = buf.size): Map =
+    Map(buf, rootEnd(buf, limit), rootByteWidth(buf, limit))
+
   /** Element count of the map/vector whose data starts at [end]. */
   public fun size(buf: ByteArray, end: Int, bw: Int): Int = buf.ldUOffW(end - bw, bw)
 
@@ -48,6 +77,20 @@ public object FlexRead {
 
   public fun getBoolean(buf: ByteArray, end: Int, bw: Int, i: Int): Boolean =
     buf.ldU8(end + i * bw) != 0
+
+  // Generated keyed encoders know the declared scalar type at compile time, so
+  // they do not need to reload and dispatch on the packed type byte for every field.
+  public fun inlineInt(buf: ByteArray, end: Int, bw: Int, i: Int): Int =
+    buf.ldSIntW(end + i * bw, bw)
+
+  public fun inlineLong(buf: ByteArray, end: Int, bw: Int, i: Int): Long =
+    buf.ldSLongW(end + i * bw, bw)
+
+  public fun inlineDouble(buf: ByteArray, end: Int, bw: Int, i: Int): Double =
+    buf.ldFloatW(end + i * bw, bw)
+
+  public fun inlineFloat(buf: ByteArray, end: Int, bw: Int, i: Int): Float =
+    buf.ldFloatW(end + i * bw, bw).toFloat()
 
   public fun getInt(buf: ByteArray, end: Int, bw: Int, tb: Int, i: Int): Int {
     val pos = end + i * bw
@@ -143,34 +186,55 @@ public object FlexRead {
 
   public fun toIntArray(buf: ByteArray, ve: Int, vw: Int, n: Int): IntArray {
     val out = IntArray(n)
+    if (vw == 4) {
+      readNaturalIntArray(buf, ve, out)
+      return out
+    }
     var p = ve
     when (vw) {
       1 -> for (j in 0 until n) { out[j] = buf.ld8(p); p++ }
       2 -> for (j in 0 until n) { out[j] = buf.ld16(p); p += 2 }
-      4 -> for (j in 0 until n) { out[j] = buf.ld32(p); p += 4 }
       else -> for (j in 0 until n) { out[j] = buf.ld64(p).toInt(); p += 8 }
+    }
+    return out
+  }
+
+  public fun toShortArray(buf: ByteArray, ve: Int, vw: Int, n: Int): ShortArray {
+    val out = ShortArray(n)
+    if (vw == 2) {
+      readNaturalShortArray(buf, ve, out)
+      return out
+    }
+    var p = ve
+    when (vw) {
+      1 -> for (j in 0 until n) { out[j] = buf.ld8(p).toShort(); p++ }
+      4 -> for (j in 0 until n) { out[j] = buf.ld32(p).toShort(); p += 4 }
+      else -> for (j in 0 until n) { out[j] = buf.ld64(p).toShort(); p += 8 }
     }
     return out
   }
 
   public fun toLongArray(buf: ByteArray, ve: Int, vw: Int, n: Int): LongArray {
     val out = LongArray(n)
+    if (vw == 8) {
+      readNaturalLongArray(buf, ve, out)
+      return out
+    }
     var p = ve
     when (vw) {
       1 -> for (j in 0 until n) { out[j] = buf.ld8(p).toLong(); p++ }
       2 -> for (j in 0 until n) { out[j] = buf.ld16(p).toLong(); p += 2 }
       4 -> for (j in 0 until n) { out[j] = buf.ld32(p).toLong(); p += 4 }
-      else -> for (j in 0 until n) { out[j] = buf.ld64(p); p += 8 }
     }
     return out
   }
 
   public fun toDoubleArray(buf: ByteArray, ve: Int, vw: Int, n: Int): DoubleArray {
     val out = DoubleArray(n)
-    var p = ve
     if (vw == 8) {
-      for (j in 0 until n) { out[j] = buf.ldF64(p); p += 8 }
+      readNaturalDoubleArray(buf, ve, out)
     } else {
+      var p = ve
       for (j in 0 until n) { out[j] = buf.ldF32(p).toDouble(); p += 4 }
     }
     return out
@@ -178,10 +242,10 @@ public object FlexRead {
 
   public fun toFloatArray(buf: ByteArray, ve: Int, vw: Int, n: Int): FloatArray {
     val out = FloatArray(n)
-    var p = ve
     if (vw == 4) {
-      for (j in 0 until n) { out[j] = buf.ldF32(p); p += 4 }
+      readNaturalFloatArray(buf, ve, out)
     } else {
+      var p = ve
       for (j in 0 until n) { out[j] = buf.ldF64(p).toFloat(); p += 8 }
     }
     return out

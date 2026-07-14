@@ -2,7 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBufferPool
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoder
@@ -23,6 +23,7 @@ import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.system.measureNanoTime
 import kotlin.time.measureTime
 
 class AdversarialPerformanceHarnessTest {
@@ -137,6 +138,8 @@ class AdversarialPerformanceHarnessTest {
     private val iterations = 7_500
     private val runs = 5
     private var sink: Any? = null
+    @Volatile
+    private var comparisonSink = 0L
 
     private data class Stat(
         val label: String,
@@ -164,8 +167,32 @@ class AdversarialPerformanceHarnessTest {
         val kotlinUs: Double,
         val cppUs: Double,
         val kotlinBytes: Int,
-        val cppBytes: Int?,
+        val cppBytes: Int,
         val note: String
+    )
+
+    private data class CppMetric(
+        val id: String,
+        val medianUs: Double,
+        val minUs: Double,
+        val maxUs: Double,
+        val meanUs: Double,
+        val stddev: Double,
+        val bytes: Int,
+        val checksum: Long,
+        val warmup: Int,
+        val iterations: Int,
+        val runs: Int
+    )
+
+    private data class CppFixtures(
+        val tiny: ByteArray,
+        val sparse: ByteArray,
+        val stringTable: ByteArray,
+        val timeSeries: ByteArray,
+        val wide: ByteArray,
+        val uniqueShare: ByteArray,
+        val uniqueNone: ByteArray
     )
 
     private inline fun bench(label: String, warmupIters: Int = warmup, measuredIters: Int = iterations, crossinline block: () -> Any?): Stat {
@@ -189,9 +216,35 @@ class AdversarialPerformanceHarnessTest {
         return stat
     }
 
+    private inline fun benchLong(
+        label: String,
+        warmupIters: Int = warmup,
+        measuredIters: Int = iterations,
+        crossinline block: () -> Long
+    ): Stat {
+        repeat(warmupIters) { comparisonSink = block() }
+        val samples = DoubleArray(runs)
+        repeat(runs) { run ->
+            val elapsedNanos = measureNanoTime {
+                repeat(measuredIters) {
+                    comparisonSink = block()
+                }
+            }
+            samples[run] = elapsedNanos.toDouble() / 1_000.0 / measuredIters
+        }
+        samples.sort()
+        val mean = samples.average()
+        val sd = sqrt(samples.sumOf { (it - mean) * (it - mean) } / samples.size)
+        val stat = Stat(label, samples[samples.size / 2], samples.first(), samples.last(), mean, sd)
+        println("  %-45s %8.3f us/op  (min=%.3f max=%.3f sd=%.3f)".format(
+            label, stat.medianUs, stat.minUs, stat.maxUs, stat.stddev
+        ))
+        return stat
+    }
+
     private fun registerHarnessCoders() {
         registerAllCoders()
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         FlexCoderRegistry.register(TinyStatus::class, TinyStatusFlexCoder)
         FlexCoderRegistry.registerBySerialName(TinyStatus.serializer().descriptor.serialName, TinyStatusFlexCoder)
         FlexCoderRegistry.register(StringTable::class, StringTableFlexCoder)
@@ -657,113 +710,184 @@ class AdversarialPerformanceHarnessTest {
         println("Runs the C++ adversarial harness, then measures equivalent Kotlin Flex paths.")
         println("=".repeat(104))
 
-        val cpp = runCppAdversarialHarness()
-
-        registerHarnessCoders()
-        val tinyFlex = FlexBuffers.encode(TinyStatus(1_716_307_200_000L, 8_847_291L, 98.25, "active", "shibasis.patnaik", true))
-        val stringTableFlex = FlexBuffers.encode(stringTable(rows = 200, bodyLen = 80))
-        val timeSeriesFlex = FlexBuffers.encode(BenchmarkData.timeSeriesChunk())
-        FlexCoderRegistry.clear()
-
-        val sparseFlex = encodeSparseOptionsFlex(present = 10)
+        val fixtures = comparisonFixtures()
+        val cpp = runCppAdversarialHarness(fixtures)
         val sparseMissingKeys = List(256) { i -> "optional_%04d".format(i) }
-        val wideFlex = encodeMapNKeys(1_024)
         val wideKeys = wideRandomKeys(1_024, 64)
-
-        val uniqueIters = 1_500
+        val uniqueIters = minOf(iterations, 2_000)
         val rows = mutableListOf<CppMetricRow>()
 
+        val tinyKeyChecksum = decodeTinyStatusKey(fixtures.tiny)
+        val tinyKeyCpp = cpp.requireMetric(
+            id = "tiny_key",
+            expectedChecksum = tinyKeyChecksum,
+            expectedBytes = fixtures.tiny.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "TinyStatus key decode",
-            kotlinUs = bench("Kotlin TinyStatus key decode") { decodeTinyStatusKey(tinyFlex) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer full key decode"),
-            kotlinBytes = tinyFlex.size,
-            cppBytes = null,
+            kotlinUs = benchLong("Kotlin TinyStatus key decode") { decodeTinyStatusKey(fixtures.tiny) }.medianUs,
+            cppUs = tinyKeyCpp.medianUs,
+            kotlinBytes = fixtures.tiny.size,
+            cppBytes = tinyKeyCpp.bytes,
             note = "Kotlin Reference/key lookup vs C++ key lookup."
         )
 
+        val tinyIndexChecksum = decodeTinyStatusIndex(fixtures.tiny)
+        val tinyIndexCpp = cpp.requireMetric(
+            id = "tiny_index",
+            expectedChecksum = tinyIndexChecksum,
+            expectedBytes = fixtures.tiny.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "TinyStatus index decode",
-            kotlinUs = bench("Kotlin TinyStatus index decode") { TinyStatusFlexCoder.decode(FlexBuffers.getRoot(tinyFlex)) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer full index decode"),
-            kotlinBytes = tinyFlex.size,
-            cppBytes = null,
-            note = "Manual Kotlin FlexCoder vs C++ index decode."
+            kotlinUs = benchLong("Kotlin TinyStatus index decode") { decodeTinyStatusIndex(fixtures.tiny) }.medianUs,
+            cppUs = tinyIndexCpp.medianUs,
+            kotlinBytes = fixtures.tiny.size,
+            cppBytes = tinyIndexCpp.bytes,
+            note = "Allocation-free positional checksum in both implementations."
         )
 
+        val tinyPartialChecksum = decodeTinyStatusPartialKey(fixtures.tiny)
+        val tinyPartialCpp = cpp.requireMetric(
+            id = "tiny_partial",
+            expectedChecksum = tinyPartialChecksum,
+            expectedBytes = fixtures.tiny.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "TinyStatus partial key",
-            kotlinUs = bench("Kotlin TinyStatus 3-field key read") { decodeTinyStatusPartialKey(tinyFlex) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer 3-field read"),
-            kotlinBytes = tinyFlex.size,
-            cppBytes = null,
+            kotlinUs = benchLong("Kotlin TinyStatus 3-field key read") { decodeTinyStatusPartialKey(fixtures.tiny) }.medianUs,
+            cppUs = tinyPartialCpp.medianUs,
+            kotlinBytes = fixtures.tiny.size,
+            cppBytes = tinyPartialCpp.bytes,
             note = "Partial keyed access, where object materialization is not required."
         )
 
+        val sparseChecksum = decodeSparseMissing(fixtures.sparse, sparseMissingKeys).toLong()
+        val sparseCpp = cpp.requireMetric(
+            id = "sparse_missing",
+            expectedChecksum = sparseChecksum,
+            expectedBytes = fixtures.sparse.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "Sparse missing lookups",
-            kotlinUs = bench("Kotlin 256 missing optional lookups") { decodeSparseMissing(sparseFlex, sparseMissingKeys) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer 256 missing optional lookups"),
-            kotlinBytes = sparseFlex.size,
-            cppBytes = null,
+            kotlinUs = benchLong("Kotlin 256 missing optional lookups") {
+                decodeSparseMissing(fixtures.sparse, sparseMissingKeys).toLong()
+            }.medianUs,
+            cppUs = sparseCpp.medianUs,
+            kotlinBytes = fixtures.sparse.size,
+            cppBytes = sparseCpp.bytes,
             note = "Many absent keys; probes the map lookup miss path with keys precomputed outside the measured loop."
         )
 
+        val stringTableChecksum = scanStringTableAccessor(fixtures.stringTable)
+        val stringTableCpp = cpp.requireMetric(
+            id = "string_table_scan",
+            expectedChecksum = stringTableChecksum,
+            expectedBytes = fixtures.stringTable.size,
+            expectedIterations = uniqueIters
+        )
         rows += CppMetricRow(
             case = "StringTable scan",
-            kotlinUs = bench("Kotlin StringTable accessor scan", measuredIters = 2_000) { scanStringTableAccessor(stringTableFlex) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer scan 200 rows"),
-            kotlinBytes = stringTableFlex.size,
-            cppBytes = null,
+            kotlinUs = benchLong("Kotlin StringTable accessor scan", measuredIters = uniqueIters) {
+                scanStringTableAccessor(fixtures.stringTable)
+            }.medianUs,
+            cppUs = stringTableCpp.medianUs,
+            kotlinBytes = fixtures.stringTable.size,
+            cppBytes = stringTableCpp.bytes,
             note = "String-heavy row scan."
         )
 
+        val timeSeriesChecksum = scanTimeSeriesAccessor(fixtures.timeSeries)
+        val timeSeriesCpp = cpp.requireMetric(
+            id = "time_series_index",
+            expectedChecksum = timeSeriesChecksum,
+            expectedBytes = fixtures.timeSeries.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "TimeSeries index scan",
-            kotlinUs = bench("Kotlin TimeSeries numeric accessor scan") { scanTimeSeriesAccessor(timeSeriesFlex) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer indexed full decode"),
-            kotlinBytes = timeSeriesFlex.size,
-            cppBytes = 4_852,
-            note = "Numeric/vector-heavy scan; C++ has fixed benchmark shape."
+            kotlinUs = benchLong("Kotlin TimeSeries numeric accessor scan") {
+                scanTimeSeriesAccessor(fixtures.timeSeries)
+            }.medianUs,
+            cppUs = timeSeriesCpp.medianUs,
+            kotlinBytes = fixtures.timeSeries.size,
+            cppBytes = timeSeriesCpp.bytes,
+            note = "Numeric/vector-heavy scan over the exact same Kotlin-produced bytes."
         )
 
+        val wideRandomChecksum = decodeWideRandomKeys(fixtures.wide, wideKeys)
+        val wideRandomCpp = cpp.requireMetric(
+            id = "wide_random",
+            expectedChecksum = wideRandomChecksum,
+            expectedBytes = fixtures.wide.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "Wide random key reads",
-            kotlinUs = bench("Kotlin 64 random key reads") { decodeWideRandomKeys(wideFlex, wideKeys) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer 64 random key reads"),
-            kotlinBytes = wideFlex.size,
-            cppBytes = 16_396,
+            kotlinUs = benchLong("Kotlin 64 random key reads") {
+                decodeWideRandomKeys(fixtures.wide, wideKeys)
+            }.medianUs,
+            cppUs = wideRandomCpp.medianUs,
+            kotlinBytes = fixtures.wide.size,
+            cppBytes = wideRandomCpp.bytes,
             note = "Wide map random keyed access."
         )
 
+        val wideSequentialChecksum = decodeWideSequentialIndexes(fixtures.wide, 64)
+        val wideSequentialCpp = cpp.requireMetric(
+            id = "wide_sequential",
+            expectedChecksum = wideSequentialChecksum,
+            expectedBytes = fixtures.wide.size,
+            expectedIterations = iterations
+        )
         rows += CppMetricRow(
             case = "Wide sequential index",
-            kotlinUs = bench("Kotlin 64 sequential index reads") { decodeWideSequentialIndexes(wideFlex, 64) }.medianUs,
-            cppUs = cpp.requireMetric("FlexBuffer 64 sequential index reads"),
-            kotlinBytes = wideFlex.size,
-            cppBytes = 16_396,
+            kotlinUs = benchLong("Kotlin 64 sequential index reads") {
+                decodeWideSequentialIndexes(fixtures.wide, 64)
+            }.medianUs,
+            cppUs = wideSequentialCpp.medianUs,
+            kotlinBytes = fixtures.wide.size,
+            cppBytes = wideSequentialCpp.bytes,
             note = "Narrow indexed Flex path compared with the C++ indexed path."
         )
 
+        val uniqueShareChecksum = checksumUniqueStringPayload(fixtures.uniqueShare)
+        val uniqueShareCpp = cpp.requireMetric(
+            id = "unique_share",
+            expectedChecksum = uniqueShareChecksum,
+            expectedBytes = null,
+            expectedIterations = uniqueIters
+        )
         rows += CppMetricRow(
             case = "Unique strings encode share",
-            kotlinUs = bench("Kotlin encode SHARE_KEYS_AND_STRINGS", measuredIters = uniqueIters) {
-                encodeUniqueStringPayload(share = true, rows = 200, len = 64).size
+            kotlinUs = benchLong("Kotlin encode SHARE_KEYS_AND_STRINGS", measuredIters = uniqueIters) {
+                encodeUniqueStringPayload(share = true, rows = 200, len = 64).size.toLong()
             }.medianUs,
-            cppUs = cpp.requireMetric("Flex encode SHARE_KEYS_AND_STRINGS"),
-            kotlinBytes = encodeUniqueStringPayload(share = true, rows = 200, len = 64).size,
-            cppBytes = 33_852,
+            cppUs = uniqueShareCpp.medianUs,
+            kotlinBytes = fixtures.uniqueShare.size,
+            cppBytes = uniqueShareCpp.bytes,
             note = "Kotlin builder sharing overhead vs C++ builder sharing overhead."
         )
 
+        val uniqueNoneChecksum = checksumUniqueStringPayload(fixtures.uniqueNone)
+        val uniqueNoneCpp = cpp.requireMetric(
+            id = "unique_none",
+            expectedChecksum = uniqueNoneChecksum,
+            expectedBytes = null,
+            expectedIterations = uniqueIters
+        )
         rows += CppMetricRow(
             case = "Unique strings no share",
-            kotlinUs = bench("Kotlin encode SHARE_NONE", measuredIters = uniqueIters) {
-                encodeUniqueStringPayload(share = false, rows = 200, len = 64).size
+            kotlinUs = benchLong("Kotlin encode SHARE_NONE", measuredIters = uniqueIters) {
+                encodeUniqueStringPayload(share = false, rows = 200, len = 64).size.toLong()
             }.medianUs,
-            cppUs = cpp.requireMetric("Flex encode no sharing"),
-            kotlinBytes = encodeUniqueStringPayload(share = false, rows = 200, len = 64).size,
-            cppBytes = 34_020,
+            cppUs = uniqueNoneCpp.medianUs,
+            kotlinBytes = fixtures.uniqueNone.size,
+            cppBytes = uniqueNoneCpp.bytes,
             note = "Builder baseline with sharing disabled on unique strings."
         )
 
@@ -775,7 +899,7 @@ class AdversarialPerformanceHarnessTest {
         rows.forEach { row ->
             val ratio = row.kotlinUs / row.cppUs
             val winner = if (row.kotlinUs <= row.cppUs) "Kotlin" else "C++"
-            val sizeText = row.cppBytes?.let { "${row.kotlinBytes}/$it" } ?: row.kotlinBytes.toString()
+            val sizeText = "${row.kotlinBytes}/${row.cppBytes}"
             println("  %-27s %9.2f us %9.2f us %9.1fx %10s %9s  %s".format(
                 row.case,
                 row.kotlinUs,
@@ -789,7 +913,22 @@ class AdversarialPerformanceHarnessTest {
         val losses = rows.count { it.kotlinUs > it.cppUs }
         println("\nKotlin Flex lost $losses/${rows.size} time comparisons against C++ Flex in this adversarial set.")
         assertTrue(rows.isNotEmpty())
-        println("sinkType=${sink?.let { it::class.simpleName } ?: "null"}")
+        println("comparisonSink=$comparisonSink")
+    }
+
+    @Test
+    fun flexKotlinCppComparisonContractVerification() {
+        val fixtures = comparisonFixtures()
+        val output = runCppProcess(
+            binary = buildCppComparisonBinary(),
+            benchDir = findCppBenchDir(),
+            arguments = listOf("--verify-comparison") + fixtures.toCppArguments()
+        )
+        assertTrue(
+            output.lineSequence().any { it.startsWith("CPP_VERIFY|comparison|PASS|") },
+            "C++ fixture verifier did not emit its PASS record:\n$output"
+        )
+        println(output.lineSequence().first { it.startsWith("CPP_VERIFY|comparison|PASS|") })
     }
 
     private fun stringTable(rows: Int, bodyLen: Int): StringTable {
@@ -1350,6 +1489,16 @@ class AdversarialPerformanceHarnessTest {
             if (root.getBoolean("verified")) 1 else 0
     }
 
+    private fun decodeTinyStatusIndex(bytes: ByteArray): Long {
+        val root = getRoot(bytes).toMap()
+        return root.getLong(0) +
+            root.getLong(1) +
+            root.getDouble(2).toLong() +
+            root.getStringByteLength(3) +
+            root.getStringByteLength(4) +
+            if (root.getBoolean(5)) 1 else 0
+    }
+
     private fun decodeTinyStatusPartialKey(bytes: ByteArray): Long {
         val root = getRoot(bytes).toMap()
         return root.getDouble("score").toLong() +
@@ -1426,47 +1575,174 @@ class AdversarialPerformanceHarnessTest {
         return builder.finish().toByteArray()
     }
 
-    private fun runCppAdversarialHarness(): kotlin.collections.Map<String, Double> {
+    private fun checksumUniqueStringPayload(bytes: ByteArray): Long {
+        val items = bytes.toFlexMap().getVector(0)
+        var checksum = 0L
+        for (i in 0 until items.size) {
+            val row = items.readMap(i)
+            checksum += row.getStringByteLength(0)
+            checksum += row.getInt(1)
+            checksum += row.getStringByteLength(2)
+        }
+        return checksum
+    }
+
+    private fun comparisonFixtures(): CppFixtures {
+        FlexCoderRegistry.clear()
+        registerHarnessCoders()
+        return try {
+            CppFixtures(
+                tiny = FlexBuffers.encode(
+                    TinyStatus(
+                        createdAt = 1_716_307_200_000L,
+                        id = 8_847_291L,
+                        score = 98.25,
+                        status = "active",
+                        username = "shibasis.patnaik",
+                        verified = true
+                    )
+                ),
+                sparse = encodeSparseOptionsFlex(present = 10),
+                stringTable = FlexBuffers.encode(stringTable(rows = 200, bodyLen = 80)),
+                timeSeries = FlexBuffers.encode(BenchmarkData.timeSeriesChunk()),
+                wide = encodeMapNKeys(1_024),
+                uniqueShare = encodeUniqueStringPayload(share = true, rows = 200, len = 64),
+                uniqueNone = encodeUniqueStringPayload(share = false, rows = 200, len = 64)
+            )
+        } finally {
+            FlexCoderRegistry.clear()
+        }
+    }
+
+    private fun CppFixtures.toCppArguments(): List<String> = listOf(
+        "--fixture-tiny-hex", tiny.toHex(),
+        "--fixture-sparse-hex", sparse.toHex(),
+        "--fixture-string-table-hex", stringTable.toHex(),
+        "--fixture-time-series-hex", timeSeries.toHex(),
+        "--fixture-wide-hex", wide.toHex(),
+        "--fixture-unique-share-hex", uniqueShare.toHex(),
+        "--fixture-unique-none-hex", uniqueNone.toHex()
+    )
+
+    private fun ByteArray.toHex(): String {
+        val digits = "0123456789abcdef"
+        val result = CharArray(size * 2)
+        for (i in indices) {
+            val value = this[i].toInt() and 0xff
+            result[i * 2] = digits[value ushr 4]
+            result[i * 2 + 1] = digits[value and 0x0f]
+        }
+        return result.concatToString()
+    }
+
+    private fun runCppAdversarialHarness(fixtures: CppFixtures): kotlin.collections.Map<String, CppMetric> {
+        val benchDir = findCppBenchDir()
+        val binary = buildCppComparisonBinary()
+        val output = runCppProcess(
+            binary = binary,
+            benchDir = benchDir,
+            arguments = listOf(
+                "--adversarial",
+                "--verify",
+                "--warmup", warmup.toString(),
+                "--iters", iterations.toString(),
+                "--runs", runs.toString()
+            ) + fixtures.toCppArguments()
+        )
+
+        println("\nC++ adversarial harness excerpt:")
+        output.lineSequence()
+            .filter {
+                it.startsWith("CPP_VERIFY|") ||
+                    it.startsWith("CPP_METRIC|") ||
+                    it.contains("Adversarial:")
+            }
+            .take(16)
+            .forEach { println("  cpp> $it") }
+
+        val metricLines = output.lineSequence().filter { it.startsWith("CPP_METRIC|") }.toList()
+        val metrics = metricLines.map { line ->
+            val fields = line.split('|')
+            assertEquals(12, fields.size, "Malformed C++ metric record: $line")
+            CppMetric(
+                id = fields[1],
+                medianUs = fields[2].toDouble(),
+                minUs = fields[3].toDouble(),
+                maxUs = fields[4].toDouble(),
+                meanUs = fields[5].toDouble(),
+                stddev = fields[6].toDouble(),
+                bytes = fields[7].toInt(),
+                checksum = fields[8].toLong(),
+                warmup = fields[9].toInt(),
+                iterations = fields[10].toInt(),
+                runs = fields[11].toInt()
+            )
+        }
+        val expectedIds = setOf(
+            "tiny_key",
+            "tiny_index",
+            "tiny_partial",
+            "sparse_missing",
+            "string_table_scan",
+            "time_series_index",
+            "wide_random",
+            "wide_sequential",
+            "unique_share",
+            "unique_none"
+        )
+        assertEquals(metrics.size, metrics.map { it.id }.toSet().size, "C++ emitted duplicate metric IDs")
+        assertEquals(expectedIds, metrics.map { it.id }.toSet(), "C++ emitted an incomplete metric set")
+        metrics.forEach { metric ->
+            assertTrue(metric.medianUs >= 0.0 && metric.medianUs.isFinite(), "Invalid C++ median for ${metric.id}")
+            assertTrue(metric.minUs >= 0.0 && metric.minUs.isFinite(), "Invalid C++ minimum for ${metric.id}")
+            assertTrue(metric.maxUs >= metric.minUs && metric.maxUs.isFinite(), "Invalid C++ range for ${metric.id}")
+        }
+        return metrics.associateBy { it.id }
+    }
+
+    private fun buildCppComparisonBinary(): File {
         val benchDir = findCppBenchDir()
         val source = File(benchDir, "flexbuffer_bench.cpp")
-        val binary = File(System.getProperty("user.dir"), "build/tmp/flexbufferBench/flexbuffer_bench")
-        if (!binary.canExecute() || binary.lastModified() < source.lastModified()) {
-            binary.parentFile.mkdirs()
-            val compile = ProcessBuilder(
-                "clang++",
-                "-O2",
-                "-std=c++17",
-                "-I",
-                "../../../.github_modules/flatbuffers/include",
-                "flexbuffer_bench.cpp",
-                "-o",
-                binary.absolutePath
-            ).directory(benchDir).redirectErrorStream(true).start()
-            val compileOutput = compile.inputStream.bufferedReader().readText()
-            val compileExit = compile.waitFor()
-            assertEquals(0, compileExit, "C++ harness compile failed:\n$compileOutput")
-        }
+        val includeDir = File(benchDir, "../../../.github_modules/flatbuffers/include").canonicalFile
+        val binary = File(System.getProperty("user.dir"), "build/tmp/flexbufferBench/flexbuffer_bench_adversarial")
+        binary.parentFile.mkdirs()
 
-        val process = ProcessBuilder(binary.absolutePath, "--adversarial", "--verify")
+        val compiler = System.getenv("CXX")?.takeIf { it.isNotBlank() } ?: "clang++"
+        val nativeFlag = when (System.getProperty("os.arch").lowercase()) {
+            "aarch64", "arm64" -> "-mcpu=native"
+            else -> "-march=native"
+        }
+        val command = listOf(
+            compiler,
+            "-O3",
+            "-DNDEBUG",
+            nativeFlag,
+            "-std=c++17",
+            "-I", includeDir.absolutePath,
+            source.absolutePath,
+            "-o", binary.absolutePath
+        )
+        println("C++ comparison compile: ${command.joinToString(" ")}")
+        val compile = ProcessBuilder(command)
+            .directory(benchDir)
+            .redirectErrorStream(true)
+            .start()
+        val compileOutput = compile.inputStream.bufferedReader().readText()
+        val compileExit = compile.waitFor()
+        assertEquals(0, compileExit, "C++ harness compile failed:\n$compileOutput")
+        assertTrue(binary.canExecute(), "C++ comparison binary is not executable: $binary")
+        return binary
+    }
+
+    private fun runCppProcess(binary: File, benchDir: File, arguments: List<String>): String {
+        val process = ProcessBuilder(listOf(binary.absolutePath) + arguments)
             .directory(benchDir)
             .redirectErrorStream(true)
             .start()
         val output = process.inputStream.bufferedReader().readText()
         val exit = process.waitFor()
-        assertEquals(0, exit, "C++ adversarial harness failed:\n$output")
-
-        println("\nC++ adversarial harness excerpt:")
-        output.lineSequence()
-            .filter { it.contains("FlexBuffer") || it.contains("Flex encode") || it.contains("lost ") || it.contains("Adversarial:") }
-            .take(24)
-            .forEach { println("  cpp> $it") }
-
-        val metricRegex = Regex("""^\s+(.+?)\s+([0-9]+(?:\.[0-9]+)?)\s+us/op""")
-        return output.lineSequence().mapNotNull { line ->
-            metricRegex.find(line)?.let { match ->
-                match.groupValues[1].trim() to match.groupValues[2].toDouble()
-            }
-        }.toMap()
+        assertEquals(0, exit, "C++ comparison harness failed:\n$output")
+        return output
     }
 
     private fun findCppBenchDir(): File {
@@ -1481,7 +1757,18 @@ class AdversarialPerformanceHarnessTest {
             ?: error("Could not locate reaktor-flexbuffer/cpp/bench/flexbuffer_bench.cpp from ${System.getProperty("user.dir")}")
     }
 
-    private fun kotlin.collections.Map<String, Double>.requireMetric(label: String): Double {
-        return this[label] ?: error("C++ metric '$label' not found. Available metrics: ${keys.sorted()}")
+    private fun kotlin.collections.Map<String, CppMetric>.requireMetric(
+        id: String,
+        expectedChecksum: Long,
+        expectedBytes: Int?,
+        expectedIterations: Int
+    ): CppMetric {
+        val metric = this[id] ?: error("C++ metric '$id' not found. Available metrics: ${keys.sorted()}")
+        assertEquals(expectedChecksum, metric.checksum, "C++/Kotlin checksum mismatch for $id")
+        expectedBytes?.let { assertEquals(it, metric.bytes, "C++ did not benchmark the supplied fixture for $id") }
+        assertEquals(warmup, metric.warmup, "C++/Kotlin warmup mismatch for $id")
+        assertEquals(expectedIterations, metric.iterations, "C++/Kotlin iteration mismatch for $id")
+        assertEquals(runs, metric.runs, "C++/Kotlin run-count mismatch for $id")
+        return metric
     }
 }

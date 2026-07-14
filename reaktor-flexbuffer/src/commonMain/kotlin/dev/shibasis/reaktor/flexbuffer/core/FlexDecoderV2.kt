@@ -11,6 +11,7 @@ import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractDecoder
@@ -91,7 +92,21 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
 
             val count = descriptor.elementsCount
             val names = Array(count) { descriptor.getElementName(it) }
-            val sortedByName = names.indices.sortedBy { names[it] }
+            val encodedNames = Array(count) { names[it].encodeToByteArray() }
+            val sortedByName = names.indices.sortedWith { left, right ->
+                val a = encodedNames[left]
+                val b = encodedNames[right]
+                val n = minOf(a.size, b.size)
+                var result = a.size - b.size
+                for (i in 0 until n) {
+                    val delta = (a[i].toInt() and 0xFF) - (b[i].toInt() and 0xFF)
+                    if (delta != 0) {
+                        result = delta
+                        break
+                    }
+                }
+                result
+            }
             // sortedByName[mapPos] = descriptorIndex → invert to descriptorIndex → mapPos
             val result = IntArray(count)
             for (mapPos in sortedByName.indices) {
@@ -372,8 +387,8 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
             val vi = ctx.currentVectorIndex
             if (vi >= 0) { ctx.currentVectorIndex = -1; return ctx.vectorRef!!.readInt(vi).toChar() }
         }
-        consumeMapKey()?.let { return it.singleOrNull() ?: ' ' }
-        return getCurrentReference()?.toInt()?.toChar() ?: ' '
+        consumeMapKey()?.let { return it.singleOrNull() ?: '\u0000' }
+        return getCurrentReference()?.toInt()?.toChar() ?: '\u0000'
     }
 
     override fun decodeString(): String {
@@ -436,7 +451,8 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
             val mi = ctx.currentMapIndex
             val vi = ctx.currentVectorIndex
             when (descriptor.kind) {
-                StructureKind.CLASS, StructureKind.OBJECT -> {
+                StructureKind.CLASS, StructureKind.OBJECT,
+                PolymorphicKind.SEALED, PolymorphicKind.OPEN -> {
                     if (mi >= 0) {
                         ctx.currentMapIndex = -1
                         val map = ctx.mapRef!!.getMap(mi)
@@ -492,7 +508,8 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
         val ref: Reference = getCurrentReference() ?: root
 
         when (descriptor.kind) {
-            StructureKind.CLASS, StructureKind.OBJECT -> {
+            StructureKind.CLASS, StructureKind.OBJECT,
+            PolymorphicKind.SEALED, PolymorphicKind.OPEN -> {
                 if (ref.isMap) {
                     pushMapObject(ref.toMap(), descriptor)
                 } else {
@@ -530,7 +547,13 @@ class FlexDecoderV2 private constructor() : AbstractDecoder() {
      */
     private fun pushMapObject(map: FlexMap, descriptor: SerialDescriptor) {
         val allFieldsPresent = map.size == descriptor.elementsCount
-        val indices = if (allFieldsPresent) getOrBuildFieldIndices(descriptor) else null
+        val candidate = if (allFieldsPresent) getOrBuildFieldIndices(descriptor) else null
+        // Equal field count is not a schema guarantee: a rename can otherwise route
+        // a value into the wrong descriptor slot silently. ASCII keyEquals is allocation-
+        // free; Unicode falls back only on the compatibility path.
+        val indices = if (candidate != null && candidate.indices.all { descriptorIndex ->
+                map.keyEquals(candidate[descriptorIndex], descriptor.getElementName(descriptorIndex))
+            }) candidate else null
         contextStack.push(
             ContextType.MAP_OBJECT,
             mapRef = map,

@@ -11,18 +11,13 @@ import kotlinx.serialization.serializer
 /**
  * Public API for FlexBuffer binary serialization.
  *
- * Encoding pipeline:
- *   T → kotlinx.serialization → FlexEncoderV2 → FlexBuffersBuilder → ByteArray
- *   - FlexEncoderV2 is allocation-free after warmup (pooled builder + pooled structure stack)
- *   - FlexBuffersBuilder writes to a reusable internal byte buffer
- *   - Final ByteArray copy is the only allocation per encode()
+ * Encoding has two paths: generated [FlexCoder] calls for exact-layout `@Struct`
+ * models, and a kotlinx.serialization fallback. Both reuse pooled builders; returning
+ * a ByteArray still allocates/copies the finished payload.
  *
- * Decoding pipeline:
- *   ByteArray → ArrayReadBuffer → getRoot(Reference) → FlexDecoderV2 → T
- *   - ArrayReadBuffer wraps the byte[] without copying
- *   - getRoot() parses the root type tag from the last 2 bytes (O(1))
- *   - FlexDecoderV2 navigates the binary tree using pooled context stack
- *   - Primitive reads (toInt, toLong, etc.) are zero-copy from the buffer
+ * Generated decoding enters positional code directly and allocates only materialized
+ * output (objects, strings, primitive-array-backed lists). Fallback decoding uses the
+ * Reference/Map model and a pooled decoder. Accessors remain the zero-copy option.
  *
  * Thread safety: each encode/decode creates its own encoder/decoder instance.
  * The FlexBuffersBuilder is acquired from a bounded CAS-backed pool.
@@ -45,9 +40,12 @@ object FlexBuffers {
     @PublishedApi
     internal fun <T : Any> encodeDirect(coder: FlexCoder<T>, value: T): ByteArray {
         return FlexBufferPool.encode {
-            coder.encode(this, value)
+            coder.encodeRoot(this, value)
         }
     }
+
+    /** Non-reflective generated-coder entry point for latency-critical call sites. */
+    fun <T : Any> encode(coder: FlexCoder<T>, value: T): ByteArray = encodeDirect(coder, value)
 
     @Suppress("UNCHECKED_CAST")
     fun <T> encode(serializer: SerializationStrategy<T>, value: T): ByteArray {
@@ -73,7 +71,7 @@ object FlexBuffers {
         val coder = FlexCoderRegistry.getBySerialName<Any>(serializer.descriptor.serialName)
         if (coder != null && value != null) {
             builder.clear()
-            coder.encode(builder, value as Any)
+            coder.encodeRoot(builder, value as Any)
             return builder.finish()
         }
         return FlexEncoderV2.encodeToBuffer(serializer, value, builder)
@@ -90,7 +88,7 @@ object FlexBuffers {
     ): ReadBuffer {
         FlexCoderRegistry.get<T>()?.let { coder ->
             builder.clear()
-            coder.encode(builder, value)
+            coder.encodeRoot(builder, value)
             return builder.finish()
         }
         return encodeToBuffer(serializer<T>(), value, builder)
@@ -128,8 +126,11 @@ object FlexBuffers {
 
     @PublishedApi
     internal fun <T : Any> decodeDirect(coder: FlexCoder<T>, bytes: ByteArray): T {
-        return coder.decode(getRoot(bytes))
+        return coder.decode(bytes)
     }
+
+    /** Non-reflective generated-coder entry point for latency-critical call sites. */
+    fun <T : Any> decode(coder: FlexCoder<T>, bytes: ByteArray): T = decodeDirect(coder, bytes)
 
     @Suppress("UNCHECKED_CAST")
     fun <T> decode(deserializer: DeserializationStrategy<T>, bytes: ByteArray): T {
@@ -151,7 +152,11 @@ object FlexBuffers {
         val coder = FlexCoderRegistry.getBySerialName<Any>(deserializer.descriptor.serialName)
         if (coder != null) {
             @Suppress("UNCHECKED_CAST")
-            return coder.decode(getRoot(buffer)) as T
+            return if (buffer is ArrayReadBuffer) {
+                coder.decode(buffer.data(), buffer.offset + buffer.limit) as T
+            } else {
+                coder.decode(getRoot(buffer)) as T
+            }
         }
         return FlexDecoderV2.decode(deserializer, buffer)
     }

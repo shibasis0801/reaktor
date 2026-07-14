@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.flexbuffer
 
-import dev.shibasis.reaktor.core.registerGeneratedFlexCoders
+import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers
 import dev.shibasis.reaktor.flexbuffer.core.FlexCoderRegistry
 import kotlinx.serialization.json.Json
@@ -53,7 +53,7 @@ class RealisticBenchmark {
     ) {
         println("\n=== $label ===")
 
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         val flexEnc = benchUs("FlexCoder encode") { FlexBuffers.encode(data) }
         val flexBytes = FlexBuffers.encode(data)
@@ -68,7 +68,7 @@ class RealisticBenchmark {
         val jsonStr = json.encodeToString(serializer<T>(), data)
         val jsonDec = benchUs("JSON decode") { json.decodeFromString(serializer<T>(), jsonStr) }
 
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         println("  ---")
         println("  FlexCoder:      %4.0f us   size: %d B".format(flexEnc + flexDec, flexBytes.size))
@@ -293,7 +293,7 @@ class RealisticBenchmark {
     data class BenchRow(val name: String, val flexUs: Double, val serUs: Double, val jsonUs: Double, val flexB: Int, val jsonB: Int)
 
     private inline fun <reified T : Any> measure(name: String, data: T): BenchRow {
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
         repeat(warmup) { FlexBuffers.encode(data) }
 
         val flexBytes = FlexBuffers.encode(data)
@@ -305,7 +305,7 @@ class RealisticBenchmark {
         repeat(warmup) { FlexBuffers.encode(serializer<T>(), data) }
         val serEnc = measureTime { repeat(iterations) { FlexBuffers.encode(serializer<T>(), data) } }.inWholeMicroseconds.toDouble() / iterations
         val serDec = measureTime { repeat(iterations) { FlexBuffers.decode(serializer<T>(), serBytes) } }.inWholeMicroseconds.toDouble() / iterations
-        registerGeneratedFlexCoders()
+        ReaktorFlexbufferCoders.register()
 
         val jsonStr = json.encodeToString(serializer<T>(), data)
         repeat(warmup) { json.encodeToString(serializer<T>(), data) }

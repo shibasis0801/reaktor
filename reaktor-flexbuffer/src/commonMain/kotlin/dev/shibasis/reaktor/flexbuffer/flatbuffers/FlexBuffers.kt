@@ -244,7 +244,7 @@ internal constructor(
       T_INDIRECT_UINT -> buf.ldULongW(buf.indirectAt(end, parentWidth), byteWidth)
       T_FLOAT -> buf.ldFloatW(end, parentWidth).toLong()
       T_INDIRECT_FLOAT -> buf.ldFloatW(buf.indirectAt(end, parentWidth), byteWidth).toLong()
-      T_STRING -> toString().toLong()
+      T_STRING -> toString().toLongOrNull() ?: 0L
       T_VECTOR -> toVector().size.toLong()
       else -> 0L
     }
@@ -286,7 +286,7 @@ internal constructor(
       T_INDIRECT_UINT -> buf.ldULongW(buf.indirectAt(end, parentWidth), byteWidth).toULong()
       T_FLOAT -> buf.ldFloatW(end, parentWidth).toULong()
       T_INDIRECT_FLOAT -> buf.ldFloatW(buf.indirectAt(end, parentWidth), byteWidth).toULong()
-      T_STRING -> toString().toULong()
+      T_STRING -> toString().toULongOrNull() ?: 0UL
       T_VECTOR -> toVector().size.toULong()
       else -> 0UL
     }
@@ -313,7 +313,7 @@ internal constructor(
       T_INDIRECT_INT -> buf.ldSLongW(buf.indirectAt(end, parentWidth), byteWidth).toDouble()
       T_INDIRECT_UINT -> buf.ldULongW(buf.indirectAt(end, parentWidth), byteWidth).toDouble()
       T_NULL -> 0.0
-      T_STRING -> toString().toDouble()
+      T_STRING -> toString().toDoubleOrNull() ?: 0.0
       T_VECTOR -> toVector().size.toDouble()
       else -> 0.0
     }
@@ -360,8 +360,16 @@ internal constructor(
   public fun toByteArray(): ByteArray {
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> ByteArray(vec.size) { vec.readTypedInt(it).toByte() }
-      T_VECTOR_UINT -> ByteArray(vec.size) { vec.readTypedUInt(it).toByte() }
+      T_VECTOR_INT -> if (vec.byteWidth == 1) {
+        ByteArray(vec.size).also { vec.buf.copyInto(it, startIndex = vec.end, endIndex = vec.end + vec.size) }
+      } else {
+        ByteArray(vec.size) { vec.readTypedInt(it).toByte() }
+      }
+      T_VECTOR_UINT -> if (vec.byteWidth == 1) {
+        ByteArray(vec.size).also { vec.buf.copyInto(it, startIndex = vec.end, endIndex = vec.end + vec.size) }
+      } else {
+        ByteArray(vec.size) { vec.readTypedUInt(it).toByte() }
+      }
       T_VECTOR -> ByteArray(vec.size) { vec[it].toByte() }
       T_VECTOR_FLOAT -> ByteArray(vec.size) { vec.readTypedFloat(it).toInt().toByte() }
       else -> ByteArray(0)
@@ -376,8 +384,17 @@ internal constructor(
   public fun toShortArray(): ShortArray {
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> ShortArray(vec.size) { vec.readTypedInt(it).toShort() }
-      T_VECTOR_UINT -> ShortArray(vec.size) { vec.readTypedUInt(it).toShort() }
+      T_VECTOR_INT -> if (vec.byteWidth == 2) {
+        FlexRead.toShortArray(vec.buf, vec.end, vec.byteWidth, vec.size)
+      } else {
+        ShortArray(vec.size) { vec.readTypedInt(it).toShort() }
+      }
+      T_VECTOR_UINT -> if (vec.byteWidth == 2) {
+        // At the natural width the signed destination observes the same low 16 bits.
+        FlexRead.toShortArray(vec.buf, vec.end, vec.byteWidth, vec.size)
+      } else {
+        ShortArray(vec.size) { vec.readTypedUInt(it).toShort() }
+      }
       T_VECTOR -> ShortArray(vec.size) { vec[it].toShort() }
       T_VECTOR_FLOAT -> ShortArray(vec.size) { vec.readTypedFloat(it).toInt().toShort() }
       else -> ShortArray(0)
@@ -393,7 +410,7 @@ internal constructor(
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> vec.toIntArray()
-      T_VECTOR_UINT -> IntArray(vec.size) { vec.readTypedUInt(it).toInt() }
+      T_VECTOR_UINT -> vec.toIntArray()
       T_VECTOR -> IntArray(vec.size) { vec[it].toInt() }
       T_VECTOR_FLOAT -> IntArray(vec.size) { vec.readTypedFloat(it).toInt() }
       else -> IntArray(0)
@@ -409,7 +426,7 @@ internal constructor(
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
       T_VECTOR_INT -> vec.toLongArray()
-      T_VECTOR_UINT -> LongArray(vec.size) { vec.readTypedUInt(it).toLong() }
+      T_VECTOR_UINT -> vec.toLongArray()
       T_VECTOR -> LongArray(vec.size) { vec[it].toLong() }
       T_VECTOR_FLOAT -> LongArray(vec.size) { vec.readTypedFloat(it).toLong() }
       else -> LongArray(0)
@@ -424,8 +441,16 @@ internal constructor(
   public fun toUByteArray(): UByteArray {
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> UByteArray(vec.size) { vec.readTypedInt(it).toUByte() }
-      T_VECTOR_UINT -> UByteArray(vec.size) { vec.readTypedUInt(it).toUByte() }
+      T_VECTOR_INT -> if (vec.byteWidth == 1) {
+        ByteArray(vec.size).also { vec.buf.copyInto(it, startIndex = vec.end, endIndex = vec.end + vec.size) }.asUByteArray()
+      } else {
+        UByteArray(vec.size) { vec.readTypedInt(it).toUByte() }
+      }
+      T_VECTOR_UINT -> if (vec.byteWidth == 1) {
+        ByteArray(vec.size).also { vec.buf.copyInto(it, startIndex = vec.end, endIndex = vec.end + vec.size) }.asUByteArray()
+      } else {
+        UByteArray(vec.size) { vec.readTypedUInt(it).toUByte() }
+      }
       T_VECTOR -> UByteArray(vec.size) { vec[it].toUByte() }
       T_VECTOR_FLOAT -> UByteArray(vec.size) { vec.readTypedFloat(it).toInt().toUByte() }
       else -> UByteArray(0)
@@ -440,8 +465,12 @@ internal constructor(
   public fun toUShortArray(): UShortArray {
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> UShortArray(vec.size) { vec.readTypedInt(it).toUShort() }
-      T_VECTOR_UINT -> UShortArray(vec.size) { vec.readTypedUInt(it).toUShort() }
+      T_VECTOR_INT -> FlexRead.toShortArray(vec.buf, vec.end, vec.byteWidth, vec.size).asUShortArray()
+      T_VECTOR_UINT -> if (vec.byteWidth == 1) {
+        UShortArray(vec.size) { vec.readTypedUInt(it).toUShort() }
+      } else {
+        FlexRead.toShortArray(vec.buf, vec.end, vec.byteWidth, vec.size).asUShortArray()
+      }
       T_VECTOR -> UShortArray(vec.size) { vec[it].toUShort() }
       T_VECTOR_FLOAT -> UShortArray(vec.size) { vec.readTypedFloat(it).toUInt().toUShort() }
       else -> UShortArray(0)
@@ -456,8 +485,8 @@ internal constructor(
   public fun toUIntArray(): UIntArray {
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> UIntArray(vec.size) { vec.readTypedInt(it).toUInt() }
-      T_VECTOR_UINT -> UIntArray(vec.size) { vec.readTypedUInt(it).toUInt() }
+      T_VECTOR_INT -> vec.toIntArray().asUIntArray()
+      T_VECTOR_UINT -> vec.toIntArray().asUIntArray()
       T_VECTOR -> UIntArray(vec.size) { vec[it].toUInt() }
       T_VECTOR_FLOAT -> UIntArray(vec.size) { vec.readTypedFloat(it).toUInt() }
       else -> UIntArray(0)
@@ -472,8 +501,8 @@ internal constructor(
   public fun toULongArray(): ULongArray {
     val vec = TypedVector(type.toElementTypedVector(), buf, buf.indirectAt(end, parentWidth), byteWidth)
     return when (type) {
-      T_VECTOR_INT -> ULongArray(vec.size) { vec.readTypedUInt(it) }
-      T_VECTOR_UINT -> ULongArray(vec.size) { vec.readTypedUInt(it) }
+      T_VECTOR_INT -> vec.toLongArray().asULongArray()
+      T_VECTOR_UINT -> vec.toLongArray().asULongArray()
       T_VECTOR -> ULongArray(vec.size) { vec[it].toULong() }
       T_VECTOR_FLOAT -> ULongArray(vec.size) { vec.readTypedFloat(it).toULong() }
       else -> ULongArray(0)
@@ -614,7 +643,7 @@ public open class Blob internal constructor(buf: ByteArray, end: Int, byteWidth:
    * @param pos position of the byte to be read
    */
   public operator fun get(pos: Int): Byte {
-    if (pos !in 0..size) error("$pos index out of bounds. Should be in range 0..$size")
+    if (pos !in 0 until size) error("$pos index out of bounds. Should be in range 0 until $size")
     return buf[end + pos]
   }
 
@@ -809,14 +838,14 @@ public open class Vector internal constructor(
       when (byteWidth) {
         1 -> for (i in 0 until n) { result[i] = buf.ldU8(pos); pos++ }
         2 -> for (i in 0 until n) { result[i] = buf.ldU16(pos); pos += 2 }
-        4 -> for (i in 0 until n) { result[i] = buf.ld32(pos); pos += 4 }
+        4 -> readNaturalIntArray(buf, pos, result)
         else -> for (i in 0 until n) { result[i] = buf.ld64(pos).toInt(); pos += 8 }
       }
     } else {
       when (byteWidth) {
         1 -> for (i in 0 until n) { result[i] = buf.ld8(pos); pos++ }
         2 -> for (i in 0 until n) { result[i] = buf.ld16(pos); pos += 2 }
-        4 -> for (i in 0 until n) { result[i] = buf.ld32(pos); pos += 4 }
+        4 -> readNaturalIntArray(buf, pos, result)
         else -> for (i in 0 until n) { result[i] = buf.ld64(pos).toInt(); pos += 8 }
       }
     }
@@ -834,14 +863,14 @@ public open class Vector internal constructor(
         1 -> for (i in 0 until n) { result[i] = buf.ldU8(pos).toLong(); pos++ }
         2 -> for (i in 0 until n) { result[i] = buf.ldU16(pos).toLong(); pos += 2 }
         4 -> for (i in 0 until n) { result[i] = buf.ld32(pos).toLong() and 0xFFFFFFFFL; pos += 4 }
-        else -> for (i in 0 until n) { result[i] = buf.ld64(pos); pos += 8 }
+        else -> readNaturalLongArray(buf, pos, result)
       }
     } else {
       when (byteWidth) {
         1 -> for (i in 0 until n) { result[i] = buf.ld8(pos).toLong(); pos++ }
         2 -> for (i in 0 until n) { result[i] = buf.ld16(pos).toLong(); pos += 2 }
         4 -> for (i in 0 until n) { result[i] = buf.ld32(pos).toLong(); pos += 4 }
-        else -> for (i in 0 until n) { result[i] = buf.ld64(pos); pos += 8 }
+        else -> readNaturalLongArray(buf, pos, result)
       }
     }
     return result
@@ -854,7 +883,7 @@ public open class Vector internal constructor(
     val result = DoubleArray(n)
     var pos = end
     when (byteWidth) {
-      8 -> for (i in 0 until n) { result[i] = buf.ldF64(pos); pos += 8 }
+      8 -> readNaturalDoubleArray(buf, pos, result)
       4 -> for (i in 0 until n) { result[i] = buf.ldF32(pos).toDouble(); pos += 4 }
       else -> for (i in 0 until n) { result[i] = readDouble(i) }
     }
@@ -868,7 +897,7 @@ public open class Vector internal constructor(
     val result = FloatArray(n)
     var pos = end
     when (byteWidth) {
-      4 -> for (i in 0 until n) { result[i] = buf.ldF32(pos); pos += 4 }
+      4 -> readNaturalFloatArray(buf, pos, result)
       8 -> for (i in 0 until n) { result[i] = buf.ldF64(pos).toFloat(); pos += 8 }
       else -> for (i in 0 until n) { result[i] = readDouble(i).toFloat() }
     }
@@ -1304,8 +1333,24 @@ public class Map internal constructor(buf: ByteArray, end: Int, byteWidth: Int) 
   override fun isEmpty(): Boolean = size == 0
 
   // Performs a binary search on a key vector and return index of the key in key vector
-  private fun binarySearch(searchedKey: String): Int = binarySearch {
-    compareCharSequence(it, searchedKey)
+  private fun binarySearch(searchedKey: String): Int {
+    var isAscii = true
+    for (i in searchedKey.indices) {
+      if (searchedKey[i].code >= 0x80) {
+        isAscii = false
+        break
+      }
+    }
+
+    if (isAscii) return binarySearch { compareAsciiKey(it, searchedKey) }
+
+    // Encode a non-ASCII query once per lookup. The old comparator allocated a
+    // four-byte scratch array and re-encoded every code point for every binary-
+    // search probe, turning one lookup into O(log n) allocations/encodes.
+    val encodedLength = fastEncodedLength(searchedKey)
+    val encodedKey = ByteArray(encodedLength)
+    fastEncodeUtf8KnownLength(searchedKey, encodedKey, 0, encodedLength)
+    return binarySearch { compareEncodedKey(it, encodedKey) }
   }
 
   // Performs a binary search on a key vector and return index of the key in key vector
@@ -1331,70 +1376,52 @@ public class Map internal constructor(buf: ByteArray, end: Int, byteWidth: Int) 
     var bufferPos = start
     var otherPos = other
     val limit: Int = buf.size
-    var c1: Byte = ZeroByte
-    var c2: Byte = ZeroByte
+    var c1 = 0
+    var c2 = 0
     while (otherPos < limit) {
-      c1 = buf[bufferPos++]
-      c2 = buf[otherPos++]
+      c1 = buf[bufferPos++].toInt() and 0xFF
+      c2 = buf[otherPos++].toInt() and 0xFF
       when {
-        c1 == ZeroByte -> return c1 - c2
+        c1 == 0 -> return c1 - c2
         c1 != c2 -> return c1 - c2
       }
     }
     return c1 - c2
   }
 
-  // compares a T_KEY (null-terminated bytes at [start]) against a [CharSequence]
-  private fun compareCharSequence(start: Int, other: CharSequence): Int {
+  // Compares a T_KEY against an ASCII query without allocating or encoding it.
+  private fun compareAsciiKey(start: Int, other: CharSequence): Int {
     var bufferPos = start
     var otherPos = 0
-    val limit: Int = buf.size
     val otherLimit = other.length
-    // special loop for ASCII characters. Most of keys should be ASCII only, so this
-    // loop should be optimized for that.
-    // breaks if a multi-byte character is found
     while (otherPos < otherLimit) {
-      val c2 = other[otherPos]
-      // not a single byte codepoint
-      if (c2.code >= 0x80) {
-        break
-      }
-      val b: Byte = buf[bufferPos]
+      val bufferByte = buf[bufferPos].toInt() and 0xFF
+      val otherByte = other[otherPos].code
       when {
-        b == ZeroByte -> return -c2.code
-        b < 0 -> break
-        b != c2.code.toByte() -> return b - c2.code.toByte()
+        bufferByte == 0 -> return -otherByte
+        bufferByte != otherByte -> return bufferByte - otherByte
       }
       ++bufferPos
       ++otherPos
     }
+    return buf[bufferPos].toInt() and 0xFF
+  }
 
-    if (otherPos == otherLimit) {
-      if (bufferPos >= limit) return 0
-      val b = buf[bufferPos]
-      return if (b == ZeroByte) 0 else b.toInt()
-    }
-
-    val comparisonBuffer = ByteArray(4)
-    while (otherPos < otherLimit && bufferPos < limit) {
-      val sizeInBuff = Utf8.encodeUtf8CodePoint(other, otherPos, comparisonBuffer)
-      if (sizeInBuff == 0) {
-        return buf[bufferPos].toInt()
+  // Compares a T_KEY against one already-encoded UTF-8 query. Bytes are unsigned,
+  // matching C/C++ strcmp and the builder's map sort order.
+  private fun compareEncodedKey(start: Int, other: ByteArray): Int {
+    var bufferPos = start
+    var otherPos = 0
+    while (otherPos < other.size) {
+      val bufferByte = buf[bufferPos].toInt() and 0xFF
+      val otherByte = other[otherPos].toInt() and 0xFF
+      when {
+        bufferByte == 0 -> return -otherByte
+        bufferByte != otherByte -> return bufferByte - otherByte
       }
-      for (i in 0 until sizeInBuff) {
-        val bufferByte: Byte = buf[bufferPos++]
-        val otherByte: Byte = comparisonBuffer[i]
-        when {
-          bufferByte == ZeroByte -> return -otherByte
-          bufferByte != otherByte -> return bufferByte - otherByte
-        }
-      }
-      otherPos += if (sizeInBuff == 4) 2 else 1
+      bufferPos++
+      otherPos++
     }
-
-    if (otherPos < otherLimit) return -other[otherPos].code
-    if (bufferPos >= limit) return 0
-    val b = buf[bufferPos]
-    return if (b == ZeroByte) 0 else b.toInt()
+    return buf[bufferPos].toInt() and 0xFF
   }
 }

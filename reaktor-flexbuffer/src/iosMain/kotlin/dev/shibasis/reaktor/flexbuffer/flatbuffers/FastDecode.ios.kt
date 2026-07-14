@@ -101,6 +101,22 @@ internal actual fun fastEncodeUtf8(input: CharSequence, out: ByteArray, offset: 
     return written
 }
 
+internal actual fun fastEncodeUtf8KnownLength(
+    input: CharSequence,
+    out: ByteArray,
+    offset: Int,
+    encodedLength: Int,
+): Int {
+    val n = input.length
+    if (encodedLength == n) {
+        var i = 0
+        var p = offset
+        while (i < n) out[p++] = input[i++].code.toByte()
+        return p
+    }
+    return Utf8.encodeUtf8Array(input, out, offset, out.size - offset)
+}
+
 /**
  * UTF-8 byte length, ASCII fast-path.
  *

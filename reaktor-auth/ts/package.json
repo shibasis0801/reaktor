@@ -8,12 +8,16 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "react": "^19.2.6",
     "reaktor-reaktor-auth": "file://./export"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
     "karakum": "^1.0.0-alpha.107",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": ">=18"
   }
 }
