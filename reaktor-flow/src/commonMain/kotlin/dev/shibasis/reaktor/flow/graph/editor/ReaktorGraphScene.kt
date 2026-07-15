@@ -17,6 +17,7 @@ import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphNodeCard
+import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphAccessibilityOverlay
 import dev.shibasis.reaktor.flow.graph.render.graphEdgeRenderStyle
 import dev.shibasis.reaktor.flow.graph.render.graphHandleRenderStyle
 import dev.shibasis.reaktor.flow.graph.render.graphNodeRenderStyle
@@ -72,18 +73,30 @@ internal fun ReaktorGraphScene(
             state = state,
             nodeTypes = nodeTypes,
             onNodesChange = nodesState::onNodesChange,
-            onNodeClick = { node -> onSelectNode(flow.graphNodes[node.id]) },
+            onNodeClick = { node ->
+                val graphNode = flow.graphNodes[node.id]
+                when {
+                    graphNode != null -> onSelectNode(graphNode)
+                    // Collapsed scope boundary: clicking selects the scope so the hierarchy
+                    // controls (Expand <label>, level keys) target it immediately.
+                    flow.graphs.containsKey(node.id) -> {
+                        onSelectNode(null)
+                        onSelectGraph(node.id)
+                    }
+                    else -> onSelectNode(null)
+                }
+            },
             fitView = false,
             showControls = false,
             showMiniMap = false,
             showBackground = true,
-            backgroundVariant = dev.shibasis.composeflow.model.BackgroundVariant.Cross,
+            backgroundVariant = dev.shibasis.composeflow.model.BackgroundVariant.Dots,
             minZoom = graphStyle.viewport.minZoom,
             maxZoom = graphStyle.viewport.maxZoom,
             defaultNodeWidth = with(density) { dpOf(graphStyle.defaultNodeWidth()) },
             defaultNodeHeight = with(density) { dpOf(graphStyle.defaultNodeHeight()) },
             nodeRenderStyle = { node -> graphNodeRenderStyle(node, highlightedKind, graphStyle) },
-            edgeRenderStyle = { edge -> graphEdgeRenderStyle(edge, nodeKinds, highlightedKind) },
+            edgeRenderStyle = { edge -> graphEdgeRenderStyle(edge, nodeKinds, highlightedKind, selectedFlowId) },
             edgePathStyle = EdgePathStyle.Bezier,
             handleRenderStyle = { node, handle -> graphHandleRenderStyle(node, handle, highlightedKind, graphStyle) },
             onPaneClick = onPaneClick,
@@ -130,6 +143,7 @@ internal fun ReaktorGraphScene(
                 )
             },
             viewportOverlay = {
+                ReaktorGraphAccessibilityOverlay(flow)
                 ReaktorGraphViewportOverlay(
                     flow = flow,
                     selectedGraphId = selectedGraphId,

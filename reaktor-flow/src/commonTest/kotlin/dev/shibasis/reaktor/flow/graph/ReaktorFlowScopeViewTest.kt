@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.RouteBinding
 import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.flow.graph.model.allReaktorScopeIds
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.graph.navigation.Payload
 import org.koin.core.context.startKoin
@@ -31,10 +32,11 @@ class ReaktorFlowScopeViewTest {
     private lateinit var beta: Graph
     private lateinit var alphaRoute: RouteNode<Payload, RouteBinding<Payload>>
     private lateinit var betaRoute: RouteNode<Payload, RouteBinding<Payload>>
+    private lateinit var adapter: KoinDependencyAdapter
 
     @BeforeTest
     fun setup() {
-        val adapter = newAdapter()
+        adapter = newAdapter()
         root = Graph(dependencyAdapter = adapter, label = "root")
         alpha = Graph(parentGraph = root, dependencyAdapter = adapter, label = "alpha")
         beta = Graph(parentGraph = root, dependencyAdapter = adapter, label = "beta")
@@ -111,6 +113,46 @@ class ReaktorFlowScopeViewTest {
         assertEquals(0, ReaktorFlowScopeView.depthOf("root"))
         assertEquals(2, ReaktorFlowScopeView.depthOf("root/0/2"))
         assertEquals("root/3", ReaktorFlowScopeView.childScopeId("root", 3))
+    }
+
+    @Test
+    fun allScopeIdsEnumerateTheFullUniverseIndependentOfTheView() {
+        val gamma = Graph(parentGraph = alpha, dependencyAdapter = adapter, label = "gamma")
+        alpha.attach(ContainerNode(alpha, "/inner", arrayListOf(gamma)))
+
+        val ids = allReaktorScopeIds(root)
+        assertEquals(setOf("root", "root/0", "root/1", "root/0/0"), ids)
+
+        // The collapsed projection still reports the full universe (graphs map only holds
+        // the scopes visible under the current view).
+        val flow = buildReaktorFlowGraph(root, scopeView = ReaktorFlowScopeView())
+        assertEquals(ids, flow.allScopeIds)
+        assertFalse(flow.graphs.containsKey("root/0/0"), "gamma is beyond the collapsed horizon")
+    }
+
+    @Test
+    fun levelOperationsProduceUniformC4Levels() {
+        val ids = setOf("root", "root/0", "root/1", "root/0/0")
+        assertEquals(3, ReaktorFlowScopeView.levelCount(ids))
+
+        val l1 = ReaktorFlowScopeView().collapseToLevel(1, ids)
+        assertEquals(setOf("root"), l1.expandedScopeIds)
+        assertEquals(1, l1.effectiveLevel(ids))
+        // A fresh view (nothing recorded) also reads as level 1.
+        assertEquals(1, ReaktorFlowScopeView().effectiveLevel(ids))
+
+        val l2 = l1.collapseToLevel(2, ids)
+        assertEquals(setOf("root", "root/0", "root/1"), l2.expandedScopeIds)
+        assertEquals(2, l2.effectiveLevel(ids))
+
+        val all = l2.expandAll(ids)
+        assertTrue(all.isFullyExpanded(ids))
+        assertEquals(3, all.effectiveLevel(ids))
+        // The deepest level is exactly "expand all".
+        assertEquals(3, ReaktorFlowScopeView().collapseToLevel(3, ids).effectiveLevel(ids))
+
+        // A hand-drilled state (one deep scope expanded, its sibling collapsed) is no uniform level.
+        assertNull(ReaktorFlowScopeView().expand("root/0/0").effectiveLevel(ids))
     }
 
     private fun newAdapter(): KoinDependencyAdapter {

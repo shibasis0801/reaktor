@@ -3,6 +3,8 @@ package dev.shibasis.composeflow.compose.primitives
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import dev.shibasis.composeflow.compose.theme.FlowEdge
@@ -30,6 +32,7 @@ internal fun DrawScope.drawFlowEdge(
     pathStyle: EdgePathStyle,
     defaultNodeWidth: Double,
     defaultNodeHeight: Double,
+    dashPhase: Float = 0f,
 ) {
     // React Flow/xyflow uses editor-space anchor points and derives the edge path from those
     // anchors after node measurement. Keep the same separation here: node layout decides anchors,
@@ -44,15 +47,38 @@ internal fun DrawScope.drawFlowEdge(
         EdgePathStyle.SimpleBezier -> simpleBezierEdgePath(start, end)
     }
 
+    val strokeWidth = renderStyle.width ?: if (edge.animated) {
+        FlowSizing.animatedEdgeStrokePx
+    } else {
+        FlowSizing.defaultEdgeStrokePx
+    }
+    val strokeColor = (renderStyle.color ?: if (edge.selected) FlowSelection else FlowEdge)
+
+    // Attention bloom: a wide, soft under-stroke beneath the wire (Blueprints-style hot wire).
+    renderStyle.glowColor?.let { glow ->
+        drawPath(
+            path = pathData.path,
+            color = glow.copy(alpha = renderStyle.alpha * 0.35f),
+            style = Stroke(
+                width = strokeWidth + (renderStyle.glowWidth ?: FlowSizing.edgeGlowSpreadPx),
+                cap = StrokeCap.Round,
+            ),
+        )
+    }
+
+    val pathEffect = renderStyle.dashOn?.let { on ->
+        PathEffect.dashPathEffect(
+            intervals = floatArrayOf(on, renderStyle.dashOff ?: on),
+            phase = if (renderStyle.flowAnimated) -dashPhase else 0f,
+        )
+    }
     drawPath(
         path = pathData.path,
-        color = (renderStyle.color ?: if (edge.selected) FlowSelection else FlowEdge).copy(alpha = renderStyle.alpha),
+        color = strokeColor.copy(alpha = renderStyle.alpha),
         style = Stroke(
-            width = renderStyle.width ?: if (edge.animated) {
-                FlowSizing.animatedEdgeStrokePx
-            } else {
-                FlowSizing.defaultEdgeStrokePx
-            }
+            width = strokeWidth,
+            cap = StrokeCap.Round,
+            pathEffect = pathEffect,
         ),
     )
 

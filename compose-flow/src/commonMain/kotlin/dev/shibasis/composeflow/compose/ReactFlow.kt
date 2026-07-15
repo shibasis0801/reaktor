@@ -1,12 +1,21 @@
 package dev.shibasis.composeflow.compose
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -17,17 +26,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import dev.shibasis.composeflow.compose.components.FlowBackground
 import dev.shibasis.composeflow.compose.components.FlowControls
 import dev.shibasis.composeflow.compose.components.FlowNodeBox
@@ -70,8 +85,11 @@ import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
 import dev.shibasis.composeflow.runtime.rememberConnectionController
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.composeflow.compose.theme.FlowSizing
+import dev.shibasis.composeflow.compose.theme.FlowBorder
 import dev.shibasis.composeflow.compose.theme.FlowCanvasBackground
+import dev.shibasis.composeflow.compose.theme.FlowPanelSurface
 import dev.shibasis.composeflow.compose.theme.FlowSelection
+import dev.shibasis.composeflow.compose.theme.FlowText
 
 // Compose best-practice note:
 // keep viewport state and gesture handling above the node content tree. This mirrors
@@ -221,13 +239,37 @@ fun ReactFlow(
                             translationY = state.viewport.y.toFloat()
                             scaleX = state.viewport.zoom.toFloat()
                             scaleY = state.viewport.zoom.toFloat()
+                            // Viewport x/y, screenToFlowPosition, fitView, minimap, and gestures
+                            // all use a top-left affine origin. Compose defaults layer scaling to
+                            // the center, which adds an unmodelled half-canvas translation and can
+                            // push correctly fitted nodes outside the viewport at zoom < 1.
+                            transformOrigin = TransformOrigin(0f, 0f)
                         },
                 ) {
+                    // Styles are resolved once per frame in composition so the draw pass, the
+                    // labels layer, and the animation gate all agree on the same values.
+                    val edgeStyles = edges.filterNot { it.hidden }
+                        .sortedBy { it.zIndex }
+                        .map { it to edgeRenderStyle(it) }
+                    val anyFlowAnimated = edgeStyles.any { (_, style) -> style.flowAnimated }
+                    val flowTransition = rememberInfiniteTransition(label = "edgeFlow")
+                    val flowPhase by flowTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = FlowSizing.edgeFlowDashPeriodPx,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
+                            repeatMode = RepeatMode.Restart,
+                        ),
+                        label = "edgeFlowPhase",
+                    )
                     Canvas(Modifier.fillMaxSize()) {
-                        edges.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { edge ->
+                        // Only read the animated phase when a wire actually flows — otherwise the
+                        // canvas would invalidate every frame for a static graph.
+                        val dashPhase = if (anyFlowAnimated) flowPhase else 0f
+                        edgeStyles.forEach { (edge, style) ->
                             val source = nodeById[edge.source] ?: return@forEach
                             val target = nodeById[edge.target] ?: return@forEach
-                            drawFlowEdge(source, target, edge, edgeRenderStyle(edge), edgePathStyle, defaultWidthPx, defaultHeightPx)
+                            drawFlowEdge(source, target, edge, style, edgePathStyle, defaultWidthPx, defaultHeightPx, dashPhase)
                         }
 
                         if (connectionController.isConnecting) {
@@ -278,6 +320,13 @@ fun ReactFlow(
                         defaultNodeWidth = defaultWidthPx,
                         defaultNodeHeight = defaultHeightPx,
                         onEdgeClick = onEdgeClick,
+                    )
+
+                    FlowEdgeLabels(
+                        edgeStyles = edgeStyles,
+                        nodeById = nodeById,
+                        defaultNodeWidth = defaultWidthPx,
+                        defaultNodeHeight = defaultHeightPx,
                     )
 
                     nodes.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { node ->
@@ -345,6 +394,54 @@ fun ReactFlow(
 
                 overlay(state)
             }
+        }
+    }
+}
+
+/**
+ * Mid-wire label pills, rendered in editor space under the node layer. A label shows only while
+ * its edge holds attention (flowing or selected) or is broadly visible — faded edges stay quiet,
+ * matching the "label on demand" behavior of the web graph views.
+ */
+@Composable
+private fun FlowEdgeLabels(
+    edgeStyles: List<Pair<Edge, EdgeRenderStyle>>,
+    nodeById: Map<String, Node>,
+    defaultNodeWidth: Double,
+    defaultNodeHeight: Double,
+) {
+    edgeStyles.forEach { (edge, style) ->
+        val label = edge.label?.takeIf { it.isNotBlank() } ?: return@forEach
+        val visible = style.flowAnimated || edge.selected || style.alpha >= 0.9f
+        if (!visible) return@forEach
+        val source = nodeById[edge.source] ?: return@forEach
+        val target = nodeById[edge.target] ?: return@forEach
+        val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
+        val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
+        val midX = (start.point.x + end.point.x) / 2f
+        val midY = (start.point.y + end.point.y) / 2f
+        Box(
+            modifier = Modifier
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+                    layout(0, 0) {
+                        placeable.place(
+                            x = (midX - placeable.width / 2f).roundToInt(),
+                            y = (midY - placeable.height / 2f).roundToInt(),
+                        )
+                    }
+                }
+                .background(FlowPanelSurface, RoundedCornerShape(99.dp))
+                .border(1.dp, FlowBorder, RoundedCornerShape(99.dp))
+                .padding(horizontal = 7.dp, vertical = 2.dp),
+        ) {
+            Text(
+                text = label,
+                color = (style.color ?: FlowText).copy(alpha = 0.96f),
+                fontSize = 8.5.sp,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+            )
         }
     }
 }

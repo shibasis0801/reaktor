@@ -14,7 +14,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -101,6 +106,24 @@ internal fun FlowNodeBox(
                 scaleX = renderStyle.scale
                 scaleY = renderStyle.scale
             }
+            .then(
+                renderStyle.glowColor?.let { glow ->
+                    // Layered halo behind the card — three widening, fading strokes read as a
+                    // soft bloom without any blur shader (crisp at every zoom level).
+                    Modifier.drawBehind {
+                        val radius = FlowSizing.nodeCornerRadius.toPx()
+                        listOf(2f to 0.38f, 6f to 0.18f, 12f to 0.08f).forEach { (spread, glowAlpha) ->
+                            drawRoundRect(
+                                color = glow.copy(alpha = glowAlpha),
+                                topLeft = Offset(-spread, -spread),
+                                size = Size(size.width + spread * 2f, size.height + spread * 2f),
+                                cornerRadius = CornerRadius(radius + spread),
+                                style = Stroke(width = spread),
+                            )
+                        }
+                    }
+                } ?: Modifier,
+            )
             .clip(RoundedCornerShape(FlowSizing.nodeCornerRadius))
             .background(backgroundColor, RoundedCornerShape(FlowSizing.nodeCornerRadius))
             .border(FlowSizing.nodeBorderWidth, borderColor, RoundedCornerShape(FlowSizing.nodeCornerRadius))
@@ -190,6 +213,7 @@ internal fun FlowNodeBox(
             type = node.type,
             width = width,
             height = height,
+            onClick = onNodeClick?.let { callback -> { callback(node) } },
         )
         if (nodeContent != null) nodeContent(props) else DefaultNode(props)
 

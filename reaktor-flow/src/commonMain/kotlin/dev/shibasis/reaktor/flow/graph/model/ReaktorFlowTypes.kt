@@ -66,6 +66,8 @@ data class ReaktorGraphNodeData(
     val hiddenProviderCount: Int,
     val hiddenConsumerCount: Int,
     val kind: ReaktorNodeKind,
+    // True for the synthetic boundary card standing in for a collapsed child scope.
+    val isScopeSummary: Boolean = false,
 )
 
 data class ReaktorGraphEdgeData(
@@ -93,4 +95,7 @@ data class ReaktorFlowGraph(
     val graphIdsByNode: Map<GraphNode, String>,
     val graphs: Map<String, Graph>,
     val style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    // Full scope-id universe of the SOURCE graph (view-independent), for level operations —
+    // `graphs` only contains scopes visible under the current projection.
+    val allScopeIds: Set<String> = emptySet(),
 )

@@ -152,6 +152,14 @@ data class ReaktorGraphStyle(
 
     data class Viewport(
         val startupFrameDelayMillis: Long = 90L,
+        /** Clear the graph lens strip and top-right minimap before framing nodes. */
+        val chromeClearanceTopPx: Double = 160.0,
+        /** Clear the bottom status strip and viewport controls before framing nodes. */
+        val chromeClearanceBottomPx: Double = 72.0,
+        /** Clear the vertical kind legend rendered over the lower-left viewport. */
+        val chromeClearanceLeftPx: Double = 228.0,
+        /** Optional consumer-owned right inset; top chrome is cleared vertically. */
+        val chromeClearanceRightPx: Double = 0.0,
         val readablePaddingXPx: Double = 18.0,
         val readablePaddingYPx: Double = 18.0,
         val fitPaddingXPx: Double = 26.0,

@@ -53,3 +53,11 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.flow")
 }
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    // Match the reaktorDesktop convention: only top-level *Test classes are test classes.
+    // Without the exclude, Gradle's scanner reports nested helpers (Companion, private data
+    // classes) of a test file as bogus test classes failing with initializationError.
+    include("**/*Test.class")
+    exclude("**/*\$*")
+}

@@ -34,8 +34,16 @@ internal fun graphNodeRenderStyle(
         backgroundColor = data.kind.bodyColor.copy(alpha = if (matchesKind) 0.92f else 0.44f),
         borderColor = when {
             node.selected -> style.canvas.selected
+            data.isScopeSummary && matchesKind -> data.kind.borderColor.copy(alpha = 0.92f)
             matchesKind -> data.kind.borderColor
             else -> data.kind.borderColor.copy(alpha = 0.30f)
+        },
+        // Blueprint-style bloom: selection gets the accent halo; collapsed scope summaries carry
+        // a faint kind-colored halo so drill-in targets read as "alive" at a glance.
+        glowColor = when {
+            node.selected -> style.canvas.selected
+            data.isScopeSummary && matchesKind -> data.kind.borderColor.copy(alpha = 0.55f)
+            else -> null
         },
     )
 }
@@ -44,20 +52,44 @@ internal fun graphEdgeRenderStyle(
     edge: Edge,
     nodeKinds: Map<String, ReaktorNodeKind>,
     highlightedKind: ReaktorNodeKind?,
+    selectedFlowId: String? = null,
 ): EdgeRenderStyle {
     val data = edge.data as? ReaktorGraphEdgeData ?: return EdgeRenderStyle()
     val sourceKind = nodeKinds[edge.source]
     val targetKind = nodeKinds[edge.target]
     val matchesKind = highlightedKind == null || sourceKind == highlightedKind || targetKind == highlightedKind
+    val active = edge.selected ||
+        (selectedFlowId != null && (edge.source == selectedFlowId || edge.target == selectedFlowId))
+    // Attention model (ported from the web graph views): wires touching the selection burn hot
+    // and flow; the rest sit back; kind-filtered-out edges almost disappear.
+    val alpha = when {
+        !matchesKind -> 0.08f
+        active -> 0.95f
+        selectedFlowId != null -> 0.30f
+        else -> 0.55f
+    }
+    val baseWidth = when (data.kind) {
+        ReaktorEdgeKind.Navigation -> 2.4f
+        ReaktorEdgeKind.Attachment -> 1.9f
+        ReaktorEdgeKind.Data -> 1.7f
+        ReaktorEdgeKind.Containment -> 1.4f
+    }
     return EdgeRenderStyle(
-        alpha = if (matchesKind) 0.86f else 0.08f,
+        alpha = alpha,
         color = data.kind.color.copy(alpha = if (matchesKind) 0.92f else 0.35f),
-        width = when (data.kind) {
-            ReaktorEdgeKind.Navigation -> 2.3f
-            ReaktorEdgeKind.Attachment -> 2.1f
-            ReaktorEdgeKind.Data -> 1.9f
-            ReaktorEdgeKind.Containment -> 1.8f
+        width = if (active) baseWidth + 0.8f else baseWidth,
+        glowColor = if (active) data.kind.color else null,
+        dashOn = when {
+            active -> 9f
+            data.kind == ReaktorEdgeKind.Containment -> 4f
+            else -> null
         },
+        dashOff = when {
+            active -> 6f
+            data.kind == ReaktorEdgeKind.Containment -> 5f
+            else -> null
+        },
+        flowAnimated = active,
     )
 }
 

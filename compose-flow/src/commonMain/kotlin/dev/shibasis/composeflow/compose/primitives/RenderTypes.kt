@@ -16,6 +16,8 @@ data class NodeProps(
     val type: String?,
     val width: Double,
     val height: Double,
+    /** Semantic activation for custom node renderers; pointer input stays owned by the flow canvas. */
+    val onClick: (() -> Unit)?,
 )
 
 data class NodeRenderStyle(
@@ -23,12 +25,21 @@ data class NodeRenderStyle(
     val scale: Float = 1f,
     val backgroundColor: Color? = null,
     val borderColor: Color? = null,
+    // Layered outer halo drawn behind the card (selection/attention bloom). Null = no glow.
+    val glowColor: Color? = null,
 )
 
 data class EdgeRenderStyle(
     val alpha: Float = 1f,
     val color: Color? = null,
     val width: Float? = null,
+    // Soft under-stroke drawn beneath the wire (selection/attention bloom). Null = no glow.
+    val glowColor: Color? = null,
+    val glowWidth: Float? = null,
+    // Dashed wire pattern; when [flowAnimated] the dash phase marches along the edge.
+    val dashOn: Float? = null,
+    val dashOff: Float? = null,
+    val flowAnimated: Boolean = false,
 )
 
 enum class EdgePathStyle {

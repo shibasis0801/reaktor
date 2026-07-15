@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.flow.graph.layout.LayoutBounds
 import dev.shibasis.reaktor.flow.graph.layout.ReaktorGraphLayoutStrategy
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowScopeView
+import dev.shibasis.reaktor.flow.graph.model.allReaktorScopeIds
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphPalette
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
@@ -77,6 +78,7 @@ internal class ReaktorFlowBuilder(
             graphIdsByNode = graphIdsByNode.toMap(),
             graphs = graphs.toMap(),
             style = style,
+            allScopeIds = allReaktorScopeIds(graph),
         )
     }
 
@@ -165,6 +167,7 @@ internal class ReaktorFlowBuilder(
                 hiddenProviderCount = 0,
                 hiddenConsumerCount = 0,
                 kind = ReaktorNodeKind.Container,
+                isScopeSummary = true,
             ),
             type = "graph",
             width = width,

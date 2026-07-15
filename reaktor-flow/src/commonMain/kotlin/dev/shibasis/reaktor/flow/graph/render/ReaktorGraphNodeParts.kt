@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,6 +68,7 @@ internal fun ReaktorNodeTitle(
     titleColor: Color,
     isRootNode: Boolean,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    tag: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -100,8 +103,28 @@ internal fun ReaktorNodeTitle(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (isRootNode) {
-                    RootBadge(style = style)
+                if (tag != null || isRootNode) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.node.titleToBadgeGapPx) }),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (tag != null) {
+                            // Uppercase kind tag — the mono type badge from the Machine Signal
+                            // node anatomy (instant Blueprint identity per card).
+                            Text(
+                                text = tag,
+                                color = Color.White.copy(alpha = 0.76f),
+                                fontSize = with(density) { spOf(style.node.rootBadgeFontPx) },
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = style.canvas.monoFont,
+                                maxLines = 1,
+                                overflow = TextOverflow.Clip,
+                            )
+                        }
+                        if (isRootNode) {
+                            RootBadge(style = style)
+                        }
+                    }
                 }
             },
         ) { measurables, constraints ->
@@ -213,16 +236,21 @@ internal fun PortEntry(
     }
 
     Row(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            val direction = if (alignRight) "provider" else "consumer"
+            val connection = if (port.connected) "connected" else "open"
+            contentDescription =
+                "Graph port: $direction ${port.label}; type ${port.type}; $connection"
+        },
         horizontalArrangement = if (alignRight) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (alignRight) {
             Port(port, style)
             Spacer(Modifier.width(with(density) { dpOf(style.port.gapPx) }))
-            PortDot(port, style)
+            PortDot(port, style, filled = true)
         } else {
-            PortDot(port, style)
+            PortDot(port, style, filled = false)
             Spacer(Modifier.width(with(density) { dpOf(style.port.gapPx) }))
             Port(port, style)
         }
@@ -250,12 +278,23 @@ private fun RowScope.Port(
 private fun RowScope.PortDot(
     port: ReaktorPortData,
     style: ReaktorGraphStyle,
+    filled: Boolean,
 ) {
     val density = LocalDensity.current
+    // Blueprint pin convention: providers (outputs) are filled dots, consumers (inputs) are
+    // hollow rings; unconnected pins sit dimmed until a wire lands.
+    val connectedAlpha = if (port.connected) 1f else 0.45f
     Box(
         modifier = Modifier
             .size(with(density) { dpOf(style.port.dotSizePx) })
-            .background(port.color.copy(alpha = if (port.connected) 1f else 0.36f), CircleShape)
-            .border(with(density) { dpOf(style.chrome.borderWidthPx) }, port.color, CircleShape),
+            .background(
+                if (filled) port.color.copy(alpha = connectedAlpha) else Color.Transparent,
+                CircleShape,
+            )
+            .border(
+                with(density) { dpOf(style.chrome.borderWidthPx * 1.35) },
+                port.color.copy(alpha = if (port.connected) 1f else 0.6f),
+                CircleShape,
+            ),
     )
 }

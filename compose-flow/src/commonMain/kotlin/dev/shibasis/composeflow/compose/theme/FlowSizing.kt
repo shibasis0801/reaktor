@@ -50,8 +50,11 @@ internal object FlowSizing {
     const val bezierVerticalCollinearBiasPx = 34f
     const val defaultMarkerWidthPx = 12.0
     const val markerHalfAngleRadians = kotlin.math.PI / 7.0
+    const val edgeGlowSpreadPx = 7f
+    const val edgeFlowDashPeriodPx = 22f
+    const val edgeFlowCycleMillis = 700
 
-    const val dotGridStepPx = 28f
+    const val dotGridStepPx = 26f
     const val lineGridStepPx = 36f
     const val crossGridStepPx = 32f
     const val crossGridMajorMultiplier = 5f

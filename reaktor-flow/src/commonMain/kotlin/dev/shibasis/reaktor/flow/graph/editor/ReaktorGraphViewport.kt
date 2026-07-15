@@ -5,7 +5,6 @@ import dev.shibasis.composeflow.model.Viewport
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.render.flowBounds
-import dev.shibasis.reaktor.flow.graph.render.readableFlowBounds
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.defaultNodeHeight
@@ -27,14 +26,24 @@ internal fun frameGraph(
         return
     }
 
-    val bounds = if (readable) readableFlowBounds(flow, style) else flowBounds(flow, style)
-    val viewportWidth = (state.canvasSize.width - rightInsetPx).coerceAtLeast(1f).toDouble()
+    // Startup framing and Fit are containment operations. They must include the complete
+    // compound graph (nodes and regions), whether its scopes are collapsed, partially expanded,
+    // or fully open. Detail-oriented lenses may frame a readable subset explicitly elsewhere.
+    val bounds = flowBounds(flow, style)
+    val leftClearance = style.viewport.chromeClearanceLeftPx
+    val rightClearance = style.viewport.chromeClearanceRightPx + rightInsetPx
+    val viewportWidth = state.canvasSize.width.coerceAtLeast(1).toDouble()
     val viewportHeight = state.canvasSize.height.toDouble()
     val padding = if (readable) style.readablePadding() else style.fitPadding()
     val horizontalPadding = padding.horizontal
     val verticalPadding = padding.vertical
-    val availableWidth = (viewportWidth - horizontalPadding * 2.0).coerceAtLeast(1.0)
-    val availableHeight = (viewportHeight - verticalPadding * 2.0).coerceAtLeast(1.0)
+    val availableWidth = (viewportWidth - leftClearance - rightClearance - horizontalPadding * 2.0)
+        .coerceAtLeast(1.0)
+    val topClearance = style.viewport.chromeClearanceTopPx
+    val bottomClearance = style.viewport.chromeClearanceBottomPx
+    val availableHeight = (
+        viewportHeight - topClearance - bottomClearance - verticalPadding * 2.0
+    ).coerceAtLeast(1.0)
 
     val contentWidth = bounds.width.coerceAtLeast(style.defaultNodeWidth())
     val contentHeight = bounds.height.coerceAtLeast(style.defaultNodeHeight())
@@ -42,15 +51,14 @@ internal fun frameGraph(
         availableWidth / contentWidth,
         availableHeight / contentHeight,
     )
-    val zoom = if (readable) {
-        (fitZoom * style.viewport.readableZoomBias)
-            .coerceIn(style.viewport.readableMinZoom, 1.2)
-    } else {
-        fitZoom.coerceIn(style.viewport.minZoom, 1.2)
-    }
+    // Manual zoom may enforce [minZoom], but Fit must never enlarge a topology past the scale
+    // required to keep every bound inside the viewport.
+    val zoom = fitZoom.coerceAtMost(1.2).coerceAtLeast(1e-6)
 
-    val offsetX = horizontalPadding - bounds.left * zoom
-    val offsetY = verticalPadding - bounds.top * zoom
+    val horizontalSlack = (availableWidth - contentWidth * zoom).coerceAtLeast(0.0) / 2.0
+    val verticalSlack = (availableHeight - contentHeight * zoom).coerceAtLeast(0.0) / 2.0
+    val offsetX = leftClearance + horizontalPadding + horizontalSlack - bounds.left * zoom
+    val offsetY = topClearance + verticalPadding + verticalSlack - bounds.top * zoom
 
     state.setViewport(
         Viewport(

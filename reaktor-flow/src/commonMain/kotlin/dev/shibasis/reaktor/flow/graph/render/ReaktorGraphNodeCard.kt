@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.flow.graph.render
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -10,9 +11,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import dev.shibasis.composeflow.compose.primitives.NodeProps
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
+import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
@@ -31,13 +39,35 @@ internal fun BoxScope.ReaktorGraphNodeCard(
     val visibleProviderPorts = data.providerPorts.take(previewRows)
     val rowCount = min(max(1, max(data.consumerPorts.size, data.providerPorts.size)), previewRows)
     val density = LocalDensity.current
+    val activation = props.onClick
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                activation?.let { activate ->
+                    Modifier.pointerInput(activate) {
+                        detectTapGestures(onTap = { activate() })
+                    }
+                } ?: Modifier,
+            )
+            .semantics {
+                contentDescription = graphNodeAccessibilityLabel(data)
+                role = Role.Button
+                activation?.let { activate ->
+                    onClick(action = {
+                        activate()
+                        true
+                    })
+                }
+            },
+    ) {
         ReaktorNodeTitle(
             title = data.title,
             titleColor = data.kind.titleColor,
             isRootNode = data.isRootNode,
             style = style,
+            tag = if (data.isScopeSummary) "SCOPE" else kindTag(data.kind),
         )
 
         Column(
@@ -69,4 +99,27 @@ internal fun BoxScope.ReaktorGraphNodeCard(
             }
         }
     }
+}
+
+/** Uppercase mono type badge per node kind — the Machine Signal node-anatomy tag. */
+private fun kindTag(kind: ReaktorNodeKind): String = when (kind.label) {
+    "Screen" -> "SCR"
+    "Route" -> "RTE"
+    "Container" -> "GRP"
+    "UI" -> "UI"
+    "Action" -> "ACT"
+    "Interactor" -> "INTR"
+    "Service" -> "SVC"
+    "Repository" -> "REPO"
+    "Actor" -> "ACTR"
+    "Edge" -> "EDGE"
+    "Data" -> "DATA"
+    "Topic" -> "TOPIC"
+    "Telemetry" -> "TELEM"
+    "Test" -> "TEST"
+    "Release" -> "REL"
+    "Auth" -> "AUTH"
+    "Infra" -> "INFRA"
+    "Agent" -> "AGENT"
+    else -> "NODE"
 }
