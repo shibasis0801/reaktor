@@ -11,6 +11,10 @@ object AuthDefaults {
     const val ISSUER = "https://api.reaktor.build/auth"
     const val WEBSITE_ORIGIN = "https://reaktor.build"
     const val ACCESS_TOKEN_TTL_SECONDS = 15 * 60
+
+    // Grace-period soft delete: a SOFT_DELETED account can self-restore by signing
+    // back in within this window; after it, the scheduled purge hard-deletes it.
+    const val ACCOUNT_GRACE_PERIOD_DAYS = 30
 }
 
 @Serializable
@@ -37,7 +41,8 @@ enum class PlatformKind {
 enum class IdentityStatus {
     ACTIVE,
     DISABLED,
-    MERGED
+    MERGED,
+    SOFT_DELETED
 }
 
 @Serializable
@@ -77,7 +82,8 @@ enum class PrincipalKind {
 enum class PrincipalStatus {
     ACTIVE,
     DISABLED,
-    SUSPENDED
+    SUSPENDED,
+    SOFT_DELETED
 }
 
 @Serializable

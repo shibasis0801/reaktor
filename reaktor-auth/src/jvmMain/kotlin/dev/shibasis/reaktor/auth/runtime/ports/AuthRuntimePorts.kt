@@ -51,6 +51,7 @@ interface AuthPrincipalDirectory {
     suspend fun getPrincipalPermissions(request: Request, principalId: UUID, appId: UUID): Result<List<String>>
     suspend fun getPrincipalRoles(request: Request, principalId: UUID, appId: UUID): Result<List<String>>
     suspend fun getPrincipal(request: Request, principalId: UUID): Result<AuthPrincipal?>
+    suspend fun softDeleteAccount(request: Request, principalId: UUID): Result<Boolean>
 }
 
 interface AuthExternalIdentityVerifier {

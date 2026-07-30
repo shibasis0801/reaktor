@@ -2,6 +2,8 @@ package dev.shibasis.reaktor.auth.runtime.nodes
 
 import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
+import dev.shibasis.reaktor.auth.api.DeactivateAccountRequest
+import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.LogoutAllRequest
@@ -18,6 +20,7 @@ import dev.shibasis.reaktor.auth.api.TokenRequest
 import dev.shibasis.reaktor.auth.api.TokenResponse
 import dev.shibasis.reaktor.auth.api.VerifyPatRequest
 import dev.shibasis.reaktor.auth.api.VerifyPatResponse
+import dev.shibasis.reaktor.auth.runtime.AuthAccount
 import dev.shibasis.reaktor.auth.runtime.AuthHttpService
 import dev.shibasis.reaktor.auth.runtime.AuthLogin
 import dev.shibasis.reaktor.auth.runtime.AuthPat
@@ -34,6 +37,7 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph), AuthHttpService {
     val patPort by consumes<AuthPat>()
     val tokenGrantsPort by consumes<AuthTokenGrants>()
     val sessionsPort by consumes<AuthSessions>()
+    val accountPort by consumes<AuthAccount>()
     val httpServicePort by provides<AuthHttpService>(this)
 
     override val service: AuthService = object : AuthService() {
@@ -71,6 +75,10 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph), AuthHttpService {
 
         override val sessionLogoutAll = PostHandler<LogoutAllRequest, LogoutAllResponse>("/session/logout-all") {
             sessionsPort.suspended { logoutAll(it) }
+        }
+
+        override val accountDeactivate = PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/account/deactivate") {
+            accountPort.suspended { deactivate(it) }
         }
     }
 }

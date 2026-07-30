@@ -12,6 +12,7 @@ class AuthServer(
     override val sessionLogout = graphService.sessionLogout
     override val sessionMe = graphService.sessionMe
     override val sessionLogoutAll = graphService.sessionLogoutAll
+    override val accountDeactivate = graphService.accountDeactivate
 
     init {
         handlers += listOf(
@@ -24,6 +25,7 @@ class AuthServer(
             sessionLogout,
             sessionMe,
             sessionLogoutAll,
+            accountDeactivate,
         )
     }
 }

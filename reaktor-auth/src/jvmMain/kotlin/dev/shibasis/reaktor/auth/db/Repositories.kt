@@ -15,6 +15,7 @@ import dev.shibasis.reaktor.auth.Permissions
 import dev.shibasis.reaktor.auth.PrincipalRoles
 import dev.shibasis.reaktor.auth.ProviderAccounts
 import dev.shibasis.reaktor.auth.Roles
+import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.auth.kernel.AuthProviderKind
 import dev.shibasis.reaktor.auth.kernel.IdentityStatus
 import dev.shibasis.reaktor.auth.kernel.MembershipStatus
@@ -30,8 +31,10 @@ import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import java.util.UUID
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 
 class AppRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     suspend fun findById(
@@ -172,15 +175,21 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
                 contextId = contextId,
             )
         } else {
-            val identity = requireNotNull(findIdentity(providerAccount.identityId.uuid())) {
+            val resolvedIdentity = requireNotNull(findIdentity(providerAccount.identityId.uuid())) {
                 "Provider account ${providerAccount.id} points at a missing identity"
             }
-            val principal = requireNotNull(
-                findUserPrincipalForMembership(identity.id.uuid(), appId, tenantId, contextId)
-                    ?: findUserPrincipal(identity.id.uuid())
+            val resolvedPrincipal = requireNotNull(
+                findUserPrincipalForMembership(resolvedIdentity.id.uuid(), appId, tenantId, contextId)
+                    ?: findUserPrincipal(resolvedIdentity.id.uuid())
             ) {
-                "Identity ${identity.id} has no user principal"
+                "Identity ${resolvedIdentity.id} has no user principal"
             }
+            // Self-restore: if the owner signs back in within the grace window, flip the
+            // soft-deleted account back to ACTIVE so login proceeds normally. Past the
+            // window it stays SOFT_DELETED and login rejects it (the purge cleans it up).
+            val restored = restoreWithinGrace(resolvedPrincipal, resolvedIdentity)
+            val principal = restored?.first ?: resolvedPrincipal
+            val identity = restored?.second ?: resolvedIdentity
             val membership = findMembership(principal.id.uuid(), appId, tenantId, contextId)
                 ?: createMembership(
                     principalId = principal.id,
@@ -223,6 +232,60 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
         principalId: UUID,
     ) = request.sql {
         findPrincipal(principalId)
+    }
+
+    // Soft-delete: mark the principal + its identity SOFT_DELETED (grace-period
+    // deactivation). Session revocation + user_profiles.deleted_at are handled by
+    // the caller. Returns false if the principal does not exist.
+    suspend fun softDeleteAccount(
+        request: Request,
+        principalId: UUID,
+    ) = request.sql {
+        val principal = findPrincipal(principalId)
+        if (principal == null) {
+            false
+        } else {
+            AuthPrincipals.update({ AuthPrincipals.id eq principalId }) {
+                it[AuthPrincipals.status] = PrincipalStatus.SOFT_DELETED
+                it[AuthPrincipals.deactivatedAt] = Clock.System.now()
+            }
+            principal.identityId?.uuid()?.let { identityId ->
+                AuthIdentities.update({ AuthIdentities.id eq identityId }) {
+                    it[AuthIdentities.status] = IdentityStatus.SOFT_DELETED
+                }
+            }
+            true
+        }
+    }
+
+    // Restore a soft-deleted account when its owner returns within the grace window:
+    // flip the principal + identity back to ACTIVE and clear deactivated_at. Returns the
+    // reactivated (principal, identity) pair, or null when nothing was restored — either the
+    // account is already active, or it is soft-deleted past the grace window (left for the
+    // scheduled purge; login rejects it downstream).
+    private fun restoreWithinGrace(
+        principal: AuthPrincipal,
+        identity: AuthIdentity,
+    ): Pair<AuthPrincipal, AuthIdentity>? {
+        if (principal.status != PrincipalStatus.SOFT_DELETED) return null
+        val principalId = principal.id.uuid()
+        val deactivatedAt = AuthPrincipals.selectAll()
+            .where { AuthPrincipals.id eq principalId }
+            .firstOrNull()
+            ?.get(AuthPrincipals.deactivatedAt)
+            ?: return null
+        if (Clock.System.now() > deactivatedAt + AuthDefaults.ACCOUNT_GRACE_PERIOD_DAYS.days) {
+            return null
+        }
+        AuthPrincipals.update({ AuthPrincipals.id eq principalId }) {
+            it[AuthPrincipals.status] = PrincipalStatus.ACTIVE
+            it[AuthPrincipals.deactivatedAt] = null
+        }
+        AuthIdentities.update({ AuthIdentities.id eq identity.id.uuid() }) {
+            it[AuthIdentities.status] = IdentityStatus.ACTIVE
+        }
+        return principal.copy(status = PrincipalStatus.ACTIVE) to
+            identity.copy(status = IdentityStatus.ACTIVE)
     }
 
     private fun createPrincipalForProvider(

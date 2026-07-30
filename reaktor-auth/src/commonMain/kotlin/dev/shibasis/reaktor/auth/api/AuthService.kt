@@ -316,6 +316,24 @@ data class LogoutAllResponse(
 ): Response()
 
 @JsExport
+@Serializable
+data class DeactivateAccountRequest(
+    val audience: String = "",
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+    override val queryParams: MutableMap<String, String> = mutableMapOf(),
+    override val pathParams: MutableMap<String, String> = mutableMapOf(),
+    override var environment: Environment = Environment.PROD
+): Request()
+
+@JsExport
+@Serializable
+data class DeactivateAccountResponse(
+    val deactivated: Boolean = false,
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf()
+): Response()
+
+@JsExport
 abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val anonymous: PostHandler<AnonymousAuthRequest, LoginResponse>
     abstract val login: PostHandler<LoginRequest, LoginResponse>
@@ -326,6 +344,7 @@ abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val sessionLogout: PostHandler<LogoutRequest, LogoutResponse>
     abstract val sessionMe: PostHandler<MeRequest, MeResponse>
     abstract val sessionLogoutAll: PostHandler<LogoutAllRequest, LogoutAllResponse>
+    abstract val accountDeactivate: PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>
 }
 
 @JsExport
@@ -339,4 +358,5 @@ open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
     override val sessionLogout = PostHandler<LogoutRequest, LogoutResponse>("/auth/session/logout")
     override val sessionMe = PostHandler<MeRequest, MeResponse>("/auth/session/me")
     override val sessionLogoutAll = PostHandler<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
+    override val accountDeactivate = PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
 }

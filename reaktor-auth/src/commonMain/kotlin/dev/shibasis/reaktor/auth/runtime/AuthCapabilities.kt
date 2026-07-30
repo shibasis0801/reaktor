@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.auth.runtime
 import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.AppService
 import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
+import dev.shibasis.reaktor.auth.api.DeactivateAccountRequest
+import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.LogoutAllRequest
@@ -39,6 +41,10 @@ interface AuthSessions {
     suspend fun logout(request: LogoutRequest): LogoutResponse
     suspend fun me(request: MeRequest): MeResponse
     suspend fun logoutAll(request: LogoutAllRequest): LogoutAllResponse
+}
+
+interface AuthAccount {
+    suspend fun deactivate(request: DeactivateAccountRequest): DeactivateAccountResponse
 }
 
 interface AuthHttpService {

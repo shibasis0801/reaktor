@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.auth.api.DeactivateAccountRequest
+import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.RefreshRequest
@@ -107,6 +109,38 @@ abstract class AuthAdapter<Controller>(
     }
 
     abstract suspend fun logout(): Result<Unit>
+
+    /**
+     * Grace-period account deletion. Sends the caller's session access token to
+     * `/auth/account/deactivate`, which revokes every session + refresh token and
+     * marks the principal + identity SOFT_DELETED (stamping deactivated_at). The
+     * hard purge runs later off that timestamp. Local teardown (clearing cached
+     * user/session, same as logout) is the caller's responsibility.
+     *
+     * [appId] is the token audience — session access tokens are minted with the
+     * app id as their audience, so it must match here for verification to pass.
+     */
+    suspend fun deactivateAccount(
+        appId: String,
+        environment: Environment = Environment.PROD,
+    ): DeactivateAccountResponse {
+        val headers = sessionHeaders(environment)
+        if (headers.isEmpty()) {
+            return DeactivateAccountResponse(statusCode = StatusCode.UNAUTHORIZED)
+        }
+        return runCatching {
+            authClient.accountDeactivate(
+                DeactivateAccountRequest(
+                    audience = appId,
+                    headers = headers,
+                    environment = environment,
+                )
+            )
+        }.getOrElse { error ->
+            Logger.e(error) { "Account deactivation request failed" }
+            DeactivateAccountResponse(statusCode = StatusCode.INTERNAL_SERVER_ERROR)
+        }
+    }
 
     suspend fun accessToken(): String? =
         authStoreOrNull()?.getAccessToken()

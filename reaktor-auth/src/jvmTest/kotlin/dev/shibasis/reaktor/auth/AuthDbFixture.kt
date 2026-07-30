@@ -14,7 +14,9 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import java.util.UUID
+import kotlin.time.Instant
 
 /**
  * Test-only Exposed harness backed by an ephemeral in-memory H2 database.
@@ -415,6 +417,28 @@ object AuthDbFixture {
             )
         }
         principalId.toString()
+    }
+
+    fun identityById(identityId: String): AuthIdentity? = transaction {
+        AuthIdentities.selectAll()
+            .where { AuthIdentities.id eq UUID.fromString(identityId) }
+            .map { AuthIdentities.toDto(it) }
+            .firstOrNull()
+    }
+
+    fun deactivatedAtOf(principalId: String): Instant? = transaction {
+        AuthPrincipals.selectAll()
+            .where { AuthPrincipals.id eq UUID.fromString(principalId) }
+            .firstOrNull()
+            ?.get(AuthPrincipals.deactivatedAt)
+    }
+
+    /** Backdate deactivated_at so grace-window behaviour can be exercised in tests. */
+    fun setDeactivatedAt(principalId: String, instant: Instant): Unit = transaction {
+        AuthPrincipals.update({ AuthPrincipals.id eq UUID.fromString(principalId) }) {
+            it[AuthPrincipals.deactivatedAt] = instant
+        }
+        Unit
     }
 
     private fun issuerFor(provider: AuthProviderKind): String =

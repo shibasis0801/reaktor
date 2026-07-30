@@ -88,6 +88,10 @@ object AuthPrincipals: UUIDAuditable<AuthPrincipal>("principal") {
     val kind = enumerationByName<PrincipalKind>("kind", 20)
     val identityId = foreignKey(AuthIdentities, "identity_id").nullable()
     val status = enumerationByName<PrincipalStatus>("status", 50).default(PrincipalStatus.ACTIVE)
+    // Set when the account is soft-deleted; the grace-period purge runs on this.
+    // System-managed (written by softDeleteAccount, read by the purge job) — not
+    // mapped into the AuthPrincipal DTO.
+    val deactivatedAt = timestampZ("deactivated_at").nullable()
 
     override fun toDto(result: ResultRow) = AuthPrincipal(
         id = result[id].value.toString(),
