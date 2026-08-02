@@ -16,6 +16,7 @@ import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.auth.kernel.PrincipalStatus
 import dev.shibasis.reaktor.auth.parseTokenPolicyList
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.security.MessageDigest
 import java.util.Base64
@@ -114,9 +115,18 @@ class ServiceAccountService(
         clientSecret: String?,
         clientAssertion: String?,
         clientAssertionType: String?,
-    ): ServiceAccount? = transaction {
+        database: Database? = null,
+    ): ServiceAccount? = txn(database) {
         authenticateClientTx(clientId, clientSecret, clientAssertion, clientAssertionType)
     }
+
+    /**
+     * Tier-explicit transaction. The same client_id (e.g. "bestbuds-worker-service") exists in more
+     * than one tier with different secrets, so a bare `transaction { }` on Exposed's default
+     * database authenticates against the WRONG tier's row and rejects a valid client.
+     */
+    private fun <T> txn(database: Database?, block: () -> T): T =
+        if (database != null) transaction(database) { block() } else transaction { block() }
 
     /**
      * Verify an RFC 7523 client assertion against the account's published JWKS: signature (pinned to the
@@ -149,11 +159,12 @@ class ServiceAccountService(
         clientAssertionType: String?,
         audience: String,
         requestedScopes: List<String>,
-        ttlSeconds: Int
-    ): ServiceTokenResult? = transaction {
+        ttlSeconds: Int,
+        database: Database? = null,
+    ): ServiceTokenResult? = txn(database) {
         val serviceAccount = authenticateClientTx(clientId, clientSecret, clientAssertion, clientAssertionType)
-            ?: return@transaction null
-        if (!audienceAllowed(serviceAccount, audience)) return@transaction null
+            ?: return@txn null
+        if (!audienceAllowed(serviceAccount, audience)) return@txn null
         val scopes = scopesFor(serviceAccount, requestedScopes)
         val token = jwtMinter.mintServiceToken(
             subject = subjectOf(serviceAccount),

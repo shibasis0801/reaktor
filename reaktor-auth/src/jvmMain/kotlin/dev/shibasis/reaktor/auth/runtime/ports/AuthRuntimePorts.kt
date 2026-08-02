@@ -12,6 +12,7 @@ import dev.shibasis.reaktor.auth.db.ResolvedAuthPrincipal
 import dev.shibasis.reaktor.auth.kernel.AuthProviderKind
 import dev.shibasis.reaktor.auth.runtime.DEFAULT_TOKEN_AUDIENCE
 import dev.shibasis.reaktor.auth.services.NewSession
+import dev.shibasis.reaktor.service.Environment
 import dev.shibasis.reaktor.auth.services.RotatedSession
 import dev.shibasis.reaktor.auth.services.ServiceTokenResult
 import dev.shibasis.reaktor.service.Request
@@ -75,16 +76,20 @@ interface AuthPersonalTokens {
 }
 
 interface AuthSessionLifecycle {
+    // `environment` selects the tier's database. Session rows live in the same Supabase project as
+    // the principal they belong to, so every session read/write must carry the caller's
+    // X-Environment; otherwise it binds to Exposed's environment-blind default database.
     fun createSession(
         principalId: String,
         appId: String,
         tenantId: String? = null,
         contextId: String? = null,
+        environment: Environment = Environment.PROD,
     ): NewSession
 
-    fun rotate(rawRefresh: String): RotatedSession?
-    fun revokeAllForPrincipal(principalId: String): Int
-    fun revokeByRefreshToken(rawRefresh: String): Boolean
+    fun rotate(rawRefresh: String, environment: Environment = Environment.PROD): RotatedSession?
+    fun revokeAllForPrincipal(principalId: String, environment: Environment = Environment.PROD): Int
+    fun revokeByRefreshToken(rawRefresh: String, environment: Environment = Environment.PROD): Boolean
 }
 
 interface AuthServiceAccounts {
@@ -96,6 +101,7 @@ interface AuthServiceAccounts {
         clientSecret: String?,
         clientAssertion: String?,
         clientAssertionType: String?,
+        environment: Environment = Environment.PROD,
     ): ServiceAccount?
 
     fun issueClientCredentialsToken(
@@ -106,6 +112,7 @@ interface AuthServiceAccounts {
         audience: String,
         requestedScopes: List<String>,
         ttlSeconds: Int,
+        environment: Environment = Environment.PROD,
     ): ServiceTokenResult?
 }
 

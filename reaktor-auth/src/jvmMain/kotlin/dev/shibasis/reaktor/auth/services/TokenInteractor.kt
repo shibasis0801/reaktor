@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.auth.parseTokenPolicyList
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.security.MessageDigest
@@ -22,6 +23,14 @@ import kotlin.time.Duration.Companion.days
 class TokenInteractor(
     private val jwtMinter: JwtMinter,
 ) {
+    /**
+     * Tier-explicit transaction — see ExposedAdapter.databaseFor. A bare `transaction { }` binds to
+     * Exposed's environment-blind default database, so a PAT minted or verified for one tier would
+     * hit the other tier's table.
+     */
+    private fun <T> txn(database: Database?, block: () -> T): T =
+        if (database != null) transaction(database) { block() } else transaction { block() }
+
 
     private fun hashToken(rawToken: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -77,8 +86,10 @@ class TokenInteractor(
         contextId: String? = null,
         appId: String? = null,
         allowedAudiences: List<String> = listOf("manna-mcp"),
-        expiresInDays: Int? = null
-    ): Pair<PersonalAccessToken, String> = transaction {
+        expiresInDays: Int? = null,
+        database: Database? = null,
+    ): Pair<PersonalAccessToken, String> = txn(database) {
+
         val rawToken = generateSecureToken()
         val tokenHash = hashToken(rawToken)
         val id = UUID.randomUUID().toString()
@@ -112,9 +123,9 @@ class TokenInteractor(
      * Verify a raw PAT token. Returns the PAT entity if valid, null otherwise.
      * A token is invalid if it doesn't exist, is revoked, or is expired.
      */
-    suspend fun verifyPersonalAccessToken(rawToken: String): PersonalAccessToken? = transaction {
+    suspend fun verifyPersonalAccessToken(rawToken: String, database: Database? = null): PersonalAccessToken? = txn(database) {
         // Reject structurally-invalid rkt_ tokens before touching the DB.
-        if (!checksumValid(rawToken)) return@transaction null
+        if (!checksumValid(rawToken)) return@txn null
         val hash = hashToken(rawToken)
 
         val pat = PersonalAccessTokens
@@ -122,15 +133,15 @@ class TokenInteractor(
             .where { PersonalAccessTokens.tokenHash eq hash }
             .map { PersonalAccessTokens.toDto(it) }
             .firstOrNull()
-            ?: return@transaction null
+            ?: return@txn null
 
         // Check revocation
-        if (pat.revokedAt != null) return@transaction null
+        if (pat.revokedAt != null) return@txn null
 
         // Check expiry
         val expiresAt = pat.expiresAt
         val now = Clock.System.now()
-        if (expiresAt != null && now > expiresAt) return@transaction null
+        if (expiresAt != null && now > expiresAt) return@txn null
 
         // Update last_used_at
         PersonalAccessTokens.update(
@@ -164,7 +175,7 @@ class TokenInteractor(
     /**
      * Revoke a PAT by its ID.
      */
-    suspend fun revokePersonalAccessToken(tokenId: String): Boolean = transaction {
+    suspend fun revokePersonalAccessToken(tokenId: String, database: Database? = null): Boolean = txn(database) {
         val updated = PersonalAccessTokens.update(
             where = { PersonalAccessTokens.id eq UUID.fromString(tokenId) }
         ) {

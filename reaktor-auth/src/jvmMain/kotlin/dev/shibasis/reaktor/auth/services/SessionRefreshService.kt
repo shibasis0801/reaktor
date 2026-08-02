@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.auth.RefreshTokens
 import dev.shibasis.reaktor.auth.Session
 import dev.shibasis.reaktor.auth.Sessions
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -31,6 +32,22 @@ data class RotatedSession(val session: Session, val rawRefreshToken: String)
 class SessionRefreshService {
     private val refreshTtl = 30.days
 
+    /**
+     * Run [block] against [database], or the Exposed default when null.
+     *
+     * Every session write MUST be tier-explicit. A bare `transaction { }` binds to Exposed's
+     * default database, which is environment-blind: with stageDb and prodDb pointing at different
+     * Supabase projects, a dev login would write its session row into prod (and only survives
+     * because `session.app_id` has an FK the dev app-id cannot satisfy — a 500, not silent
+     * corruption). Callers pass the database resolved from the request's X-Environment via
+     * ExposedAdapter.databaseFor.
+     *
+     * Nullable so callers that genuinely have no request context keep the previous behaviour
+     * instead of guessing a tier.
+     */
+    private fun <T> txn(database: Database?, block: () -> T): T =
+        if (database != null) transaction(database) { block() } else transaction { block() }
+
     private fun hash(raw: String): String =
         Base64.getEncoder().encodeToString(
             MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
@@ -47,8 +64,9 @@ class SessionRefreshService {
         principalId: String,
         appId: String,
         tenantId: String? = null,
-        contextId: String? = null
-    ): NewSession = transaction {
+        contextId: String? = null,
+        database: Database? = null,
+    ): NewSession = txn(database) {
         val now = Clock.System.now()
         val sessionId = UUID.randomUUID()
         val expiresAt = now + refreshTtl
@@ -83,22 +101,22 @@ class SessionRefreshService {
      * Rotate a refresh token. Returns the (session, new raw token) on success; null when invalid/expired.
      * If the presented token was already used (reuse/replay), the entire family is revoked and null is returned.
      */
-    fun rotate(rawRefresh: String): RotatedSession? = transaction {
+    fun rotate(rawRefresh: String, database: Database? = null): RotatedSession? = txn(database) {
         val tokenHash = hash(rawRefresh)
         val token = RefreshTokens.selectAll()
             .where { RefreshTokens.tokenHash eq tokenHash }
             .map { RefreshTokens.toDto(it) }
-            .firstOrNull() ?: return@transaction null
+            .firstOrNull() ?: return@txn null
 
         val now = Clock.System.now()
-        if (token.revokedAt != null) return@transaction null
-        if (now > token.expiresAt) return@transaction null
+        if (token.revokedAt != null) return@txn null
+        if (now > token.expiresAt) return@txn null
         if (token.usedAt != null) {
             // Reuse detected → revoke the whole family, forcing re-authentication.
             RefreshTokens.update({ RefreshTokens.familyId eq UUID.fromString(token.familyId) }) {
                 it[RefreshTokens.revokedAt] = now
             }
-            return@transaction null
+            return@txn null
         }
 
         RefreshTokens.update({ RefreshTokens.id eq UUID.fromString(token.id) }) {
@@ -109,8 +127,8 @@ class SessionRefreshService {
         val session = Sessions.selectAll()
             .where { Sessions.id eq UUID.fromString(token.sessionId) }
             .map { Sessions.toDto(it) }
-            .firstOrNull() ?: return@transaction null
-        if (now > session.expiresAt) return@transaction null
+            .firstOrNull() ?: return@txn null
+        if (now > session.expiresAt) return@txn null
 
         val raw = randomRefreshToken()
         RefreshTokens.insert {
@@ -126,12 +144,12 @@ class SessionRefreshService {
     }
 
     /** Revoke every session of a principal (logout-all / "sign out everywhere"). Returns the session count revoked. */
-    fun revokeAllForPrincipal(principalId: String): Int = transaction {
+    fun revokeAllForPrincipal(principalId: String, database: Database? = null): Int = txn(database) {
         val now = Clock.System.now()
         val sessionIds = Sessions.selectAll()
             .where { (Sessions.principalId eq UUID.fromString(principalId)) and (Sessions.expiresAt greater now) }
             .map { it[Sessions.id].value }
-        if (sessionIds.isEmpty()) return@transaction 0
+        if (sessionIds.isEmpty()) return@txn 0
         RefreshTokens.update({ RefreshTokens.sessionId inList sessionIds }) {
             it[RefreshTokens.revokedAt] = now
         }
@@ -142,11 +160,11 @@ class SessionRefreshService {
     }
 
     /** Revoke a session and its whole refresh-token family (logout). */
-    fun revokeByRefreshToken(rawRefresh: String): Boolean = transaction {
+    fun revokeByRefreshToken(rawRefresh: String, database: Database? = null): Boolean = txn(database) {
         val token = RefreshTokens.selectAll()
             .where { RefreshTokens.tokenHash eq hash(rawRefresh) }
             .map { RefreshTokens.toDto(it) }
-            .firstOrNull() ?: return@transaction false
+            .firstOrNull() ?: return@txn false
         val now = Clock.System.now()
         RefreshTokens.update({ RefreshTokens.familyId eq UUID.fromString(token.familyId) }) {
             it[RefreshTokens.revokedAt] = now

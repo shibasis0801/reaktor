@@ -129,6 +129,7 @@ class LoginInteractorNode(graph: Graph) : BasicNode(graph), AuthLogin {
                 appId = app.id,
                 tenantId = resolved.membership.tenantId,
                 contextId = resolved.membership.contextId,
+                environment = request.environment,
             )
         }
         val context = AuthContext(
@@ -288,6 +289,7 @@ class LoginInteractorNode(graph: Graph) : BasicNode(graph), AuthLogin {
                 appId = app.id,
                 tenantId = resolved.membership.tenantId,
                 contextId = resolved.membership.contextId,
+                environment = request.environment,
             )
         }
         val context = AuthContext(

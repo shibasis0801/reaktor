@@ -78,6 +78,7 @@ class AuthTokenGrantNode(
                 audience = audience,
                 requestedScopes = request.scopes,
                 ttlSeconds = ttlSeconds,
+                environment = request.environment,
             )
         }
         if (result == null) {
@@ -122,6 +123,7 @@ class AuthTokenGrantNode(
                 clientSecret = request.clientSecret,
                 clientAssertion = request.clientAssertion,
                 clientAssertionType = request.clientAssertionType,
+                environment = request.environment,
             )
         }
         if (actor == null) {

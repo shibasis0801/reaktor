@@ -72,6 +72,10 @@ open class LoginInteractor(
             appId = app.id,
             tenantId = resolved.membership.tenantId,
             contextId = resolved.membership.contextId,
+            // Tier-explicit: the session must land in the same database the principal was
+            // resolved from. Without this it uses Exposed's default (prod), so a dev login
+            // writes a dev app-id session into prod and trips session_app_id_fkey.
+            database = authRepository.adapter.databaseFor(request.environment),
         )
         val context = AuthContext(
             principal = PrincipalRef(resolved.principal.id, PrincipalKind.USER),
@@ -156,6 +160,10 @@ open class LoginInteractor(
             appId = app.id,
             tenantId = resolved.membership.tenantId,
             contextId = resolved.membership.contextId,
+            // Tier-explicit: the session must land in the same database the principal was
+            // resolved from. Without this it uses Exposed's default (prod), so a dev login
+            // writes a dev app-id session into prod and trips session_app_id_fkey.
+            database = authRepository.adapter.databaseFor(request.environment),
         )
         val context = AuthContext(
             principal = PrincipalRef(resolved.principal.id, PrincipalKind.USER),

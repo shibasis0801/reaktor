@@ -65,7 +65,7 @@ class AuthSessionNode(
             }
             return RefreshResponse(statusCode = StatusCode.UNAUTHORIZED)
         }
-        val rotated = sessionLifecyclePort { rotate(refreshToken) }
+        val rotated = sessionLifecyclePort { rotate(refreshToken, request.environment) }
         if (rotated == null) {
             auditPort.suspended {
                 auditFailure(
@@ -140,7 +140,7 @@ class AuthSessionNode(
 
     override suspend fun logout(request: LogoutRequest): LogoutResponse {
         val refreshToken = request.refreshToken.trim().ifEmpty { request.bearerToken().orEmpty() }
-        val ok = refreshToken.isNotEmpty() && sessionLifecyclePort { revokeByRefreshToken(refreshToken) }
+        val ok = refreshToken.isNotEmpty() && sessionLifecyclePort { revokeByRefreshToken(refreshToken, request.environment) }
         auditPort.suspended {
             if (ok) {
                 auditSuccess(
@@ -232,7 +232,7 @@ class AuthSessionNode(
             }
             return LogoutAllResponse(statusCode = StatusCode.UNAUTHORIZED)
         }
-        val revoked = sessionLifecyclePort { revokeAllForPrincipal(principalId) }
+        val revoked = sessionLifecyclePort { revokeAllForPrincipal(principalId, request.environment) }
         auditPort.suspended {
             auditSuccess(
                 request = request,

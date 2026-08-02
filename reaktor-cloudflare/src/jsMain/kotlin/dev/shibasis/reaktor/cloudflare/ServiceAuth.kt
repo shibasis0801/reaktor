@@ -92,6 +92,7 @@ suspend fun CloudflareContext.serviceAccountBearer(binding: ServiceAccountAuthBi
     val response = fetchServiceToken(
         url = binding.tokenEndpoint,
         body = body,
+        environment = binding.environment,
     )
     val text = response.text()
     check(response.ok) { "Reaktor service-account token HTTP ${response.status}: ${text.take(ERROR_PREVIEW)}" }
@@ -158,6 +159,7 @@ suspend fun CloudflareContext.exchangeDelegatedServiceToken(
     val response = fetchServiceToken(
         url = binding.tokenEndpoint,
         body = body,
+        environment = binding.environment,
     )
     val text = response.text()
     check(response.ok) { "Reaktor delegated token HTTP ${response.status}: ${text.take(ERROR_PREVIEW)}" }
@@ -165,11 +167,22 @@ suspend fun CloudflareContext.exchangeDelegatedServiceToken(
     return json.decodeFromString<DelegatedServiceToken>(text)
 }
 
-private suspend fun fetchServiceToken(url: String, body: String): CloudflareResponse {
+private suspend fun fetchServiceToken(
+    url: String,
+    body: String,
+    environment: String,
+): CloudflareResponse {
+    // The tier MUST travel as a header. Request.environment is @Transient, so the "environment"
+    // field in the JSON body is dropped during deserialization and the server falls back to PROD —
+    // which made a dev worker authenticate against the prod service_account row (same client_id,
+    // different secret) and get a 401.
     val init = requestInit(
         method = "POST",
         body = body,
-        headers = mapOf("Content-Type" to "application/json; charset=utf-8"),
+        headers = mapOf(
+            "Content-Type" to "application/json; charset=utf-8",
+            "X-Environment" to environment,
+        ),
     )
     val raw = js("fetch(url, init)").unsafeCast<Promise<RawWorkerResponse>>().await()
     return CloudflareResponse(raw)

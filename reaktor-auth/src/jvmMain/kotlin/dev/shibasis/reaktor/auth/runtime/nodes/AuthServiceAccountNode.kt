@@ -5,6 +5,10 @@ import dev.shibasis.reaktor.auth.jwt.JwtMinter
 import dev.shibasis.reaktor.auth.runtime.ports.AuthServiceAccounts
 import dev.shibasis.reaktor.auth.services.ServiceAccountService
 import dev.shibasis.reaktor.auth.services.ServiceTokenResult
+import dev.shibasis.reaktor.db.service.ExposedAdapter
+import dev.shibasis.reaktor.service.Environment
+import dev.shibasis.reaktor.auth.runtime.AUTH_EXPOSED_ADAPTER_DEPENDENCY
+import dev.shibasis.reaktor.graph.di.dependency
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.consumes
@@ -13,6 +17,7 @@ import dev.shibasis.reaktor.portgraph.port.provides
 class AuthServiceAccountNode(graph: Graph) : BasicNode(graph), AuthServiceAccounts {
     val jwtMinterPort by consumes<JwtMinter>()
     val serviceAccountsPort by provides<AuthServiceAccounts>(this)
+    private val adapter by dependency<ExposedAdapter>(AUTH_EXPOSED_ADAPTER_DEPENDENCY)
 
     private val service: ServiceAccountService by lazy {
         ServiceAccountService(jwtMinterPort { this })
@@ -32,7 +37,10 @@ class AuthServiceAccountNode(graph: Graph) : BasicNode(graph), AuthServiceAccoun
         clientSecret: String?,
         clientAssertion: String?,
         clientAssertionType: String?,
-    ): ServiceAccount? = service.authenticateClient(clientId, clientSecret, clientAssertion, clientAssertionType)
+        environment: Environment,
+    ): ServiceAccount? = service.authenticateClient(
+        clientId, clientSecret, clientAssertion, clientAssertionType, adapter.databaseFor(environment),
+    )
 
     override fun issueClientCredentialsToken(
         clientId: String?,
@@ -42,6 +50,7 @@ class AuthServiceAccountNode(graph: Graph) : BasicNode(graph), AuthServiceAccoun
         audience: String,
         requestedScopes: List<String>,
         ttlSeconds: Int,
+        environment: Environment,
     ): ServiceTokenResult? = service.issueClientCredentialsToken(
         clientId = clientId,
         clientSecret = clientSecret,
@@ -50,5 +59,6 @@ class AuthServiceAccountNode(graph: Graph) : BasicNode(graph), AuthServiceAccoun
         audience = audience,
         requestedScopes = requestedScopes,
         ttlSeconds = ttlSeconds,
+        database = adapter.databaseFor(environment),
     )
 }
