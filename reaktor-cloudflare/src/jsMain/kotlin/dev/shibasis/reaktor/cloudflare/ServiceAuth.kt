@@ -172,10 +172,8 @@ private suspend fun fetchServiceToken(
     body: String,
     environment: String,
 ): CloudflareResponse {
-    // The tier MUST travel as a header. Request.environment is @Transient, so the "environment"
-    // field in the JSON body is dropped during deserialization and the server falls back to PROD —
-    // which made a dev worker authenticate against the prod service_account row (same client_id,
-    // different secret) and get a 401.
+    // The tier must travel as a header: Request.environment is @Transient, so the body field is
+    // dropped on deserialization and the server falls back to PROD.
     val init = requestInit(
         method = "POST",
         body = body,

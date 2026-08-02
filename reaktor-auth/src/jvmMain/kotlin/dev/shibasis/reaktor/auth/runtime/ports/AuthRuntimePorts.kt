@@ -76,9 +76,7 @@ interface AuthPersonalTokens {
 }
 
 interface AuthSessionLifecycle {
-    // `environment` selects the tier's database. Session rows live in the same Supabase project as
-    // the principal they belong to, so every session read/write must carry the caller's
-    // X-Environment; otherwise it binds to Exposed's environment-blind default database.
+    // `environment` selects the tier's database — sessions live alongside their principal.
     fun createSession(
         principalId: String,
         appId: String,

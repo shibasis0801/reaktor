@@ -23,11 +23,7 @@ import kotlin.time.Duration.Companion.days
 class TokenInteractor(
     private val jwtMinter: JwtMinter,
 ) {
-    /**
-     * Tier-explicit transaction — see ExposedAdapter.databaseFor. A bare `transaction { }` binds to
-     * Exposed's environment-blind default database, so a PAT minted or verified for one tier would
-     * hit the other tier's table.
-     */
+    /** Tier-explicit transaction — see ExposedAdapter.databaseFor. */
     private fun <T> txn(database: Database?, block: () -> T): T =
         if (database != null) transaction(database) { block() } else transaction { block() }
 

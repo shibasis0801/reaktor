@@ -17,13 +17,8 @@ open class ExposedAdapter(
     private val dbDispatcher: CoroutineDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     /**
-     * The database handle for [environment].
-     *
-     * Exposed's bare `transaction { }` binds to a *default* database (the registry's most recent
-     * connect), which is environment-blind. That was harmless while stageDb and prodDb were the
-     * same instance, but once they differ any bare transaction silently reads/writes the wrong
-     * tier. Code outside [sql] that opens its own transaction must resolve its database through
-     * this, so the tier is always explicit.
+     * The database handle for [environment]. Any code opening its own transaction must resolve
+     * through this — a bare `transaction { }` binds to Exposed's environment-blind default.
      */
     fun databaseFor(environment: Environment): Database =
         if (environment == Environment.PROD) prodDb else stageDb

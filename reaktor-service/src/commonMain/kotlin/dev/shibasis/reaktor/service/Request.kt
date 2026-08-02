@@ -21,16 +21,9 @@ open class Request(
 
     companion object {
         /**
-         * Tier stamped onto requests that do not set [environment] themselves.
-         *
-         * Service.kt writes this into the `X-Environment` header, and the server routes
-         * stageDb/prodDb from it. A hardcoded PROD default meant every client call site that
-         * forgot to pass an environment silently claimed to be production — harmless while the
-         * tiers shared one database, wrong once they did not.
-         *
-         * Clients set this once at startup (BestBuds does it from AppEnvironment). It stays PROD
-         * on the server and in workers, where the environment arrives per-request on the header
-         * instead, so their behaviour is unchanged.
+         * Tier stamped onto requests that do not set [environment] themselves; Service.kt sends it
+         * as `X-Environment`. Clients set this once at startup. Stays PROD on the server and in
+         * workers, where the tier arrives per-request on the header instead.
          */
         @JsExport.Ignore
         var defaultEnvironment: Environment = Environment.PROD

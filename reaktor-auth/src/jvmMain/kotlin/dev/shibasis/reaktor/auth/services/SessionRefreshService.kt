@@ -33,17 +33,9 @@ class SessionRefreshService {
     private val refreshTtl = 30.days
 
     /**
-     * Run [block] against [database], or the Exposed default when null.
-     *
-     * Every session write MUST be tier-explicit. A bare `transaction { }` binds to Exposed's
-     * default database, which is environment-blind: with stageDb and prodDb pointing at different
-     * Supabase projects, a dev login would write its session row into prod (and only survives
-     * because `session.app_id` has an FK the dev app-id cannot satisfy — a 500, not silent
-     * corruption). Callers pass the database resolved from the request's X-Environment via
-     * ExposedAdapter.databaseFor.
-     *
-     * Nullable so callers that genuinely have no request context keep the previous behaviour
-     * instead of guessing a tier.
+     * Run [block] against [database], or Exposed's default when null. Session writes must be
+     * tier-explicit: a dev login writing through the default lands in prod and trips
+     * session_app_id_fkey. Callers resolve via ExposedAdapter.databaseFor(request.environment).
      */
     private fun <T> txn(database: Database?, block: () -> T): T =
         if (database != null) transaction(database) { block() } else transaction { block() }

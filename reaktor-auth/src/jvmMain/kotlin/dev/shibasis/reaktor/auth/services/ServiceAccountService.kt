@@ -121,9 +121,8 @@ class ServiceAccountService(
     }
 
     /**
-     * Tier-explicit transaction. The same client_id (e.g. "bestbuds-worker-service") exists in more
-     * than one tier with different secrets, so a bare `transaction { }` on Exposed's default
-     * database authenticates against the WRONG tier's row and rejects a valid client.
+     * Tier-explicit transaction. The same client_id exists in both tiers with different secrets,
+     * so the default database authenticates against the wrong row and rejects a valid client.
      */
     private fun <T> txn(database: Database?, block: () -> T): T =
         if (database != null) transaction(database) { block() } else transaction { block() }
