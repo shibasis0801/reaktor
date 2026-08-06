@@ -160,3 +160,6 @@ CMakeFiles
 skiko
 rn-batcave
 local.properties
+
+# graphify output — regenerate locally; commit later if the team wants a shared map
+graphify-out/
