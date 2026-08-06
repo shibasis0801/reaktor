@@ -256,9 +256,15 @@ class AndroidNotificationsClient(
     }
 
     internal suspend fun deliverScheduled(request: LocalNotificationRequest) {
-        scheduledIds -= request.id
         renderer.show(request)
         deliveredIds += request.id
+        // Alarms are one-shot, so a repeating request has to arm its own next occurrence.
+        if (request.trigger.isRepeating) {
+            scheduler.rearm(request)
+        } else {
+            scheduledIds -= request.id
+            scheduler.forget(request.id)
+        }
     }
 
     internal suspend fun handleActionIntent(intent: Intent) {

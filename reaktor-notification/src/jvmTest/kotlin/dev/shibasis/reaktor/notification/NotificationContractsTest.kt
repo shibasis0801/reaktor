@@ -10,8 +10,45 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 class NotificationContractsTest {
+    @Test
+    fun immediateTriggerNeverRepeats() {
+        assertFalse(NotificationTrigger.Immediate.isRepeating)
+    }
+
+    @Test
+    fun timeIntervalRepeatsOnlyWithAPositiveDelay() {
+        assertTrue(NotificationTrigger.TimeInterval(1.hours, repeats = true).isRepeating)
+        assertFalse(NotificationTrigger.TimeInterval(1.hours, repeats = false).isRepeating)
+        // A zero delay would re-fire in a tight loop, so it is refused whatever the flag says.
+        assertFalse(NotificationTrigger.TimeInterval(Duration.ZERO, repeats = true).isRepeating)
+    }
+
+    @Test
+    fun recurringCalendarTriggerRepeats() {
+        assertTrue(NotificationTrigger.Calendar(hour = 18, minute = 30, repeats = true).isRepeating)
+        assertFalse(NotificationTrigger.Calendar(hour = 18, minute = 30, repeats = false).isRepeating)
+    }
+
+    @Test
+    fun calendarTriggerPinnedToADateNeverRepeats() {
+        // An absolute date has exactly one valid firing time; repeating it would fire immediately.
+        assertFalse(
+            NotificationTrigger.Calendar(
+                year = 2026,
+                month = 8,
+                day = 4,
+                hour = 18,
+                minute = 30,
+                repeats = true,
+            ).isRepeating,
+        )
+        assertFalse(NotificationTrigger.Calendar(day = 4, hour = 18, repeats = true).isRepeating)
+    }
+
     @Test
     fun envelopeRoundTripsThroughProviderDataMap() {
         val envelope = NotificationEnvelope(

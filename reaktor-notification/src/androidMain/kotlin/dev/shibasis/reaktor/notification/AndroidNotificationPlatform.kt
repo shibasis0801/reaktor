@@ -19,6 +19,7 @@ import com.google.firebase.messaging.RemoteMessage
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.core.framework.json
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import java.util.Calendar
@@ -36,6 +37,14 @@ private const val EXTRA_ROUTE_PAYLOAD = "reaktor_route_payload"
 private const val EXTRA_ACTION_ID = "reaktor_action_id"
 private const val EXTRA_REQUEST_JSON = "reaktor_request_json"
 private const val EXTRA_ENVELOPE_JSON = "reaktor_envelope_json"
+private const val ALARM_STORE_NAME = "reaktor_scheduled_alarms"
+
+/**
+ * How far past "now" a repeating calendar trigger is resolved from when re-arming. Comfortably
+ * longer than the second-level granularity a calendar spec can match, so a trigger that just fired
+ * cannot match itself again.
+ */
+private const val REARM_SETTLE_MILLIS = 60_000L
 
 class AndroidNotificationChannelRegistry(
     private val context: Context,
@@ -219,38 +228,91 @@ class AndroidNotificationRenderer(
     }
 }
 
+/** A pending alarm as persisted on disk, so it can survive process death and reboots. */
+@Serializable
+internal data class ScheduledAlarm(
+    val request: LocalNotificationRequest,
+    val targetAtMillis: Long,
+)
+
 class AndroidNotificationScheduler(
     private val context: Context,
 ) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
+    private val store = context.getSharedPreferences(ALARM_STORE_NAME, Context.MODE_PRIVATE)
 
-    fun schedule(request: LocalNotificationRequest) {
-        val intent = Intent(context, ReaktorNotificationAlarmReceiver::class.java)
-            .setAction(ACTION_NOTIFICATION_ALARM)
-            .putExtra(EXTRA_REQUEST_JSON, json.encodeToString(request))
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            request.id.notificationRequestCode(),
-            intent,
-            pendingIntentFlags(immutable = true),
-        )
-        alarmManager.set(
-            AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis() + request.triggerDelayMillis(),
-            pendingIntent,
-        )
+    fun schedule(request: LocalNotificationRequest, fromMillis: Long = System.currentTimeMillis()) {
+        scheduleAt(request, fromMillis + request.triggerDelayMillis(fromMillis))
+    }
+
+    /**
+     * Re-arms a repeating request once it has fired. Calendar recurrences are resolved from a
+     * moment just after now, so a trigger that only this instant elapsed advances to its next
+     * occurrence instead of matching the current minute again and firing in a loop.
+     */
+    fun rearm(request: LocalNotificationRequest) {
+        val settle = if (request.trigger is NotificationTrigger.Calendar) REARM_SETTLE_MILLIS else 0L
+        schedule(request, System.currentTimeMillis() + settle)
     }
 
     fun cancel(id: String) {
+        forget(id)
+        alarmManager.cancel(alarmIntent(id))
+    }
+
+    /** Drops the persisted copy without touching the alarm — used once a one-shot has delivered. */
+    fun forget(id: String) {
+        store.edit().remove(id).apply()
+    }
+
+    /**
+     * The OS clears alarms across a reboot, so every pending request is re-armed from disk.
+     * Alarms still in the future keep their original firing time; repeating ones that elapsed
+     * while the device was off roll to their next occurrence, and missed one-shots are dropped.
+     */
+    fun restoreAll() {
+        val now = System.currentTimeMillis()
+        store.all.keys.toList().forEach { id ->
+            val alarm = read(id)
+            if (alarm == null) {
+                forget(id)
+                return@forEach
+            }
+            when {
+                alarm.targetAtMillis > now -> scheduleAt(alarm.request, alarm.targetAtMillis)
+                alarm.request.trigger.isRepeating -> schedule(alarm.request)
+                else -> forget(id)
+            }
+        }
+    }
+
+    private fun scheduleAt(request: LocalNotificationRequest, triggerAtMillis: Long) {
+        store.edit()
+            .putString(request.id, json.encodeToString(ScheduledAlarm(request, triggerAtMillis)))
+            .apply()
+        alarmManager.set(
+            AlarmManager.RTC_WAKEUP,
+            triggerAtMillis,
+            alarmIntent(request.id, request),
+        )
+    }
+
+    private fun read(id: String): ScheduledAlarm? {
+        val stored = store.getString(id, null) ?: return null
+        return runCatching { json.decodeFromString<ScheduledAlarm>(stored) }.getOrNull()
+    }
+
+    // Extras are not part of PendingIntent equality, so the request is only attached when arming.
+    private fun alarmIntent(id: String, request: LocalNotificationRequest? = null): PendingIntent {
         val intent = Intent(context, ReaktorNotificationAlarmReceiver::class.java)
             .setAction(ACTION_NOTIFICATION_ALARM)
-        val pendingIntent = PendingIntent.getBroadcast(
+        request?.let { intent.putExtra(EXTRA_REQUEST_JSON, json.encodeToString(it)) }
+        return PendingIntent.getBroadcast(
             context,
             id.notificationRequestCode(),
             intent,
             pendingIntentFlags(immutable = true),
         )
-        alarmManager.cancel(pendingIntent)
     }
 }
 
@@ -260,6 +322,17 @@ class ReaktorNotificationAlarmReceiver : BroadcastReceiver() {
         val request = runCatching { json.decodeFromString<LocalNotificationRequest>(requestJson) }.getOrNull() ?: return
         Dispatch.Default.launch {
             AndroidNotificationsRuntime.ensure(context).deliverScheduled(request)
+        }
+    }
+}
+
+/** Restores pending alarms after a reboot or an app update, both of which clear them. */
+class ReaktorNotificationBootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        when (intent.action) {
+            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
+                runCatching { AndroidNotificationScheduler(context.applicationContext).restoreAll() }
+            }
         }
     }
 }
@@ -443,12 +516,14 @@ private fun LocalNotificationRequest.toEnvelope(): NotificationEnvelope =
 internal fun LocalNotificationRequest.shouldScheduleLater(): Boolean =
     delay > kotlin.time.Duration.ZERO || trigger !is NotificationTrigger.Immediate
 
-private fun LocalNotificationRequest.triggerDelayMillis(): Long {
+private fun LocalNotificationRequest.triggerDelayMillis(
+    nowMillis: Long = System.currentTimeMillis(),
+): Long {
     if (delay > kotlin.time.Duration.ZERO) return delay.inWholeMilliseconds.coerceAtLeast(1)
     return when (val trigger = trigger) {
         NotificationTrigger.Immediate -> 1
         is NotificationTrigger.TimeInterval -> trigger.delay.inWholeMilliseconds.coerceAtLeast(1)
-        is NotificationTrigger.Calendar -> trigger.nextDelayMillis()
+        is NotificationTrigger.Calendar -> trigger.nextDelayMillis(nowMillis)
     }
 }
 

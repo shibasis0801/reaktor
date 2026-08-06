@@ -253,6 +253,22 @@ sealed class NotificationTrigger {
     ) : NotificationTrigger()
 }
 
+/**
+ * Whether this trigger should fire again after it delivers.
+ *
+ * This is stricter than the raw `repeats` flag, because two shapes can never recur safely:
+ * a calendar trigger pinned to an absolute date has exactly one valid firing time, and a
+ * zero-length interval would re-fire in a tight loop. Both report `false` here whatever their
+ * flag says, so schedulers can re-arm on this property alone.
+ */
+val NotificationTrigger.isRepeating: Boolean
+    get() = when (this) {
+        NotificationTrigger.Immediate -> false
+        is NotificationTrigger.TimeInterval -> repeats && delay > Duration.ZERO
+        is NotificationTrigger.Calendar ->
+            repeats && year == null && month == null && day == null
+    }
+
 @Serializable
 data class AndroidNotificationOptions(
     val channelId: String? = null,
