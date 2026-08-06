@@ -1,8 +1,10 @@
 package dev.shibasis.reaktor.graph.di
 
+import dev.shibasis.reaktor.core.framework.Feature
 import org.koin.core.KoinApplication
 import org.koin.core.annotation.KoinInternalApi
 import org.koin.core.context.startKoin
+import org.koin.dsl.KoinAppDeclaration
 import org.koin.core.definition.BeanDefinition
 import org.koin.core.definition.Definition
 import org.koin.core.definition.Kind
@@ -219,3 +221,19 @@ class KoinDependencyAdapter(
         )
     }
 }
+
+/**
+ * The process-wide Koin adapter, starting Koin only if it has not been started already.
+ *
+ * Calling `startKoin` a second time throws [org.koin.core.error.KoinApplicationAlreadyStartedException],
+ * and on Android an Activity's `onCreate` runs again on every configuration change — rotation,
+ * dark mode, locale, font size. Installing the adapter through this function keeps that relaunch
+ * from crashing the app.
+ *
+ * ```
+ * Reaktor.start { Dependency = ensureKoinDependency() }
+ * ```
+ */
+fun ensureKoinDependency(declaration: KoinAppDeclaration = {}): KoinDependencyAdapter =
+    (Feature.Dependency as? KoinDependencyAdapter)
+        ?: KoinDependencyAdapter(startKoin(declaration)).also { Feature.Dependency = it }
