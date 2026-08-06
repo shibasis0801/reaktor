@@ -28,8 +28,11 @@ fun GraphApplication(
         typography = text,
         shapes = shapes
     ) {
-        Scaffold(Modifier.safeDrawingPadding()) {
-            GraphContent(graph)
+        // Lets a theme provide its own CompositionLocals around the whole app.
+        Wrap {
+            Scaffold(Modifier.safeDrawingPadding()) {
+                GraphContent(graph)
+            }
         }
     }
 }

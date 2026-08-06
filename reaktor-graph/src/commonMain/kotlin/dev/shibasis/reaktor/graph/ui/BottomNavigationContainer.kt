@@ -60,6 +60,17 @@ open class BottomNavigationContainer(
 
     var topBar: (@Composable (selectedKey: String, isAtRoot: Boolean) -> Unit)? = null
 
+    /**
+     * Replaces the default Material [NavigationBar]. Receives the selected key, the tabs to show,
+     * and the callback to switch tab, so an app can render its own bar without reimplementing the
+     * container. Null keeps the default.
+     */
+    var bottomBar: (@Composable (
+        selectedKey: String,
+        tabs: Map<String, ChildGraph>,
+        onSelect: (String) -> Unit,
+    ) -> Unit)? = null
+
     val controller by provides<Controller>(object: Controller {
         override val selected = this@BottomNavigationContainer.selected
     })
@@ -94,14 +105,21 @@ open class BottomNavigationContainer(
             topBar = { if (isAtRoot) topBar?.invoke(selected, isAtRoot) },
             bottomBar = {
                 if (!isKeyboardVisible && isAtRoot) {
-                    NavigationBar {
-                        children.filter { it.key in bottomNavKeys }.forEach { (key, value) ->
-                            NavigationBarItem(
-                                selected = (selected == key),
-                                onClick = { contract.selected.value = key },
-                                icon = { Icon(value.icon, value.label) },
-                                label = { TextView(text = value.label) }
-                            )
+                    val tabs = children.filter { it.key in bottomNavKeys }
+                    val onSelect: (String) -> Unit = { contract.selected.value = it }
+                    val custom = bottomBar
+                    if (custom != null) {
+                        custom(selected, tabs, onSelect)
+                    } else {
+                        NavigationBar {
+                            tabs.forEach { (key, value) ->
+                                NavigationBarItem(
+                                    selected = (selected == key),
+                                    onClick = { onSelect(key) },
+                                    icon = { Icon(value.icon, value.label) },
+                                    label = { TextView(text = value.label) }
+                                )
+                            }
                         }
                     }
                 }

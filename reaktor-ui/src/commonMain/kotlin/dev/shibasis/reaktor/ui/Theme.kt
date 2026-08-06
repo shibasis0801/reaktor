@@ -55,6 +55,14 @@ open class Theme {
     open val shapes: Shapes @Composable get() = MaterialTheme.shapes
     open val sizes: Sizes get() = Sizes()
 
+    /**
+     * Wraps the whole application, inside the Material theme. Override to provide app-specific
+     * `CompositionLocal`s — a design system's own colour tokens, for instance — so every screen
+     * can read them without threading anything through the graph. Defaults to no wrapping.
+     */
+    @Composable
+    open fun Wrap(content: @Composable () -> Unit) = content()
+
     fun Modifier.paddingExtraSmall() = padding(sizes.extraSmall)
     fun Modifier.paddingSmall() = padding(sizes.small)
     fun Modifier.paddingMedium() = padding(sizes.medium)
