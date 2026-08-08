@@ -73,11 +73,17 @@ internal class NativeBootstrap(
                 runCommand(
                     buildDirectory,
                     cmakeExecutable(),
-                    "-G", "Ninja",
-                    "-DHERMES_BUILD_APPLE_FRAMEWORK=ON",
-                    "-DCMAKE_BUILD_TYPE=Debug",
-                    "-DCMAKE_MAKE_PROGRAM=${ninjaExecutable()}",
-                    hermesSourceDirectory.absolutePath,
+                    *buildList {
+                        add("-G")
+                        add("Ninja")
+                        // Apple-only: the flag makes Hermes configure an Apple framework target,
+                        // which fails outright on Linux. Only hermesc is needed here (it is a host
+                        // build tool), so Linux/CI configures without it.
+                        if (isMacOs()) add("-DHERMES_BUILD_APPLE_FRAMEWORK=ON")
+                        add("-DCMAKE_BUILD_TYPE=Debug")
+                        add("-DCMAKE_MAKE_PROGRAM=${ninjaExecutable()}")
+                        add(hermesSourceDirectory.absolutePath)
+                    }.toTypedArray(),
                 )
                 runCommand(buildDirectory, ninjaExecutable(), "hermesc")
             }
@@ -147,4 +153,7 @@ internal class NativeBootstrap(
 
     private fun isWindows(): Boolean =
         System.getProperty("os.name").contains("Windows", ignoreCase = true)
+
+    private fun isMacOs(): Boolean =
+        System.getProperty("os.name").contains("Mac", ignoreCase = true)
 }

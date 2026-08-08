@@ -206,6 +206,11 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
             var currentY = max(maxBottom, serviceColumnBottom).let {
                 if (localLayouts.isEmpty()) startY else it + style.layout.compactRowGapPx
             }
+            // Runs across every container in this graph, not per container. A per-container index
+            // makes two containers each mint "$graphId/0", and the scope id is the identity used
+            // for regions, selection, and expand/collapse — so a collision silently aliases two
+            // different scopes onto one another.
+            var childScopeIndex = 0
             for (containerNode in containers) {
                 val layout = builder.createLayout(
                     node = containerNode,
@@ -229,7 +234,7 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
                             childX = childStartX
                             childY = rowBottom + style.region.childRegionGapYPx + style.region.boundsInsetTopPx
                         }
-                        val childScopeId = "$graphId/$index"
+                        val childScopeId = "$graphId/${childScopeIndex++}"
                         // Hierarchical projection: recurse only into expanded scopes; otherwise the
                         // child graph collapses to a single boundary summary node at this level.
                         val childBounds = if (builder.shouldExpand(childScopeId)) {
