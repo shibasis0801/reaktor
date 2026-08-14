@@ -35,6 +35,16 @@ data class IosCategoryOptions(
     val customDismissAction: Boolean = true,
 )
 
+/**
+ * A button on a notification.
+ *
+ * [dismissesNotification] clears the notification once the action is handled, which is what a
+ * one-shot button ("Not today", "Mark as read") almost always wants. Turn it off for an action
+ * that keeps the notification alive on purpose — a snooze that re-posts, or a reply that stays
+ * put while it sends. Android needs this because auto-cancel only covers a tap on the body of a
+ * notification, never its buttons; iOS clears a notification on any action regardless, so the
+ * flag has no effect there.
+ */
 @Serializable
 data class NotificationActionSpec(
     val id: String,
@@ -43,6 +53,7 @@ data class NotificationActionSpec(
     val route: NotificationRoute = NotificationRoute.None,
     val options: Set<NotificationActionOption> = emptySet(),
     val textInput: NotificationTextInputOptions? = null,
+    val dismissesNotification: Boolean = true,
 )
 
 @Serializable

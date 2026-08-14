@@ -265,6 +265,10 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
                 else -> NotificationEventSource.Action
             },
         )
+        // The system clears a delivered notification on any response — tap, dismiss or action
+        // button — so it is gone here whatever `dismissesNotification` says. Android has to cancel
+        // an action's notification itself; this side only has to stop reporting it as delivered.
+        deliveredIds -= envelope.id
         Dispatch.Default.launch {
             events.emitResponse(event)
             devHarness.recordResponseFromPlatform(event)
