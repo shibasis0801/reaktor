@@ -269,6 +269,11 @@ class AndroidNotificationsClient(
 
     internal suspend fun handleActionIntent(intent: Intent) {
         val event = responseEventFromIntent(intent)
+        // A swipe already removed the notification, and a dismissing action just cancelled it,
+        // so neither is still delivered by the time the response lands.
+        if (event.dismissed || intent.dismissesNotification()) {
+            deliveredIds -= event.notificationId
+        }
         events.emitResponse(event)
         devHarness.recordResponseFromPlatform(event)
     }
