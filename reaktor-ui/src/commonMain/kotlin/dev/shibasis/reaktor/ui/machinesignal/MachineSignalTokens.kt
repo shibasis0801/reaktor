@@ -78,15 +78,83 @@ object MachineSignal {
         val Node = RoundedCornerShape(7.dp)
     }
 
+    object Metrics {
+        val topBarHeight = 44.dp
+        val modeToolbarHeight = 38.dp
+        val workspaceTabsHeight = 34.dp
+        val contextBarHeight = 40.dp
+        val statusBarHeight = 22.dp
+        val drawerStripHeight = 30.dp
+        val drawerHeight = 260.dp
+        val railStripWidth = 28.dp
+        val leftRailWidth = 224.dp
+        val inspectorWidth = 296.dp
+
+        val buttonHeight = 30.dp
+        val buttonPaddingX = 16.dp
+        val ghostPaddingX = 14.dp
+        val buttonGap = 7.dp
+
+        val searchFieldHeight = 30.dp
+        val searchFieldWidth = 280.dp
+        val searchPaddingX = 10.dp
+
+        val modeTabHeight = 26.dp
+        val modeTabPaddingX = 11.dp
+        val modeTabGap = 6.dp
+
+        val subTabPaddingX = 12.dp
+        val subTabPaddingTop = 6.dp
+        val subTabGap = 5.dp
+
+        val kvRowHeight = 22.dp
+        val treeRowHeight = 26.dp
+        val commandRowHeight = 44.dp
+
+        val chipPaddingX = 8.dp
+        val chipPaddingY = 3.dp
+        val entityChipPaddingX = 9.dp
+        val entityChipPaddingY = 4.dp
+        val statusPillPaddingX = 10.dp
+        val statusPillPaddingY = 4.dp
+        val statusPillGap = 6.dp
+        val countBadgePaddingX = 7.dp
+        val countBadgePaddingY = 2.dp
+        val kbdPaddingX = 7.dp
+        val kbdPaddingY = 3.dp
+
+        val metricTileWidth = 220.dp
+        val metricTilePadding = 16.dp
+        val metricTileGap = 8.dp
+
+        val shellPaddingX = 14.dp
+        val shellGap = 12.dp
+        val statusBarGap = 16.dp
+        val contextBarGap = 10.dp
+        val railStripGap = 10.dp
+    }
+
+    object Radius {
+        val tight = 3.dp
+        val control = 5.dp
+        val panel = 6.dp
+        val node = 7.dp
+        val countBadge = 9.dp
+        val statusPill = 12.dp
+    }
+
     object Type {
         val eyebrow = 9.5.sp
         val micro = 10.sp
         val caption = 10.5.sp
+        val row = 11.sp
         val body = 11.5.sp
+        val control = 12.5.sp
         val title = 13.sp
         val heading = 16.sp
         val display = 22.sp
         val eyebrowTracking = 0.12.sp
+        val badgeTracking = 1.sp
     }
 
     fun provenance(truth: TruthClass): ProvenanceColors = when (truth) {
