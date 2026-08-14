@@ -138,19 +138,30 @@ fun SignalButton(
     enabled: Boolean = true,
 ) = Row(
     modifier
-        .defaultMinSize(minHeight = 22.dp)
+        .height(MachineSignal.Metrics.buttonHeight)
         .background(if (enabled) tone.fill else Color.Transparent, MachineSignal.Shape.Control)
         .border(1.dp, if (enabled) tone.line else MachineSignal.Line1, MachineSignal.Shape.Control)
         .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
         .semantics { role = Role.Button; if (!enabled) disabled() }
-        .padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s1),
+        .padding(
+            horizontal = if (tone == SignalTone.Ghost) {
+                MachineSignal.Metrics.ghostPaddingX
+            } else {
+                MachineSignal.Metrics.buttonPaddingX
+            },
+        ),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.buttonGap),
     verticalAlignment = Alignment.CenterVertically,
 ) {
     SignalText(
         text = label,
         color = if (enabled) tone.text else MachineSignal.Text4,
-        size = MachineSignal.Type.caption,
-        weight = FontWeight.Medium,
+        size = MachineSignal.Type.control,
+        weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) {
+            FontWeight.SemiBold
+        } else {
+            FontWeight.Medium
+        },
     )
 }
 
@@ -166,7 +177,10 @@ fun SignalPill(
     modifier
         .background(fill, MachineSignal.Shape.Tight)
         .border(1.dp, line, MachineSignal.Shape.Tight)
-        .padding(horizontal = MachineSignal.Space.s2, vertical = 2.dp),
+        .padding(
+            horizontal = MachineSignal.Metrics.chipPaddingX,
+            vertical = MachineSignal.Metrics.chipPaddingY,
+        ),
 ) {
     SignalText(label, color = color, size = MachineSignal.Type.micro, weight = FontWeight.Medium, mono = mono)
 }
@@ -182,7 +196,10 @@ fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: St
         modifier
             .background(colors.soft, MachineSignal.Shape.Tight)
             .border(1.dp, colors.line, MachineSignal.Shape.Tight)
-            .padding(horizontal = MachineSignal.Space.s2, vertical = 2.dp)
+            .padding(
+                horizontal = MachineSignal.Metrics.chipPaddingX,
+                vertical = MachineSignal.Metrics.chipPaddingY,
+            )
             .testTag("provenance-${truth.name.lowercase()}"),
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         verticalAlignment = Alignment.CenterVertically,
@@ -203,8 +220,8 @@ fun MetricTile(
     modifier
         .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
         .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
-        .padding(MachineSignal.Space.s3),
-    verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
+        .padding(MachineSignal.Metrics.metricTilePadding),
+    verticalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.metricTileGap),
 ) {
     Row(
         Modifier.fillMaxWidth(),
@@ -231,7 +248,7 @@ fun KeyValueRow(
     modifier: Modifier = Modifier,
     keyWidth: Dp = 132.dp,
 ) = Row(
-    modifier.fillMaxWidth().padding(vertical = 3.dp),
+    modifier.fillMaxWidth().height(MachineSignal.Metrics.kvRowHeight),
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
     verticalAlignment = Alignment.CenterVertically,
 ) {
@@ -279,8 +296,12 @@ fun SubTab(
         .border(1.dp, if (selected) MachineSignal.Line3 else Color.Transparent, MachineSignal.Shape.Control)
         .clickable(role = Role.Tab, onClick = onClick)
         .semantics { this.selected = selected; this.role = Role.Tab }
-        .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
+        .padding(
+            start = MachineSignal.Metrics.subTabPaddingX,
+            end = MachineSignal.Metrics.subTabPaddingX,
+            top = MachineSignal.Metrics.subTabPaddingTop,
+        ),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
     verticalAlignment = Alignment.CenterVertically,
 ) {
     SignalText(
@@ -302,8 +323,8 @@ fun SubTabRow(modifier: Modifier = Modifier, content: @Composable RowScope.() ->
                 .fillMaxWidth()
                 .background(MachineSignal.Bg1)
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1),
-            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
+                .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
+            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
@@ -320,13 +341,14 @@ fun ContextBar(
     Row(
         Modifier
             .fillMaxWidth()
+            .height(MachineSignal.Metrics.contextBarHeight)
             .background(MachineSignal.Bg1)
-            .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
+            .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.contextBarGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             breadcrumb.forEachIndexed { index, crumb ->
