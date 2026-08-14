@@ -50,6 +50,20 @@ class NotificationContractsTest {
     }
 
     @Test
+    fun actionsDismissTheirNotificationUnlessTheyOptOut() {
+        // Android cannot rely on auto-cancel for buttons, so the common contract has to carry the
+        // intent: a plain button clears the notification, a snooze or reply can keep it.
+        assertTrue(NotificationActionSpec(id = "not_today", title = "Not today").dismissesNotification)
+        assertFalse(
+            NotificationActionSpec(
+                id = "snooze",
+                title = "Snooze",
+                dismissesNotification = false,
+            ).dismissesNotification,
+        )
+    }
+
+    @Test
     fun envelopeRoundTripsThroughProviderDataMap() {
         val envelope = NotificationEnvelope(
             id = "n-1",

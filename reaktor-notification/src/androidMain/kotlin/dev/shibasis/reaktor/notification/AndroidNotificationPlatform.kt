@@ -35,6 +35,7 @@ private const val EXTRA_ROUTE_TYPE = "reaktor_route_type"
 private const val EXTRA_ROUTE = "reaktor_route"
 private const val EXTRA_ROUTE_PAYLOAD = "reaktor_route_payload"
 private const val EXTRA_ACTION_ID = "reaktor_action_id"
+internal const val EXTRA_DISMISSES_NOTIFICATION = "reaktor_dismisses_notification"
 private const val EXTRA_REQUEST_JSON = "reaktor_request_json"
 private const val EXTRA_ENVELOPE_JSON = "reaktor_envelope_json"
 private const val ALARM_STORE_NAME = "reaktor_scheduled_alarms"
@@ -182,11 +183,13 @@ class AndroidNotificationRenderer(
         actionId: String,
         dismissed: Boolean = false,
         mutable: Boolean = false,
+        dismissesNotification: Boolean = false,
     ): PendingIntent {
         val intent = Intent(context, ReaktorNotificationActionReceiver::class.java)
             .setAction(if (dismissed) ACTION_NOTIFICATION_DISMISS else ACTION_NOTIFICATION_RESPONSE)
             .putExtra(EXTRA_ACTION_ID, actionId)
             .putExtra("reaktor_dismissed", dismissed)
+            .putExtra(EXTRA_DISMISSES_NOTIFICATION, dismissesNotification)
         putEnvelopeExtras(intent, envelope)
         return PendingIntent.getBroadcast(
             context,
@@ -201,6 +204,7 @@ class AndroidNotificationRenderer(
             envelope = envelope,
             actionId = spec.id,
             mutable = spec.kind == NotificationActionKind.TextInput,
+            dismissesNotification = spec.dismissesNotification,
         )
         @Suppress("DEPRECATION")
         val builder = Action.Builder(icon, spec.title, pendingIntent)
@@ -339,6 +343,12 @@ class ReaktorNotificationBootReceiver : BroadcastReceiver() {
 
 class ReaktorNotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        // Auto-cancel only covers a tap on the notification body, so an action button has to clear
+        // its own notification. Done here rather than in the handler so the shade updates the
+        // instant the button is pressed, whatever the response listener goes on to do.
+        if (intent.dismissesNotification()) {
+            context.cancelNotification(intent.getStringExtra(EXTRA_NOTIFICATION_ID))
+        }
         Dispatch.Default.launch {
             AndroidNotificationsRuntime.ensure(context).handleActionIntent(intent)
         }
@@ -480,6 +490,15 @@ private fun putEnvelopeExtras(intent: Intent, envelope: NotificationEnvelope) {
     intent.putExtra(EXTRA_CATEGORY_ID, envelope.categoryId)
     intent.putExtra(EXTRA_ENVELOPE_JSON, json.encodeToString(envelope))
     putRoute(intent, envelope.route)
+}
+
+/** Whether the action this intent carries should take its notification down with it. */
+internal fun Intent.dismissesNotification(): Boolean =
+    getBooleanExtra(EXTRA_DISMISSES_NOTIFICATION, false)
+
+internal fun Context.cancelNotification(id: String?) {
+    val notificationId = id?.takeIf { it.isNotEmpty() } ?: return
+    getSystemService(NotificationManager::class.java).cancel(notificationId.notificationRequestCode())
 }
 
 internal fun responseEventFromIntent(intent: Intent): NotificationResponseEvent {
