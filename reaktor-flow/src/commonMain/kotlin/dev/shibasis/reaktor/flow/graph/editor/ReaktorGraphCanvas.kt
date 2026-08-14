@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
@@ -26,6 +27,7 @@ fun ReaktorGraphCanvas(
     style: ReaktorGraphStyle? = null,
     state: ReactFlowState? = null,
     modifier: Modifier = Modifier,
+    lensResult: ReaktorGraphLensResult? = null,
 ) {
     val density = LocalDensity.current
     val reactFlowState = state ?: rememberReactFlowState()
@@ -41,6 +43,7 @@ fun ReaktorGraphCanvas(
         selectedNode = selectedNode,
         selectedGraphId = selectedGraphId,
         highlightedKind = highlightedKind,
+        lensResult = lensResult,
         onSelectNode = onSelectNode,
         onSelectGraph = onSelectGraph,
         onHighlightKind = onHighlightKind,

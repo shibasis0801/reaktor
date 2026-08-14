@@ -15,6 +15,7 @@ import dev.shibasis.composeflow.runtime.rememberEdgesState
 import dev.shibasis.composeflow.runtime.rememberNodesState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphNodeCard
 import dev.shibasis.reaktor.flow.graph.render.ReaktorGraphAccessibilityOverlay
@@ -32,6 +33,7 @@ internal fun ReaktorGraphScene(
     selectedNode: GraphNode?,
     selectedGraphId: String?,
     highlightedKind: ReaktorNodeKind?,
+    lensResult: ReaktorGraphLensResult?,
     onSelectNode: (GraphNode?) -> Unit,
     onSelectGraph: (String?) -> Unit,
     onHighlightKind: (ReaktorNodeKind?) -> Unit,
@@ -103,6 +105,7 @@ internal fun ReaktorGraphScene(
             overlay = { reactFlowState ->
                 ReaktorGraphChromeOverlay(
                     flow = flow,
+                    lensResult = lensResult,
                     state = reactFlowState,
                     highlightedKind = highlightedKind,
                     onHighlightKind = onHighlightKind,

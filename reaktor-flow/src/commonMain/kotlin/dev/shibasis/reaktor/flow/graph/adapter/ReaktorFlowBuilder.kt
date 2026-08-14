@@ -9,8 +9,8 @@ import dev.shibasis.reaktor.flow.graph.layout.BlueprintReaktorGraphLayoutStrateg
 import dev.shibasis.reaktor.flow.graph.layout.LayoutBounds
 import dev.shibasis.reaktor.flow.graph.layout.ReaktorGraphLayoutStrategy
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureLevel
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowScopeView
-import dev.shibasis.reaktor.flow.graph.model.allReaktorScopeIds
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphPalette
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
@@ -56,6 +56,8 @@ internal class ReaktorFlowBuilder(
     internal val scopeView: ReaktorFlowScopeView? = null,
     internal val layoutStrategy: ReaktorGraphLayoutStrategy = BlueprintReaktorGraphLayoutStrategy,
 ) {
+    internal lateinit var rootGraph: Graph
+    internal lateinit var scopeCatalog: dev.shibasis.reaktor.flow.graph.model.ReaktorRuntimeScopeCatalog
     internal val layouts = linkedMapOf<GraphNode, GraphNodeLayout>()
     internal val flowIdsByNode = linkedMapOf<GraphNode, String>()
     internal val graphIdsByNode = linkedMapOf<GraphNode, String>()
@@ -67,8 +69,27 @@ internal class ReaktorFlowBuilder(
     internal val extraNodes = mutableListOf<Node>()
 
     internal fun build(graph: Graph): ReaktorFlowGraph {
-        layoutGraph(graph, style.layout.rootOriginPx, style.layout.rootOriginPx, 0, ReaktorFlowScopeView.RootScopeId)
-        resolveEdges(graph, ReaktorFlowScopeView.RootScopeId)
+        rootGraph = graph
+        scopeCatalog = dev.shibasis.reaktor.flow.graph.model.buildReaktorRuntimeScopeCatalog(graph)
+        val focusedScopeId = scopeView?.focusedScopeId
+            ?.takeIf(scopeCatalog.graphs::containsKey)
+            ?: ReaktorFlowScopeView.RootScopeId
+        val focusedGraph = scopeCatalog.graph(focusedScopeId) ?: graph
+        val focusedDepth = scopeCatalog.scopes[focusedScopeId]?.depth ?: 0
+        if (scopeView?.architectureLevel == ReaktorArchitectureLevel.System) {
+            // At system context the focused architecture is intentionally one boundary. Moving to
+            // Container reveals its direct runtime nodes and child graph boundaries.
+            addScopeSummary(
+                child = focusedGraph,
+                scopeId = focusedScopeId,
+                originX = style.layout.rootOriginPx,
+                originY = style.layout.rootOriginPx,
+                depth = focusedDepth,
+            )
+        } else {
+            layoutGraph(focusedGraph, style.layout.rootOriginPx, style.layout.rootOriginPx, focusedDepth, focusedScopeId)
+            resolveEdges(focusedGraph, focusedScopeId)
+        }
         return ReaktorFlowGraph(
             nodes = layouts.values.map(::toFlowNode) + extraNodes,
             edges = edges.values.toList(),
@@ -78,7 +99,10 @@ internal class ReaktorFlowBuilder(
             graphIdsByNode = graphIdsByNode.toMap(),
             graphs = graphs.toMap(),
             style = style,
-            allScopeIds = allReaktorScopeIds(graph),
+            allScopeIds = scopeCatalog.scopes.keys,
+            scopes = scopeCatalog.scopes,
+            focusedScopeId = focusedScopeId,
+            architectureLevel = scopeView?.architectureLevel,
         )
     }
 
@@ -149,6 +173,7 @@ internal class ReaktorFlowBuilder(
         depth: Int,
     ): LayoutBounds {
         graphs[scopeId] = child
+        val scope = scopeCatalog.scopes[scopeId]
         val width = style.node.minWidthPx
         val height = measureNodeHeight(providerCount = 0, consumerCount = 0, style = style)
         extraNodes += Node(
@@ -168,6 +193,16 @@ internal class ReaktorFlowBuilder(
                 hiddenConsumerCount = 0,
                 kind = ReaktorNodeKind.Container,
                 isScopeSummary = true,
+                scopeId = scopeId,
+                scopePath = scopeCatalog.path(scopeId).map(dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureScope::id),
+                architectureLevel = scope?.level ?: dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureLevel.Container,
+                provenance = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphProvenance(
+                    origin = "runtime-scope",
+                    graphId = scopeId,
+                    graphLabel = graphLabel(child),
+                    runtimeType = child::class.qualifiedName,
+                    evidence = listOf("${child.nodes.size} runtime nodes"),
+                ),
             ),
             type = "graph",
             width = width,

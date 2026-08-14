@@ -96,7 +96,8 @@ class Dagger : CliktCommand("dagger") {
 private fun runDagger(env: ReaktorEnv, args: List<String>) {
     val p = env.requireProject()
     val dir = p.cloud["dagger"]?.let { File(p.root, it) }?.takeIf { it.exists() } ?: p.root
-    env.runner.run(listOf("dagger") + args.ifEmpty { listOf("functions") }, dir)
+    val argv = listOf("dagger") + args.ifEmpty { listOf("functions") }
+    runChecked(env, ProjectCommand(argv.joinToString(" "), argv, dir))
 }
 
 class CloudPulumi : CliktCommand("pulumi") {
@@ -105,7 +106,34 @@ class CloudPulumi : CliktCommand("pulumi") {
     override fun run() {
         val p = env.requireProject()
         val dir = p.cloud["pulumi"]?.let { File(p.root, it) }?.takeIf { it.exists() } ?: p.root
-        env.runner.run(listOf("pulumi") + args.ifEmpty { listOf("stack", "ls") }, dir)
+        val effectiveArgs = args.ifEmpty { listOf("stack", "ls") }
+        requireExplicitPulumiStack(effectiveArgs)
+        val argv = listOf("pulumi") + effectiveArgs
+        runChecked(env, ProjectCommand(argv.joinToString(" "), argv, dir))
+    }
+}
+
+fun requireExplicitPulumiStack(args: List<String>) {
+    val stackScopedVerbs = setOf(
+        "preview", "up", "refresh", "destroy", "import", "config", "cancel", "export",
+        "state", "history", "output", "watch", "logs", "console", "about",
+    )
+    val normalized = args.map(String::lowercase)
+    val stackSubcommand = normalized.indexOf("stack")
+        .takeIf { it >= 0 }
+        ?.let { normalized.getOrNull(it + 1) }
+    val stackCommandIsScoped = stackSubcommand != null && stackSubcommand !in setOf("ls", "select", "init")
+    if (normalized.none { it in stackScopedVerbs } && !stackCommandIsScoped) return
+    val hasInlineStack = args.any { argument ->
+        (argument.startsWith("--stack=") || argument.startsWith("-s=")) && argument.substringAfter('=').isNotBlank()
+    }
+    val stackFlag = args.indexOfFirst { it == "--stack" || it == "-s" }
+    val hasSeparateStack = stackFlag >= 0 && args.getOrNull(stackFlag + 1)?.takeUnless { it.startsWith('-') }?.isNotBlank() == true
+    if (!hasInlineStack && !hasSeparateStack) {
+        throw UsageError(
+            "Stack-scoped Pulumi commands require an explicit --stack <name> (or -s <name>); " +
+                "ambient stack selection is not allowed.",
+        )
     }
 }
 
@@ -119,6 +147,7 @@ class CloudInventory : CliktCommand("inventory") {
             body { p.workspaces.forEach { row(it.substringAfterLast('/'), it) } }
         })
         env.terminal.println(dim("cloudflare account:"))
-        env.runner.run(listOf("npx", "wrangler", "whoami"), p.root)
+        val argv = listOf("npx", "--no-install", "wrangler", "whoami")
+        runChecked(env, ProjectCommand(argv.joinToString(" "), argv, p.root))
     }
 }

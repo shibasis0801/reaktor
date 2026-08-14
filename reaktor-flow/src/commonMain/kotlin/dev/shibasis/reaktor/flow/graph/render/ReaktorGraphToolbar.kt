@@ -13,12 +13,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.components.Panel
 import dev.shibasis.composeflow.model.PanelPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
@@ -27,6 +29,7 @@ import dev.shibasis.reaktor.flow.graph.style.spOf
 @Composable
 internal fun BoxScope.GraphViewportToolbar(
     flow: ReaktorFlowGraph,
+    lensResult: ReaktorGraphLensResult? = null,
     state: ReactFlowState,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
@@ -51,7 +54,17 @@ internal fun BoxScope.GraphViewportToolbar(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.microGapPx) })) {
                     Text(
-                        text = "${flow.nodes.size} nodes • ${flow.edges.size} edges",
+                        text = buildString {
+                            append(flow.nodes.size)
+                            append(" nodes • ")
+                            append(flow.edges.size)
+                            append(" edges")
+                            lensResult?.takeIf { it.matchingNodeIds.size != flow.nodes.size }?.let {
+                                append(" • ")
+                                append(it.matchingNodeIds.size)
+                                append(" matches")
+                            }
+                        },
                         color = style.canvas.mutedText,
                         fontSize = with(density) { spOf(style.chrome.captionFontPx) },
                     )
@@ -60,8 +73,8 @@ internal fun BoxScope.GraphViewportToolbar(
                     horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ToolbarButton(label = "Fit", onClick = onFitView, style = style)
-                    ToolbarButton(label = "100%", onClick = onResetZoom, style = style)
+                    ToolbarButton(label = "Fit", testId = "reaktor-graph-fit", onClick = onFitView, style = style)
+                    ToolbarButton(label = "100%", testId = "reaktor-graph-reset-zoom", onClick = onResetZoom, style = style)
                     Surface(
                         color = style.canvas.panelSurface,
                         shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
@@ -78,8 +91,8 @@ internal fun BoxScope.GraphViewportToolbar(
                             ),
                         )
                     }
-                    ToolbarButton(label = "-", onClick = onZoomOut, style = style)
-                    ToolbarButton(label = "+", onClick = onZoomIn, style = style)
+                    ToolbarButton(label = "-", testId = "reaktor-graph-zoom-out", onClick = onZoomOut, style = style)
+                    ToolbarButton(label = "+", testId = "reaktor-graph-zoom-in", onClick = onZoomIn, style = style)
                 }
             }
         }
@@ -89,6 +102,7 @@ internal fun BoxScope.GraphViewportToolbar(
 @Composable
 private fun ToolbarButton(
     label: String,
+    testId: String,
     onClick: () -> Unit,
     style: ReaktorGraphStyle,
 ) {
@@ -104,6 +118,7 @@ private fun ToolbarButton(
             fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
             fontWeight = FontWeight.Medium,
             modifier = Modifier
+                .testTag(testId)
                 .clickable(onClick = onClick)
                 .padding(
                     horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },

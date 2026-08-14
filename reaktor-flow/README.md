@@ -64,6 +64,25 @@ That boundary is the reason the graph editor is now easier to understand and tun
 
 `ReaktorGraphEditor(...)` is the preferred high-level host surface for desktop/product code.
 
+## Architecture and C4 read model
+
+The runtime graph can also be projected as a primitive-only, serializable architecture snapshot:
+
+```kotlin
+val snapshot = buildReaktorArchitectureSnapshot(graph)
+val json = snapshot.encode()
+```
+
+`ReaktorArchitectureSnapshot` contains stable scopes, elements, typed relationships, ports, and
+provenance. Its named levels are `System`, `Container`, `Component`, and `Code`. Products can merge
+live operational facts through `ReaktorArchitectureOverlay`; open element kinds such as `task`,
+`resource`, `run`, `provider`, and `deployment` keep control-plane semantics out of this framework.
+
+`ReaktorFlowScopeView.focus(scopeId)` changes the canvas root without losing the breadcrumb path,
+and `atArchitectureLevel(...)` applies a C4 level relative to that focus. `ReaktorGraphLens` is the
+orthogonal search/relationship-filter primitive. Desktop composes these primitives; the canvas
+does not own product state.
+
 ## One graph style contract
 
 The single graph-scene tuning entrypoint is:

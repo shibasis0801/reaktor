@@ -157,9 +157,10 @@ class GradleModuleShortcut(private val moduleName: String) : CliktCommand(module
 }
 
 fun runChecked(env: ReaktorEnv, command: ProjectCommand) {
-    env.terminal.println(dim("→ ") + bold(command.label))
+    val safeLabel = env.runner.redactedCommand(command.command)
+    env.terminal.println(dim("→ ") + bold(safeLabel))
     val code = env.run(command)
-    if (code != 0) throw CliktError("${command.label} exited with $code")
+    if (code != 0) throw CliktError("$safeLabel exited with $code")
 }
 
 fun knownTopLevelNames(project: ReaktorProject?): Set<String> {

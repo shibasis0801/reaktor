@@ -26,6 +26,7 @@ import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
@@ -45,6 +46,7 @@ fun ReaktorGraphEditor(
     style: ReaktorGraphStyle? = null,
     modifier: Modifier = Modifier,
     state: ReactFlowState = rememberReactFlowState(),
+    lensResult: ReaktorGraphLensResult? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     val graphStyle = style ?: flow.style
@@ -94,6 +96,7 @@ fun ReaktorGraphEditor(
             selectedNode = selectedNode,
             selectedGraphId = selectedGraphId,
             highlightedKind = highlightedKind,
+            lensResult = lensResult,
             onSelectNode = onSelectNode,
             onSelectGraph = onSelectGraph,
             onHighlightKind = onHighlightKind,

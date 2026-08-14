@@ -6,11 +6,14 @@ fun selectDeployTarget(env: ReaktorEnv, project: ReaktorProject, args: List<Stri
     selectOption(
         env = env,
         title = "deploy target",
-        options = project.deployPickerOptions(args),
+        options = project.deployPickerOptions(args, env.runner::redactedCommand),
         emptyMessage = "No deploy commands found. Add a target deploy, deploy<Name> script, or targets/<name>/deploy.sh.",
     )
 
-internal fun ReaktorProject.deployPickerOptions(args: List<String>): List<PickerOption> {
+fun ReaktorProject.deployPickerOptions(
+    args: List<String>,
+    renderCommand: (List<String>) -> String = { it.joinToString(" ") },
+): List<PickerOption> {
     val names = linkedSetOf<String>()
     names += projectTargetNames
     names += targets.keys.map { targetDisplayName(it) }
@@ -19,7 +22,8 @@ internal fun ReaktorProject.deployPickerOptions(args: List<String>): List<Picker
     val seenCommands = linkedSetOf<String>()
     return names.mapNotNull { name ->
         val command = deployCommand(name, args) ?: return@mapNotNull null
-        if (!seenCommands.add(command.label)) return@mapNotNull null
+        val safeCommand = renderCommand(command.command)
+        if (!seenCommands.add(safeCommand)) return@mapNotNull null
 
         val target = declaredTargetForName(name)
         val projectTarget = projectTarget(name)
@@ -30,11 +34,11 @@ internal fun ReaktorProject.deployPickerOptions(args: List<String>): List<Picker
         PickerOption(
             value = name,
             label = name,
-            detail = "$kind · $surface · ${command.label}",
+            detail = "$kind · $surface · $safeCommand",
             keywords = listOfNotNull(
                 kind,
                 surface,
-                command.label,
+                safeCommand,
                 target?.name,
                 target?.workspace,
                 target?.workspace?.substringAfterLast('/'),

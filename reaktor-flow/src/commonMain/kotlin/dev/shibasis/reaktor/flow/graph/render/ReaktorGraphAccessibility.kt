@@ -27,8 +27,16 @@ internal data class ReaktorGraphAccessibilityItem(
     val label: String,
 )
 
-internal fun graphNodeAccessibilityLabel(data: ReaktorGraphNodeData): String =
-    "Graph node: ${data.title}; kind ${data.kind.label}; graph ${data.graphLabel}"
+internal fun graphNodeAccessibilityLabel(data: ReaktorGraphNodeData): String = buildString {
+    append("Graph node: ${data.title}; kind ${data.kind.label}; graph ${data.graphLabel}")
+    append("; architecture ${data.architectureLevel.label.lowercase()}")
+    data.status?.takeIf(String::isNotBlank)?.let { append("; status $it") }
+    append("; provenance ${data.provenance.origin}")
+    data.provenance.runtimeType?.takeIf(String::isNotBlank)?.let { append("; runtime $it") }
+    data.provenance.evidence.takeIf(List<String>::isNotEmpty)?.let { evidence ->
+        append("; evidence ${evidence.joinToString()}")
+    }
+}
 
 internal fun graphPortAccessibilityLabel(
     node: ReaktorGraphNodeData,

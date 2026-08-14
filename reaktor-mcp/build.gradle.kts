@@ -10,6 +10,7 @@ plugins {
 kotlin {
     common {
         dependencies {
+            commonSerialization(protobuf = false)
             implementation("io.modelcontextprotocol:kotlin-sdk-client:0.7.2")
         }
     }
