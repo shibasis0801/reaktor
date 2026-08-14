@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -44,6 +45,7 @@ internal fun BoxScope.ReaktorGraphNodeCard(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .testTag("reaktor-graph-node-${props.id.asTestIdSegment()}")
             .then(
                 activation?.let { activate ->
                     Modifier.pointerInput(activate) {
@@ -100,6 +102,14 @@ internal fun BoxScope.ReaktorGraphNodeCard(
         }
     }
 }
+
+private fun String.asTestIdSegment(): String =
+    lowercase().map { character ->
+        when {
+            character.isLetterOrDigit() || character == '.' || character == '_' || character == '-' -> character
+            else -> '-'
+        }
+    }.joinToString("").trim('-').ifBlank { "node" }
 
 /** Uppercase mono type badge per node kind — the Machine Signal node-anatomy tag. */
 private fun kindTag(kind: ReaktorNodeKind): String = when (kind.label) {

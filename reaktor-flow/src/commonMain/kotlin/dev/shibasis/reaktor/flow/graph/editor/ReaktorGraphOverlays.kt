@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.unit.Dp
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.render.GraphKindLegend
 import dev.shibasis.reaktor.flow.graph.render.GraphMiniMap
@@ -20,6 +21,7 @@ import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 @androidx.compose.runtime.Composable
 internal fun BoxScope.ReaktorGraphChromeOverlay(
     flow: ReaktorFlowGraph,
+    lensResult: ReaktorGraphLensResult? = null,
     state: ReactFlowState,
     highlightedKind: ReaktorNodeKind?,
     onHighlightKind: (ReaktorNodeKind?) -> Unit,
@@ -32,6 +34,7 @@ internal fun BoxScope.ReaktorGraphChromeOverlay(
 ) {
     GraphViewportToolbar(
         flow = flow,
+        lensResult = lensResult,
         state = state,
         onZoomIn = onZoomIn,
         onZoomOut = onZoomOut,

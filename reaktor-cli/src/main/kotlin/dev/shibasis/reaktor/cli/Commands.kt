@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.cli
 
-import com.github.ajalt.clikt.core.Abort
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.UsageError
@@ -15,7 +14,6 @@ import com.github.ajalt.mordant.rendering.TextColors.red
 import com.github.ajalt.mordant.rendering.TextStyles.bold
 import com.github.ajalt.mordant.rendering.TextStyles.dim
 import com.github.ajalt.mordant.table.table
-import com.github.ajalt.mordant.terminal.YesNoPrompt
 import java.io.File
 
 /** `reaktor tasks` — the project model (targets, workers, servers, stores, families), organized. */
@@ -54,7 +52,7 @@ class Logs : CliktCommand() {
         val p = env.requireProject()
         val command = p.logsCommand(service, args) ?: ProjectCommand(
             label = "npx wrangler tail $service",
-            command = listOf("npx", "wrangler", "tail", service) + args,
+            command = listOf("npx", "--no-install", "wrangler", "tail", service) + args,
             cwd = p.root,
         )
         runChecked(env, command)
@@ -92,16 +90,15 @@ class Build : CliktCommand() {
 }
 
 /**
- * `reaktor deploy [target|service]` — runs straight away (no prompt). Resolves a declared
+ * `reaktor deploy [target|service]` — resolves a declared
  * target's deploy script, or a `deploy<Name>` service script (e.g. `reaktor deploy chat`).
  * With no target, opens an interactive fuzzy selector over every resolved deploy option.
- * `--confirm`/`-i` asks first; `--dry-run`/`-n` previews without running.
+ * External writes always ask for approval; `--dry-run`/`-n` previews without running.
  */
 class Deploy : CliktCommand() {
     private val env by requireObject<ReaktorEnv>()
     private val target by argument(help = "a declared target, or a service with a deploy<Name> script").optional()
     private val args by argument(help = "extra args for the deploy command").multiple()
-    private val confirm by option("--confirm", "-i", help = "ask for confirmation before running").flag()
     private val dryRun by option("--dry-run", "-n", help = "show what would run, don't run it").flag()
     override fun run() {
         val p = env.requireProject()
@@ -110,17 +107,15 @@ class Deploy : CliktCommand() {
         val command = p.deployCommand(selectedTarget, args) ?: throw UsageError(
             "No deploy for '$selectedTarget'. Try `reaktor tasks` or add a target deploy, deploy<Name> script, or targets/$selectedTarget/deploy.sh."
         )
+        val safeCommand = env.runner.redactedCommand(command.command)
         if (dryRun) {
-            env.terminal.println(dim("dry run") + " — would run: " + bold(command.label))
+            env.terminal.println(dim("dry run") + " — would run: " + bold(safeCommand))
             return
         }
-        if (confirm) {
-            env.terminal.println(table {
-                header { row("target", "runtime", "via") }
-                body { row(selectedTarget, t?.runtime ?: "service", command.label) }
-            })
-            if (YesNoPrompt("Proceed?", env.terminal).ask() != true) throw Abort()
-        }
+        env.terminal.println(table {
+            header { row("target", "runtime", "via") }
+            body { row(selectedTarget, t?.runtime ?: "service", safeCommand) }
+        })
         runChecked(env, command)
     }
 }
@@ -169,9 +164,10 @@ class Gradle : CliktCommand("gradle") {
         val command = if (first in p.gradleModules) {
             p.buildCommand(first, args.drop(1))
         } else {
+            val wrapper = p.gradleWrapper()
             ProjectCommand(
-                label = "./gradlew ${args.joinToString(" ")}",
-                command = listOf("./gradlew") + args,
+                label = "${wrapper.name} ${args.joinToString(" ")}",
+                command = listOf(wrapper.absolutePath) + args,
                 cwd = p.root,
             )
         } ?: throw UsageError("No gradle command for '${args.joinToString(" ")}'.")
@@ -225,10 +221,12 @@ class Doctor : CliktCommand() {
     private val env by requireObject<ReaktorEnv>()
     override fun run() {
         val t = env.terminal
-        val cwd = File(System.getProperty("user.dir"))
+        val cwd = env.project?.root ?: File(System.getProperty("user.dir"))
         t.println(bold("reaktor doctor"))
+        var failed = false
         fun check(label: String, cmd: List<String>) {
             val (code, out) = env.runner.capture(cmd, cwd)
+            if (code != 0) failed = true
             val line = out.lineSequence()
                 .firstOrNull {
                     it.isNotBlank() && !it.startsWith("WARNING") && !it.startsWith("-") && !it.startsWith("npm ")
@@ -239,15 +237,18 @@ class Doctor : CliktCommand() {
         check("node", listOf("node", "--version"))
         check("npm", listOf("npm", "--version"))
         check("java", listOf("java", "-version"))
-        check("gradle", listOf("./gradlew", "--version"))
-        check("wrangler", listOf("npx", "wrangler", "--version"))
+        val wrapper = env.project?.gradleWrapper()?.absolutePath ?: "./gradlew"
+        check("gradle", listOf(wrapper, "--version"))
+        check("wrangler", listOf("npx", "--no-install", "wrangler", "--version"))
         val p = env.project
         if (p != null) {
             t.println("  " + green("✓") + " project ${p.name}  " + dim(p.root.path))
             t.println("    " + dim("${p.targets.size} targets · ${p.scripts.size} scripts · ${p.services.size} services · ${p.gradleModules.size} gradle modules"))
         } else {
+            failed = true
             t.println("  " + red("✗") + " no reaktor project found (need a package.json with a \"reaktor\" key)")
         }
+        if (failed) throw CliktError("doctor found missing or unhealthy required tooling")
     }
 }
 

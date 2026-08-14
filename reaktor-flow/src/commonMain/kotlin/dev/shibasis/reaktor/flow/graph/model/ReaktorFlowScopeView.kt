@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.flow.graph.model
 
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.node.ContainerNode
 
 /**
  * Hierarchical view state over a [ReaktorFlowGraph].
@@ -31,23 +30,61 @@ import dev.shibasis.reaktor.graph.core.node.ContainerNode
  */
 data class ReaktorFlowScopeView(
     val expandedScopeIds: Set<String> = emptySet(),
+    val focusedScopeId: String = RootScopeId,
+    val architectureLevel: ReaktorArchitectureLevel? = ReaktorArchitectureLevel.Container,
 ) {
     fun isExpanded(scopeId: String): Boolean = scopeId in expandedScopeIds
 
     /** Expand [scopeId] (and its ancestors, so the path to it is visible). */
     fun expand(scopeId: String): ReaktorFlowScopeView =
-        copy(expandedScopeIds = expandedScopeIds + ancestorsInclusive(scopeId))
+        copy(
+            expandedScopeIds = expandedScopeIds + ancestorsInclusive(scopeId),
+            architectureLevel = null,
+        )
 
     /** Collapse [scopeId] and everything nested beneath it. */
     fun collapse(scopeId: String): ReaktorFlowScopeView =
-        copy(expandedScopeIds = expandedScopeIds.filterNot { it == scopeId || it.startsWith("$scopeId/") }.toSet())
+        copy(
+            expandedScopeIds = expandedScopeIds.filterNot { it == scopeId || it.startsWith("$scopeId/") }.toSet(),
+            architectureLevel = null,
+        )
 
     fun toggle(scopeId: String): ReaktorFlowScopeView =
         if (isExpanded(scopeId)) collapse(scopeId) else expand(scopeId)
 
     /** Expand every scope in [allScopeIds] (see [allReaktorScopeIds]). */
     fun expandAll(allScopeIds: Collection<String>): ReaktorFlowScopeView =
-        copy(expandedScopeIds = allScopeIds.toSet())
+        copy(
+            expandedScopeIds = allScopeIds.filterTo(mutableSetOf()) { isDescendantOrSelf(it, focusedScopeId) },
+            architectureLevel = ReaktorArchitectureLevel.Code,
+        )
+
+    /** Focus one scope as the new canvas root. Breadcrumbs retain the path back to [RootScopeId]. */
+    fun focus(scopeId: String): ReaktorFlowScopeView = copy(
+        focusedScopeId = scopeId,
+        expandedScopeIds = emptySet(),
+        architectureLevel = ReaktorArchitectureLevel.Container,
+    )
+
+    /** Apply a named C4 level relative to the currently focused scope. */
+    fun atArchitectureLevel(
+        level: ReaktorArchitectureLevel,
+        scopes: Collection<ReaktorArchitectureScope>,
+    ): ReaktorFlowScopeView {
+        val descendants = scopes.filter { isDescendantOrSelf(it.id, focusedScopeId) }
+        val expanded = when (level) {
+            ReaktorArchitectureLevel.System,
+            ReaktorArchitectureLevel.Container -> emptySet()
+
+            ReaktorArchitectureLevel.Component -> descendants
+                .filterTo(mutableSetOf()) { it.parentId == focusedScopeId }
+                .mapTo(mutableSetOf(), ReaktorArchitectureScope::id)
+
+            ReaktorArchitectureLevel.Code -> descendants
+                .mapTo(mutableSetOf(), ReaktorArchitectureScope::id)
+        }
+        return copy(expandedScopeIds = expanded, architectureLevel = level)
+    }
 
     /**
      * C4-style level view: level 1 shows only the root scope's own nodes (every child collapsed
@@ -56,7 +93,10 @@ data class ReaktorFlowScopeView(
      */
     fun collapseToLevel(level: Int, allScopeIds: Collection<String>): ReaktorFlowScopeView {
         val clamped = level.coerceIn(1, levelCount(allScopeIds))
-        return copy(expandedScopeIds = allScopeIds.filterTo(mutableSetOf()) { depthOf(it) < clamped })
+        return copy(
+            expandedScopeIds = allScopeIds.filterTo(mutableSetOf()) { depthOf(it) < clamped },
+            architectureLevel = null,
+        )
     }
 
     fun isFullyExpanded(allScopeIds: Collection<String>): Boolean =
@@ -96,6 +136,9 @@ data class ReaktorFlowScopeView(
                 add(acc!!)
             }
         }
+
+        fun isDescendantOrSelf(scopeId: String, ancestorId: String): Boolean =
+            scopeId == ancestorId || scopeId.startsWith("$ancestorId/")
     }
 }
 
@@ -105,14 +148,5 @@ data class ReaktorFlowScopeView(
  * (i-th child graph of each `ContainerNode`, in node order → `"$parent/$i"`), so these ids
  * are exactly the ones [ReaktorFlowScopeView] operations and the editors exchange.
  */
-fun allReaktorScopeIds(graph: Graph): Set<String> = buildSet {
-    fun walk(scope: Graph, scopeId: String) {
-        add(scopeId)
-        scope.nodes.filterIsInstance<ContainerNode>().forEach { container ->
-            container.graphs.forEachIndexed { index, child ->
-                walk(child, ReaktorFlowScopeView.childScopeId(scopeId, index))
-            }
-        }
-    }
-    walk(graph, ReaktorFlowScopeView.RootScopeId)
-}
+fun allReaktorScopeIds(graph: Graph): Set<String> =
+    buildReaktorRuntimeScopeCatalog(graph).scopes.keys

@@ -11,6 +11,7 @@ import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.reaktor.flow.graph.model.ReaktorEdgeKind
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphEdgeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
+import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowScopeView
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
@@ -81,8 +82,8 @@ internal fun ReaktorFlowBuilder.resolveEdges(graph: Graph, graphId: String) {
             }
 
         if (node is ContainerNode) {
-            node.graphs.forEachIndexed { index, child ->
-                val childScopeId = "$graphId/$index"
+            node.graphs.forEach childScope@{ child ->
+                val childScopeId = scopeCatalog.id(child) ?: return@childScope
                 if (shouldExpand(childScopeId)) {
                     graphRootRoute(child)?.let { rootRoute ->
                         val rootLayout = layouts[rootRoute] ?: return@let
@@ -151,6 +152,8 @@ internal fun ReaktorFlowBuilder.addEdge(
 
 internal fun ReaktorFlowBuilder.toFlowNode(layout: GraphNodeLayout): Node {
     val graphNode = layout.graphNode
+    val scopeId = scopeCatalog.id(layout.graph) ?: ReaktorFlowScopeView.RootScopeId
+    val scope = scopeCatalog.scopes[scopeId]
     return Node(
         id = layout.flowId,
         position = XYPosition(layout.x, layout.y),
@@ -167,6 +170,22 @@ internal fun ReaktorFlowBuilder.toFlowNode(layout: GraphNodeLayout): Node {
             hiddenProviderCount = layout.hiddenProviderCount,
             hiddenConsumerCount = layout.hiddenConsumerCount,
             kind = reaktorNodeKind(graphNode),
+            scopeId = scopeId,
+            scopePath = scopeCatalog.path(scopeId).map(dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureScope::id),
+            architectureLevel = dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureLevel.Code,
+            attributes = buildMap {
+                put("runtimeType", graphNode::class.qualifiedName ?: graphNode::class.simpleName.orEmpty())
+                if (layout.providerCount > 0) put("providerCount", layout.providerCount.toString())
+                if (layout.consumerCount > 0) put("consumerCount", layout.consumerCount.toString())
+                scope?.parentId?.let { put("parentScopeId", it) }
+            },
+            provenance = dev.shibasis.reaktor.flow.graph.model.ReaktorGraphProvenance(
+                origin = "runtime-graph",
+                graphId = scopeId,
+                graphLabel = graphLabel(layout.graph),
+                runtimeType = graphNode::class.qualifiedName,
+                evidence = listOf("Graph.nodes", "typed provider/consumer ports"),
+            ),
         ),
         type = "graph",
         width = layout.width,

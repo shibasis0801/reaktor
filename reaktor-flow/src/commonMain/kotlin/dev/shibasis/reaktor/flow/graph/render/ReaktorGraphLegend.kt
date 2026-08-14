@@ -20,6 +20,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.components.Panel
@@ -47,10 +50,12 @@ internal fun BoxScope.GraphKindLegend(
 
     Panel(position = PanelPosition.BottomLeft, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Column(
-            modifier = Modifier.padding(
-                horizontal = with(density) { dpOf(style.chrome.shellPaddingXPx) },
-                vertical = with(density) { dpOf(style.chrome.shellPaddingYPx) },
-            ),
+            modifier = Modifier
+                .testTag("reaktor-graph-legend")
+                .padding(
+                    horizontal = with(density) { dpOf(style.chrome.shellPaddingXPx) },
+                    vertical = with(density) { dpOf(style.chrome.shellPaddingYPx) },
+                ),
             verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
         ) {
             // Hide kinds that aren't present in the current graph (count == 0).
@@ -62,6 +67,8 @@ internal fun BoxScope.GraphKindLegend(
                 val selected = highlightedKind == kind
                 Row(
                     modifier = Modifier
+                        .testTag("reaktor-graph-legend-${kind.name.lowercase()}")
+                        .semantics { this.selected = selected }
                         .width(with(density) { dpOf(style.chrome.legendWidthPx) })
                         .background(
                             if (selected) kind.bodyColor.copy(alpha = 0.95f) else style.legendItemSurface(),

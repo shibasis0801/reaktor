@@ -68,6 +68,16 @@ data class ReaktorGraphNodeData(
     val kind: ReaktorNodeKind,
     // True for the synthetic boundary card standing in for a collapsed child scope.
     val isScopeSummary: Boolean = false,
+    val scopeId: String = ReaktorFlowScopeView.RootScopeId,
+    val scopePath: List<String> = listOf(ReaktorFlowScopeView.RootScopeId),
+    val architectureLevel: ReaktorArchitectureLevel = ReaktorArchitectureLevel.Code,
+    val status: String? = null,
+    val attributes: Map<String, String> = emptyMap(),
+    val provenance: ReaktorGraphProvenance = ReaktorGraphProvenance(
+        origin = "runtime",
+        graphId = ReaktorFlowScopeView.RootScopeId,
+        graphLabel = "Graph",
+    ),
 )
 
 data class ReaktorGraphEdgeData(
@@ -98,4 +108,8 @@ data class ReaktorFlowGraph(
     // Full scope-id universe of the SOURCE graph (view-independent), for level operations —
     // `graphs` only contains scopes visible under the current projection.
     val allScopeIds: Set<String> = emptySet(),
+    // View-independent scope metadata for breadcrumbs, drill-down, C4 labels, and MCP exports.
+    val scopes: Map<String, ReaktorArchitectureScope> = emptyMap(),
+    val focusedScopeId: String = ReaktorFlowScopeView.RootScopeId,
+    val architectureLevel: ReaktorArchitectureLevel? = null,
 )

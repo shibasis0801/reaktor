@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -52,6 +53,7 @@ internal fun BoxScope.GraphMiniMap(
     Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Box(
             modifier = Modifier
+                .testTag("reaktor-graph-minimap")
                 .padding(end = rightInset)
                 .size(
                     width = with(density) { dpOf(style.chrome.miniMapWidthPx) },
