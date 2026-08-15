@@ -141,13 +141,13 @@ fun JumpOutStrip(
     Row(
         modifier
             .fillMaxWidth()
-            .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
-            .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
+            .background(MachineSignal.Bg1)
+            .testTag("jump-out")
             .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Eyebrow("Jump out")
+        Eyebrow("Consoles")
         links.forEach { (label, url) ->
             SignalButton(label, onClick = { onOpen(url) }, tone = SignalTone.Ghost)
         }
@@ -200,18 +200,21 @@ fun SignalPanel(
     background: Color = MachineSignal.Bg1,
     contentPadding: Dp = MachineSignal.Space.s3,
     content: @Composable ColumnScope.() -> Unit,
-) = Column(
-    modifier
-        .background(background, MachineSignal.Shape.Panel)
-        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel),
-) {
+) = Column(modifier.background(background)) {
     if (title != null || trailing != null) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = contentPadding, vertical = MachineSignal.Space.s2),
+            Modifier
+                .fillMaxWidth()
+                .height(34.dp)
+                .padding(horizontal = contentPadding),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Eyebrow(title.orEmpty())
+            SignalText(
+                text = title.orEmpty(),
+                color = MachineSignal.Text2,
+                weight = FontWeight.Medium,
+            )
             if (trailing != null) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
