@@ -3,6 +3,9 @@ package dev.shibasis.reaktor.ui.machinesignal
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -21,10 +24,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.disabled
@@ -122,11 +129,11 @@ fun SignalPanel(
     Column(Modifier.padding(contentPadding), content = content)
 }
 
-enum class SignalTone(val fill: Color, val text: Color, val line: Color) {
-    Primary(MachineSignal.AccentSoft, MachineSignal.AccentText, MachineSignal.AccentLine),
-    Secondary(MachineSignal.Bg3, MachineSignal.Text1, MachineSignal.Line2),
-    Ghost(Color.Transparent, MachineSignal.Text2, MachineSignal.Line1),
-    Danger(Color(0x14FF666B), MachineSignal.Status.Error, Color(0x52FF666B)),
+enum class SignalTone(val fill: Color, val text: Color, val line: Color, val hover: Color) {
+    Primary(MachineSignal.AccentSoft, MachineSignal.AccentText, MachineSignal.AccentLine, Color(0x385C80FF)),
+    Secondary(MachineSignal.Bg3, MachineSignal.Text1, MachineSignal.Line2, MachineSignal.Bg4),
+    Ghost(Color.Transparent, MachineSignal.Text2, MachineSignal.Line1, MachineSignal.Bg2),
+    Danger(Color(0x14FF666B), MachineSignal.Status.Error, Color(0x52FF666B), Color(0x30FF666B)),
 }
 
 @Composable
@@ -374,15 +381,34 @@ fun SignalRow(
     modifier: Modifier = Modifier,
     accent: Color? = null,
     content: @Composable RowScope.() -> Unit,
-) = Row(
-    modifier
-        .fillMaxWidth()
-        .background(if (selected) MachineSignal.SelectedSoft else Color.Transparent)
-        .clickable(role = Role.Button, onClick = onClick)
-        .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
-    verticalAlignment = Alignment.CenterVertically,
 ) {
-    if (accent != null) StatusDot(accent)
-    content()
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .hoverable(interaction)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .background(rowSurface(selected, hovered))
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
+            .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (accent != null) StatusDot(accent)
+        content()
+    }
+}
+
+fun rowSurface(selected: Boolean, hovered: Boolean): Color = when {
+    selected -> MachineSignal.SelectedSoft
+    hovered -> MachineSignal.Bg2
+    else -> Color.Transparent
+}
+
+@Composable
+fun rememberHover(): Pair<MutableInteractionSource, Boolean> {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    return interaction to hovered
 }
