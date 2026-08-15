@@ -13,14 +13,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -93,30 +97,36 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = MachineS
 )
 
 @Composable
-fun PaneHero(
+fun PaneToolbar(
     title: String,
-    subtitle: String,
     modifier: Modifier = Modifier,
-    trailing: (@Composable RowScope.() -> Unit)? = null,
+    counts: List<Pair<String, Int>> = emptyList(),
+    actions: (@Composable RowScope.() -> Unit)? = null,
 ) = Row(
     modifier
         .fillMaxWidth()
-        .height(64.dp)
-        .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
-        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
-        .padding(horizontal = MachineSignal.Space.s4),
-    horizontalArrangement = Arrangement.SpaceBetween,
+        .height(40.dp)
+        .background(MachineSignal.Bg1)
+        .padding(horizontal = MachineSignal.Space.s3),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        SignalText(title, color = MachineSignal.Text1, size = MachineSignal.Type.heading, weight = FontWeight.SemiBold)
-        SignalText(subtitle, color = MachineSignal.Text4, size = MachineSignal.Type.caption)
+    SignalText(title, color = MachineSignal.Text1, size = MachineSignal.Type.title, weight = FontWeight.SemiBold)
+    counts.forEach { (label, value) ->
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SignalText(value.toString(), color = MachineSignal.Text2, size = MachineSignal.Type.caption, mono = true)
+            SignalText(label, color = MachineSignal.Text4, size = MachineSignal.Type.caption)
+        }
     }
-    if (trailing != null) {
+    Spacer(Modifier.weight(1f))
+    if (actions != null) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
-            content = trailing,
+            content = actions,
         )
     }
 }
@@ -143,6 +153,40 @@ fun JumpOutStrip(
         }
     }
 }
+
+data class SignalAction(val label: String, val enabled: Boolean = true, val onInvoke: () -> Unit)
+
+@Composable
+fun SignalContextMenu(
+    actions: List<SignalAction>,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+) {
+    if (actions.isEmpty()) return
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        modifier = Modifier.background(MachineSignal.Bg2),
+    ) {
+        actions.forEach { action ->
+            DropdownMenuItem(
+                enabled = action.enabled,
+                onClick = { onDismiss(); action.onInvoke() },
+                text = {
+                    SignalText(
+                        action.label,
+                        color = if (action.enabled) MachineSignal.Text2 else MachineSignal.Text4,
+                        size = MachineSignal.Type.caption,
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+fun VerticalDivider(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
+    Box(modifier.fillMaxHeight().width(1.dp).background(color))
 
 @Composable
 fun DividerLine(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =

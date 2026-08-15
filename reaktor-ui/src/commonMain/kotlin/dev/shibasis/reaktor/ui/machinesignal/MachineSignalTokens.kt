@@ -144,17 +144,16 @@ object MachineSignal {
     }
 
     object Type {
-        val eyebrow = 9.5.sp
-        val micro = 10.sp
-        val caption = 10.5.sp
-        val row = 11.sp
-        val body = 11.5.sp
+        val micro = 11.sp
+        val caption = 12.sp
+        val body = 13.sp
         val control = 12.5.sp
-        val title = 13.sp
-        val heading = 16.sp
-        val display = 22.sp
-        val eyebrowTracking = 0.12.sp
-        val badgeTracking = 1.sp
+        val title = 15.sp
+        val heading = 20.sp
+        val display = 28.sp
+
+        val eyebrow = 11.sp
+        val eyebrowTracking = 0.08.sp
     }
 
     fun provenance(truth: TruthClass): ProvenanceColors = when (truth) {
