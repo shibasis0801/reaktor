@@ -134,7 +134,7 @@ class ReaktorMcpReadServer(
                     put("text", json.encodeToString(JsonElement.serializer(), result))
                 }
             }
-            put("structuredContent", result)
+            put("structuredContent", result as? JsonObject ?: buildJsonObject { put("result", result) })
             put("isError", false)
         })
     }
