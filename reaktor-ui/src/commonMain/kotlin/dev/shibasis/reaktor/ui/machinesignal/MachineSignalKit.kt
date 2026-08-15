@@ -93,6 +93,58 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = MachineS
 )
 
 @Composable
+fun PaneHero(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+) = Row(
+    modifier
+        .fillMaxWidth()
+        .height(64.dp)
+        .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
+        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
+        .padding(horizontal = MachineSignal.Space.s4),
+    horizontalArrangement = Arrangement.SpaceBetween,
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        SignalText(title, color = MachineSignal.Text1, size = MachineSignal.Type.heading, weight = FontWeight.SemiBold)
+        SignalText(subtitle, color = MachineSignal.Text4, size = MachineSignal.Type.caption)
+    }
+    if (trailing != null) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+            verticalAlignment = Alignment.CenterVertically,
+            content = trailing,
+        )
+    }
+}
+
+@Composable
+fun JumpOutStrip(
+    links: List<Pair<String, String>>,
+    onOpen: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (links.isEmpty()) return
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
+            .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
+            .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Eyebrow("Jump out")
+        links.forEach { (label, url) ->
+            SignalButton(label, onClick = { onOpen(url) }, tone = SignalTone.Ghost)
+        }
+    }
+}
+
+@Composable
 fun DividerLine(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
     Box(modifier.fillMaxWidth().height(1.dp).background(color))
 
