@@ -90,9 +90,11 @@ internal fun ReaktorNodeTitle(
             .background(titleColor),
     ) {
         Layout(
+            // Vertical centring happens in the layout block against the full band height — a fixed
+            // vertical padding cropped the 12.5px mono ascenders inside the authored 26px band.
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = titlePaddingX, vertical = titlePaddingY),
+                .padding(horizontal = titlePaddingX),
             content = {
                 Text(
                     text = title,
@@ -137,12 +139,11 @@ internal fun ReaktorNodeTitle(
                         .coerceAtLeast(0),
                 ),
             )
-            val contentHeight = maxOf(titlePlaceable.height, badgePlaceable?.height ?: 0)
             layout(constraints.maxWidth, constraints.maxHeight) {
-                val titleY = ((contentHeight - titlePlaceable.height) / 2).coerceAtLeast(0)
+                val titleY = ((constraints.maxHeight - titlePlaceable.height) / 2).coerceAtLeast(0)
                 titlePlaceable.placeRelative(0, titleY)
                 badgePlaceable?.let { badge ->
-                    val badgeY = ((contentHeight - badge.height) / 2).coerceAtLeast(0)
+                    val badgeY = ((constraints.maxHeight - badge.height) / 2).coerceAtLeast(0)
                     badge.placeRelative(constraints.maxWidth - badge.width, badgeY)
                 }
             }

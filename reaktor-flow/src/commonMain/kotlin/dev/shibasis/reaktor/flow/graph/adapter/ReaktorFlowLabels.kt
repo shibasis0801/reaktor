@@ -34,7 +34,11 @@ internal fun nodeSubtitle(node: GraphNode): String? = when (node) {
 
 internal fun pinLabel(key: String, typeName: String): String {
     val trimmed = key.trim()
-    return if (trimmed.isEmpty() || looksLikeUuid(trimmed)) shortType(typeName) else trimmed
+    if (trimmed.isEmpty() || looksLikeUuid(trimmed)) return shortType(typeName)
+    // Service ports keyed by full contract paths render as the leaf name — the boards label pins
+    // `getPack`, not `ai.bestbuds.app.data.services.StickerRequest.GetPack.getPack`. The full key
+    // stays on the port data for inspectors; only the pin label is shortened.
+    return trimmed.substringAfterLast('.')
 }
 
 internal fun shortType(type: String): String {
