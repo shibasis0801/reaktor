@@ -290,16 +290,20 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
         return bounds
     }
 
+    // Wider default rows: production roots carry ten-plus entities per lane, and narrow grids
+    // stack the composition tall while the canvas's right half sits empty.
     private fun preferredChildGraphsPerRow(childGraphCount: Int): Int = when {
         childGraphCount <= 2 -> childGraphCount
-        childGraphCount <= 9 -> 3
-        else -> 4
+        childGraphCount <= 6 -> 3
+        childGraphCount <= 12 -> 5
+        else -> 6
     }
 
     private fun preferredServiceColumns(serviceCount: Int): Int = when {
         serviceCount <= 2 -> 1
-        serviceCount <= 8 -> 2
-        else -> 3
+        serviceCount <= 6 -> 2
+        serviceCount <= 12 -> 3
+        else -> 4
     }
 
     private fun preferredRouteColumns(routeCount: Int): Int = when {
