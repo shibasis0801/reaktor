@@ -83,6 +83,7 @@ fun ReaktorGraphEditor(
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = Dp.Unspecified,
     style: ReaktorGraphStyle? = null,
+    showKindLegend: Boolean = true,
     modifier: Modifier = Modifier,
     state: ReactFlowState = dev.shibasis.composeflow.runtime.rememberReactFlowState(),
     lensResult: ReaktorGraphLensResult? = null,
@@ -99,6 +100,7 @@ fun ReaktorGraphEditor(
         onPaneClick = onPaneClick,
         rightInset = if (rightInset == Dp.Unspecified) Dp(0f) else rightInset,
         style = style,
+        showKindLegend = showKindLegend,
         modifier = modifier,
         state = state,
     )

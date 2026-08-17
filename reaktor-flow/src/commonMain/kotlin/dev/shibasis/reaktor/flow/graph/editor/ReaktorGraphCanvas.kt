@@ -25,6 +25,7 @@ fun ReaktorGraphCanvas(
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = 0.dp,
     style: ReaktorGraphStyle? = null,
+    showKindLegend: Boolean = true,
     state: ReactFlowState? = null,
     modifier: Modifier = Modifier,
     lensResult: ReaktorGraphLensResult? = null,
@@ -50,6 +51,7 @@ fun ReaktorGraphCanvas(
         onPaneClick = onPaneClick,
         rightInset = rightInset,
         rightInsetPx = rightInsetPx,
+        showKindLegend = showKindLegend,
         state = reactFlowState,
         modifier = modifier,
     )

@@ -12,7 +12,6 @@ import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
-import kotlinx.coroutines.delay
 
 @Composable
 internal fun SyncGraphScene(
@@ -42,16 +41,15 @@ internal fun SyncGraphScene(
         if (hasFramedGraph || state.canvasSize.width <= 0 || state.canvasSize.height <= 0) {
             return@LaunchedEffect
         }
-        delay(style.viewport.startupFrameDelayMillis)
-        if (state.canvasSize.width <= 0 || state.canvasSize.height <= 0) {
-            return@LaunchedEffect
-        }
-        frameGraph(
+        // Frame the moment the canvas has a size. Waiting a wall-clock delay here painted an
+        // unframed viewport first — a flash of arbitrary zoom on every open, and permanently so
+        // for single-frame offscreen renders.
+        frameGraphReadable(
             state = state,
             flow = flow,
             style = style,
             rightInsetPx = rightInsetPx,
-            readable = true,
+            focusFlowId = selectedFlowId,
         )
         hasFramedGraph = true
     }
