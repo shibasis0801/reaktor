@@ -246,12 +246,29 @@ fun SignalButton(
     tone: SignalTone = SignalTone.Secondary,
     enabled: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
-) = Row(
+) {
+    val (interaction, hovered) = rememberHover()
+    Row(
     modifier
         .height(MachineSignal.Metrics.buttonHeight)
-        .background(if (enabled) tone.fill else Color.Transparent, MachineSignal.Shape.Control)
+        .hoverable(interaction)
+        .pointerHoverIcon(PointerIcon.Hand)
+        .background(
+            when {
+                !enabled -> Color.Transparent
+                hovered -> tone.hover
+                else -> tone.fill
+            },
+            MachineSignal.Shape.Control,
+        )
         .border(1.dp, if (enabled) tone.line else MachineSignal.Line1, MachineSignal.Shape.Control)
-        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+        .clickable(
+            interactionSource = interaction,
+            indication = null,
+            enabled = enabled,
+            role = Role.Button,
+            onClick = onClick,
+        )
         .semantics { role = Role.Button; if (!enabled) disabled() }
         .padding(
             horizontal = if (tone == SignalTone.Ghost) {
@@ -274,6 +291,7 @@ fun SignalButton(
             FontWeight.Medium
         },
     )
+}
 }
 
 @Composable
@@ -765,16 +783,27 @@ fun ModeTab(
     leading: (@Composable () -> Unit)? = null,
     /** The authored `TKbdW` slot after the label — empty on the boards, used by hosts that bind a chord. */
     trailing: (@Composable () -> Unit)? = null,
-) = Row(
+) {
+    val (interaction, hovered) = rememberHover()
+    Row(
     modifier
         .height(MachineSignal.Metrics.modeTabHeight)
-        .background(if (selected) MachineSignal.SelectedSoft else Color.Transparent, MachineSignal.Shape.Control)
+        .hoverable(interaction)
+        .pointerHoverIcon(PointerIcon.Hand)
+        .background(
+            when {
+                selected -> MachineSignal.SelectedSoft
+                hovered -> MachineSignal.Bg2
+                else -> Color.Transparent
+            },
+            MachineSignal.Shape.Control,
+        )
         .border(
             1.dp,
             if (selected) MachineSignal.AccentLine else Color.Transparent,
             MachineSignal.Shape.Control,
         )
-        .clickable(role = Role.Tab, onClick = onClick)
+        .clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClick = onClick)
         .semantics { this.selected = selected; this.role = Role.Tab }
         .padding(horizontal = MachineSignal.Metrics.modeTabPaddingX),
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.modeTabGap),
@@ -791,6 +820,7 @@ fun ModeTab(
         SignalText(shortcut, color = if (selected) MachineSignal.AccentText else MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
     }
     trailing?.invoke()
+}
 }
 
 /** `Segmented / Env` — mutually exclusive environment choice. */

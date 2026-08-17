@@ -70,7 +70,8 @@ internal fun measureNodeHeight(
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): Double {
     val rowCount = min(max(providerCount, consumerCount).coerceAtLeast(1), style.port.previewRows.coerceAtLeast(1))
-    return style.node.titleHeightPx + rowCount * style.port.rowHeightPx + style.node.verticalPaddingPx * 2.0
+    return style.node.titleHeightPx + rowCount * style.port.rowHeightPx + style.node.verticalPaddingPx * 2.0 +
+        style.node.footerHeightPx
 }
 
 internal fun visiblePorts(ports: List<Port<*>>): List<ReaktorPortData> =
@@ -94,7 +95,8 @@ internal fun handleOffset(
 ): Double = when {
     count <= 0 -> 0.5
     else -> {
-        val totalHeight = style.node.titleHeightPx + count * style.port.rowHeightPx + style.node.verticalPaddingPx * 2.0
+        val totalHeight = style.node.titleHeightPx + count * style.port.rowHeightPx +
+            style.node.verticalPaddingPx * 2.0 + style.node.footerHeightPx
         val rowCenter =
             style.node.titleHeightPx +
                 style.node.verticalPaddingPx +

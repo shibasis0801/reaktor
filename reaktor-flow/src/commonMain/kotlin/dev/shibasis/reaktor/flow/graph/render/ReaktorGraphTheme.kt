@@ -62,17 +62,24 @@ internal fun graphEdgeRenderStyle(
         (selectedFlowId != null && (edge.source == selectedFlowId || edge.target == selectedFlowId))
     // Attention model (ported from the web graph views): wires touching the selection burn hot
     // and flow; the rest sit back; kind-filtered-out edges almost disappear.
+    // Craft rule: one level of emphasis at a time. Wiring (data) and navigation carry the
+    // structure and read at full strength; attachment sits back; containment is a whisper —
+    // position already encodes it, so its wires only confirm, never compete. Selection pulls
+    // its neighbourhood forward and everything else recedes further than before.
     val alpha = when {
-        !matchesKind -> 0.08f
+        !matchesKind -> 0.06f
         active -> 0.95f
-        selectedFlowId != null -> 0.30f
-        else -> 0.55f
+        selectedFlowId != null -> 0.16f
+        data.kind == ReaktorEdgeKind.Containment -> 0.22f
+        data.kind == ReaktorEdgeKind.Attachment -> 0.38f
+        ReaktorEdgeKind.Navigation == data.kind -> 0.60f
+        else -> 0.50f
     }
     val baseWidth = when (data.kind) {
-        ReaktorEdgeKind.Navigation -> 2.4f
-        ReaktorEdgeKind.Attachment -> 1.9f
-        ReaktorEdgeKind.Data -> 1.7f
-        ReaktorEdgeKind.Containment -> 1.4f
+        ReaktorEdgeKind.Navigation -> 1.8f
+        ReaktorEdgeKind.Attachment -> 1.3f
+        ReaktorEdgeKind.Data -> 1.6f
+        ReaktorEdgeKind.Containment -> 1.0f
     }
     return EdgeRenderStyle(
         alpha = alpha,
@@ -81,12 +88,12 @@ internal fun graphEdgeRenderStyle(
         glowColor = if (active) data.kind.color else null,
         dashOn = when {
             active -> 9f
-            data.kind == ReaktorEdgeKind.Containment -> 4f
+            data.kind == ReaktorEdgeKind.Containment -> 3f
             else -> null
         },
         dashOff = when {
             active -> 6f
-            data.kind == ReaktorEdgeKind.Containment -> 5f
+            data.kind == ReaktorEdgeKind.Containment -> 6f
             else -> null
         },
         flowAnimated = active,
