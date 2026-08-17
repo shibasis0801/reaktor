@@ -70,8 +70,10 @@ internal fun measureNodeHeight(
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): Double {
     val rowCount = min(max(providerCount, consumerCount).coerceAtLeast(1), style.port.previewRows.coerceAtLeast(1))
+    // +4 slack: the painted border and text ascent rounding otherwise clip the footer's last
+    // pixels at some zoom levels.
     return style.node.titleHeightPx + rowCount * style.port.rowHeightPx + style.node.verticalPaddingPx * 2.0 +
-        style.node.footerHeightPx
+        style.node.footerHeightPx + 4.0
 }
 
 internal fun visiblePorts(ports: List<Port<*>>): List<ReaktorPortData> =
