@@ -322,13 +322,6 @@ fun ReactFlow(
                         onEdgeClick = onEdgeClick,
                     )
 
-                    FlowEdgeLabels(
-                        edgeStyles = edgeStyles,
-                        nodeById = nodeById,
-                        defaultNodeWidth = defaultWidthPx,
-                        defaultNodeHeight = defaultHeightPx,
-                    )
-
                     nodes.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { node ->
                         FlowNodeBox(
                             node = node,
@@ -351,6 +344,16 @@ fun ReactFlow(
                             onConnectEnd = onConnectEnd,
                         )
                     }
+
+                    // Above the node layer: a label eclipsed by a card answers nothing. Labels
+                    // still show on demand (attention or broad visibility), so the canvas stays
+                    // quiet until a wire matters.
+                    FlowEdgeLabels(
+                        edgeStyles = edgeStyles,
+                        nodeById = nodeById,
+                        defaultNodeWidth = defaultWidthPx,
+                        defaultNodeHeight = defaultHeightPx,
+                    )
 
                     viewportOverlay(state)
                 }
@@ -399,7 +402,7 @@ fun ReactFlow(
 }
 
 /**
- * Mid-wire label pills, rendered in editor space under the node layer. A label shows only while
+ * Mid-wire label pills, rendered in editor space above the node layer. A label shows only while
  * its edge holds attention (flowing or selected) or is broadly visible — faded edges stay quiet,
  * matching the "label on demand" behavior of the web graph views.
  */
