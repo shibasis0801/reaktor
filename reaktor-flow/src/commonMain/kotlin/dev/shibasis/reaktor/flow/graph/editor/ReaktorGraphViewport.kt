@@ -69,6 +69,63 @@ internal fun frameGraph(
     )
 }
 
+/**
+ * The landing frame: readable first, containment second.
+ *
+ * The boards land the graph legible — around 1:1 on the focus slice — and leave containment to
+ * the explicit Fit gesture. When the whole topology fits above [ReaktorGraphStyle.Viewport
+ * .readableMinZoom] this is exactly [frameGraph]; when it does not, the viewport holds the
+ * readable floor and centres on the focused node so the first thing on screen is the thing the
+ * workbench selected, not a far corner of the layout.
+ */
+internal fun frameGraphReadable(
+    state: ReactFlowState,
+    flow: ReaktorFlowGraph,
+    style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    rightInsetPx: Float = 0f,
+    focusFlowId: String? = null,
+) {
+    if (state.canvasSize.width <= 0 || state.canvasSize.height <= 0 || flow.nodes.isEmpty()) {
+        return
+    }
+    val bounds = flowBounds(flow, style)
+    val leftClearance = style.viewport.chromeClearanceLeftPx
+    val rightClearance = style.viewport.chromeClearanceRightPx + rightInsetPx
+    val topClearance = style.viewport.chromeClearanceTopPx
+    val bottomClearance = style.viewport.chromeClearanceBottomPx
+    val padding = style.readablePadding()
+    val availableWidth = (
+        state.canvasSize.width.toDouble() - leftClearance - rightClearance - padding.horizontal * 2.0
+    ).coerceAtLeast(1.0)
+    val availableHeight = (
+        state.canvasSize.height.toDouble() - topClearance - bottomClearance - padding.vertical * 2.0
+    ).coerceAtLeast(1.0)
+    val contentWidth = bounds.width.coerceAtLeast(style.defaultNodeWidth())
+    val contentHeight = bounds.height.coerceAtLeast(style.defaultNodeHeight())
+    val fitZoom = min(availableWidth / contentWidth, availableHeight / contentHeight)
+
+    if (fitZoom >= style.viewport.readableMinZoom) {
+        frameGraph(state = state, flow = flow, style = style, rightInsetPx = rightInsetPx, readable = true)
+        return
+    }
+
+    val zoom = style.viewport.readableMinZoom.coerceAtMost(style.viewport.maxZoom)
+    val focus = focusFlowId?.let { id -> flow.nodes.firstOrNull { it.id == id } }
+    val focusX = focus?.let { it.position.x + style.defaultNodeWidth() / 2.0 }
+        ?: (bounds.left + contentWidth / 2.0)
+    val focusY = focus?.let { it.position.y + style.defaultNodeHeight() / 2.0 }
+        ?: (bounds.top + contentHeight / 2.0)
+    val viewportCentreX = leftClearance + availableWidth / 2.0
+    val viewportCentreY = topClearance + availableHeight / 2.0
+    state.setViewport(
+        Viewport(
+            x = viewportCentreX - focusX * zoom,
+            y = viewportCentreY - focusY * zoom,
+            zoom = zoom,
+        ),
+    )
+}
+
 internal fun mergeGraphNodes(
     existing: List<Node>,
     incoming: List<Node>,

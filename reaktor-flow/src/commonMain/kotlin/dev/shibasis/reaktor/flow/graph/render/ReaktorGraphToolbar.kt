@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.components.Panel
 import dev.shibasis.composeflow.model.PanelPosition
@@ -35,10 +36,23 @@ internal fun BoxScope.GraphViewportToolbar(
     onZoomOut: () -> Unit,
     onFitView: () -> Unit,
     onResetZoom: () -> Unit,
+    rightInset: Dp = 0.dp,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
     val density = LocalDensity.current
-    Panel(position = PanelPosition.BottomRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
+    // `Chrome / Zoom Cluster` — Fit · 100% · <live zoom> · − · + on one 30px line, sitting to the
+    // left of the minimap in the bottom-right corner. Node counts live in the top-left stats
+    // chips, not here.
+    val miniMapClearance = with(density) {
+        dpOf(style.chrome.miniMapWidthPx + style.chrome.overlayPaddingPx + style.chrome.itemGapPx)
+    }
+    Panel(
+        position = PanelPosition.BottomRight,
+        modifier = Modifier.padding(
+            end = miniMapClearance + rightInset,
+            bottom = with(density) { dpOf(style.chrome.overlayPaddingPx) },
+        ),
+    ) {
         Surface(
             color = style.canvas.panelChrome,
             shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
@@ -46,54 +60,24 @@ internal fun BoxScope.GraphViewportToolbar(
         ) {
             Row(
                 modifier = Modifier.padding(
-                    horizontal = with(density) { dpOf(style.chrome.shellPaddingXPx) },
-                    vertical = with(density) { dpOf(style.chrome.shellPaddingYPx) },
+                    horizontal = with(density) { dpOf(style.chrome.itemGapPx) },
+                    vertical = with(density) { dpOf(style.chrome.microGapPx) },
                 ),
-                horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.sectionGapPx) }),
+                horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.microGapPx) }),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.microGapPx) })) {
-                    Text(
-                        text = buildString {
-                            append(flow.nodes.size)
-                            append(" nodes • ")
-                            append(flow.edges.size)
-                            append(" edges")
-                            lensResult?.takeIf { it.matchingNodeIds.size != flow.nodes.size }?.let {
-                                append(" • ")
-                                append(it.matchingNodeIds.size)
-                                append(" matches")
-                            }
-                        },
-                        color = style.canvas.mutedText,
-                        fontSize = with(density) { spOf(style.chrome.captionFontPx) },
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.chrome.itemGapPx) }),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ToolbarButton(label = "Fit", testId = "reaktor-graph-fit", onClick = onFitView, style = style)
-                    ToolbarButton(label = "100%", testId = "reaktor-graph-reset-zoom", onClick = onResetZoom, style = style)
-                    Surface(
-                        color = style.canvas.panelSurface,
-                        shape = RoundedCornerShape(with(density) { dpOf(style.chrome.panelRadiusPx) }),
-                        tonalElevation = 0.dp,
-                    ) {
-                        Text(
-                            text = "${(state.viewport.zoom * 100).toInt()}%",
-                            color = style.canvas.text,
-                            fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(
-                                horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },
-                                vertical = with(density) { dpOf(style.chrome.controlPaddingYPx) },
-                            ),
-                        )
-                    }
-                    ToolbarButton(label = "-", testId = "reaktor-graph-zoom-out", onClick = onZoomOut, style = style)
-                    ToolbarButton(label = "+", testId = "reaktor-graph-zoom-in", onClick = onZoomIn, style = style)
-                }
+                ToolbarButton(label = "Fit", testId = "reaktor-graph-fit", onClick = onFitView, style = style)
+                ToolbarButton(label = "100%", testId = "reaktor-graph-reset-zoom", onClick = onResetZoom, style = style)
+                Text(
+                    text = "${(state.viewport.zoom * 100).toInt()}%",
+                    color = style.canvas.text,
+                    fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
+                    fontFamily = style.canvas.monoFont,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = with(density) { dpOf(style.chrome.microGapPx) }),
+                )
+                ToolbarButton(label = "−", testId = "reaktor-graph-zoom-out", onClick = onZoomOut, style = style)
+                ToolbarButton(label = "+", testId = "reaktor-graph-zoom-in", onClick = onZoomIn, style = style)
             }
         }
     }
@@ -116,13 +100,14 @@ private fun ToolbarButton(
             text = label,
             color = style.canvas.text,
             fontSize = with(density) { spOf(style.chrome.bodyFontPx) },
+            fontFamily = style.canvas.monoFont,
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .testTag(testId)
                 .clickable(onClick = onClick)
                 .padding(
-                    horizontal = with(density) { dpOf(style.chrome.controlPaddingXPx) },
-                    vertical = with(density) { dpOf(style.chrome.controlPaddingYPx) },
+                    horizontal = with(density) { dpOf(style.chrome.itemGapPx) },
+                    vertical = with(density) { dpOf(style.chrome.microGapPx) },
                 ),
         )
     }

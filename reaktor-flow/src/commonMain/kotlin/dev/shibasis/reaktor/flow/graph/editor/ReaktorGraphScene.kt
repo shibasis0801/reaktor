@@ -40,6 +40,7 @@ internal fun ReaktorGraphScene(
     onPaneClick: (() -> Unit)?,
     rightInset: Dp,
     rightInsetPx: Float,
+    showKindLegend: Boolean = true,
     state: ReactFlowState,
     modifier: Modifier = Modifier,
 ) {
@@ -110,6 +111,7 @@ internal fun ReaktorGraphScene(
                     highlightedKind = highlightedKind,
                     onHighlightKind = onHighlightKind,
                     rightInset = rightInset,
+                    showKindLegend = showKindLegend,
                     onZoomIn = {
                         state.zoomAroundCanvasCenter(
                             factor = graphStyle.viewport.zoomStep,

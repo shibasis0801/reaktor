@@ -50,7 +50,7 @@ internal fun BoxScope.GraphMiniMap(
     val density = LocalDensity.current
     val miniMapPaddingPx = style.chrome.miniMapInnerPaddingPx.toFloat()
 
-    Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
+    Panel(position = PanelPosition.BottomRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Box(
             modifier = Modifier
                 .testTag("reaktor-graph-minimap")

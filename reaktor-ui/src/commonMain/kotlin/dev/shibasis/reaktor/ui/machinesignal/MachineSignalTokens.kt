@@ -106,6 +106,8 @@ object MachineSignal {
         val subTabPaddingX = 12.dp
         val subTabPaddingTop = 6.dp
         val subTabGap = 5.dp
+        val subTabUnderlineHeight = 2.dp
+        val subTabHeight = 27.dp
 
         val kvRowHeight = 22.dp
         val treeRowHeight = 26.dp
@@ -132,6 +134,71 @@ object MachineSignal {
         val statusBarGap = 16.dp
         val contextBarGap = 10.dp
         val railStripGap = 10.dp
+
+        val kbdHeight = 19.dp
+        val kindBadgeHeight = 19.dp
+        val kindBadgePaddingX = 8.dp
+        val kindBadgePaddingY = 3.dp
+        val entityChipHeight = 22.dp
+        val statusPillHeight = 22.dp
+        val statusDotSize = 6.dp
+        val branchPillHeight = 26.dp
+        val branchPillPaddingX = 10.dp
+        val branchPillGap = 7.dp
+        val treeRowPaddingX = 8.dp
+        val treeRowGap = 8.dp
+        val commandRowPaddingX = 10.dp
+        val commandRowGap = 10.dp
+        val envSegmentedHeight = 28.dp
+        val envSegmentedPadding = 3.dp
+        val envSegmentedGap = 2.dp
+        val avatarSize = 28.dp
+        val searchFieldGap = 8.dp
+        val searchIconSize = 12.dp
+
+        /** The graph surface: ports, nodes, wires and canvas chrome. */
+        object Graph {
+            val execPin = 12.dp
+            val dataPin = 10.dp
+            val offPin = 8.dp
+            val pinStroke = 1.5.dp
+            val rerouteSize = 10.dp
+
+            val nodeWidth = 230.dp
+            val nodeHeadHeight = 28.dp
+            val nodeFootHeight = 20.dp
+            val nodePortRowHeight = 18.dp
+            val nodePaddingX = 10.dp
+            val scopeSummaryHeight = 60.dp
+            val scopeSummaryBodyHeight = 32.dp
+
+            val wireLabelHeight = 20.dp
+            val wireLabelPaddingX = 8.dp
+            val wireValuePaddingX = 9.dp
+            val wireValueGap = 5.dp
+            val wireValueRadius = 10.dp
+
+            val minimapWidth = 212.dp
+            val minimapHeight = 134.dp
+            val zoomClusterHeight = 30.dp
+            val zoomClusterPaddingX = 6.dp
+            val zoomClusterGap = 2.dp
+            val zoomSegmentHeight = 22.dp
+            val legendWidth = 196.dp
+            val legendPadding = 10.dp
+            val legendGap = 2.dp
+            val legendRowHeight = 20.dp
+            val canvasStatsGap = 8.dp
+
+            val connectionCardHeight = 46.dp
+            val connectionCardPaddingX = 12.dp
+            val codeDiffHeadHeight = 28.dp
+            val codeDiffLineHeight = 20.dp
+
+            val sparklineWidth = 72.dp
+            val sparklineHeight = 22.dp
+            val sparklineStroke = 1.6.dp
+        }
     }
 
     object Radius {
@@ -144,6 +211,8 @@ object MachineSignal {
     }
 
     object Type {
+        // Prose ramp: labels and controls the eye reads as language. Deliberately larger than the
+        // design file, which authors chrome down to 9.5px — see the divergence ledger.
         val label = 11.sp
         val body = 13.sp
         val title = 17.sp
@@ -155,7 +224,14 @@ object MachineSignal {
         val control = body
         val heading = title
 
+        // Data ramp: monospaced values in badges, chips, rows and status bars, where density is
+        // the point and the design's authored sizes are exactly right. These match reaktor.pen.
+        val data = 10.5.sp
+        val dataMicro = 9.5.sp
+        val dataStrong = 11.sp
+
         val eyebrowTracking = 0.06.sp
+        val kindTracking = 1.sp
     }
 
     fun provenance(truth: TruthClass): ProvenanceColors = when (truth) {

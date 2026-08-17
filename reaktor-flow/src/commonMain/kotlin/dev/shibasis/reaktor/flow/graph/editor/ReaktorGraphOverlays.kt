@@ -26,12 +26,16 @@ internal fun BoxScope.ReaktorGraphChromeOverlay(
     highlightedKind: ReaktorNodeKind?,
     onHighlightKind: (ReaktorNodeKind?) -> Unit,
     rightInset: Dp,
+    showKindLegend: Boolean = true,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
     onFitView: () -> Unit,
     onResetZoom: () -> Unit,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ) {
+    // The authored bottom-right corner: the zoom cluster sits to the left of the minimap, both
+    // bottom-aligned (`04.04 · Graph · Launch`). The legend floats bottom-left only when the host
+    // says the navigator rail is not already carrying it.
     GraphViewportToolbar(
         flow = flow,
         lensResult = lensResult,
@@ -40,14 +44,17 @@ internal fun BoxScope.ReaktorGraphChromeOverlay(
         onZoomOut = onZoomOut,
         onFitView = onFitView,
         onResetZoom = onResetZoom,
+        rightInset = rightInset,
         style = style,
     )
-    GraphKindLegend(
-        highlightedKind = highlightedKind,
-        flow = flow,
-        onHighlightKind = onHighlightKind,
-        style = style,
-    )
+    if (showKindLegend) {
+        GraphKindLegend(
+            highlightedKind = highlightedKind,
+            flow = flow,
+            onHighlightKind = onHighlightKind,
+            style = style,
+        )
+    }
     GraphMiniMap(
         flow = flow,
         state = state,

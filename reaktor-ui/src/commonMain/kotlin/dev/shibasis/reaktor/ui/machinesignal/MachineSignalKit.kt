@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -229,7 +230,9 @@ fun SignalPanel(
 }
 
 enum class SignalTone(val fill: Color, val text: Color, val line: Color, val hover: Color) {
-    Primary(MachineSignal.AccentSoft, MachineSignal.AccentText, MachineSignal.AccentLine, Color(0x385C80FF)),
+    // Btn / Primary is authored as a solid accent fill with a white label, not a tint — the golden
+    // gate reads the difference as a near-total pixel mismatch, so keep this solid.
+    Primary(MachineSignal.Accent, Color.White, MachineSignal.AccentLine, MachineSignal.Accent2),
     Secondary(MachineSignal.Bg3, MachineSignal.Text1, MachineSignal.Line2, MachineSignal.Bg4),
     Ghost(Color.Transparent, MachineSignal.Text2, MachineSignal.Line1, MachineSignal.Bg2),
     Danger(Color(0x14FF666B), MachineSignal.Status.Error, Color(0x52FF666B), Color(0x30FF666B)),
@@ -242,6 +245,7 @@ fun SignalButton(
     modifier: Modifier = Modifier,
     tone: SignalTone = SignalTone.Secondary,
     enabled: Boolean = true,
+    leading: (@Composable () -> Unit)? = null,
 ) = Row(
     modifier
         .height(MachineSignal.Metrics.buttonHeight)
@@ -259,6 +263,7 @@ fun SignalButton(
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.buttonGap),
     verticalAlignment = Alignment.CenterVertically,
 ) {
+    leading?.invoke()
     SignalText(
         text = label,
         color = if (enabled) tone.text else MachineSignal.Text4,
@@ -323,7 +328,10 @@ fun MetricTile(
     accent: Color? = null,
     caption: String? = null,
 ) = Column(
-    modifier
+    // The authored tile is a fixed 220 wide; callers in a row override with weight or fillMaxWidth.
+    Modifier
+        .width(MachineSignal.Metrics.metricTileWidth)
+        .then(modifier)
         .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
         .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
         .padding(MachineSignal.Metrics.metricTilePadding),
@@ -389,6 +397,10 @@ fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier
     SignalText("Turns on with: $turnsOnWith", color = MachineSignal.Text4, size = MachineSignal.Type.caption, maxLines = 3)
 }
 
+/**
+ * `SubTab / On` and `SubTab / Off` — an underline tab, not a filled pill. The design carries the
+ * selection on a 2dp rule beneath the label, spanning the label rather than the padded box.
+ */
 @Composable
 fun SubTab(
     label: String,
@@ -396,10 +408,16 @@ fun SubTab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     count: Int? = null,
-) = Row(
+) = Column(
     modifier
-        .background(if (selected) MachineSignal.Bg3 else Color.Transparent, MachineSignal.Shape.Control)
-        .border(1.dp, if (selected) MachineSignal.Line3 else Color.Transparent, MachineSignal.Shape.Control)
+        // Max, not Min: the underline spans the label, so the tab has to be as wide as the label
+        // wants on one line. Min intrinsic width of an ellipsizing single-line label is a word
+        // break, which is identical for one-word tabs and truncates every multi-word one —
+        // "Chain Builder" rendered as "Chai…" until this was Max.
+        .width(IntrinsicSize.Max)
+        // Fixed to the authored total so the underline lands on the authored baseline whatever the
+        // label's intrinsic height turns out to be — the prose ramp is a touch smaller than the file.
+        .height(MachineSignal.Metrics.subTabHeight)
         .clickable(role = Role.Tab, onClick = onClick)
         .semantics { this.selected = selected; this.role = Role.Tab }
         .padding(
@@ -407,18 +425,29 @@ fun SubTab(
             end = MachineSignal.Metrics.subTabPaddingX,
             top = MachineSignal.Metrics.subTabPaddingTop,
         ),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
-    verticalAlignment = Alignment.CenterVertically,
+    verticalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
 ) {
-    SignalText(
-        text = label,
-        color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-        size = MachineSignal.Type.caption,
-        weight = if (selected) FontWeight.Medium else FontWeight.Normal,
-    )
-    if (count != null && count > 0) {
-        SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.micro, mono = true)
+    Row(
+        Modifier.weight(1f),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SignalText(
+            text = label,
+            color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
+            size = MachineSignal.Type.label,
+            weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+        )
+        if (count != null && count > 0) {
+            SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+        }
     }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(MachineSignal.Metrics.subTabUnderlineHeight)
+            .background(if (selected) MachineSignal.Accent else Color.Transparent),
+    )
 }
 
 @Composable
@@ -443,11 +472,11 @@ fun ContextBar(
     modifier: Modifier = Modifier,
     truth: TruthClass? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
-) = Column(modifier.fillMaxWidth()) {
+) = Column(modifier.fillMaxWidth().height(MachineSignal.Metrics.contextBarHeight)) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(MachineSignal.Metrics.contextBarHeight)
+            .weight(1f)
             .background(MachineSignal.Bg1)
             .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -510,4 +539,352 @@ fun rememberHover(): Pair<MutableInteractionSource, Boolean> {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
     return interaction to hovered
+}
+
+// ---------------------------------------------------------------------------
+// Data primitives
+//
+// Every measurement below is the authored box from reaktor.pen, held in place by
+// MachineSignalGeometryParityTest and, once its oracle is exported, the golden gate. Text uses the
+// data ramp rather than the prose ramp: these are dense monospaced values where the design's own
+// sizes are the right ones.
+// ---------------------------------------------------------------------------
+
+/** `Kbd` — a shortcut hint. */
+@Composable
+fun Kbd(keys: String, modifier: Modifier = Modifier) = Box(
+    modifier
+        .height(MachineSignal.Metrics.kbdHeight)
+        .background(MachineSignal.Bg3, MachineSignal.Shape.Tight)
+        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Tight)
+        .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),
+    contentAlignment = Alignment.Center,
+) {
+    SignalText(
+        text = keys,
+        color = MachineSignal.Text3,
+        size = MachineSignal.Type.data,
+        weight = FontWeight.SemiBold,
+        mono = true,
+    )
+}
+
+/** `Badge / Count` — a count carried as a pill rather than bare text. */
+@Composable
+fun CountBadge(count: Int, modifier: Modifier = Modifier) = Box(
+    modifier
+        .background(MachineSignal.Bg4, RoundedCornerShape(MachineSignal.Radius.countBadge))
+        .padding(
+            horizontal = MachineSignal.Metrics.countBadgePaddingX,
+            vertical = MachineSignal.Metrics.countBadgePaddingY,
+        ),
+    contentAlignment = Alignment.Center,
+) {
+    SignalText(
+        text = count.toString(),
+        color = MachineSignal.Text2,
+        size = MachineSignal.Type.dataMicro,
+        weight = FontWeight.SemiBold,
+        mono = true,
+    )
+}
+
+/**
+ * `Badge / Kind` — an entity kind, tinted by the kind's own colour so a graph node and its badge
+ * read as the same thing.
+ */
+@Composable
+fun KindBadge(kind: String, modifier: Modifier = Modifier, color: Color = MachineSignal.entityColor(kind)) = Box(
+    modifier
+        .height(MachineSignal.Metrics.kindBadgeHeight)
+        .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
+        .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
+        .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
+    contentAlignment = Alignment.Center,
+) {
+    Text(
+        text = kind.uppercase(),
+        color = color,
+        fontFamily = LocalMachineSignalFonts.current.mono,
+        fontSize = MachineSignal.Type.dataMicro,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = MachineSignal.Type.kindTracking,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/** `Chip / Entity` — a reference to something in the graph. */
+@Composable
+fun EntityChip(
+    label: String,
+    modifier: Modifier = Modifier,
+    color: Color = MachineSignal.AccentText,
+    onClick: (() -> Unit)? = null,
+) = Box(
+    modifier
+        .height(MachineSignal.Metrics.entityChipHeight)
+        .background(MachineSignal.Bg3, MachineSignal.Shape.Tight)
+        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Tight)
+        .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+        .padding(horizontal = MachineSignal.Metrics.entityChipPaddingX),
+    contentAlignment = Alignment.Center,
+) {
+    SignalText(label, color = color, size = MachineSignal.Type.data, weight = FontWeight.Medium, mono = true)
+}
+
+/** `Pill / Status` — a dot and a reading, in the status colour. */
+@Composable
+fun StatusPill(
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) = Row(
+    modifier
+        .height(MachineSignal.Metrics.statusPillHeight)
+        .background(color.copy(alpha = 0.08f), RoundedCornerShape(MachineSignal.Radius.statusPill))
+        .border(1.dp, color.copy(alpha = 0.32f), RoundedCornerShape(MachineSignal.Radius.statusPill))
+        .padding(horizontal = MachineSignal.Metrics.statusPillPaddingX),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.statusPillGap),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    StatusDot(color)
+    SignalText(label, color = MachineSignal.Text1, size = MachineSignal.Type.data, weight = FontWeight.SemiBold, mono = true)
+}
+
+/** `Pill / Branch` — the branch and revision the workbench is looking at. */
+@Composable
+fun BranchPill(
+    branch: String,
+    revision: String? = null,
+    modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
+) = Row(
+    modifier
+        .height(MachineSignal.Metrics.branchPillHeight)
+        .background(MachineSignal.Bg2, MachineSignal.Shape.Control)
+        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Control)
+        .padding(horizontal = MachineSignal.Metrics.branchPillPaddingX),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.branchPillGap),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    leading?.invoke()
+    SignalText(branch, color = MachineSignal.Text2, size = MachineSignal.Type.dataStrong, mono = true)
+    if (revision != null) {
+        SignalText(revision, color = MachineSignal.Text4, size = MachineSignal.Type.dataStrong, mono = true)
+    }
+}
+
+/** `Row / Tree` — one line of a navigator. */
+@Composable
+fun TreeRow(
+    name: String,
+    modifier: Modifier = Modifier,
+    meta: String? = null,
+    selected: Boolean = false,
+    depth: Int = 0,
+    accent: Color? = null,
+    onClick: () -> Unit = {},
+) {
+    val (interaction, hovered) = rememberHover()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(MachineSignal.Metrics.treeRowHeight)
+            .background(rowSurface(selected, hovered), MachineSignal.Shape.Tight)
+            .hoverable(interaction)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
+            .padding(
+                start = MachineSignal.Metrics.treeRowPaddingX + (MachineSignal.Space.s3 * depth),
+                end = MachineSignal.Metrics.treeRowPaddingX,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.treeRowGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (accent != null) StatusDot(accent)
+        SignalText(
+            text = name,
+            modifier = Modifier.weight(1f, fill = false),
+            color = if (selected) MachineSignal.Text1 else MachineSignal.Text2,
+            size = MachineSignal.Type.dataStrong,
+            weight = FontWeight.Medium,
+            mono = true,
+        )
+        if (meta != null) {
+            SignalText(meta, color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+        }
+    }
+}
+
+/** `Row / Command` — one graph command in the change set. */
+@Composable
+fun CommandRow(
+    id: String,
+    summary: String,
+    status: String,
+    modifier: Modifier = Modifier,
+    statusColor: Color = MachineSignal.statusColor(status),
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+) = Row(
+    modifier
+        .fillMaxWidth()
+        .height(MachineSignal.Metrics.commandRowHeight)
+        .background(MachineSignal.Bg2, MachineSignal.Shape.Control)
+        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Control)
+        .padding(horizontal = MachineSignal.Metrics.commandRowPaddingX),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.commandRowGap),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    SignalText(id, color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+    SignalText(
+        text = summary,
+        modifier = Modifier.weight(1f),
+        color = MachineSignal.Text2,
+        size = MachineSignal.Type.data,
+        mono = true,
+    )
+    SignalText(
+        text = status,
+        color = statusColor,
+        size = MachineSignal.Type.dataMicro,
+        weight = FontWeight.SemiBold,
+        mono = true,
+    )
+    if (trailing != null) trailing()
+}
+
+/** `Tab / Mode` — top-level workbench mode. */
+@Composable
+fun ModeTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    shortcut: String? = null,
+    leading: (@Composable () -> Unit)? = null,
+    /** The authored `TKbdW` slot after the label — empty on the boards, used by hosts that bind a chord. */
+    trailing: (@Composable () -> Unit)? = null,
+) = Row(
+    modifier
+        .height(MachineSignal.Metrics.modeTabHeight)
+        .background(if (selected) MachineSignal.SelectedSoft else Color.Transparent, MachineSignal.Shape.Control)
+        .border(
+            1.dp,
+            if (selected) MachineSignal.AccentLine else Color.Transparent,
+            MachineSignal.Shape.Control,
+        )
+        .clickable(role = Role.Tab, onClick = onClick)
+        .semantics { this.selected = selected; this.role = Role.Tab }
+        .padding(horizontal = MachineSignal.Metrics.modeTabPaddingX),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.modeTabGap),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    leading?.invoke()
+    SignalText(
+        text = label,
+        color = if (selected) MachineSignal.AccentText else MachineSignal.Text3,
+        size = MachineSignal.Type.label,
+        weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+    )
+    if (shortcut != null) {
+        SignalText(shortcut, color = if (selected) MachineSignal.AccentText else MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+    }
+    trailing?.invoke()
+}
+
+/** `Segmented / Env` — mutually exclusive environment choice. */
+@Composable
+fun EnvSegmented(
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    /** Label to show for an option; the underlying value is what [onSelect] reports. */
+    label: (String) -> String = { it },
+    /** Lets a host address individual segments from an end-to-end driver. */
+    optionTag: ((String) -> String)? = null,
+) = Row(
+    modifier
+        .height(MachineSignal.Metrics.envSegmentedHeight)
+        .background(MachineSignal.Bg2, MachineSignal.Shape.Control)
+        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Control)
+        .padding(MachineSignal.Metrics.envSegmentedPadding),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.envSegmentedGap),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    options.forEach { option ->
+        val isSelected = option == selected
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .then(optionTag?.let { Modifier.testTag(it(option)) } ?: Modifier)
+                .background(
+                    if (isSelected) MachineSignal.SelectedSoft else Color.Transparent,
+                    MachineSignal.Shape.Tight,
+                )
+                .clickable(role = Role.Tab, onClick = { onSelect(option) })
+                .semantics { this.selected = isSelected; this.role = Role.Tab }
+                .padding(horizontal = MachineSignal.Space.s3),
+            contentAlignment = Alignment.Center,
+        ) {
+            SignalText(
+                text = label(option),
+                color = if (isSelected) MachineSignal.AccentText else MachineSignal.Text3,
+                size = MachineSignal.Type.label,
+                weight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+            )
+        }
+    }
+}
+
+/** `Field / Search` — the workbench search affordance. */
+@Composable
+fun SearchField(
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    shortcut: String? = null,
+    leading: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit = {},
+) = Row(
+    // The authored field is a fixed 280 wide; the top bar overrides it when it needs to stretch.
+    Modifier
+        .width(MachineSignal.Metrics.searchFieldWidth)
+        .then(modifier)
+        .height(MachineSignal.Metrics.searchFieldHeight)
+        .background(MachineSignal.Bg1, MachineSignal.Shape.Control)
+        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Control)
+        .clickable(role = Role.Button, onClick = onClick)
+        .padding(horizontal = MachineSignal.Metrics.searchPaddingX),
+    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.searchFieldGap),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    leading?.invoke()
+    SignalText(
+        text = placeholder,
+        modifier = Modifier.weight(1f),
+        color = MachineSignal.Text3,
+        size = MachineSignal.Type.label,
+    )
+    if (shortcut != null) Kbd(shortcut)
+}
+
+/** `Avatar` — an actor, human or agent. */
+@Composable
+fun Avatar(
+    initials: String,
+    modifier: Modifier = Modifier,
+    color: Color = MachineSignal.Accent,
+) = Box(
+    modifier
+        .size(MachineSignal.Metrics.avatarSize)
+        .background(color, RoundedCornerShape(MachineSignal.Metrics.avatarSize / 2)),
+    contentAlignment = Alignment.Center,
+) {
+    SignalText(
+        text = initials.take(2).uppercase(),
+        color = Color.White,
+        size = MachineSignal.Type.data,
+        weight = FontWeight.Bold,
+    )
 }

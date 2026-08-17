@@ -44,6 +44,8 @@ fun ReaktorGraphEditor(
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = 0.dp,
     style: ReaktorGraphStyle? = null,
+    /** The boards float the kind legend on the canvas only while the navigator rail is collapsed. */
+    showKindLegend: Boolean = true,
     modifier: Modifier = Modifier,
     state: ReactFlowState = rememberReactFlowState(),
     lensResult: ReaktorGraphLensResult? = null,
@@ -106,6 +108,7 @@ fun ReaktorGraphEditor(
             },
             rightInset = rightInset,
             style = graphStyle,
+            showKindLegend = showKindLegend,
             state = state,
             modifier = Modifier.fillMaxSize(),
         )
