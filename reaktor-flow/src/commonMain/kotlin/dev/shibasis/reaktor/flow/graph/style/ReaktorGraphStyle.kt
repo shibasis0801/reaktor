@@ -69,6 +69,8 @@ data class ReaktorGraphStyle(
     data class Node(
         val minWidthPx: Double = 152.0,
         val titleHeightPx: Double = 25.0,
+        /** `Node / Card` foot band — the wired-ports reading. 0 hides it. */
+        val footerHeightPx: Double = 16.0,
         val cornerRadiusPx: Double = 6.0,
         val verticalPaddingPx: Double = 6.0,
         val titlePaddingXPx: Double = 8.0,
@@ -200,7 +202,8 @@ fun Density.spOf(value: Double): TextUnit = value.toFloat().toSp()
 fun ReaktorGraphStyle.defaultNodeWidth(): Double = node.minWidthPx
 
 fun ReaktorGraphStyle.defaultNodeHeight(): Double =
-    node.titleHeightPx + (port.rowHeightPx * port.previewRows) + (node.verticalPaddingPx * 2.0)
+    node.titleHeightPx + (port.rowHeightPx * port.previewRows) + (node.verticalPaddingPx * 2.0) +
+        node.footerHeightPx
 
 fun ReaktorGraphStyle.legendItemSurface(): Color = canvas.panelSurface.copy(alpha = 0.32f)
 
