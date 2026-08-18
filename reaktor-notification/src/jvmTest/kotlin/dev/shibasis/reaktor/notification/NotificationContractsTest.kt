@@ -49,6 +49,48 @@ class NotificationContractsTest {
         assertFalse(NotificationTrigger.Calendar(day = 4, hour = 18, repeats = true).isRepeating)
     }
 
+    private fun dailyGymNudge(notBeforeMillis: Long? = null) = LocalNotificationRequest(
+        id = "reminder-gym",
+        categoryId = "gym",
+        content = NotificationContent(title = "Time to train", body = "Log your sets."),
+        trigger = NotificationTrigger.Calendar(hour = 18, minute = 30, repeats = true),
+        notBeforeMillis = notBeforeMillis,
+    )
+
+    @Test
+    fun withoutAFloorAFiringResolvesFromNow() {
+        assertEquals(1_000L, dailyGymNudge().earliestFrom(1_000L))
+    }
+
+    @Test
+    fun aFutureFloorHoldsTheFiringBack() {
+        // The point of the floor: today's 18:30 is skipped, tomorrow's is not.
+        assertEquals(9_000L, dailyGymNudge(notBeforeMillis = 9_000L).earliestFrom(1_000L))
+    }
+
+    @Test
+    fun anExpiredFloorIsInert() {
+        // Self-clearing, so a request that has already been held once re-arms with no cleanup.
+        assertEquals(5_000L, dailyGymNudge(notBeforeMillis = 2_000L).earliestFrom(5_000L))
+    }
+
+    @Test
+    fun aFloorSurvivesSerialisation() {
+        // The Android scheduler persists pending alarms to disk to survive reboots, so a floor
+        // that did not round-trip would quietly come back as tonight's firing.
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val restored = json.decodeFromString<LocalNotificationRequest>(
+            json.encodeToString(dailyGymNudge(notBeforeMillis = 9_000L)),
+        )
+        assertEquals(9_000L, restored.notBeforeMillis)
+    }
+
+    @Test
+    fun aHeldRequestStillCountsAsRepeating() {
+        // Suppressing one occurrence must not look like cancelling the recurrence.
+        assertTrue(dailyGymNudge(notBeforeMillis = 9_000L).trigger.isRepeating)
+    }
+
     @Test
     fun actionsDismissTheirNotificationUnlessTheyOptOut() {
         // Android cannot rely on auto-cancel for buttons, so the common contract has to carry the
