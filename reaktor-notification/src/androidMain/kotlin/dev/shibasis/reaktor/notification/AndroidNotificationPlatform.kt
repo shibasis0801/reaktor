@@ -533,16 +533,22 @@ private fun LocalNotificationRequest.toEnvelope(): NotificationEnvelope =
     )
 
 internal fun LocalNotificationRequest.shouldScheduleLater(): Boolean =
-    delay > kotlin.time.Duration.ZERO || trigger !is NotificationTrigger.Immediate
+    delay > kotlin.time.Duration.ZERO ||
+        trigger !is NotificationTrigger.Immediate ||
+        notBeforeMillis != null
 
 private fun LocalNotificationRequest.triggerDelayMillis(
     nowMillis: Long = System.currentTimeMillis(),
 ): Long {
-    if (delay > kotlin.time.Duration.ZERO) return delay.inWholeMilliseconds.coerceAtLeast(1)
-    return when (val trigger = trigger) {
+    // Resolving the trigger from the floor instead of from now is what skips an occurrence: a
+    // daily 18:30 asked for from tomorrow morning lands on tomorrow's 18:30, not tonight's.
+    val from = earliestFrom(nowMillis)
+    val held = from - nowMillis
+    if (delay > kotlin.time.Duration.ZERO) return held + delay.inWholeMilliseconds.coerceAtLeast(1)
+    return held + when (val trigger = trigger) {
         NotificationTrigger.Immediate -> 1
         is NotificationTrigger.TimeInterval -> trigger.delay.inWholeMilliseconds.coerceAtLeast(1)
-        is NotificationTrigger.Calendar -> trigger.nextDelayMillis(nowMillis)
+        is NotificationTrigger.Calendar -> trigger.nextDelayMillis(from)
     }
 }
 
