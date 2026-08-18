@@ -230,6 +230,15 @@ data class NotificationEnvelope(
     }
 }
 
+/**
+ * A notification this app schedules for itself.
+ *
+ * [notBeforeMillis] is an epoch-millis floor on the firing time. It exists so a caller can skip a
+ * single occurrence of a repeating trigger — "not tonight, but keep the daily reminder" — without
+ * cancelling and rebuilding the recurrence, which is the only other way to express it and loses
+ * the schedule if the app never runs again. Once the floor is in the past it stops mattering, so a
+ * request that has fired re-arms normally with no cleanup.
+ */
 @Serializable
 data class LocalNotificationRequest(
     val id: String,
@@ -238,6 +247,7 @@ data class LocalNotificationRequest(
     val route: NotificationRoute = NotificationRoute.None,
     val delay: Duration = Duration.ZERO,
     val trigger: NotificationTrigger = NotificationTrigger.Immediate,
+    val notBeforeMillis: Long? = null,
     val priority: NotificationPriority = NotificationPriority.Default,
     val foreground: Boolean = false,
     val android: AndroidNotificationOptions? = null,
@@ -279,6 +289,15 @@ val NotificationTrigger.isRepeating: Boolean
         is NotificationTrigger.Calendar ->
             repeats && year == null && month == null && day == null
     }
+
+/**
+ * The earliest instant this request may fire, given the moment a scheduler is resolving it from.
+ *
+ * A floor in the past is indistinguishable from no floor at all, which is what lets a skipped
+ * occurrence expire on its own.
+ */
+fun LocalNotificationRequest.earliestFrom(nowMillis: Long): Long =
+    notBeforeMillis?.coerceAtLeast(nowMillis) ?: nowMillis
 
 @Serializable
 data class AndroidNotificationOptions(

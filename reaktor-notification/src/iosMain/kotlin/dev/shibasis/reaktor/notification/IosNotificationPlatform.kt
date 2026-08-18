@@ -151,6 +151,15 @@ internal fun NotificationSound.toIosSound(): UNNotificationSound? = when (this) 
     is NotificationSound.Named -> UNNotificationSound.soundNamed(name)
 }
 
+/**
+ * [LocalNotificationRequest.notBeforeMillis] is deliberately not applied here.
+ *
+ * UNUserNotificationCenter owns the firing times of a repeating trigger, so there is no way to ask
+ * it to skip a single occurrence — the Android scheduler can honour a floor only because it
+ * resolves each firing itself. Silently dropping the first occurrence would need the recurrence to
+ * be torn down and rebuilt, so callers that need suppression on iOS must do that explicitly rather
+ * than have it happen behind this function.
+ */
 internal fun LocalNotificationRequest.toIosTrigger(): platform.UserNotifications.UNNotificationTrigger? {
     if (delay.inWholeMilliseconds > 0) {
         return UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(
