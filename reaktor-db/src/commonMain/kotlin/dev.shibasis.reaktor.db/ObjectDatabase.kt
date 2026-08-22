@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
 data class StoredObject<T: Any>(
@@ -18,6 +19,20 @@ data class StoredObject<T: Any>(
     val createdAt: Long,
     val updatedAt: Long,
     val sizeBytes: Long = 0
+)
+
+/**
+ * A stored object with its payload left encoded, so a whole store can be copied without knowing
+ * the types it holds — the shape backup and migration need, since one store usually mixes types
+ * that no single [KSerializer] covers.
+ */
+@Serializable
+data class RawObject(
+    val key: String,
+    val storeName: String,
+    val payload: String,
+    val createdAt: Long,
+    val updatedAt: Long,
 )
 
 data class ObjectAddress(
@@ -150,6 +165,38 @@ abstract class ObjectDatabase(
     ) {
         publish(DatabaseEvent.Invalidated(storeName, key, origin))
     }
+
+    /**
+     * Every stored object with its payload untouched — what a backup, an export, or a migration
+     * needs. Pass [storeName] to limit it to a single store.
+     *
+     * Only meaningful for text-backed databases: a binary payload has no lossless string form,
+     * so those implementations reject it rather than corrupt the data.
+     */
+    open suspend fun exportRaw(storeName: String? = null): List<RawObject> =
+        throw UnsupportedOperationException(
+            "${this::class.simpleName} does not support raw export.",
+        )
+
+    /**
+     * Writes [items] back verbatim, replacing whatever sits at those keys.
+     *
+     * Open [ObjectState]s are invalidated afterwards so they reload instead of serving what they
+     * cached before the import — without this a restore looks like a no-op until the app restarts.
+     */
+    suspend fun importRaw(
+        items: List<RawObject>,
+        origin: Origin = Origin.Migration,
+    ) {
+        if (items.isEmpty()) return
+        importRawInternal(items)
+        items.forEach { invalidate(it.storeName, it.key, origin) }
+    }
+
+    protected open suspend fun importRawInternal(items: List<RawObject>): Unit =
+        throw UnsupportedOperationException(
+            "${this::class.simpleName} does not support raw import.",
+        )
 
     private suspend fun publish(event: DatabaseEvent) {
         when (event) {
