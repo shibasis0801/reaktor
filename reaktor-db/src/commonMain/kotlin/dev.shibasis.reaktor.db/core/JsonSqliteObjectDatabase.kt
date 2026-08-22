@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.io.serialization.BinarySerializer
 import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import dev.shibasis.reaktor.io.serialization.TextSerializer
 import dev.shibasis.reaktor.db.ObjectDatabase
+import dev.shibasis.reaktor.db.RawObject
 import dev.shibasis.reaktor.db.StoredObject
 import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
@@ -122,6 +123,67 @@ class SqliteObjectDatabase(
         ) {
             bindString(0, storeName)
         }.value
+    }
+
+    override suspend fun exportRaw(storeName: String?): List<RawObject> {
+        requireText("export")
+        val filtered = storeName != null
+        val sql = buildString {
+            append("SELECT key, value, store_name, created_at, updated_at FROM $tableName")
+            if (filtered) append(" WHERE store_name = ?")
+        }
+
+        return driver.executeQuery(
+            null,
+            sql,
+            { cursor ->
+                val items = mutableListOf<RawObject>()
+                while (cursor.next().value) {
+                    items.add(
+                        RawObject(
+                            key = cursor.getString(0)!!,
+                            payload = cursor.getString(1)!!,
+                            storeName = cursor.getString(2)!!,
+                            createdAt = cursor.getLong(3)!!,
+                            updatedAt = cursor.getLong(4)!!,
+                        )
+                    )
+                }
+                QueryResult.Value(items)
+            },
+            if (filtered) 1 else 0
+        ) {
+            if (storeName != null) bindString(0, storeName)
+        }.value
+    }
+
+    override suspend fun importRawInternal(items: List<RawObject>) {
+        requireText("import")
+        items.forEach { item ->
+            driver.execute(null, """
+                INSERT INTO $tableName (key, value, store_name, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(store_name, key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+            """.trimIndent(), 5) {
+                bindString(0, item.key)
+                bindString(1, item.payload)
+                bindString(2, item.storeName)
+                bindLong(3, item.createdAt)
+                bindLong(4, item.updatedAt)
+            }
+        }
+    }
+
+    /** Raw payloads travel as strings, which a [BinarySerializer] cannot round-trip losslessly. */
+    private fun requireText(action: String) {
+        if (objectSerializer !is TextSerializer) {
+            throw UnsupportedOperationException(
+                "Raw $action needs a text serializer; $tableName is stored with " +
+                    "${objectSerializer::class.simpleName}.",
+            )
+        }
     }
 
     override suspend fun deleteRaw(storeName: String, key: String) {

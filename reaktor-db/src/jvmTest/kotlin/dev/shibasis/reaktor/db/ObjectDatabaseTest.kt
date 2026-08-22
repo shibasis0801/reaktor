@@ -355,6 +355,92 @@ class ObjectDatabaseTest {
     }
 
     @Test
+    fun `raw export and import round-trips a store holding mixed types`() = runTest {
+        val db = createDb()
+        val store = db.store("backup")
+
+        store.put("user", TestUser("Alice", 30))
+        store.put("config", TestConfig(debug = true, version = 7))
+
+        val exported = db.exportRaw("backup")
+        assertEquals(2, exported.size)
+
+        store.clear()
+        assertNull(store.get<TestUser>("user"))
+
+        db.importRaw(exported)
+
+        assertEquals(TestUser("Alice", 30), store.get<TestUser>("user")?.value)
+        assertEquals(TestConfig(debug = true, version = 7), store.get<TestConfig>("config")?.value)
+    }
+
+    @Test
+    fun `raw export covers every store when no store name is given`() = runTest {
+        val db = createDb()
+        db.store("users").put("alice", TestUser("Alice", 30))
+        db.store("config").put("app", TestConfig(debug = false, version = 1))
+
+        assertEquals(2, db.exportRaw().size)
+        assertEquals(1, db.exportRaw("users").size)
+        assertEquals(emptyList(), db.exportRaw("nothing-here"))
+    }
+
+    @Test
+    fun `raw export preserves timestamps`() = runTest {
+        val clock = FixedTimestampProvider(now = 1_000L)
+        val db = createDb(clock)
+        db.store("users").put("alice", TestUser("Alice", 30))
+        clock.now = 2_000L
+        db.store("users").put("alice", TestUser("Alice", 31))
+
+        val exported = db.exportRaw("users").single()
+
+        assertEquals(1_000L, exported.createdAt)
+        assertEquals(2_000L, exported.updatedAt)
+        assertEquals("users", exported.storeName)
+        assertEquals("alice", exported.key)
+    }
+
+    @Test
+    fun `import overwrites existing keys and refreshes live state`() = runTest {
+        val db = createDb()
+        val users = db.store("users")
+        val state = users.state<TestUser>("alice")
+
+        state.set(TestUser("Alice", 30))
+        val snapshot = db.exportRaw("users")
+
+        state.set(TestUser("Alice", 31))
+        assertEquals(31, state.value?.age)
+
+        // A restore has to be visible without restarting the app — the open state must not keep
+        // serving what it cached before the import.
+        db.importRaw(snapshot)
+
+        assertEquals(30, state.value?.age)
+    }
+
+    @Test
+    fun `import of an empty backup leaves the database untouched`() = runTest {
+        val db = createDb()
+        db.store("users").put("alice", TestUser("Alice", 30))
+
+        db.importRaw(emptyList())
+
+        assertEquals(TestUser("Alice", 30), db.store("users").get<TestUser>("alice")?.value)
+    }
+
+    @Test
+    fun `databases without raw support say so instead of silently doing nothing`() = runTest {
+        val db = MapObjectDatabase()
+
+        assertFailsWith<UnsupportedOperationException> { db.exportRaw() }
+        assertFailsWith<UnsupportedOperationException> {
+            db.importRaw(listOf(RawObject("k", "s", "{}", 1L, 1L)))
+        }
+    }
+
+    @Test
     fun `sqlite upsert returns preserved createdAt and latest updatedAt`() = runTest {
         val clock = FixedTimestampProvider(now = 1_000L)
         val db = createDb(clock)
