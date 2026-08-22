@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+          Lets AndroidShareAdapter hand cached files to other apps. Only the staging folder is
+          exposed, so sharing one file never makes the rest of the sandbox readable.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.reaktorfileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/reaktor_share_paths" />
+        </provider>
+    </application>
+</manifest>
