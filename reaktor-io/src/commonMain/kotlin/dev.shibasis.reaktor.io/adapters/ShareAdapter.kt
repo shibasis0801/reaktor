@@ -10,13 +10,27 @@ import dev.shibasis.reaktor.core.framework.Feature
  * [FileAdapter] writes inside the app sandbox, which the user cannot reach — exporting anything
  * (a backup, a report, a log bundle) means going through the OS sharing mechanism instead.
  */
-data class SharePayload(
+class SharePayload(
     val fileName: String,
-    val contents: String,
+    val bytes: ByteArray,
     val mimeType: String = "application/json",
     /** Sheet heading; defaults to the file name. */
     val title: String? = null,
-)
+) {
+    /**
+     * Text convenience, for the documents most apps share — a JSON export, a log, a report.
+     *
+     * Bytes are the primary form because plenty of what an app wants to hand out is not text at
+     * all: an image of a chart, a PDF, a recording. Encoding those through a String would corrupt
+     * them, and every caller would have to know that.
+     */
+    constructor(
+        fileName: String,
+        contents: String,
+        mimeType: String = "application/json",
+        title: String? = null,
+    ) : this(fileName, contents.encodeToByteArray(), mimeType, title)
+}
 
 abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     /**

@@ -23,7 +23,7 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
                 // everything else in the sandbox stays unreachable.
                 val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
                 val file = File(directory, payload.fileName)
-                file.writeText(payload.contents)
+                file.writeBytes(payload.bytes)
                 FileProvider.getUriForFile(context, authority(context.packageName), file)
             }.getOrNull()
         } ?: return false
