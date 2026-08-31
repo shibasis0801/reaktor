@@ -41,6 +41,19 @@ abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Contro
      * reporting a success the user never saw.
      */
     abstract suspend fun shareFile(payload: SharePayload): Boolean
+
+    /**
+     * Offers [text] itself, rather than a document containing it.
+     *
+     * Separate from [shareFile] because the destination treats them as different things: a link
+     * or a message shared as text lands in a chat as something the recipient can read and tap,
+     * while the same string shared as a file arrives as an attachment nobody opens. Anything
+     * meant to be pasted belongs here.
+     *
+     * [subject] fills in where a target asks for one — an email's subject line, mostly — and is
+     * ignored everywhere else.
+     */
+    abstract suspend fun shareText(text: String, title: String? = null, subject: String? = null): Boolean
 }
 
 var Feature.Share by CreateSlot<ShareAdapter<*>>()

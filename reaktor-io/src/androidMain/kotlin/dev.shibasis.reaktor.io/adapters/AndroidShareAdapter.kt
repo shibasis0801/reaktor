@@ -43,6 +43,20 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
         }.isSuccess
     }
 
+    override suspend fun shareText(text: String, title: String?, subject: String?): Boolean {
+        val context = controller ?: return false
+
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+            subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+        }
+
+        return runCatching {
+            context.startActivity(Intent.createChooser(send, title))
+        }.isSuccess
+    }
+
     companion object {
         private const val SHARE_DIRECTORY = "reaktor-share"
 

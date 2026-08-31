@@ -43,6 +43,15 @@ class DarwinShareAdapter : ShareAdapter<Unit>(Unit) {
         }
     }
 
+    override suspend fun shareText(text: String, title: String?, subject: String?): Boolean =
+        withContext(Dispatchers.Main) {
+            val presenter = topViewController() ?: return@withContext false
+            val controller = UIActivityViewController(listOf(text), null)
+            controller.popoverPresentationController?.sourceView = presenter.view
+            presenter.presentViewController(controller, animated = true, completion = null)
+            true
+        }
+
     private fun write(payload: SharePayload): NSURL? {
         val path = NSTemporaryDirectory() + payload.fileName
         val data = payload.bytes.toNSData()
