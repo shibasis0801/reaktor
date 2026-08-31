@@ -27,7 +27,15 @@ class AndroidNotificationsClient(
     private val config: AndroidNotificationsConfig = AndroidNotificationsConfig(),
 ) : NotificationAdapter<Context>(context.applicationContext, AndroidPermissionAdapter(context)) {
     private val appContext = context.applicationContext
-    private val events = NotificationEventHub()
+
+    // Process-wide rather than per-instance. What delivers a notification response on Android is
+    // a BroadcastReceiver, which is scoped to the process and reaches whichever client happens to
+    // be installed when it fires — while listeners are registered once, by application code that
+    // has no reason to run again. An Activity that builds a client in onCreate therefore silently
+    // orphans every listener the moment it is recreated: the action fires, the notification is
+    // dismissed, and nothing else happens. Two clients in one process are always the same app, so
+    // sharing the hub is both the fix and the honest model.
+    private val events = AndroidNotificationsRuntime.events
     private val channelRegistry = AndroidNotificationChannelRegistry(appContext)
     private val renderer = AndroidNotificationRenderer(appContext, channelRegistry, config)
     private val scheduler = AndroidNotificationScheduler(appContext)

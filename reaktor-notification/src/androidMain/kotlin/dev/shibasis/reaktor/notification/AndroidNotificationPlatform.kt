@@ -416,6 +416,15 @@ open class ReaktorFirebaseMessagingService : FirebaseMessagingService() {
 object AndroidNotificationsRuntime {
     private var client: AndroidNotificationsClient? = null
 
+    /**
+     * The listeners for this process, shared by every client built inside it.
+     *
+     * See the note in AndroidNotificationsClient: responses arrive through a process-scoped
+     * receiver, so holding listeners on one client instance loses them as soon as another is
+     * constructed.
+     */
+    internal val events = NotificationEventHub()
+
     fun install(client: AndroidNotificationsClient) {
         this.client = client
     }
