@@ -14,6 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dev.shibasis.reaktor.core.framework.Dispatch
@@ -38,6 +39,7 @@ private const val EXTRA_ACTION_ID = "reaktor_action_id"
 internal const val EXTRA_DISMISSES_NOTIFICATION = "reaktor_dismisses_notification"
 // Distinct from any notification's own request code, which is derived from its id.
 private const val SHOW_ALARM_REQUEST_CODE = 0x5245414B
+private const val ALARM_LOG_TAG = "ReaktorNotifications"
 private const val EXTRA_REQUEST_JSON = "reaktor_request_json"
 private const val EXTRA_ENVELOPE_JSON = "reaktor_envelope_json"
 private const val ALARM_STORE_NAME = "reaktor_scheduled_alarms"
@@ -293,21 +295,21 @@ class AndroidNotificationScheduler(
     }
 
     /**
-     * Arms the OS alarm, exactly when the request asked for exactly.
+     * Arms the OS alarm, as close to the requested moment as the app is allowed to get.
      *
      * `AlarmManager.set` has been inexact since API 19 and currently batches to a window of about
-     * an hour, which is fine for a digest and useless for a reminder someone set a clock face to.
-     * Exact requests therefore take one of two other paths:
+     * an hour, which is fine for a digest and useless for a reminder somebody set a clock face to.
+     * An exact request therefore tries `setExactAndAllowWhileIdle`, then falls back.
      *
-     *  - `setExactAndAllowWhileIdle` when the app holds the exact-alarm right. Exact, no visible
-     *    trace, but it needs `SCHEDULE_EXACT_ALARM` from API 31, which the *host app* has to
-     *    declare and justify to the store -- not something a framework can decide on its behalf.
-     *  - `setAlarmClock` otherwise. Also exact and needs no permission at all, at the cost of the
-     *    system alarm icon and an entry on the lock screen.
+     * Every exact path on Android needs `SCHEDULE_EXACT_ALARM` or `USE_EXACT_ALARM` from API 31 --
+     * `setAlarmClock` included, despite its history of being the permission-free way to do this.
+     * Verified the hard way: it throws the same SecurityException as the rest. Which permission to
+     * declare, and how to justify it to the store, is the *host app's* decision, so this module
+     * declares neither and reads what it was given.
      *
-     * So exactness never depends on a permission: the fallback is cosmetic, not functional. An app
-     * that would rather not show an alarm icon opts in to the permission and this picks it up on
-     * its own.
+     * The fallback matters more than the precision. A notification that arrives late is a poor
+     * outcome; one that never arrives because it could not arrive *precisely* is a much worse one,
+     * and that is what an unguarded exact call produces on any device where the right is missing.
      */
     private fun scheduleAt(request: LocalNotificationRequest, triggerAtMillis: Long) {
         store.edit()
@@ -315,18 +317,29 @@ class AndroidNotificationScheduler(
             .apply()
 
         val intent = alarmIntent(request.id, request)
-        when {
-            request.precision == NotificationPrecision.Approximate ->
-                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
-
-            canScheduleExact() ->
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
-
-            else -> alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(triggerAtMillis, showAlarmIntent()),
-                intent,
-            )
+        if (request.precision == NotificationPrecision.Approximate) {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
+            return
         }
+
+        // Both exact paths can be refused at runtime — the right can be revoked between the check
+        // and the call, and OEM builds have their own rules about which of them an app may use. A
+        // notification that arrives late is a poor outcome; one that never arrives because it
+        // could not arrive *precisely* is a far worse one, so this degrades rather than gives up.
+        val armed = runCatching {
+            if (canScheduleExact()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
+            } else {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerAtMillis, showAlarmIntent()),
+                    intent,
+                )
+            }
+        }.onFailure {
+            Log.w(ALARM_LOG_TAG, "Exact alarm refused for ${request.id}, falling back", it)
+        }.isSuccess
+
+        if (!armed) alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
     }
 
     /**
@@ -335,7 +348,7 @@ class AndroidNotificationScheduler(
      * Re-read on every arm rather than cached, because the user can revoke it in Settings at any
      * moment and a cached yes would silently downgrade every later alarm to a broken promise.
      */
-    private fun canScheduleExact(): Boolean =
+    internal fun canScheduleExact(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
 
     /**

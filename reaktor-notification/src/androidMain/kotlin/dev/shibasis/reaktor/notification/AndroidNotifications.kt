@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import com.google.firebase.messaging.FirebaseMessaging
@@ -97,7 +98,11 @@ class AndroidNotificationsClient(
                 NotificationSchedulingFeature.BackgroundSync,
                 NotificationSchedulingFeature.CancelScheduled,
                 NotificationSchedulingFeature.DeliveredInbox,
-            ),
+            ) + if (scheduler.canScheduleExact()) {
+                setOf(NotificationSchedulingFeature.ExactDelivery)
+            } else {
+                emptySet()
+            },
             extensionFeatures = setOf(
                 NotificationExtensionFeature.ForegroundService,
                 NotificationExtensionFeature.FullScreenIntent,
@@ -210,6 +215,16 @@ class AndroidNotificationsClient(
         val intent = when (target) {
             NotificationSettingsTarget.App -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, appContext.packageName)
+            NotificationSettingsTarget.ExactAlarms ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        .setData(Uri.fromParts("package", appContext.packageName, null))
+                } else {
+                    // Nothing to grant before Android 12 - exact alarms were simply allowed.
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, appContext.packageName)
+                }
+
             is NotificationSettingsTarget.Category ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
