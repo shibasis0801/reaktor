@@ -40,6 +40,16 @@ class R2ObjectBody internal constructor(
     @JsExport.Ignore
     suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
 
+    /**
+     * The object's `ReadableStream`, for serving it onward without buffering.
+     *
+     * Pair with `CloudflareRouteContext.stream` to hand a large object straight back to the
+     * caller; [bytes] is the right choice only when the whole payload is small enough to belong in
+     * the isolate.
+     */
+    val body: dynamic
+        get() = raw.asDynamic().body
+
     @JsExport.Ignore
     suspend fun text(): String = raw.text().await()
 
@@ -71,6 +81,28 @@ class R2Bucket internal constructor(
     @JsExport.Ignore
     suspend fun put(key: String, value: ByteArray): R2Object =
         R2Object(raw.put(key, value.toUint8Array()).await())
+
+    /**
+     * Stores a `ReadableStream` — a request body, or another R2 object's body — without pulling it
+     * through the isolate.
+     *
+     * The [ByteArray] overloads are right for small payloads and wrong for large ones: a 50 MB
+     * upload buffered into Kotlin costs 50 MB of isolate memory to achieve nothing, since the
+     * bytes are only ever on their way to R2. Take the stream off
+     * [CloudflareHttpRequest.body] and pass it here instead.
+     */
+    @JsExport.Ignore
+    suspend fun putStream(
+        key: String,
+        stream: dynamic,
+        contentType: String? = null,
+    ): R2Object =
+        R2Object(
+            raw.asDynamic()
+                .put(key, stream, putOptions(contentType))
+                .unsafeCast<kotlin.js.Promise<RawR2Object>>()
+                .await(),
+        )
 
     @JsExport.Ignore
     suspend fun put(key: String, value: String): R2Object =

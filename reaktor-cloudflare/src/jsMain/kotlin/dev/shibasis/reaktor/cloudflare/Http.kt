@@ -64,13 +64,54 @@ class CloudflareHttpRequest internal constructor(
     suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
 
     suspend fun formData(): CloudflareFormData = CloudflareFormData(raw.formData().await())
+
+    /**
+     * The request's `ReadableStream`, for bodies that must not be buffered.
+     *
+     * [bytes] pulls the whole payload into the isolate, which is the wrong shape for an upload
+     * that is on its way to R2 — a large file would sit in memory for no reason and can exceed the
+     * isolate's limit. Hand this straight to `R2Bucket.put` or to a `Response` instead.
+     *
+     * Null for requests that carry no body (GET, HEAD).
+     */
+    val body: dynamic
+        get() = raw.asDynamic().body
 }
 
 class CloudflareRouteContext internal constructor(
-    hono: HonoContext,
+    private val hono: HonoContext,
 ) {
     val request: CloudflareHttpRequest = CloudflareHttpRequest(hono.req.raw.unsafeCast<RawWorkerRequest>())
     val cloudflare: CloudflareContext = CloudflareContext(hono.env, hono.executionCtx, hono)
+
+    /** A path parameter declared in the route pattern, e.g. `:id` in `/things/:id`. */
+    fun param(name: String): String? {
+        val value = hono.req.param().asDynamic()[name]
+        return if (value == null) null else value.toString()
+    }
+
+    fun requireParam(name: String): String =
+        param(name) ?: error("Route parameter '$name' is missing")
+
+    fun query(name: String): String? {
+        val value = hono.req.query().asDynamic()[name]
+        return if (value == null) null else value.toString()
+    }
+
+    /**
+     * Streams [body] back without buffering it — the counterpart to
+     * [CloudflareHttpRequest.body], for handing an R2 object's stream straight to the client.
+     */
+    fun stream(
+        body: dynamic,
+        status: Int = 200,
+        headers: Map<String, String> = emptyMap(),
+        contentType: String = "application/octet-stream",
+    ): Any = workerResponse(
+        body = body,
+        status = status,
+        headers = headers + ("Content-Type" to contentType),
+    ).unsafeCast<Any>()
 
     inline fun <reified T> json(
         value: T,
@@ -134,6 +175,26 @@ fun Hono.post(
     path: String,
     handler: suspend CloudflareRouteContext.() -> Any,
 ): Hono = handle("POST", path, handler)
+
+fun Hono.put(
+    path: String,
+    handler: suspend CloudflareRouteContext.() -> Any,
+): Hono = handle("PUT", path, handler)
+
+fun Hono.patch(
+    path: String,
+    handler: suspend CloudflareRouteContext.() -> Any,
+): Hono = handle("PATCH", path, handler)
+
+fun Hono.delete(
+    path: String,
+    handler: suspend CloudflareRouteContext.() -> Any,
+): Hono = handle("DELETE", path, handler)
+
+fun Hono.head(
+    path: String,
+    handler: suspend CloudflareRouteContext.() -> Any,
+): Hono = handle("HEAD", path, handler)
 
 @PublishedApi
 internal fun workerResponse(
