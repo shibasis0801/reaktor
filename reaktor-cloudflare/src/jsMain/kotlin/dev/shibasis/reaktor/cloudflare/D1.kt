@@ -181,8 +181,25 @@ class D1Database internal constructor(
     ): String? = string(d1Query(build), columnName)
 
     private fun prepared(statement: SqlStatement): RawD1PreparedStatement =
-        raw.prepare(statement.query).bind(*statement.params)
+        raw.prepare(statement.query).bind(*statement.params.map(::bindable).toTypedArray())
 }
+
+/**
+ * A value D1 will accept as a bind parameter.
+ *
+ * Modules compiled with `-Xes-long-as-bigint` — which every Worker here is, so that `Long` has the
+ * same representation across the whole bundle — turn Kotlin `Long` into a JS `bigint`, and D1's
+ * binder rejects those outright with `D1_TYPE_ERROR: Type 'bigint' not supported`. Every timestamp,
+ * size and counter in a query hits it, so the conversion belongs here rather than at each call site.
+ *
+ * Converted through `Number`, which is exact to 2^53. Timestamps in milliseconds are around 1.8e12
+ * and sizes are smaller still, so nothing Cairn stores comes close; a genuinely 64-bit identifier
+ * would need to be bound as text instead, and should be.
+ */
+private fun bindable(value: Any?): Any? =
+    if (jsTypeOf(value) == "bigint") numberOf(value) else value
+
+private fun numberOf(value: dynamic): Double = js("Number(value)").unsafeCast<Double>()
 
 private fun Any?.asIntOrNull(): Int? =
     when (this) {

@@ -1,7 +1,9 @@
 package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
+import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.service.Environment
+import dev.shibasis.reaktor.service.HttpFailure
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.Response
@@ -52,8 +54,38 @@ private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext
     (request as? CloudflareAwareRequest)?.cloudflareContext = cloudflareContext
     request.asDynamic().cloudflareContext = cloudflareContext
 
-    val response = invoke(request)
+    val response = try {
+        invoke(request)
+    } catch (failure: HttpFailure) {
+        // Something the handler decided. The status and the message are both meant for the caller.
+        return@promise failureResponse(failure.statusCode, failure.message ?: failure.statusCode.name)
+    } catch (error: Throwable) {
+        // Anything else is a bug, not an answer. The caller gets a 500 and no detail — an
+        // unplanned exception's message is written for whoever reads the log, and that is where
+        // it stays.
+        console.error("Unhandled error serving " + route + ": " + error.toString())
+        return@promise failureResponse(StatusCode.INTERNAL_SERVER_ERROR, "Internal server error")
+    }
+
     response.toWorkerResponse(textSerializer.serialize(responseSerializer, response))
+}
+
+/** A bare `{"error": …}` body, so a failure is still JSON to a client that only parses JSON. */
+private fun failureResponse(status: StatusCode, message: String): dynamic {
+    val initHeaders = js("({})")
+    initHeaders["content-type"] = "application/json"
+
+    val init = js("({})")
+    init.status = status.code
+    init.headers = initHeaders
+
+    val body = json.encodeToString(
+        kotlinx.serialization.json.JsonObject.serializer(),
+        kotlinx.serialization.json.JsonObject(
+            mapOf("error" to kotlinx.serialization.json.JsonPrimitive(message)),
+        ),
+    )
+    return js("new Response(body, init)")
 }
 
 private fun toStringMap(source: dynamic): MutableMap<String, String> {
