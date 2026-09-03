@@ -37,7 +37,20 @@ private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext
     val rawBody = runCatching { context.req.text().await() }.getOrNull().orEmpty().ifBlank { "{}" }
     val pathParams = toStringMap(context.req.param())
     val queryParams = toStringMap(context.req.query())
-    val request = textSerializer.deserialize(requestSerializer, rawBody)
+    val request = try {
+        textSerializer.deserialize(requestSerializer, rawBody)
+    } catch (error: Throwable) {
+        // A body that will not parse is the caller's mistake, not a crash. Before this it reached
+        // the transport as an unhandled rejection and came back as a 500, which tells a client to
+        // retry something that will never succeed.
+        //
+        // The reason is included because it names a field, not a value: enough for whoever is
+        // holding a stale client to see what changed, and nothing about the request's contents.
+        return@promise failureResponse(
+            StatusCode.BAD_REQUEST,
+            error.message ?: "The request body did not parse",
+        )
+    }
 
     request.pathParams.putAll(pathParams)
     request.queryParams.putAll(queryParams)
