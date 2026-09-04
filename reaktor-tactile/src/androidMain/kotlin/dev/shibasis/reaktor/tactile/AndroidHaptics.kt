@@ -40,6 +40,12 @@ class AndroidHaptics(context: Context) : HapticsAdapter<Context>(context.applica
                 HapticPattern.Warning -> longArrayOf(0, 30, 70, 30) to intArrayOf(0, 160, 0, 160)
                 HapticPattern.Alert -> longArrayOf(0, 70, 60, 70, 60, 70) to
                     intArrayOf(0, 255, 0, 255, 0, 255)
+                // Three seconds, as five pulses rather than one long buzz. A continuous three
+                // seconds is unpleasant to hold and easy to sleep through once it stops being
+                // new; a train that keeps restarting stays a signal for its whole length.
+                HapticPattern.Alarm -> longArrayOf(
+                    0, 400, 200, 400, 200, 400, 200, 400, 200, 400, 200,
+                ) to intArrayOf(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0)
             }
             device.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
         }

@@ -25,6 +25,15 @@ enum class HapticPattern {
 
     /** Something failed, or is about to be destructive. */
     Alert,
+
+    /**
+     * A timer the user was waiting on has fired, and the phone is probably not in their hand.
+     *
+     * The only pattern here measured in seconds rather than milliseconds: it has to carry across
+     * a room to someone who put the phone down and walked away from it. Everything else is
+     * feedback on something the user just did, and should be over before they notice it.
+     */
+    Alarm,
 }
 
 /**
