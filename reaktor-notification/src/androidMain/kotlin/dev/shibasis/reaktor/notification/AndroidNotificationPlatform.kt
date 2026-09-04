@@ -15,8 +15,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
-import com.google.firebase.messaging.FirebaseMessagingService
-import com.google.firebase.messaging.RemoteMessage
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.core.framework.json
@@ -465,16 +463,6 @@ class AndroidNotificationDevHarness(
             route = NotificationRoute.GraphAction("reaktor.notification.open", "{}"),
         )
         return client.simulateTap(envelope)
-    }
-}
-
-open class ReaktorFirebaseMessagingService : FirebaseMessagingService() {
-    override fun onMessageReceived(message: RemoteMessage) {
-        AndroidNotificationsRuntime.ensure(this).handleRemoteMessage(message)
-    }
-
-    override fun onNewToken(token: String) {
-        AndroidNotificationsRuntime.ensure(this).recordNewToken(token)
     }
 }
 
