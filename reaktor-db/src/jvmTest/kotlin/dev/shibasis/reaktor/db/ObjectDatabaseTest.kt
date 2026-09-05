@@ -530,6 +530,21 @@ class ObjectDatabaseTest {
     }
 
     @Test
+    fun `setting a key aside twice keeps both copies`() = runTest {
+        val db = createDb()
+        val users = db.store("users")
+
+        db.importRaw(listOf(RawObject("bob", "users", """{"name":"first"}""", 1L, 1L)))
+        assertNull(users.get<TestUser>("bob"))
+        db.importRaw(listOf(RawObject("bob", "users", """{"name":"second"}""", 1L, 1L)))
+        assertNull(users.state<TestUser>("bob").refresh())
+
+        val payloads = db.exportRaw("users").associate { it.key to it.payload }
+        assertEquals("""{"name":"first"}""", payloads["bob#unreadable"])
+        assertEquals("""{"name":"second"}""", payloads["bob#unreadable.1"])
+    }
+
+    @Test
     fun `a database that cannot move rows leaves the unreadable payload where it is`() = runTest {
         val db = MapObjectDatabase()
         db.mutateRaw("users", "bob", TestUser("Bob", 41))

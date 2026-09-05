@@ -251,8 +251,13 @@ abstract class ObjectDatabase(
      * Returns null when the database cannot move rows, which leaves the payload untouched.
      */
     internal suspend fun quarantine(storeName: String, key: String): String? {
-        val quarantineKey = "$key$QUARANTINE_SUFFIX"
-        if (!renameRaw(storeName, key, quarantineKey)) return null
+        // A key set aside once can be set aside again, and the earlier copy is somebody's data
+        // too — so look for a free name rather than writing over it. Bounded, because a key that
+        // has gone unreadable this many times is not going to be fixed by a longer search.
+        val quarantineKey = (0 until QUARANTINE_ATTEMPTS)
+            .map { attempt -> "$key$QUARANTINE_SUFFIX" + if (attempt == 0) "" else ".$attempt" }
+            .firstOrNull { candidate -> renameRaw(storeName, key, candidate) }
+            ?: return null
         // Deliberately no invalidate: this runs inside the caller's per-key lock, and an
         // invalidation would send every open state for the key straight back through it.
         // The one caller drops its cached copy itself, which is the same outcome without
@@ -298,5 +303,8 @@ abstract class ObjectDatabase(
 
 /** Marks a key holding bytes this build could not read. Kept stable so a later build can find them. */
 private const val QUARANTINE_SUFFIX = "#unreadable"
+
+/** How many times one key may be set aside before the payload is left where it is. */
+private const val QUARANTINE_ATTEMPTS = 10
 
 var Feature.Database by CreateSlot<ObjectDatabase>()
