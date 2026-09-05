@@ -9,7 +9,11 @@ import dev.shibasis.reaktor.io.serialization.TextSerializer
 import dev.shibasis.reaktor.db.ObjectDatabase
 import dev.shibasis.reaktor.db.RawObject
 import dev.shibasis.reaktor.db.StoredObject
+import dev.shibasis.reaktor.db.UnreadableObjectException
+import dev.shibasis.reaktor.core.utils.logger
+import dev.shibasis.reaktor.core.utils.warn
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlin.reflect.KClass
 
 class SqliteObjectDatabase(
@@ -19,6 +23,7 @@ class SqliteObjectDatabase(
     private val timestampProvider: TimestampProvider = DefaultTimestampProvider()
 ): ObjectDatabase(objectSerializer) {
     private val tableName = "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+    private val log = "SqliteObjectDatabase".logger()
 
     init {
         val valueType = objectSerializer.choose("TEXT", "BLOB")
@@ -34,17 +39,30 @@ class SqliteObjectDatabase(
         """.trimIndent(), 0)
     }
 
-    private fun <T : Any> readRow(cursor: SqlCursor, serializer: KSerializer<T>): StoredObject<T>? {
-        if (!cursor.next().value) return null
-        val (value, sizeBytes) = when (objectSerializer) {
-            is BinarySerializer -> {
-                val bytes = cursor.getBytes(1)!!
-                objectSerializer.deserialize(serializer, bytes) to bytes.size.toLong()
+    /**
+     * Decodes the row the cursor already sits on.
+     *
+     * A row outlives the shape that wrote it: a model gains a required field, a later build
+     * stores a type differently, a write lands half-finished. That is reported as
+     * [UnreadableObjectException] rather than a bare serialization failure, because the two mean
+     * different things to a caller — one row of a store is skippable, one keyed document is not.
+     */
+    private fun <T : Any> decodeRow(cursor: SqlCursor, serializer: KSerializer<T>): StoredObject<T> {
+        val key = cursor.getString(0)!!
+        val rowStoreName = cursor.getString(2)!!
+        val (value, sizeBytes) = try {
+            when (objectSerializer) {
+                is BinarySerializer -> {
+                    val bytes = cursor.getBytes(1)!!
+                    objectSerializer.deserialize(serializer, bytes) to bytes.size.toLong()
+                }
+                is TextSerializer -> {
+                    val text = cursor.getString(1)!!
+                    objectSerializer.deserialize(serializer, text) to (text.length.toLong() * 2)
+                }
             }
-            is TextSerializer -> {
-                val text = cursor.getString(1)!!
-                objectSerializer.deserialize(serializer, text) to (text.length.toLong() * 2)
-            }
+        } catch (exception: SerializationException) {
+            throw UnreadableObjectException(rowStoreName, key, exception)
         }
         return StoredObject(
             key = cursor.getString(0)!!,
@@ -98,7 +116,9 @@ class SqliteObjectDatabase(
         return driver.executeQuery(
             null,
             "SELECT * FROM $tableName WHERE key = ? AND store_name = ?",
-            { cursor -> QueryResult.Value(readRow(cursor, serializer)) },
+            { cursor ->
+                QueryResult.Value(if (cursor.next().value) decodeRow(cursor, serializer) else null)
+            },
             2
         ) {
             bindString(0, key)
@@ -114,8 +134,14 @@ class SqliteObjectDatabase(
             "SELECT * FROM $tableName WHERE store_name = ?",
             { cursor ->
                 val items = mutableListOf<StoredObject<T>>()
-                while (true) {
-                    items.add(readRow(cursor, serializer) ?: break)
+                while (cursor.next().value) {
+                    try {
+                        items.add(decodeRow(cursor, serializer))
+                    } catch (exception: UnreadableObjectException) {
+                        // One row is not worth the other rows. The payload stays in the table,
+                        // so a backup still carries it and a later write replaces it.
+                        log.warn { "Skipping unreadable row in $tableName: ${exception.message}" }
+                    }
                 }
                 QueryResult.Value(items)
             },
@@ -184,6 +210,21 @@ class SqliteObjectDatabase(
                     "${objectSerializer::class.simpleName}.",
             )
         }
+    }
+
+    override suspend fun renameRaw(storeName: String, key: String, newKey: String): Boolean {
+        // OR IGNORE so a name already taken leaves the original row where it is, rather than
+        // failing the rename in a way that loses track of which key still holds the payload.
+        val affected = driver.execute(
+            null,
+            "UPDATE OR IGNORE $tableName SET key = ? WHERE key = ? AND store_name = ?",
+            3,
+        ) {
+            bindString(0, newKey)
+            bindString(1, key)
+            bindString(2, storeName)
+        }.value
+        return affected > 0
     }
 
     override suspend fun deleteRaw(storeName: String, key: String) {

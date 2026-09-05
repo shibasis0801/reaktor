@@ -37,6 +37,14 @@ private class FixedTimestampProvider(
 
 private class MapObjectDatabase : ObjectDatabase(TextSerializer()) {
     private val rows = mutableMapOf<ObjectAddress, StoredObject<*>>()
+    private val unreadable = mutableSetOf<ObjectAddress>()
+
+    /** Marks a stored document as one this build cannot decode. */
+    fun poison(storeName: String, key: String) {
+        unreadable.add(ObjectAddress(storeName, key))
+    }
+
+    fun holds(storeName: String, key: String) = ObjectAddress(storeName, key) in rows
     private var now = 1_000L
 
     fun <T : Any> mutateRaw(
@@ -73,7 +81,11 @@ private class MapObjectDatabase : ObjectDatabase(TextSerializer()) {
         type: KClass<T>,
         serializer: KSerializer<T>,
     ): StoredObject<T>? {
-        return rows[ObjectAddress(storeName, key)] as? StoredObject<T>
+        val address = ObjectAddress(storeName, key)
+        if (address in unreadable) {
+            throw UnreadableObjectException(storeName, key, IllegalStateException("poisoned"))
+        }
+        return rows[address] as? StoredObject<T>
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -453,5 +465,79 @@ class ObjectDatabaseTest {
         assertEquals(first.createdAt, second.createdAt)
         assertEquals(2_000L, second.updatedAt)
         assertFalse(second.createdAt == second.updatedAt)
+    }
+
+    @Test
+    fun `a row the current serializer cannot read does not hide the rows that follow it`() = runTest {
+        val db = createDb()
+        // The shape an older build wrote, before `age` existed and was required.
+        db.importRaw(
+            listOf(
+                RawObject("alice", "users", """{"name":"Alice","age":30}""", 1L, 1L),
+                RawObject("bob", "users", """{"name":"Bob"}""", 1L, 1L),
+                RawObject("carol", "users", """{"name":"Carol","age":41}""", 1L, 1L),
+            )
+        )
+
+        val users = db.store("users").getAll<TestUser>()
+
+        assertEquals(listOf("Alice", "Carol"), users.map { it.value.name })
+    }
+
+    @Test
+    fun `a document the current serializer cannot read reads as absent`() = runTest {
+        val db = createDb()
+        db.importRaw(listOf(RawObject("bob", "users", """{"name":"Bob"}""", 1L, 1L)))
+
+        assertNull(db.store("users").get<TestUser>("bob"))
+    }
+
+    @Test
+    fun `an unreadable document is set aside instead of being overwritten`() = runTest {
+        val db = createDb()
+        val stored = """{"name":"Bob"}"""
+        db.importRaw(listOf(RawObject("bob", "users", stored, 1L, 1L)))
+
+        // What every caller does with a null: start from a default and save it back.
+        val users = db.store("users")
+        assertNull(users.get<TestUser>("bob"))
+        users.write("bob", TestUser("Bob", 41))
+
+        val rows = db.exportRaw("users").associateBy { it.key }
+        assertEquals(stored, rows["bob#unreadable"]?.payload)
+        assertEquals(TestUser("Bob", 41), users.get<TestUser>("bob")?.value)
+    }
+
+    @Test
+    fun `bytes set aside travel in a backup`() = runTest {
+        val db = createDb()
+        db.importRaw(listOf(RawObject("bob", "users", """{"name":"Bob"}""", 1L, 1L)))
+        db.store("users").get<TestUser>("bob")
+
+        assertEquals(listOf("bob#unreadable"), db.exportRaw("users").map { it.key })
+    }
+
+    @Test
+    fun `reading an unreadable document twice does not deadlock or lose the first copy`() = runTest {
+        val db = createDb()
+        db.importRaw(listOf(RawObject("bob", "users", """{"name":"Bob"}""", 1L, 1L)))
+        val users = db.store("users")
+
+        assertNull(users.get<TestUser>("bob"))
+        assertNull(users.state<TestUser>("bob").refresh())
+
+        assertEquals(listOf("bob#unreadable"), db.exportRaw("users").map { it.key })
+    }
+
+    @Test
+    fun `a database that cannot move rows leaves the unreadable payload where it is`() = runTest {
+        val db = MapObjectDatabase()
+        db.mutateRaw("users", "bob", TestUser("Bob", 41))
+        db.poison("users", "bob")
+
+        assertNull(db.store("users").get<TestUser>("bob"))
+
+        // Nothing could be moved, so nothing may have been dropped either.
+        assertTrue(db.holds("users", "bob"))
     }
 }
