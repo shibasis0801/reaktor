@@ -52,6 +52,7 @@ class DarwinFileAdapter(): FileAdapter<Unit>(Unit) {
     }
 
     override suspend fun writeBinaryFile(path: String, data: ByteArray) {
+        ensureParentDirectory(path)
         val output = SystemFileSystem.sink(Path(path)).buffered()
         try {
             output.write(data)
