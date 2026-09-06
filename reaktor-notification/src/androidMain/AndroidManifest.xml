@@ -25,6 +25,16 @@
             android:name=".ReaktorNotificationActionReceiver"
             android:exported="false" />
 
+        <!-- Taps on an ongoing activity's actions. Not exported: the broadcast is sent with the
+             package set, so it reaches this receiver and nothing outside the app can send one. -->
+        <receiver
+            android:name=".ongoing.OngoingActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="dev.shibasis.reaktor.notification.ONGOING_ACTION" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".ReaktorNotificationBootReceiver"
             android:exported="true">
