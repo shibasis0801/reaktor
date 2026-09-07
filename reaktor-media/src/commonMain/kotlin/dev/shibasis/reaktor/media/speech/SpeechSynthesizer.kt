@@ -19,6 +19,17 @@ data class SpokenRange(
     val end: Int,
 )
 
+/**
+ * A voice the engine can speak with, for a voice picker. [id] is the engine's own identifier (an
+ * Android `Voice.name` or an iOS `AVSpeechSynthesisVoice.identifier`), passed back to
+ * [SpeechSynthesizer.setVoice]; [name] and [language] (a BCP-47 tag like "en-US") are for display.
+ */
+data class Voice(
+    val id: String,
+    val name: String,
+    val language: String,
+)
+
 /** Lifecycle of one spoken utterance, streamed on [SpeechSynthesizer.events]. */
 sealed interface SpeechEvent {
     val utteranceId: String
@@ -55,6 +66,15 @@ abstract class SpeechSynthesizer<Controller>(
 
     /** 1.0 = normal cadence; engines accept roughly 0.5..4.0. */
     abstract fun setRate(rate: Float)
+
+    /**
+     * Voices the engine offers, for a picker. May be empty until the engine finishes initialising
+     * (Android's `TextToSpeech` is async), so callers should tolerate an empty list and re-query.
+     */
+    abstract fun availableVoices(): List<Voice>
+
+    /** Select a voice by its [Voice.id] for subsequent [speak]s. Unknown ids are ignored. */
+    abstract fun setVoice(id: String)
 
     abstract fun isSpeaking(): Boolean
 

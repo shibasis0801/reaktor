@@ -81,6 +81,27 @@ class AndroidSpeechSynthesizer(
         if (ready) tts.setSpeechRate(rate)
     }
 
+    override fun availableVoices(): List<Voice> {
+        if (!ready) return emptyList()
+        val voices = tts.voices ?: return emptyList()
+        return voices
+            .filterNot { it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) == true }
+            .map { v ->
+                val loc = v.locale
+                val display = buildString {
+                    append(loc.displayLanguage)
+                    if (loc.displayCountry.isNotBlank()) append(" (").append(loc.displayCountry).append(')')
+                }.ifBlank { v.name }
+                Voice(id = v.name, name = display, language = loc.toLanguageTag())
+            }
+            .sortedBy { it.name }
+    }
+
+    override fun setVoice(id: String) {
+        if (!ready) return
+        tts.voices?.firstOrNull { it.name == id }?.let { tts.voice = it }
+    }
+
     override fun isSpeaking(): Boolean = tts.isSpeaking
 
     override fun shutdown() {

@@ -5,6 +5,7 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import platform.AVFAudio.AVSpeechBoundary
+import platform.AVFAudio.AVSpeechSynthesisVoice
 import platform.AVFAudio.AVSpeechSynthesizer
 import platform.AVFAudio.AVSpeechSynthesizerDelegateProtocol
 import platform.AVFAudio.AVSpeechUtterance
@@ -32,6 +33,7 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
     private val engine = AVSpeechSynthesizer()
     private var currentId = "0"
     private var rate = 1.0f
+    private var voiceId: String? = null
     private val handler = Handler()
 
     init {
@@ -44,6 +46,7 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
         val utterance = AVSpeechUtterance(string = text)
         utterance.rate = (AVSpeechUtteranceDefaultSpeechRate * rate)
             .coerceIn(AVSpeechUtteranceMinimumSpeechRate, AVSpeechUtteranceMaximumSpeechRate)
+        voiceId?.let { id -> AVSpeechSynthesisVoice.voiceWithIdentifier(id)?.let { utterance.voice = it } }
         emit(SpeechEvent.Started(utteranceId))
         engine.speakUtterance(utterance)
     }
@@ -54,6 +57,15 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
 
     override fun setRate(rate: Float) {
         this.rate = rate
+    }
+
+    override fun availableVoices(): List<Voice> =
+        AVSpeechSynthesisVoice.speechVoices().mapNotNull { v ->
+            (v as? AVSpeechSynthesisVoice)?.let { Voice(it.identifier, it.name, it.language) }
+        }
+
+    override fun setVoice(id: String) {
+        voiceId = id
     }
 
     override fun isSpeaking(): Boolean = engine.speaking
