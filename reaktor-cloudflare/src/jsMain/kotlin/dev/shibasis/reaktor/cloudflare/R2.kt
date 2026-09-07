@@ -68,6 +68,38 @@ class R2ObjectBody internal constructor(
 class R2Bucket internal constructor(
     private val raw: RawR2Bucket,
 ) {
+    /**
+     * Keys under a prefix.
+     *
+     * R2 has no way to ask "does this set of objects exist" other than listing, and a caller that
+     * stored one logical thing as many objects — a file in chunks, say — needs exactly that to know
+     * what it still has to send. Doing it with one `head` per object would be one round trip per
+     * chunk before a byte moves.
+     *
+     * Paged, because R2 caps a listing at 1000 and silently truncating would make "what is missing"
+     * answer wrongly on a large object. The cursor is followed here so callers get the whole set.
+     */
+    @JsExport.Ignore
+    suspend fun list(prefix: String, limit: Int = 1000): List<String> {
+        val keys = mutableListOf<String>()
+        var cursor: String? = null
+
+        do {
+            val options = js("({})")
+            options.prefix = prefix
+            options.limit = limit
+            if (cursor != null) options.cursor = cursor
+
+            val page = raw.asDynamic().list(options).unsafeCast<Promise<dynamic>>().await()
+            val objects = page.objects.unsafeCast<Array<dynamic>>()
+            objects.forEach { entry -> keys += entry.key.unsafeCast<String>() }
+
+            cursor = if (page.truncated == true) page.cursor.unsafeCast<String?>() else null
+        } while (cursor != null)
+
+        return keys
+    }
+
     @JsExport.Ignore
     suspend fun head(key: String): R2Object? = raw.head(key).await()?.let(::R2Object)
 

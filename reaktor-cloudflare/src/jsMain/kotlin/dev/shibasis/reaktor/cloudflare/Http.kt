@@ -86,7 +86,11 @@ class CloudflareRouteContext internal constructor(
 
     /** A path parameter declared in the route pattern, e.g. `:id` in `/things/:id`. */
     fun param(name: String): String? {
-        val value = hono.req.param().asDynamic()[name]
+        // Bound to a local first. `hono.req.param()` is already typed `dynamic`, and calling
+        // `.asDynamic()` on a dynamic expression does not compile away — it emits a real call to a
+        // method JavaScript does not have, and every use of this throws at runtime.
+        val params: dynamic = hono.req.param()
+        val value = params[name]
         return if (value == null) null else value.toString()
     }
 
@@ -94,7 +98,9 @@ class CloudflareRouteContext internal constructor(
         param(name) ?: error("Route parameter '$name' is missing")
 
     fun query(name: String): String? {
-        val value = hono.req.query().asDynamic()[name]
+        // Same as `param`: already dynamic, so `.asDynamic()` would emit a call, not a cast.
+        val queries: dynamic = hono.req.query()
+        val value = queries[name]
         return if (value == null) null else value.toString()
     }
 
