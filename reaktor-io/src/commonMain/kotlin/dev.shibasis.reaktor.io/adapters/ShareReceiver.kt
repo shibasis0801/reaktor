@@ -24,13 +24,27 @@ data class ReceivedShare(
     val text: String? = null,
     /**
      * Platform-specific handles for shared files — `content://` on Android, absolute paths on
-     * desktop, object-URL keys on the web. Opaque here; resolve them through [FileAdapter].
+     * desktop, object-URL keys on the web. Opaque: resolve them with [ShareReceiver.read].
      */
     val fileUris: List<String> = emptyList(),
     /** Package or bundle id of the app the share came from, where the platform reveals it. */
     val sourceApp: String? = null,
     /** Subject or title the sender attached, where there is one. */
     val title: String? = null,
+)
+
+/**
+ * One shared file, resolved.
+ *
+ * [name] is the file's own name where the platform knows it — a display name from a content
+ * provider, a browser `File.name`, the last path segment — and never a handle. A handle is not a
+ * name: `content://media/external/images/media/1042` is what an app that skips this step ends up
+ * showing the user.
+ */
+class SharedFile(
+    val name: String,
+    val mime: String,
+    val bytes: ByteArray,
 )
 
 /**
@@ -42,6 +56,24 @@ data class ReceivedShare(
  */
 abstract class ShareReceiver<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     abstract val incoming: Flow<ReceivedShare>
+
+    /**
+     * Resolves one of [ReceivedShare.fileUris] to its name, type and bytes.
+     *
+     * On the receiver rather than on [FileAdapter], because a share handle is not a path and only
+     * the thing that produced it can say what it means. Android's `content://` needs the
+     * `ContentResolver` of the activity the share arrived at; a browser's key names a `File` object
+     * held in this receiver and reachable nowhere else. Neither is something a file adapter rooted
+     * in the app sandbox could open.
+     *
+     * Null when the handle no longer resolves — a permission grant that ended with the activity, a
+     * temporary file already swept — which is a normal outcome, not an error.
+     */
+    abstract suspend fun read(fileUri: String): SharedFile?
 }
+
+/** Every file a share carried, skipping the ones that no longer resolve. */
+suspend fun ShareReceiver<*>.files(share: ReceivedShare): List<SharedFile> =
+    share.fileUris.mapNotNull { read(it) }
 
 var Feature.ShareReceiver by CreateSlot<ShareReceiver<*>>()
