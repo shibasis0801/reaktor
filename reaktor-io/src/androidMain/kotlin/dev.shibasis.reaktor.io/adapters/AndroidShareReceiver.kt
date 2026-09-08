@@ -1,11 +1,16 @@
 package dev.shibasis.reaktor.io.adapters
 
 import android.app.Activity
+import android.content.ContentResolver
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.OpenableColumns
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.withContext
 
 /**
  * Receives `ACTION_SEND` and `ACTION_SEND_MULTIPLE`.
@@ -54,6 +59,42 @@ class AndroidShareReceiver(activity: Activity) : ShareReceiver<Activity>(activit
         return shares.tryEmit(share)
     }
 
+    /**
+     * Opens a `content://` handle through the activity's resolver.
+     *
+     * The read permission came with the intent and is scoped to this activity, so this must run
+     * while it is alive — which is also why the bytes are copied rather than a stream handed out:
+     * a stream that outlives the share is a `SecurityException` at the point of use, somewhere far
+     * away from anything that could explain it.
+     */
+    override suspend fun read(fileUri: String): SharedFile? = withContext(Dispatchers.IO) {
+        val resolver = controller?.contentResolver ?: return@withContext null
+        val uri = runCatching { Uri.parse(fileUri) }.getOrNull() ?: return@withContext null
+
+        val bytes = runCatching {
+            resolver.openInputStream(uri)?.use { it.readBytes() }
+        }.getOrNull() ?: return@withContext null
+
+        SharedFile(
+            name = resolver.displayName(uri) ?: uri.lastPathSegment ?: "shared",
+            mime = resolver.getType(uri) ?: "application/octet-stream",
+            bytes = bytes,
+        )
+    }
+
+    /**
+     * What the sending app calls the file.
+     *
+     * A `content://` uri's last segment is usually a row id, so an app that skips this shows the
+     * user "1042" where the file is called "quarterly-review.pdf".
+     */
+    private fun ContentResolver.displayName(uri: Uri): String? = runCatching {
+        query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            val column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (column >= 0 && cursor.moveToFirst()) cursor.getString(column) else null
+        }
+    }.getOrNull()
+
     private fun Intent.toReceivedShare(): ReceivedShare? {
         val mime = type ?: return null
 
@@ -79,17 +120,17 @@ class AndroidShareReceiver(activity: Activity) : ShareReceiver<Activity>(activit
     }
 
     @Suppress("DEPRECATION")
-    private fun Intent.streamExtra(): android.net.Uri? =
+    private fun Intent.streamExtra(): Uri? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)
+            getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
         } else {
             getParcelableExtra(Intent.EXTRA_STREAM)
         }
 
     @Suppress("DEPRECATION")
-    private fun Intent.streamExtras(): List<android.net.Uri> =
+    private fun Intent.streamExtras(): List<Uri> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableArrayListExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)
+            getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
         } else {
             getParcelableArrayListExtra(Intent.EXTRA_STREAM)
         }.orEmpty()
