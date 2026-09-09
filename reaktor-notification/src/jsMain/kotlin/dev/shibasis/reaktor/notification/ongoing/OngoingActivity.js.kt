@@ -16,15 +16,15 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 actual object OngoingActivities {
 
-    private val _responses = MutableSharedFlow<String>(replay = 4, extraBufferCapacity = 16)
-    actual val responses: Flow<String> = _responses.asSharedFlow()
+    private val _responses = MutableSharedFlow<OngoingResponse>(replay = 4, extraBufferCapacity = 16)
+    actual val responses: Flow<OngoingResponse> = _responses.asSharedFlow()
 
     /** What was last handed to [start] or [update], for a test to assert against. */
     var current: OngoingActivityState? = null
         private set
 
-    fun emit(actionId: String) {
-        _responses.tryEmit(actionId)
+    fun emit(actionId: String, text: String = "") {
+        _responses.tryEmit(OngoingResponse(actionId, text))
     }
 
     actual fun isAvailable(): Boolean = false

@@ -8,11 +8,38 @@ import kotlinx.serialization.Serializable
  *
  * [id] comes back through [OngoingActivities.responses] when it is tapped. Nothing here executes
  * on its own — the app decides what an action means.
+ *
+ * An [id] should name **what** it acts on rather than "the current thing". Responses are replayed
+ * to a late subscriber — which is the whole reason a tap survives the process dying — so an id
+ * meaning "the set in front of me" is one that acts on the wrong set when it arrives twice. An id
+ * naming its target makes handling it a second time a no-op instead of a corruption.
  */
 @Serializable
 data class OngoingAction(
     val id: String,
     val label: String,
+    /**
+     * Collects a line of text before the action fires, when the platform allows it.
+     *
+     * Never assume this reaches you. A secure lock screen may demand an unlock before it will
+     * take typed input, and some platforms have no inline input at all — so an action carrying
+     * one must still do something sensible with [OngoingResponse.text] empty.
+     */
+    val input: OngoingInput? = null,
+)
+
+/** The prompt for an action that takes typed input. */
+@Serializable
+data class OngoingInput(
+    val hint: String = "",
+)
+
+/** A tapped action, with whatever the user typed into it. */
+@Serializable
+data class OngoingResponse(
+    val id: String,
+    /** Empty when the action took no input, or the platform would not collect it. */
+    val text: String = "",
 )
 
 /**
@@ -70,5 +97,5 @@ expect object OngoingActivities {
      * Replayed, because the tap can land while the app is not running: the platform wakes the
      * process to deliver it, and whatever collects this may not be listening yet.
      */
-    val responses: Flow<String>
+    val responses: Flow<OngoingResponse>
 }

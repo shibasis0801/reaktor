@@ -27,8 +27,8 @@ actual object OngoingActivities {
 
     private var bridge: Bridge? = null
 
-    private val _responses = MutableSharedFlow<String>(replay = 4, extraBufferCapacity = 16)
-    actual val responses: Flow<String> = _responses.asSharedFlow()
+    private val _responses = MutableSharedFlow<OngoingResponse>(replay = 4, extraBufferCapacity = 16)
+    actual val responses: Flow<OngoingResponse> = _responses.asSharedFlow()
 
     /** Installed from Swift once the Live Activity extension exists. */
     fun attach(bridge: Bridge?) {
@@ -36,8 +36,8 @@ actual object OngoingActivities {
     }
 
     /** Called from Swift when someone taps a control on the activity. */
-    fun emit(actionId: String) {
-        _responses.tryEmit(actionId)
+    fun emit(actionId: String, text: String = "") {
+        _responses.tryEmit(OngoingResponse(actionId, text))
     }
 
     actual fun isAvailable(): Boolean = bridge?.isAvailable == true
