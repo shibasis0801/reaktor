@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.RemoteInput
 import dev.shibasis.reaktor.core.utils.logger
 import dev.shibasis.reaktor.core.utils.warn
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +32,7 @@ actual object OngoingActivities {
     private const val NOTIFICATION_ID = 0x0E60
     internal const val ACTION_TAPPED = "dev.shibasis.reaktor.notification.ONGOING_ACTION"
     internal const val EXTRA_ACTION_ID = "actionId"
+    internal const val EXTRA_ACTION_TEXT = "actionText"
 
     private val log = "OngoingActivities".logger()
 
@@ -38,8 +40,8 @@ actual object OngoingActivities {
     private var contentIntent: PendingIntent? = null
     private var smallIcon: Int = android.R.drawable.ic_media_play
 
-    private val _responses = MutableSharedFlow<String>(replay = 4, extraBufferCapacity = 16)
-    actual val responses: Flow<String> = _responses.asSharedFlow()
+    private val _responses = MutableSharedFlow<OngoingResponse>(replay = 4, extraBufferCapacity = 16)
+    actual val responses: Flow<OngoingResponse> = _responses.asSharedFlow()
 
     /**
      * Installs the pieces only the app can supply: a context, the icon the status bar shows, and
@@ -51,8 +53,8 @@ actual object OngoingActivities {
         contentIntent = openApp
     }
 
-    internal fun emit(actionId: String) {
-        _responses.tryEmit(actionId)
+    internal fun emit(response: OngoingResponse) {
+        _responses.tryEmit(response)
     }
 
     actual fun isAvailable(): Boolean {
@@ -102,7 +104,7 @@ actual object OngoingActivities {
                     setChronometerCountDown(true)
                 }
                 state.actions.forEachIndexed { index, action ->
-                    addAction(0, action.label, actionIntent(context, action.id, index))
+                    addAction(buildAction(context, action, index))
                 }
             }
 
@@ -111,16 +113,41 @@ actual object OngoingActivities {
         }.onFailure { log.warn { "Could not show the ongoing activity: ${it.message}" } }
     }
 
-    private fun actionIntent(context: Context, actionId: String, index: Int): PendingIntent {
+    private fun buildAction(
+        context: Context,
+        action: OngoingAction,
+        index: Int,
+    ): NotificationCompat.Action {
+        val builder = NotificationCompat.Action.Builder(0, action.label, actionIntent(context, action, index))
+        action.input?.let { input ->
+            builder.addRemoteInput(
+                RemoteInput.Builder(EXTRA_ACTION_TEXT).setLabel(input.hint).build(),
+            )
+            // The system collects the text and fires the same broadcast, so nothing here has to
+            // stay awake waiting for it.
+            builder.setAllowGeneratedReplies(false)
+        }
+        return builder.build()
+    }
+
+    private fun actionIntent(context: Context, action: OngoingAction, index: Int): PendingIntent {
         val intent = Intent(ACTION_TAPPED)
             .setPackage(context.packageName)
-            .putExtra(EXTRA_ACTION_ID, actionId)
+            .putExtra(EXTRA_ACTION_ID, action.id)
+        // An action collecting text needs a mutable intent — that is how the system writes the
+        // typed result into it. Nothing sensitive rides here: the extras are an action id this
+        // app chose and the words the user just typed, and the intent is package-scoped so no
+        // other app can receive or rewrite it.
+        val mutability = if (action.input != null) {
+            PendingIntent.FLAG_MUTABLE
+        } else {
+            PendingIntent.FLAG_IMMUTABLE
+        }
         return PendingIntent.getBroadcast(
             context,
             index,
             intent,
-            // Mutable would let another app rewrite the extras; the id is the whole payload.
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PendingIntent.FLAG_UPDATE_CURRENT or mutability,
         )
     }
 
@@ -144,6 +171,12 @@ actual object OngoingActivities {
 class OngoingActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getStringExtra(OngoingActivities.EXTRA_ACTION_ID) ?: return
-        OngoingActivities.emit(id)
+        // Present only when the action collected text and the system agreed to collect it — a
+        // lock screen that demanded an unlock first delivers the tap with nothing typed.
+        val text = RemoteInput.getResultsFromIntent(intent)
+            ?.getCharSequence(OngoingActivities.EXTRA_ACTION_TEXT)
+            ?.toString()
+            .orEmpty()
+        OngoingActivities.emit(OngoingResponse(id, text))
     }
 }
