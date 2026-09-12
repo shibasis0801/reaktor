@@ -36,6 +36,13 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
     private var voiceId: String? = null
     private val handler = Handler()
 
+    // The utterance currently being spoken. Delegate callbacks are matched against it so that events
+    // for a superseded utterance are ignored: starting a new utterance (e.g. tap-to-read while already
+    // reading) cancels the old one, and the simulator can deliver that old utterance's didFinish
+    // asynchronously — emitting it as a Done would wrongly stop the new reading (the button would flip
+    // back to "Read aloud"). AVSpeechUtterance uses identity equality, so `==` is a safe match.
+    private var current: AVSpeechUtterance? = null
+
     init {
         engine.delegate = handler
     }
@@ -47,11 +54,13 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
         utterance.rate = (AVSpeechUtteranceDefaultSpeechRate * rate)
             .coerceIn(AVSpeechUtteranceMinimumSpeechRate, AVSpeechUtteranceMaximumSpeechRate)
         voiceId?.let { id -> AVSpeechSynthesisVoice.voiceWithIdentifier(id)?.let { utterance.voice = it } }
+        current = utterance
         emit(SpeechEvent.Started(utteranceId))
         engine.speakUtterance(utterance)
     }
 
     override fun stop() {
+        current = null // a later didFinish/didCancel for the stopped utterance must not emit Done
         engine.stopSpeakingAtBoundary(AVSpeechBoundary.AVSpeechBoundaryImmediate)
     }
 
@@ -71,6 +80,7 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
     override fun isSpeaking(): Boolean = engine.speaking
 
     override fun shutdown() {
+        current = null
         engine.stopSpeakingAtBoundary(AVSpeechBoundary.AVSpeechBoundaryImmediate)
         engine.delegate = null
     }
@@ -81,6 +91,7 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
             willSpeakRangeOfSpeechString: CValue<NSRange>,
             utterance: AVSpeechUtterance,
         ) {
+            if (utterance != current) return // a superseded utterance's ranges are stale
             willSpeakRangeOfSpeechString.useContents {
                 val start = location.toInt()
                 emit(SpeechEvent.Range(currentId, SpokenRange(currentId, start, start + length.toInt())))
@@ -88,6 +99,8 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
         }
 
         override fun speechSynthesizer(synthesizer: AVSpeechSynthesizer, didFinishSpeechUtterance: AVSpeechUtterance) {
+            if (didFinishSpeechUtterance != current) return // ignore a superseded/cancelled utterance
+            current = null
             emit(SpeechEvent.Done(currentId))
         }
     }
