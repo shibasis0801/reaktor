@@ -180,7 +180,11 @@ private fun openForward(client: ApiClient, namespace: String, pod: String, port:
         @Synchronized override fun open(protocol: String, socket: WebSocket) {
             if (isClosed) socket.cancel() else { this.socket = socket; super.open(protocol, socket) }
         }
-        @Synchronized override fun close() { socket?.cancel(); super.close() }
+        @Synchronized override fun close() {
+            // The official handler drains its outbound queue before closing. Cancelling first
+            // strands queued bytes and makes a successful read wait for the flush timeout.
+            try { super.close() } finally { socket?.cancel() }
+        }
     })
     val result = session.own(PortForward.PortForwardResult(handler, listOf(port)))
     session.own(handler.getInputStream(0))

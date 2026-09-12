@@ -36,17 +36,26 @@ sealed interface InfrastructureOperation {
         val clientIdKey: String = "REAKTOR_WORKER_CLIENT_ID",
         val clientSecretKey: String = "REAKTOR_WORKER_CLIENT_SECRET",
         val scopes: List<String> = emptyList(),
+        val store: WorkerStore? = null,
+        val queryFile: String? = null,
+        val resultFile: String? = null,
+        val maxRows: Int = 100,
+        val explain: Boolean = false,
+        val catalog: WorkerStoreCatalog? = null,
     ) : InfrastructureOperation
 }
 
 @Serializable
-enum class DatabaseProvider { Postgres, Memgraph, ClickHouse }
+enum class DatabaseProvider { Postgres, Memgraph, ClickHouse, PubSub }
 
 @Serializable
 enum class DatabaseResultFormat { Csv, QueryReceipt }
 
 @Serializable
 sealed interface DatabaseConnection {
+    @Serializable
+    data class GoogleProject(val project: String, val credentialFile: String, val observations: Map<String, String> = emptyMap(), val observationAuthority: ServiceTokenSource? = null) : DatabaseConnection
+
     @Serializable
     data object PostgresEnvironment : DatabaseConnection
 
@@ -58,3 +67,11 @@ sealed interface DatabaseConnection {
         val port: Int,
     ) : DatabaseConnection
 }
+
+@Serializable
+data class ServiceTokenSource(val tokenEndpoint: String, val audience: String, val authEnvironment: String,
+    val credentialFile: String? = null, val clientIdKey: String = "REAKTOR_WORKER_CLIENT_ID",
+    val clientSecretKey: String = "REAKTOR_WORKER_CLIENT_SECRET", val scopes: List<String> = emptyList())
+
+fun InfrastructureOperation.WorkerCall.tokenSource() = ServiceTokenSource(tokenEndpoint, audience, authEnvironment,
+    credentialFile, clientIdKey, clientSecretKey, scopes)

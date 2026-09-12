@@ -92,6 +92,14 @@ class DurableObjectNamespace internal constructor(
 class DurableObjectStub internal constructor(
     private val raw: RawDurableObjectStub,
 ) {
+    /** Call an application RPC through an already-authorized namespace binding. */
+    @JsExport.Ignore
+    suspend fun rpcJson(method: String): JsonElement {
+        require(method.matches(Regex("[A-Za-z][A-Za-z0-9_]*"))) { "Invalid RPC method" }
+        val response = raw.asDynamic()[method]().unsafeCast<Promise<Any?>>()
+        return dynamicToJsonElement(response.await())
+    }
+
     @JsExport.Ignore
     suspend fun fetch(
         url: String,
@@ -157,6 +165,11 @@ class DurableObjectStub internal constructor(
 class DurableObjectStorage internal constructor(
     private val raw: RawDurableObjectStorage,
 ) {
+    @JsExport.Ignore
+    suspend fun alarm(): Double? = raw.getAlarm().await()
+
+    fun alarmAsync(): Promise<Double?> = promiseOf { alarm() }
+
     @JsExport.Ignore
     suspend fun value(key: String): String? = raw.get(key).await()?.toString()
 

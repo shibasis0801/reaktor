@@ -26,9 +26,9 @@ class BoundedHttp(private val session: InfrastructureSession) {
         val response = pending.get(25, TimeUnit.SECONDS)
         val stream = session.own(response.body())
         return stream.use {
-            check(response.statusCode() in 200..299) { "Remote provider returned HTTP ${response.statusCode()}" }
             val bytes = it.readNBytes(maxBytes + 1)
             check(bytes.size <= maxBytes) { "Remote response exceeds the configured limit" }
+            if (response.statusCode() !in 200..299) throw ProviderHttpFailure(response.statusCode(), bytes.toString(Charsets.UTF_8))
             BoundedHttpResponse(bytes.toString(Charsets.UTF_8), response.headers().map())
         }
     }
@@ -38,3 +38,5 @@ class BoundedHttpResponse(val body: String, val headers: Map<String, List<String
     fun header(name: String): String? = headers.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value?.firstOrNull()
     override fun toString() = "BoundedHttpResponse(body and headers redacted)"
 }
+
+class ProviderHttpFailure(val status: Int, val privateBody: String) : IllegalStateException("Remote provider returned HTTP $status")

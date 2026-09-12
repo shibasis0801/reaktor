@@ -27,6 +27,7 @@ kotlin {
             implementation("org.yaml:snakeyaml:2.2")
             implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.1")
             implementation("io.kubernetes:client-java:27.0.0")
+            implementation("com.google.auth:google-auth-library-oauth2-http:1.48.0")
             implementation("org.postgresql:postgresql:42.7.3")
             implementation("org.neo4j.driver:neo4j-java-driver:5.28.9")
         }

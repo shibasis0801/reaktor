@@ -27,6 +27,8 @@ data class QueryReceipt(
     val plan: QueryPlan? = null,
     val queryId: String? = null,
     val warnings: List<String> = emptyList(),
+    val cursor: String? = null,
+    val error: QueryError? = null,
 ) {
     fun validate(maxRows: Int, expectedProvider: String? = null) {
         require(protocol == "reaktor.query.v1") { "Unsupported query receipt protocol" }
@@ -36,3 +38,6 @@ data class QueryReceipt(
         require(metrics.size <= 128 && warnings.size <= 32) { "Query metadata exceeds its limits" }
     }
 }
+
+@Serializable
+data class QueryError(val code: String, val message: String, val position: Int? = null)

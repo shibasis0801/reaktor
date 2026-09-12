@@ -75,7 +75,7 @@ internal fun ReaktorTypedNodeCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(with(density) { dpOf(style.port.gapPx) })) {
             TypedNodeIcon(icon, kindColor, style.chrome.captionFontPx + style.port.dotSizePx / 4, style)
-            TypedNodeText(if (data.isScopeSummary) "SCOPE" else data.kind.label.uppercase(),
+            TypedNodeText(if (data.isScopeSummary) "SCOPE" else if (data.attributes["architectureKind"] == "database-table") "TABLE" else data.kind.label.uppercase(),
                 style.chrome.captionFontPx, kindColor, style, weight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
             if (!data.isScopeSummary) {
@@ -128,6 +128,7 @@ internal fun ReaktorTypedNodeCard(
             return@Column
         }
         val reading = when {
+            data.attributes["architectureKind"] == "database-table" -> "Catalog table · inspect columns and keys"
             data.attributes["architectureKind"] == "database-record" -> "Returned record · database-local identity"
             ports.isEmpty() -> "Topology · no exposed ports"
             foldedPortCount > 0 -> "${visiblePorts.size}/${ports.size} ports · $foldedPortCount folded · inspect all"

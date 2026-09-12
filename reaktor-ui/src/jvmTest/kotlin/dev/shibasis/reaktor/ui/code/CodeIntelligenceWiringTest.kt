@@ -26,36 +26,58 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * The editor's half of the [CodeIntelligence] contract, exercised against doubles rather than a
+ * real server. Each test declares the server behaviour it needs inline; this source set runs every
+ * named class it contains as a test, so there is no shared fixture class to reach for.
+ */
 @OptIn(ExperimentalTestApi::class)
 class CodeIntelligenceWiringTest {
+    private val available = CodeIntelligenceStatus("Fake LSP", available = true, detail = "test double")
+
     @Test fun theDocumentIsOpenedAndEveryEditIsPublished() = runComposeUiTest {
-        val server = FakeCodeIntelligence()
+        var opened: CodeSource? = null
+        var lastChange: CodeSource? = null
+        val server = object : CodeIntelligence {
+            override val status = available
+            override suspend fun opened(source: CodeSource) { opened = source }
+            override suspend fun changed(source: CodeSource) { lastChange = source }
+        }
         val state = CodeEditorState("val a = 1", CodeLanguage.Kotlin, uri = "file:///tmp/A.kt")
         setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp), intelligence = server) }
-        waitUntil { server.opened != null }
-        assertEquals("file:///tmp/A.kt", server.opened?.uri)
-        assertEquals("kotlin", server.opened?.languageId)
+        waitUntil { opened != null }
+        assertEquals("file:///tmp/A.kt", opened?.uri)
+        assertEquals("kotlin", opened?.languageId)
 
         state.moveTo(state.document.end)
         state.type("2")
-        waitUntil { server.lastChange?.text == "val a = 12" }
-        assertEquals(state.version, server.lastChange?.version)
+        waitUntil { lastChange?.text == "val a = 12" }
+        assertEquals(state.version, lastChange?.version)
     }
 
-    @Test fun publishedDiagnosticsReachTheGutterAndTheStatusBar() = runComposeUiTest {
-        val server = FakeCodeIntelligence()
+    @Test fun publishedDiagnosticsReachTheStatusBarAndTheCaretTip() = runComposeUiTest {
+        val published = MutableStateFlow<List<CodeDiagnostic>>(emptyList())
+        val server = object : CodeIntelligence {
+            override val status = available
+            override fun diagnostics(uri: String): Flow<List<CodeDiagnostic>> = published
+        }
         val state = CodeEditorState("val a = oops", CodeLanguage.Kotlin, uri = "file:///tmp/B.kt")
         setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp), intelligence = server) }
-        server.published.value = listOf(CodeDiagnostic(CodeSpan.of(0, 8, 12), "unresolved reference: oops"))
+        published.value = listOf(CodeDiagnostic(CodeSpan.of(0, 8, 12), "unresolved reference: oops"))
         waitUntil { state.diagnostics.isNotEmpty() }
         onNodeWithTag("code-editor-errors").assertTextContains("1 error")
         state.moveTo(CodePosition(0, 9))
-        waitForIdle()
+        waitUntil { runCatching { onNodeWithTag("code-editor-diagnostic").assertExists() }.isSuccess }
         onNodeWithTag("code-editor-diagnostic").assertTextContains("unresolved reference: oops", substring = true)
     }
 
     @Test fun serverCompletionsRankAboveTheBuffersOwnWords() = runComposeUiTest {
-        val server = FakeCodeIntelligence()
+        val server = object : CodeIntelligence {
+            override val status = available
+            override suspend fun completions(uri: String, at: CodePosition) = listOf(
+                CodeCompletion("valueFromServer", kind = CodeCompletionKind.Property, detail = "Int"),
+            )
+        }
         val state = CodeEditorState("", CodeLanguage.Kotlin, uri = "file:///tmp/C.kt")
         setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp), intelligence = server) }
         onNodeWithTag("code-editor-surface").requestFocus()
@@ -65,7 +87,10 @@ class CodeIntelligenceWiringTest {
     }
 
     @Test fun hoverFromTheServerSurfacesAtTheCaret() = runComposeUiTest {
-        val server = FakeCodeIntelligence()
+        val server = object : CodeIntelligence {
+            override val status = available
+            override suspend fun hover(uri: String, at: CodePosition) = CodeHover("val answer: Int")
+        }
         val state = CodeEditorState("val answer = 42", CodeLanguage.Kotlin, uri = "file:///tmp/D.kt")
         setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp), intelligence = server) }
         state.moveTo(CodePosition(0, 5))

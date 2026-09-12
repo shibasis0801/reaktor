@@ -174,7 +174,7 @@ private fun operationalNodeKind(kind: String): ReaktorNodeKind = when (kind.lowe
     "provider" -> ReaktorNodeKind.Service
     "deployment" -> ReaktorNodeKind.Release
     "test" -> ReaktorNodeKind.Test
-    "database", "store", "database-record" -> ReaktorNodeKind.Data
+    "database", "store", "database-record", "database-table" -> ReaktorNodeKind.Data
     else -> ReaktorNodeKind.Node
 }
 
