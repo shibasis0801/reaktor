@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
 import kotlinx.coroutines.await
+import kotlinx.serialization.json.*
 import kotlin.js.JsExport
 import kotlin.js.Promise
 
@@ -180,6 +181,14 @@ class D1Database internal constructor(
         build: SqlBuilder.() -> Unit,
     ): String? = string(d1Query(build), columnName)
 
+    @JsExport.Ignore
+    suspend fun queryResult(statement: SqlStatement): D1QueryResult {
+        val result = prepared(statement).all().await()
+        check(result.success == true) { "D1 query failed" }
+        return D1QueryResult((result.results ?: emptyArray()).map { Json.parseToJsonElement(JSON.stringify(it)).jsonObject },
+            Json.parseToJsonElement(JSON.stringify(result.meta)).jsonObject)
+    }
+
     private fun prepared(statement: SqlStatement): RawD1PreparedStatement =
         raw.prepare(statement.query).bind(*statement.params)
 }
@@ -197,3 +206,5 @@ private fun Any?.asDoubleOrNull(): Double? =
         null -> null
         else -> toString().toDoubleOrNull()
     }
+
+data class D1QueryResult(val rows: List<JsonObject>, val metadata: JsonObject)

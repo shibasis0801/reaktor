@@ -114,6 +114,7 @@ internal external interface RawDurableObjectStub {
 }
 
 internal external interface RawDurableObjectStorage {
+    fun getAlarm(): Promise<Double?>
     fun get(key: String): Promise<Any?>
     fun put(key: String, value: Any?): Promise<Unit>
     fun delete(key: String): Promise<Boolean>

@@ -52,7 +52,8 @@ internal object PostgresInspectorCheck {
             WHERE r.rolname = current_user
           )
           SELECT rolname, rolsuper, rolcreaterole, rolcreatedb, rolreplication, rolbypassrls,
-                 elevated_membership OR table_write OR schema_create, callable_risk
+                 elevated_membership OR table_write OR schema_create, callable_risk,
+                 elevated_membership, table_write, schema_create
           FROM role_risk;
     """.trimIndent()
 }

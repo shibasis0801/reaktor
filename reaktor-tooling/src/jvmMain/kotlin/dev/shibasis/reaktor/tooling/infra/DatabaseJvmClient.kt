@@ -32,10 +32,26 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
         val resultFile = op.resultFile?.let(::File)
         require((query == null) == (resultFile == null)) { "Query requires a private result destination" }
         resultFile?.let { checkPrivateFile(it, true) }
-        val receipt = when (op.engine) {
+        val receipt = try { when (op.engine) {
+            DatabaseProvider.PubSub -> {
+                require(!op.explain && !op.analyze)
+                PubSubJvmClient(session).read(op.connection as DatabaseConnection.GoogleProject,
+                    query?.let { Json.decodeFromString<PubSubQuery>(it) } ?: PubSubQuery(), op.maxRows)
+            }
             DatabaseProvider.Postgres -> postgres(op, query, environment, timeoutMillis)
             DatabaseProvider.Memgraph -> memgraph(op, query, environment, timeoutMillis)
             DatabaseProvider.ClickHouse -> clickhouse(op, query, environment, timeoutMillis)
+        } } catch (failure: Exception) {
+            if (query == null || resultFile == null || op.resultFormat != DatabaseResultFormat.QueryReceipt) throw failure
+            val detail = when (failure) {
+                is org.postgresql.util.PSQLException -> QueryError(failure.sqlState ?: "postgres_error", failure.serverErrorMessage?.message ?: "PostgreSQL query failed", failure.serverErrorMessage?.position?.takeIf { it > 0 })
+                is org.neo4j.driver.exceptions.Neo4jException -> QueryError(failure.code(), failure.message.orEmpty().take(4096))
+                is ProviderHttpFailure -> QueryError("http_${failure.status}", failure.privateBody.take(4096))
+                else -> throw failure
+            }
+            QueryReceipt(provider = op.engine.name, columns = emptyList(), rows = emptyList(), error = detail.copy(message =
+                environment.filterKeys { it.contains("PASSWORD") || it.contains("SECRET") || it.contains("TOKEN") }.values.filter(String::isNotBlank)
+                    .fold(detail.message) { text, secret -> text.replace(secret, "[redacted]") }))
         }
         receipt.validate(op.maxRows, op.engine.name)
         val output = if (op.resultFormat == DatabaseResultFormat.QueryReceipt) Json.encodeToString(receipt)
@@ -48,6 +64,7 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
             val bytes = java.nio.ByteBuffer.wrap(output.toByteArray())
             while (bytes.hasRemaining()) it.write(bytes)
         }
+        check(receipt.error == null) { "Database query failed; diagnostics are in the private session channel" }
         return "Completed native ${op.engine} read; result is in the private session channel"
     }
 
@@ -71,15 +88,27 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
         val connection = session.own(dataSource.connection)
         connection.isReadOnly = true
         connection.autoCommit = false
+        val policyWarnings = mutableListOf<String>()
         if (query != null) {
-            require(env["REAKTOR_PG_INSPECTOR_POLICY"] == "least-privilege-inspector-v1") { "PostgreSQL inspector policy is not attested" }
+            val policy = env["REAKTOR_PG_INSPECTOR_POLICY"]
+            require(policy in setOf("least-privilege-inspector-v1", "bounded-read-session")) { "PostgreSQL query access policy is not configured" }
+            SqlReadStatement.normalize(query)
+
             connection.createStatement().use { statement ->
                 statement.queryTimeout = 5
                 statement.executeQuery(PostgresInspectorCheck.sql).use { facts ->
                     check(facts.next()) { "PostgreSQL inspector role is unavailable" }
                     val expectedRole = if (host.endsWith(".pooler.supabase.com")) user.substringBeforeLast('.') else user
-                    check(facts.getString(1) == expectedRole && (2..8).none(facts::getBoolean)) {
-                        "PostgreSQL role failed the least-privilege inspector policy"
+                    check(facts.getString(1) == expectedRole && (2..6).none(facts::getBoolean) && !facts.getBoolean(9)) {
+                        "PostgreSQL query role has elevated administrative authority"
+                    }
+                    if (policy == "least-privilege-inspector-v1") {
+                        check((7..8).none(facts::getBoolean)) { "PostgreSQL role failed the least-privilege inspector policy" }
+                    } else {
+                        policyWarnings += "Operator read session: database ACLs include inherited PUBLIC permissions. SQL executes in a read-only transaction; this profile is intended for trusted operators."
+                        if (facts.getBoolean(10)) policyWarnings += "The role has effective write privileges outside this read-only transaction."
+                        if (facts.getBoolean(11)) policyWarnings += "The role inherits schema CREATE privileges."
+                        if (facts.getBoolean(8)) policyWarnings += "The role can execute application or administrative functions."
                     }
                 }
             }
@@ -114,7 +143,7 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
                     Json.parseToJsonElement(values.single().single().jsonPrimitive.content), op.analyze) else null
                 QueryReceipt(provider = "Postgres", columns = columns, rows = values,
                     truncated = values.size > op.maxRows, metrics = clock.metrics() + QueryMetric("Cell payload", bytes.toString(), "bytes", QueryMetricSource.Client), plan = plan,
-                    warnings = generateSequence(statement.warnings) { it.nextWarning }.take(32).map { "${it.sqlState}: ${it.message}" }.toList())
+                    warnings = policyWarnings + generateSequence(statement.warnings) { it.nextWarning }.take(32).map { "${it.sqlState}: ${it.message}" }.toList())
             }
         }.also { connection.rollback() }
     }
@@ -181,16 +210,16 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
         val queryId = UUID.randomUUID().toString()
         val uri = URI("http://127.0.0.1:${endpoint(op)}/?readonly=2&query_id=$queryId&max_execution_time=${(timeout / 1000).coerceAtLeast(1)}&max_result_rows=${op.maxRows + 1}&max_result_bytes=8388608&result_overflow_mode=throw")
         clock.connected()
-        val response = BoundedHttp(session).response(uri, "$sql FORMAT JSON", headers)
+        val response = BoundedHttp(session).response(uri, "$sql FORMAT JSONCompact", headers)
         clock.executed()
         val body = Json.parseToJsonElement(response.body).jsonObject
         val columns = body.getValue("meta").jsonArray.map {
             val column = it.jsonObject
             QueryColumn(column.getValue("name").jsonPrimitive.content, column.getValue("type").jsonPrimitive.content)
         }
-        val values = body.getValue("data").jsonArray.map { row -> columns.map { row.jsonObject[it.name] ?: JsonNull } }
+        val values = body.getValue("data").jsonArray.map { row -> row.jsonArray.toList() }
         val stats = body["statistics"]?.jsonObject.orEmpty()
-        val metrics = clock.metrics() + buildList {
+        val metrics = clock.metrics(http = true) + buildList {
             stats["elapsed"]?.jsonPrimitive?.doubleOrNull?.let { add(QueryMetric("Server execution", (it * 1000).toString(), "ms")) }
             stats["rows_read"]?.jsonPrimitive?.contentOrNull?.let { add(QueryMetric("Rows read", it, "rows")) }
             stats["bytes_read"]?.jsonPrimitive?.contentOrNull?.let { add(QueryMetric("Bytes read", it, "bytes")) }
@@ -234,11 +263,11 @@ private class QueryClock {
     private var executedAt = started
     fun connected() { connectedAt = System.nanoTime() }
     fun executed() { executedAt = System.nanoTime() }
-    fun metrics(): List<QueryMetric> {
+    fun metrics(http: Boolean = false): List<QueryMetric> {
         val finished = System.nanoTime()
         fun metric(name: String, duration: Long) = QueryMetric(name,
             String.format(Locale.ROOT, "%.3f", duration.coerceAtLeast(0) / 1_000_000.0), "ms", QueryMetricSource.Client)
         return listOf(metric("Adapter elapsed", finished - started), metric("Connection and session", connectedAt - started),
-            metric("Execute and first batch", executedAt - connectedAt), metric("Fetch and decode", finished - executedAt))
+            metric(if (http) "HTTP request and transfer" else "Execute and first batch", executedAt - connectedAt), metric(if (http) "Decode" else "Fetch and decode", finished - executedAt))
     }
 }
