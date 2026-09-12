@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -56,7 +57,7 @@ import dev.shibasis.composeflow.compose.interaction.flowViewportPointerTracking
 import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
 import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
 import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
-import dev.shibasis.composeflow.compose.primitives.EdgeHitAreaOverlay
+import dev.shibasis.composeflow.compose.primitives.findClosestEdge
 import dev.shibasis.composeflow.compose.primitives.EdgePathStyle
 import dev.shibasis.composeflow.compose.primitives.EdgeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.FlowAnchor
@@ -134,6 +135,7 @@ fun ReactFlow(
     onPaneClick: (() -> Unit)? = null,
     overlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
     viewportOverlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
+    canvasBackground: androidx.compose.ui.graphics.Color = FlowCanvasBackground,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     val interactionState = rememberFlowViewportInteractionState()
@@ -175,13 +177,15 @@ fun ReactFlow(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
-                .background(FlowCanvasBackground)
+                .background(canvasBackground)
                 .onSizeChanged {
                     canvasSize = it
                     state.canvasSize = it
                 }
                 .onGloballyPositioned { coordinates ->
-                    interactionState.updateCanvasOriginInWindow(coordinates.positionInWindow())
+                    interactionState.updateCanvasGeometry(
+                        coordinates.positionInWindow(), coordinates.boundsInWindow(), density.density,
+                    )
                 }
                 .flowViewportPointerTracking(interactionState)
                 .flowWheelAndTrackpadViewportGestures(
@@ -219,6 +223,17 @@ fun ReactFlow(
                             state = state,
                             interactionState = interactionState,
                             config = gestureConfig,
+                            onPaneTap = onEdgeClick?.let { clickEdge ->
+                                { point ->
+                                    val position = state.screenToFlowPosition(point.x.toDouble(), point.y.toDouble())
+                                    val hit = findClosestEdge(
+                                        androidx.compose.ui.geometry.Offset(position.x.toFloat(), position.y.toFloat()),
+                                        edges, nodeById, defaultWidthPx, defaultHeightPx, edgePathStyle,
+                                    )
+                                    if (hit != null) clickEdge(hit)
+                                    hit != null
+                                }
+                            },
                             onPaneClick = {
                                 onNodesChange?.invoke(
                                     nodes.filter { it.selected }.map { NodeSelectionChange(it.id, false) },
@@ -313,14 +328,6 @@ fun ReactFlow(
                             )
                         }
                     }
-
-                    EdgeHitAreaOverlay(
-                        edges = edges,
-                        nodeById = nodeById,
-                        defaultNodeWidth = defaultWidthPx,
-                        defaultNodeHeight = defaultHeightPx,
-                        onEdgeClick = onEdgeClick,
-                    )
 
                     nodes.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { node ->
                         FlowNodeBox(

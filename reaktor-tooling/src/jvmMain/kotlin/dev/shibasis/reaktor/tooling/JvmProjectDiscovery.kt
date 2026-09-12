@@ -428,6 +428,34 @@ private class TaskCatalogBuilder(
     val tasks = mutableListOf<ToolingTask>()
     val bindings = linkedMapOf<TaskId, JvmTaskBinding>()
 
+    // Gradle tasks share one build-definition closure within this discovery pass. Task-specific
+    // provenance still participates in each plan; preparation and admission recapture the seal.
+    private val gradleDefinitionSeal: ProcessDefinitionSeal by lazy {
+        val wrapper = File(root, if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
+        val definitionFiles = listOfNotNull(
+            wrapper,
+            File(root, "settings.gradle.kts").takeIf(File::isFile)
+                ?: File(root, "settings.gradle").takeIf(File::isFile),
+            File(root, "build.gradle.kts").takeIf(File::isFile)
+                ?: File(root, "build.gradle").takeIf(File::isFile),
+            File(root, "gradle.properties").takeIf(File::isFile),
+        )
+        val definitionDirectories = buildList {
+            add(ProcessDefinitionDirectory(root, GRADLE_DEFINITION_SUFFIXES))
+            File(root, "buildSrc").takeIf(File::isDirectory)?.let {
+                add(ProcessDefinitionDirectory(it))
+            }
+            definitionFiles.filter { it.name.startsWith("settings.gradle") }.forEach { settings ->
+                Regex("""includeBuild\s*\(\s*[\"']([^\"']+)[\"']""")
+                    .findAll(settings.readText())
+                    .map { File(root, it.groupValues[1]) }
+                    .filter(File::isDirectory)
+                    .forEach { add(ProcessDefinitionDirectory(it, GRADLE_DEFINITION_SUFFIXES)) }
+            }
+        }
+        ProcessDefinitionSeal.capture(definitionFiles, definitionDirectories)
+    }
+
     fun npmTask(
         id: String,
         label: String,
@@ -499,28 +527,7 @@ private class TaskCatalogBuilder(
         if (!wrapper.isFile) return
         val taskId = TaskId(id)
         if (bindings.containsKey(taskId)) return
-        val definitionFiles = listOfNotNull(
-            wrapper,
-            File(root, "settings.gradle.kts").takeIf(File::isFile)
-                ?: File(root, "settings.gradle").takeIf(File::isFile),
-            File(root, "build.gradle.kts").takeIf(File::isFile)
-                ?: File(root, "build.gradle").takeIf(File::isFile),
-            File(root, "gradle.properties").takeIf(File::isFile),
-        )
-        val definitionDirectories = buildList {
-            add(ProcessDefinitionDirectory(root, GRADLE_DEFINITION_SUFFIXES))
-            File(root, "buildSrc").takeIf(File::isDirectory)?.let {
-                add(ProcessDefinitionDirectory(it))
-            }
-            definitionFiles.filter { it.name.startsWith("settings.gradle") }.forEach { settings ->
-                Regex("""includeBuild\s*\(\s*[\"']([^\"']+)[\"']""")
-                    .findAll(settings.readText())
-                    .map { File(root, it.groupValues[1]) }
-                    .filter(File::isDirectory)
-                    .forEach { add(ProcessDefinitionDirectory(it, GRADLE_DEFINITION_SUFFIXES)) }
-            }
-        }
-        val definitionSeal = ProcessDefinitionSeal.capture(definitionFiles, definitionDirectories)
+        val definitionSeal = gradleDefinitionSeal
         val definitionDigest = definitionSeal.digest
         tasks += ToolingTask(
             id = taskId,

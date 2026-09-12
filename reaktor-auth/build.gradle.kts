@@ -19,6 +19,7 @@ extra["kotlinx-serialization.version"] = "1.8.0"
 kotlin {
     common {
         dependencies {
+            api(project(":reaktor-auth-core"))
             api(project(":reaktor-ui"))
             api(project(":reaktor-graph"))
             api(project(":reaktor-service"))
@@ -51,6 +52,7 @@ kotlin {
 
     server {
         dependencies {
+            api(project(":reaktor-tooling"))
             api("org.springframework.boot:spring-boot-starter-oauth2-resource-server:${Version.SDK.SpringBoot}")
             api("org.springframework.boot:spring-boot-starter-security:${Version.SDK.SpringBoot}")
             api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")

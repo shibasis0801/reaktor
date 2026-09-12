@@ -11,7 +11,7 @@ import kotlin.reflect.KClass
 
 internal const val DEFAULT_TOKEN_AUDIENCE = "manna-mcp"
 internal const val MIN_ACCESS_TOKEN_TTL_SECONDS = 60
-internal const val MAX_ACCESS_TOKEN_TTL_SECONDS = 15 * 60
+internal const val MAX_ACCESS_TOKEN_TTL_SECONDS = 60 * 60
 internal const val TOKEN_EXCHANGE_GRANT = "urn:ietf:params:oauth:grant-type:token-exchange"
 internal const val AUTH_EXPOSED_ADAPTER_DEPENDENCY = "reaktorAuth.exposedAdapter"
 internal const val AUTH_RUNTIME_CONFIG_DEPENDENCY = "reaktorAuth.config"

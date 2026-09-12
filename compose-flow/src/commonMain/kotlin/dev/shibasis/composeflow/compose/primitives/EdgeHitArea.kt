@@ -1,51 +1,20 @@
 package dev.shibasis.composeflow.compose.primitives
 
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.PathMeasure
 import dev.shibasis.composeflow.model.Edge
 import dev.shibasis.composeflow.model.HandleType
 import dev.shibasis.composeflow.model.Node
-import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.sqrt
 
-@Composable
-internal fun EdgeHitAreaOverlay(
-    edges: List<Edge>,
-    nodeById: Map<String, Node>,
-    defaultNodeWidth: Double,
-    defaultNodeHeight: Double,
-    onEdgeClick: ((Edge) -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    if (onEdgeClick == null) return
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(edges, nodeById) {
-                detectTapGestures { tapOffset ->
-                    val hit = findClosestEdge(
-                        tapOffset, edges, nodeById, defaultNodeWidth, defaultNodeHeight,
-                    )
-                    if (hit != null) {
-                        onEdgeClick(hit)
-                    }
-                }
-            },
-    )
-}
-
-private fun findClosestEdge(
+internal fun findClosestEdge(
     tap: Offset,
     edges: List<Edge>,
     nodeById: Map<String, Node>,
     defaultNodeWidth: Double,
     defaultNodeHeight: Double,
+    pathStyle: EdgePathStyle = EdgePathStyle.Bezier,
 ): Edge? {
     var closest: Edge? = null
     var closestDist = Float.MAX_VALUE
@@ -56,8 +25,19 @@ private fun findClosestEdge(
         val target = nodeById[edge.target] ?: continue
         val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
         val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
-        val dist = distanceToSegment(tap, start.point, end.point)
         val threshold = edge.interactionWidth.toFloat()
+        val path = flowEdgePath(start, end, pathStyle).path
+        if (!path.getBounds().inflate(threshold).contains(tap)) continue
+        val measure = PathMeasure().apply { setPath(path, false) }
+        // Sample the same rendered path, bounded even for pathological distant endpoints.
+        val segments = ceil(measure.length / (threshold / 2f).coerceAtLeast(1f)).toInt().coerceIn(1, 4096)
+        var previous = start.point
+        var dist = Float.MAX_VALUE
+        for (index in 1..segments) {
+            val next = measure.getPosition(measure.length * index / segments)
+            dist = minOf(dist, distanceToSegment(tap, previous, next))
+            previous = next
+        }
         if (dist < threshold && dist < closestDist) {
             closest = edge
             closestDist = dist

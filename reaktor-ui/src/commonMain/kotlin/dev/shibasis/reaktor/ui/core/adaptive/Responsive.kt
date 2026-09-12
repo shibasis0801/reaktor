@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.ui.core.adaptive
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -85,7 +86,9 @@ fun ResponsiveLayout(
             WindowSize(width, height, screenClass)
         }
 
-        content(windowSize)
+        CompositionLocalProvider(LocalWindowSize provides windowSize) {
+            content(windowSize)
+        }
     }
 }
 
@@ -122,12 +125,7 @@ fun <T> responsiveValue(
 fun <T> responsiveValueWithConstraints(
     selector: (width: Dp) -> T,
 ): T {
-    var result: T? = null
-    BoxWithConstraints {
-        result = selector(maxWidth)
-    }
-    // This is a workaround - in real usage, wrap content in BoxWithConstraints
-    return result ?: selector(360.dp) // Default to mobile
+    return selector(LocalWindowSize.current.width)
 }
 
 // ============================================================================
@@ -143,11 +141,7 @@ fun Modifier.responsive(
     tablet: Modifier = mobile,
     desktop: Modifier = tablet,
 ): Modifier {
-    val breakpoints = Tokens.breakpoints
-
-    // Note: This requires being inside a BoxWithConstraints
-    // For a simpler API, use ResponsiveLayout
-    return this.then(mobile) // Default implementation
+    return then(responsiveValue(mobile, tablet, desktop))
 }
 
 // ============================================================================

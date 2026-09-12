@@ -39,13 +39,7 @@ internal fun DrawScope.drawFlowEdge(
     // edge rendering only consumes those resolved points.
     val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
     val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
-    val pathData = when (pathStyle) {
-        EdgePathStyle.Bezier -> bezierEdgePath(start, end)
-        EdgePathStyle.Orthogonal -> orthogonalEdgePath(start, end)
-        EdgePathStyle.Straight -> straightEdgePath(start, end)
-        EdgePathStyle.SmoothStep -> smoothStepEdgePath(start, end)
-        EdgePathStyle.SimpleBezier -> simpleBezierEdgePath(start, end)
-    }
+    val pathData = flowEdgePath(start, end, pathStyle)
 
     val strokeWidth = renderStyle.width ?: if (edge.animated) {
         FlowSizing.animatedEdgeStrokePx
@@ -108,6 +102,14 @@ internal data class FlowEdgePath(
     val path: Path,
     val markerStart: Offset,
 )
+
+internal fun flowEdgePath(start: FlowAnchor, end: FlowAnchor, style: EdgePathStyle): FlowEdgePath = when (style) {
+    EdgePathStyle.Bezier -> bezierEdgePath(start, end)
+    EdgePathStyle.Orthogonal -> orthogonalEdgePath(start, end)
+    EdgePathStyle.Straight -> straightEdgePath(start, end)
+    EdgePathStyle.SmoothStep -> smoothStepEdgePath(start, end)
+    EdgePathStyle.SimpleBezier -> simpleBezierEdgePath(start, end)
+}
 
 internal fun bezierEdgePath(start: FlowAnchor, end: FlowAnchor): FlowEdgePath {
     val rawDx = end.point.x - start.point.x

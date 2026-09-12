@@ -1,2 +1,1 @@
-export * from "reaktor-reaktor-auth";
-
+export * from "./export/reaktor-reaktor-auth.mjs";

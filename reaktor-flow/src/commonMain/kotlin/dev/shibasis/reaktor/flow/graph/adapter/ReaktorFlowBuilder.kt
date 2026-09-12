@@ -15,6 +15,8 @@ import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphPalette
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import dev.shibasis.reaktor.flow.graph.model.ScopeNodeCountAttribute
+import dev.shibasis.reaktor.flow.graph.model.ScopeSubgraphCountAttribute
 import dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
@@ -193,6 +195,12 @@ internal class ReaktorFlowBuilder(
                 hiddenConsumerCount = 0,
                 kind = ReaktorNodeKind.Container,
                 isScopeSummary = true,
+                // The card draws a miniature of what is folded away, so the counts have to be
+                // data, not a guess made in the renderer from a formatted string.
+                attributes = mapOf(
+                    ScopeNodeCountAttribute to child.nodes.size.toString(),
+                    ScopeSubgraphCountAttribute to scopeSubgraphCount(child).toString(),
+                ),
                 scopeId = scopeId,
                 scopePath = scopeCatalog.path(scopeId).map(dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureScope::id),
                 architectureLevel = scope?.level ?: dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureLevel.Container,
@@ -200,7 +208,7 @@ internal class ReaktorFlowBuilder(
                     origin = "runtime-scope",
                     graphId = scopeId,
                     graphLabel = graphLabel(child),
-                    runtimeType = child::class.qualifiedName,
+                    runtimeType = runtimeQualifiedName(child),
                     evidence = listOf("${child.nodes.size} runtime nodes"),
                 ),
             ),
@@ -231,7 +239,7 @@ internal class ReaktorFlowBuilder(
 
     private fun scopeSummarySubtitle(graph: Graph): String {
         val nodeCount = graph.nodes.size
-        val subgraphCount = graph.nodes.filterIsInstance<ContainerNode>().sumOf { it.graphs.size }
+        val subgraphCount = scopeSubgraphCount(graph)
         return buildString {
             append(nodeCount)
             append(if (nodeCount == 1) " node" else " nodes")
@@ -243,6 +251,10 @@ internal class ReaktorFlowBuilder(
         }
     }
 }
+
+/** How many child graphs a scope folds away, counted the same way everywhere. */
+internal fun scopeSubgraphCount(graph: Graph): Int =
+    graph.nodes.filterIsInstance<ContainerNode>().sumOf { it.graphs.size }
 
 /** Depth-tiered region color shared by full layout and collapsed-scope boundaries. */
 internal fun regionColorForDepth(depth: Int): Color = when (depth) {

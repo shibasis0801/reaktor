@@ -115,7 +115,12 @@ Current default layout model:
 
 Current strategy shape:
 - `ReaktorGraphLayoutStrategy`
-- `BlueprintReaktorGraphLayoutStrategy`
+- `BlueprintReaktorGraphLayoutStrategy` for compact cards
+- `TypedReaktorGraphLayoutStrategy` for typed cards, delegating to viewport-aware compound packing when both canvas dimensions are available
+
+Typed hosts supply `layout.targetContentWidthPx` and `targetContentHeightPx` from the actual graph canvas after surrounding panes and toolbars are measured. Landscape (including square) canvases place descendants to the right; portrait canvases place them below. Measured node and subtree areas balance dense layouts so full expansion can grow on both axes without becoming a single strip. Route/screen pairs remain adjacent, and relayout preserves scope, node, port and edge identities. Width-only callers retain wrapping behavior; dimension-free exports retain the authored lane layout.
+
+`atDisplayDensity` scales both target dimensions along with node and region geometry. A host that measures physical pixels should set the measured target dimensions **after** scaling its authored style. Orientation is a property of the available canvas, not a hard-coded monitor model or window-width breakpoint.
 
 This is deliberate. The layout strategy is separated so future layout variants can be added without collapsing placement logic back into the builder.
 

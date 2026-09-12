@@ -16,7 +16,9 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 
 data class NewSession(val sessionId: String, val rawRefreshToken: String)
 data class RotatedSession(val session: Session, val rawRefreshToken: String)
@@ -25,11 +27,25 @@ data class RotatedSession(val session: Session, val rawRefreshToken: String)
  * Real session lifecycle + one-time-use refresh-token rotation with family reuse-detection (RFC 9700),
  * replacing the throwaway `UUID.randomUUID()` refresh. Refresh tokens are high-entropy, hashed at rest
  * (SHA-256), single-use; every refresh rotates to a new token in the same family. Replaying an
- * already-rotated token is treated as theft → the whole family is revoked, forcing re-auth.
+ * already-rotated token is treated as theft → the whole family is revoked, forcing re-auth, except
+ * inside the brief [reuseGrace] window that makes concurrent refresh (two tabs, one page's assets)
+ * safe.
  *
  * Anchored on principal sessions: user, service, agent, and actor sessions all use the same lifecycle.
  */
-class SessionRefreshService {
+class SessionRefreshService(
+    /**
+     * How long after a refresh token is first used a second presentation of it is still
+     * treated as the same refresh rather than as theft.
+     *
+     * Concurrent refresh is ordinary on the web: two tabs share one stored token, and a
+     * page whose assets all notice the expiry at once fires several refreshes within
+     * milliseconds. Revoking the family for that logged people out mid-session — the
+     * session died in minutes rather than lasting its 30 days. Replay outside this
+     * window is still theft and still revokes the family (RFC 9700 §4.14.2).
+     */
+    private val reuseGrace: Duration = 60.seconds,
+) {
     private val refreshTtl = 30.days
 
     /**
@@ -103,17 +119,23 @@ class SessionRefreshService {
         val now = Clock.System.now()
         if (token.revokedAt != null) return@txn null
         if (now > token.expiresAt) return@txn null
-        if (token.usedAt != null) {
-            // Reuse detected → revoke the whole family, forcing re-authentication.
+
+        val firstUse = token.usedAt
+        if (firstUse != null && now > firstUse + reuseGrace) {
+            // Replay long after rotation → theft. Revoke the whole family, forcing re-authentication.
             RefreshTokens.update({ RefreshTokens.familyId eq UUID.fromString(token.familyId) }) {
                 it[RefreshTokens.revokedAt] = now
             }
             return@txn null
         }
 
-        RefreshTokens.update({ RefreshTokens.id eq UUID.fromString(token.id) }) {
-            it[RefreshTokens.usedAt] = now
-            it[RefreshTokens.rotatedAt] = now
+        // Anchor the window at the FIRST use, so a burst of concurrent refreshes cannot
+        // slide it forward indefinitely.
+        if (firstUse == null) {
+            RefreshTokens.update({ RefreshTokens.id eq UUID.fromString(token.id) }) {
+                it[RefreshTokens.usedAt] = now
+                it[RefreshTokens.rotatedAt] = now
+            }
         }
 
         val session = Sessions.selectAll()

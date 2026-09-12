@@ -76,11 +76,11 @@ class AuthRepositoryNode(
         contextId = contextId,
     )
 
-    override suspend fun getPrincipalPermissions(request: Request, principalId: UUID, appId: UUID): Result<List<String>> =
-        authRepository.getPrincipalPermissions(request, principalId, appId)
+    override suspend fun getPrincipalPermissions(request: Request, principalId: UUID, appId: UUID, tenantId: String?, contextId: String?): Result<List<String>> =
+        authRepository.getPrincipalPermissions(request, principalId, appId, tenantId, contextId)
 
-    override suspend fun getPrincipalRoles(request: Request, principalId: UUID, appId: UUID): Result<List<String>> =
-        authRepository.getPrincipalRoles(request, principalId, appId)
+    override suspend fun getPrincipalRoles(request: Request, principalId: UUID, appId: UUID, tenantId: String?, contextId: String?): Result<List<String>> =
+        authRepository.getPrincipalRoles(request, principalId, appId, tenantId, contextId)
 
     override suspend fun getPrincipal(request: Request, principalId: UUID): Result<AuthPrincipal?> =
         authRepository.getPrincipal(request, principalId)

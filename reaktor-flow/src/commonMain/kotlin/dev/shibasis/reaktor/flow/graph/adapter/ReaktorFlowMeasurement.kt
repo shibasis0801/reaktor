@@ -22,6 +22,7 @@ internal fun measureNodeWidth(
     node: GraphNode,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): Double {
+    if (style.typedNode != null) return style.node.minWidthPx
     val consumers = node.consumerPorts.flattenedValues().toList()
     val providers = node.providerPorts.flattenedValues().toList()
     val titleLength = nodeTitle(node).length
@@ -69,11 +70,16 @@ internal fun measureNodeHeight(
     consumerCount: Int,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): Double {
+    style.typedNode?.let { typed ->
+        return typed.familyHeightPx + style.node.titleHeightPx +
+            (providerCount + consumerCount).coerceIn(1, typed.maxPortRows.coerceAtLeast(1)) *
+            style.port.rowHeightPx + style.node.footerHeightPx
+    }
     val rowCount = min(max(providerCount, consumerCount).coerceAtLeast(1), style.port.previewRows.coerceAtLeast(1))
     // +4 slack: the painted border and text ascent rounding otherwise clip the footer's last
     // pixels at some zoom levels.
     return style.node.titleHeightPx + rowCount * style.port.rowHeightPx + style.node.verticalPaddingPx * 2.0 +
-        style.node.footerHeightPx + 4.0
+        style.node.footerHeightPx + style.node.measurementSlackPx
 }
 
 internal fun visiblePorts(ports: List<Port<*>>): List<ReaktorPortData> =
@@ -96,12 +102,26 @@ internal fun handleOffset(
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
 ): Double = when {
     count <= 0 -> 0.5
+    style.typedNode != null -> {
+        val typed = style.typedNode
+        val rows = count.coerceIn(1, typed.maxPortRows.coerceAtLeast(1))
+        val portsTop = typed.familyHeightPx + style.node.titleHeightPx
+        val footerTop = portsTop + rows * style.port.rowHeightPx
+        // Folded handles retain exact identity at the disclosed footer boundary. They must never
+        // impersonate a different visible port merely because the overview has fewer rows.
+        val center = if (index < rows) portsTop + (index + 0.5) * style.port.rowHeightPx
+            else footerTop + style.node.footerHeightPx / 2.0
+        center / (footerTop + style.node.footerHeightPx)
+    }
     else -> {
-        val totalHeight = style.node.titleHeightPx + count * style.port.rowHeightPx +
-            style.node.verticalPaddingPx * 2.0 + style.node.footerHeightPx
+        val familyHeight = style.typedNode?.familyHeightPx ?: 0.0
+        // Typed cards have contiguous family/title/port bands; compact-card padding is absent.
+        val verticalPadding = if (style.typedNode == null) style.node.verticalPaddingPx else 0.0
+        val totalHeight = familyHeight + style.node.titleHeightPx + count * style.port.rowHeightPx +
+            verticalPadding * 2.0 + style.node.footerHeightPx
         val rowCenter =
-            style.node.titleHeightPx +
-                style.node.verticalPaddingPx +
+            familyHeight + style.node.titleHeightPx +
+                verticalPadding +
                 index * style.port.rowHeightPx +
                 style.port.rowHeightPx / 2.0
         rowCenter / totalHeight

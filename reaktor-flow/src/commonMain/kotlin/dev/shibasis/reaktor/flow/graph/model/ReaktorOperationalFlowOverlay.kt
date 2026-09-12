@@ -42,7 +42,7 @@ fun ReaktorFlowGraph.withArchitectureOverlay(overlay: ReaktorArchitectureOverlay
                 (node.data as? ReaktorGraphNodeData)?.scopeId == element.scopeId
             }
         val anchorKey = anchor?.id ?: element.scopeId
-        val sibling = siblingsByAnchor.getOrDefault(anchorKey, 0)
+        val sibling = siblingsByAnchor.getOrElse(anchorKey) { 0 }
         siblingsByAnchor[anchorKey] = sibling + 1
         val width = style.node.minWidthPx * 1.08
         val height = style.defaultNodeHeight()
@@ -174,7 +174,7 @@ private fun operationalNodeKind(kind: String): ReaktorNodeKind = when (kind.lowe
     "provider" -> ReaktorNodeKind.Service
     "deployment" -> ReaktorNodeKind.Release
     "test" -> ReaktorNodeKind.Test
-    "database", "store" -> ReaktorNodeKind.Data
+    "database", "store", "database-record" -> ReaktorNodeKind.Data
     else -> ReaktorNodeKind.Node
 }
 

@@ -2,8 +2,12 @@ package dev.shibasis.reaktor.flow.graph.editor
 
 import dev.shibasis.composeflow.model.Node
 import dev.shibasis.composeflow.model.Viewport
+import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphEditorState
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphSelection
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.render.scopeOrigin
 import dev.shibasis.reaktor.flow.graph.render.flowBounds
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
@@ -12,6 +16,54 @@ import dev.shibasis.reaktor.flow.graph.style.defaultNodeWidth
 import dev.shibasis.reaktor.flow.graph.style.fitPadding
 import dev.shibasis.reaktor.flow.graph.style.readablePadding
 import kotlin.math.min
+
+internal fun frameGraphIfRequested(
+    editorState: ReaktorGraphEditorState,
+    flow: ReaktorFlowGraph,
+    rightInsetPx: Float = 0f,
+    style: ReaktorGraphStyle = flow.style,
+) {
+    val canvas = editorState.canvas
+    if (editorState.completedFrameRequest == editorState.frameRequest ||
+        canvas.canvasSize.width <= 0 || canvas.canvasSize.height <= 0 || flow.nodes.isEmpty()
+    ) return
+    val targetId = editorState.frameNodeId
+    val positionedFlow = editorState.withNodeLayout(flow)
+    val anchorScopeId = editorState.anchorScopeId
+    if (anchorScopeId != null) {
+        // Fold/unfold: translate the camera by exactly the distance the anchored scope moved, so
+        // it lands back under the same pixel. No re-framing, no zoom change, no jump.
+        positionedFlow.scopeOrigin(anchorScopeId, style)?.let { origin ->
+            val zoom = canvas.viewport.zoom
+            canvas.setViewport(
+                Viewport(
+                    x = editorState.anchorScreenX - origin.x * zoom,
+                    y = editorState.anchorScreenY - origin.y * zoom,
+                    zoom = zoom,
+                ),
+            )
+        }
+        editorState.completedFrameRequest = editorState.frameRequest
+        return
+    }
+    val connection = editorState.frameSubject as? ReaktorGraphSelection.Connection
+    if (connection != null) {
+        val edge = positionedFlow.edges.firstOrNull { it.id == connection.id } ?: return
+        val ends = positionedFlow.nodes.filter { it.id == edge.source || it.id == edge.target }
+        if (ends.none { it.id == edge.source } || ends.none { it.id == edge.target }) return
+        frameGraph(canvas, positionedFlow.copy(nodes = ends, regions = emptyList()), style, rightInsetPx)
+    } else if (targetId == null) {
+        frameGraph(canvas, positionedFlow, style, rightInsetPx, readable = true)
+    } else {
+        val node = positionedFlow.nodes.firstOrNull { it.id == targetId }
+        if (node != null) canvas.focusNode(node, style.defaultNodeWidth(), style.defaultNodeHeight())
+        else {
+            val region = positionedFlow.regions.firstOrNull { it.id == targetId } ?: return
+            canvas.centerOn(XYPosition(region.x + region.width / 2, region.y + region.height / 2))
+        }
+    }
+    editorState.completedFrameRequest = editorState.frameRequest
+}
 
 // Keep fit math in graph-space pixels, then hand the viewport to compose-flow. That matches the
 // React Flow / xyflow fitView model and avoids mixing Compose dp with editor-space coordinates.

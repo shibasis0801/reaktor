@@ -8,12 +8,14 @@ import dev.shibasis.reaktor.flow.graph.adapter.graphLabel
 import dev.shibasis.reaktor.flow.graph.adapter.measureNodeWidth
 import dev.shibasis.reaktor.flow.graph.adapter.regionColorForDepth
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphRegion
+import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.ControllerNode
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 import dev.shibasis.reaktor.graph.core.node.RouteNode
+import kotlin.math.floor
 import kotlin.math.max
 
 /**
@@ -57,6 +59,9 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
         depth: Int,
         graphId: String,
     ): LayoutBounds {
+        if (builder.style.typedNode != null) {
+            return TypedReaktorGraphLayoutStrategy.layout(builder, graph, originX, originY, depth, graphId)
+        }
         builder.graphs[graphId] = graph
         val services = mutableListOf<GraphNode>()
         val routes = mutableListOf<RouteNode<*, *>>()
@@ -94,8 +99,9 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
         var maxBottom = startY
 
         val servicesWidth = services.maxOfOrNull { measureNodeWidth(it, style) } ?: style.node.minWidthPx
-        val serviceColumns = preferredServiceColumns(services.size)
         val serviceColumnGap = style.layout.compactColumnGapPx
+        val serviceColumns = columnsAcross(services.size, servicesWidth, serviceColumnGap, style,
+            preferredServiceColumns(services.size))
         val serviceAreaWidth = if (services.isEmpty()) {
             0.0
         } else {
@@ -223,9 +229,17 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
                     var childX = childStartX
                     var childY = currentY
                     var rowBottom = currentY
-                    val childGraphsPerRow = preferredChildGraphsPerRow(containerNode.graphs.size)
+                    // Wrap on the width actually available rather than on a count: a scope region is
+                    // as wide as its own composition, so a fixed peers-per-row either overflows the
+                    // canvas or leaves it empty. `right` is the wrap boundary.
+                    val wrapAt = style.layout.targetContentWidthPx
+                        .takeIf { it > 0.0 }?.let { originX + it }
+                        ?: Double.MAX_VALUE
+                    val childGraphsPerRow = columnsAcross(containerNode.graphs.size, servicesWidth,
+                        style.region.childRegionGapXPx, style, preferredChildGraphsPerRow(containerNode.graphs.size))
                     containerNode.graphs.forEachIndexed { index, childGraph ->
-                        if (index > 0 && index % childGraphsPerRow == 0) {
+                        val wrapOnWidth = index > 0 && childX > childStartX && childX > wrapAt
+                        if (wrapOnWidth || (index > 0 && index % childGraphsPerRow == 0)) {
                             childX = childStartX
                             childY = rowBottom + style.region.childRegionGapYPx + style.region.boundsInsetTopPx
                         }
@@ -288,6 +302,28 @@ internal object BlueprintReaktorGraphLayoutStrategy : ReaktorGraphLayoutStrategy
             depth = depth,
         )
         return bounds
+    }
+
+    /**
+     * How many peers fit across [ReaktorGraphStyle.Layout.targetContentWidthPx] at [itemWidth].
+     *
+     * Without a target the fixed ladders below apply, which is what a fixed-size export wants. With
+     * one, a wide window gets a wide graph: the previous fixed ladders stacked 48 entities into a
+     * four-column column and left the right half of the canvas empty.
+     */
+    private fun columnsAcross(
+        count: Int,
+        itemWidth: Double,
+        gap: Double,
+        style: ReaktorGraphStyle,
+        fallback: Int,
+    ): Int {
+        val target = style.layout.targetContentWidthPx
+        if (target <= 0.0 || itemWidth <= 0.0) return fallback.coerceAtMost(max(1, count))
+        // The width decides. Forcing at least the fixed ladder overflowed a narrow canvas, and
+        // capping at it left a wide one empty.
+        val fitting = floor((target + gap) / (itemWidth + gap)).toInt()
+        return fitting.coerceIn(1, max(1, count))
     }
 
     // Wider default rows: production roots carry ten-plus entities per lane, and narrow grids
