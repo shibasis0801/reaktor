@@ -26,18 +26,31 @@ data class StoreKeyQuery(
     val prefix: String = "",
     val cursor: String? = null,
     val instance: String? = null,
+    val instanceId: Boolean = false,
+    val action: DurableObjectReadAction = DurableObjectReadAction.Overview,
+    val sql: String? = null,
+    val explain: Boolean = false,
+    val recursive: Boolean = false,
 ) {
     fun validate(provider: String) {
         require(provider in setOf("Kv", "R2", "DurableObjects")) { "Unknown store provider" }
         require(listOfNotNull(key, prefix, cursor, instance).all { it.length <= 4096 && '\u0000' !in it })
         require(key == null || (prefix.isEmpty() && cursor == null)) { "Use a key or a prefix and cursor" }
+        require(!recursive || provider == "R2" && key == null) { "Recursive listing applies only to R2 prefixes" }
         if (provider == "DurableObjects") {
             require(!instance.isNullOrBlank() && key == null && prefix.isEmpty() && cursor == null) {
                 "Select a named instance to read its application state"
             }
-        } else require(instance == null) { "Instance selection is only supported for Durable Objects" }
+            require(!instanceId || instance!!.matches(Regex("[a-fA-F0-9]{64}"))) { "Durable Object IDs contain 64 hexadecimal characters" }
+            require((action == DurableObjectReadAction.Query) == (sql != null)) { "SQL is required only for an instance query" }
+            require(!explain || action == DurableObjectReadAction.Query)
+            sql?.let(SqlReadStatement::normalize)
+        } else require(instance == null && !instanceId && action == DurableObjectReadAction.Overview && sql == null && !explain) { "Instance selection is only supported for Durable Objects" }
     }
 }
 
 @Serializable
 enum class WorkerStoreCatalog { Schema, Statistics }
+
+@Serializable
+enum class DurableObjectReadAction { Overview, Tables, Query }

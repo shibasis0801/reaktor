@@ -202,14 +202,6 @@ open class LoginInteractor(
         )
     }
 
-    private fun LoginRequest.resolvedProfile(): JsonElement {
-        val profileObject = profile as? JsonObject
-        val fields = linkedMapOf<String, JsonElement>()
-        profileObject?.let { fields.putAll(it) }
-        givenName?.takeIf { it.isNotBlank() }?.let { fields["givenName"] = JsonPrimitive(it) }
-        familyName?.takeIf { it.isNotBlank() }?.let { fields["familyName"] = JsonPrimitive(it) }
-        return if (fields.isEmpty()) profile else JsonObject(fields)
-    }
 }
 
 private fun List<String>.normalizedAuthNames(): List<String> =

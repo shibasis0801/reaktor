@@ -28,6 +28,8 @@ class AuthRepositoryNode(
 
     val appCatalogPort by provides<AuthAppCatalog>(this)
     val principalDirectoryPort by provides<AuthPrincipalDirectory>(this)
+    val authorityDirectoryPort by provides<dev.shibasis.reaktor.auth.runtime.ports.AuthAuthorityDirectory>(
+        dev.shibasis.reaktor.auth.db.AuthorityRepository(adapter))
 
     override suspend fun findById(request: Request, id: UUID): Result<App?> =
         appRepository.findById(request, id)

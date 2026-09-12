@@ -28,6 +28,7 @@ import dev.shibasis.reaktor.auth.runtime.ports.AuthExternalIdentityVerifier
 import dev.shibasis.reaktor.auth.runtime.ports.AuthPrincipalDirectory
 import dev.shibasis.reaktor.auth.runtime.ports.AuthSessionLifecycle
 import dev.shibasis.reaktor.auth.services.uuid
+import dev.shibasis.reaktor.auth.services.resolvedProfile
 import dev.shibasis.reaktor.auth.toAuthProviderKind
 import dev.shibasis.reaktor.auth.toSnapshot
 import dev.shibasis.reaktor.graph.core.Graph
@@ -351,12 +352,4 @@ class LoginInteractorNode(graph: Graph) : BasicNode(graph), AuthLogin {
         )
     }
 
-    private fun LoginRequest.resolvedProfile(): JsonElement {
-        val profileObject = profile as? JsonObject
-        val fields = linkedMapOf<String, JsonElement>()
-        profileObject?.let { fields.putAll(it) }
-        givenName?.takeIf { it.isNotBlank() }?.let { fields["givenName"] = JsonPrimitive(it) }
-        familyName?.takeIf { it.isNotBlank() }?.let { fields["familyName"] = JsonPrimitive(it) }
-        return if (fields.isEmpty()) profile else JsonObject(fields)
-    }
 }

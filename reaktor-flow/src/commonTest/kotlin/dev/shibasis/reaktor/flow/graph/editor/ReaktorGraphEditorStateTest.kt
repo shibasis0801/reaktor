@@ -23,6 +23,17 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ReaktorGraphEditorStateTest {
+    @Test fun positionsCanBeRestoredBeforeTheirNodesArrive() {
+        val source = state()
+        source.onNodesChange(flow(0.0), listOf(NodePositionChange("node", XYPosition(123.0, -42.0))))
+        val restored = state()
+        restored.restoreNodePositions(source.nodePositions)
+        assertEquals(emptyList(), restored.withNodeLayout(flow(0.0).copy(nodes = emptyList())).nodes)
+        assertEquals(XYPosition(123.0, -42.0), restored.withNodeLayout(flow(800.0)).nodes.single().position)
+        assertEquals(source.nodePositions, restored.nodePositions)
+        restored.resetLayout()
+        assertEquals(800.0, restored.withNodeLayout(flow(800.0)).nodes.single().position.x)
+    }
     @Test
     fun framingAConnectionWaitsForItThenContainsBothEndpoints() {
         val state = state()

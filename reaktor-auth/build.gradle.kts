@@ -52,6 +52,7 @@ kotlin {
 
     server {
         dependencies {
+            api(project(":reaktor-security"))
             api(project(":reaktor-tooling"))
             api("org.springframework.boot:spring-boot-starter-oauth2-resource-server:${Version.SDK.SpringBoot}")
             api("org.springframework.boot:spring-boot-starter-security:${Version.SDK.SpringBoot}")

@@ -94,9 +94,9 @@ class DurableObjectStub internal constructor(
 ) {
     /** Call an application RPC through an already-authorized namespace binding. */
     @JsExport.Ignore
-    suspend fun rpcJson(method: String): JsonElement {
+    suspend fun rpcJson(method: String, argument: String? = null, maxRows: Int? = null): JsonElement {
         require(method.matches(Regex("[A-Za-z][A-Za-z0-9_]*"))) { "Invalid RPC method" }
-        val response = raw.asDynamic()[method]().unsafeCast<Promise<Any?>>()
+        val response = (if (argument == null) raw.asDynamic()[method]() else raw.asDynamic()[method](argument, maxRows)).unsafeCast<Promise<Any?>>()
         return dynamicToJsonElement(response.await())
     }
 

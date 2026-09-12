@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.RefreshRequest
+import dev.shibasis.reaktor.auth.api.LogoutRequest
 import dev.shibasis.reaktor.auth.api.TokenSet
 import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
 import dev.shibasis.reaktor.auth.transport.bearerAuthorization
@@ -21,12 +22,24 @@ import dev.shibasis.reaktor.service.Environment
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlin.time.Clock
 
 abstract class AuthAdapter<Controller>(
     controller: Controller,
-    private val authClient: AuthService
+    private val authClient: AuthService,
+    private val sessionStore: AuthSessionStore? = null,
 ): Adapter<Controller>(controller) {
+    private val refreshMutex = Mutex()
+    protected var activeEnvironment = Environment.PROD
+        private set
     private val _loginState = MutableStateFlow<AuthLoginState>(AuthLoginState.Idle)
     val loginState: StateFlow<AuthLoginState> = _loginState.asStateFlow()
     val currentLoginState: AuthLoginState
@@ -48,8 +61,23 @@ abstract class AuthAdapter<Controller>(
         appId: String,
         environment: Environment = Environment.PROD,
         userProvider: UserProvider,
-        mode: AuthLoginMode = AuthLoginMode.Interactive
+        mode: AuthLoginMode = AuthLoginMode.Interactive,
+        tenantHint: String? = null,
+        contextHint: String? = null,
+    ): LoginResponse = refreshMutex.withLock {
+        try { loginLocked(appId, environment, userProvider, mode, tenantHint, contextHint) }
+        catch (cancelled: CancellationException) { resetLoginState(); throw cancelled }
+    }
+
+    private suspend fun loginLocked(
+        appId: String,
+        environment: Environment,
+        userProvider: UserProvider,
+        mode: AuthLoginMode,
+        tenantHint: String?,
+        contextHint: String?,
     ): LoginResponse {
+        activeEnvironment = environment
         transitionTo(AuthLoginState.LoadingProvider(userProvider, mode))
         val authProvider = providers[userProvider]
             ?: return failLogin(
@@ -64,6 +92,7 @@ abstract class AuthAdapter<Controller>(
             AuthLoginMode.Interactive -> authProvider.login()
             AuthLoginMode.ExistingSession -> authProvider.getUser()
         }.getOrElse { error ->
+            if (error is CancellationException) throw error
             return failLogin(
                 userProvider,
                 mode,
@@ -83,6 +112,8 @@ abstract class AuthAdapter<Controller>(
                     idToken = providerUser.idToken,
                     appId = appId,
                     provider = userProvider,
+                    tenantHint = tenantHint,
+                    contextHint = contextHint,
                     givenName = providerUser.givenName,
                     familyName = providerUser.familyName,
                     profile = providerUser.json(),
@@ -90,13 +121,31 @@ abstract class AuthAdapter<Controller>(
                 )
             )
         }.getOrElse { error ->
+            if (error is CancellationException) throw error
             LoginResponse.Failure.ServerError(error.message ?: "Auth service login failed")
         }
 
         when (response) {
             is LoginResponse.Success -> {
                 val context = response.context.toAuthContext()
-                cache(response)
+                try {
+                    currentCoroutineContext().ensureActive()
+                    cache(response, environment)
+                } catch (error: Exception) {
+                    withContext(NonCancellable) {
+                        runCatching { withTimeout(10_000) {
+                            response.tokenSet.refreshToken?.let { token ->
+                                authClient.sessionLogout(LogoutRequest(token, environment = environment))
+                            }
+                        } }
+                        runCatching {
+                            if (sessionStore != null) sessionStore.clear(environment) else authStoreOrNull()?.clear()
+                        }
+                    }
+                    if (error is CancellationException) throw error
+                    return failLogin(userProvider, mode, AuthLoginFailure.ProviderFailed("Could not securely store the Reaktor session"),
+                        LoginResponse.Failure.ServerError("Could not securely store the Reaktor session"))
+                }
                 transitionTo(AuthLoginState.Authenticated(context))
             }
             is LoginResponse.Failure -> {
@@ -109,6 +158,15 @@ abstract class AuthAdapter<Controller>(
     }
 
     abstract suspend fun logout(): Result<Unit>
+
+    suspend fun resumeSession(environment: Environment = Environment.PROD): Boolean {
+        activeEnvironment = environment
+        if (sessionHeaders(environment).isEmpty()) { resetLoginState(); return false }
+        val context = if (sessionStore != null) sessionStore.read(environment)?.context else authStoreOrNull()?.getContext()
+        if (context == null) { resetLoginState(); return false }
+        transitionTo(AuthLoginState.Authenticated(context))
+        return true
+    }
 
     /**
      * Grace-period account deletion. Sends the caller's session access token to
@@ -142,16 +200,22 @@ abstract class AuthAdapter<Controller>(
         }
     }
 
-    suspend fun accessToken(): String? =
-        authStoreOrNull()?.getAccessToken()
+    suspend fun accessToken(): String? = if (sessionStore != null) sessionStore.read(activeEnvironment)?.tokens?.accessToken
+        else authStoreOrNull()?.getAccessToken()
 
-    suspend fun refreshToken(): String? =
-        authStoreOrNull()?.getRefreshToken()
+    suspend fun refreshToken(): String? = if (sessionStore != null) sessionStore.read(activeEnvironment)?.tokens?.refreshToken
+        else authStoreOrNull()?.getRefreshToken()
 
     suspend fun sessionHeaders(
         environment: Environment = Environment.PROD,
         refreshIfMissing: Boolean = true,
     ): MutableMap<String, String> {
+        if (sessionStore != null) {
+            val session = sessionStore.read(environment)
+            val cached = session?.takeIf { it.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + REFRESH_SKEW_MILLIS }?.tokens
+            val tokens = cached ?: if (refreshIfMissing) refreshSession(environment) else null
+            return tokens?.let { mutableMapOf(AUTHORIZATION_HEADER to bearerAuthorization(it.accessToken)) } ?: mutableMapOf()
+        }
         val store = authStoreOrNull()
         val cached = store?.getFreshAccessToken()
         val refreshed = if (cached == null && refreshIfMissing) {
@@ -165,27 +229,64 @@ abstract class AuthAdapter<Controller>(
         return mutableMapOf(AUTHORIZATION_HEADER to bearerAuthorization(accessToken))
     }
 
-    suspend fun refreshSession(environment: Environment = Environment.PROD): TokenSet? {
-        val store = authStoreOrNull() ?: return null
-        val refreshToken = store.getRefreshToken() ?: return null
+    suspend fun refreshSession(environment: Environment = Environment.PROD): TokenSet? = refreshMutex.withLock {
+        if (sessionStore != null) {
+            val current = sessionStore.read(environment) ?: return@withLock null
+            if (current.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + REFRESH_SKEW_MILLIS) return@withLock current.tokens
+            val token = current.tokens.refreshToken ?: return@withLock null
+            val response = authClient.sessionRefresh(RefreshRequest(token, environment = environment))
+            if (response.statusCode == StatusCode.UNAUTHORIZED) {
+                sessionStore.clear(environment); resetLoginState(); return@withLock null
+            }
+            check(response.statusCode == StatusCode.OK) { "Reaktor session refresh is temporarily unavailable" }
+            val tokens = response.tokenSet ?: return@withLock null
+            require(!tokens.refreshToken.isNullOrBlank() && tokens.expiresInSeconds > 0) { "Refresh did not return a complete rotated session" }
+            sessionStore.write(environment, current.copy(tokens = tokens, expiresAtEpochMillis = requireNotNull(tokens.accessTokenExpiresAtEpochMillis())))
+            return@withLock tokens
+        }
+        val store = authStoreOrNull() ?: return@withLock null
+        val refreshToken = store.getRefreshToken() ?: return@withLock null
         val response = runCatching {
             authClient.sessionRefresh(RefreshRequest(refreshToken = refreshToken, environment = environment))
         }.getOrElse { error ->
+            if (error is CancellationException) throw error
             Logger.e(error) { "Failed to refresh Reaktor auth session" }
-            return null
+            return@withLock null
         }
 
-        if (response.statusCode != StatusCode.OK) return null
-        val tokenSet = response.tokenSet ?: return null
+        if (response.statusCode != StatusCode.OK) return@withLock null
+        val tokenSet = response.tokenSet ?: return@withLock null
         cache(tokenSet)
-        return tokenSet
+        tokenSet
+    }
+
+    /** Revoke remotely, then clear local credentials even when offline; report an unconfirmed revocation. */
+    protected suspend fun logoutSession(environment: Environment = activeEnvironment): Result<Unit> = refreshMutex.withLock {
+        val token = if (sessionStore != null) sessionStore.read(environment)?.tokens?.refreshToken else authStoreOrNull()?.getRefreshToken()
+        val revoked = runCatching {
+            if (token != null) {
+                val response = authClient.sessionLogout(LogoutRequest(token, environment = environment))
+                check(response.success || response.statusCode == StatusCode.UNAUTHORIZED) { "Server logout was not confirmed" }
+            }
+        }
+        withContext(NonCancellable) {
+            try { if (sessionStore != null) sessionStore.clear(environment) else authStoreOrNull()?.clear() }
+            finally { resetLoginState() }
+        }
+        (revoked.exceptionOrNull() as? CancellationException)?.let { throw it }
+        revoked
     }
 
     protected fun resetLoginState() {
         transitionTo(AuthLoginState.Idle)
     }
 
-    private suspend fun cache(response: LoginResponse.Success) {
+    private suspend fun cache(response: LoginResponse.Success, environment: Environment) {
+        if (sessionStore != null) {
+            val expiry = requireNotNull(response.tokenSet.accessTokenExpiresAtEpochMillis()) { "Login returned no session expiry" }
+            sessionStore.write(environment, StoredAuthSession(response.context.toAuthContext(), response.tokenSet, expiry))
+            return
+        }
         val db = Feature.Database ?: return
         transitionTo(AuthLoginState.CachingSession(response.context.principalId))
         try {
@@ -194,6 +295,7 @@ abstract class AuthAdapter<Controller>(
             authStore.setTokenSet(response.tokenSet)
         } catch (e: Exception) {
             Logger.e(e) { "Failed to cache auth tokens to ObjectDatabase" }
+            throw e
         }
     }
 

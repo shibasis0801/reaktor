@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.code.CodeDiagnostic
 import dev.shibasis.reaktor.code.CodePosition
 import dev.shibasis.reaktor.code.CodeSpan
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -76,5 +79,32 @@ class CodeEditorRenderTest {
         state.goToLine(19_000)
         waitForIdle()
         onNodeWithTag("code-editor-caret").assertTextEquals("Ln 19000, Col 1")
+    }
+
+    @Test fun theViewerIsReadOnlyAndFollowsItsText() = runComposeUiTest {
+        var payload by mutableStateOf("""{"a": 1}""")
+        setContent { CodeViewer(payload, Modifier.size(700.dp, 200.dp), showStatusBar = true, tag = "payload") }
+        onNode(hasText("\"a\"", substring = true)).assertExists()
+        onNodeWithTag("payload-readonly").assertExists()
+
+        payload = """{"b": 2}"""
+        waitForIdle()
+        onNode(hasText("\"b\"", substring = true)).assertExists()
+    }
+
+    @Test fun theViewerTypesNothingEvenWhenFocused() = runComposeUiTest {
+        val text = "untouched"
+        setContent { CodeViewer(text, Modifier.size(700.dp, 200.dp), tag = "locked") }
+        onNodeWithTag("locked-surface").requestFocus()
+        onNodeWithTag("locked-surface").performKeyInput { pressKey(Key.X) }
+        waitForIdle()
+        onNode(hasText("untouched")).assertExists()
+    }
+
+    @Test fun aHugePayloadNeedsNoHandTruncation() = runComposeUiTest {
+        val payload = (1..40_000).joinToString(",\n") { """  {"row": $it}""" }
+        setContent { CodeViewer("[\n$payload\n]", Modifier.size(700.dp, 200.dp), showStatusBar = true, tag = "huge") }
+        onNodeWithTag("huge").assertExists()
+        onNodeWithTag("huge-caret").assertTextEquals("Ln 1, Col 1")
     }
 }
