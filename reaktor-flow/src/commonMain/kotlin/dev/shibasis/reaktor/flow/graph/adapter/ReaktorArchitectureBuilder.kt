@@ -34,7 +34,7 @@ fun buildReaktorArchitectureSnapshot(graph: Graph): ReaktorArchitectureSnapshot 
                 origin = "runtime-scope",
                 graphId = scope.id,
                 graphLabel = scope.label,
-                runtimeType = flow.graphs[scope.id]?.let { it::class.qualifiedName },
+                runtimeType = flow.graphs[scope.id]?.let { runtimeQualifiedName(it) },
                 evidence = listOf("Graph.nodes", "ContainerNode.graphs"),
             ),
         )

@@ -13,7 +13,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpOffset
 import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.compose.theme.FlowHandleBorder
 import dev.shibasis.composeflow.compose.theme.FlowHandleSource
@@ -92,16 +93,28 @@ internal fun handleModifier(
     width: Dp,
     height: Dp,
     style: HandleRenderStyle,
-): Modifier {
+    density: Density = Density(1f),
+): Modifier = handleTopLeft(handle, width, height, style, density).let { point ->
+    Modifier.offset(point.x, point.y)
+}
+
+/** Hit-target placement uses the same physical inset as [anchorFor], converted exactly once. */
+internal fun handleTopLeft(
+    handle: Handle,
+    width: Dp,
+    height: Dp,
+    style: HandleRenderStyle,
+    density: Density = Density(1f),
+): DpOffset {
     val offset = (handle.offset ?: FlowRuntimeDefaults.defaultHandleOffset)
         .coerceIn(FlowRuntimeDefaults.minHandleOffset, FlowRuntimeDefaults.maxHandleOffset)
         .toFloat()
     val half = style.size / 2
-    val inset = (handle.inset ?: 0.0).dp
+    val inset = with(density) { (handle.inset ?: 0.0).toFloat().toDp() }
     return when (handle.position) {
-        Position.Left -> Modifier.offset(x = inset - half, y = (height * offset) - half)
-        Position.Right -> Modifier.offset(x = width - inset - half, y = (height * offset) - half)
-        Position.Top -> Modifier.offset(x = (width * offset) - half, y = inset - half)
-        Position.Bottom -> Modifier.offset(x = (width * offset) - half, y = height - inset - half)
+        Position.Left -> DpOffset(x = inset - half, y = (height * offset) - half)
+        Position.Right -> DpOffset(x = width - inset - half, y = (height * offset) - half)
+        Position.Top -> DpOffset(x = (width * offset) - half, y = inset - half)
+        Position.Bottom -> DpOffset(x = (width * offset) - half, y = height - inset - half)
     }
 }

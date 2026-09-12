@@ -27,6 +27,9 @@ data class NodeRenderStyle(
     val borderColor: Color? = null,
     // Layered outer halo drawn behind the card (selection/attention bloom). Null = no glow.
     val glowColor: Color? = null,
+    /** Shared outline for clipping, fill, border and halo; null retains the default canvas skin. */
+    val cornerRadius: Dp? = null,
+    val borderWidth: Dp? = null,
 )
 
 data class EdgeRenderStyle(

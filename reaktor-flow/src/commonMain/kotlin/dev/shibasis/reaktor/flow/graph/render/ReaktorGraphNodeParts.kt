@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.flow.graph.render
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,15 +23,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
+import dev.shibasis.reaktor.flow.graph.ReaktorPortDirection
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
@@ -61,6 +69,50 @@ internal fun RootBadge(
         )
     }
 }
+
+/**
+ * What a collapsed boundary shows instead of a caret or a sentence: a miniature of the cards it
+ * folded away — one tile per node, dimmed, centred, capped so a 40-node scope stays a whisper
+ * rather than a texture. The last tile fades when there is more inside than the miniature draws.
+ */
+@Composable
+internal fun FoldedScopeContents(
+    nodeCount: Int,
+    color: Color,
+    unitPx: Double,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.fillMaxWidth()) {
+        val unit = unitPx.toFloat()
+        val tile = Size(unit * 1.9f, unit * 0.72f)
+        val gap = Size(unit * 0.55f, unit * 0.5f)
+        val drawn = nodeCount.coerceIn(1, FoldedScopeTileCap)
+        val rows = (drawn + FoldedScopeTilesPerRow - 1) / FoldedScopeTilesPerRow
+        val corner = CornerRadius(unit * 0.22f, unit * 0.22f)
+        var top = (size.height - (rows * tile.height + (rows - 1) * gap.height)) / 2f
+        var remaining = drawn
+        repeat(rows) {
+            val inRow = minOf(remaining, FoldedScopeTilesPerRow)
+            // Left-aligned with the title and the count above: the card reads as one column.
+            var left = 0f
+            repeat(inRow) { column ->
+                val last = remaining - column == 1
+                drawRoundRect(
+                    color = color.copy(alpha = if (last && nodeCount > drawn) 0.12f else 0.28f),
+                    topLeft = Offset(left, top),
+                    size = tile,
+                    cornerRadius = corner,
+                )
+                left += tile.width + gap.width
+            }
+            remaining -= inRow
+            top += tile.height + gap.height
+        }
+    }
+}
+
+private const val FoldedScopeTilesPerRow = 4
+private const val FoldedScopeTileCap = 8
 
 @Composable
 internal fun ReaktorNodeTitle(
@@ -157,6 +209,8 @@ internal fun ReaktorNodePorts(
     providerPorts: List<ReaktorPortData>,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
     modifier: Modifier = Modifier,
+    onSelectPort: ((ReaktorPortDirection, ReaktorPortData) -> Unit)? = null,
+    ownerId: String? = null,
 ) {
     val density = LocalDensity.current
     val rowCount = maxOf(1, maxOf(consumerPorts.size, providerPorts.size))
@@ -167,8 +221,8 @@ internal fun ReaktorNodePorts(
         modifier = modifier.fillMaxWidth(),
         content = {
             repeat(rowCount) { index ->
-                PortEntry(port = consumerPorts.getOrNull(index), alignRight = false, style = style)
-                PortEntry(port = providerPorts.getOrNull(index), alignRight = true, style = style)
+                PortEntry(port = consumerPorts.getOrNull(index), alignRight = false, style = style, onSelect = onSelectPort, ownerId = ownerId)
+                PortEntry(port = providerPorts.getOrNull(index), alignRight = true, style = style, onSelect = onSelectPort, ownerId = ownerId)
             }
         },
     ) { measurables, constraints ->
@@ -229,6 +283,8 @@ internal fun PortEntry(
     alignRight: Boolean,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
     modifier: Modifier = Modifier,
+    onSelect: ((ReaktorPortDirection, ReaktorPortData) -> Unit)? = null,
+    ownerId: String? = null,
 ) {
     val density = LocalDensity.current
     if (port == null) {
@@ -237,7 +293,12 @@ internal fun PortEntry(
     }
 
     Row(
-        modifier = modifier.semantics {
+        modifier = modifier
+            .testTag("reaktor-graph-port-${ownerId.orEmpty()}-${if (alignRight) "provider" else "consumer"}-${port.handleId}")
+            .then(if (onSelect == null) Modifier else Modifier.clickable(role = Role.Button) {
+                onSelect(if (alignRight) ReaktorPortDirection.Provider else ReaktorPortDirection.Consumer, port)
+            })
+            .semantics {
             val direction = if (alignRight) "provider" else "consumer"
             val connection = if (port.connected) "connected" else "open"
             contentDescription =

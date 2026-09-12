@@ -13,7 +13,13 @@ interface FlowViewportPlatformBridge {
     fun resolveScrollAnchor(
         event: PointerEvent,
         interactionState: FlowViewportInteractionState,
-    ): Offset? = interactionState.lastPointerPosition
+    ): Offset? = event.changes.firstOrNull()?.position
+
+    /** Pixel translation, after the platform's wheel units and display scale are applied. */
+    fun resolveScrollPan(
+        event: PointerEvent,
+        interactionState: FlowViewportInteractionState,
+    ): Offset? = null
 
     fun installViewportGestures(
         state: ReactFlowState,

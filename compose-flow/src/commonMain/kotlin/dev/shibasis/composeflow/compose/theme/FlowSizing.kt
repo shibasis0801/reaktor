@@ -64,6 +64,7 @@ internal object FlowSizing {
 
     const val nodeDragThresholdSquared = 9f
     const val wheelPanFactor = 5.0
+    const val macWheelPanFactor = 10.0
     const val wheelZoomSensitivity = 0.06
     const val wheelZoomFactorMin = 0.88
     const val wheelZoomFactorMax = 1.16

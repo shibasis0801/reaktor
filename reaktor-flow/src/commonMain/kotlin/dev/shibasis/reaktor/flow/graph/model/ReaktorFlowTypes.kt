@@ -80,6 +80,10 @@ data class ReaktorGraphNodeData(
     ),
 )
 
+/** Counts a collapsed boundary carries so its card can draw what it folded away. */
+const val ScopeNodeCountAttribute: String = "scopeNodeCount"
+const val ScopeSubgraphCountAttribute: String = "scopeSubgraphCount"
+
 data class ReaktorGraphEdgeData(
     val kind: ReaktorEdgeKind,
     val label: String? = null,

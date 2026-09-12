@@ -174,7 +174,7 @@ internal fun ReaktorFlowBuilder.toFlowNode(layout: GraphNodeLayout): Node {
             scopePath = scopeCatalog.path(scopeId).map(dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureScope::id),
             architectureLevel = dev.shibasis.reaktor.flow.graph.model.ReaktorArchitectureLevel.Code,
             attributes = buildMap {
-                put("runtimeType", graphNode::class.qualifiedName ?: graphNode::class.simpleName.orEmpty())
+                put("runtimeType", runtimeQualifiedName(graphNode) ?: graphNode::class.simpleName.orEmpty())
                 if (layout.providerCount > 0) put("providerCount", layout.providerCount.toString())
                 if (layout.consumerCount > 0) put("consumerCount", layout.consumerCount.toString())
                 scope?.parentId?.let { put("parentScopeId", it) }
@@ -183,7 +183,7 @@ internal fun ReaktorFlowBuilder.toFlowNode(layout: GraphNodeLayout): Node {
                 origin = "runtime-graph",
                 graphId = scopeId,
                 graphLabel = graphLabel(layout.graph),
-                runtimeType = graphNode::class.qualifiedName,
+                runtimeType = runtimeQualifiedName(graphNode),
                 evidence = listOf("Graph.nodes", "typed provider/consumer ports"),
             ),
         ),
@@ -198,7 +198,9 @@ internal fun ReaktorFlowBuilder.toFlowNode(layout: GraphNodeLayout): Node {
 }
 
 internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Handle> {
-    val rowCount = max(layout.consumerPorts.size, layout.providerPorts.size).coerceAtLeast(1)
+    val typed = style.typedNode != null
+    val rowCount = if (typed) (layout.consumerPorts.size + layout.providerPorts.size).coerceAtLeast(1)
+        else max(layout.consumerPorts.size, layout.providerPorts.size).coerceAtLeast(1)
     val handles = buildList {
         layout.consumerPorts.forEachIndexed { index, port ->
             add(
@@ -217,7 +219,7 @@ internal fun ReaktorFlowBuilder.buildHandles(layout: GraphNodeLayout): List<Hand
                     id = port.handleId,
                     type = HandleType.Source,
                     position = Position.Right,
-                    offset = handleOffset(index, rowCount, style),
+                    offset = handleOffset(if (typed) layout.consumerPorts.size + index else index, rowCount, style),
                     inset = style.port.insetPx,
                 )
             )

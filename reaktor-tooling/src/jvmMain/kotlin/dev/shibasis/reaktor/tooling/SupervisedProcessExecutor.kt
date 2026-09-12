@@ -42,6 +42,8 @@ data class ProcessExecutionRequest(
     val runId: RunId? = null,
     /** Private source-definition seal rechecked immediately before the process is admitted. */
     val definitionSeal: ProcessDefinitionSeal? = null,
+    /** Complete stdout payload for structured readers. Overflow fails without emitting a partial payload. */
+    val captureStdoutChars: Int? = null,
 )
 
 data class ProcessDefinitionSeal(
@@ -129,6 +131,9 @@ class SupervisedProcessExecutor(
             }
         }
 
+        require(request.captureStdoutChars == null || request.captureStdoutChars in 1..8_388_608) {
+            "Structured stdout capture must be bounded to at most 8,388,608 characters"
+        }
         val runId = request.runId ?: idGenerator()
         val initialRun = TaskRun(
             id = runId,
@@ -254,6 +259,7 @@ class SupervisedProcessExecutor(
             }
         }
 
+        val captureFailure = AtomicReference<String?>(null)
         var startedAt: Long? = null
         var outputJobs: List<Job> = emptyList()
         var finalRun: TaskRun? = null
@@ -271,6 +277,10 @@ class SupervisedProcessExecutor(
             processBuilder.environment().putAll(request.environment)
             val process = processBuilder.start()
             processReference.set(process)
+            // Supervised runs are non-interactive. Nothing can write to the child's stdin (the
+            // request carries no input channel), so leaving the pipe open makes any child that
+            // reads stdin block forever. Closing it signals EOF immediately.
+            runCatching { process.outputStream.close() }
             if (cancelRequested.get()) {
                 terminateProcessTree(process)
                 throw CancellationException("Cancelled during process start")
@@ -283,7 +293,8 @@ class SupervisedProcessExecutor(
             }
             val processScope = CoroutineScope(currentCoroutineContext())
             outputJobs = listOf(
-                stream(process.inputStream, OutputChannel.Stdout, redactor, processScope, queuedRun.id, ::emit),
+                stream(process.inputStream, OutputChannel.Stdout, redactor, processScope, queuedRun.id, ::emit,
+                    request.captureStdoutChars) { captureFailure.compareAndSet(null, it) },
                 stream(process.errorStream, OutputChannel.Stderr, redactor, processScope, queuedRun.id, ::emit),
             )
 
@@ -295,6 +306,7 @@ class SupervisedProcessExecutor(
                 runInterruptible(Dispatchers.IO) { process.waitFor() }
             }
             joinReaders(outputJobs)
+            captureFailure.get()?.let { error(it) }
             val status = if (exitCode == 0) RunStatus.Succeeded else RunStatus.Failed
             finalRun = running.copy(
                 status = status,
@@ -368,9 +380,25 @@ class SupervisedProcessExecutor(
         outputScope: CoroutineScope,
         runId: RunId,
         emit: suspend (((Long, Long) -> RunEvent)) -> Unit,
+        captureLimit: Int? = null,
+        onCaptureFailure: (String) -> Unit = {},
     ): Job = outputScope.launch(Dispatchers.IO) {
         try {
             input.bufferedReader().use { reader ->
+                if (captureLimit != null) {
+                    val payload = StringBuilder()
+                    val buffer = CharArray(8192)
+                    var overflow = false
+                    while (true) {
+                        val count = reader.read(buffer)
+                        if (count < 0) break
+                        if (payload.length + count > captureLimit) overflow = true
+                        if (!overflow) payload.append(buffer, 0, count)
+                    }
+                    if (overflow) onCaptureFailure("Structured stdout exceeded the $captureLimit character capture limit")
+                    else emit { sequence, timestamp -> RunEvent.Output(runId, sequence, timestamp, outputChannel, redactor.redact(payload.toString())) }
+                    return@use
+                }
                 val line = StringBuilder()
                 var truncated = false
 
@@ -407,6 +435,7 @@ class SupervisedProcessExecutor(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
+            if (captureLimit != null) onCaptureFailure("Structured stdout could not be captured completely")
             // Stream closure is expected when cancellation terminates the process tree.
         }
     }
@@ -598,7 +627,7 @@ private fun processDefinitionDigest(
         val canonicalRoot = root.directory.canonicalFile
         canonicalRoot.walkTopDown()
             .onEnter { directory ->
-                directory == canonicalRoot || directory.name !in DEFINITION_EXCLUDED_DIRECTORIES
+                directory == canonicalRoot || canonicalRoot.extension == "app" || directory.name !in DEFINITION_EXCLUDED_DIRECTORIES
             }
             .filter(File::isFile)
             .filter { file ->

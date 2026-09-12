@@ -1,9 +1,12 @@
 package dev.shibasis.reaktor.flow.graph
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.flow.graph.render.GraphMiniMap as FrameworkGraphMiniMap
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
@@ -24,6 +27,16 @@ typealias ReaktorGraphRegion = dev.shibasis.reaktor.flow.graph.model.ReaktorGrap
 typealias ReaktorGraphStyle = dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 typealias ReaktorNodeKind = dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 typealias ReaktorPortData = dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
+typealias ReaktorScopeDisclosure = dev.shibasis.reaktor.flow.graph.model.ReaktorScopeDisclosure
+
+@Composable
+fun BoxScope.ReaktorGraphMiniMap(
+    flow: ReaktorFlowGraph,
+    editorState: ReaktorGraphEditorState,
+    rightInset: Dp = 0.dp,
+) {
+    FrameworkGraphMiniMap(editorState.withNodeLayout(flow), editorState.canvas, rightInset, flow.style)
+}
 
 fun buildReaktorFlowGraph(
     graph: Graph,
@@ -53,6 +66,12 @@ fun ReaktorGraphCanvas(
     state: ReactFlowState? = null,
     modifier: Modifier = Modifier,
     lensResult: ReaktorGraphLensResult? = null,
+    editorState: ReaktorGraphEditorState? = null,
+    showChrome: Boolean = true,
+    selectedSubject: ReaktorGraphSelection? = null,
+    onSelectSubject: ((ReaktorGraphSelection?) -> Unit)? = null,
+    /** Non-null makes collapsed boundary cards and expanded region labels fold their own scope. */
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     dev.shibasis.reaktor.flow.graph.editor.ReaktorGraphCanvas(
         flow = flow,
@@ -67,6 +86,11 @@ fun ReaktorGraphCanvas(
         rightInset = if (rightInset == Dp.Unspecified) Dp(0f) else rightInset,
         style = style,
         state = state,
+        editorState = editorState,
+        showChrome = showChrome,
+        selectedSubject = selectedSubject,
+        onSelectSubject = onSelectSubject,
+        scopeDisclosure = scopeDisclosure,
         modifier = modifier,
     )
 }
@@ -87,6 +111,12 @@ fun ReaktorGraphEditor(
     modifier: Modifier = Modifier,
     state: ReactFlowState = dev.shibasis.composeflow.runtime.rememberReactFlowState(),
     lensResult: ReaktorGraphLensResult? = null,
+    editorState: ReaktorGraphEditorState? = null,
+    showChrome: Boolean = true,
+    selectedSubject: ReaktorGraphSelection? = null,
+    onSelectSubject: ((ReaktorGraphSelection?) -> Unit)? = null,
+    /** Non-null makes collapsed boundary cards and expanded region labels fold their own scope. */
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     dev.shibasis.reaktor.flow.graph.editor.ReaktorGraphEditor(
         flow = flow,
@@ -103,5 +133,10 @@ fun ReaktorGraphEditor(
         showKindLegend = showKindLegend,
         modifier = modifier,
         state = state,
+        editorState = editorState,
+        showChrome = showChrome,
+        selectedSubject = selectedSubject,
+        onSelectSubject = onSelectSubject,
+        scopeDisclosure = scopeDisclosure,
     )
 }

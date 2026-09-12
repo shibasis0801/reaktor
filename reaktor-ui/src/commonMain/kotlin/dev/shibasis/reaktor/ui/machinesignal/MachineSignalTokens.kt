@@ -8,6 +8,113 @@ import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.core.truth.TruthClass
 
 object MachineSignal {
+    /** Living Graph editor tokens: reaktor.pen ms2-* variables and MG56E shell geometry. */
+    object Editor {
+        val Canvas = Color(0xFF17191F)
+        val Surface = Color(0xFF202229)
+        val Raised = Color(0xFF292C35)
+        val Line = Color(0xFF3A3F4B)
+        val Text = Color(0xFFE5E7ED)
+        val Muted = Color(0xFFADB4C3)
+        val Accent = Color(0xFF6F8FFF)
+        val AccentSoft = Color(0x1F6F8FFF)
+        val Source = Color(0xFF8DA7FF)
+        val Unknown = Color(0xFF9EABC1)
+        val menuHeight = 28.dp
+        val toolbarHeight = 42.dp
+        val documentTabHeight = 34.dp
+        val toolRailWidth = 40.dp
+        val toolHitSize = 36.dp
+        val navigatorWidth = 280.dp
+        val inspectorWidth = 320.dp
+        val statusHeight = 24.dp
+        val drawerStripHeight = 30.dp
+        val drawerHeadingHeight = 32.dp
+        val drawerGap = 14.dp
+        val controlHeight = 28.dp
+        val label = 12.sp
+        val meta = 11.sp
+        // MG56E application menu and execution toolbar, measured from the reusable Pencil component.
+        val brand = 13.sp
+        val brandWidth = 46.dp
+        val menuGap = 18.dp
+        val toolbarGap = 9.dp
+        val controlGap = 6.dp
+        val controlIconSize = 15.dp
+        val controlRadius = 4.dp
+        val projectControlWidth = 94.dp
+        val branchControlWidth = 65.dp
+        val searchControlWidth = 218.dp
+        val shortcutWidth = 39.dp
+        val shortcutHeight = 22.dp
+        val targetControlWidth = 104.dp
+        val runControlWidth = 60.dp
+        val debugControlWidth = 75.dp
+        val developControlWidth = 84.dp
+        val sectionHeaderHeight = 32.dp
+        val treeRowHeight = 27.dp
+        val layerRowHeight = 34.dp
+        val sectionPaddingX = 10.dp
+        val treeIndent = 12.dp
+        val smallIconSize = 14.dp
+        val graphContextHeight = 38.dp
+        const val fontFamily = "Inter"
+        const val lineHeight = 1.3f
+
+        /** The text plane inside the shell: what a line of code is painted with. */
+        object Code {
+            val CurrentLine = Color(0xFF1E2129)
+            val Selection = Color(0x455C80FF)
+            val Match = Color(0x40F3B84B)
+            val MatchActive = Color(0x80F3B84B)
+            val Occurrence = Color(0x22ADB4C3)
+            val Gutter = Color(0xFF5C6676)
+            val GutterActive = Color(0xFFADB4C3)
+            val GutterLine = Color(0xFF2B2F38)
+            val Caret = Color(0xFF6F8FFF)
+            val BracketMatch = Color(0x556F8FFF)
+
+            val Keyword = Color(0xFF9A8CFF)
+            val Type = Color(0xFF60DDEB)
+            val Function = Color(0xFF8DA7FF)
+            val Builtin = Color(0xFF55D3C3)
+            val Number = Color(0xFFF5B84B)
+            val Text = Color(0xFF42D392)
+            val Comment = Color(0xFF6B7484)
+            val Doc = Color(0xFF7E8AA0)
+            val Annotation = Color(0xFFFB923C)
+            val Operator = Color(0xFFADB4C3)
+            val Bracket = Color(0xFFC6CEDC)
+
+            val gutterPaddingX = 10.dp
+            val lineNumberGap = 12.dp
+            val caretWidth = 1.5.dp
+            const val lineHeight = 1.45f
+        }
+    }
+
+    /** N54ZXW typed node, with FsQx4's 260px whole-application card width. */
+    object GraphCard {
+        const val width = 260.0
+        const val radius = 5.0
+        const val familyHeight = 24.0
+        const val titleHeight = 30.0
+        const val portHeight = 22.0
+        const val footerHeight = 22.0
+        const val paddingX = 10.0
+        const val gap = 6.0
+        const val titleFont = 13.0
+        const val portFont = 11.0
+        const val metaFont = 10.0
+        const val pinSize = 8.0
+        val Pin = Color(0xFF38BDF8)
+        val kindColors = mapOf(
+            "Actor" to Color(0xFF38BDF8), "Interactor" to Color(0xFF9A8CFF),
+            "Repository" to Color(0xFFF5B84B), "Route" to Color(0xFF8DA7FF),
+            "Screen" to Color(0xFF42D392), "Service" to Color(0xFFFB923C),
+        )
+    }
+
     val Bg0 = Color(0xFF06080D)
     val Bg1 = Color(0xFF0B1018)
     val Bg2 = Color(0xFF111925)

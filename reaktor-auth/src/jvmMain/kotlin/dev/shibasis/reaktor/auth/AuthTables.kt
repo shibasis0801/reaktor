@@ -242,6 +242,7 @@ object RolePermissions: UUIDAuditable<RolePermission>("role_permissions") {
 object PrincipalRoles: UUIDAuditable<PrincipalRole>("principal_role") {
     val principalId = foreignKey(AuthPrincipals, "principal_id")
     val roleId = foreignKey(Roles, "role_id")
+    val tenantId = foreignKey(Tenants, "tenant_id").nullable()
     val contextId = foreignKey(Contexts, "context_id").nullable()
 
     override fun toDto(result: ResultRow) = PrincipalRole(
@@ -249,6 +250,7 @@ object PrincipalRoles: UUIDAuditable<PrincipalRole>("principal_role") {
         principalId = result[principalId].value.toString(),
         roleId = result[roleId].value.toString(),
         contextId = result[contextId]?.value?.toString(),
+        tenantId = result[tenantId]?.value?.toString(),
         data = result[data],
         createdAt = result[createdAt],
         updatedAt = result[updatedAt],
@@ -257,6 +259,7 @@ object PrincipalRoles: UUIDAuditable<PrincipalRole>("principal_role") {
     override fun UpdateBuilder<*>.selfFields(dto: PrincipalRole) {
         this[principalId] = AuthPrincipals.entityId(dto.principalId.uuid())
         this[roleId] = Roles.entityId(dto.roleId.uuid())
+        this[tenantId] = dto.tenantId?.let { Tenants.entityId(it.uuid()) }
         this[contextId] = dto.contextId?.let { Contexts.entityId(it.uuid()) }
     }
 }

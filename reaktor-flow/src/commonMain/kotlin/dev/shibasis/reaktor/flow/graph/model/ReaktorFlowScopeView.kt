@@ -52,6 +52,17 @@ data class ReaktorFlowScopeView(
     fun toggle(scopeId: String): ReaktorFlowScopeView =
         if (isExpanded(scopeId)) collapse(scopeId) else expand(scopeId)
 
+    /** Reveal selected owners without unfolding unrelated scopes; widen focus only if necessary. */
+    fun reveal(scopeIds: Collection<String>): ReaktorFlowScopeView {
+        if (scopeIds.isEmpty()) return this
+        var focus = focusedScopeId
+        while (scopeIds.any { !isDescendantOrSelf(it, focus) } && focus != RootScopeId) {
+            focus = focus.substringBeforeLast('/', RootScopeId)
+        }
+        return copy(focusedScopeId = focus,
+            expandedScopeIds = expandedScopeIds + scopeIds.flatMap(::ancestorsInclusive), architectureLevel = null)
+    }
+
     /** Expand every scope in [allScopeIds] (see [allReaktorScopeIds]). */
     fun expandAll(allScopeIds: Collection<String>): ReaktorFlowScopeView =
         copy(

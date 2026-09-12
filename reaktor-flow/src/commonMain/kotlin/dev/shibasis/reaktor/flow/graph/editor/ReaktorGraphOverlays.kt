@@ -6,6 +6,7 @@ import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import dev.shibasis.reaktor.flow.graph.model.ReaktorScopeDisclosure
 import dev.shibasis.reaktor.flow.graph.render.GraphKindLegend
 import dev.shibasis.reaktor.flow.graph.render.GraphMiniMap
 import dev.shibasis.reaktor.flow.graph.render.GraphRegionsOverlay
@@ -69,11 +70,13 @@ internal fun BoxScope.ReaktorGraphViewportOverlay(
     selectedGraphId: String?,
     onSelectGraph: (String?) -> Unit,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     GraphRegionsOverlay(
         flow = flow,
         selectedGraphId = selectedGraphId,
         onSelectGraph = onSelectGraph,
         style = style,
+        scopeDisclosure = scopeDisclosure,
     )
 }

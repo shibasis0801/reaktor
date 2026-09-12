@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlin.js.ExperimentalJsStatic
 import kotlin.js.JsExport
 import kotlin.js.JsStatic
+import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 
 @JsExport
 @Serializable
@@ -200,7 +201,7 @@ data class TokenRequest(
     @SerialName("client_assertion_type")
     val clientAssertionType: String? = null,
     val contextId: String? = null,
-    val ttlSeconds: Int = 15 * 60,
+    val ttlSeconds: Int = AuthDefaults.ACCESS_TOKEN_TTL_SECONDS,
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),

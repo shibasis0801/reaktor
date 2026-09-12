@@ -66,7 +66,7 @@ internal fun BoxScope.GraphMiniMap(
                 tonalElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(flow, state.canvasSize, state.viewport, miniMapPaddingPx, style) {
+                    .pointerInput(flow, state, miniMapPaddingPx, style) {
                         awaitPointerEventScope {
                             while (true) {
                                 val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue

@@ -26,10 +26,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import dev.shibasis.composeflow.compose.primitives.NodeProps
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import dev.shibasis.reaktor.flow.graph.model.ReaktorPortData
+import dev.shibasis.reaktor.flow.graph.model.ReaktorScopeDisclosure
+import dev.shibasis.reaktor.flow.graph.ReaktorPortDirection
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
@@ -41,14 +45,22 @@ import kotlin.math.min
 internal fun BoxScope.ReaktorGraphNodeCard(
     props: NodeProps,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    onSelectPort: ((ReaktorPortDirection, ReaktorPortData) -> Unit)? = null,
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     val data = props.data as? ReaktorGraphNodeData ?: return
+    if (style.typedNode != null) {
+        ReaktorTypedNodeCard(props, data, style, onSelectPort, scopeDisclosure)
+        return
+    }
     val previewRows = style.port.previewRows.coerceAtLeast(1)
     val visibleConsumerPorts = data.consumerPorts.take(previewRows)
     val visibleProviderPorts = data.providerPorts.take(previewRows)
     val rowCount = min(max(1, max(data.consumerPorts.size, data.providerPorts.size)), previewRows)
     val density = LocalDensity.current
-    val activation = props.onClick
+    // Same rule as the typed card: a folded boundary is the control for its own scope.
+    val fold = scopeDisclosure?.takeIf { data.isScopeSummary }
+    val activation = fold?.let { { it.onToggle(data.scopeId) } } ?: props.onClick
 
     Column(
         modifier = Modifier
@@ -62,7 +74,9 @@ internal fun BoxScope.ReaktorGraphNodeCard(
                 } ?: Modifier,
             )
             .semantics {
-                contentDescription = graphNodeAccessibilityLabel(data)
+                contentDescription = if (fold == null) graphNodeAccessibilityLabel(data)
+                else "${if (fold.isExpanded(data.scopeId)) "Collapse" else "Expand"} scope ${data.title}"
+                selected = props.selected
                 role = Role.Button
                 activation?.let { activate ->
                     onClick(action = {
@@ -106,6 +120,8 @@ internal fun BoxScope.ReaktorGraphNodeCard(
                     consumerPorts = visibleConsumerPorts,
                     providerPorts = visibleProviderPorts,
                     style = style,
+                    onSelectPort = onSelectPort,
+                    ownerId = props.id,
                 )
             }
         }

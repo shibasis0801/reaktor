@@ -95,6 +95,8 @@ internal fun FlowNodeBox(
         FlowSurface.copy(alpha = FlowVisualDefaults.idleNodeSurfaceAlpha)
     }
     val borderColor = renderStyle.borderColor ?: if (node.selected) FlowSelection else FlowBorder
+    val cornerRadius = renderStyle.cornerRadius ?: FlowSizing.nodeCornerRadius
+    val nodeShape = RoundedCornerShape(cornerRadius)
 
     Box(
         modifier = Modifier
@@ -111,7 +113,7 @@ internal fun FlowNodeBox(
                     // Layered halo behind the card — three widening, fading strokes read as a
                     // soft bloom without any blur shader (crisp at every zoom level).
                     Modifier.drawBehind {
-                        val radius = FlowSizing.nodeCornerRadius.toPx()
+                        val radius = cornerRadius.toPx()
                         listOf(2f to 0.38f, 6f to 0.18f, 12f to 0.08f).forEach { (spread, glowAlpha) ->
                             drawRoundRect(
                                 color = glow.copy(alpha = glowAlpha),
@@ -124,9 +126,9 @@ internal fun FlowNodeBox(
                     }
                 } ?: Modifier,
             )
-            .clip(RoundedCornerShape(FlowSizing.nodeCornerRadius))
-            .background(backgroundColor, RoundedCornerShape(FlowSizing.nodeCornerRadius))
-            .border(FlowSizing.nodeBorderWidth, borderColor, RoundedCornerShape(FlowSizing.nodeCornerRadius))
+            .clip(nodeShape)
+            .background(backgroundColor, nodeShape)
+            .border(renderStyle.borderWidth ?: FlowSizing.nodeBorderWidth, borderColor, nodeShape)
             .onSizeChanged { size ->
                 val dimensions = Dimensions(size.width.toDouble(), size.height.toDouble())
                 if (node.measured != dimensions) {
@@ -146,7 +148,9 @@ internal fun FlowNodeBox(
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
-                                if (!dragged && node.selectable) {
+                                // A directed port/menu inside the card owns its consumed click.
+                                // Do not replace that exact subject with the enclosing node.
+                                if (!dragged && node.selectable && !change.isConsumed) {
                                     onNodeClick?.invoke(node)
                                 } else if (dragged) {
                                     onNodesChange?.invoke(listOf(NodePositionChange(id = node.id, position = currentPosition, dragging = false)))
@@ -220,7 +224,7 @@ internal fun FlowNodeBox(
         if (node.connectable) {
             handles.forEach { handle ->
                 Handle(
-                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle))
+                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle), density)
                         .pointerInput(node.id, handle.id, handle.type, connectionController) {
                             if (connectionController == null) return@pointerInput
                             awaitPointerEventScope {
@@ -257,7 +261,7 @@ internal fun FlowNodeBox(
         } else {
             handles.forEach { handle ->
                 Handle(
-                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle)),
+                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle), density),
                     type = handle.type,
                     style = handleRenderStyle(handle),
                     onConnect = null,

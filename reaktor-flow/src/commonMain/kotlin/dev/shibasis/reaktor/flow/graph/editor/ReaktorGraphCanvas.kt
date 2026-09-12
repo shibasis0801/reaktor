@@ -5,11 +5,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphSelection
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphEditorState
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import dev.shibasis.reaktor.flow.graph.model.ReaktorScopeDisclosure
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
 
@@ -29,9 +32,14 @@ fun ReaktorGraphCanvas(
     state: ReactFlowState? = null,
     modifier: Modifier = Modifier,
     lensResult: ReaktorGraphLensResult? = null,
+    editorState: ReaktorGraphEditorState? = null,
+    showChrome: Boolean = true,
+    selectedSubject: ReaktorGraphSelection? = null,
+    onSelectSubject: ((ReaktorGraphSelection?) -> Unit)? = null,
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     val density = LocalDensity.current
-    val reactFlowState = state ?: rememberReactFlowState()
+    val reactFlowState = editorState?.canvas ?: state ?: rememberReactFlowState()
     val rightInsetPx = with(density) { rightInset.toPx() }
     val graphStyle = style ?: flow.style
     val sceneFlow = if (style == null) flow else flow.copy(style = graphStyle)
@@ -53,6 +61,11 @@ fun ReaktorGraphCanvas(
         rightInsetPx = rightInsetPx,
         showKindLegend = showKindLegend,
         state = reactFlowState,
+        editorState = editorState,
+        showChrome = showChrome,
+        selectedSubject = selectedSubject,
+        onSelectSubject = onSelectSubject,
+        scopeDisclosure = scopeDisclosure,
         modifier = modifier,
     )
 }

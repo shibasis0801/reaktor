@@ -37,7 +37,21 @@ data class ReaktorGraphStyle(
     val chrome: Chrome = Chrome(),
     val viewport: Viewport = Viewport(),
     val widthPolicy: WidthPolicy = WidthPolicy(),
+    /** Separate family/title bands and full-width directed port rows. Null retains compact cards. */
+    val typedNode: TypedNode? = null,
 ) {
+    data class TypedNode(
+        val familyHeightPx: Double = 24.0,
+        val uiFont: FontFamily = FontFamily.Default,
+        val kindColors: Map<String, Color> = emptyMap(),
+        val pinColor: Color = Color(0xFF38BDF8),
+        /** Dimensionless packing budgets; route/attachment pairs require at least two columns. */
+        val rootColumnCount: Int = 6,
+        val scopeColumnCount: Int = 4,
+        val summaryColumnCount: Int = 2,
+        /** Visible directed port rows; remaining exact handles are disclosed at the footer. */
+        val maxPortRows: Int = 4,
+    )
     data class Canvas(
         val background: Color = Color(0xFF06080D),
         val panelChrome: Color = Color(0xD90A0D14),
@@ -64,6 +78,12 @@ data class ReaktorGraphStyle(
         val compactColumnGapPx: Double = 52.0,
         val compactRowGapPx: Double = 34.0,
         val groupColumnGapPx: Double = 92.0,
+        /**
+         * Available canvas dimensions. With both dimensions set, typed layout grows along the
+         * longer axis. Width alone retains width-bounded wrapping; zero keeps authored lanes.
+         */
+        val targetContentWidthPx: Double = 0.0,
+        val targetContentHeightPx: Double = 0.0,
     )
 
     data class Node(
@@ -82,6 +102,7 @@ data class ReaktorGraphStyle(
         val rootBadgeFontPx: Double = 9.0,
         val rootBadgePaddingXPx: Double = 5.0,
         val rootBadgePaddingYPx: Double = 2.0,
+        val measurementSlackPx: Double = 4.0,
     )
 
     data class Port(
@@ -202,7 +223,7 @@ fun Density.spOf(value: Double): TextUnit = value.toFloat().toSp()
 fun ReaktorGraphStyle.defaultNodeWidth(): Double = node.minWidthPx
 
 fun ReaktorGraphStyle.defaultNodeHeight(): Double =
-    node.titleHeightPx + (port.rowHeightPx * port.previewRows) + (node.verticalPaddingPx * 2.0) +
+    (typedNode?.familyHeightPx ?: 0.0) + node.titleHeightPx + (port.rowHeightPx * port.previewRows) + (node.verticalPaddingPx * 2.0) +
         node.footerHeightPx
 
 fun ReaktorGraphStyle.legendItemSurface(): Color = canvas.panelSurface.copy(alpha = 0.32f)

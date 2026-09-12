@@ -55,6 +55,13 @@ android {
     defaults("dev.shibasis.composeflow")
 }
 
+tasks.withType<Test>().configureEach {
+    if (System.getProperty("os.name").lowercase().contains("mac")) {
+        // Exercise JDK native gesture dispatch and listener cleanup in the desktop regression.
+        jvmArgs("--add-opens=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
+    }
+}
+
 val parityMatrixFile = project.file("parity/features.json")
 val parityReportDir = layout.buildDirectory.dir("reports/compose-flow")
 

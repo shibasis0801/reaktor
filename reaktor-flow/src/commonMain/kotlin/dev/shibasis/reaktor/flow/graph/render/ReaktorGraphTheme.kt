@@ -14,6 +14,8 @@ import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.hiddenHandleBorder
+import dev.shibasis.reaktor.flow.graph.style.dpOf
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 // References:
@@ -25,15 +27,21 @@ internal fun graphNodeRenderStyle(
     node: Node,
     highlightedKind: ReaktorNodeKind?,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    density: Density = Density(1f),
 ): NodeRenderStyle {
     val data = node.data as? ReaktorGraphNodeData ?: return NodeRenderStyle()
     val matchesKind = highlightedKind == null || data.kind == highlightedKind
     return NodeRenderStyle(
         alpha = if (matchesKind) 1f else 0.12f,
         scale = 1f,
-        backgroundColor = data.kind.bodyColor.copy(alpha = if (matchesKind) 0.92f else 0.44f),
+        cornerRadius = with(density) { dpOf(style.node.cornerRadiusPx) },
+        borderWidth = if (style.typedNode != null) (if (node.selected) 2 else 1).dp else null,
+        backgroundColor = if (style.typedNode != null) style.canvas.panelSurface
+            else data.kind.bodyColor.copy(alpha = if (matchesKind) 0.92f else 0.44f),
         borderColor = when {
             node.selected -> style.canvas.selected
+            style.typedNode != null -> if (data.kind == ReaktorNodeKind.Interactor) style.canvas.border
+                else style.typedNode.kindColors[data.kind.label] ?: style.canvas.border
             data.isScopeSummary && matchesKind -> data.kind.borderColor.copy(alpha = 0.92f)
             matchesKind -> data.kind.borderColor
             else -> data.kind.borderColor.copy(alpha = 0.30f)
@@ -41,6 +49,7 @@ internal fun graphNodeRenderStyle(
         // Blueprint-style bloom: selection gets the accent halo; collapsed scope summaries carry
         // a faint kind-colored halo so drill-in targets read as "alive" at a glance.
         glowColor = when {
+            style.typedNode != null -> null
             node.selected -> style.canvas.selected
             data.isScopeSummary && matchesKind -> data.kind.borderColor.copy(alpha = 0.55f)
             else -> null
@@ -53,6 +62,7 @@ internal fun graphEdgeRenderStyle(
     nodeKinds: Map<String, ReaktorNodeKind>,
     highlightedKind: ReaktorNodeKind?,
     selectedFlowId: String? = null,
+    density: Density = Density(1f),
 ): EdgeRenderStyle {
     val data = edge.data as? ReaktorGraphEdgeData ?: return EdgeRenderStyle()
     val sourceKind = nodeKinds[edge.source]
@@ -60,8 +70,7 @@ internal fun graphEdgeRenderStyle(
     val matchesKind = highlightedKind == null || sourceKind == highlightedKind || targetKind == highlightedKind
     val active = edge.selected ||
         (selectedFlowId != null && (edge.source == selectedFlowId || edge.target == selectedFlowId))
-    // Attention model (ported from the web graph views): wires touching the selection burn hot
-    // and flow; the rest sit back; kind-filtered-out edges almost disappear.
+    // Selection emphasizes a structural relation. It does not establish observed traffic.
     // Craft rule: one level of emphasis at a time. Wiring (data) and navigation carry the
     // structure and read at full strength; attachment sits back; containment is a whisper —
     // position already encodes it, so its wires only confirm, never compete. Selection pulls
@@ -84,19 +93,17 @@ internal fun graphEdgeRenderStyle(
     return EdgeRenderStyle(
         alpha = alpha,
         color = data.kind.color.copy(alpha = if (matchesKind) 0.92f else 0.35f),
-        width = if (active) baseWidth + 0.8f else baseWidth,
+        width = (if (active) baseWidth + 0.8f else baseWidth) * density.density,
         glowColor = if (active) data.kind.color else null,
         dashOn = when {
-            active -> 9f
-            data.kind == ReaktorEdgeKind.Containment -> 3f
+            data.kind == ReaktorEdgeKind.Containment -> 3f * density.density
             else -> null
         },
         dashOff = when {
-            active -> 6f
-            data.kind == ReaktorEdgeKind.Containment -> 6f
+            data.kind == ReaktorEdgeKind.Containment -> 6f * density.density
             else -> null
         },
-        flowAnimated = active,
+        flowAnimated = false,
     )
 }
 
@@ -105,6 +112,7 @@ internal fun graphHandleRenderStyle(
     handle: Handle,
     highlightedKind: ReaktorNodeKind?,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    density: Density = Density(1f),
 ): HandleRenderStyle {
     val data = node.data as? ReaktorGraphNodeData ?: return HandleRenderStyle()
     val matchesKind = highlightedKind == null || data.kind == highlightedKind
@@ -120,6 +128,6 @@ internal fun graphHandleRenderStyle(
         fillColor = color,
         borderColor = style.hiddenHandleBorder(),
         alpha = if (matchesKind) 0f else 0f,
-        size = style.chrome.hiddenHandleSizePx.toFloat().dp,
+        size = with(density) { dpOf(style.chrome.hiddenHandleSizePx) },
     )
 }
