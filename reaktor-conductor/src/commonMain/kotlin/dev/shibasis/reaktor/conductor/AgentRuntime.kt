@@ -9,6 +9,7 @@ data class AgentRequest(
     val prompt: String,
     val workingDirectory: String,
     val resume: ProviderSession? = null,
+    val persistSession: Boolean = false,
 )
 
 /**
@@ -56,7 +57,7 @@ interface AgentRuntime {
 /** Drains a run to its outcome, forwarding intermediate events to [onEvent]. */
 suspend fun AgentRuntime.await(
     request: AgentRequest,
-    onEvent: (AgentEvent) -> Unit = {},
+    onEvent: suspend (AgentEvent) -> Unit = {},
 ): AgentOutcome {
     var outcome: AgentOutcome? = null
     run(request).collect { event ->

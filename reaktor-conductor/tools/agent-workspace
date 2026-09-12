@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+REAKTOR_AGENT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+if [ "${1-}" = "--build" ]; then
+    shift
+    "$REAKTOR_AGENT_ROOT/gradlew" -p "$REAKTOR_AGENT_ROOT" :reaktor-conductor:prepareAgentLauncher --console=plain >&2
+fi
+REAKTOR_AGENT_LAUNCHER="$REAKTOR_AGENT_ROOT/reaktor-conductor/build/agent-launcher"
+if [ ! -x "$REAKTOR_AGENT_LAUNCHER" ]; then
+    printf '%s\n' 'Build the agent bridge first: tools/agent-workspace --build help' >&2
+    exit 2
+fi
+exec "$REAKTOR_AGENT_LAUNCHER" "$@"

@@ -18,6 +18,33 @@ import kotlin.test.assertTrue
  * thing.
  */
 class HarnessParserTest {
+    @Test
+    fun partialTextWithoutTheTerminalEnvelopeIsNotSuccess() {
+        val codex = CodexEventParser(agent)
+        codex.onLine("""{"type":"item.completed","item":{"type":"agent_message","text":"partial"}}""")
+        val claude = ClaudeCodeEventParser(agent)
+        claude.onLine("""{"type":"assistant","message":{"content":[{"type":"text","text":"partial"}]}}""")
+        assertFalse(codex.finish(0, "").ok)
+        assertFalse(claude.finish(0, "").ok)
+    }
+
+    @Test
+    fun providerCacheAccountingUsesTheSameInclusiveInputConvention() {
+        val codex = CodexEventParser(agent)
+        codexSuccess.forEach(codex::onLine)
+        assertEquals(2432L, codex.finish(0, "").usage?.cachedInputTokens)
+        assertEquals(0L, codex.finish(0, "").usage?.reasoningOutputTokens)
+        val claude = ClaudeCodeEventParser(agent)
+        claude.onLine("""{"type":"result","subtype":"success","is_error":false,"result":"done","usage":{"input_tokens":11,"cache_read_input_tokens":80,"cache_creation_input_tokens":9,"output_tokens":7}}""")
+        val usage = claude.finish(0, "").usage
+        assertEquals(100L, usage?.inputTokens)
+        assertEquals(80L, usage?.cachedInputTokens)
+        assertEquals(9L, usage?.cacheWriteInputTokens)
+        assertEquals(7L, usage?.outputTokens)
+        val missing = ClaudeCodeEventParser(agent)
+        missing.onLine("""{"type":"result","is_error":false,"result":"done","usage":{"input_tokens":11}}""")
+        assertNull(missing.finish(0, "").usage?.inputTokens)
+    }
     private val agent = AgentId("architect")
 
     // ---- Codex -----------------------------------------------------------------------------

@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.conductor
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Everything one turn added to the thread, plus the thread it produced. */
 data class ConductorResult(
@@ -27,18 +29,27 @@ class Conductor(
     private val clock: () -> Long = { 0L },
     private val idFactory: (Int) -> EventId = { EventId("e$it") },
 ) {
-    private var counter = 0
-
-    private fun nextId(): EventId = idFactory(++counter)
-
     suspend fun run(
         thread: ThreadDocument,
         prompt: String,
         protocol: Protocol,
         workingDirectory: String,
         author: Author = Author.Human(),
+        context: ContextPacket? = null,
+        resumeProviderSession: Boolean = false,
+        onCheckpoint: (ThreadDocument) -> Unit = {},
         onEvent: (AgentEvent) -> Unit = {},
     ): ConductorResult {
+        require(!resumeProviderSession || protocol is Protocol.Ask) { "Provider continuation is supported only for Ask" }
+        var counter = 0
+        val usedIds = thread.events.mapTo(mutableSetOf()) { it.id }
+        fun nextId(): EventId {
+            repeat(usedIds.size + 1) {
+                val candidate = idFactory(++counter)
+                if (usedIds.add(candidate)) return candidate
+            }
+            throw ThreadIntegrityException("Event id factory cannot produce a unique id")
+        }
         val promptEvent = ThreadEvent(
             id = nextId(),
             author = author,
@@ -49,6 +60,8 @@ class Conductor(
         )
         var document = thread.append(promptEvent)
         val added = mutableListOf(promptEvent)
+        val checkpointMutex = Mutex()
+        onCheckpoint(document)
 
         // Agents are resolved against the live document, not the caller's snapshot, so a planner
         // can introduce participants that later stages then use.
@@ -78,19 +91,37 @@ class Conductor(
                     round = round,
                     createdAtEpochMillis = clock(),
                 )
+            val previous = snapshot.events.dropLast(1).lastOrNull()
+            val canResume = resumeProviderSession && previous?.author == Author.Agent(agent.id) && previous.kind != EventKind.Failure
+            val resume = if (canResume) snapshot.providerSessions[agent.id.value]?.takeIf { it.runtime == agent.runtime } else null
+            fun turnUsage(outcome: AgentOutcome): AgentUsage? {
+                val baseline = snapshot.events.lastOrNull { it.session != null && it.session == outcome.session }?.reportedUsage
+                return outcome.usage?.forTurn(baseline, freshSession = resume == null)
+            }
             val compiled = compiler.compile(
                 CompileRequest(
                     thread = snapshot,
                     agent = agent,
                     task = task,
-                    visibility = visibility,
+                    visibility = if (resume != null) visibility.copy(includeHistory = false) else visibility,
                     peers = peers,
+                    context = context,
                 ),
             )
             val outcome = runtime.await(
-                AgentRequest(agent = agent, prompt = compiled, workingDirectory = workingDirectory),
-                onEvent,
-            )
+                AgentRequest(agent = agent, prompt = compiled, workingDirectory = workingDirectory,
+                    resume = resume, persistSession = resumeProviderSession),
+            ) { event ->
+                if (event is AgentEvent.Started && event.session != null) {
+                    checkpointMutex.withLock {
+                        document = document.copy(
+                            providerSessions = document.providerSessions + (agent.id.value to event.session),
+                        )
+                        onCheckpoint(document)
+                    }
+                }
+                onEvent(if (event is AgentEvent.Finished) event.copy(outcome = event.outcome.copy(usage = turnUsage(event.outcome))) else event)
+            }
             return ThreadEvent(
                 id = EventId("pending"),
                 author = Author.Agent(agent.id),
@@ -100,7 +131,8 @@ class Conductor(
                 round = round,
                 createdAtEpochMillis = clock(),
                 session = outcome.session,
-                usage = outcome.usage,
+                usage = turnUsage(outcome),
+                reportedUsage = outcome.usage,
             )
         }
 
@@ -125,6 +157,7 @@ class Conductor(
                 val identified = result.copy(id = nextId())
                 document = document.append(identified)
                 added += identified
+                onCheckpoint(document)
                 identified
             }
             return committed
@@ -244,6 +277,7 @@ class Conductor(
                     document = document.copy(
                         participants = document.participants + plan.agents.filter { it.id !in known },
                     )
+                    onCheckpoint(document)
                     execute(plan.protocol, listOf(planned.id), allowPlanning = false)
                 }
             }

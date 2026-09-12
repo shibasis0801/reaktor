@@ -13,6 +13,8 @@ import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import dev.shibasis.reaktor.tooling.TaskId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -43,15 +45,14 @@ abstract class CliAgentRuntime(
     protected abstract fun parser(request: AgentRequest): CliEventParser
 
     /**
-     * A read-only agent is `ReadOnly`; one allowed to edit is `LocalArtifactWrite`. Neither needs
-     * an approval in the shipped ladder, because neither can reach a deployment: an agent that
-     * writes does so in the directory the caller handed it.
+     * Classifies the requested operation. This is not a security sandbox: harness permissions,
+     * inherited credentials and host execution policy still govern what the subprocess can do.
      */
     protected open fun safety(request: AgentRequest): SafetyPolicy =
         if (request.agent.tools.allowWrites) {
             SafetyPolicy(SafetyClass.LocalArtifactWrite, "agent may edit files in its workspace")
         } else {
-            SafetyPolicy(SafetyClass.ReadOnly, "agent runs with writes disabled")
+            SafetyPolicy(SafetyClass.ReadOnly, "inspection requested; provider permissions govern tool effects")
         }
 
     override fun run(request: AgentRequest): Flow<AgentEvent> = flow {
@@ -83,17 +84,25 @@ abstract class CliAgentRuntime(
         val handle = executor.start(execution)
         val stderr = StringBuilder()
         var exitCode = -1
+        var completed = false
 
-        handle.events.collect { event ->
-            when (event) {
-                is RunEvent.Output -> when (event.channel) {
-                    OutputChannel.Stdout -> parser.onLine(event.text).forEach { emit(it) }
-                    OutputChannel.Stderr -> stderr.append(event.text)
+        try {
+            handle.events.collect { event ->
+                when (event) {
+                    is RunEvent.Output -> when (event.channel) {
+                        OutputChannel.Stdout -> parser.onLine(event.text).forEach { emit(it) }
+                        OutputChannel.Stderr -> if (stderr.length < 4000) stderr.append(event.text.take(4000 - stderr.length))
+                    }
+
+                    is RunEvent.Completed -> {
+                        completed = true
+                        exitCode = event.run.exitCode ?: -1
+                    }
+                    else -> Unit
                 }
-
-                is RunEvent.Completed -> exitCode = event.run.exitCode ?: -1
-                else -> Unit
             }
+        } finally {
+            if (!completed) withContext(NonCancellable) { handle.cancel() }
         }
 
         emit(AgentEvent.Finished(request.agent.id, parser.finish(exitCode, stderr.toString())))

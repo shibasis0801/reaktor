@@ -16,6 +16,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
 const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
+val REAKTOR_MCP_PROTOCOL_VERSIONS: Set<String> = setOf("2025-06-18", REAKTOR_MCP_PROTOCOL_VERSION)
 
 data class McpReadTool(
     val name: String,
@@ -32,6 +33,22 @@ data class McpReadResource(
     val read: () -> String,
 )
 
+fun interface McpMessageHandler {
+    fun handle(body: String): JsonElement?
+}
+
+/** Effectful tools require an authenticated host and explicit effect annotations. */
+data class McpTool(
+    val name: String,
+    val description: String,
+    val inputSchema: JsonObject,
+    val readOnly: Boolean,
+    val idempotent: Boolean,
+    val destructive: Boolean = false,
+    val openWorld: Boolean = false,
+    val execute: (JsonObject) -> JsonElement,
+)
+
 /**
  * Transport-independent, read-only MCP registry shared by Desktop and JVM hosts.
  *
@@ -39,17 +56,32 @@ data class McpReadResource(
  * execution and approval must remain inside its control-plane policy boundary.
  */
 class ReaktorMcpReadServer(
+    name: String,
+    version: String,
+    instructions: String,
+    tools: List<McpReadTool>,
+    resources: List<McpReadResource> = emptyList(),
+) : McpMessageHandler {
+    private val server = ReaktorMcpServer(name, version, instructions, tools.map {
+        McpTool(it.name, it.description, it.inputSchema, readOnly = true, idempotent = true, execute = it.execute)
+    }, resources)
+    override fun handle(body: String): JsonElement? = server.handle(body)
+}
+
+class ReaktorMcpServer(
     private val name: String,
     private val version: String,
     private val instructions: String,
-    tools: List<McpReadTool>,
+    tools: List<McpTool>,
     resources: List<McpReadResource> = emptyList(),
-) {
+) : McpMessageHandler {
     private val json = Json { encodeDefaults = true; explicitNulls = false; prettyPrint = true }
-    private val tools = tools.associateBy(McpReadTool::name)
+    private val tools = tools.associateBy(McpTool::name)
     private val resources = resources.associateBy(McpReadResource::uri)
 
-    fun handle(body: String): JsonElement? {
+    init { require(this.tools.size == tools.size) { "Duplicate tool names" } }
+
+    override fun handle(body: String): JsonElement? {
         val parsed = runCatching { Json.parseToJsonElement(body) }.getOrNull()
             ?: return rpcError(JsonNull, -32700, "Parse error")
         return when (parsed) {
@@ -83,14 +115,11 @@ class ReaktorMcpReadServer(
     private fun initializeRequest(id: JsonElement, params: JsonObject?): JsonObject {
         val requested = (params?.get("protocolVersion") as? JsonPrimitive)?.contentOrNull
             ?: return rpcError(id, -32602, "Missing protocolVersion")
-        if (requested != REAKTOR_MCP_PROTOCOL_VERSION) {
-            return rpcError(id, -32602, "Unsupported MCP protocol version: $requested")
-        }
-        return rpcResult(id, initialize())
+        return rpcResult(id, initialize(requested.takeIf { it in REAKTOR_MCP_PROTOCOL_VERSIONS } ?: REAKTOR_MCP_PROTOCOL_VERSION))
     }
 
-    private fun initialize(): JsonObject = buildJsonObject {
-        put("protocolVersion", REAKTOR_MCP_PROTOCOL_VERSION)
+    private fun initialize(protocolVersion: String): JsonObject = buildJsonObject {
+        put("protocolVersion", protocolVersion)
         putJsonObject("capabilities") {
             putJsonObject("tools") { put("listChanged", false) }
             putJsonObject("resources") { put("listChanged", false) }
@@ -110,10 +139,10 @@ class ReaktorMcpReadServer(
                     put("description", tool.description)
                     put("inputSchema", tool.inputSchema)
                     putJsonObject("annotations") {
-                        put("readOnlyHint", true)
-                        put("destructiveHint", false)
-                        put("idempotentHint", true)
-                        put("openWorldHint", false)
+                        put("readOnlyHint", tool.readOnly)
+                        put("destructiveHint", tool.destructive)
+                        put("idempotentHint", tool.idempotent)
+                        put("openWorldHint", tool.openWorld)
                     }
                 }
             }

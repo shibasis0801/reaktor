@@ -3,8 +3,41 @@ package dev.shibasis.reaktor.conductor
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 class ContextCompilerTest {
+    @Test
+    fun largeHistoryAndPeersAreBoundedAndTheCurrentTaskIsPreservedOnce() {
+        val task = "current task " + "T".repeat(2000)
+        val history = thread.copy(events = listOf(
+            peerProposal.copy(id = EventId("old"), text = "H".repeat(20000)),
+            ThreadEvent(EventId("prompt"), Author.Human(), EventKind.Prompt, task),
+        ))
+        val prompt = compiler.compile(CompileRequest(history, architect, task,
+            Visibility.Shared.copy(maxHistoryChars = 1000, maxPeerChars = 500, maxTotalPeerChars = 600),
+            peers = listOf(peerProposal.copy(text = "P".repeat(20000))),
+        ))
+        assertTrue(prompt.length < 5000)
+        assertEquals(1, prompt.windowed(task.length).count { it == task })
+        assertTrue(prompt.contains("Earlier history omitted"))
+        assertTrue(prompt.contains("Peer material truncated"))
+    }
+
+    @Test
+    fun mannaPacketPreservesProvenanceAndOversizedPacketsAreExplicitlyOmitted() {
+        val packet = ConductorJson.decodeFromString(ContextPacket.serializer(), """{
+          "version":1,"workspaceId":"kedarnath","principalId":"principal-k","source":"graphql",
+          "observedAt":"2026-09-13T00:00:00Z","revision":null,"freshness":"unknown","partial":false,
+          "entries":[{"ref":"manna:kedarnath:task:t","kind":"task","title":"Build","text":"Evidence","reason":"selected task"}],
+          "omittedEntries":2,"notices":["Source revision unavailable"]
+        }""")
+        val request = CompileRequest(thread, architect, "build", Visibility.Shared, context = packet)
+        val prompt = compiler.compile(request)
+        assertTrue(prompt.contains("manna:kedarnath:task:t"))
+        assertTrue(prompt.contains("Source revision unavailable"))
+        assertTrue(compiler.compile(request.copy(visibility = Visibility.Shared.copy(maxContextChars = 1)))
+            .contains("Context packet omitted"))
+    }
     private val compiler = DefaultContextCompiler()
 
     private val architect = AgentSpec(
