@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.conductor.AgentRequest
 import dev.shibasis.reaktor.conductor.AgentUsage
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.UsageScope
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -33,6 +34,12 @@ class CodexRuntime(
 
     override fun argv(request: AgentRequest): List<String> = buildList {
         add(binary)
+        // Global policy/cwd flags precede exec: exec resume does not accept exec's -C/-s flags.
+        add("-C")
+        add(request.workingDirectory)
+        add("-s")
+        add(if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
+        request.agent.tools.additionalDirectories.forEach { add("--add-dir"); add(it) }
         add("exec")
 
         // Resuming is an optimization over the canonical thread, never a dependency on it.
@@ -44,20 +51,11 @@ class CodexRuntime(
 
         add("--json")
         add("--skip-git-repo-check")
-        add("-C")
-        add(request.workingDirectory)
         if (request.agent.tools.isolateOperatorConfig) add("--ignore-user-config")
-        if (resume == null) add("--ephemeral")
-
-        add("-s")
-        add(if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
+        if (resume == null && !request.persistSession) add("--ephemeral")
 
         request.agent.model?.let {
             add("-m")
-            add(it)
-        }
-        request.agent.tools.additionalDirectories.forEach {
-            add("--add-dir")
             add(it)
         }
 
@@ -118,8 +116,12 @@ class CodexEventParser(
                 completed = true
                 val reported = root.nested("usage")
                 usage = AgentUsage(
+                    scope = UsageScope.ProviderSessionTotal,
                     inputTokens = reported?.long("input_tokens"),
                     outputTokens = reported?.long("output_tokens"),
+                    cachedInputTokens = reported?.long("cached_input_tokens"),
+                    cacheWriteInputTokens = reported?.long("cache_write_input_tokens"),
+                    reasoningOutputTokens = reported?.long("reasoning_output_tokens"),
                 )
                 emptyList()
             }
@@ -140,7 +142,7 @@ class CodexEventParser(
 
     override fun finish(exitCode: Int, stderr: String): AgentOutcome {
         val body = text.toString().ifBlank { null }
-        val ok = failed == null && exitCode == 0 && body != null
+        val ok = completed && failed == null && exitCode == 0 && body != null
         return AgentOutcome(
             agent = agent,
             text = body.orEmpty(),
@@ -148,6 +150,7 @@ class CodexEventParser(
             failure = when {
                 ok -> null
                 failed != null -> failed
+                !completed && stderr.isBlank() -> "Codex stream ended without turn.completed"
                 !completed && stderr.isNotBlank() -> stderr.trim().take(2000)
                 else -> "codex exited with code $exitCode"
             },

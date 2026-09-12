@@ -3,11 +3,15 @@ package dev.shibasis.reaktor.tooling.mcp
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
-import dev.shibasis.reaktor.mcp.ReaktorMcpReadServer
+import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+import dev.shibasis.reaktor.mcp.McpMessageHandler
+import java.security.MessageDigest
 import java.net.InetSocketAddress
 import java.net.URI
 import java.net.URLDecoder
-import java.util.concurrent.Executors
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.serialization.json.*
 
@@ -31,20 +35,21 @@ class LoopbackMcpServer private constructor(
     companion object {
         fun start(
             port: Int,
-            mcp: () -> ReaktorMcpReadServer,
+            mcp: () -> McpMessageHandler,
+            bearerToken: String? = null,
             read: (path: String, query: Map<String, String>) -> LoopbackHttpResponse? = { _, _ -> null },
         ): LoopbackMcpServer {
             require(port in 0..65535) { "Invalid port" }
+            require(bearerToken == null || bearerToken.length >= 32) { "Bearer tokens must contain at least 32 characters" }
             val server = HttpServer.create(InetSocketAddress("127.0.0.1", port), 32)
-            val executor = Executors.newFixedThreadPool(4) { runnable ->
-                Thread(runnable, "reaktor-mcp-http").apply { isDaemon = true }
-            }
+            val executor = ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(32),
+                { runnable -> Thread(runnable, "reaktor-mcp-http").apply { isDaemon = true } }, ThreadPoolExecutor.AbortPolicy())
             val transport = LoopbackMcpServer(server, executor)
             try {
                 server.executor = executor
                 server.createContext("/") { exchange ->
                     exchange.use { request ->
-                        try { request.respond(mcp, read) }
+                        try { request.respond(mcp, read, bearerToken) }
                         catch (_: Exception) { runCatching { request.send(500, error("Request failed")) } }
                     }
                 }
@@ -57,12 +62,13 @@ class LoopbackMcpServer private constructor(
         }
 
         private fun HttpExchange.respond(
-            mcp: () -> ReaktorMcpReadServer,
+            mcp: () -> McpMessageHandler,
             read: (String, Map<String, String>) -> LoopbackHttpResponse?,
+            bearerToken: String?,
         ) {
             responseHeaders.set("Cache-Control", "no-store")
             responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Mcp-Protocol-Version, Mcp-Session-Id")
+            responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Mcp-Protocol-Version, Mcp-Session-Id, Authorization")
             responseHeaders.set("Access-Control-Expose-Headers", "Mcp-Protocol-Version, Mcp-Session-Id")
             val host = requestHeaders["Host"]?.singleOrNull()
             val origin = requestHeaders["Origin"]?.singleOrNull()
@@ -76,14 +82,20 @@ class LoopbackMcpServer private constructor(
                 responseHeaders.set("Access-Control-Allow-Origin", origin)
                 responseHeaders.set("Vary", "Origin")
             }
+            if (bearerToken != null && requestMethod != "OPTIONS") {
+                val supplied = requestHeaders["Authorization"]?.singleOrNull().orEmpty()
+                if (!MessageDigest.isEqual(supplied.toByteArray(), "Bearer $bearerToken".toByteArray())) {
+                    send(401, error("Authentication required")); return
+                }
+            }
             when {
                 requestMethod == "OPTIONS" -> send(204, null)
                 requestMethod == "POST" && requestURI.path == "/mcp" -> {
-                    responseHeaders.set("MCP-Protocol-Version", REAKTOR_MCP_PROTOCOL_VERSION)
                     val versions = requestHeaders["MCP-Protocol-Version"]
-                    if (versions != null && versions.singleOrNull() != REAKTOR_MCP_PROTOCOL_VERSION) {
+                    if (versions != null && versions.singleOrNull() !in REAKTOR_MCP_PROTOCOL_VERSIONS) {
                         send(400, error("Unsupported MCP protocol version")); return
                     }
+                    responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
                     val body = requestBody.readNBytes(1_048_577)
                     if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
                     val response = mcp().handle(body.decodeToString())

@@ -48,7 +48,7 @@ class ClaudeCodeRuntime(
 
         val tools = request.agent.tools
         if (!tools.allowWrites) {
-            // Read, search, and run analysis; never edit the checkout.
+            // Restricts these built-in editors; Bash/MCP permissions still belong to the harness.
             add("--disallowedTools")
             addAll(listOf("Write", "Edit", "NotebookEdit"))
         }
@@ -92,6 +92,7 @@ class ClaudeCodeEventParser(
     private var result: String? = null
     private var failed: String? = null
     private var usage: AgentUsage? = null
+    private var completed = false
     private val text = StringBuilder()
 
     override fun onLine(line: String): List<AgentEvent> {
@@ -124,15 +125,23 @@ class ClaudeCodeEventParser(
             }
 
             "result" -> {
+                completed = true
                 root.string("session_id")?.let {
                     session = ProviderSession(RuntimeKind.ClaudeCode, it)
                 }
-                val isError = root.boolean("is_error") == true
+                val isError = root.boolean("is_error") != false || root.string("subtype") != "success"
                 val body = root.string("result")
                 if (isError) failed = body ?: "Claude Code reported an error" else result = body
+                val reported = root.nested("usage")
+                val input = reported?.long("input_tokens")
+                val cached = reported?.long("cache_read_input_tokens")
+                val written = reported?.long("cache_creation_input_tokens")
                 usage = AgentUsage(
-                    inputTokens = root.nested("usage")?.long("input_tokens"),
-                    outputTokens = root.nested("usage")?.long("output_tokens"),
+                    inputTokens = if (input != null && cached != null && written != null) input + cached + written else null,
+                    cachedInputTokens = cached,
+                    cacheWriteInputTokens = written,
+                    outputTokens = reported?.long("output_tokens"),
+                    reasoningOutputTokens = reported?.nested("output_tokens_details")?.long("thinking_tokens"),
                     costUsd = root.double("total_cost_usd"),
                     durationMillis = root.long("duration_ms"),
                 )
@@ -145,7 +154,7 @@ class ClaudeCodeEventParser(
 
     override fun finish(exitCode: Int, stderr: String): AgentOutcome {
         val body = result ?: text.toString().ifBlank { null }
-        val ok = failed == null && exitCode == 0 && body != null
+        val ok = completed && failed == null && exitCode == 0 && body != null
         return AgentOutcome(
             agent = agent,
             text = body.orEmpty(),
@@ -153,6 +162,7 @@ class ClaudeCodeEventParser(
             failure = when {
                 ok -> null
                 failed != null -> failed
+                !completed && stderr.isBlank() -> "Claude stream ended without a result envelope"
                 stderr.isNotBlank() -> stderr.trim().take(2000)
                 else -> "claude exited with code $exitCode"
             },

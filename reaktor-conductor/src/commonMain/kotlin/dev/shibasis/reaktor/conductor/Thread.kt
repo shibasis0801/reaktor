@@ -45,21 +45,29 @@ enum class EventKind {
 }
 
 /**
- * Where a provider left its own session, kept so a turn can be resumed cheaply.
+ * Where a provider left its own session, retained for qualified future continuation adapters.
  *
- * This is a cache and never the source of truth. Delete every session id and the thread still
- * reconstructs each agent completely, because the canonical history lives here, not in the
- * provider's storage.
+ * Provider identity is not the canonical conversation. Losing it does not erase saved thread
+ * events or workspace artifacts; resuming provider-internal context requires provider support.
  */
 @Serializable
 data class ProviderSession(val runtime: RuntimeKind, val sessionId: String)
 
 @Serializable
+enum class UsageScope { Turn, ProviderSessionTotal, ProviderSessionDelta }
+
+@Serializable
 data class AgentUsage(
+    /** Inclusive input: cache reads and cache writes are subsets, not extra tokens to add. */
     val inputTokens: Long? = null,
+    /** Reasoning tokens, when reported, are a subset of output. Missing counts remain null. */
     val outputTokens: Long? = null,
     val costUsd: Double? = null,
     val durationMillis: Long? = null,
+    val cachedInputTokens: Long? = null,
+    val cacheWriteInputTokens: Long? = null,
+    val reasoningOutputTokens: Long? = null,
+    val scope: UsageScope = UsageScope.Turn,
 )
 
 /**
@@ -81,6 +89,7 @@ data class ThreadEvent(
     val createdAtEpochMillis: Long = 0L,
     val session: ProviderSession? = null,
     val usage: AgentUsage? = null,
+    val reportedUsage: AgentUsage? = null,
     val attributes: Map<String, String> = emptyMap(),
 )
 
@@ -97,6 +106,7 @@ data class ThreadDocument(
     val participants: List<AgentSpec> = emptyList(),
     val events: List<ThreadEvent> = emptyList(),
     val version: Int = 1,
+    val providerSessions: Map<String, ProviderSession> = emptyMap(),
 ) {
     fun event(id: EventId): ThreadEvent? = events.firstOrNull { it.id == id }
 
@@ -164,4 +174,9 @@ val ConductorJson: Json = Json {
 fun ThreadDocument.encode(): String = ConductorJson.encodeToString(ThreadDocument.serializer(), this)
 
 fun decodeThread(text: String): ThreadDocument =
-    ConductorJson.decodeFromString(ThreadDocument.serializer(), text)
+    ConductorJson.decodeFromString(ThreadDocument.serializer(), text).also { document ->
+        require(document.participants.map { it.id }.distinct().size == document.participants.size) {
+            "Duplicate participants in thread"
+        }
+        document.copy(events = emptyList()).appendAll(document.events)
+    }

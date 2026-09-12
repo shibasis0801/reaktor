@@ -55,3 +55,21 @@ tasks.register<JavaExec>("conduct") {
     val jvmMain = kotlin.jvm().compilations.getByName("main")
     classpath = files(jvmMain.output.allOutputs, jvmMain.runtimeDependencyFiles)
 }
+
+tasks.register("prepareAgentLauncher") {
+    val jvmMain = kotlin.jvm().compilations.getByName("main")
+    dependsOn(jvmMain.compileTaskProvider)
+    val launcher = layout.buildDirectory.file("agent-launcher")
+    outputs.file(launcher)
+    inputs.files(jvmMain.output.allOutputs, jvmMain.runtimeDependencyFiles)
+    doLast {
+        fun quote(value: String) = "'" + value.replace("'", "'\"'\"'") + "'"
+        val java = javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }.get().executablePath.asFile.path
+        val classpath = files(jvmMain.output.allOutputs, jvmMain.runtimeDependencyFiles).asPath
+        launcher.get().asFile.apply {
+            parentFile.mkdirs()
+            writeText("#!/bin/sh\nexec ${quote(java)} -cp ${quote(classpath)} dev.shibasis.reaktor.conductor.cli.ConductorCliKt workspace \"\$@\"\n")
+            setExecutable(true)
+        }
+    }
+}
