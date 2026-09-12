@@ -23,12 +23,15 @@ import java.util.Locale
 class DatabaseJvmClient(private val session: InfrastructureSession) {
     fun execute(op: InfrastructureOperation.DatabaseRead, environment: Map<String, String>, timeoutMillis: Long): String {
         require(op.maxRows in 1..500)
-        val query = op.queryFile?.let { path ->
+        val payload = op.queryFile?.let { path ->
             val file = File(path)
             checkPrivateFile(file, false)
             require(file.length() in 1..262_144) { "Invalid query size" }
             file.readText()
         }
+        require(!op.parameterized || (op.engine == DatabaseProvider.Postgres && payload != null)) { "Bound parameters require the PostgreSQL JVM adapter" }
+        val bound = if (op.parameterized) Json.decodeFromString<BoundQuery>(requireNotNull(payload)).also { it.validate() } else null
+        val query = bound?.statement ?: payload
         val resultFile = op.resultFile?.let(::File)
         require((query == null) == (resultFile == null)) { "Query requires a private result destination" }
         resultFile?.let { checkPrivateFile(it, true) }
@@ -38,12 +41,13 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
                 PubSubJvmClient(session).read(op.connection as DatabaseConnection.GoogleProject,
                     query?.let { Json.decodeFromString<PubSubQuery>(it) } ?: PubSubQuery(), op.maxRows)
             }
-            DatabaseProvider.Postgres -> postgres(op, query, environment, timeoutMillis)
+            DatabaseProvider.Postgres -> postgres(op, query, environment, timeoutMillis, bound?.parameters)
             DatabaseProvider.Memgraph -> memgraph(op, query, environment, timeoutMillis)
             DatabaseProvider.ClickHouse -> clickhouse(op, query, environment, timeoutMillis)
         } } catch (failure: Exception) {
             if (query == null || resultFile == null || op.resultFormat != DatabaseResultFormat.QueryReceipt) throw failure
             val detail = when (failure) {
+                is QueryParameterException -> QueryError("parameter_validation", failure.message.orEmpty())
                 is org.postgresql.util.PSQLException -> QueryError(failure.sqlState ?: "postgres_error", failure.serverErrorMessage?.message ?: "PostgreSQL query failed", failure.serverErrorMessage?.position?.takeIf { it > 0 })
                 is org.neo4j.driver.exceptions.Neo4jException -> QueryError(failure.code(), failure.message.orEmpty().take(4096))
                 is ProviderHttpFailure -> QueryError("http_${failure.status}", failure.privateBody.take(4096))
@@ -68,7 +72,8 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
         return "Completed native ${op.engine} read; result is in the private session channel"
     }
 
-    private fun postgres(op: InfrastructureOperation.DatabaseRead, query: String?, env: Map<String, String>, timeout: Long): QueryReceipt {
+    private fun postgres(op: InfrastructureOperation.DatabaseRead, query: String?, env: Map<String, String>, timeout: Long,
+        parameters: List<BoundQueryParameter>?): QueryReceipt {
         val clock = QueryClock()
         require(op.connection == DatabaseConnection.PostgresEnvironment)
         fun required(key: String) = requireNotNull(env[key]?.takeIf(String::isNotBlank)) { "Missing PostgreSQL connection field $key" }
@@ -118,12 +123,15 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
             if (op.explain) "EXPLAIN (${if (op.analyze) "ANALYZE, BUFFERS, " else ""}FORMAT JSON) $it"
             else "SELECT * FROM ($it) AS reaktor_query LIMIT ${op.maxRows + 1}"
         } ?: "SELECT current_database() AS database, current_user AS role, current_schema() AS schema, count(*) AS tables FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')"
-        return connection.createStatement().use { statement ->
+        val executable = if (parameters == null) connection.createStatement() else connection.prepareStatement(sql).also {
+            JdbcQueryParameters.bind(it, parameters)
+        }
+        return executable.use { statement ->
             session.own(statement)
             statement.queryTimeout = (timeout / 1000).toInt().coerceAtLeast(1)
             statement.fetchSize = 100
             statement.maxRows = op.maxRows + 1
-            statement.executeQuery(sql).use { rows ->
+            (if (statement is java.sql.PreparedStatement) statement.executeQuery() else statement.executeQuery(sql)).use { rows ->
                 clock.executed()
                 require(rows.metaData.columnCount <= 512) { "Database result exceeds 512 columns" }
                 val columns = (1..rows.metaData.columnCount).map {
@@ -155,10 +163,12 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
 
     private fun memgraph(op: InfrastructureOperation.DatabaseRead, query: String?, env: Map<String, String>, timeout: Long): QueryReceipt {
         val clock = QueryClock()
+        var pageLimit = op.maxRows
         val read = query?.let {
             val parsed = requireNotNull(MemgraphInspection.parse(it)) { "Memgraph query is outside the registered inspection catalog" }
             require(parsed.limit <= op.maxRows)
-            "${parsed.read.cypher}\nSKIP ${parsed.offset} LIMIT ${op.maxRows + 1}"
+            pageLimit = parsed.limit
+            "${parsed.cypher}\nSKIP ${parsed.offset} LIMIT ${parsed.limit + 1}"
         } ?: MemgraphInspection.Statistics.statement(1)
         val sql = if (op.explain) "${if (op.analyze) "PROFILE" else "EXPLAIN"} $read" else read
         val auth = env["MEMGRAPH_USER"]?.let { AuthTokens.basic(it, env["MEMGRAPH_PASSWORD"].orEmpty()) } ?: AuthTokens.none()
@@ -195,7 +205,7 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
         }, op.analyze) else null
         tx.rollback()
         return QueryReceipt(provider = "Memgraph", columns = names.mapIndexed { i, name -> QueryColumn(name, types[i]) },
-            rows = values, truncated = values.size > op.maxRows, metrics = metrics, plan = plan)
+            rows = values.take(pageLimit), truncated = values.size > pageLimit, metrics = metrics, plan = plan)
     }
 
     private fun clickhouse(op: InfrastructureOperation.DatabaseRead, query: String?, env: Map<String, String>, timeout: Long): QueryReceipt {

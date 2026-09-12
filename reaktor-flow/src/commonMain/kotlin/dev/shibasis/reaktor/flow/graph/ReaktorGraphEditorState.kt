@@ -19,13 +19,24 @@ import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 
 typealias ReaktorGraphViewport = Viewport
 
+data class ReaktorGraphNodePosition(val id: String, val x: Double, val y: Double)
+
 /** A host-owned camera survives projection changes and temporary editor unmounts. */
 class ReaktorGraphEditorState internal constructor(internal val canvas: ReactFlowState) {
     constructor() : this(ReactFlowState())
 
     val viewport: ReaktorGraphViewport get() = canvas.viewport
     private var positionedNodes by mutableStateOf<Map<String, Node>>(emptyMap())
-    private var pinnedNodeIds by mutableStateOf<Set<String>>(emptySet())
+    private var pinnedPositions by mutableStateOf<Map<String, XYPosition>>(emptyMap())
+    val nodePositions: List<ReaktorGraphNodePosition> get() = pinnedPositions.map { (id, point) ->
+        ReaktorGraphNodePosition(id, point.x, point.y)
+    }
+
+    fun restoreNodePositions(positions: List<ReaktorGraphNodePosition>) {
+        require(positions.size <= 10_000 && positions.map { it.id }.distinct().size == positions.size)
+        require(positions.all { it.id.isNotBlank() && it.x.isFinite() && it.y.isFinite() })
+        pinnedPositions = positions.associate { it.id to XYPosition(it.x, it.y) }
+    }
 
     internal fun withNodeLayout(flow: ReaktorFlowGraph): ReaktorFlowGraph = flow.copy(
         nodes = flow.nodes.map { node ->
@@ -34,22 +45,23 @@ class ReaktorGraphEditorState internal constructor(internal val canvas: ReactFlo
                 // New port rows, card styles or display density must be measured again while the
                 // user's position and camera remain stable.
                 val sameAuthoredSize = node.width == positioned.width && node.height == positioned.height
-                node.copy(position = if (node.id in pinnedNodeIds) positioned.position else node.position,
+                node.copy(position = pinnedPositions[node.id] ?: node.position,
                     measured = if (sameAuthoredSize) positioned.measured else node.measured,
                     dragging = positioned.dragging)
-            } ?: node
+            } ?: pinnedPositions[node.id]?.let { node.copy(position = it) } ?: node
         },
     )
 
     internal fun onNodesChange(flow: ReaktorFlowGraph, changes: List<NodeChange>) {
-        pinnedNodeIds = pinnedNodeIds + changes.filterIsInstance<NodePositionChange>().map { it.id }
         val nodes = applyNodeChanges(changes, withNodeLayout(flow).nodes)
+        val moved = changes.filterIsInstance<NodePositionChange>().map { it.id }.toSet()
+        pinnedPositions = pinnedPositions + nodes.filter { it.id in moved }.associate { it.id to it.position }
         val changedIds = changes.mapTo(mutableSetOf()) { it.id }
         positionedNodes = positionedNodes + nodes.filter { it.id in changedIds }.associateBy { it.id }
     }
 
     fun resetLayout() {
-        pinnedNodeIds = emptySet()
+        pinnedPositions = emptyMap()
         positionedNodes = emptyMap()
         fit()
     }

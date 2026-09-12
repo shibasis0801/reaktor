@@ -85,4 +85,12 @@ class CodeSyntaxTest {
         spans.zipWithNext().forEach { (a, b) -> assertTrue(a.end <= b.start, "overlap at ${a.end}") }
         spans.forEach { assertTrue(it.start >= 0 && it.end <= line.length) }
     }
+
+    @Test fun sniffReadsAPayloadWithNoFilename() {
+        assertEquals(CodeLanguage.Json, CodeLanguage.sniff("  {\"a\": 1}"))
+        assertEquals(CodeLanguage.Json, CodeLanguage.sniff("[1, 2]"))
+        assertEquals(CodeLanguage.Sql, CodeLanguage.sniff("select 1"))
+        assertEquals(CodeLanguage.Plain, CodeLanguage.sniff("adb: device offline"))
+        assertEquals(CodeLanguage.Plain, CodeLanguage.sniff(""))
+    }
 }

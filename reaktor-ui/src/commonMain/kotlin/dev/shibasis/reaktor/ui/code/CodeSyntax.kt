@@ -287,6 +287,16 @@ class CodeLanguage(
 
         fun forId(id: String): CodeLanguage = all.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: Plain
 
+        /** For payloads that arrive as a string with no filename attached. */
+        fun sniff(text: String): CodeLanguage {
+            val head = text.trimStart()
+            return when {
+                head.startsWith('{') || head.startsWith('[') -> Json
+                head.startsWith("--") || head.startsWith("SELECT", true) || head.startsWith("WITH", true) -> Sql
+                else -> Plain
+            }
+        }
+
         fun forPath(path: String): CodeLanguage = when (path.substringAfterLast('.', "").lowercase()) {
             "kt", "kts" -> Kotlin
             "ts", "tsx", "js", "jsx", "mjs", "cjs" -> TypeScript

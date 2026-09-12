@@ -346,6 +346,8 @@ abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val sessionMe: PostHandler<MeRequest, MeResponse>
     abstract val sessionLogoutAll: PostHandler<LogoutAllRequest, LogoutAllResponse>
     abstract val accountDeactivate: PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>
+    abstract val authorityGrants: PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>
+    abstract val authorityResolve: PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>
 }
 
 @JsExport
@@ -360,4 +362,6 @@ open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
     override val sessionMe = PostHandler<MeRequest, MeResponse>("/auth/session/me")
     override val sessionLogoutAll = PostHandler<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
     override val accountDeactivate = PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
+    override val authorityGrants = PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
+    override val authorityResolve = PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")
 }

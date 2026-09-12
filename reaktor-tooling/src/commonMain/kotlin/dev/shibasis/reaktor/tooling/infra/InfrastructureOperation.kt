@@ -23,6 +23,7 @@ sealed interface InfrastructureOperation {
         val explain: Boolean = false,
         val resultFormat: DatabaseResultFormat = DatabaseResultFormat.Csv,
         val analyze: Boolean = false,
+        val parameterized: Boolean = false,
     ) : InfrastructureOperation
 
     @Serializable

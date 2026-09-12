@@ -180,6 +180,16 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
                 contextId = contextId,
             )
         } else {
+            // The account was matched by verified provider issuer + subject, never by email.
+            // Refresh evidence from this login; a changed/unverified email cannot inherit the
+            // previous address's verification or relink the established identity.
+            val refreshedAccount = providerAccount.copy(email = email?.normalizedEmail(),
+                emailVerified = emailVerified && !email.isNullOrBlank(), updatedAt = Clock.System.now())
+            ProviderAccounts.update({ ProviderAccounts.id eq providerAccount.id.uuid() }) {
+                it[ProviderAccounts.email] = refreshedAccount.email
+                it[ProviderAccounts.emailVerified] = refreshedAccount.emailVerified
+                it[ProviderAccounts.updatedAt] = refreshedAccount.updatedAt
+            }
             val resolvedIdentity = requireNotNull(findIdentity(providerAccount.identityId.uuid())) {
                 "Provider account ${providerAccount.id} points at a missing identity"
             }
@@ -206,7 +216,7 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
             ResolvedAuthPrincipal(
                 app = app,
                 identity = identity,
-                providerAccount = providerAccount,
+                providerAccount = refreshedAccount,
                 principal = principal,
                 membership = membership,
                 roles = getPrincipalRoles(principal.id.uuid(), appId, membership.tenantId, membership.contextId),

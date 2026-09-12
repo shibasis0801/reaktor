@@ -48,7 +48,9 @@ kotlin {
         }
     }
     darwin()
-    server {}
+    server {
+        dependencies { implementation("net.java.dev.jna:jna:5.18.1") }
+    }
     web()
 }
 

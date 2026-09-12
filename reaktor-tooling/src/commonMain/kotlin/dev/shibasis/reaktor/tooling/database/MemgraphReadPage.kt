@@ -32,7 +32,9 @@ data class MemgraphReadPage(
                 MemgraphInspection.Relationships -> listOf("relationship_id", "source_id", "type", "target_id", "properties")
                 else -> error("This catalog read has no node or relationship identities")
             }
-            require(columns == expected && rows.all { it.size == expected.size }) { "Unexpected Memgraph record columns" }
+            val expanded = read == MemgraphInspection.Relationships && columns == expected +
+                listOf("source_labels", "source_properties", "target_labels", "target_properties")
+            require((columns == expected || expanded) && rows.all { it.size == columns.size }) { "Unexpected Memgraph record columns" }
             fun id(value: String?): String {
                 require(value != null && value.toLongOrNull()?.let { it >= 0 } == true && value.toLong().toString() == value) {
                     "Invalid internal graph identity"
@@ -53,8 +55,8 @@ data class MemgraphReadPage(
                     require(type.isNotBlank()) { "Missing relationship type" }
                     val relationship = MemgraphReadRelationship(id(row[0]), source, target, type, row[4])
                     require(relationships.put(relationship.id, relationship) == null) { "Duplicate relationship identity in result page" }
-                    nodes.getOrPut(source) { MemgraphReadNode(source) }
-                    nodes.getOrPut(target) { MemgraphReadNode(target) }
+                    nodes.getOrPut(source) { if (expanded) MemgraphReadNode(source, row[5], row[6], true) else MemgraphReadNode(source) }
+                    nodes.getOrPut(target) { if (expanded) MemgraphReadNode(target, row[7], row[8], true) else MemgraphReadNode(target) }
                 }
             }
             return MemgraphReadPage(nodes.values.toList(), relationships.values.toList())
