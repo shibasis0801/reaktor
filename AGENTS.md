@@ -11,17 +11,21 @@ bar (§2) governs here too.
 - `README.md` and `LLM_CONTEXT.md` predate the control-plane and Machine Signal work. Trust code
   over both.
 
-## 2. The dual-surface rule
+## 2. The graph is the foundation
 
-A module **may** use `reaktor-graph` internally, but it **must also** expose a traditional,
-graph-agnostic API usable as a plain library. You can adopt `reaktor-auth` in a vanilla app with no
-graph at all; the graph projection is the opt-in path.
+**User direction, 13 September 2026:** "the graph is the king of reaktor, we don't need to
+build graph agnostic stuff." This supersedes the former mandatory dual-surface rule.
 
-- graph-agnostic surface: a pure kernel with no DB, Spring or graph dependency
-- graph projection: opt-in nodes plus an `install(graph)` entry point
-- reference implementation: `reaktor-auth` (`AuthContext` + `AuthNode`/`AuthGraph.install`)
-
-New modules that skip the graph-agnostic half are incomplete, not simple.
+- Build Reaktor capabilities around the graph's identities, typed ports, ownership, lifecycle,
+  queries and commands. Agents, navigation, data and tools participate in that model.
+- A separate graph-agnostic API, pure-library kernel or optional graph projection is **not a
+  requirement**. Add a conventional facade only when an actual consumer benefits from it.
+- Preserve useful existing APIs and ordinary implementation helpers. This direction does not
+  require a breaking rewrite or turning every algorithm or log entry into an active node.
+- Keep semantic definitions distinct from runtime activations and UI presentation. Headless graph
+  hosts must not acquire Compose or workbench dependencies merely to run agents or inspect data.
+- One logical graph does not require one global scheduler, process, database or loaded object heap.
+  Preserve declared ownership and the layer boundaries below.
 
 ## 3. Layer boundaries (do not cross)
 
@@ -75,6 +79,5 @@ Performance work uses the harnesses in `reaktor-performance` and
 
 ## 7. Stop and report before editing if
 
-- a change would give a module a graph projection without a graph-agnostic surface
 - a layer boundary in §3 would have to be crossed to make something work
 - design tokens would need a second source of truth
