@@ -1,6 +1,6 @@
 # Improving the agent layer through Reaktor's graph
 
-Status: source-based design and delivery plan, 13 September 2026. This change updates architecture guidance; it does not implement the runtime described below.
+Status: source-based design and delivery plan, 13 September 2026. The later [Agent Workspace design](https://reaktor.build/docs/reaktor-agent-workspace) adds researched harness adoption, six Pencil boards and a first implementation: shared Compare/Council plus desktop Team/Activity. The remaining graph/runtime design below is still proposed.
 
 The graph is the foundation. Agent orchestration should compose Reaktor graph capabilities directly. The user's latest direction supersedes the mandatory graph-agnostic API rule and the corresponding packaging recommendation in the [tabs council](tabs-council-2026-09-13.md). Existing provider harnesses, protocol definitions, persistence and APIs remain useful; removing them solely to make every class inherit Node would add work without improving graph integration.
 
@@ -14,7 +14,7 @@ The target is one logical graph across application definitions, source, runtime 
 | `AgentWorkspace` / connection | Shared local owner, authenticated MCP, request deduplication, bounded concurrency, cancellation, checkpointed runs and qualified continuation for Ask. | Runs are service records rather than a complete graph-owned task workflow. Kernel execution remains a separate path. |
 | Desktop `AgentConversationState` | Provider/model, prompt, write toggle, recent conversations, stream observation and Stop. | Send does not supply selected graph/source context. The pane cannot steer a live turn or resolve provider input requests. |
 | `AgentRuntime` | Started, text Delta, ToolUse and Finished events. | No interactive request/response contract, capability negotiation, tool result lifecycle or explicit waiting states. |
-| `Protocol` / `Conductor` | Ask, All, Council, Pipeline and Planned; peer visibility; provider session references. | Workspace submissions always select Ask. Continuation is restricted to Ask. Parallel round results are appended after all participants finish. |
+| `Protocol` / `Conductor` | Ask, All, Council, Pipeline and Planned; peer visibility; provider session references. | Workspace submissions now select Single/Compare/Council. Native continuation remains restricted to Ask. Parallel round results are appended after all participants finish. |
 | `ContextPacket` / compiler | Bounded, scoped evidence; omissions and peer truncation are reported. | Entries lack individual revision/applicability metadata. Oversized packets are omitted whole. Full evidence retrieval and automatic graph selection are missing. |
 | Local context | PostgreSQL/pgvector, Memgraph, cached local embeddings and authorized Manna export/import. | Manual refresh, no live revocation propagation, and no warm retrieval service connected to desktop submissions. |
 
