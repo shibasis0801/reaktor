@@ -21,6 +21,8 @@ sealed interface AgentEvent {
 
     data class Started(override val agent: AgentId, val session: ProviderSession?) : AgentEvent
 
+    data class TurnStarted(override val agent: AgentId, val turnId: String) : AgentEvent
+
     data class Delta(override val agent: AgentId, val text: String) : AgentEvent
 
     data class ToolUse(
@@ -76,6 +78,7 @@ data class AgentOutcome(
     val effort: EffortRecord = EffortRecord.none,
     /** The provider's own service tier for the turn, when it reports one. */
     val serviceTier: String? = null,
+    val interrupted: Boolean = false,
 )
 
 /**

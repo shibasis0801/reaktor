@@ -25,7 +25,7 @@ class CheckReducerTest {
         assertEquals(CheckReducers.KOTLIN_PARSER, result.parser)
         val first = result.failures.first()
         // A repair turn needs somewhere to go, not a wall of text.
-        assertEquals("CliCapabilities.kt", first.file)
+        assertEquals("/Users/ovd/dev/reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/cli/CliCapabilities.kt", first.file)
         assertEquals(125, first.line)
         assertEquals(55, first.column)
         assertTrue(first.message.contains("Argument type mismatch"))
@@ -90,6 +90,19 @@ class CheckReducerTest {
         assertTrue(result.excerpt!!.length <= 2000, "The excerpt is what enters a prompt; it has a budget")
         assertTrue(huge.length > 200_000)
         assertEquals("sha256:abc", result.log?.id, "The full log is referenced, not discarded")
+    }
+
+    @Test fun laterTaskCountsAreNotLostBehindAnEarlierPassingSummary() {
+        val result = CheckReducers.reduce(command, 1, """
+            > Task :a:test
+            5 tests completed
+            > Task :b:test
+            B > first FAILED
+            B > second FAILED
+            8 tests completed, 3 failed
+        """.trimIndent())
+        assertEquals(3, result.failureCount)
+        assertEquals(1, assertIs<CheckCoverage.Partial>(result.coverage).unrecognisedLines)
     }
 
     /** CAPTURED: `./gradlew :reaktor-conductor:compileKotlinJvm` failing on three diagnostics. */

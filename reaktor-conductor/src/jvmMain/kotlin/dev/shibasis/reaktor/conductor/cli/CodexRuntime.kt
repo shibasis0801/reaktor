@@ -57,6 +57,7 @@ class CodexRuntime(
  */
 internal fun codexArgv(request: AgentRequest, binary: String = "codex"): List<String> = buildList {
     add(binary)
+    addAll(codexMcpArgs(request.agent.tools.mcpConfig))
     // Global policy/cwd flags precede exec: exec resume does not accept exec's -C/-s flags.
     add("-C")
     add(request.workingDirectory)

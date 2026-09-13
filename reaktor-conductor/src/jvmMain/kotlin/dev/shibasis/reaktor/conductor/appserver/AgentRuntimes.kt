@@ -25,7 +25,7 @@ object AgentRuntimes {
         RuntimeKind.ClaudeCode to ClaudeCodeRuntime(executor),
     )
 
-    /** Sessions that outlive a turn: Codex over its App Server, Claude over stream-json stdin. */
+    /** Interactive turns with native continuation: Codex over its App Server, Claude over stream-json stdin. */
     fun interactive(
         scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     ): Map<RuntimeKind, AgentRuntime> = mapOf(

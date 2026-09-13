@@ -3,9 +3,9 @@ package dev.shibasis.reaktor.conductor.appserver
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
 import java.io.BufferedReader
@@ -49,9 +49,8 @@ class JsonRpcStdio(
     private val pending = ConcurrentHashMap<Long, CompletableDeferred<JsonObject>>()
     private val writeLock = Any()
 
-    private val _inbound = MutableSharedFlow<JsonRpcInbound>(replay = 0, extraBufferCapacity = 256,
-        onBufferOverflow = BufferOverflow.SUSPEND)
-    val inbound: SharedFlow<JsonRpcInbound> = _inbound
+    private val messages = Channel<JsonRpcInbound>(256)
+    val inbound = messages.receiveAsFlow()
 
     /** Completes when the peer closes its side, so a caller can tell EOF from a hung turn. */
     val closed = CompletableDeferred<Unit>()
@@ -67,9 +66,9 @@ class JsonRpcStdio(
                 when {
                     // Both an id and a method: the server is asking us something.
                     id != null && method != null ->
-                        _inbound.emit(JsonRpcInbound.ServerRequest(id, method, message.objectOrEmpty("params")))
+                        messages.send(JsonRpcInbound.ServerRequest(id, method, message.objectOrEmpty("params")))
 
-                    method != null -> _inbound.emit(JsonRpcInbound.Notification(method, message.objectOrEmpty("params")))
+                    method != null -> messages.send(JsonRpcInbound.Notification(method, message.objectOrEmpty("params")))
 
                     id != null -> {
                         val waiting = pending.remove(id.jsonPrimitive.longOrNull ?: continue) ?: continue
@@ -87,6 +86,7 @@ class JsonRpcStdio(
             }
         } finally {
             closed.complete(Unit)
+            messages.close()
             // A peer that dies mid-request must fail every caller rather than leaving them parked.
             pending.values.forEach { it.completeExceptionally(JsonRpcException(-1, "Transport closed before a reply arrived")) }
             pending.clear()
@@ -96,12 +96,13 @@ class JsonRpcStdio(
     suspend fun request(method: String, params: JsonObject = JsonObject(emptyMap())): JsonObject {
         val id = nextId.incrementAndGet()
         val waiting = CompletableDeferred<JsonObject>()
+        check(!closed.isCompleted) { "Transport is closed" }
         pending[id] = waiting
-        write(buildJsonObject {
-            put("jsonrpc", "2.0"); put("id", id); put("method", method); put("params", params)
-        })
         return try {
-            waiting.await()
+            write(buildJsonObject {
+                put("jsonrpc", "2.0"); put("id", id); put("method", method); put("params", params)
+            })
+            withTimeout(60_000) { waiting.await() }
         } finally {
             pending.remove(id)
         }
@@ -116,13 +117,16 @@ class JsonRpcStdio(
         put("jsonrpc", "2.0"); put("id", id); put("result", result)
     })
 
+    fun reject(id: JsonElement, method: String) = write(buildJsonObject {
+        put("jsonrpc", "2.0"); put("id", id)
+        putJsonObject("error") { put("code", -32601); put("message", "Unsupported provider request: $method") }
+    })
+
     private fun write(message: JsonObject) = synchronized(writeLock) {
-        runCatching {
-            output.write(message.toString())
-            output.write("\n")
-            output.flush()
-        }
-        Unit
+        check(!closed.isCompleted) { "Transport is closed" }
+        output.write(message.toString())
+        output.write("\n")
+        output.flush()
     }
 
     override fun close() {

@@ -23,8 +23,9 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
         McpTool("agent_runs", "Read up to 50 recent run summaries; direct run ids remain addressable beyond the recent index.",
             objectSchema(mapOf("limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) })), true, true) {
             val summaries = workspace.list(it.long("limit", 20).toInt()).map { run ->
-                run.copy(output = "", outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
+                run.copy(output = "", context = null, reasoning = "", pending = emptyList(), outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
                     participants = run.participants.mapValues { (_, participant) -> participant.copy(output = "",
+                        reasoning = "", pending = emptyList(),
                         outputTruncated = participant.outputTruncated || participant.output.isNotEmpty()) })
             }
             buildJsonObject { put("runs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentRunRecord.serializer()), summaries)) }
@@ -36,11 +37,14 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
                 "prompt" to stringSchema("Task, at most 100000 characters"),
                 "threadId" to stringSchema("Optional existing Reaktor conversation id"),
                 "model" to stringSchema("Optional model override; omitted uses provider configuration"),
+                "effort" to stringSchema("Native reasoning effort; omitted preserves provider defaults"),
+                "transport" to enumSchema("Automatic uses interactive Single and batch collaboration", listOf("Automatic", "Interactive", "Batch")),
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
                 "collaboration" to enumSchema("Single by default; Compare and Council require a partner and allowWrites=false", workspace.info().collaborations.map { it.name }),
                 "partner" to objectSchema(mapOf(
                     "provider" to enumSchema("Second configured provider, different from the primary provider", workspace.info().providers.map { it.name }),
                     "model" to stringSchema("Optional partner model; omitted uses its provider configuration"),
+                    "effort" to stringSchema("Native partner reasoning effort"),
                 ), listOf("provider")),
                 "context" to buildJsonObject {
                     put("type", "object")
@@ -71,13 +75,18 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
                 "runId" to stringSchema("Exact run id"),
                 "agent" to stringSchema("Participant id that is waiting"),
                 "requestId" to stringSchema("Exact pending request id from the run record"),
-                "decision" to enumSchema("approve, deny or answer", listOf("approve", "deny", "answer")),
+                "decision" to enumSchema("approve, deny or answer", listOf("approve", "deny", "answer", "answers", "form")),
                 "text" to stringSchema("Reason for deny, or the answer text"),
+                "answers" to buildJsonObject { put("type", "object"); put("additionalProperties", buildJsonObject { put("type", "array"); put("items", stringSchema("Answer")) }) },
+                "form" to buildJsonObject { put("type", "object"); put("additionalProperties", true) },
             ), listOf("runId", "agent", "requestId", "decision")), readOnly = false, idempotent = false, destructive = true, openWorld = true) {
             val decision = when (it.string("decision")) {
                 "approve" -> AgentDecision.Approve
                 "deny" -> AgentDecision.Deny((it["text"] as? JsonPrimitive)?.contentOrNull)
-                else -> AgentDecision.Answer((it["text"] as? JsonPrimitive)?.contentOrNull ?: error("text is required to answer"))
+                "answer" -> AgentDecision.Answer((it["text"] as? JsonPrimitive)?.contentOrNull ?: error("text is required to answer"))
+                "answers" -> AgentDecision.Answers(it.getValue("answers").jsonObject.mapValues { (_, values) -> values.jsonArray.map { value -> value.jsonPrimitive.content } })
+                "form" -> AgentDecision.Form(it.getValue("form").jsonObject)
+                else -> error("Unknown decision")
             }
             runBlocking { outcome(workspace.resolve(it.string("runId"), it.string("agent"), it.string("requestId"), decision)) }
         },
@@ -95,7 +104,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
             objectSchema(mapOf("threadId" to stringSchema("Reaktor conversation id")), listOf("threadId")), true, true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId")))
         },
-    )
+    ) + agentEvidenceTools(workspace)
     return ReaktorMcpServer("reaktor-agent-workspace", "1.0.0",
         "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.", tools)
 }

@@ -46,6 +46,7 @@ class Conductor(
          * Declared before [onEvent] so the trailing lambda a caller writes still binds to events.
          */
         onSession: (AgentId, AgentSession) -> Unit = { _, _ -> },
+        onSessionClosed: (AgentId, AgentSession) -> Unit = { _, _ -> },
         onEvent: (AgentEvent) -> Unit = {},
     ): ConductorResult {
         require(!resumeProviderSession || protocol is Protocol.Ask) { "Provider continuation is supported only for Ask" }
@@ -120,6 +121,7 @@ class Conductor(
                 AgentRequest(agent = agent, prompt = compiled, workingDirectory = workingDirectory,
                     resume = resume, persistSession = resumeProviderSession),
                 onSession = { session -> onSession(agent.id, session) },
+                onClosed = { session -> onSessionClosed(agent.id, session) },
             ) { event ->
                 if (event is AgentEvent.Started && event.session != null) {
                     checkpointMutex.withLock {

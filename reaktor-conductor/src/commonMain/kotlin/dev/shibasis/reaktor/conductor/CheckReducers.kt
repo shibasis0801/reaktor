@@ -10,7 +10,7 @@ package dev.shibasis.reaktor.conductor
  */
 object CheckReducers {
     const val KOTLIN_PARSER = "kotlin-gradle/1"
-    const val JUNIT_PARSER = "gradle-test/1"
+    const val JUNIT_PARSER = "gradle-test/2"
     const val FALLBACK_PARSER = "exit-status/1"
 
     /**
@@ -38,7 +38,7 @@ object CheckReducers {
                 // errors become failures: a build that warns and succeeds has not failed.
                 if (severity == "e") failures += CheckFailure(
                     message = message.trim(),
-                    file = file.substringAfterLast('/'),
+                    file = file,
                     line = row.toIntOrNull(),
                     column = column.toIntOrNull(),
                     kind = "compile",
@@ -83,23 +83,35 @@ object CheckReducers {
     private val testSummary = Regex("""(\d+) tests? completed(?:, (\d+) failed)?(?:, (\d+) skipped)?""")
 
     val gradleTests = CheckReducer { command, exitCode, output ->
-        val summary = testSummary.find(output) ?: return@CheckReducer null
-        val failed = summary.groupValues[2].toIntOrNull() ?: 0
-        val total = summary.groupValues[1].toIntOrNull() ?: 0
-        val named = Regex("""^(\S+) > (\S+) FAILED$""", RegexOption.MULTILINE).findAll(output)
-            .map { CheckFailure(message = it.groupValues[2], file = it.groupValues[1], kind = "test") }
-            .toList()
+        val summaries = testSummary.findAll(output).toList()
+        if (summaries.isEmpty()) return@CheckReducer null
+        val namedPattern = Regex("""^\s*(\S+) > (.+) FAILED$""", RegexOption.MULTILINE)
+        val named = namedPattern.findAll(output)
+            .map { CheckFailure(message = it.groupValues[2], file = it.groupValues[1], kind = "test") }.toList()
+        var previousEnd = 0
+        var missing = 0
+        var failures = 0
+        summaries.forEach { summary ->
+            val count = summary.groupValues[2].toIntOrNull() ?: 0
+            val described = namedPattern.findAll(output.substring(previousEnd, summary.range.first)).count()
+            failures += maxOf(count, described)
+            missing += maxOf(0, count - described)
+            previousEnd = summary.range.last + 1
+        }
+        failures += namedPattern.findAll(output.substring(previousEnd)).count()
+        val outcome = when {
+            failures > 0 -> CheckOutcome.Failed
+            exitCode == 0 -> CheckOutcome.Passed
+            exitCode == null -> CheckOutcome.Unknown
+            else -> CheckOutcome.Errored
+        }
         CheckResult(
-            command = command,
-            outcome = if (failed == 0 && exitCode == 0) CheckOutcome.Passed else CheckOutcome.Failed,
-            exitCode = exitCode,
-            failures = named.take(50),
-            // The summary is authoritative about how many failed even when names were not printed.
-            failureCount = maxOf(failed, named.size),
-            excerpt = if (failed == 0) null else summary.value,
+            command = command, outcome = outcome, exitCode = exitCode,
+            failures = named.take(50), failureCount = maxOf(failures, named.size),
+            excerpt = if (outcome == CheckOutcome.Passed) null else summaries.joinToString("; ") { it.value }.take(2000),
             parser = JUNIT_PARSER,
-            coverage = if (named.size >= failed) CheckCoverage.Complete
-            else CheckCoverage.Partial(failed - named.size, "$total ran; ${failed - named.size} failure(s) reported only as a count"),
+            coverage = if (missing == 0) CheckCoverage.Complete
+            else CheckCoverage.Partial(missing, "$missing failure(s) reported only as counts across ${summaries.size} task summaries"),
         )
     }
 

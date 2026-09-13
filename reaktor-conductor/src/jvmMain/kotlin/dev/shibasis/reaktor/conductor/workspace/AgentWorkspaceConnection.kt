@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.workspace
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.appserver.AgentRuntimes
 import dev.shibasis.reaktor.conductor.cli.CliCapabilities
+import dev.shibasis.reaktor.conductor.cli.AgentBundle
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
@@ -10,6 +11,9 @@ import dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -66,6 +70,10 @@ class AgentWorkspaceConnection private constructor(
                 AgentDecision.Approve -> put("decision", "approve")
                 is AgentDecision.Deny -> { put("decision", "deny"); decision.reason?.let { put("text", it) } }
                 is AgentDecision.Answer -> { put("decision", "answer"); put("text", decision.text) }
+                is AgentDecision.Answers -> { put("decision", "answers"); put("answers", buildJsonObject {
+                    decision.values.forEach { (id, values) -> put(id, JsonArray(values.map(::JsonPrimitive))) }
+                }) }
+                is AgentDecision.Form -> { put("decision", "form"); put("form", decision.values) }
             }
         }))
 
@@ -145,13 +153,24 @@ class AgentWorkspaceConnection private constructor(
             var executor: SupervisedProcessExecutor? = null
             var workspace: AgentWorkspace? = null
             var server: LoopbackMcpServer? = null
+            val runtimeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             try {
                 val binding = directory.resolve("workspace-root")
                 if (Files.exists(binding)) require(Files.readString(binding) == root.canonicalPath) { "Agent data belongs to a different workspace" }
                 else atomicWrite(binding, root.canonicalPath)
-                val configured = runtimes ?: SupervisedProcessExecutor().also { executor = it }
-                    .let(AgentRuntimes::batch)
-                val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover).also { workspace = it }
+                val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
+                val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
+                val mcpConfig = if (runtimes == null) directory.resolve("harness-mcp.json").also { path ->
+                    val command = AgentBundle.launchCommand(root, null)
+                    val graphCommand = command.toMutableList().apply { this[indexOfLast { it == "workspace" } + 1] = "graph-mcp" }
+                    atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") {
+                        mapOf("reaktor" to command, "reaktor-graph" to graphCommand).forEach { (name, argv) ->
+                            putJsonObject(name) { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
+                        }
+                    } }.toString())
+                }.toString() else null
+                val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
+                    harnessMcpConfig = mcpConfig).also { workspace = it }
                 val registry = agentWorkspaceMcp(hostedWorkspace)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token).also { server = it }
@@ -160,11 +179,11 @@ class AgentWorkspaceConnection private constructor(
                 return AgentWorkspaceConnection(endpoint, discovery, true) {
                     try { hostedServer.close() }
                     finally { try { hostedWorkspace.close() }
-                    finally { try { executor?.close(); Files.deleteIfExists(discovery) }
+                    finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery) }
                     finally { ownerLock.release(); channel.close() } } }
                 }
             } catch (failure: Throwable) {
-                try { server?.close(); workspace?.close(); executor?.close() }
+                try { server?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
                 finally { ownerLock.release(); channel.close() }
                 throw failure
             }
