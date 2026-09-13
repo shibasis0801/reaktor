@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.cloud.observability
 
 import com.pulumi.Pulumi
+import com.pulumi.core.Output
 
 /**
  * Mirrors index.ts — wires the modules and exports the datasource/dashboard UIDs that the
@@ -21,7 +22,7 @@ fun main() {
         ctx.export("cloudflareDatasourceUid", cloudflare.infinityDs.uid())
         ctx.export("cloudflareDashboardUid", cloudflare.workersDashboard.uid())
         ctx.export("gcpDatasourceUid", pubsub.gcpDs.uid())
-        ctx.export("tempoDatasourceUid", telemetry.tempoDs.uid())
+        ctx.export("tracesDatasourceUid", Output.of(telemetry.tracesDatasourceUid))
         ctx.export("portsDashboardUid", telemetry.portsDashboard.uid())
         telemetry.clickhouseDs?.let { ctx.export("clickhouseDatasourceUid", it.uid()) }
         ctx.export("pubsubDashboardUid", pubsub.pubsubDashboard.uid())
