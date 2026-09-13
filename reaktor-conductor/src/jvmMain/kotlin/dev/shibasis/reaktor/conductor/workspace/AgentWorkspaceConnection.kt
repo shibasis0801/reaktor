@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.appserver.AgentRuntimes
 import dev.shibasis.reaktor.conductor.cli.CliCapabilities
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
@@ -127,9 +128,8 @@ class AgentWorkspaceConnection private constructor(
                 val binding = directory.resolve("workspace-root")
                 if (Files.exists(binding)) require(Files.readString(binding) == root.canonicalPath) { "Agent data belongs to a different workspace" }
                 else atomicWrite(binding, root.canonicalPath)
-                val configured = runtimes ?: SupervisedProcessExecutor().also { executor = it }.let {
-                    mapOf(RuntimeKind.Codex to CodexRuntime(it), RuntimeKind.ClaudeCode to ClaudeCodeRuntime(it))
-                }
+                val configured = runtimes ?: SupervisedProcessExecutor().also { executor = it }
+                    .let(AgentRuntimes::batch)
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover).also { workspace = it }
                 val registry = agentWorkspaceMcp(hostedWorkspace)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })

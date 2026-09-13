@@ -90,6 +90,11 @@ data class ProviderCapability(
     val effortControl: Qualification = Qualification.unavailable,
     val reasoning: ReasoningFidelity = ReasoningFidelity.Unavailable,
     val reasoningControl: Qualification = Qualification.unavailable,
+    /**
+     * Whether the configured runtime can hold a session open — steer, interrupt, answer a request.
+     * Unavailable on a batch subprocess, which runs a turn and exits.
+     */
+    val session: Qualification = Qualification.unavailable,
     val notes: List<String> = emptyList(),
 )
 
