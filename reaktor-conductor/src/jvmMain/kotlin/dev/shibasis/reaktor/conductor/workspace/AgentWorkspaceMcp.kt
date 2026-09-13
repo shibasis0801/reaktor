@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.conductor.AgentDecision
+import dev.shibasis.reaktor.conductor.CommandOutcome
 import dev.shibasis.reaktor.conductor.ConductorJson
 import dev.shibasis.reaktor.mcp.*
 import kotlinx.coroutines.runBlocking
@@ -12,6 +14,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
     fun JsonObject.string(name: String) = (get(name) as? JsonPrimitive)?.contentOrNull ?: error("$name is required")
     fun JsonObject.long(name: String, default: Long) = (get(name) as? JsonPrimitive)?.longOrNull ?: default
     fun result(record: AgentRunRecord) = AgentWorkspaceJson.encodeToJsonElement(AgentRunRecord.serializer(), record)
+    fun outcome(value: CommandOutcome) = AgentWorkspaceJson.encodeToJsonElement(CommandOutcome.serializer(), value)
     val runSchema = objectSchema(mapOf("runId" to stringSchema("Exact run id")), listOf("runId"))
     val tools = listOf(
         McpTool("agent_workspace_info", "Read this workspace's configured providers and session capabilities.", emptyObjectSchema(), true, true) {
@@ -58,6 +61,31 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
         },
         McpTool("agent_cancel", "Interrupt this exact run and wait for its owned harness to stop. Never targets a newer run.", runSchema, false, true) {
             runBlocking { result(workspace.cancel(it.string("runId"))) }
+        },
+        McpTool("agent_answer", "Answer one request a provider stopped for: approve it, deny it, or supply text. Only runs on an interactive transport hold a session that can hear the answer; others report unsupported. This resumes provider work and may execute tools.",
+            objectSchema(mapOf(
+                "runId" to stringSchema("Exact run id"),
+                "agent" to stringSchema("Participant id that is waiting"),
+                "requestId" to stringSchema("Exact pending request id from the run record"),
+                "decision" to enumSchema("approve, deny or answer", listOf("approve", "deny", "answer")),
+                "text" to stringSchema("Reason for deny, or the answer text"),
+            ), listOf("runId", "agent", "requestId", "decision")), readOnly = false, idempotent = false, destructive = true, openWorld = true) {
+            val decision = when (it.string("decision")) {
+                "approve" -> AgentDecision.Approve
+                "deny" -> AgentDecision.Deny((it["text"] as? JsonPrimitive)?.contentOrNull)
+                else -> AgentDecision.Answer((it["text"] as? JsonPrimitive)?.contentOrNull ?: error("text is required to answer"))
+            }
+            runBlocking { outcome(workspace.resolve(it.string("runId"), it.string("agent"), it.string("requestId"), decision)) }
+        },
+        McpTool("agent_steer", "Add input to a turn already in flight. expectedTurn is a precondition: a turn that has since ended is reported stale rather than silently starting a new one.",
+            objectSchema(mapOf(
+                "runId" to stringSchema("Exact run id"),
+                "agent" to stringSchema("Participant id to steer"),
+                "text" to stringSchema("Input to add, at most 100000 characters"),
+                "expectedTurn" to stringSchema("Provider turn id this input is meant for"),
+            ), listOf("runId", "agent", "text")), readOnly = false, idempotent = false, destructive = true, openWorld = true) {
+            runBlocking { outcome(workspace.steer(it.string("runId"), it.string("agent"),
+                it.string("text"), (it["expectedTurn"] as? JsonPrimitive)?.contentOrNull)) }
         },
         McpTool("agent_transcript", "Read the last 20 canonical events with a 24000-character text budget and explicit partial status.",
             objectSchema(mapOf("threadId" to stringSchema("Reaktor conversation id")), listOf("threadId")), true, true) {

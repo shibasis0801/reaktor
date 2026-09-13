@@ -53,6 +53,23 @@ class AgentWorkspaceConnection private constructor(
         put("runId", id); put("afterRevision", afterRevision); put("timeoutMillis", timeoutMillis)
     }))
     suspend fun cancel(id: String): AgentRunRecord = decode(call("agent_cancel", buildJsonObject { put("runId", id) }))
+
+    /** Answers a request a provider is blocked on. Unsupported when that run holds no session. */
+    suspend fun answer(runId: String, agent: String, requestId: String, decision: AgentDecision): CommandOutcome =
+        ConductorJson.decodeFromJsonElement(CommandOutcome.serializer(), call("agent_answer", buildJsonObject {
+            put("runId", runId); put("agent", agent); put("requestId", requestId)
+            when (decision) {
+                AgentDecision.Approve -> put("decision", "approve")
+                is AgentDecision.Deny -> { put("decision", "deny"); decision.reason?.let { put("text", it) } }
+                is AgentDecision.Answer -> { put("decision", "answer"); put("text", decision.text) }
+            }
+        }))
+
+    suspend fun steer(runId: String, agent: String, text: String, expectedTurn: String? = null): CommandOutcome =
+        ConductorJson.decodeFromJsonElement(CommandOutcome.serializer(), call("agent_steer", buildJsonObject {
+            put("runId", runId); put("agent", agent); put("text", text)
+            expectedTurn?.let { put("expectedTurn", it) }
+        }))
     suspend fun transcript(id: String): AgentTranscript = ConductorJson.decodeFromJsonElement(AgentTranscript.serializer(),
         call("agent_transcript", buildJsonObject { put("threadId", id) }))
 
