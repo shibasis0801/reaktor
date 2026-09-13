@@ -238,7 +238,7 @@ class Conductor(
                     },
                     check = runCheck,
                     agent = { stage, parents ->
-                        val inputs = active.definition.edges.filter { it.to == stage.id }.mapNotNull { edge ->
+                        val inputs = active.definition.edges.filter { it.to == stage.id && it.matches(workflow.stages[it.from]) }.mapNotNull { edge ->
                             workflow.stages[edge.from]?.takeIf { it.status != WorkflowStageStatus.Skipped }?.let { edge.from to it }
                         }.toMap()
                         val task = buildString {

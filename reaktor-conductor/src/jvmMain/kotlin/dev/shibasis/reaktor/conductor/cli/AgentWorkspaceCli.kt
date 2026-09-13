@@ -51,7 +51,7 @@ internal suspend fun workspaceCli(args: List<String>) {
     if (action == "stop") { println(AgentBackgroundService.stop(root)); return }
     if (action == "start") { AgentBackgroundService.connect(root).use { println(it.call("agent_workspace_info")) }; return }
     if (action == "graph-mcp") {
-        WorkspaceGraphBridge(root, options["--graph-url"] ?: AgentBundle.DEFAULT_GRAPH_URL).use { bridge ->
+        WorkspaceGraphBridge(root, options["--graph-url"]).use { bridge ->
             bridgeStdio(bridge::exchange)
         }
         return

@@ -53,6 +53,28 @@ data class WorkflowDefinition(
 @Serializable data class WorkflowCheckResult(val ok: Boolean, val text: String, val receiptId: String)
 class WorkflowPaused(val stageId: String, message: String) : IllegalStateException(message)
 
+internal fun WorkflowEdge.matches(result: WorkflowStageResult?): Boolean {
+    if (result == null || result.status !in setOf(WorkflowStageStatus.Completed, WorkflowStageStatus.Failed)) return false
+    return when (whenResult) {
+        WorkflowCondition.Always -> true
+        WorkflowCondition.Succeeded -> result.status == WorkflowStageStatus.Completed
+        WorkflowCondition.Failed -> result.status == WorkflowStageStatus.Failed
+        WorkflowCondition.Pass -> result.status == WorkflowStageStatus.Completed && result.verdict == "pass"
+        WorkflowCondition.Repair -> result.status == WorkflowStageStatus.Completed && result.verdict == "repair"
+    }
+}
+
+internal fun WorkflowDefinition.failed(progress: WorkflowProgress): Boolean {
+    val sinks = stages.filter { stage -> edges.none { it.from == stage.id } }.map { it.id }.toSet()
+    val successful = sinks.filter { progress.stages[it]?.status == WorkflowStageStatus.Completed }.toSet()
+    if (successful.isEmpty()) return true
+    return progress.stages.filterValues { it.status == WorkflowStageStatus.Failed }.keys.any { failed ->
+        val reachable = mutableSetOf(failed)
+        repeat(stages.size) { edges.filter { it.from in reachable && it.matches(progress.stages[it.from]) }.forEach { reachable += it.to } }
+        reachable.none { it in successful }
+    }
+}
+
 /** Native output is data. Invalid or absent typed decisions fail closed. */
 fun workflowDecision(text: String): Pair<String, String> {
     val value = ConductorJson.parseToJsonElement(text.trim()).jsonObject
@@ -73,24 +95,13 @@ internal suspend fun executeWorkflow(
     definition.validate()
     var progress = restored
     fun put(id: String, result: WorkflowStageResult) { progress = save(progress.copy(stages = progress.stages + (id to result))) }
-    fun matches(edge: WorkflowEdge): Boolean {
-        val result = progress.stages.getValue(edge.from)
-        if (result.status == WorkflowStageStatus.Skipped) return false
-        return when (edge.whenResult) {
-            WorkflowCondition.Always -> true
-            WorkflowCondition.Succeeded -> result.status == WorkflowStageStatus.Completed
-            WorkflowCondition.Failed -> result.status == WorkflowStageStatus.Failed
-            WorkflowCondition.Pass -> result.status == WorkflowStageStatus.Completed && result.verdict == "pass"
-            WorkflowCondition.Repair -> result.status == WorkflowStageStatus.Completed && result.verdict == "repair"
-        }
-    }
     val terminal = setOf(WorkflowStageStatus.Completed, WorkflowStageStatus.Failed, WorkflowStageStatus.Skipped)
     while (definition.stages.any { progress.stages[it.id]?.status !in terminal }) {
         val stage = definition.stages.first { candidate -> progress.stages[candidate.id]?.status !in terminal &&
             definition.edges.filter { it.to == candidate.id }.all { progress.stages[it.from]?.status in terminal } }
         val incoming = definition.edges.filter { it.to == stage.id }
         // A join waits for every predecessor to settle and runs if any incoming branch activates it.
-        val selected = incoming.filter(::matches)
+        val selected = incoming.filter { it.matches(progress.stages[it.from]) }
         if (incoming.isNotEmpty() && selected.isEmpty()) { put(stage.id, WorkflowStageResult(WorkflowStageStatus.Skipped)); continue }
         if (stage.action == WorkflowAction.Gate && stage.id !in progress.approvedGates) {
             put(stage.id, WorkflowStageResult(WorkflowStageStatus.Waiting, detail = stage.instruction))

@@ -550,10 +550,7 @@ class AgentWorkspace(
                     )
                     val answer = result.answer
                     val failures = result.added.filter { it.kind == EventKind.Failure }
-                    val workflowFailed = request.workflow?.let { definition ->
-                        val terminals = definition.stages.filter { stage -> definition.edges.none { it.from == stage.id } }.mapNotNull { lastWorkflow?.stages?.get(it.id) }
-                        terminals.none { it.status == WorkflowStageStatus.Completed } || terminals.any { it.status == WorkflowStageStatus.Failed }
-                    }
+                    val workflowFailed = request.workflow?.failed(lastWorkflow ?: WorkflowProgress())
                     update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (workflowFailed ?: failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
                         pending = emptyList(), recovery = AgentRecovery.None, recoveryReason = null,
                         output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
