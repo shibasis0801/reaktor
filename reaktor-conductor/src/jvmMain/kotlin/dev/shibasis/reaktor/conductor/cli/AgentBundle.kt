@@ -32,7 +32,8 @@ object AgentBundle {
             require(override.isNotEmpty()) { "A launch command needs at least an executable" }
             return override + listOf("workspace", "mcp", "--dir", root.canonicalPath)
         }
-        val executable = File(System.getProperty("java.home"), "bin/java").also {
+        val javaName = if (System.getProperty("os.name").lowercase().contains("win")) "java.exe" else "java"
+        val executable = File(System.getProperty("java.home"), "bin/$javaName").also {
             require(it.canExecute()) { "This runtime has no Java launcher; configure a service launch command" }
         }.absolutePath
         val classpath = System.getProperty("java.class.path") ?: error("No classpath to reuse; pass --command")
@@ -40,11 +41,11 @@ object AgentBundle {
             "workspace", "mcp", "--dir", root.canonicalPath)
     }
 
-    fun install(targets: Targets, command: List<String>, graphUrl: String = DEFAULT_GRAPH_URL): List<String> = locked(targets) {
+    fun install(targets: Targets, command: List<String>, graphUrl: String? = null): List<String> = locked(targets) {
         require(command.isNotEmpty())
         val workspaceIndex = command.indexOfLast { it == "workspace" }
         require(workspaceIndex >= 0 && command.getOrNull(workspaceIndex + 1) == "mcp") { "Expected a workspace mcp launch command" }
-        val graphCommand = command.toMutableList().apply { this[workspaceIndex + 1] = "graph-mcp" } + listOf("--graph-url", graphUrl)
+        val graphCommand = command.toMutableList().apply { this[workspaceIndex + 1] = "graph-mcp" } + (graphUrl?.let { listOf("--graph-url", it) } ?: emptyList())
         val configs = listOf(SERVER_NAME to command, GRAPH_SERVER_NAME to graphCommand)
         // Parse before touching either config; malformed JSON must never become an empty config.
         var claude = readObject(targets.claudeProjectConfig)

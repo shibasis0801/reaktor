@@ -17,6 +17,16 @@ class AgentWorkflowTest {
     ), listOf(WorkflowEdge("build", "review"), WorkflowEdge("review", "repair", WorkflowCondition.Repair),
         WorkflowEdge("review", "approve", WorkflowCondition.Pass), WorkflowEdge("repair", "approve")))
 
+    @Test fun anIndependentSuccessCannotHideAnUnhandledFailedBranch() {
+        val graph = WorkflowDefinition("branch", "Independent branches", listOf(worker), listOf(
+            WorkflowStage("failed", "Failed", worker.id), WorkflowStage("blocked", "Blocked", worker.id), WorkflowStage("ok", "OK", worker.id)),
+            listOf(WorkflowEdge("failed", "blocked")))
+        assertTrue(graph.failed(WorkflowProgress(mapOf("failed" to WorkflowStageResult(WorkflowStageStatus.Failed),
+            "blocked" to WorkflowStageResult(WorkflowStageStatus.Skipped), "ok" to WorkflowStageResult(WorkflowStageStatus.Completed)))))
+        assertFalse(graph.copy(edges = listOf(WorkflowEdge("failed", "blocked", WorkflowCondition.Failed))).failed(WorkflowProgress(mapOf(
+            "failed" to WorkflowStageResult(WorkflowStageStatus.Failed), "blocked" to WorkflowStageResult(WorkflowStageStatus.Completed), "ok" to WorkflowStageResult(WorkflowStageStatus.Completed)))))
+    }
+
     @Test fun conditionalDecisionsPauseAndResumeWithoutReplayingCompletedStages() = runBlocking {
         var checkpoint: ProtocolCheckpoint? = null
         val calls = mutableListOf<String>()

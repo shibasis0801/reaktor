@@ -39,7 +39,8 @@ object AgentBackgroundService {
                 }
             }
         } }
-        repeat(150) {
+        val readyBy = System.nanoTime() + TimeUnit.SECONDS.toNanos(60)
+        while (System.nanoTime() < readyBy) {
             runCatching { AgentWorkspaceConnection.open(root, directory, allowStart = false) }.getOrNull()?.let { return it }
             Thread.sleep(100)
         }

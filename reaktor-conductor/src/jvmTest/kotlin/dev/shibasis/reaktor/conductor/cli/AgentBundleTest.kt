@@ -43,7 +43,7 @@ class AgentBundleTest {
             assertTrue(installed.contains("\"--dir\", \"/tmp/ws\""))
             // Both servers: the workspace over stdio, the kernel's graph over loopback http.
             assertTrue(installed.contains("[mcp_servers.reaktor-graph]"))
-            assertTrue(installed.contains(AgentBundle.DEFAULT_GRAPH_URL))
+            assertFalse(installed.contains("--graph-url"), "Default graph registration follows workspace discovery across restarts")
             val status = AgentBundle.status(targets)
             assertTrue(status.codex)
             assertTrue(status.codexGraph)

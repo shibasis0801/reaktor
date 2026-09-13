@@ -168,6 +168,9 @@ class AgentWorkspaceConnection private constructor(
                 if (Files.exists(binding)) require(Files.readString(binding) == root.canonicalPath) { "Agent data belongs to a different workspace" }
                 else atomicWrite(binding, root.canonicalPath)
                 Files.deleteIfExists(discovery)
+                val graphDiscovery = directory.resolve("graph-connection.json")
+                if (graphUrl != null) atomicWrite(graphDiscovery, buildJsonObject { put("workspaceRoot", root.canonicalPath); put("url", graphUrl) }.toString())
+                else Files.deleteIfExists(graphDiscovery)
                 val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
                 val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
                 val mcpConfig = if (runtimes == null) directory.resolve("harness-mcp.json").also { path ->
@@ -191,7 +194,7 @@ class AgentWorkspaceConnection private constructor(
                 return AgentWorkspaceConnection(endpoint, discovery, true) {
                     try { hostedServer.close() }
                     finally { try { if (background) hostedWorkspace.suspendAndClose() else hostedWorkspace.close() }
-                    finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery) }
+                    finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery); Files.deleteIfExists(graphDiscovery) }
                     finally { ownerLock.release(); channel.close() } } }
                 }
             } catch (failure: Throwable) {
