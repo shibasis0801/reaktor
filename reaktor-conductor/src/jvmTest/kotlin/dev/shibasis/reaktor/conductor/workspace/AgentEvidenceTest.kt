@@ -35,6 +35,8 @@ class AgentEvidenceTest {
             store.resolve("task", "f1", repaired.id, "Verified draft restoration in tabs-test")
             assertEquals(repaired.id, store.accept("task", repaired.id).acceptedCandidate)
             File(root, "untracked.kt").writeText("new input")
+            val withNewFile = store.capture("task")
+            assertTrue(store.artifact("task", withNewFile.diff!!.id).text.contains("+new input"))
             assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id) }
             val reopened = AgentEvidenceStore(root, data)
             assertEquals("attempt-1", reopened.get("task").findings.single().producerRunId)

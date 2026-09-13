@@ -9,6 +9,9 @@ import dev.shibasis.reaktor.conductor.EffortRecord
 import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.AgentActivityItem
+import dev.shibasis.reaktor.conductor.ActivityKind
+import dev.shibasis.reaktor.conductor.ActivityStatus
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -108,13 +111,14 @@ class ClaudeCodeEventParser(
     private var serviceTier: String? = null
     private var completed = false
     private val text = StringBuilder()
+    private val toolNames = mutableMapOf<String, String>()
 
     override fun onLine(line: String): List<AgentEvent> {
         val payload = line.jsonLineOrNull() ?: return emptyList()
         val root = runCatching { json.parseToJsonElement(payload).jsonObject }.getOrNull()
             ?: return emptyList()
 
-        return when (root.string("type")) {
+        val events = when (root.string("type")) {
             "system" -> {
                 if (root.string("subtype") != "init") return emptyList()
                 root.string("session_id")?.let {
@@ -141,9 +145,25 @@ class ClaudeCodeEventParser(
                             AgentEvent.Reasoning(agent, chunk, ReasoningFidelity.Thinking, parentToolUse)
                         }
 
-                        "tool_use" -> AgentEvent.ToolUse(agent, block.string("name") ?: "tool")
+                        "tool_use" -> {
+                            val id = block.string("id") ?: "unknown-tool"
+                            val name = block.string("name") ?: "tool"
+                            toolNames[id] = name
+                            AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, name,
+                                ActivityStatus.Started, input = block["input"]?.toString(), parentId = parentToolUse))
+                        }
                         else -> null
                     }
+                }
+            }
+
+            "user" -> root.nested("message")?.get("content")?.jsonArray.orEmpty().mapNotNull { element ->
+                val block = element.jsonObject
+                if (block.string("type") != "tool_result") null else {
+                    val id = block.string("tool_use_id") ?: return@mapNotNull null
+                    AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, toolNames.remove(id) ?: "Tool result",
+                        if (block.boolean("is_error") == true) ActivityStatus.Failed else ActivityStatus.Completed,
+                        output = block["content"]?.toString(), parentId = root.string("parent_tool_use_id")))
                 }
             }
 
@@ -173,6 +193,10 @@ class ClaudeCodeEventParser(
             }
 
             else -> emptyList()
+        }
+        return events.flatMap { event ->
+            if (event is AgentEvent.Activity && event.item.kind == ActivityKind.Tool && event.item.status == ActivityStatus.Started)
+                listOf(AgentEvent.ToolUse(agent, event.item.title), event) else listOf(event)
         }
     }
 

@@ -31,6 +31,8 @@ sealed interface AgentEvent {
         val detail: String? = null,
     ) : AgentEvent
 
+    data class Activity(override val agent: AgentId, val item: AgentActivityItem) : AgentEvent
+
     /**
      * Reasoning the provider chose to surface, carrying the classification it gave it.
      *

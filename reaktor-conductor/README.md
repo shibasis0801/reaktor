@@ -27,10 +27,10 @@ Build the launcher once after source changes, then start the owner:
 
 ```sh
 reaktor-conductor/tools/agent-workspace --build help
-reaktor-conductor/tools/agent-workspace serve --dir /Users/ovd/dev/bestbuds
+reaktor-conductor/tools/agent-workspace start --dir /Users/ovd/dev/bestbuds
 ```
 
-Opening the desktop Chat pane starts or attaches to the same owner. A second `serve` reports the existing owner. Closing the owning desktop/process interrupts its active runs; use a separate headless `serve` process when work should outlive a window. Other connections do not own that process. `serve --dry` exposes only Echo for offline qualification.
+Opening the desktop Chat pane starts or attaches to the same owner. A second `serve` reports the existing owner. The desktop now connects to a macOS launchd service with its own headless kernel; closing the pane or desktop only detaches the UI. `workspace start` and the MCP bridge also start or attach to a supervised owner. Explicit `serve` remains a foreground owner whose exit ends its processes. Existing foreground owners are attached to without interrupting their work; stop them before switching to background supervision. `serve --dry` exposes only Echo for offline qualification.
 
 The core conversation tools are: `agent_workspace_info`, `agent_runs`, `agent_submit`, `agent_run`, `agent_wait`, `agent_cancel`, and `agent_transcript`. A submission contains `requestId`, `provider` (`Codex` or `ClaudeCode`), `prompt`, optional `threadId`, optional `model`, `allowWrites`, and optional `ContextPacket` as `context`. Retries of the same request ID and identical input return the saved run; changed input fails. A new request ID starts a new turn.
 
@@ -71,13 +71,36 @@ Task evidence is stored locally under the workspace's private `evidence` directo
 
 - `agent_task_graph` projects task → candidate → subject, finding → candidate and check → candidate relationships from the saved records.
 - `agent_candidate_capture` fingerprints working files, deletions, executable modes, symlinks, non-ignored untracked inputs, nested repositories and literal Gradle included-build roots. HEAD, graph definition identity and source content identity remain separate. Dynamic build roots, missing repositories and capture budgets produce explicit incomplete coverage. This is a working-source observation, not a transactional filesystem snapshot or a reproducible environment image.
-- `agent_artifact` retrieves bounded UTF-8 byte ranges of attached local diff/check artifacts. Native tools can inspect untracked files, whose content is fingerprinted but is not included in Git's tracked-file diff.
+- `agent_artifact` retrieves bounded UTF-8 byte ranges of attached local diff/check artifacts. Tracked changes and bounded untracked-file diffs are included; binary and over-budget content is qualified explicitly.
 - `agent_finding` records a producer-attributed finding against validated candidate references. `agent_finding_resolve` records repair evidence. These records are claims, not automatically proven diagnoses.
 - `agent_collect_check` imports a real receipt and verifies the retained artifact digest from the workspace-matched local kernel. Kernel Develop/Testing operations retain non-sensitive logs up to 16 MB, preserve early diagnostics beyond the UI event tail, and compare source identity before and after execution. Sensitive output remains withheld. Legacy event tails are explicitly partial and have no fabricated full-log reference.
 - `agent_acceptance_checks` declares required kernel task IDs. `agent_candidate_accept` requires a current complete candidate, passing imported checks and resolution of blocking findings on that candidate. Acceptance does not commit, merge or deploy.
-- `agent_queue`, `agent_queue_items` and `agent_queue_cancel` retain exact follow-ups. They run sequentially after successful predecessors; failure, interruption or owner restart blocks unstarted work rather than replaying it.
+- `agent_queue`, `agent_queue_items` and `agent_queue_cancel` retain exact follow-ups. They run sequentially after successful predecessors; failure or explicit cancellation blocks dependent work. A supervised owner retains waiting follow-ups across restart and dispatches them only after their predecessor completes or safely recovers.
 
-Workbench selection is passed through the kernel agent service with its application, environment, subject resolution and activation context. Dependency-cone resolution and definition revision coverage remain explicit gaps. The current Changes surface offers candidate diffs, check collection and findings; a visual workflow editor, full source/graph inspector links, durable per-task UI drafts, client authority and the complete tabs build → review → repair acceptance demonstration remain subsequent work. Manna/pgvector/Memgraph bootstrap data remains optional local retrieval, not a replacement graph authority or a prerequisite for these controls.
+Workbench selection is passed through the kernel agent service with its application, environment, subject resolution and activation context. Dependency-cone resolution and definition revision coverage remain explicit gaps. The current Changes surface offers candidate diffs, check collection and findings; a visual workflow editor, full source/graph inspector links, client authority and the complete tabs build → review → repair acceptance demonstration remain subsequent work. Manna/pgvector/Memgraph bootstrap data remains optional local retrieval, not a replacement graph authority or a prerequisite for these controls.
+
+## Background work, recovery and activity
+
+The desktop agent node connects to a workspace-scoped macOS LaunchAgent. The service hosts the kernel graph, native harnesses, local checks and the authenticated agent MCP endpoint. Its classpath is retained in private content-addressed JARs so `gradle clean` cannot remove the code required for restart. The desktop bundle retains `bin/java` for this process and its MCP bridges. The application/JDK installation must remain available; this is not a machine-independent execution image.
+
+| Event | Behavior |
+| --- | --- |
+| Close the agent pane or quit the desktop | Work and local checks continue in the service; reconnect attaches to the same task. |
+| UI connection drops | The task view retries observation with backoff; it does not resubmit work. |
+| Service exits or crashes | launchd restarts it. Completed protocol stages are reused with stable event identities. Pending admissions and queued turns remain local. |
+| A native stage/tool has no durable outcome | Recovery enters **Needs review**. Inspect native activity and source changes, then resume the unfinished stage or stop the task. Completed stages are not called again. |
+| A provider was awaiting an answer | Old process control handles are cleared. Recovery requires review; approvals are never replayed. |
+| Explicit **Stop task** / `workspace cancel` | Cancellation is saved before stopping execution; the task is not automatically resumed. |
+| `workspace stop` | Unloads the service for this login; checkpoints remain. It can restart on the next explicit start or macOS login. |
+| Sleep, logout, reboot or power off | No local execution while the machine/session is unavailable. The user LaunchAgent starts at login and inspects saved work. |
+
+`workspace resume --id <runId>` / `agent_resume` means the caller reviewed an interrupted stage and authorizes retrying its remaining work. It is not exactly-once execution of arbitrary tool effects, a rollback, or a resume from the middle of model inference. After three automatic recovery attempts, further recovery requires review. Linux/Windows supervision and remote execution while the laptop is unavailable remain pending.
+
+`workspace activity --id <runId> --after <cursor>` / `agent_activity` pages a durable journal of native tool lifecycle, available plan/agent/compaction events, controls and recovery. Entries retain provider identity, attempt, action parent, subject references, bounded input/output and truncation. They are recorded provider events, not access to hidden reasoning. The UI offers grouped/detailed views, filters and durations. Partial reply text is checkpointed at most once per second while streaming; the latest unsaved fragment can be lost in a crash. Completed stage output is separately durable. Activity and runtime images currently have no automatic retention/GC policy.
+
+The desktop also persists task drafts locally (300 ms debounce, flush on close), previews next-turn context with per-entry exclusions, and resolves recorded node selections back into the matching graph/context. These links do not claim a resolved dependency cone. The service's `agent_check_catalog`, `agent_check_start` and `agent_check_link` run admitted local Develop/Testing checks through the kernel, retain logs, and link terminal evidence to the exact checked source candidate. Source changes during a check invalidate its revision claim. Deployments and other higher-effect operations are excluded from this shortcut. The standalone framework service has no product check catalog; open the desktop first to install the kernel-hosted service.
+
+Qualification includes actual launchd client detachment, SIGKILL/restart and reviewed recovery, automatic reuse after a completed-stage checkpoint, queue and explicit-stop semantics, kernel checks through MCP, and live tool lifecycle capture from installed Codex 0.154.0 and Claude Code 2.1.270. This implements the background/activity/context/check foundation; arbitrary editable workflows, checkpoint forks, isolated parallel coding, native agent-tree orchestration and unattended client runbooks remain subsequent work.
 
 ## Manna context
 

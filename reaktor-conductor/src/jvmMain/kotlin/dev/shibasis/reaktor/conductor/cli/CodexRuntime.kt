@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.UsageScope
+import dev.shibasis.reaktor.conductor.appserver.codexActivity
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -117,9 +118,10 @@ class CodexEventParser(
                 listOf(AgentEvent.Started(agent, session))
             }
 
+            "item.started" -> root.nested("item")?.let { codexActivity(agent, it, false) }?.let(::listOf).orEmpty()
             "item.completed" -> {
                 val item = root.nested("item") ?: return emptyList()
-                when (item.string("type")) {
+                val legacy = when (item.string("type")) {
                     "agent_message" -> item.string("text")?.let { chunk ->
                         // Exec emits progress and the final answer as separate completed messages.
                         lastMessage = chunk
@@ -136,6 +138,7 @@ class CodexEventParser(
 
                     else -> emptyList()
                 }
+                legacy + listOfNotNull(codexActivity(agent, item, true))
             }
 
             "turn.completed" -> {

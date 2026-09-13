@@ -196,6 +196,7 @@ private class CodexAppServerSession(
                             }
 
                         "item/started", "item/completed" -> message.params.objectOrEmpty("item").let { item ->
+                            codexActivity(agent, item, message.method == "item/completed")?.let { send(it) }
                             when (item["type"]?.jsonPrimitive?.contentOrNull) {
                                 "agentMessage" -> if (message.method == "item/completed")
                                     finalText = item["text"]?.jsonPrimitive?.contentOrNull ?: finalText
@@ -208,6 +209,9 @@ private class CodexAppServerSession(
                                 else -> Unit
                             }
                         }
+
+                        "turn/plan/updated" -> send(AgentEvent.Activity(agent, AgentActivityItem(
+                            "plan-${turn ?: "current"}", ActivityKind.Plan, "Execution plan", output = message.params.toString())))
 
                         "thread/tokenUsage/updated" -> message.params.objectOrEmpty("tokenUsage").toUsage()?.let { usage = it }
 

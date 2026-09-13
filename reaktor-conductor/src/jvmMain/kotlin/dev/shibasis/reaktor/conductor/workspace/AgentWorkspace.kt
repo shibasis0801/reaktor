@@ -20,28 +20,24 @@ class AgentWorkspace(
     private val runtimes: Map<RuntimeKind, AgentRuntime>,
     private val maxActive: Int = 2,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-    /**
-     * What each configured runtime can do here. Injected so a test can state a capability instead
-     * of inheriting whichever CLIs happen to be installed on the machine running it.
-     */
     private val discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe,
     private val batchRuntimes: Map<RuntimeKind, AgentRuntime> = emptyMap(),
     private val harnessMcpConfig: String? = null,
+    private val background: Boolean = false,
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
     private val active = mutableMapOf<String, Job>()
-    /**
-     * Live sessions by run and agent, for as long as a turn is in flight.
-     *
-     * Only interactive runtimes ever appear here. A run on the batch pair has nothing to register,
-     * which is why every command below answers Unsupported rather than silently doing nothing.
-     */
     private val sessions = java.util.concurrent.ConcurrentHashMap<String, MutableMap<String, AgentSession>>()
     private val records = mutableMapOf<String, AgentRunRecord>()
     private val index = directory.resolve("recent.json")
     private var recent = emptyList<String>()
     private var closed = false
+    private var suspending = false
+    private val lastPersisted = mutableMapOf<String, Long>()
+    private val serviceStartedAt = System.currentTimeMillis()
+    val activity = AgentActivityStore(directory.resolve("activity"))
+    private val activityProjection = AgentActivityProjection()
     private val queueFile = directory.resolve("queue.json")
     private var queued: List<AgentQueuedTurn> = if (Files.exists(queueFile))
         ConductorJson.decodeFromString(ListSerializer(AgentQueuedTurn.serializer()), Files.readString(queueFile)) else emptyList()
@@ -75,11 +71,20 @@ class AgentWorkspace(
         privateDirectory(directory.resolve("runs"))
         privateDirectory(directory.resolve("threads"))
         privateDirectory(directory.resolve("requests"))
+        privateDirectory(directory.resolve("checkpoints"))
         if (Files.exists(index)) recent = ConductorJson.decodeFromString(ListSerializer(String.serializer()), Files.readString(index))
         require(recent.size <= 200) { "Invalid recent-run index" }
+        // Admission can crash after saving a run but before updating the recent index.
+        val diskIds = Files.list(directory.resolve("runs")).use { paths ->
+            paths.map { it.fileName.toString().removeSuffix(".json") }.filter { it.matches(Regex("[a-f0-9]{64}")) }.toList()
+        }
+        recent = (recent + diskIds).distinct().mapNotNull(::load).sortedByDescending { it.startedAt }.take(200).map { it.id }
+        atomicWrite(index, ConductorJson.encodeToString(ListSerializer(String.serializer()), recent))
         recent.forEach { id -> load(id)?.let { saved ->
             records[id] = if (saved.status == AgentRunStatus.Running) saved.copy(
                 status = AgentRunStatus.Interrupted, revision = saved.revision + 1,
+                recovery = if (background && saved.pending.isEmpty() && saved.participants.values.none { it.pending.isNotEmpty() }) AgentRecovery.Pending else AgentRecovery.NeedsReview,
+                recoveryReason = "Previous owner exited; inspecting saved execution state",
                 pending = emptyList(),
                 participants = saved.participants.mapValues { (_, participant) -> if (participant.status == AgentRunStatus.Running)
                     participant.copy(status = AgentRunStatus.Interrupted, activeTurn = null, pending = emptyList()) else participant },
@@ -88,10 +93,12 @@ class AgentWorkspace(
         } }
         queued = queued.map { item -> if (item.state == "waiting") {
             if (load(item.id) != null) item.copy(state = "dispatched", runId = item.id)
-            else item.copy(state = "blocked", error = "Owner restarted; queued work requires resubmission")
+            else if (background) item else item.copy(state = "blocked", error = "Owner restarted; queued work requires resubmission")
         } else item }
         persistQueue()
     }
+
+    fun recoverInBackground() { if (background) scope.launch { synchronized(lock) { recoverPending(); dispatchQueued() } } }
 
     fun queue(afterRunId: String, request: AgentSubmission): AgentQueuedTurn = synchronized(lock) {
         val id = digest(request.requestId)
@@ -124,7 +131,7 @@ class AgentWorkspace(
                 }
                 continue
             }
-            if (parent.status == AgentRunStatus.Running) continue
+            if (parent.status == AgentRunStatus.Running || parent.recovery != AgentRecovery.None) continue
             val updated = if (parent.status != AgentRunStatus.Completed) item.copy(state = "blocked", error = "Previous turn did not complete")
             else runCatching { submit(item.submission) }.fold(
                 { item.copy(state = "dispatched", runId = it.id) },
@@ -135,32 +142,7 @@ class AgentWorkspace(
         }
     }
 
-    // Probing runs `--version` and `--help` per provider, so it happens once and is reused. An
-    // upgraded CLI is picked up by restarting the owner rather than by paying for a probe per call.
-    private val capabilities: List<ProviderCapability> by lazy {
-        runtimes.map { (kind, runtime) ->
-            // Session support is a property of the runtime that is actually wired here, not of the
-            // installed CLI, so it is read from the runtime rather than probed.
-            val discovered = discover(kind)
-            val session = (runtime as? InteractiveAgentRuntime)?.interactive ?: Qualification.unavailable
-            val testedVersion = when (kind) { RuntimeKind.Codex -> "0.154.0"; RuntimeKind.ClaudeCode -> "2.1.270"; else -> null }
-            val sameVersion = testedVersion != null && discovered.version?.contains(testedVersion) == true
-            val controls = if (runtime !is InteractiveAgentRuntime) emptyMap() else {
-                val implemented = if (kind == RuntimeKind.Codex) listOf("start", "steer", "interrupt", "commandApproval", "fileApproval", "questions", "permissions", "elicitation")
-                    else listOf("start", "steer", "interrupt", "questions", "permissions")
-                implemented.associateWith { name ->
-                    val qualification = when {
-                        name == "start" -> session.qualifiedBy
-                        kind == RuntimeKind.Codex && name == "commandApproval" -> "NativeControlsLiveTest: command denial and stale replay"
-                        kind == RuntimeKind.ClaudeCode && name in listOf("questions", "permissions") -> "NativeControlsLiveTest: question answer and permission denial"
-                        else -> null
-                    }
-                    Qualification(true, true, true, qualification?.takeIf { sameVersion })
-                }
-            }
-            discovered.copy(session = session.copy(qualifiedBy = session.qualifiedBy?.takeIf { sameVersion }), controls = controls)
-        }
-    }
+    private val capabilities by lazy { workspaceCapabilities(runtimes, discover) }
 
     fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive,
         collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single),
@@ -170,26 +152,13 @@ class AgentWorkspace(
             add(AgentTransport.Automatic)
             if (runtimes.values.any { it is InteractiveAgentRuntime }) add(AgentTransport.Interactive)
             if (batchRuntimes.isNotEmpty() || runtimes.values.any { it !is InteractiveAgentRuntime }) add(AgentTransport.Batch)
-        })
+        }, service = AgentServiceInfo(ProcessHandle.current().pid(), serviceStartedAt, background, if (background) System.getenv("REAKTOR_AGENT_SUPERVISOR") else null))
 
-    /**
-     * Refuses an effort the provider does not advertise instead of quietly sending a different one.
-     * A provider whose set cannot be enumerated accepts the value and records it as unverified.
-     */
     private fun requireSupportedEffort(provider: RuntimeKind, effort: NativeEffort?) {
         val resolution = capabilities.firstOrNull { it.runtime == provider }?.effort.resolve(effort)
         if (resolution is EffortResolution.Unsupported) throw UnsupportedEffortException(resolution)
     }
 
-    /**
-     * Re-attaches to a run that is still in flight.
-     *
-     * A client that dropped — a closed desktop, a restarted MCP session — needs the run's current
-     * state and, crucially, what it is blocked on, without re-asking anything. Observation is not
-     * ownership: attaching does not take the execution lease and does not dispatch work. A run that
-     * has already ended attaches to its saved receipt, which is the honest answer rather than an
-     * error, because the client's question was "what happened", not "is it running".
-     */
     fun attach(runId: String): AgentAttachment = synchronized(lock) {
         val record = records[runId] ?: load(runId) ?: throw IllegalArgumentException("Run not found in this workspace")
         val live = sessions[runId].orEmpty()
@@ -203,18 +172,10 @@ class AgentWorkspace(
         )
     }
 
-    /**
-     * Answers one request a provider is blocked on.
-     *
-     * Routed to the live session rather than recorded as an intention, so nothing is "approved" in
-     * the journal that the provider never heard. A run whose transport holds no session reports
-     * [CommandOutcome.Unsupported] instead of accepting an answer nobody will act on.
-     */
     suspend fun resolve(runId: String, agent: String, requestId: String, decision: AgentDecision): CommandOutcome =
         withSession(runId, agent) { it.resolve(requestId, decision) }
             .also { if (it is CommandOutcome.Accepted) update(runId, true) { record -> record.withRequestResolved(agent, requestId) } }
 
-    /** Adds input to a turn in flight. [expectedTurn] is a precondition the provider checks. */
     suspend fun steer(runId: String, agent: String, text: String, expectedTurn: String?): CommandOutcome {
         require(text.isNotBlank() && text.length <= 100000)
         return withSession(runId, agent) { it.steer(text, expectedTurn) }
@@ -223,9 +184,7 @@ class AgentWorkspace(
     suspend fun interrupt(runId: String, agent: String): CommandOutcome =
         withSession(runId, agent) { it.interrupt() }
 
-    /** What each participant can be asked to do right now, for a client deciding which controls to show. */
-    fun controls(runId: String): Map<String, Boolean> =
-        sessions[runId]?.mapValues { true }.orEmpty()
+    fun controls(runId: String): Map<String, Boolean> = sessions[runId]?.mapValues { true }.orEmpty()
 
     private suspend fun withSession(runId: String, agent: String, body: suspend (AgentSession) -> CommandOutcome): CommandOutcome {
         val session = sessions[runId]?.get(agent)
@@ -271,6 +230,7 @@ class AgentWorkspace(
         val path = threadPath(threadId)
         require(request.threadId == null || Files.exists(path)) { "Conversation not found in this workspace" }
         require(active.keys.none { records[it]?.threadId == threadId }) { "Conversation already has an active turn" }
+        require(records.values.none { it.threadId == threadId && it.recovery != AgentRecovery.None }) { "Resume or stop this task's interrupted turn before starting another" }
         val now = System.currentTimeMillis()
         val record = AgentRunRecord(id, threadId, request.provider, fingerprint, request.prompt.take(200),
             request.model, request.allowWrites, startedAt = now, updatedAt = now,
@@ -283,12 +243,21 @@ class AgentWorkspace(
         records[id] = record
         recent = (listOf(id) + recent).distinct().take(200)
         atomicWrite(index, ConductorJson.encodeToString(ListSerializer(String.serializer()), recent))
+        startRun(record, request)
+        record
+    }
+
+    private fun startRun(record: AgentRunRecord, request: AgentSubmission) {
+        val id = record.id
+        val threadId = record.threadId
+        val path = threadPath(threadId)
+        val now = System.currentTimeMillis()
         val job = scope.launch(start = CoroutineStart.LAZY) { execute(record, request) }
         active[id] = job
         records.keys.retainAll(recent.toSet() + active.keys)
         job.invokeOnCompletion {
             synchronized(lock) {
-                if (records[id]?.status == AgentRunStatus.Running) {
+                if (records[id]?.status == AgentRunStatus.Running && !suspending) {
                     FileThreadStore.open(path).use { store ->
                         val saved = store.load() ?: ThreadDocument(ThreadId(threadId), record.title)
                         val prompt = ThreadEvent(EventId(UUID.randomUUID().toString()), Author.Human(), EventKind.Prompt,
@@ -305,7 +274,50 @@ class AgentWorkspace(
         }
         changes.value++
         job.start()
-        record
+    }
+
+    private fun checkpointPath(id: String) = directory.resolve("checkpoints/${runPath(id).fileName}")
+    private fun checkpoint(id: String): ProtocolCheckpoint? = checkpointPath(id).takeIf(Files::exists)?.let {
+        ConductorJson.decodeFromString(ProtocolCheckpoint.serializer(), Files.readString(it))
+    }
+
+    private fun recoverPending() {
+        if (closed || active.isNotEmpty()) return
+        records.values.filter { it.recovery == AgentRecovery.Pending }.sortedBy { it.startedAt }.forEach { saved ->
+            val reason = runCatching { when {
+                saved.attempt >= 3 -> "Recovery paused after three attempts; inspect the repeated failure"
+                saved.pending.isNotEmpty() || saved.participants.values.any { it.pending.isNotEmpty() } -> "A provider was waiting for a decision when its owner exited"
+                activity.unresolved(saved.id, saved.attempt).isNotEmpty() -> "A tool was in flight when the owner exited; inspect its effects before resuming"
+                checkpoint(saved.id)?.inFlight?.isNotEmpty() == true -> "The native stage ended without a durable result. Inspect its session and effects before retrying that stage"
+                else -> null
+            } }.getOrElse { "Saved execution state could not be read: ${it.message.orEmpty().take(300)}" }
+            if (reason != null) update(saved.id, true) { it.copy(recovery = AgentRecovery.NeedsReview, recoveryReason = reason) }
+            else {
+                runCatching { resume(saved.id) }.onFailure { failure ->
+                    update(saved.id, true) { it.copy(recovery = AgentRecovery.NeedsReview, recoveryReason = "Recovery could not start: ${failure.message.orEmpty().take(300)}") }
+                }
+                if (active.isNotEmpty()) return
+            }
+        }
+    }
+
+    fun resume(id: String): AgentRunRecord = synchronized(lock) {
+        check(!closed)
+        val saved = get(id)
+        if (saved.status == AgentRunStatus.Running) return@synchronized saved
+        require(saved.recovery != AgentRecovery.None) { "This run is not awaiting recovery" }
+        require(active.isEmpty()) { "Wait for active workspace work before recovering this run" }
+        val request = ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(directory.resolve("requests/$id.json")))
+        require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
+        checkpoint(id)
+        val next = saved.copy(status = AgentRunStatus.Running, recovery = AgentRecovery.Resuming, attempt = saved.attempt + 1,
+            recoveryReason = "Continuing from saved stage results; completed stages are reused", failure = null,
+            pending = emptyList(), participants = saved.participants.mapValues { it.value.copy(pending = emptyList(), activeTurn = null) },
+            revision = saved.revision + 1, updatedAt = System.currentTimeMillis())
+        persist(next); records[id] = next
+        activity.append(id, "workspace", next.attempt, AgentActivityItem("recovery-${next.attempt}", ActivityKind.Recovery, "Resuming saved work", output = next.recoveryReason))
+        startRun(next, request)
+        next
     }
 
     fun get(id: String): AgentRunRecord = synchronized(lock) {
@@ -329,15 +341,24 @@ class AgentWorkspace(
     }
 
     suspend fun cancel(id: String): AgentRunRecord {
-        val job = synchronized(lock) { get(id); active[id] }
+        val job = synchronized(lock) {
+            val saved = get(id)
+            if (saved.status != AgentRunStatus.Running && saved.recovery == AgentRecovery.None) return saved
+            update(id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.None, recoveryReason = null, failure = "Stopped by the user",
+                pending = emptyList(), participants = it.participants.mapValues { (_, participant) -> participant.copy(
+                    status = if (participant.status == AgentRunStatus.Running) AgentRunStatus.Interrupted else participant.status,
+                    activeTurn = null, pending = emptyList()) }) }
+            sessions.remove(id)
+            active[id]
+        }
         job?.cancelAndJoin()
+        dispatchQueued()
         return get(id)
     }
 
     fun transcript(threadId: String): AgentTranscript {
         val path = threadPath(threadId)
         require(Files.exists(path)) { "Conversation not found in this workspace" }
-        // Atomic checkpoints can be read while the owner holds the writer lock.
         val document = decodeThread(Files.readString(path))
         var remaining = 24000
         val selected = document.events.takeLast(20).asReversed().map { event ->
@@ -375,7 +396,8 @@ class AgentWorkspace(
                     tools = ToolPolicy(allowWrites = request.allowWrites, mcpConfig = harnessMcpConfig))
                 val specs = listOf(spec(request.provider, request.model, request.effort)) +
                     listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) })
-                val saved = store.load() ?: ThreadDocument(ThreadId(initial.threadId), initial.title)
+                val restored = checkpoint(initial.id)
+                val saved = restored?.thread ?: store.load() ?: ThreadDocument(ThreadId(initial.threadId), initial.title)
                 val ids = specs.map { it.id }
                 val invalidated = specs.filter { saved.agent(it.id)?.let { prior -> prior != it } == true }.map { it.id.value }
                 val document = saved.copy(participants = saved.participants.filterNot { it.id in ids } + specs,
@@ -389,6 +411,8 @@ class AgentWorkspace(
                     val result = Conductor(if (useBatch(request)) batchRuntimes else runtimes, clock = System::currentTimeMillis, idFactory = { EventId(UUID.randomUUID().toString()) }).run(
                         document, request.prompt, protocol, root.canonicalPath,
                         context = context, resumeProviderSession = request.collaboration == AgentCollaboration.Single,
+                        resumeFrom = restored,
+                        onProgress = { progress -> atomicWrite(checkpointPath(initial.id), ConductorJson.encodeToString(ProtocolCheckpoint.serializer(), progress)) },
                         onSession = { agentId, session ->
                             sessions.computeIfAbsent(initial.id) { java.util.concurrent.ConcurrentHashMap() }[agentId.value] = session
                         },
@@ -404,57 +428,16 @@ class AgentWorkspace(
                                 checkpoint.copy(providerSessions = checkpoint.providerSessions - ids.map { it.value }.toSet()))
                             update(initial.id, true) { it.copy(turnUsage = checkpoint.copy(events = checkpoint.events.drop(saved.events.size)).usageSummary()) }
                         },
-                        onEvent = { event -> update(initial.id, persistNow = event !is AgentEvent.Delta && event !is AgentEvent.Reasoning) { current ->
-                            val participant = current.participants[event.agent.value] ?: AgentParticipantRun(specs.first { it.id == event.agent }.runtime)
-                            val next = when (event) {
-                                is AgentEvent.Started -> participant.copy(status = AgentRunStatus.Running, session = event.session, output = "", outputTruncated = false, lastTool = null)
-                                is AgentEvent.TurnStarted -> participant.copy(activeTurn = event.turnId)
-                                is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
-                                    outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
-                                is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
-                                // Kept out of `output` so a view can collapse it, and tagged with the
-                                // provider's own classification so a summary is never shown as thinking.
-                                // A request the provider is blocked on is journalled rather than
-                                // answered here: policy decides, and a reconnect must not re-ask.
-                                is AgentEvent.RequestPending -> participant.copy(
-                                    pending = (participant.pending.filterNot { it.id == event.request.id } + event.request).takeLast(20))
-                                is AgentEvent.RequestResolved -> participant.copy(
-                                    pending = participant.pending.filterNot { it.id == event.requestId })
-                                is AgentEvent.Reasoning -> participant.copy(
-                                    reasoning = (participant.reasoning + event.text).takeLast(6000),
-                                    reasoningTruncated = participant.reasoningTruncated || participant.reasoning.length + event.text.length > 6000,
-                                    reasoningFidelity = event.fidelity,
-                                )
-                                is AgentEvent.Finished -> participant.copy(status = if (event.outcome.interrupted) AgentRunStatus.Interrupted else if (event.outcome.ok) AgentRunStatus.Completed else AgentRunStatus.Failed,
-                                    activeTurn = null, pending = emptyList(), effort = event.outcome.effort,
-                                    output = (event.outcome.failure ?: event.outcome.text).takeLast(6000),
-                                    outputTruncated = (event.outcome.failure ?: event.outcome.text).length > 6000,
-                                    session = event.outcome.session ?: participant.session)
-                            }
-                            val withParticipant = current.copy(participants = current.participants + (event.agent.value to next))
-                            if (request.collaboration != AgentCollaboration.Single) withParticipant else when (event) {
-                            is AgentEvent.Started -> withParticipant.copy(session = event.session)
-                            is AgentEvent.TurnStarted -> withParticipant
-                            is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
-                                outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
-                            is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
-                            is AgentEvent.RequestPending -> withParticipant.copy(
-                                pending = (current.pending.filterNot { it.id == event.request.id } + event.request).takeLast(20))
-                            is AgentEvent.RequestResolved -> withParticipant.copy(
-                                pending = current.pending.filterNot { it.id == event.requestId })
-                            is AgentEvent.Reasoning -> withParticipant.copy(
-                                reasoning = (current.reasoning + event.text).takeLast(12000),
-                                reasoningTruncated = current.reasoningTruncated || current.reasoning.length + event.text.length > 12000,
-                                reasoningFidelity = event.fidelity)
-                            is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session,
-                                effort = event.outcome.effort.takeIf { it != EffortRecord.none } ?: current.effort,
-                                serviceTier = event.outcome.serviceTier ?: current.serviceTier)
-                        } } },
+                        onEvent = { event ->
+                            recordActivity(initial.id, event)
+                            update(initial.id, persistNow = event !is AgentEvent.Delta && event !is AgentEvent.Reasoning) { current ->
+                                if (current.status != AgentRunStatus.Running) current else projectAgentEvent(current, event, specs.first { it.id == event.agent }.runtime)
+                        } },
                     )
                     val answer = result.answer
                     val failures = result.added.filter { it.kind == EventKind.Failure }
-                    update(initial.id, true) { it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
-                        pending = emptyList(),
+                    update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
+                        pending = emptyList(), recovery = AgentRecovery.None, recoveryReason = null,
                         output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
                         usage = answer?.usage?.takeIf { request.collaboration == AgentCollaboration.Single },
                         reportedUsage = answer?.reportedUsage?.takeIf { request.collaboration == AgentCollaboration.Single },
@@ -469,15 +452,17 @@ class AgentWorkspace(
                 }
             }
         } catch (failure: Exception) {
-            update(initial.id, true) { it.copy(status = if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed,
+            update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (suspending) AgentRunStatus.Running else if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed,
+                recovery = if (suspending) AgentRecovery.Pending else AgentRecovery.None,
                 pending = emptyList(),
                 participants = it.participants.mapValues { (_, participant) -> if (participant.status == AgentRunStatus.Running)
                     participant.copy(status = if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed, activeTurn = null, pending = emptyList()) else participant },
                 failure = if (failure is CancellationException) "Interrupted by the workspace owner" else failure.message.orEmpty().take(2000)) }
         } finally {
-            // A session outliving its run would let a late answer reach a finished turn.
             sessions.remove(initial.id)
+            activityProjection.finished(initial.id)
             synchronized(lock) { active.remove(initial.id); changes.value++ }
+            synchronized(lock) { recoverPending() }
             dispatchQueued()
         }
     }
@@ -497,13 +482,13 @@ class AgentWorkspace(
     private fun update(id: String, persistNow: Boolean, change: (AgentRunRecord) -> AgentRunRecord) = synchronized(lock) {
         val current = records.getValue(id)
         val next = change(current).copy(revision = current.revision + 1, updatedAt = System.currentTimeMillis())
-        if (persistNow) persist(next)
+        if (persistNow || next.updatedAt - (lastPersisted[id] ?: 0) >= 1000) { persist(next); lastPersisted[id] = next.updatedAt }
         records[id] = next
         changes.value++
     }
 
     private fun recover(record: AgentRunRecord): AgentRunRecord =
-        if (record.status == AgentRunStatus.Running && record.id !in active) record.copy(status = AgentRunStatus.Interrupted,
+        if (record.status == AgentRunStatus.Running && record.id !in active && record.recovery != AgentRecovery.Pending) record.copy(status = AgentRunStatus.Interrupted,
             participants = record.participants.mapValues { (_, participant) -> if (participant.status == AgentRunStatus.Running)
                 participant.copy(status = AgentRunStatus.Interrupted) else participant },
             revision = record.revision + 1, failure = "Owner stopped without a terminal result; inspect changes before continuing.").also { persist(it); records[it.id] = it }
@@ -526,5 +511,12 @@ class AgentWorkspace(
         val jobs = synchronized(lock) { closed = true; active.values.toList() }
         runBlocking { jobs.forEach { it.cancel() }; jobs.joinAll() }
         scope.cancel()
+    }
+
+    fun suspendAndClose() { synchronized(lock) { suspending = true }; close() }
+
+    private fun recordActivity(id: String, event: AgentEvent) {
+        val item = activityProjection.item(id, event) ?: return
+        activity.append(id, event.agent.value, synchronized(lock) { records.getValue(id).attempt }, item)
     }
 }

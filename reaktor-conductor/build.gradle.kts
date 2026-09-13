@@ -73,3 +73,12 @@ tasks.register("prepareAgentLauncher") {
         }
     }
 }
+
+tasks.named<Test>("jvmTest") {
+    val compilation = kotlin.jvm().compilations.getByName("test")
+    inputs.property("serviceTest", providers.environmentVariable("REAKTOR_AGENT_SERVICE_TEST").getOrElse("0"))
+    inputs.property("nativeActivityTest", providers.environmentVariable("REAKTOR_NATIVE_ACTIVITY_TEST").getOrElse("0"))
+    doFirst {
+        systemProperty("reaktor.conductor.testClasspath", files(compilation.output.allOutputs, compilation.runtimeDependencyFiles).asPath)
+    }
+}

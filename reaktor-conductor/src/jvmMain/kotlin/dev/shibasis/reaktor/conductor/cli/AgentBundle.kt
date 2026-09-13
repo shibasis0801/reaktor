@@ -32,8 +32,9 @@ object AgentBundle {
             require(override.isNotEmpty()) { "A launch command needs at least an executable" }
             return override + listOf("workspace", "mcp", "--dir", root.canonicalPath)
         }
-        val executable = ProcessHandle.current().info().command().orElse(null)
-            ?: error("Could not determine how this process was launched; pass --command")
+        val executable = File(System.getProperty("java.home"), "bin/java").also {
+            require(it.canExecute()) { "This runtime has no Java launcher; configure a service launch command" }
+        }.absolutePath
         val classpath = System.getProperty("java.class.path") ?: error("No classpath to reuse; pass --command")
         return listOf(executable, "-cp", classpath, "dev.shibasis.reaktor.conductor.cli.ConductorCliKt",
             "workspace", "mcp", "--dir", root.canonicalPath)
