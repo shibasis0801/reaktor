@@ -32,6 +32,8 @@ data class AgentParticipantRun(
     val reasoningTruncated: Boolean = false,
     val reasoningFidelity: ReasoningFidelity? = null,
     val effort: EffortRecord = EffortRecord.none,
+    /** Requests this participant is blocked on. Persisted, so a reconnect does not re-ask. */
+    val pending: List<PendingRequest> = emptyList(),
 )
 
 @Serializable
@@ -78,6 +80,7 @@ data class AgentRunRecord(
     val reasoning: String = "",
     val reasoningTruncated: Boolean = false,
     val reasoningFidelity: ReasoningFidelity? = null,
+    val pending: List<PendingRequest> = emptyList(),
 )
 
 @Serializable
