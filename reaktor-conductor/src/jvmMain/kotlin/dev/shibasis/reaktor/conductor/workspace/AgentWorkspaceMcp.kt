@@ -32,7 +32,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
             }
             buildJsonObject { put("runs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentRunRecord.serializer()), summaries)) }
         },
-        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider. Collaborative turns request inspection and use fresh provider sessions. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
+        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
             objectSchema(mapOf(
                 "requestId" to stringSchema("Unique idempotency key for this exact submission"),
                 "provider" to enumSchema("Provider configured by this workspace", workspace.info().providers.map { it.name }),
@@ -42,7 +42,9 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
                 "effort" to stringSchema("Native reasoning effort; omitted preserves provider defaults"),
                 "transport" to enumSchema("Automatic uses interactive Single and batch collaboration", listOf("Automatic", "Interactive", "Batch")),
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
-                "collaboration" to enumSchema("Single by default; Compare and Council require a partner and allowWrites=false", workspace.info().collaborations.map { it.name }),
+                "isolation" to enumSchema("Shared source or owned Worktree", listOf("Shared", "Worktree")),
+                "workflow" to buildJsonObject { put("type", "object"); put("description", "WorkflowDefinition: id,title,participants AgentSpecs,stages(id,title,agent,instruction,action Agent|Check|Gate,contract Text|Decision,checkId),edges(from,to,whenResult Always|Succeeded|Failed|Pass|Repair),subjectRefs. Bounded DAG, explicit gate resume."); put("additionalProperties", true) },
+                "collaboration" to enumSchema("Single by default; Compare and Council require a partner; editing requires Worktree isolation", workspace.info().collaborations.map { it.name }),
                 "partner" to objectSchema(mapOf(
                     "provider" to enumSchema("Second configured provider, different from the primary provider", workspace.info().providers.map { it.name }),
                     "model" to stringSchema("Optional partner model; omitted uses its provider configuration"),
@@ -64,7 +66,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
             AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.conductor.AgentActivityPage.serializer(), workspace.activity.page(it.string("runId"), it.long("after", 0), it.long("limit", 50).toInt()))
         },
         McpTool("agent_resume", "Continue remaining stages of an interrupted run after inspecting uncertain effects. Reuses completed stage results; may invoke native tools and incur model usage.",
-            runSchema, false, true, destructive = true, openWorld = true) { result(workspace.resume(it.string("runId"))) },
+            objectSchema(mapOf("runId" to stringSchema("Exact run id"), "expectedRevision" to buildJsonObject { put("type", "integer"); put("description", "Reviewed run revision; required for a workflow gate. A retry after the run changes is stale.") }), listOf("runId")), false, false, destructive = true, openWorld = true) { result(workspace.resume(it.string("runId"), (it["expectedRevision"] as? JsonPrimitive)?.longOrNull)) },
         McpTool("agent_wait", "Wait for a run revision to change or become terminal. Returns bounded current state; use the returned revision next time.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"),
                 "afterRevision" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
@@ -114,7 +116,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
             objectSchema(mapOf("threadId" to stringSchema("Reaktor conversation id")), listOf("threadId")), true, true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId")))
         },
-    ) + agentEvidenceTools(workspace) + extraTools
+    ) + agentEvidenceTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
     return ReaktorMcpServer("reaktor-agent-workspace", "1.0.0",
         "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.", tools)
 }

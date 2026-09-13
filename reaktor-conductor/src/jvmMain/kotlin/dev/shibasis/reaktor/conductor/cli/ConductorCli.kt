@@ -127,6 +127,7 @@ fun main(args: Array<String>): Unit = runBlocking {
         )
 
         val label = when (protocol) {
+            is Protocol.Graph -> "workflow ${protocol.definition.title}"
             is Protocol.Ask -> "ask ${protocol.agent.value}"
             is Protocol.All -> "all"
             is Protocol.Council -> "council"

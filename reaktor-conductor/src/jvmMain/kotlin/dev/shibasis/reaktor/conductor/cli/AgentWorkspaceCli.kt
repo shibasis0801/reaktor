@@ -13,6 +13,8 @@ internal suspend fun workspaceCli(args: List<String>) {
         println("""
             workspace serve --dir <workspace> [--dry] [--background]
             workspace start|stop --dir <workspace>
+            workspace upgrade --dir <workspace> --request <Java-command-array.json>
+            workspace call --dir <workspace> --tool <toolName> [--request <arguments.json>] [--remote <SSH-profile.json>]
             workspace mcp --dir <workspace>
             workspace info|runs --dir <workspace>
             workspace submit --dir <workspace> --request <AgentSubmission.json>
@@ -33,14 +35,19 @@ internal suspend fun workspaceCli(args: List<String>) {
     var index = 1
     while (index < args.size) {
         val key = args[index++]
-        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--background", "--command", "--graph-url")) { "Unknown option: $key" }
+        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--background", "--command", "--graph-url", "--tool", "--remote", "--expected-revision")) { "Unknown option: $key" }
         require(key !in options) { "Duplicate option: $key" }
         options[key] = if (key in setOf("--dry", "--background")) "true" else args.getOrNull(index++) ?: error("Missing value for $key")
     }
     require(action in setOf("serve", "start", "stop", "resume", "activity", "mcp", "info", "runs", "submit", "read", "wait", "cancel", "transcript",
-        "install", "uninstall", "bundle", "graph-mcp"))
+        "install", "uninstall", "bundle", "graph-mcp", "upgrade", "call"))
     require("--dry" !in options || action == "serve")
+    require("--remote" !in options || action in setOf("mcp", "info", "runs", "submit", "read", "wait", "cancel", "resume", "transcript", "activity", "call")) { "Remote connections attach to an already provisioned host" }
     val root = File(options["--dir"] ?: ".").canonicalFile
+    if (action == "upgrade") {
+        val command = ConductorJson.parseToJsonElement(File(options["--request"] ?: error("--request must name a JSON array with the new Java launch command")).readText()).jsonArray.map { it.jsonPrimitive.content }
+        AgentBackgroundService.upgrade(root, command).use { println(it.call("agent_workspace_info")) }; return
+    }
     if (action == "stop") { println(AgentBackgroundService.stop(root)); return }
     if (action == "start") { AgentBackgroundService.connect(root).use { println(it.call("agent_workspace_info")) }; return }
     if (action == "graph-mcp") {
@@ -67,7 +74,8 @@ internal suspend fun workspaceCli(args: List<String>) {
     }
 
     val runtimes = if ("--dry" in options) mapOf(RuntimeKind.Echo to EchoRuntime()) else null
-    (if (action == "mcp") AgentBackgroundService.connect(root) else
+    (if (options["--remote"] != null) AgentWorkspaceConnection.remote(ConductorJson.decodeFromString(AgentRemoteProfile.serializer(), File(options.getValue("--remote")).readText()))
+        else if (action == "mcp") AgentBackgroundService.connect(root) else
         AgentWorkspaceConnection.open(root, runtimes = runtimes, allowStart = action == "serve", background = "--background" in options)).use { connection ->
         if (action == "serve") {
             check(connection.ownsService) { "A workspace owner is already running at ${connection.url}" }
@@ -85,6 +93,9 @@ internal suspend fun workspaceCli(args: List<String>) {
         }
         fun id() = options["--id"] ?: error("--id is required")
         val value = when (action) {
+            "call" -> connection.call(options["--tool"] ?: error("--tool is required"), options["--request"]?.let { file ->
+                val path = File(file); require(path.length() in 1..250000); ConductorJson.parseToJsonElement(path.readText()).jsonObject
+            } ?: buildJsonObject {})
             "info" -> connection.call("agent_workspace_info")
             "runs" -> connection.call("agent_runs")
             "submit" -> {
@@ -94,7 +105,7 @@ internal suspend fun workspaceCli(args: List<String>) {
                 AgentWorkspaceJson.encodeToJsonElement(AgentRunRecord.serializer(), connection.submit(request))
             }
             "transcript" -> connection.call("agent_transcript", buildJsonObject { put("threadId", id()) })
-            "resume" -> connection.call("agent_resume", buildJsonObject { put("runId", id()) })
+            "resume" -> connection.call("agent_resume", buildJsonObject { put("runId", id()); options["--expected-revision"]?.let { put("expectedRevision", it.toLong()) } })
             "activity" -> connection.call("agent_activity", buildJsonObject { put("runId", id()); put("after", options["--after"]?.toLong() ?: 0) })
             else -> connection.call(when (action) { "read" -> "agent_run"; "wait" -> "agent_wait"; else -> "agent_cancel" },
                 buildJsonObject { put("runId", id()); if (action == "wait") put("afterRevision", options["--after"]?.toLong() ?: 0) })

@@ -24,6 +24,9 @@ data class Stage(
  */
 @Serializable
 sealed interface Protocol {
+    @Serializable
+    @SerialName("graph")
+    data class Graph(val definition: WorkflowDefinition) : Protocol
     /** One agent answers, seeing the whole conversation. */
     @Serializable
     @SerialName("ask")

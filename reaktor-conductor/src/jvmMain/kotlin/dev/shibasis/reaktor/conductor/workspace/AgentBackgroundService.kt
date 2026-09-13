@@ -12,12 +12,13 @@ import java.util.concurrent.TimeUnit
 object AgentBackgroundService {
     @Synchronized fun connect(root: File, command: List<String> = command(root), directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
         runCatching { AgentWorkspaceConnection.open(root, directory, allowStart = false) }.getOrNull()?.let { return it }
-        check(System.getProperty("os.name").lowercase().contains("mac")) {
-            "Background supervision currently requires macOS. Run workspace serve under your system service manager."
-        }
         privateDirectory(directory)
         if (!Files.exists(directory.resolve("service.log"))) atomicWrite(directory.resolve("service.log"), "")
-        FileChannel.open(directory.resolve("service-install.lock"), CREATE, WRITE).use { channel -> channel.lock().use {
+        FileChannel.open(directory.resolve("service-install.lock"), CREATE, WRITE).use { channel -> channel.lock().use install@{
+            if (!System.getProperty("os.name").lowercase().contains("mac")) {
+                PlatformAgentService.start(root, snapshotServiceCommand(command, directory), directory)
+                return@install
+            }
             val label = label(root)
             val domain = "gui/${run(listOf("/usr/bin/id", "-u")).second.trim()}"
             val agents = Path.of(System.getProperty("user.home"), "Library", "LaunchAgents")
@@ -53,11 +54,38 @@ object AgentBackgroundService {
     fun label(root: File) = "build.reaktor.agents.${digest(root.canonicalPath).take(24)}"
 
     fun stop(root: File): String {
+        if (!System.getProperty("os.name").lowercase().contains("mac")) return PlatformAgentService.stop(root)
         val label = label(root)
         val domain = "gui/${run(listOf("/usr/bin/id", "-u")).second.trim()}"
         val result = run(listOf("/bin/launchctl", "bootout", "$domain/$label"))
         check(result.first == 0) { "Could not stop background service: ${result.second.take(500)}" }
         return "Background service stopped; unfinished tasks remain checkpointed. It can recover them on the next start or macOS login."
+    }
+
+    suspend fun upgrade(root: File, command: List<String> = command(root), directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
+        val image = snapshotServiceCommand(command, directory)
+        val client = AgentWorkspaceConnection.open(root, directory, allowStart = false)
+        try {
+            val previousPid = requireNotNull(client.info().service).processId
+            var busy = 1
+            kotlinx.coroutines.withTimeout(5 * 60 * 1000L) {
+                while (busy > 0) {
+                    busy = client.call("agent_service_drain", kotlinx.serialization.json.buildJsonObject { put("enabled", kotlinx.serialization.json.JsonPrimitive(true)) })
+                        .let { it as kotlinx.serialization.json.JsonObject }.getValue("activeRuns").let { (it as kotlinx.serialization.json.JsonPrimitive).content.toInt() }
+                    if (busy > 0) kotlinx.coroutines.delay(1000)
+                }
+            }
+            stop(root)
+            // A supervisor can acknowledge stop before the JVM releases its endpoint and lease.
+            kotlinx.coroutines.withTimeout(30000) {
+                while (ProcessHandle.of(previousPid).map { it.isAlive }.orElse(false)) kotlinx.coroutines.delay(100)
+            }
+            PlatformAgentService.removeForUpgrade(root)
+            return connect(root, image, directory)
+        } catch (failure: Exception) {
+            runCatching { client.call("agent_service_drain", kotlinx.serialization.json.buildJsonObject { put("enabled", kotlinx.serialization.json.JsonPrimitive(false)) }) }
+            throw failure
+        } finally { client.close() }
     }
 
     internal fun configuration(label: String, command: List<String>, root: File, directory: Path): String {

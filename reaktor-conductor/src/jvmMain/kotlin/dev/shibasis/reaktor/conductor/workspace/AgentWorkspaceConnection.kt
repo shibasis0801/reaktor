@@ -41,12 +41,13 @@ class AgentWorkspaceConnection private constructor(
     @Volatile private var endpoint: AgentEndpoint,
     val discoveryFile: Path,
     val ownsService: Boolean,
+    private val remote: AgentRemoteWorkspace? = null,
     private val closeOwner: () -> Unit = {},
 ) : AutoCloseable {
     private val closed = AtomicBoolean()
     @Volatile private var protocolVersion = REAKTOR_MCP_PROTOCOL_VERSION
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()
-    val url: String get() = "http://127.0.0.1:${endpoint.port}/mcp"
+    val url: String get() = if (remote == null) "http://127.0.0.1:${endpoint.port}/mcp" else "ssh workspace"
 
     suspend fun info(): AgentWorkspaceInfo = ConductorJson.decodeFromJsonElement(AgentWorkspaceInfo.serializer(), call("agent_workspace_info"))
     suspend fun submit(request: AgentSubmission): AgentRunRecord = decode(call("agent_submit", ConductorJson.encodeToJsonElement(AgentSubmission.serializer(), request).jsonObject))
@@ -102,6 +103,7 @@ class AgentWorkspaceConnection private constructor(
     suspend fun exchange(message: String): JsonElement? = withContext(Dispatchers.IO) {
         check(!closed.get()) { "Connection is closed" }
         require(message.length <= 250000) { "MCP message exceeds the transport budget" }
+        if (remote != null) return@withContext remote.exchange(message)
         if (!ownsService && Files.exists(discoveryFile)) {
             require(Files.size(discoveryFile) <= 4096) { "Invalid workspace discovery file" }
             val current = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discoveryFile))
@@ -126,6 +128,8 @@ class AgentWorkspaceConnection private constructor(
     override fun close() { if (closed.compareAndSet(false, true)) { try { http.shutdownNow() } finally { closeOwner() } } }
 
     companion object {
+        fun remote(profile: AgentRemoteProfile): AgentWorkspaceConnection = AgentWorkspaceConnection(
+            AgentEndpoint(workspaceRoot = profile.workspaceRoot, port = 0, token = ""), Path.of("."), false, remote = AgentRemoteWorkspace(profile))
         fun defaultDirectory(root: File): Path = Path.of(System.getProperty("user.home"), ".reaktor", "agents", digest(root.canonicalPath))
 
         fun open(root: File, directory: Path = defaultDirectory(root), runtimes: Map<RuntimeKind, AgentRuntime>? = null,
@@ -133,6 +137,8 @@ class AgentWorkspaceConnection private constructor(
                  background: Boolean = false,
                  graphUrl: String? = null,
                  extraTools: (AgentWorkspace) -> List<dev.shibasis.reaktor.mcp.McpTool> = { emptyList() },
+                 workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
+                 externalBusy: () -> Boolean = { false },
                  // Injectable so a test states a capability instead of probing whichever CLIs the host has.
                  discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe): AgentWorkspaceConnection {
             require(root.isDirectory)
@@ -175,7 +181,7 @@ class AgentWorkspaceConnection private constructor(
                     } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
-                    harnessMcpConfig = mcpConfig, background = background).also { workspace = it }
+                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy).also { workspace = it }
                 val registry = agentWorkspaceMcp(hostedWorkspace, extraTools(hostedWorkspace))
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token).also { server = it }

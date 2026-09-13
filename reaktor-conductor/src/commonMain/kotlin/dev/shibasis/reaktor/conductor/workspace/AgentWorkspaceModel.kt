@@ -19,6 +19,8 @@ enum class AgentTransport { Automatic, Interactive, Batch }
 @Serializable
 enum class AgentRecovery { None, Pending, Resuming, NeedsReview }
 
+@Serializable enum class AgentIsolation { Shared, Worktree }
+
 @Serializable
 data class AgentServiceInfo(val processId: Long, val startedAt: Long, val background: Boolean,
     val supervisor: String? = null, val recovery: String = "Saved stages; uncertain effects require review")
@@ -65,6 +67,8 @@ data class AgentSubmission(
     /** Provider vocabulary, validated against the capability record before anything is dispatched. */
     val effort: NativeEffort? = null,
     val transport: AgentTransport = AgentTransport.Automatic,
+    val workflow: WorkflowDefinition? = null,
+    val isolation: AgentIsolation = AgentIsolation.Shared,
 )
 
 @Serializable
@@ -105,6 +109,11 @@ data class AgentRunRecord(
     val attempt: Int = 1,
     val recovery: AgentRecovery = AgentRecovery.None,
     val recoveryReason: String? = null,
+    val workflow: WorkflowDefinition? = null,
+    val workflowProgress: WorkflowProgress? = null,
+    val forkedFrom: String? = null,
+    val isolation: AgentIsolation = AgentIsolation.Shared,
+    val workingDirectory: String? = null,
 )
 
 @Serializable
@@ -150,4 +159,5 @@ data class AgentAttachment(
     val answerable: List<String> = emptyList(),
     val pending: List<PendingRequest> = emptyList(),
     val activeTurns: Map<String, String> = emptyMap(),
+    val nativeAgents: Map<String, List<NativeAgentState>> = emptyMap(),
 )

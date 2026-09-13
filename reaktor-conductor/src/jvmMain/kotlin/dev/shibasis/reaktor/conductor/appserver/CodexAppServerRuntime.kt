@@ -102,6 +102,23 @@ private class CodexAppServerSession(
     private var model: String? = null
     private val pending = java.util.concurrent.ConcurrentHashMap<String, CodexRequest>()
     private val generation = java.util.UUID.randomUUID().toString()
+    private val children = java.util.concurrent.ConcurrentHashMap<String, NativeAgentState>()
+    override fun nativeAgents() = children.values.toList().sortedBy { it.id }
+
+    override suspend fun controlNative(id: String, expectedTurn: String, text: String?): CommandOutcome {
+        val child = children[id] ?: return CommandOutcome.Unsupported("unowned native subagent")
+        if (child.turnId == null || child.turnId != expectedTurn) return CommandOutcome.Stale(expectedTurn, child.turnId)
+        return runCatching {
+            rpc.request(if (text == null) "turn/interrupt" else "turn/steer", buildJsonObject {
+                put("threadId", id)
+                if (text == null) put("turnId", expectedTurn) else {
+                    put("expectedTurnId", expectedTurn)
+                    putJsonArray("input") { addJsonObject { put("type", "text"); put("text", text) } }
+                }
+            })
+            CommandOutcome.Accepted
+        }.getOrElse { CommandOutcome.Failed(it.message ?: "Native child control failed") }
+    }
 
     override val activeTurn: String? get() = turn
 
@@ -155,6 +172,30 @@ private class CodexAppServerSession(
 
         val pump = launch(start = CoroutineStart.UNDISPATCHED) {
             rpc.inbound.collect { message ->
+                if (message is JsonRpcInbound.Notification) {
+                    val origin = message.params["threadId"]?.jsonPrimitive?.contentOrNull
+                    if (origin != null && origin != threadId) {
+                        val child = children[origin]
+                        if (child != null) {
+                            val detail = message.params.objectOrEmpty("turn")
+                            val next = when (message.method) {
+                                "turn/started" -> child.copy(status = "running", turnId = detail["id"]?.jsonPrimitive?.contentOrNull)
+                                "turn/completed" -> child.copy(status = detail["status"]?.jsonPrimitive?.contentOrNull ?: "completed", turnId = null)
+                                else -> child
+                            }
+                            children[origin] = next
+                            if (next != child) send(AgentEvent.Activity(agent, AgentActivityItem("native:$origin", ActivityKind.Agent,
+                                next.name ?: origin, if (next.turnId != null) ActivityStatus.Started else ActivityStatus.Completed,
+                                parentId = child.parentId, nativeAgents = listOf(next))))
+                            if (message.method in listOf("item/started", "item/completed")) codexActivity(agent, message.params.objectOrEmpty("item"), message.method == "item/completed")?.let {
+                                it.item.nativeAgents.forEach { descendant -> children.compute(descendant.id) { _, prior -> descendant.copy(parentId = origin, turnId = prior?.turnId) } }
+                                send(it.copy(item = it.item.copy(parentId = "native:$origin")))
+                            }
+                        }
+                        // Child completion/deltas must never finish or contaminate the parent turn.
+                        return@collect
+                    }
+                }
                 when (message) {
                     is JsonRpcInbound.ServerRequest -> {
                         val ask = codexRequest(message, generation)
@@ -196,7 +237,12 @@ private class CodexAppServerSession(
                             }
 
                         "item/started", "item/completed" -> message.params.objectOrEmpty("item").let { item ->
-                            codexActivity(agent, item, message.method == "item/completed")?.let { send(it) }
+                            codexActivity(agent, item, message.method == "item/completed")?.let { event ->
+                                event.item.nativeAgents.forEach { child -> children.compute(child.id) { _, prior ->
+                                    child.copy(parentId = child.parentId ?: threadId, turnId = prior?.turnId)
+                                } }
+                                send(event)
+                            }
                             when (item["type"]?.jsonPrimitive?.contentOrNull) {
                                 "agentMessage" -> if (message.method == "item/completed")
                                     finalText = item["text"]?.jsonPrimitive?.contentOrNull ?: finalText
@@ -284,8 +330,10 @@ private class CodexAppServerSession(
     override suspend fun resolve(requestId: String, decision: AgentDecision): CommandOutcome {
         return synchronized(pending) {
             val ask = pending[requestId] ?: return@synchronized CommandOutcome.Stale(requestId, null)
-            if (ask.pending.turnId != null && ask.pending.turnId != turn)
-                return@synchronized CommandOutcome.Stale(ask.pending.turnId, turn)
+            val origin = ask.wire.params["threadId"]?.jsonPrimitive?.contentOrNull
+            val owningTurn = if (origin != null && origin != threadId) children[origin]?.turnId else turn
+            if (ask.pending.turnId != null && ask.pending.turnId != owningTurn)
+                return@synchronized CommandOutcome.Stale(ask.pending.turnId, owningTurn)
             runCatching {
                 rpc.respond(ask.wire.id, ask.response(decision))
                 pending.remove(requestId)
