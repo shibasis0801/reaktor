@@ -173,7 +173,7 @@ private fun render(event: AgentEvent) {
             "  ${event.agent.value} ${if (event.outcome.ok) "done" else "failed: ${event.outcome.failure}"}",
         )
 
-        is AgentEvent.Delta -> Unit
+        is AgentEvent.Delta, is AgentEvent.Reasoning -> Unit
     }
 }
 

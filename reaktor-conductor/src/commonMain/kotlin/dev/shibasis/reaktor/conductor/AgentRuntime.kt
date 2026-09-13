@@ -29,6 +29,21 @@ sealed interface AgentEvent {
         val detail: String? = null,
     ) : AgentEvent
 
+    /**
+     * Reasoning the provider chose to surface, carrying the classification it gave it.
+     *
+     * [fidelity] is never widened: a summary stays a summary and thinking stays thinking, because
+     * the two are different evidence and only the provider knows which it sent. A transport that
+     * exposes neither emits nothing at all rather than an empty [ReasoningFidelity.Unavailable]
+     * event — absence is the honest signal.
+     */
+    data class Reasoning(
+        override val agent: AgentId,
+        val text: String,
+        val fidelity: ReasoningFidelity,
+        val parentToolUse: String? = null,
+    ) : AgentEvent
+
     data class Finished(override val agent: AgentId, val outcome: AgentOutcome) : AgentEvent
 }
 
@@ -39,6 +54,10 @@ data class AgentOutcome(
     val failure: String? = null,
     val session: ProviderSession? = null,
     val usage: AgentUsage? = null,
+    /** What was asked for, what was sent and what the provider said it used. */
+    val effort: EffortRecord = EffortRecord.none,
+    /** The provider's own service tier for the turn, when it reports one. */
+    val serviceTier: String? = null,
 )
 
 /**

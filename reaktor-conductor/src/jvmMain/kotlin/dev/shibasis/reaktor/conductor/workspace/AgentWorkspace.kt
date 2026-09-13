@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.cli.CliCapabilities
 import dev.shibasis.reaktor.conductor.store.FileThreadStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,8 +47,24 @@ class AgentWorkspace(
         } }
     }
 
+    // Probing runs `--version` and `--help` per provider, so it happens once and is reused. An
+    // upgraded CLI is picked up by restarting the owner rather than by paying for a probe per call.
+    private val capabilities: List<ProviderCapability> by lazy {
+        runtimes.keys.map { CliCapabilities.probe(it) }
+    }
+
     fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive,
-        collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single))
+        collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single),
+        capabilities = capabilities)
+
+    /**
+     * Refuses an effort the provider does not advertise instead of quietly sending a different one.
+     * A provider whose set cannot be enumerated accepts the value and records it as unverified.
+     */
+    private fun requireSupportedEffort(provider: RuntimeKind, effort: NativeEffort?) {
+        val resolution = capabilities.firstOrNull { it.runtime == provider }?.effort.resolve(effort)
+        if (resolution is EffortResolution.Unsupported) throw UnsupportedEffortException(resolution)
+    }
 
     fun submit(request: AgentSubmission): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
@@ -63,7 +80,9 @@ class AgentWorkspace(
             require(partner.provider in runtimes && partner.provider != request.provider) { "Choose two different configured providers" }
             require(partner.model == null || partner.model.length in 1..256)
             require(!request.allowWrites) { "Collaborative turns request inspection; parallel editing requires owned worktrees" }
+            requireSupportedEffort(partner.provider, partner.effort)
         }
+        requireSupportedEffort(request.provider, request.effort)
         require(request.context == null || ConductorJson.encodeToString(ContextPacket.serializer(), request.context).length <= 24000)
         val id = digest(request.requestId)
         val fingerprint = digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request))
@@ -85,7 +104,8 @@ class AgentWorkspace(
         val now = System.currentTimeMillis()
         val record = AgentRunRecord(id, threadId, request.provider, fingerprint, request.prompt.take(200),
             request.model, request.allowWrites, startedAt = now, updatedAt = now,
-            collaboration = request.collaboration, partner = request.partner)
+            collaboration = request.collaboration, partner = request.partner,
+            effort = request.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none)
         atomicWrite(directory.resolve("requests/$id.json"), ConductorJson.encodeToString(AgentSubmission.serializer(), request))
         persist(record)
         records[id] = record
@@ -160,9 +180,12 @@ class AgentWorkspace(
         try {
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
                 val agentId = AgentId(request.provider.name.lowercase())
-                fun spec(provider: RuntimeKind, model: String?) = AgentSpec(AgentId(provider.name.lowercase()), provider.name, provider,
-                    "Follow the workspace's repository instructions.", model = model, tools = ToolPolicy(allowWrites = request.allowWrites))
-                val specs = listOf(spec(request.provider, request.model)) + listOfNotNull(request.partner?.let { spec(it.provider, it.model) })
+                fun spec(provider: RuntimeKind, model: String?, effort: NativeEffort?) = AgentSpec(
+                    AgentId(provider.name.lowercase()), provider.name, provider,
+                    "Follow the workspace's repository instructions.", model = model, effort = effort,
+                    tools = ToolPolicy(allowWrites = request.allowWrites))
+                val specs = listOf(spec(request.provider, request.model, request.effort)) +
+                    listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) })
                 val saved = store.load() ?: ThreadDocument(ThreadId(initial.threadId), initial.title)
                 val ids = specs.map { it.id }
                 val invalidated = specs.filter { saved.agent(it.id)?.let { prior -> prior != it } == true }.map { it.id.value }
@@ -189,6 +212,7 @@ class AgentWorkspace(
                                 is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
                                     outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
                                 is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
+                                is AgentEvent.Reasoning -> participant
                                 is AgentEvent.Finished -> participant.copy(status = if (event.outcome.ok) AgentRunStatus.Completed else AgentRunStatus.Failed,
                                     output = (event.outcome.failure ?: event.outcome.text).takeLast(6000),
                                     outputTruncated = (event.outcome.failure ?: event.outcome.text).length > 6000,
@@ -200,6 +224,7 @@ class AgentWorkspace(
                             is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
                                 outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
                             is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
+                            is AgentEvent.Reasoning -> withParticipant
                             is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session)
                         } } },
                     )

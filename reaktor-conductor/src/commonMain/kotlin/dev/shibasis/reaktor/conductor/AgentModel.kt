@@ -77,6 +77,13 @@ data class AgentSpec(
     val runtime: RuntimeKind,
     val instructions: String,
     val model: String? = null,
+    /**
+     * Reasoning effort in the provider's own vocabulary, or null for the provider's default.
+     *
+     * Kept beside [model] rather than folded into [harnessArgs] so the workspace can validate it
+     * against what the provider advertises, record what was granted, and show it in the ledger.
+     */
+    val effort: NativeEffort? = null,
     val tools: ToolPolicy = ToolPolicy(),
     val budget: AgentBudget = AgentBudget(),
     val workspace: WorkspaceMode = WorkspaceMode.SharedReadOnly,

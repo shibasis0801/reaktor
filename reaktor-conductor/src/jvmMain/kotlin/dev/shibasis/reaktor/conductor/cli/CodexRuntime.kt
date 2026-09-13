@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentOutcome
 import dev.shibasis.reaktor.conductor.AgentRequest
 import dev.shibasis.reaktor.conductor.AgentUsage
+import dev.shibasis.reaktor.conductor.EffortRecord
+import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.UsageScope
@@ -19,6 +21,11 @@ import kotlinx.serialization.json.jsonObject
  * starting with `{"type":"thread.started","thread_id":...}`, then `{"type":"turn.started"}`, then
  * one `{"type":"item.completed","item":{...}}` per produced item, and ending with either
  * `{"type":"turn.completed","usage":{...}}` or `{"type":"turn.failed","error":{...}}`.
+ *
+ * `exec --json` carries no reasoning items: verified against 0.154.0, a turn emits `agent_message`,
+ * `command_execution` and file-change items only. Reasoning summaries belong to the App Server
+ * transport, so this runtime reports [ReasoningFidelity.Unavailable] and emits no reasoning events
+ * rather than inventing one from the final message.
  *
  * The operator's own `config.toml` is used by default, so an agent here behaves like the same
  * agent run by hand: their model, profile, MCP servers and rules. Set
@@ -39,6 +46,9 @@ class CodexRuntime(
         add(request.workingDirectory)
         add("-s")
         add(if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
+        // `exec` has no effort flag; the config key is the supported route and, like the other
+        // global overrides, it has to precede the subcommand. Verified against 0.154.0.
+        request.agent.effort?.let { add("-c"); add("model_reasoning_effort=" + it.value) }
         request.agent.tools.additionalDirectories.forEach { add("--add-dir"); add(it) }
         add("exec")
 
@@ -65,12 +75,17 @@ class CodexRuntime(
         add(request.prompt)
     }
 
-    override fun parser(request: AgentRequest): CliEventParser = CodexEventParser(request.agent.id)
+    override fun parser(request: AgentRequest): CliEventParser = CodexEventParser(
+        request.agent.id,
+        // `exec --json` reports no effective effort, so `observed` stays unknown by construction.
+        request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
+    )
 }
 
 /** Parses Codex's `exec --json` line protocol. */
 class CodexEventParser(
     private val agent: AgentId,
+    private val effort: EffortRecord = EffortRecord.none,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : CliEventParser {
     private var session: ProviderSession? = null
@@ -157,6 +172,7 @@ class CodexEventParser(
             },
             session = session,
             usage = usage,
+            effort = effort,
         )
     }
 }
