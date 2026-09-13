@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.portgraph.node
 
 import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.portgraph.attach.Attachable
+import dev.shibasis.reaktor.portgraph.attach.Attachments
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
@@ -15,7 +17,7 @@ open class PortNode<G: PortGraph<*, *>>(
     override val id: Uuid = Uuid.random(),
     override val label: String = "",
     portCapability: PortCapability = PortCapabilityImpl()
-): Unique, Visitable, PortCapability by portCapability {
+): Unique, Visitable, PortCapability by portCapability, Attachable by Attachments() {
 
     open fun close() {
         consumerPorts.flattenedValues().forEach { it.close() }

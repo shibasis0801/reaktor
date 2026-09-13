@@ -49,33 +49,52 @@ class KubernetesJvmClient(kubeconfig: File, private val session: InfrastructureS
     }
     private val core = CoreV1Api(client)
 
-    fun inspect(namespace: String, action: String, resourceName: String): String {
+    fun inspect(namespace: String, action: String, resourceName: String, resourceKind: String = "", resourceUid: String = ""): String {
         require(namespace.matches(Regex("[a-z0-9](?:[a-z0-9.-]{0,61}[a-z0-9])?")))
         if (action != "Inventory") require(resourceName.matches(Regex("[a-z0-9][a-z0-9.-]{0,252}")))
+        require(resourceKind.isEmpty() || resourceKind.matches(Regex("[A-Za-z][A-Za-z0-9]{0,63}")))
+        require(resourceUid.isEmpty() || resourceUid.matches(Regex("[A-Za-z0-9-]{1,128}")))
         return when (action) {
             "Inventory" -> {
                 val resources = mutableListOf<JsonElement>()
-                fun append(page: Any) {
-                    resources.addAll(boundedItems(page, 2_000))
+                fun append(page: Any, kind: String, apiVersion: String) {
+                    resources.addAll(boundedItems(page, 2_000).map { value ->
+                        val item = value.jsonObject
+                        require(item["kind"]?.jsonPrimitive?.contentOrNull.orEmpty().let { it.isBlank() || it == kind }) {
+                            "Kubernetes returned an unexpected resource kind"
+                        }
+                        JsonObject(item + mapOf("kind" to JsonPrimitive(kind), "apiVersion" to JsonPrimitive(apiVersion)))
+                    })
                     require(resources.size <= 2_000) { "Select a smaller namespace; inventory exceeds 2,000 objects" }
                 }
-                append(core.listNamespacedPod(namespace).limit(2_001).execute())
+                append(core.listNamespacedPod(namespace).limit(2_001).execute(), "Pod", "v1")
                 val apps = AppsV1Api(client)
-                append(apps.listNamespacedDeployment(namespace).limit(2_001).execute())
-                append(apps.listNamespacedStatefulSet(namespace).limit(2_001).execute())
-                append(apps.listNamespacedDaemonSet(namespace).limit(2_001).execute())
-                append(core.listNamespacedService(namespace).limit(2_001).execute())
-                append(NetworkingV1Api(client).listNamespacedIngress(namespace).limit(2_001).execute())
+                append(apps.listNamespacedDeployment(namespace).limit(2_001).execute(), "Deployment", "apps/v1")
+                append(apps.listNamespacedStatefulSet(namespace).limit(2_001).execute(), "StatefulSet", "apps/v1")
+                append(apps.listNamespacedDaemonSet(namespace).limit(2_001).execute(), "DaemonSet", "apps/v1")
+                append(core.listNamespacedService(namespace).limit(2_001).execute(), "Service", "v1")
+                append(NetworkingV1Api(client).listNamespacedIngress(namespace).limit(2_001).execute(), "Ingress", "networking.k8s.io/v1")
                 val batch = BatchV1Api(client)
-                append(batch.listNamespacedJob(namespace).limit(2_001).execute())
-                append(batch.listNamespacedCronJob(namespace).limit(2_001).execute())
-                append(core.listNamespacedEndpoints(namespace).limit(2_001).execute())
-                buildJsonObject { put("items", JsonArray(resources)) }.toString()
+                append(batch.listNamespacedJob(namespace).limit(2_001).execute(), "Job", "batch/v1")
+                append(batch.listNamespacedCronJob(namespace).limit(2_001).execute(), "CronJob", "batch/v1")
+                append(core.listNamespacedEndpoints(namespace).limit(2_001).execute(), "Endpoints", "v1")
+                val server = java.net.URI(client.basePath)
+                buildJsonObject {
+                    put("clusterId", "${server.scheme}://${server.host}:${server.port}")
+                    put("items", JsonArray(resources))
+                }.toString()
             }
-            "Events" -> core.listNamespacedEvent(namespace).fieldSelector("involvedObject.name=$resourceName")
+            "Events" -> core.listNamespacedEvent(namespace).fieldSelector(buildList {
+                add("involvedObject.name=$resourceName")
+                if (resourceKind.isNotEmpty()) add("involvedObject.kind=$resourceKind")
+                if (resourceUid.isNotEmpty()) add("involvedObject.uid=$resourceUid")
+            }.joinToString(","))
                 .limit(501).execute().also { boundedItems(it, 500) }.let(JSON::serialize)
             "Logs" -> {
-                val containers = core.readNamespacedPod(resourceName, namespace).execute().spec?.containers.orEmpty()
+                require(resourceKind.isEmpty() || resourceKind == "Pod") { "Logs require a Pod" }
+                val pod = core.readNamespacedPod(resourceName, namespace).execute()
+                require(resourceUid.isEmpty() || pod.metadata?.uid == resourceUid) { "Pod was replaced; refresh the inventory before reading logs" }
+                val containers = pod.spec?.containers.orEmpty()
                 require(containers.size in 1..32) { "Pod must contain between 1 and 32 containers" }
                 containers.joinToString("\n") { container ->
                     "[${container.name}]\n" + core.readNamespacedPodLog(resourceName, namespace)

@@ -1,0 +1,206 @@
+{
+  "title": "Reaktor \u2014 Port Telemetry",
+  "uid": "reaktor-ports",
+  "tags": [
+    "reaktor",
+    "ports",
+    "traces"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "description": "Every span Reaktor emits carries the reaktor.* semantic convention: graph, node, port, contract, port shape and direction. These panels read those attributes. Only traces are populated today \u2014 reaktor-telemetry emits no metric instruments yet, so there are deliberately no rate or histogram panels.",
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "description": "resource service.name, blank for all"
+      },
+      {
+        "name": "node",
+        "label": "Graph node",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "description": "reaktor.node.id \u2014 stable architectural identity"
+      },
+      {
+        "name": "shape",
+        "label": "Port shape",
+        "type": "custom",
+        "query": ",request,mailbox,stream,state",
+        "current": {
+          "text": "All",
+          "value": ""
+        },
+        "includeAll": true,
+        "allValue": ""
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Traffic",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "title": "Slowest port invocations",
+      "type": "table",
+      "datasource": {
+        "type": "tempo",
+        "uid": "__TEMPO_DS__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "__TEMPO_DS__"
+          },
+          "queryType": "traceql",
+          "query": "{ .reaktor.port.id != \"\" && .reaktor.node.id =~ \"$node.*\" && .reaktor.port.shape =~ \"$shape.*\" } | select(.reaktor.port.id, .reaktor.node.id, .reaktor.contract.id, .reaktor.port.direction, .reaktor.duration_ns)",
+          "limit": 200,
+          "tableType": "spans"
+        }
+      ],
+      "description": "Ranked by span duration. reaktor.duration_ns is measured by the interceptor from a monotonic source, because the SDK clock is wall-clock resolution and reads zero for a local port call."
+    },
+    {
+      "id": 101,
+      "type": "row",
+      "title": "Failures",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "Failed port calls",
+      "type": "table",
+      "datasource": {
+        "type": "tempo",
+        "uid": "__TEMPO_DS__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "__TEMPO_DS__"
+          },
+          "queryType": "traceql",
+          "query": "{ .reaktor.port.id != \"\" && status = error } | select(.reaktor.port.id, .reaktor.node.id, .reaktor.contract.id)",
+          "limit": 100,
+          "tableType": "spans"
+        }
+      ],
+      "description": "A span is marked error only when the call threw. A declared route that never ran produces no span at all."
+    },
+    {
+      "id": 3,
+      "title": "Calls crossing a boundary",
+      "type": "table",
+      "datasource": {
+        "type": "tempo",
+        "uid": "__TEMPO_DS__"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "__TEMPO_DS__"
+          },
+          "queryType": "traceql",
+          "query": "{ .reaktor.port.shape = \"mailbox\" || .reaktor.port.shape = \"stream\" } | select(.reaktor.port.id, .reaktor.port.shape, .reaktor.node.id)",
+          "limit": 100,
+          "tableType": "spans"
+        }
+      ],
+      "description": "Mailbox and stream ports are asynchronous: their consumers are linked, never nested, so a producer span never encloses the processing it triggered."
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "Service map",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false
+    },
+    {
+      "id": 4,
+      "title": "Node graph",
+      "type": "nodeGraph",
+      "datasource": {
+        "type": "tempo",
+        "uid": "__TEMPO_DS__"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "__TEMPO_DS__"
+          },
+          "queryType": "serviceMap"
+        }
+      ],
+      "description": "Built from span relationships. This is observed traffic; the declared architecture graph lives in the Reaktor workbench and the two are deliberately separate."
+    }
+  ]
+}

@@ -83,3 +83,53 @@ class DeviceToolsTest {
     }
 
 }
+
+/**
+ * Apple's two binaries are not interchangeable, and conflating them made an attached iPhone
+ * invisible: `executable(Idb)` looked only for the `idb` client, so a machine with the Homebrew
+ * `idb_companion` reported "transport not installed" while the companion could see the device.
+ */
+class IdbTransportTest {
+    @Test fun companionAloneCanStillDiscoverTargets() {
+        val companionOnly = DeviceTools.discoveryExecutable(DeviceTransport.Idb)
+        // Whatever this machine has, discovery must not be gated on the client.
+        if (companionOnly == null) return
+        val argv = DeviceTools.discovery(DeviceTransport.Idb).argv
+        if (companionOnly.endsWith("idb_companion")) {
+            assertEquals(listOf(companionOnly, "--list", "1"), argv)
+        } else {
+            assertEquals(listOf(companionOnly, "list-targets", "--json"), argv)
+        }
+    }
+
+    @Test fun theCompanionsTargetListingParsesAsDevicesAndSimulators() {
+        // Verbatim shape of `idb_companion --list 1`: one JSON object per line, physical devices
+        // reported as type "Device" with state "Booted".
+        val devices = DeviceTools.parseDevices(
+            DeviceTransport.Idb,
+            """
+            {"udid":"00008120-001A60CA3C90C01E","name":"Shibasis's Phone","type":"Device","state":"Booted","os_version":"iOS 26.5"}
+            {"udid":"A1B2C3D4-0000-0000-0000-00000000BEEF","name":"iPhone 17 Pro","type":"simulator","state":"Shutdown","os_version":"iOS 26.0"}
+            """.trimIndent(),
+        )
+
+        assertEquals(2, devices.size)
+        val phone = devices.first { it.udidIsPhysical() }
+        assertEquals("Shibasis's Phone", phone.name)
+        assertTrue(phone.ready, "a Booted physical device must be actionable, not greyed out")
+        assertEquals("iOS 26.5", phone.runtime)
+    }
+
+    /** Physical UDIDs carry a hyphenated hardware prefix; simulator UDIDs are plain v4 UUIDs. */
+    private fun DevelopmentDevice.udidIsPhysical() = id.substringBefore('-').length == 8 && !id.contains("A1B2")
+
+    @Test fun anIdbTargetWithoutTheClientSaysHowToInstallIt() {
+        val device = DevelopmentDevice("00008120-001A60CA3C90C01E", "Phone", DeviceTransport.Idb, "Booted")
+        val reason = DeviceTools.unavailableReason(device, DeviceAction.Applications)
+        if (DeviceTools.controlExecutable(DeviceTransport.Idb) == null) {
+            assertContains(reason.orEmpty(), "fb-idb")
+        } else {
+            assertEquals(null, reason)
+        }
+    }
+}

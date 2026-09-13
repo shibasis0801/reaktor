@@ -108,7 +108,7 @@ class JvmInfrastructureExecutor {
                         request.verify()
                         when (val op = request.operation) {
                             is InfrastructureOperation.KubernetesRead -> KubernetesJvmClient(File(op.kubeconfig), session)
-                                .inspect(op.namespace, op.action, op.resourceName)
+                                .inspect(op.namespace, op.action, op.resourceName, op.resourceKind, op.resourceUid)
                             is InfrastructureOperation.DatabaseRead -> DatabaseJvmClient(session).execute(op, request.environment, request.timeoutMillis)
                             is InfrastructureOperation.WorkerCall -> WorkerJvmClient(session).execute(op, request.environment)
                         }

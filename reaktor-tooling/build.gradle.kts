@@ -69,3 +69,11 @@ val verifyToolingBoundary by tasks.registering {
 }
 
 tasks.named("check") { dependsOn(verifyToolingBoundary) }
+
+// The JVM test runner scans every class in the test source set; restrict it to test classes.
+tasks.withType<Test>().configureEach {
+    filter {
+        isFailOnNoMatchingTests = false
+        includeTestsMatching("*Test")
+    }
+}

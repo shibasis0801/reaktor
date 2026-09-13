@@ -2,6 +2,8 @@ package dev.shibasis.reaktor.portgraph.graph
 
 import dev.shibasis.reaktor.core.structs.ConcurrentHashMap
 import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.portgraph.attach.Attachable
+import dev.shibasis.reaktor.portgraph.attach.Attachments
 import dev.shibasis.reaktor.portgraph.node.PortNode
 import dev.shibasis.reaktor.portgraph.visitor.Visitable
 import kotlin.js.JsExport
@@ -11,7 +13,7 @@ import kotlin.uuid.Uuid
 open class PortGraph<Self: PortGraph<Self, N>, N: PortNode<Self>>(
     override val id: Uuid = Uuid.random(),
     override val label: String = ""
-): Unique, Visitable {
+): Unique, Visitable, Attachable by Attachments() {
     private val nodesById = ConcurrentHashMap<Uuid, N>()
 
     val nodes: Collection<N>

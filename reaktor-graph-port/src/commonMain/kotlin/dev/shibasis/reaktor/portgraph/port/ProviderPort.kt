@@ -15,7 +15,7 @@ open class ProviderPort<Functionality: Any>(
     key: Key,
     type: Type,
     val impl: Functionality,
-    val edges: LinkedHashMap<ConsumerPort<Functionality>, Edge<Functionality>> = linkedMapOf()
+    val edges: PortEdges<Functionality> = PortEdges()
 ): Port<Functionality>(owner, key, type), AutoCloseable {
 
     @JsName("create")
@@ -26,8 +26,18 @@ open class ProviderPort<Functionality: Any>(
 
     @JsName("target")
     inline operator fun invoke(): Functionality = impl
-    inline operator fun<R> invoke(fn: Functionality.() -> R): R = fn(impl)
-    suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R = fn(impl)
+    /** K1 — see [ConsumerPort.invoke]. */
+    @Suppress("UNCHECKED_CAST")
+    operator fun<R> invoke(fn: Functionality.() -> R): R {
+        val chain = interceptorChain() ?: return fn(impl)
+        return runInterceptors(chain, PortInvocation(this)) { fn(impl) } as R
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    suspend fun<R> suspended(fn: suspend Functionality.() -> R): R {
+        val chain = interceptorChain() ?: return fn(impl)
+        return runInterceptorsSuspend(chain, PortInvocation(this)) { fn(impl) } as R
+    }
 
     override fun close() {
         edges.keys.toList().forEach { consumer ->
@@ -43,24 +53,20 @@ open class ProviderPort<Functionality: Any>(
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerProvider(key: Key, type: Type, impl: Functionality): ProviderPort<Functionality> {
-    val ports = providerPorts.getOrPut(type) { linkedMapOf() }
-    val existing = ports[key] as? ProviderPort<Functionality>
-    if (existing != null) {
-        require(existing.impl === impl) {
-            "Provider already registered for key='${key.key}' type='${type.type}' with a different implementation."
-        }
-        return existing
+    // One atomic registration rather than read-then-write, so two callers racing the same port
+    // agree on a single winner and Created is announced exactly once.
+    val registration = providerPorts.putIfAbsent(type, key) { ProviderPort(this, key, type, impl) as ProviderPort<Any> }
+    val port = registration.value as ProviderPort<Functionality>
+    require(port.impl === impl) {
+        "Provider already registered for key='${key.key}' type='${type.type}' with a different implementation."
     }
-
-    val created = ProviderPort(this, key, type, impl)
-    ports[key] = created as ProviderPort<Any>
-    emit(PortEvent.Created(created))
-    return created
+    if (registration.created) emit(PortEvent.Created(port))
+    return port
 }
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.getProvider(key: Key, type: Type): ProviderPort<Functionality>? {
-    return providerPorts[type]?.get(key) as? ProviderPort<Functionality>
+    return providerPorts.get(type, key) as? ProviderPort<Functionality>
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerProvider(key: String = "", impl: Functionality): ProviderPort<Functionality> {
