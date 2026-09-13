@@ -77,7 +77,7 @@ class CodexEventParser(
     private var failed: String? = null
     private var usage: AgentUsage? = null
     private var completed = false
-    private val text = StringBuilder()
+    private var lastMessage: String? = null
 
     override fun onLine(line: String): List<AgentEvent> {
         val payload = line.jsonLineOrNull() ?: return emptyList()
@@ -96,7 +96,8 @@ class CodexEventParser(
                 val item = root.nested("item") ?: return emptyList()
                 when (item.string("type")) {
                     "agent_message" -> item.string("text")?.let { chunk ->
-                        text.append(chunk)
+                        // Exec emits progress and the final answer as separate completed messages.
+                        lastMessage = chunk
                         listOf(AgentEvent.Delta(agent, chunk))
                     }.orEmpty()
 
@@ -141,7 +142,7 @@ class CodexEventParser(
     }
 
     override fun finish(exitCode: Int, stderr: String): AgentOutcome {
-        val body = text.toString().ifBlank { null }
+        val body = lastMessage?.ifBlank { null }
         val ok = completed && failed == null && exitCode == 0 && body != null
         return AgentOutcome(
             agent = agent,

@@ -102,6 +102,7 @@ class ClaudeCodeEventParser(
 
         return when (root.string("type")) {
             "system" -> {
+                if (root.string("subtype") != "init") return emptyList()
                 root.string("session_id")?.let {
                     session = ProviderSession(RuntimeKind.ClaudeCode, it)
                 }
