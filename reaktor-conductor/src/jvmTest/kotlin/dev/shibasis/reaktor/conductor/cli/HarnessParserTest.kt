@@ -2,6 +2,11 @@ package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.AgentId
+import dev.shibasis.reaktor.conductor.AgentRequest
+import dev.shibasis.reaktor.conductor.AgentSpec
+import dev.shibasis.reaktor.conductor.EffortRecord
+import dev.shibasis.reaktor.conductor.NativeEffort
+import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -45,6 +50,66 @@ class HarnessParserTest {
         missing.onLine("""{"type":"result","is_error":false,"result":"done","usage":{"input_tokens":11}}""")
         assertNull(missing.finish(0, "").usage?.inputTokens)
     }
+    @Test
+    fun claudeThinkingIsCarriedAsReasoningWithItsOwnClassification() {
+        val claude = ClaudeCodeEventParser(agent)
+        val events = claude.onLine(capturedClaudeThinking)
+        val reasoning = events.filterIsInstance<AgentEvent.Reasoning>().single()
+        assertEquals(ReasoningFidelity.Thinking, reasoning.fidelity, "Thinking must never be relabelled a summary")
+        assertEquals("17 times 23. 17*20 = 340, 17*3 = 51, so 391.", reasoning.text)
+        assertFalse(reasoning.text.contains("EroYB"), "The block signature authenticates it; it is not content")
+        // The answer still arrives as ordinary output, separately from the reasoning.
+        assertEquals("391", events.filterIsInstance<AgentEvent.Delta>().single().text)
+    }
+
+    @Test
+    fun codexExecEmitsNoReasoningAtAllAndNoneIsInvented() {
+        val codex = CodexEventParser(agent)
+        // CAPTURED 2026-09-13 at effort=high: a whole turn, with no reasoning item in it.
+        val events = codexSuccess.flatMap(codex::onLine)
+        assertTrue(events.filterIsInstance<AgentEvent.Reasoning>().isEmpty(),
+            "exec --json carries no reasoning; a summary here would be fabricated")
+    }
+
+    @Test
+    fun theGrantedEffortTravelsToTheOutcomeAndTheEffectiveValueStaysUnknown() {
+        val codex = CodexEventParser(agent, EffortRecord(requested = NativeEffort("high"), resolved = NativeEffort("high")))
+        codexSuccess.forEach(codex::onLine)
+        val effort = codex.finish(0, "").effort
+        assertEquals(NativeEffort("high"), effort.resolved)
+        assertTrue(effort.unknownEffective, "Neither CLI reports the effort it actually used")
+    }
+
+    @Test
+    fun claudeReportsItsServiceTierWhenTheResultEnvelopeCarriesOne() {
+        val claude = ClaudeCodeEventParser(agent)
+        claude.onLine("""{"type":"result","subtype":"success","is_error":false,"result":"done","usage":{"input_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0,"output_tokens":1,"service_tier":"standard"}}""")
+        assertEquals("standard", claude.finish(0, "").serviceTier)
+    }
+
+    @Test
+    fun effortReachesEachHarnessThroughTheFlagThatHarnessActuallySupports() {
+        val spec = AgentSpec(AgentId("a"), "A", RuntimeKind.Codex, "", effort = NativeEffort("high"))
+        val request = AgentRequest(spec, "prompt", "/tmp")
+
+        val codex = codexArgv(request)
+        // `exec` has no effort flag, and every global override has to land before the subcommand.
+        assertTrue(codex.windowed(2).contains(listOf("-c", "model_reasoning_effort=high")))
+        assertTrue(codex.indexOf("-c") < codex.indexOf("exec"), "A global override after exec is ignored")
+
+        val claude = claudeArgv(request.copy(agent = spec.copy(runtime = RuntimeKind.ClaudeCode)))
+        assertTrue(claude.windowed(2).contains(listOf("--effort", "high")))
+
+        // Asking for nothing must add nothing, so the provider's own default still applies.
+        val plain = AgentRequest(spec.copy(effort = null), "prompt", "/tmp")
+        assertFalse(codexArgv(plain).any { it.startsWith("model_reasoning_effort") })
+        assertFalse(claudeArgv(plain).contains("--effort"))
+    }
+
+    /** CAPTURED: one `assistant` line from `claude 2.1.270 --output-format stream-json`. */
+    private val capturedClaudeThinking =
+        """{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"17 times 23. 17*20 = 340, 17*3 = 51, so 391.","signature":"EroYBCkYIBxgCKkDq"},{"type":"text","text":"391"}]}}"""
+
     private val agent = AgentId("architect")
 
     // ---- Codex -----------------------------------------------------------------------------

@@ -20,6 +20,11 @@ class AgentWorkspace(
     private val runtimes: Map<RuntimeKind, AgentRuntime>,
     private val maxActive: Int = 2,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    /**
+     * What each configured runtime can do here. Injected so a test can state a capability instead
+     * of inheriting whichever CLIs happen to be installed on the machine running it.
+     */
+    private val discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe,
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -49,9 +54,7 @@ class AgentWorkspace(
 
     // Probing runs `--version` and `--help` per provider, so it happens once and is reused. An
     // upgraded CLI is picked up by restarting the owner rather than by paying for a probe per call.
-    private val capabilities: List<ProviderCapability> by lazy {
-        runtimes.keys.map { CliCapabilities.probe(it) }
-    }
+    private val capabilities: List<ProviderCapability> by lazy { runtimes.keys.map(discover) }
 
     fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive,
         collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single),
@@ -212,7 +215,13 @@ class AgentWorkspace(
                                 is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
                                     outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
                                 is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
-                                is AgentEvent.Reasoning -> participant
+                                // Kept out of `output` so a view can collapse it, and tagged with the
+                                // provider's own classification so a summary is never shown as thinking.
+                                is AgentEvent.Reasoning -> participant.copy(
+                                    reasoning = (participant.reasoning + event.text).takeLast(6000),
+                                    reasoningTruncated = participant.reasoningTruncated || participant.reasoning.length + event.text.length > 6000,
+                                    reasoningFidelity = event.fidelity,
+                                )
                                 is AgentEvent.Finished -> participant.copy(status = if (event.outcome.ok) AgentRunStatus.Completed else AgentRunStatus.Failed,
                                     output = (event.outcome.failure ?: event.outcome.text).takeLast(6000),
                                     outputTruncated = (event.outcome.failure ?: event.outcome.text).length > 6000,
@@ -224,8 +233,13 @@ class AgentWorkspace(
                             is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
                                 outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
                             is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
-                            is AgentEvent.Reasoning -> withParticipant
-                            is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session)
+                            is AgentEvent.Reasoning -> withParticipant.copy(
+                                reasoning = (current.reasoning + event.text).takeLast(12000),
+                                reasoningTruncated = current.reasoningTruncated || current.reasoning.length + event.text.length > 12000,
+                                reasoningFidelity = event.fidelity)
+                            is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session,
+                                effort = event.outcome.effort.takeIf { it != EffortRecord.none } ?: current.effort,
+                                serviceTier = event.outcome.serviceTier ?: current.serviceTier)
                         } } },
                     )
                     val answer = result.answer

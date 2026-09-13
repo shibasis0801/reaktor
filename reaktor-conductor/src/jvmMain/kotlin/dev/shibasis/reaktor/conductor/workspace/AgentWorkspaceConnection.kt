@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.cli.CliCapabilities
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
@@ -97,7 +98,10 @@ class AgentWorkspaceConnection private constructor(
     companion object {
         fun defaultDirectory(root: File): Path = Path.of(System.getProperty("user.home"), ".reaktor", "agents", digest(root.canonicalPath))
 
-        fun open(root: File, directory: Path = defaultDirectory(root), runtimes: Map<RuntimeKind, AgentRuntime>? = null, allowStart: Boolean = true): AgentWorkspaceConnection {
+        fun open(root: File, directory: Path = defaultDirectory(root), runtimes: Map<RuntimeKind, AgentRuntime>? = null,
+                 allowStart: Boolean = true,
+                 // Injectable so a test states a capability instead of probing whichever CLIs the host has.
+                 discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe): AgentWorkspaceConnection {
             require(root.isDirectory)
             privateDirectory(directory)
             val discovery = directory.resolve("connection.json")
@@ -126,7 +130,7 @@ class AgentWorkspaceConnection private constructor(
                 val configured = runtimes ?: SupervisedProcessExecutor().also { executor = it }.let {
                     mapOf(RuntimeKind.Codex to CodexRuntime(it), RuntimeKind.ClaudeCode to ClaudeCodeRuntime(it))
                 }
-                val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured).also { workspace = it }
+                val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover).also { workspace = it }
                 val registry = agentWorkspaceMcp(hostedWorkspace)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token).also { server = it }

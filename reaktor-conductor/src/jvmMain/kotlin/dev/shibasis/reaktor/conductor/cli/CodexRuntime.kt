@@ -39,47 +39,56 @@ class CodexRuntime(
 ) : CliAgentRuntime(executor) {
     override val kind: RuntimeKind = RuntimeKind.Codex
 
-    override fun argv(request: AgentRequest): List<String> = buildList {
-        add(binary)
-        // Global policy/cwd flags precede exec: exec resume does not accept exec's -C/-s flags.
-        add("-C")
-        add(request.workingDirectory)
-        add("-s")
-        add(if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
-        // `exec` has no effort flag; the config key is the supported route and, like the other
-        // global overrides, it has to precede the subcommand. Verified against 0.154.0.
-        request.agent.effort?.let { add("-c"); add("model_reasoning_effort=" + it.value) }
-        request.agent.tools.additionalDirectories.forEach { add("--add-dir"); add(it) }
-        add("exec")
-
-        // Resuming is an optimization over the canonical thread, never a dependency on it.
-        val resume = request.resume?.takeIf { it.runtime == RuntimeKind.Codex }
-        if (resume != null) {
-            add("resume")
-            add(resume.sessionId)
-        }
-
-        add("--json")
-        add("--skip-git-repo-check")
-        if (request.agent.tools.isolateOperatorConfig) add("--ignore-user-config")
-        if (resume == null && !request.persistSession) add("--ephemeral")
-
-        request.agent.model?.let {
-            add("-m")
-            add(it)
-        }
-
-        addAll(request.agent.harnessArgs)
-
-        // The prompt is positional and must be present, or codex reads stdin and blocks.
-        add(request.prompt)
-    }
+    override fun argv(request: AgentRequest): List<String> = codexArgv(request, binary)
 
     override fun parser(request: AgentRequest): CliEventParser = CodexEventParser(
         request.agent.id,
         // `exec --json` reports no effective effort, so `observed` stays unknown by construction.
         request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
     )
+}
+
+/**
+ * The exact argv a Codex turn runs with.
+ *
+ * Lifted out of the runtime for the same reason the parser is: flag order matters to this CLI —
+ * global overrides must precede `exec`, and `exec resume` rejects exec's own flags — so the list
+ * itself is the thing worth asserting, without spawning anything.
+ */
+internal fun codexArgv(request: AgentRequest, binary: String = "codex"): List<String> = buildList {
+    add(binary)
+    // Global policy/cwd flags precede exec: exec resume does not accept exec's -C/-s flags.
+    add("-C")
+    add(request.workingDirectory)
+    add("-s")
+    add(if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
+    // `exec` has no effort flag; the config key is the supported route and, like the other
+    // global overrides, it has to precede the subcommand. Verified against 0.154.0.
+    request.agent.effort?.let { add("-c"); add("model_reasoning_effort=" + it.value) }
+    request.agent.tools.additionalDirectories.forEach { add("--add-dir"); add(it) }
+    add("exec")
+
+    // Resuming is an optimization over the canonical thread, never a dependency on it.
+    val resume = request.resume?.takeIf { it.runtime == RuntimeKind.Codex }
+    if (resume != null) {
+        add("resume")
+        add(resume.sessionId)
+    }
+
+    add("--json")
+    add("--skip-git-repo-check")
+    if (request.agent.tools.isolateOperatorConfig) add("--ignore-user-config")
+    if (resume == null && !request.persistSession) add("--ephemeral")
+
+    request.agent.model?.let {
+        add("-m")
+        add(it)
+    }
+
+    addAll(request.agent.harnessArgs)
+
+    // The prompt is positional and must be present, or codex reads stdin and blocks.
+    add(request.prompt)
 }
 
 /** Parses Codex's `exec --json` line protocol. */

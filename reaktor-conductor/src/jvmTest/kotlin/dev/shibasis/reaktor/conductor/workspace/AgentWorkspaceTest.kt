@@ -26,6 +26,50 @@ class AgentWorkspaceTest {
             }
         } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
     }
+    @Test fun anEffortTheProviderDoesNotAdvertiseIsRefusedRatherThanQuietlyLowered() {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.ClaudeCode)
+        try {
+            val stoppedScope = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness), scope = stoppedScope,
+                discover = { advertising(it, listOf("low", "high")) }).use { workspace ->
+                val refused = assertFailsWith<UnsupportedEffortException> {
+                    workspace.submit(AgentSubmission("bad-effort", harness.kind, "task", effort = NativeEffort("ultra")))
+                }
+                assertTrue(refused.message!!.contains("low, high"), "The refusal has to name what is available")
+                // Refused before anything was recorded, so a retry of the same id is still free.
+                assertTrue(workspace.list().isEmpty())
+
+                val accepted = workspace.submit(AgentSubmission("good-effort", harness.kind, "task", effort = NativeEffort("high")))
+                assertEquals(NativeEffort("high"), accepted.effort.requested)
+                assertEquals(NativeEffort("high"), accepted.effort.resolved)
+                assertTrue(accepted.effort.unknownEffective, "Nothing observed it yet")
+            }
+        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+    }
+
+    @Test fun aProviderWithNoEnumerableEffortSetAcceptsTheRequestedValue() {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            val stoppedScope = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness), scope = stoppedScope,
+                discover = { ProviderCapability(it, effort = EffortSupport(supported = null, source = "test")) }).use { workspace ->
+                val run = workspace.submit(AgentSubmission("unknown-set", harness.kind, "task", effort = NativeEffort("xhigh")))
+                assertEquals(NativeEffort("xhigh"), run.effort.resolved)
+                assertEquals(listOf(harness.kind), workspace.info().capabilities.map { it.runtime })
+            }
+        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+    }
+
+    private fun advertising(runtime: RuntimeKind, levels: List<String>) = ProviderCapability(
+        runtime = runtime,
+        effort = EffortSupport(supported = levels.map(::NativeEffort), source = "test"),
+        effortControl = Qualification.qualified("AgentWorkspaceTest"),
+    )
+
     private class Harness(override val kind: RuntimeKind) : AgentRuntime {
         val requests = java.util.concurrent.CopyOnWriteArrayList<AgentRequest>()
         val started = CompletableDeferred<Unit>()
@@ -33,11 +77,35 @@ class AgentWorkspaceTest {
             requests.add(request)
             val session = request.resume ?: ProviderSession(kind, "session-${requests.size}")
             emit(AgentEvent.Started(request.agent.id, session))
+            if (request.prompt.contains("THINK")) {
+                emit(AgentEvent.Reasoning(request.agent.id, "weighing two options", ReasoningFidelity.Thinking))
+            }
             emit(AgentEvent.Delta(request.agent.id, "working"))
             started.complete(Unit)
             if (request.prompt.contains("BLOCK_UNTIL_CANCEL")) awaitCancellation()
             emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "answer-${kind.name}", true, session = session)))
         }
+    }
+
+    @Test fun reasoningIsRecordedBesideTheAnswerRatherThanInsideIt() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                val run = terminal(owner, owner.submit(
+                    AgentSubmission("thinking", harness.kind, "THINK about this", effort = NativeEffort("high"))))
+                assertEquals("weighing two options", run.reasoning)
+                assertEquals(ReasoningFidelity.Thinking, run.reasoningFidelity)
+                assertFalse(run.output.contains("weighing"), "Reasoning must stay out of the answer")
+                // The chosen effort reached the harness rather than stopping at the submission.
+                assertEquals(NativeEffort("high"), harness.requests.single().agent.effort)
+
+                val quiet = terminal(owner, owner.submit(AgentSubmission("quiet", harness.kind, "no thinking here")))
+                assertEquals("", quiet.reasoning)
+                assertNull(quiet.reasoningFidelity, "A turn that produced none must not look like one that hid it")
+            }
+        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
     }
 
     private suspend fun terminal(connection: AgentWorkspaceConnection, initial: AgentRunRecord): AgentRunRecord = withTimeout(10000) {

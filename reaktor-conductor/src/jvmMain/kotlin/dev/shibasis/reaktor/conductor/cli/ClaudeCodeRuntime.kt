@@ -31,65 +31,68 @@ class ClaudeCodeRuntime(
 ) : CliAgentRuntime(executor) {
     override val kind: RuntimeKind = RuntimeKind.ClaudeCode
 
-    override fun argv(request: AgentRequest): List<String> = buildList {
-        add(binary)
-        add("-p")
-        add(request.prompt)
-        add("--output-format")
-        add("stream-json")
-        add("--verbose")
-
-        request.agent.model?.let {
-            add("--model")
-            add(it)
-        }
-        request.agent.effort?.let {
-            add("--effort")
-            add(it.value)
-        }
-        request.agent.budget.maxCostUsd?.let {
-            add("--max-budget-usd")
-            add(it.toString())
-        }
-
-        val tools = request.agent.tools
-        if (!tools.allowWrites) {
-            // Restricts these built-in editors; Bash/MCP permissions still belong to the harness.
-            add("--disallowedTools")
-            addAll(listOf("Write", "Edit", "NotebookEdit"))
-        }
-        if (tools.allow.isNotEmpty()) {
-            add("--allowedTools")
-            addAll(tools.allow)
-        }
-        if (tools.deny.isNotEmpty()) {
-            add("--disallowedTools")
-            addAll(tools.deny)
-        }
-        tools.additionalDirectories.forEach {
-            add("--add-dir")
-            add(it)
-        }
-        tools.mcpConfig?.let {
-            add("--mcp-config")
-            add(it)
-            if (tools.strictMcpConfig) add("--strict-mcp-config")
-        }
-
-        addAll(request.agent.harnessArgs)
-
-        // The provider session is a cache: resuming is an optimization, never a requirement.
-        request.resume?.takeIf { it.runtime == RuntimeKind.ClaudeCode }?.let {
-            add("--resume")
-            add(it.sessionId)
-        }
-    }
+    override fun argv(request: AgentRequest): List<String> = claudeArgv(request, binary)
 
     override fun parser(request: AgentRequest): CliEventParser = ClaudeCodeEventParser(
         request.agent.id,
         // The result envelope reports no effective effort, so `observed` stays unknown.
         request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
     )
+}
+
+/** The exact argv a Claude turn runs with, lifted out so the flag set can be asserted directly. */
+internal fun claudeArgv(request: AgentRequest, binary: String = "claude"): List<String> = buildList {
+    add(binary)
+    add("-p")
+    add(request.prompt)
+    add("--output-format")
+    add("stream-json")
+    add("--verbose")
+
+    request.agent.model?.let {
+        add("--model")
+        add(it)
+    }
+    request.agent.effort?.let {
+        add("--effort")
+        add(it.value)
+    }
+    request.agent.budget.maxCostUsd?.let {
+        add("--max-budget-usd")
+        add(it.toString())
+    }
+
+    val tools = request.agent.tools
+    if (!tools.allowWrites) {
+        // Restricts these built-in editors; Bash/MCP permissions still belong to the harness.
+        add("--disallowedTools")
+        addAll(listOf("Write", "Edit", "NotebookEdit"))
+    }
+    if (tools.allow.isNotEmpty()) {
+        add("--allowedTools")
+        addAll(tools.allow)
+    }
+    if (tools.deny.isNotEmpty()) {
+        add("--disallowedTools")
+        addAll(tools.deny)
+    }
+    tools.additionalDirectories.forEach {
+        add("--add-dir")
+        add(it)
+    }
+    tools.mcpConfig?.let {
+        add("--mcp-config")
+        add(it)
+        if (tools.strictMcpConfig) add("--strict-mcp-config")
+    }
+
+    addAll(request.agent.harnessArgs)
+
+    // The provider session is a cache: resuming is an optimization, never a requirement.
+    request.resume?.takeIf { it.runtime == RuntimeKind.ClaudeCode }?.let {
+        add("--resume")
+        add(it.sessionId)
+    }
 }
 
 /** Parses Claude Code's `stream-json` line protocol. */
