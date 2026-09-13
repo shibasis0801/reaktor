@@ -65,6 +65,27 @@ The private Manna MCP tool `context_for_task` accepts `taskKey` or `query`, `max
 
 History, aggregate peer material and retrieved context each have a 24,000-character default cap. These are character limits, not token measurements or a cap on the user's task/instructions. Oversized packets are explicitly omitted as a whole. The current prompt is not repeated in history. Upstream revision and freshness stay unknown where the source cannot prove them; retrieval time is not a source revision. This packet is evidence, not permission or trusted instructions.
 
+## Shared comparison and council
+
+The desktop Team view and `agent_submit` now expose the existing conductor protocols through one workspace owner:
+
+```json
+{
+  "requestId": "tabs-council-unique-request",
+  "provider": "Codex",
+  "prompt": "Compare graph-owned tab lifecycle designs and retain unresolved disagreements.",
+  "collaboration": "Council",
+  "partner": { "provider": "ClaudeCode" },
+  "allowWrites": false
+}
+```
+
+`Single` is the backwards-compatible default. `Compare` produces two independent proposals; `Council` produces two proposals, two critiques and a synthesis by the primary provider. Both require a different configured partner and reserve two concurrency slots. Optional `model` and `partner.model` remain independent. Collaborative turns request inspection, use fresh provider sessions and preserve native operator configuration; provider tools still govern possible effects.
+
+Run receipts retain bounded participant streams, their latest native session references, all completed-turn usage and any participant failure. A successful synthesis cannot make a failed council successful. `turnUsage` reports known values and unknown-turn counts; it is not a billing total. Historical stage outcomes live in the canonical transcript. Ephemeral council sessions are never resumed as later single turns.
+
+The desktop now has Conversation, Team and Activity views plus recent-task search. The complete researched destination, six Pencil boards and delivery gates are in [Agent Workspace](https://reaktor.build/docs/reaktor-agent-workspace). Interactive provider input/approval/steering, isolated parallel coding, editable durable workflows and automatic graph context remain planned. Current council stages may continue after a participant failure, which remains visible in the terminal receipt.
+
 ## Local PostgreSQL, pgvector, Memgraph and Manna data
 
 The optional single-operator bootstrap is in `tools/local-context`. It creates persistent Docker volumes, binds only localhost, stores a random PostgreSQL password and authorized exports outside the repository, and caches an ONNX embedding model locally.

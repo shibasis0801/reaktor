@@ -11,6 +11,22 @@ val AgentWorkspaceJson: Json = Json(ConductorJson) { encodeDefaults = true }
 enum class AgentRunStatus { Running, Completed, Failed, Interrupted }
 
 @Serializable
+enum class AgentCollaboration { Single, Compare, Council }
+
+@Serializable
+data class AgentPartner(val provider: RuntimeKind, val model: String? = null)
+
+@Serializable
+data class AgentParticipantRun(
+    val provider: RuntimeKind,
+    val status: AgentRunStatus = AgentRunStatus.Running,
+    val output: String = "",
+    val outputTruncated: Boolean = false,
+    val lastTool: String? = null,
+    val session: ProviderSession? = null,
+)
+
+@Serializable
 data class AgentSubmission(
     val requestId: String,
     val provider: RuntimeKind,
@@ -19,6 +35,8 @@ data class AgentSubmission(
     val model: String? = null,
     val allowWrites: Boolean = false,
     val context: ContextPacket? = null,
+    val collaboration: AgentCollaboration = AgentCollaboration.Single,
+    val partner: AgentPartner? = null,
 )
 
 @Serializable
@@ -41,6 +59,10 @@ data class AgentRunRecord(
     val usage: AgentUsage? = null,
     val reportedUsage: AgentUsage? = null,
     val failure: String? = null,
+    val collaboration: AgentCollaboration = AgentCollaboration.Single,
+    val partner: AgentPartner? = null,
+    val participants: Map<String, AgentParticipantRun> = emptyMap(),
+    val turnUsage: UsageSummary? = null,
 )
 
 @Serializable
@@ -52,4 +74,5 @@ data class AgentWorkspaceInfo(
     val providers: List<RuntimeKind>,
     val maxActiveRuns: Int,
     val sessionMode: String = "CLI batch turns with persisted provider continuation",
+    val collaborations: List<AgentCollaboration> = listOf(AgentCollaboration.Single),
 )

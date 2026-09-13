@@ -39,12 +39,15 @@ class AgentWorkspace(
         recent.forEach { id -> load(id)?.let { saved ->
             records[id] = if (saved.status == AgentRunStatus.Running) saved.copy(
                 status = AgentRunStatus.Interrupted, revision = saved.revision + 1,
+                participants = saved.participants.mapValues { (_, participant) -> if (participant.status == AgentRunStatus.Running)
+                    participant.copy(status = AgentRunStatus.Interrupted) else participant },
                 failure = "Workspace owner stopped without a terminal result. Inspect changes before continuing.", updatedAt = System.currentTimeMillis(),
             ).also(::persist) else saved
         } }
     }
 
-    fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive)
+    fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive,
+        collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single))
 
     fun submit(request: AgentSubmission): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
@@ -52,6 +55,15 @@ class AgentWorkspace(
         require(request.prompt.isNotBlank() && request.prompt.length <= 100000)
         require(request.model == null || request.model.length in 1..256)
         require(request.provider in runtimes) { "Provider is not configured" }
+        require(request.collaboration in info().collaborations) { "Collaboration is not available in this workspace" }
+        if (request.collaboration == AgentCollaboration.Single) {
+            require(request.partner == null) { "Single-agent turns cannot have a partner" }
+        } else {
+            val partner = requireNotNull(request.partner) { "Choose a second provider" }
+            require(partner.provider in runtimes && partner.provider != request.provider) { "Choose two different configured providers" }
+            require(partner.model == null || partner.model.length in 1..256)
+            require(!request.allowWrites) { "Collaborative turns request inspection; parallel editing requires owned worktrees" }
+        }
         require(request.context == null || ConductorJson.encodeToString(ContextPacket.serializer(), request.context).length <= 24000)
         val id = digest(request.requestId)
         val fingerprint = digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request))
@@ -59,7 +71,10 @@ class AgentWorkspace(
             require(it.requestFingerprint == fingerprint) { "Request id already belongs to a different submission" }
             return@synchronized recover(it)
         }
-        require(active.size < maxActive) { "Agent capacity is busy; wait for an active run" }
+        val slots = if (request.collaboration == AgentCollaboration.Single) 1 else 2
+        require(active.keys.sumOf { if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
+            "Agent capacity is busy; wait for an active run"
+        }
         require(active.keys.none { records[it]?.allowWrites == true } && (!request.allowWrites || active.isEmpty())) {
             "Workspace edits require exclusive agent execution"
         }
@@ -69,7 +84,8 @@ class AgentWorkspace(
         require(active.keys.none { records[it]?.threadId == threadId }) { "Conversation already has an active turn" }
         val now = System.currentTimeMillis()
         val record = AgentRunRecord(id, threadId, request.provider, fingerprint, request.prompt.take(200),
-            request.model, request.allowWrites, startedAt = now, updatedAt = now)
+            request.model, request.allowWrites, startedAt = now, updatedAt = now,
+            collaboration = request.collaboration, partner = request.partner)
         atomicWrite(directory.resolve("requests/$id.json"), ConductorJson.encodeToString(AgentSubmission.serializer(), request))
         persist(record)
         records[id] = record
@@ -144,29 +160,57 @@ class AgentWorkspace(
         try {
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
                 val agentId = AgentId(request.provider.name.lowercase())
-                val spec = AgentSpec(agentId, request.provider.name, request.provider, "Follow the workspace's repository instructions.",
-                    model = request.model, tools = ToolPolicy(allowWrites = request.allowWrites))
+                fun spec(provider: RuntimeKind, model: String?) = AgentSpec(AgentId(provider.name.lowercase()), provider.name, provider,
+                    "Follow the workspace's repository instructions.", model = model, tools = ToolPolicy(allowWrites = request.allowWrites))
+                val specs = listOf(spec(request.provider, request.model)) + listOfNotNull(request.partner?.let { spec(it.provider, it.model) })
                 val saved = store.load() ?: ThreadDocument(ThreadId(initial.threadId), initial.title)
-                val priorSpec = saved.agent(agentId)
-                val document = saved.copy(participants = saved.participants.filterNot { it.id == agentId } + spec,
-                    providerSessions = if (priorSpec != null && priorSpec != spec) saved.providerSessions - agentId.value else saved.providerSessions)
+                val ids = specs.map { it.id }
+                val invalidated = specs.filter { saved.agent(it.id)?.let { prior -> prior != it } == true }.map { it.id.value }
+                val document = saved.copy(participants = saved.participants.filterNot { it.id in ids } + specs,
+                    providerSessions = saved.providerSessions - invalidated.toSet())
+                val protocol = when (request.collaboration) {
+                    AgentCollaboration.Single -> Protocol.Ask(agentId)
+                    AgentCollaboration.Compare -> Protocol.All(ids, blind = true)
+                    AgentCollaboration.Council -> Protocol.Council(ids, synthesizer = agentId)
+                }
                 try {
                     val result = Conductor(runtimes, clock = System::currentTimeMillis, idFactory = { EventId(UUID.randomUUID().toString()) }).run(
-                        document, request.prompt, Protocol.Ask(agentId), root.canonicalPath,
-                        context = request.context, resumeProviderSession = true, onCheckpoint = store::checkpoint,
-                        onEvent = { event -> update(initial.id, persistNow = event is AgentEvent.Started) { current -> when (event) {
-                            is AgentEvent.Started -> current.copy(session = event.session)
-                            is AgentEvent.Delta -> current.copy(output = (current.output + event.text).takeLast(12000),
+                        document, request.prompt, protocol, root.canonicalPath,
+                        context = request.context, resumeProviderSession = request.collaboration == AgentCollaboration.Single,
+                        onCheckpoint = { checkpoint ->
+                            store.checkpoint(if (request.collaboration == AgentCollaboration.Single) checkpoint else
+                                checkpoint.copy(providerSessions = checkpoint.providerSessions - ids.map { it.value }.toSet()))
+                            update(initial.id, true) { it.copy(turnUsage = checkpoint.copy(events = checkpoint.events.drop(saved.events.size)).usageSummary()) }
+                        },
+                        onEvent = { event -> update(initial.id, persistNow = event is AgentEvent.Started || event is AgentEvent.Finished) { current ->
+                            val participant = current.participants[event.agent.value] ?: AgentParticipantRun(specs.first { it.id == event.agent }.runtime)
+                            val next = when (event) {
+                                is AgentEvent.Started -> participant.copy(status = AgentRunStatus.Running, session = event.session, output = "", outputTruncated = false, lastTool = null)
+                                is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
+                                    outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
+                                is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
+                                is AgentEvent.Finished -> participant.copy(status = if (event.outcome.ok) AgentRunStatus.Completed else AgentRunStatus.Failed,
+                                    output = (event.outcome.failure ?: event.outcome.text).takeLast(6000),
+                                    outputTruncated = (event.outcome.failure ?: event.outcome.text).length > 6000,
+                                    session = event.outcome.session ?: participant.session)
+                            }
+                            val withParticipant = current.copy(participants = current.participants + (event.agent.value to next))
+                            if (request.collaboration != AgentCollaboration.Single) withParticipant else when (event) {
+                            is AgentEvent.Started -> withParticipant.copy(session = event.session)
+                            is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
                                 outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
-                            is AgentEvent.ToolUse -> current.copy(lastTool = event.tool)
-                            is AgentEvent.Finished -> current.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session)
+                            is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
+                            is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session)
                         } } },
                     )
                     val answer = result.answer
-                    update(initial.id, true) { it.copy(status = if (answer?.kind == EventKind.Failure) AgentRunStatus.Failed else AgentRunStatus.Completed,
+                    val failures = result.added.filter { it.kind == EventKind.Failure }
+                    update(initial.id, true) { it.copy(status = if (failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
                         output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
-                        usage = answer?.usage, reportedUsage = answer?.reportedUsage,
-                        failure = answer?.takeIf { event -> event.kind == EventKind.Failure }?.text?.take(2000)) }
+                        usage = answer?.usage?.takeIf { request.collaboration == AgentCollaboration.Single },
+                        reportedUsage = answer?.reportedUsage?.takeIf { request.collaboration == AgentCollaboration.Single },
+                        turnUsage = result.thread.copy(events = result.added).usageSummary(),
+                        failure = failures.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.text }?.take(2000)) }
                 } catch (failure: Exception) {
                     store.load()?.let { latest -> store.checkpoint(latest.append(ThreadEvent(EventId(UUID.randomUUID().toString()),
                         Author.Orchestrator("workspace"), EventKind.Failure,
@@ -177,6 +221,8 @@ class AgentWorkspace(
             }
         } catch (failure: Exception) {
             update(initial.id, true) { it.copy(status = if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed,
+                participants = it.participants.mapValues { (_, participant) -> if (participant.status == AgentRunStatus.Running)
+                    participant.copy(status = if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed) else participant },
                 failure = if (failure is CancellationException) "Interrupted by the workspace owner" else failure.message.orEmpty().take(2000)) }
         } finally {
             synchronized(lock) { active.remove(initial.id); changes.value++ }
@@ -193,6 +239,8 @@ class AgentWorkspace(
 
     private fun recover(record: AgentRunRecord): AgentRunRecord =
         if (record.status == AgentRunStatus.Running && record.id !in active) record.copy(status = AgentRunStatus.Interrupted,
+            participants = record.participants.mapValues { (_, participant) -> if (participant.status == AgentRunStatus.Running)
+                participant.copy(status = AgentRunStatus.Interrupted) else participant },
             revision = record.revision + 1, failure = "Owner stopped without a terminal result; inspect changes before continuing.").also { persist(it); records[it.id] = it }
         else record
 
