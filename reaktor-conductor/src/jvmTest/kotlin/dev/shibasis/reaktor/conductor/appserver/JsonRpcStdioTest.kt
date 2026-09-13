@@ -15,6 +15,29 @@ import kotlin.test.*
  * hung caller in an agent loop looks exactly like a model thinking.
  */
 class JsonRpcStdioTest {
+    @Test fun notificationsWaitForTheConsumerInsteadOfBeingDroppedAtStartup() = runBlocking(Dispatchers.IO) {
+        withPeer { rpc, peer ->
+            peer.line("""{"method":"turn/started","params":{"turn":{"id":"early"}}}""")
+            delay(50)
+            val message = assertIs<JsonRpcInbound.Notification>(rpc.inbound.first())
+            assertEquals("turn/started", message.method)
+        }
+    }
+
+    @Test fun failedWritesFailTheCallerImmediately() = runBlocking(Dispatchers.IO) {
+        val output = object : java.io.Writer() {
+            override fun write(chars: CharArray, offset: Int, length: Int) { throw java.io.IOException("broken stdin") }
+            override fun flush() = Unit
+            override fun close() = Unit
+        }
+        val peer = PipedWriter()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val rpc = JsonRpcStdio(java.io.BufferedReader(PipedReader(peer)), output, scope)
+        try {
+            withTimeout(1000) { assertFailsWith<java.io.IOException> { rpc.request("turn/steer") } }
+        } finally { peer.close(); rpc.close(); scope.cancel() }
+        Unit
+    }
     @Test fun answersAreMatchedByIdEvenWhenTheyArriveOutOfOrder() = runBlocking(Dispatchers.IO) {
         withPeer { rpc, peer ->
             val first = async { rpc.request("thread/start") }

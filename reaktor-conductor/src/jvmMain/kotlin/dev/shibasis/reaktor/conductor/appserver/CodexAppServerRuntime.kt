@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.cli.codexMcpArgs
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
@@ -32,7 +33,7 @@ class CodexAppServerRuntime(
 
     override val interactive = Qualification(
         advertised = true, configured = true, implemented = true,
-        qualifiedBy = "CodexAppServerSessionTest",
+        qualifiedBy = "CodexAppServerLiveTest (0.154.0)",
     )
 
     /** Batch shape: open a session, run one turn, close. Cancellation interrupts the turn first. */
@@ -55,11 +56,17 @@ class CodexAppServerRuntime(
     override suspend fun open(request: AgentRequest): AgentSession {
         val directory = File(request.workingDirectory)
         require(directory.isDirectory) { "Working directory does not exist: ${directory.absolutePath}" }
+        require(!request.agent.tools.isolateOperatorConfig) { "App Server configuration isolation is not supported; use the batch transport" }
+        require(!request.agent.tools.strictMcpConfig && request.agent.tools.allow.isEmpty() && request.agent.tools.deny.isEmpty()) {
+            "These tool restrictions have no App Server mapping; use native configuration or a supported transport"
+        }
 
         val process = ProcessBuilder(buildList {
             add(binary)
+            addAll(codexMcpArgs(request.agent.tools.mcpConfig))
+            request.agent.tools.additionalDirectories.forEach { add("--add-dir"); add(it) }
+            addAll(request.agent.harnessArgs)
             // Config overrides are global flags and must precede the subcommand, as with `exec`.
-            if (request.agent.tools.isolateOperatorConfig) add("--ignore-user-config")
             add("app-server")
         }).directory(directory).redirectErrorStream(false).start()
 
@@ -90,10 +97,11 @@ private class CodexAppServerSession(
 ) : AgentSession {
     private val agent = request.agent.id
     private var threadId: String? = null
-    private var turn: String? = null
+    @Volatile private var turn: String? = null
     private var effort = EffortRecord.none
     private var model: String? = null
-    private val pending = mutableMapOf<String, JsonElement>()
+    private val pending = java.util.concurrent.ConcurrentHashMap<String, CodexRequest>()
+    private val generation = java.util.UUID.randomUUID().toString()
 
     override val activeTurn: String? get() = turn
 
@@ -106,9 +114,17 @@ private class CodexAppServerSession(
             putJsonObject("clientInfo") { put("name", "reaktor"); put("title", "Reaktor"); put("version", "1") }
         })
 
+        rpc.notify("initialized")
+
         val resume = request.resume?.takeIf { it.runtime == RuntimeKind.Codex }
         val thread = if (resume != null) {
-            rpc.request("thread/resume", buildJsonObject { put("threadId", resume.sessionId) })
+            rpc.request("thread/resume", buildJsonObject {
+                put("threadId", resume.sessionId)
+                put("cwd", request.workingDirectory)
+                put("sandbox", if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
+                put("approvalPolicy", "on-request")
+                request.agent.model?.let { put("model", it) }
+            })
         } else {
             rpc.request("thread/start", buildJsonObject {
                 put("cwd", request.workingDirectory)
@@ -134,25 +150,36 @@ private class CodexAppServerSession(
 
         val terminal = CompletableDeferred<AgentOutcome>()
         val text = StringBuilder()
+        var finalText: String? = null
         var usage: AgentUsage? = null
 
-        val pump = launch {
+        val pump = launch(start = CoroutineStart.UNDISPATCHED) {
             rpc.inbound.collect { message ->
                 when (message) {
                     is JsonRpcInbound.ServerRequest -> {
-                        val ask = message.toPendingRequest()
+                        val ask = codexRequest(message, generation)
                         if (ask != null) {
-                            pending[ask.id] = message.id
-                            send(AgentEvent.RequestPending(agent, ask))
+                            pending[ask.pending.id] = ask
+                            send(AgentEvent.RequestPending(agent, ask.pending))
                         } else {
                             // Unknown server request: answer nothing rather than guess, but do not
                             // leave the peer blocked forever on a method we do not model.
-                            rpc.respond(message.id, buildJsonObject { put("decision", "denied") })
+                            rpc.reject(message.id, message.method)
                         }
                     }
 
                     is JsonRpcInbound.Notification -> when (message.method) {
-                        "turn/started" -> turn = message.params.objectOrEmpty("turn")["id"]?.jsonPrimitive?.contentOrNull
+                        "turn/started" -> {
+                            turn = message.params.objectOrEmpty("turn")["id"]?.jsonPrimitive?.contentOrNull
+                            turn?.let { send(AgentEvent.TurnStarted(agent, it)) }
+                        }
+                        "serverRequest/resolved" -> {
+                            val raw = message.params["requestId"]?.jsonPrimitive?.contentOrNull
+                            pending.values.firstOrNull { it.pending.providerRequestId == raw }?.let {
+                                pending.remove(it.pending.id)
+                                send(AgentEvent.RequestResolved(agent, it.pending.id, null))
+                            }
+                        }
 
                         "item/agentMessage/delta" -> message.params["delta"]?.jsonPrimitive?.contentOrNull?.let {
                             text.append(it)
@@ -170,6 +197,8 @@ private class CodexAppServerSession(
 
                         "item/started", "item/completed" -> message.params.objectOrEmpty("item").let { item ->
                             when (item["type"]?.jsonPrimitive?.contentOrNull) {
+                                "agentMessage" -> if (message.method == "item/completed")
+                                    finalText = item["text"]?.jsonPrimitive?.contentOrNull ?: finalText
                                 "commandExecution" -> if (message.method == "item/started")
                                     send(AgentEvent.ToolUse(agent, "command", item["command"]?.jsonPrimitive?.contentOrNull))
                                 "fileChange", "patchApply" -> if (message.method == "item/started")
@@ -191,14 +220,16 @@ private class CodexAppServerSession(
                             val failed = completed["error"]?.takeIf { it !is JsonNull }
                             terminal.complete(AgentOutcome(
                                 agent = agent,
-                                text = answer ?: text.toString(),
-                                ok = failed == null && completed["status"]?.jsonPrimitive?.contentOrNull != "failed",
+                                text = answer ?: finalText ?: text.toString(),
+                                ok = failed == null && completed["status"]?.jsonPrimitive?.contentOrNull == "completed",
+                                interrupted = completed["status"]?.jsonPrimitive?.contentOrNull == "interrupted",
                                 failure = failed?.jsonObject?.get("message")?.jsonPrimitive?.contentOrNull,
                                 session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) },
                                 usage = usage,
                                 effort = effort,
                             ))
                             turn = null
+                            pending.clear()
                         }
 
                         "turn/failed", "error" -> terminal.complete(AgentOutcome(agent, text.toString(), false,
@@ -247,15 +278,16 @@ private class CodexAppServerSession(
     }
 
     override suspend fun resolve(requestId: String, decision: AgentDecision): CommandOutcome {
-        val id = pending.remove(requestId) ?: return CommandOutcome.Stale(requestId, null)
-        rpc.respond(id, buildJsonObject {
-            when (decision) {
-                AgentDecision.Approve -> put("decision", "approved")
-                is AgentDecision.Deny -> { put("decision", "denied"); decision.reason?.let { put("reason", it) } }
-                is AgentDecision.Answer -> put("answer", decision.text)
-            }
-        })
-        return CommandOutcome.Accepted
+        return synchronized(pending) {
+            val ask = pending[requestId] ?: return@synchronized CommandOutcome.Stale(requestId, null)
+            if (ask.pending.turnId != null && ask.pending.turnId != turn)
+                return@synchronized CommandOutcome.Stale(ask.pending.turnId, turn)
+            runCatching {
+                rpc.respond(ask.wire.id, ask.response(decision))
+                pending.remove(requestId)
+                CommandOutcome.Accepted
+            }.getOrElse { CommandOutcome.Failed(it.message ?: "Response could not be sent") }
+        }
     }
 
     override suspend fun interrupt(): CommandOutcome {
@@ -267,31 +299,8 @@ private class CodexAppServerSession(
     }
 
     override fun close() {
+        stopNativeProcess(process)
         rpc.close()
-        process.destroy()
-        if (!process.waitFor(2, java.util.concurrent.TimeUnit.SECONDS)) process.destroyForcibly()
-    }
-}
-
-/** Only the server requests this adapter models become pending requests a person can answer. */
-private fun JsonRpcInbound.ServerRequest.toPendingRequest(): PendingRequest? {
-    val id = params["requestId"]?.jsonPrimitive?.contentOrNull ?: this.id.toString()
-    return when (method) {
-        "execCommandApproval", "commandExecutionRequestApproval" -> PendingRequest(
-            id, RequestKind.CommandApproval, "Run a command",
-            scope = params["command"]?.jsonPrimitive?.contentOrNull ?: params.objectOrEmpty("command").toString())
-        "applyPatchApproval", "fileChangeRequestApproval" -> PendingRequest(
-            id, RequestKind.PatchApproval, "Change files",
-            scope = params["path"]?.jsonPrimitive?.contentOrNull)
-        "permissionsRequestApproval" -> PendingRequest(
-            id, RequestKind.Permission, "Grant a permission",
-            scope = params["permission"]?.jsonPrimitive?.contentOrNull)
-        "toolRequestUserInput" -> PendingRequest(
-            id, RequestKind.Input, params.objectOrEmpty("question")["title"]?.jsonPrimitive?.contentOrNull ?: "Answer a question",
-            options = params.objectOrEmpty("question")["options"]?.jsonArray.orEmpty().mapNotNull { it.jsonPrimitive.contentOrNull })
-        "mcpServerElicitationRequest" -> PendingRequest(
-            id, RequestKind.Elicitation, params["message"]?.jsonPrimitive?.contentOrNull ?: "A tool needs input")
-        else -> null
     }
 }
 
@@ -312,4 +321,3 @@ private fun JsonObject.toUsage(): AgentUsage? {
         reasoningOutputTokens = field("reasoningOutputTokens"),
     )
 }
-

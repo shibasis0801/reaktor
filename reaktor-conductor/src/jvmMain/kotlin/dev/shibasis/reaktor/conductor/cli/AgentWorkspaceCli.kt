@@ -31,14 +31,20 @@ internal suspend fun workspaceCli(args: List<String>) {
     var index = 1
     while (index < args.size) {
         val key = args[index++]
-        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--command")) { "Unknown option: ${'$'}key" }
+        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--command", "--graph-url")) { "Unknown option: $key" }
         require(key !in options) { "Duplicate option: $key" }
         options[key] = if (key == "--dry") "true" else args.getOrNull(index++) ?: error("Missing value for $key")
     }
     require(action in setOf("serve", "mcp", "info", "runs", "submit", "read", "wait", "cancel", "transcript",
-        "install", "uninstall", "bundle"))
+        "install", "uninstall", "bundle", "graph-mcp"))
     require("--dry" !in options || action == "serve")
     val root = File(options["--dir"] ?: ".").canonicalFile
+    if (action == "graph-mcp") {
+        WorkspaceGraphBridge(root, options["--graph-url"] ?: AgentBundle.DEFAULT_GRAPH_URL).use { bridge ->
+            bridgeStdio(bridge::exchange)
+        }
+        return
+    }
 
     // Bundle actions touch configuration files, never the workspace owner, so they neither start
     // one nor require one to be running.
@@ -69,7 +75,7 @@ internal suspend fun workspaceCli(args: List<String>) {
             return
         }
         if (action == "mcp") {
-            bridgeStdio(connection)
+            bridgeStdio(connection::exchange)
             return
         }
         fun id() = options["--id"] ?: error("--id is required")
@@ -90,7 +96,7 @@ internal suspend fun workspaceCli(args: List<String>) {
     }
 }
 
-private suspend fun bridgeStdio(connection: AgentWorkspaceConnection) = coroutineScope {
+private suspend fun bridgeStdio(exchange: suspend (String) -> JsonElement?) = coroutineScope {
     val outputLock = Any()
     val admission = java.util.concurrent.Semaphore(4)
     val input = System.`in`.reader(Charsets.UTF_8).buffered()
@@ -120,7 +126,7 @@ private suspend fun bridgeStdio(connection: AgentWorkspaceConnection) = coroutin
         }
         launch(Dispatchers.IO) {
             try {
-                val result = runCatching { connection.exchange(line) }.getOrElse { failure(it.message ?: "Workspace unavailable", -32000) }
+                val result = runCatching { exchange(line) }.getOrElse { failure(it.message ?: "Workspace unavailable", -32000) }
                 if (result != null) synchronized(outputLock) { println(result) }
             } finally { admission.release() }
         }

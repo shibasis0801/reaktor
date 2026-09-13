@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /** What a provider stopped to ask about. Silence is not an answer: the turn waits. */
 @Serializable
@@ -20,7 +21,15 @@ data class PendingRequest(
     val title: String,
     val scope: String? = null,
     val options: List<String> = emptyList(),
+    val providerRequestId: String? = null,
+    val turnId: String? = null,
+    val questions: List<PendingQuestion> = emptyList(),
+    val schema: JsonObject? = null,
+    val url: String? = null,
 )
+
+@Serializable
+data class PendingQuestion(val id: String, val title: String, val options: List<String> = emptyList())
 
 @Serializable
 sealed interface AgentDecision {
@@ -32,6 +41,12 @@ sealed interface AgentDecision {
 
     @Serializable
     data class Answer(val text: String) : AgentDecision
+
+    @Serializable
+    data class Answers(val values: Map<String, List<String>>) : AgentDecision
+
+    @Serializable
+    data class Form(val values: JsonObject) : AgentDecision
 }
 
 /**
@@ -99,6 +114,7 @@ interface InteractiveAgentRuntime : AgentRuntime {
 suspend fun AgentRuntime.awaitSession(
     request: AgentRequest,
     onSession: (AgentSession) -> Unit,
+    onClosed: (AgentSession) -> Unit = {},
     onEvent: suspend (AgentEvent) -> Unit = {},
 ): AgentOutcome {
     if (this !is InteractiveAgentRuntime) return await(request, onEvent)
@@ -111,7 +127,7 @@ suspend fun AgentRuntime.awaitSession(
             if (event is AgentEvent.Finished) outcome = event.outcome
         }
     } finally {
-        session.close()
+        try { session.close() } finally { onClosed(session) }
     }
     return outcome ?: AgentOutcome(
         agent = request.agent.id,

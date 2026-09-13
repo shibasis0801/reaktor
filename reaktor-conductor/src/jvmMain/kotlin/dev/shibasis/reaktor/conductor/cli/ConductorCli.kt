@@ -167,6 +167,7 @@ fun main(args: Array<String>): Unit = runBlocking {
 
 private fun render(event: AgentEvent) {
     when (event) {
+        is AgentEvent.TurnStarted -> Unit
         is AgentEvent.Started -> println("  ${event.agent.value} started")
         is AgentEvent.ToolUse -> println("  ${event.agent.value} · ${event.tool}")
         is AgentEvent.Finished -> println(

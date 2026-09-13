@@ -36,7 +36,7 @@ class AgentBundleTest {
             """.trimIndent() + "\n"
             codex.writeText(original)
 
-            val targets = AgentBundle.targets(root, home)
+            val targets = AgentBundle.Targets(codex, java.io.File(root, ".mcp.json"))
             AgentBundle.install(targets, command)
             val installed = codex.readText()
             assertTrue(installed.contains("[mcp_servers.reaktor]"))
@@ -67,7 +67,7 @@ class AgentBundleTest {
             AgentBundle.install(targets, command)
             val servers = Json.parseToJsonElement(mcp.readText()).jsonObject.getValue("mcpServers").jsonObject
             assertEquals(setOf("pencil", "reaktor", "reaktor-graph"), servers.keys)
-            assertEquals("http", servers.getValue("reaktor-graph").jsonObject.getValue("type").jsonPrimitive.content)
+            assertTrue(servers.getValue("reaktor-graph").jsonObject.getValue("args").jsonArray.any { it.jsonPrimitive.content == "graph-mcp" })
             assertEquals("pencil-mcp", servers.getValue("pencil").jsonObject.getValue("command").jsonPrimitive.content)
 
             AgentBundle.uninstall(targets)
@@ -95,23 +95,70 @@ class AgentBundleTest {
             java.io.File(home, ".codex/config.toml").apply { parentFile.mkdirs() }.writeText("model = \"x\"\n")
             val targets = AgentBundle.targets(root, home)
             AgentBundle.install(targets, command)
-            val once = java.io.File(home, ".codex/config.toml").readText()
+            val once = targets.codexConfig.readText()
             val second = AgentBundle.install(targets, command)
-            assertEquals(once, java.io.File(home, ".codex/config.toml").readText())
+            assertEquals(once, targets.codexConfig.readText())
             // Two servers across two harnesses: every one of them reports itself already there
             // rather than appending a second copy.
             assertEquals(second.size, second.count { it.contains("already installed") })
         } finally { home.deleteRecursively(); root.deleteRecursively() }
     }
 
-    @Test fun aMissingCodexInstallationIsSkippedRatherThanCreated() {
+    @Test fun installationCreatesOnlyProjectConfiguration() {
         val home = Files.createTempDirectory("bundle-home").toFile()
         val root = Files.createTempDirectory("bundle-root").toFile()
         try {
             val targets = AgentBundle.targets(root, home)
             // Writing a config for a harness that is not installed would be presumptuous.
-            assertTrue(AgentBundle.install(targets, command).any { it.contains("skipped") })
+            AgentBundle.install(targets, command)
+            assertTrue(targets.codexConfig.exists())
             assertFalse(java.io.File(home, ".codex/config.toml").exists())
         } finally { home.deleteRecursively(); root.deleteRecursively() }
+    }
+    @Test fun twoProjectsRemainBoundAndUnownedEntriesSurvive() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-pair").toFile()
+        try {
+            val a = java.io.File(root, "a").apply { mkdirs() }
+            val b = java.io.File(root, "b").apply { mkdirs() }
+            val ta = AgentBundle.targets(a, home)
+            val tb = AgentBundle.targets(b, home)
+            tb.codexConfig.parentFile.mkdirs()
+            val original = "[mcp_servers.reaktor]\ncommand = \"operator-owned\"\n"
+            tb.codexConfig.writeText(original)
+            tb.claudeProjectConfig.writeText("""{"mcpServers":{"reaktor":{"command":"operator-owned"}},"setting":true}""")
+            AgentBundle.install(ta, AgentBundle.launchCommand(a, listOf("java")))
+            AgentBundle.install(tb, AgentBundle.launchCommand(b, listOf("java")))
+            assertTrue(ta.codexConfig.readText().contains(a.canonicalPath))
+            assertTrue(tb.codexConfig.readText().contains(b.canonicalPath))
+            assertFalse(ta.codexConfig.readText().contains(b.canonicalPath))
+            AgentBundle.uninstall(tb)
+            assertEquals(original, tb.codexConfig.readText())
+            assertEquals("operator-owned", Json.parseToJsonElement(tb.claudeProjectConfig.readText()).jsonObject
+                .getValue("mcpServers").jsonObject.getValue("reaktor").jsonObject.getValue("command").jsonPrimitive.content)
+        } finally { home.deleteRecursively(); root.deleteRecursively() }
+    }
+
+    @Test fun malformedClaudeConfigDoesNotGetReplacedOrPartiallyInstallCodex() {
+        val root = Files.createTempDirectory("bundle-invalid").toFile()
+        try {
+            val targets = AgentBundle.targets(root)
+            targets.claudeProjectConfig.writeText("{invalid")
+            assertFails { AgentBundle.install(targets, command) }
+            assertEquals("{invalid", targets.claudeProjectConfig.readText())
+            assertFalse(targets.codexConfig.exists())
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun modifiedOwnedEntrySurvivesUninstall() {
+        val root = Files.createTempDirectory("bundle-modified").toFile()
+        try {
+            val targets = AgentBundle.targets(root)
+            AgentBundle.install(targets, command)
+            targets.codexConfig.appendText("[mcp_servers.reaktor.env]\nUSER_SETTING = \"preserve\"\n")
+            AgentBundle.uninstall(targets)
+            assertTrue(targets.codexConfig.readText().contains("USER_SETTING"))
+            assertTrue(targets.codexConfig.readText().contains("[mcp_servers.reaktor]"))
+        } finally { root.deleteRecursively() }
     }
 }

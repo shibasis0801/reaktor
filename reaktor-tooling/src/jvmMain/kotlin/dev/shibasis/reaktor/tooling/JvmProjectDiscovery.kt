@@ -445,13 +445,8 @@ private class TaskCatalogBuilder(
             File(root, "buildSrc").takeIf(File::isDirectory)?.let {
                 add(ProcessDefinitionDirectory(it))
             }
-            definitionFiles.filter { it.name.startsWith("settings.gradle") }.forEach { settings ->
-                Regex("""includeBuild\s*\(\s*[\"']([^\"']+)[\"']""")
-                    .findAll(settings.readText())
-                    .map { File(root, it.groupValues[1]) }
-                    .filter(File::isDirectory)
-                    .forEach { add(ProcessDefinitionDirectory(it, GRADLE_DEFINITION_SUFFIXES)) }
-            }
+            gradleSourceRoots(root).roots.filter(File::isDirectory)
+                .forEach { add(ProcessDefinitionDirectory(it, GRADLE_DEFINITION_SUFFIXES)) }
         }
         ProcessDefinitionSeal.capture(definitionFiles, definitionDirectories)
     }

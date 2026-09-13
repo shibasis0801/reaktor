@@ -14,6 +14,13 @@ enum class AgentRunStatus { Running, Completed, Failed, Interrupted }
 enum class AgentCollaboration { Single, Compare, Council }
 
 @Serializable
+enum class AgentTransport { Automatic, Interactive, Batch }
+
+@Serializable
+data class AgentQueuedTurn(val id: String, val afterRunId: String, val submission: AgentSubmission,
+    val state: String = "waiting", val runId: String? = null, val error: String? = null)
+
+@Serializable
 data class AgentPartner(val provider: RuntimeKind, val model: String? = null, val effort: NativeEffort? = null)
 
 @Serializable
@@ -34,6 +41,7 @@ data class AgentParticipantRun(
     val effort: EffortRecord = EffortRecord.none,
     /** Requests this participant is blocked on. Persisted, so a reconnect does not re-ask. */
     val pending: List<PendingRequest> = emptyList(),
+    val activeTurn: String? = null,
 )
 
 @Serializable
@@ -49,6 +57,7 @@ data class AgentSubmission(
     val partner: AgentPartner? = null,
     /** Provider vocabulary, validated against the capability record before anything is dispatched. */
     val effort: NativeEffort? = null,
+    val transport: AgentTransport = AgentTransport.Automatic,
 )
 
 @Serializable
@@ -77,10 +86,13 @@ data class AgentRunRecord(
     val turnUsage: UsageSummary? = null,
     val effort: EffortRecord = EffortRecord.none,
     val serviceTier: String? = null,
+    val transport: AgentTransport = AgentTransport.Batch,
     val reasoning: String = "",
     val reasoningTruncated: Boolean = false,
     val reasoningFidelity: ReasoningFidelity? = null,
     val pending: List<PendingRequest> = emptyList(),
+    val context: ContextPacket? = null,
+    val candidateId: String? = null,
 )
 
 @Serializable
@@ -98,6 +110,7 @@ data class AgentWorkspaceInfo(
      * a control with no capability behind it is how a schema entry becomes a broken button.
      */
     val capabilities: List<ProviderCapability> = emptyList(),
+    val transports: List<AgentTransport> = listOf(AgentTransport.Automatic),
 ) {
     fun capability(provider: RuntimeKind): ProviderCapability? = capabilities.firstOrNull { it.runtime == provider }
 }
@@ -123,4 +136,5 @@ data class AgentAttachment(
     val live: Boolean,
     val answerable: List<String> = emptyList(),
     val pending: List<PendingRequest> = emptyList(),
+    val activeTurns: Map<String, String> = emptyMap(),
 )
