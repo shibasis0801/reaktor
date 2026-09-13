@@ -13,7 +13,7 @@
     "from": "now-1h",
     "to": "now"
   },
-  "description": "Every span Reaktor emits carries the reaktor.* semantic convention: graph, node, port, contract, port shape and direction. These panels read those attributes. Only traces are populated today \u2014 reaktor-telemetry emits no metric instruments yet, so there are deliberately no rate or histogram panels.",
+  "description": "Every span Reaktor emits carries the reaktor.* semantic convention: graph, node, port, contract, port shape and direction. These panels read those attributes. Only traces are populated today \u2014 reaktor-telemetry emits no metric instruments yet, so there are deliberately no rate or histogram panels. Reads Grafana Cloud's own grafanacloud-traces datasource, which already links to logs, metrics and Pyroscope profiles.",
   "templating": {
     "list": [
       {

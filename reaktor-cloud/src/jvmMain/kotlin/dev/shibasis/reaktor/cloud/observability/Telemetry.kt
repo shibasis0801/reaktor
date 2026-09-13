@@ -11,10 +11,14 @@ import com.pulumi.grafana.oss.DataSourceArgs
 private val gson = Gson()
 
 class TelemetryOutputs(
-    val tempoDs: DataSource,
+    /** The Cloud-provisioned Tempo datasource this stack reads; not created here. */
+    val tracesDatasourceUid: String,
     val clickhouseDs: DataSource?,
     val portsDashboard: Dashboard,
 )
+
+/** Grafana Cloud's own Tempo datasource. Stable across stacks; readOnly, so unmanageable. */
+const val GrafanaCloudTracesUid = "grafanacloud-traces"
 
 /**
  * Traces from Reaktor runtimes: the Tempo datasource that reads what `reaktor-telemetry`
@@ -23,45 +27,26 @@ class TelemetryOutputs(
  *
  * Required stack config (nothing here reads an environment variable or a file):
  * ```
- * pulumi config set        telemetry:tempo_url        https://tempo-prod-<zone>.grafana.net/tempo
- * pulumi config set        telemetry:tempo_user       <numeric tempo instance id>
- * pulumi config set --secret telemetry:access_token   <cloud access policy token>
- * # optional, when ClickHouse is reachable from the Grafana stack
+ * # optional — defaults to Grafana Cloud's own `grafanacloud-traces`
+ * pulumi config set        telemetry:traces_datasource_uid grafanacloud-traces
+ * # optional, only when ClickHouse is reachable from the Grafana stack
  * pulumi config set        telemetry:clickhouse_host  clickhouse.internal
  * pulumi config set        telemetry:clickhouse_user  grafana_reader
  * pulumi config set --secret telemetry:clickhouse_password <password>
  * ```
  *
- * The matching export side is `OtlpEndpoint` in `reaktor-telemetry`, which posts to
- * `https://otlp-gateway-<zone>.grafana.net/otlp/v1/traces` with the same access token.
+ * The matching export side is `OtlpEndpoint` in `reaktor-telemetry`. For this stack
+ * (zone `prod-ap-south-1`) that is
+ * `https://otlp-gateway-prod-ap-south-1.grafana.net/otlp/v1/traces`.
  */
 fun telemetry(ctx: Context, g: GrafanaContext): TelemetryOutputs {
     val cfg = ctx.config("telemetry")
-    val accessToken = cfg.requireSecret("access_token")
 
-    val tempoDs = DataSource(
-        "reaktor-tempo",
-        DataSourceArgs.builder()
-            .type("tempo")
-            .name("reaktor-traces")
-            .url(cfg.require("tempo_url"))
-            .basicAuthEnabled(true)
-            .basicAuthUsername(cfg.require("tempo_user"))
-            .jsonDataEncoded(
-                gson.toJson(
-                    mapOf(
-                        // Node and port ids are stable architectural identities, so they are safe
-                        // as span-to-metric dimensions. Activation id is deliberately absent.
-                        "tracesToLogsV2" to mapOf("customQuery" to true, "query" to "{\$\${__tags}}"),
-                        "nodeGraph" to mapOf("enabled" to true),
-                        "search" to mapOf("hide" to false),
-                    ),
-                ),
-            )
-            .secureJsonDataEncoded(accessToken.applyValue { t -> gson.toJson(mapOf("basicAuthPassword" to t)) })
-            .build(),
-        g.opts,
-    )
+    // Grafana Cloud provisions the Tempo datasource itself as `grafanacloud-traces`, and marks
+    // it readOnly — it already has serviceMap, tracesToLogs, tracesToMetrics and tracesToProfiles
+    // wired to the sibling Cloud datasources. Creating another one here would duplicate a
+    // working, better-connected datasource, so the dashboard references the existing uid.
+    val tracesDatasourceUid = cfg.get("traces_datasource_uid").orElse(GrafanaCloudTracesUid)
 
     // ClickHouse is optional: it only exists once the stack can reach the cluster.
     val clickhouseHost = cfg.get("clickhouse_host").orElse("")
@@ -96,14 +81,12 @@ fun telemetry(ctx: Context, g: GrafanaContext): TelemetryOutputs {
         "reaktor-ports",
         DashboardArgs.builder()
             .configJson(
-                tempoDs.uid().applyValue { uid ->
-                    resource("/dashboards/reaktor-ports.json").replace("__TEMPO_DS__", uid)
-                },
+                Output.of(resource("/dashboards/reaktor-ports.json").replace("__TEMPO_DS__", tracesDatasourceUid)),
             )
             .folder(g.folder.uid())
             .build(),
         g.opts,
     )
 
-    return TelemetryOutputs(tempoDs, clickhouseDs, portsDashboard)
+    return TelemetryOutputs(tracesDatasourceUid, clickhouseDs, portsDashboard)
 }
