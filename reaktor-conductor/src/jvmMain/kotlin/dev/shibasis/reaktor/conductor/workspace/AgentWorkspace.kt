@@ -54,7 +54,13 @@ class AgentWorkspace(
 
     // Probing runs `--version` and `--help` per provider, so it happens once and is reused. An
     // upgraded CLI is picked up by restarting the owner rather than by paying for a probe per call.
-    private val capabilities: List<ProviderCapability> by lazy { runtimes.keys.map(discover) }
+    private val capabilities: List<ProviderCapability> by lazy {
+        runtimes.map { (kind, runtime) ->
+            // Session support is a property of the runtime that is actually wired here, not of the
+            // installed CLI, so it is read from the runtime rather than probed.
+            discover(kind).copy(session = (runtime as? InteractiveAgentRuntime)?.interactive ?: Qualification.unavailable)
+        }
+    }
 
     fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive,
         collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single),
