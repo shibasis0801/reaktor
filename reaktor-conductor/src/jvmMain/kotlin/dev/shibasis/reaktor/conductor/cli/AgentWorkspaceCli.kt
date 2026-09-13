@@ -17,8 +17,11 @@ internal suspend fun workspaceCli(args: List<String>) {
             workspace submit --dir <workspace> --request <AgentSubmission.json>
             workspace read|wait|cancel --dir <workspace> --id <runId> [--after <revision>]
             workspace transcript --dir <workspace> --id <threadId>
+            workspace install|uninstall|bundle --dir <workspace> [--command "<executable> <args...>"]
 
-            Start one owner using serve or the desktop. Other commands attach to it.
+            install writes a named MCP entry into your own Codex and Claude configuration, so a
+            terminal session reaches this workspace with no desktop open. uninstall removes only
+            what install wrote. Start one owner using serve or the desktop; other commands attach.
             mcp is a stdio bridge for Codex/Claude; it reads the private endpoint credential locally.
             --dry serves only the Echo provider and never invokes a model.
         """.trimIndent())
@@ -28,13 +31,31 @@ internal suspend fun workspaceCli(args: List<String>) {
     var index = 1
     while (index < args.size) {
         val key = args[index++]
-        require(key in setOf("--dir", "--request", "--id", "--after", "--dry")) { "Unknown option: $key" }
+        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--command")) { "Unknown option: ${'$'}key" }
         require(key !in options) { "Duplicate option: $key" }
         options[key] = if (key == "--dry") "true" else args.getOrNull(index++) ?: error("Missing value for $key")
     }
-    require(action in setOf("serve", "mcp", "info", "runs", "submit", "read", "wait", "cancel", "transcript"))
+    require(action in setOf("serve", "mcp", "info", "runs", "submit", "read", "wait", "cancel", "transcript",
+        "install", "uninstall", "bundle"))
     require("--dry" !in options || action == "serve")
     val root = File(options["--dir"] ?: ".").canonicalFile
+
+    // Bundle actions touch configuration files, never the workspace owner, so they neither start
+    // one nor require one to be running.
+    if (action in setOf("install", "uninstall", "bundle")) {
+        val targets = AgentBundle.targets(root)
+        when (action) {
+            "install" -> AgentBundle.install(targets,
+                AgentBundle.launchCommand(root, options["--command"]?.split(" ")?.filter { it.isNotBlank() }))
+            "uninstall" -> AgentBundle.uninstall(targets)
+            else -> AgentBundle.status(targets).let { status ->
+                fun say(present: Boolean) = if (present) "installed" else "not installed"
+                listOf("codex: " + say(status.codex), "claude: " + say(status.claude))
+            }
+        }.forEach(::println)
+        return
+    }
+
     val runtimes = if ("--dry" in options) mapOf(RuntimeKind.Echo to EchoRuntime()) else null
     AgentWorkspaceConnection.open(root, runtimes = runtimes, allowStart = action == "serve").use { connection ->
         if (action == "serve") {
