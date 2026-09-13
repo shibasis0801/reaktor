@@ -37,6 +37,8 @@ class Conductor(
         author: Author = Author.Human(),
         context: ContextPacket? = null,
         resumeProviderSession: Boolean = false,
+        resumeFrom: ProtocolCheckpoint? = null,
+        onProgress: (ProtocolCheckpoint) -> Unit = {},
         onCheckpoint: (ThreadDocument) -> Unit = {},
         /**
          * Called with the live session for a turn, when the runtime has one. It is the only way a
@@ -51,7 +53,8 @@ class Conductor(
     ): ConductorResult {
         require(!resumeProviderSession || protocol is Protocol.Ask) { "Provider continuation is supported only for Ask" }
         var counter = 0
-        val usedIds = thread.events.mapTo(mutableSetOf()) { it.id }
+        val initialThread = resumeFrom?.thread ?: thread
+        val usedIds = (initialThread.events + resumeFrom?.completed?.values.orEmpty()).mapTo(mutableSetOf()) { it.id }
         fun nextId(): EventId {
             repeat(usedIds.size + 1) {
                 val candidate = idFactory(++counter)
@@ -59,7 +62,7 @@ class Conductor(
             }
             throw ThreadIntegrityException("Event id factory cannot produce a unique id")
         }
-        val promptEvent = ThreadEvent(
+        val promptEvent = resumeFrom?.let { checkNotNull(it.thread.event(it.promptId)) } ?: ThreadEvent(
             id = nextId(),
             author = author,
             kind = EventKind.Prompt,
@@ -67,9 +70,13 @@ class Conductor(
             parents = thread.heads().map { it.id },
             createdAtEpochMillis = clock(),
         )
-        var document = thread.append(promptEvent)
+        var document = if (resumeFrom == null) initialThread.append(promptEvent) else initialThread
         val added = mutableListOf(promptEvent)
+        val completed = resumeFrom?.completed.orEmpty().toMutableMap()
+        val inFlight = mutableSetOf<String>()
         val checkpointMutex = Mutex()
+        fun progress() = onProgress(ProtocolCheckpoint(document, promptEvent.id, completed.toMap(), inFlight.toSet()))
+        progress()
         onCheckpoint(document)
 
         // Agents are resolved against the live document, not the caller's snapshot, so a planner
@@ -129,6 +136,7 @@ class Conductor(
                             providerSessions = document.providerSessions + (agent.id.value to event.session),
                         )
                         onCheckpoint(document)
+                        progress()
                     }
                 }
                 onEvent(if (event is AgentEvent.Finished) event.copy(outcome = event.outcome.copy(usage = turnUsage(event.outcome))) else event)
@@ -147,8 +155,7 @@ class Conductor(
             )
         }
 
-        // Ids are assigned after a parallel round completes, so they follow roster order and the
-        // document does not depend on which harness happened to finish first.
+        // Reserve identities in roster order; persist each completion without waiting for peers.
         suspend fun round(
             agents: List<AgentSpec>,
             task: String,
@@ -159,16 +166,35 @@ class Conductor(
             index: Int,
         ): List<ThreadEvent> {
             val snapshot = document
+            val identities = agents.associate { agent ->
+                val key = "$index:${kind.name}:${agent.id.value}"
+                key to (completed[key]?.id ?: nextId())
+            }
             val results = coroutineScope {
                 agents.map { agent ->
-                    async { turn(agent, task, kind, visibility, peers, parents, index, snapshot) }
+                    async {
+                        val key = "$index:${kind.name}:${agent.id.value}"
+                        checkpointMutex.withLock { completed[key] } ?: run {
+                            checkpointMutex.withLock { inFlight.add(key); progress() }
+                            turn(agent, task, kind, visibility, peers, parents, index, snapshot)
+                        }.let { result ->
+                            checkpointMutex.withLock {
+                                val identified = result.copy(id = identities.getValue(key))
+                                completed[key] = identified
+                                inFlight.remove(key)
+                                progress()
+                                identified
+                            }
+                        }
+                    }
                 }.awaitAll()
             }
             val committed = results.map { result ->
-                val identified = result.copy(id = nextId())
-                document = document.append(identified)
+                val identified = result
+                if (document.event(identified.id) == null) document = document.append(identified)
                 added += identified
                 onCheckpoint(document)
+                progress()
                 identified
             }
             return committed

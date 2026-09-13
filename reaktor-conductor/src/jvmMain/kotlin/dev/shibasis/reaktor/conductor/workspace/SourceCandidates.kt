@@ -58,12 +58,22 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         }
         if (dependencies.size > captured.size) notices += "Included source coverage is incomplete"
         val sourceDigest = hash.digest().joinToString("") { "%02x".format(it) }
-        val changed = (git("diff", "--name-only", "-z", base ?: "--cached") ?: "").split('\u0000') +
-            (git("ls-files", "-z", "--others", "--exclude-standard") ?: "").split('\u0000')
+        val untracked = (git("ls-files", "-z", "--others", "--exclude-standard") ?: "").split('\u0000').filter { it.isNotEmpty() }
+        val changed = (git("diff", "--name-only", "-z", base ?: "--cached") ?: "").split('\u0000') + untracked
         val diff = git("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached")
+        val additions = StringBuilder()
+        var diffBytes = diff?.toByteArray()?.size ?: 0
+        for (name in untracked.take(200)) {
+            val addition = git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+            if (addition == null) { notices += "New-file diff unavailable: $name"; continue }
+            diffBytes += addition.toByteArray().size
+            if (diffBytes > 16_000_000) { notices += "New-file diff budget exceeded"; break }
+            additions.append(addition)
+        }
+        if (untracked.size > 200) notices += "New-file diff budget exceeded"
         if (diff == null) notices += "Diff unavailable or over 16 MB"
-        if (base == null) notices += "No base commit; untracked source is fingerprinted but has no Git diff"
-        val combinedDiff = diff?.let { local -> local + captured.joinToString("") { child ->
+        if (base == null) notices += "No base commit; initial source has no committed baseline"
+        val combinedDiff = diff?.let { local -> local + additions + captured.joinToString("") { child ->
             "\n# Included source root: ${child.workspaceRoot}\n" + child.diff?.let(artifacts::text).orEmpty()
         } }
         val diffArtifact = combinedDiff?.let {
@@ -85,7 +95,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         try {
             val bytes = reader.get(30, TimeUnit.SECONDS)
             if (bytes.size > 16_000_000) { process.destroyForcibly(); return@runCatching null }
-            if (!process.waitFor(5, TimeUnit.SECONDS) || process.exitValue() != 0) null else bytes.decodeToString()
+            if (!process.waitFor(5, TimeUnit.SECONDS) || process.exitValue() !in if ("--no-index" in args) setOf(0, 1) else setOf(0)) null else bytes.decodeToString()
         } finally { if (process.isAlive) process.destroyForcibly() }
     }.getOrNull()
 }

@@ -17,6 +17,13 @@ enum class AgentCollaboration { Single, Compare, Council }
 enum class AgentTransport { Automatic, Interactive, Batch }
 
 @Serializable
+enum class AgentRecovery { None, Pending, Resuming, NeedsReview }
+
+@Serializable
+data class AgentServiceInfo(val processId: Long, val startedAt: Long, val background: Boolean,
+    val supervisor: String? = null, val recovery: String = "Saved stages; uncertain effects require review")
+
+@Serializable
 data class AgentQueuedTurn(val id: String, val afterRunId: String, val submission: AgentSubmission,
     val state: String = "waiting", val runId: String? = null, val error: String? = null)
 
@@ -95,6 +102,9 @@ data class AgentRunRecord(
     val candidateId: String? = null,
     /** Summary attention state, retained when request bodies are omitted from task listings. */
     val pendingCount: Int = 0,
+    val attempt: Int = 1,
+    val recovery: AgentRecovery = AgentRecovery.None,
+    val recoveryReason: String? = null,
 )
 
 @Serializable
@@ -113,6 +123,7 @@ data class AgentWorkspaceInfo(
      */
     val capabilities: List<ProviderCapability> = emptyList(),
     val transports: List<AgentTransport> = listOf(AgentTransport.Automatic),
+    val service: AgentServiceInfo? = null,
 ) {
     fun capability(provider: RuntimeKind): ProviderCapability? = capabilities.firstOrNull { it.runtime == provider }
 }

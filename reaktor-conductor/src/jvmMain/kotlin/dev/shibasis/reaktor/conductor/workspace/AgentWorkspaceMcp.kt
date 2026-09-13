@@ -9,7 +9,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import java.util.concurrent.Semaphore
 
-internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
+internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTool> = emptyList()): ReaktorMcpServer {
     val waits = Semaphore(2)
     fun JsonObject.string(name: String) = (get(name) as? JsonPrimitive)?.contentOrNull ?: error("$name is required")
     fun JsonObject.long(name: String, default: Long) = (get(name) as? JsonPrimitive)?.longOrNull ?: default
@@ -57,6 +57,14 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
             result(workspace.submit(ConductorJson.decodeFromJsonElement(AgentSubmission.serializer(), it)))
         },
         McpTool("agent_run", "Read bounded output, status, usage and provider identity for one run.", runSchema, true, true) { result(workspace.get(it.string("runId"))) },
+        McpTool("agent_activity", "Read durable activity events after a cursor. Completed tool events carry recorded outcomes; missing outcomes stay unknown.",
+            objectSchema(mapOf("runId" to stringSchema("Exact run id"), "after" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
+                "limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 100) }), listOf("runId")), true, true) {
+            workspace.get(it.string("runId"))
+            AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.conductor.AgentActivityPage.serializer(), workspace.activity.page(it.string("runId"), it.long("after", 0), it.long("limit", 50).toInt()))
+        },
+        McpTool("agent_resume", "Continue remaining stages of an interrupted run after inspecting uncertain effects. Reuses completed stage results; may invoke native tools and incur model usage.",
+            runSchema, false, true, destructive = true, openWorld = true) { result(workspace.resume(it.string("runId"))) },
         McpTool("agent_wait", "Wait for a run revision to change or become terminal. Returns bounded current state; use the returned revision next time.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"),
                 "afterRevision" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
@@ -106,7 +114,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
             objectSchema(mapOf("threadId" to stringSchema("Reaktor conversation id")), listOf("threadId")), true, true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId")))
         },
-    ) + agentEvidenceTools(workspace)
+    ) + agentEvidenceTools(workspace) + extraTools
     return ReaktorMcpServer("reaktor-agent-workspace", "1.0.0",
         "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.", tools)
 }

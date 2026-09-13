@@ -170,6 +170,7 @@ private fun render(event: AgentEvent) {
         is AgentEvent.TurnStarted -> Unit
         is AgentEvent.Started -> println("  ${event.agent.value} started")
         is AgentEvent.ToolUse -> println("  ${event.agent.value} · ${event.tool}")
+        is AgentEvent.Activity -> println("  ${event.agent.value} · ${event.item.status} · ${event.item.title}")
         is AgentEvent.Finished -> println(
             "  ${event.agent.value} ${if (event.outcome.ok) "done" else "failed: ${event.outcome.failure}"}",
         )

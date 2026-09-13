@@ -11,17 +11,19 @@ internal suspend fun workspaceCli(args: List<String>) {
     val action = args.firstOrNull() ?: "help"
     if (action == "help") {
         println("""
-            workspace serve --dir <workspace> [--dry]
+            workspace serve --dir <workspace> [--dry] [--background]
+            workspace start|stop --dir <workspace>
             workspace mcp --dir <workspace>
             workspace info|runs --dir <workspace>
             workspace submit --dir <workspace> --request <AgentSubmission.json>
-            workspace read|wait|cancel --dir <workspace> --id <runId> [--after <revision>]
+            workspace read|wait|cancel|resume|activity --dir <workspace> --id <runId> [--after <revision>]
             workspace transcript --dir <workspace> --id <threadId>
             workspace install|uninstall|bundle --dir <workspace> [--command "<executable> <args...>"]
 
             install writes a named MCP entry into your own Codex and Claude configuration, so a
             terminal session reaches this workspace with no desktop open. uninstall removes only
-            what install wrote. Start one owner using serve or the desktop; other commands attach.
+            what install wrote. The desktop, start and mcp attach to a supervised macOS background owner.
+            serve runs an explicitly foreground owner; other commands attach.
             mcp is a stdio bridge for Codex/Claude; it reads the private endpoint credential locally.
             --dry serves only the Echo provider and never invokes a model.
         """.trimIndent())
@@ -31,14 +33,16 @@ internal suspend fun workspaceCli(args: List<String>) {
     var index = 1
     while (index < args.size) {
         val key = args[index++]
-        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--command", "--graph-url")) { "Unknown option: $key" }
+        require(key in setOf("--dir", "--request", "--id", "--after", "--dry", "--background", "--command", "--graph-url")) { "Unknown option: $key" }
         require(key !in options) { "Duplicate option: $key" }
-        options[key] = if (key == "--dry") "true" else args.getOrNull(index++) ?: error("Missing value for $key")
+        options[key] = if (key in setOf("--dry", "--background")) "true" else args.getOrNull(index++) ?: error("Missing value for $key")
     }
-    require(action in setOf("serve", "mcp", "info", "runs", "submit", "read", "wait", "cancel", "transcript",
+    require(action in setOf("serve", "start", "stop", "resume", "activity", "mcp", "info", "runs", "submit", "read", "wait", "cancel", "transcript",
         "install", "uninstall", "bundle", "graph-mcp"))
     require("--dry" !in options || action == "serve")
     val root = File(options["--dir"] ?: ".").canonicalFile
+    if (action == "stop") { println(AgentBackgroundService.stop(root)); return }
+    if (action == "start") { AgentBackgroundService.connect(root).use { println(it.call("agent_workspace_info")) }; return }
     if (action == "graph-mcp") {
         WorkspaceGraphBridge(root, options["--graph-url"] ?: AgentBundle.DEFAULT_GRAPH_URL).use { bridge ->
             bridgeStdio(bridge::exchange)
@@ -63,7 +67,8 @@ internal suspend fun workspaceCli(args: List<String>) {
     }
 
     val runtimes = if ("--dry" in options) mapOf(RuntimeKind.Echo to EchoRuntime()) else null
-    AgentWorkspaceConnection.open(root, runtimes = runtimes, allowStart = action == "serve").use { connection ->
+    (if (action == "mcp") AgentBackgroundService.connect(root) else
+        AgentWorkspaceConnection.open(root, runtimes = runtimes, allowStart = action == "serve", background = "--background" in options)).use { connection ->
         if (action == "serve") {
             check(connection.ownsService) { "A workspace owner is already running at ${connection.url}" }
             System.err.println("Agent workspace ${if (runtimes == null) "Codex/Claude" else "Echo dry run"}: ${root.path}\n${connection.url}\nDiscovery: ${connection.discoveryFile}")
@@ -89,6 +94,8 @@ internal suspend fun workspaceCli(args: List<String>) {
                 AgentWorkspaceJson.encodeToJsonElement(AgentRunRecord.serializer(), connection.submit(request))
             }
             "transcript" -> connection.call("agent_transcript", buildJsonObject { put("threadId", id()) })
+            "resume" -> connection.call("agent_resume", buildJsonObject { put("runId", id()) })
+            "activity" -> connection.call("agent_activity", buildJsonObject { put("runId", id()); put("after", options["--after"]?.toLong() ?: 0) })
             else -> connection.call(when (action) { "read" -> "agent_run"; "wait" -> "agent_wait"; else -> "agent_cancel" },
                 buildJsonObject { put("runId", id()); if (action == "wait") put("afterRevision", options["--after"]?.toLong() ?: 0) })
         }

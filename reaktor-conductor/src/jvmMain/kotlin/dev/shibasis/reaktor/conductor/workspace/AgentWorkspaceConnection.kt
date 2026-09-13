@@ -130,6 +130,9 @@ class AgentWorkspaceConnection private constructor(
 
         fun open(root: File, directory: Path = defaultDirectory(root), runtimes: Map<RuntimeKind, AgentRuntime>? = null,
                  allowStart: Boolean = true,
+                 background: Boolean = false,
+                 graphUrl: String? = null,
+                 extraTools: (AgentWorkspace) -> List<dev.shibasis.reaktor.mcp.McpTool> = { emptyList() },
                  // Injectable so a test states a capability instead of probing whichever CLIs the host has.
                  discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe): AgentWorkspaceConnection {
             require(root.isDirectory)
@@ -158,11 +161,13 @@ class AgentWorkspaceConnection private constructor(
                 val binding = directory.resolve("workspace-root")
                 if (Files.exists(binding)) require(Files.readString(binding) == root.canonicalPath) { "Agent data belongs to a different workspace" }
                 else atomicWrite(binding, root.canonicalPath)
+                Files.deleteIfExists(discovery)
                 val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
                 val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
                 val mcpConfig = if (runtimes == null) directory.resolve("harness-mcp.json").also { path ->
                     val command = AgentBundle.launchCommand(root, null)
-                    val graphCommand = command.toMutableList().apply { this[indexOfLast { it == "workspace" } + 1] = "graph-mcp" }
+                    val graphCommand = command.toMutableList().apply { this[indexOfLast { it == "workspace" } + 1] = "graph-mcp"
+                        graphUrl?.let { addAll(listOf("--graph-url", it)) } }
                     atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") {
                         mapOf("reaktor" to command, "reaktor-graph" to graphCommand).forEach { (name, argv) ->
                             putJsonObject(name) { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
@@ -170,15 +175,16 @@ class AgentWorkspaceConnection private constructor(
                     } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
-                    harnessMcpConfig = mcpConfig).also { workspace = it }
-                val registry = agentWorkspaceMcp(hostedWorkspace)
+                    harnessMcpConfig = mcpConfig, background = background).also { workspace = it }
+                val registry = agentWorkspaceMcp(hostedWorkspace, extraTools(hostedWorkspace))
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token).also { server = it }
                 val endpoint = AgentEndpoint(workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token)
                 atomicWrite(discovery, ConductorJson.encodeToString(AgentEndpoint.serializer(), endpoint))
+                hostedWorkspace.recoverInBackground()
                 return AgentWorkspaceConnection(endpoint, discovery, true) {
                     try { hostedServer.close() }
-                    finally { try { hostedWorkspace.close() }
+                    finally { try { if (background) hostedWorkspace.suspendAndClose() else hostedWorkspace.close() }
                     finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery) }
                     finally { ownerLock.release(); channel.close() } } }
                 }
