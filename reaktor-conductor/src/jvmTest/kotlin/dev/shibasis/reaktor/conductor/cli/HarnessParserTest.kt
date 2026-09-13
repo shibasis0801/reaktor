@@ -84,6 +84,21 @@ class HarnessParserTest {
     }
 
     @Test
+    fun codexStreamsProgressButSavesOnlyTheLastCompletedMessage() {
+        // Message shapes captured from codex-cli 0.154.0 on 2026-09-13.
+        val parser = CodexEventParser(agent)
+        val messages = listOf(
+            """{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I’ll read the first line of `02-runtime-evidence.md`."}}""",
+            """{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"PHASE_PROBE_DONE"}}""",
+        ).flatMap(parser::onLine)
+        assertEquals(2, messages.filterIsInstance<AgentEvent.Delta>().size)
+        assertFalse(parser.finish(0, "").ok)
+        parser.onLine("""{"type":"turn.completed","usage":{"input_tokens":20,"output_tokens":10}}""")
+        assertTrue(parser.finish(0, "").ok)
+        assertEquals("PHASE_PROBE_DONE", parser.finish(0, "").text)
+    }
+
+    @Test
     fun codexReportsTheUpstreamFailureRatherThanTheExitCode() {
         val parser = CodexEventParser(agent)
         codexFailure.forEach(parser::onLine)
@@ -152,6 +167,14 @@ class HarnessParserTest {
             """{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}""",
         )
         assertEquals("Read", events.filterIsInstance<AgentEvent.ToolUse>().single().tool)
+    }
+
+    @Test
+    fun claudeDoesNotRestartTheRunOnOtherSystemEvents() {
+        val parser = ClaudeCodeEventParser(agent)
+        assertEquals(1, parser.onLine(claudeInit).filterIsInstance<AgentEvent.Started>().size)
+        assertTrue(parser.onLine("""{"type":"system","subtype":"status","status":"working"}""").isEmpty())
+        assertTrue(parser.onLine("""{"type":"system","subtype":"future_notification"}""").isEmpty())
     }
 
     // ---- Both ------------------------------------------------------------------------------

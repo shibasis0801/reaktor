@@ -55,7 +55,7 @@ Codex CLI 0.131.0 emits session-total usage, including on resume. `reportedUsage
 
 This is local OS-owner access, not delegated client authority. `allowWrites` requests harness policy; Claude's denied editor tools do not sandbox Bash or MCP effects. Existing anonymous Reaktor inspection endpoints remain read-only. This service does not yet unify the kernel operation executor, support interactive approval/input cards, attach arbitrary existing provider tasks, or offer a greenfield generator. The Codex App Server and interactive Claude adapter are the next provider work.
 
-On this machine, actual Codex start/resume succeeded with an explicit `gpt-5.5` model. The configured `gpt-6-astra` was rejected by Codex CLI 0.131.0 as requiring an upgrade; Claude CLI 2.1.183 returned Not logged in. Defaults were not silently changed. Provider configuration is advertised separately from successful runtime qualification.
+Initial workspace start/resume qualification used Codex CLI 0.131.0 with an explicit `gpt-5.5` model; that CLI rejected the configured `gpt-6-astra`, and Claude 2.1.183 had no usable login. On 13 September, the npm CLIs were upgraded to Codex 0.154.0 and Claude Code 2.1.270, Claude sign-in was refreshed, and actual GPT-6 Astra / Claude Opus 5 inference and the five-turn tabs council succeeded. The [council experiment](experiments/tabs-council-2026-09-13.md) records the design, costs, context limits and parser fixes. This newer qualification covers Conductor's batch council; it does not imply native interactive adapters or automatic MCP registration. Global model defaults were not changed.
 
 ## Manna context
 
