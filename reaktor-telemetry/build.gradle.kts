@@ -15,6 +15,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-core"))
+            commonNetworking()
             api(project(":reaktor-graph"))
             api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion")
             api("io.opentelemetry.kotlin:api:$otelKotlinVersion")
@@ -34,8 +35,21 @@ kotlin {
     }
     web {}
     server {}
+
+    sourceSets.commonTest.dependencies {
+        implementation(kotlin("test"))
+        implementation("io.ktor:ktor-client-mock:3.0.3")
+    }
 }
 
 android {
     defaults("dev.shibasis.reaktor.telemetry")
+}
+
+// The JVM test runner scans every class in the test source set; restrict it to test classes.
+tasks.withType<Test>().configureEach {
+    filter {
+        isFailOnNoMatchingTests = false
+        includeTestsMatching("*Test")
+    }
 }

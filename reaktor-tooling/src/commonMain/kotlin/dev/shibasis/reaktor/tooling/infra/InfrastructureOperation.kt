@@ -11,6 +11,8 @@ sealed interface InfrastructureOperation {
         val namespace: String,
         val action: String,
         val resourceName: String = "",
+        val resourceKind: String = "",
+        val resourceUid: String = "",
     ) : InfrastructureOperation
 
     @Serializable

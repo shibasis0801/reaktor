@@ -24,3 +24,11 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.performance")
 }
+
+// The JVM test runner scans every class in the test source set; restrict it to test classes.
+tasks.withType<Test>().configureEach {
+    filter {
+        isFailOnNoMatchingTests = false
+        includeTestsMatching("*Test")
+    }
+}

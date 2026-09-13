@@ -54,19 +54,20 @@ object DeviceTools {
         !device.ready && action != DeviceAction.Boot -> "${device.name} is ${device.state}"
         action == DeviceAction.ClearData && device.transport != DeviceTransport.Adb -> "Uninstall and reinstall this application to clear its data"
         action == DeviceAction.ViewTree && device.transport == DeviceTransport.Simctl -> "Select an idb target for Apple view inspection"
-        action == DeviceAction.Logs && device.transport == DeviceTransport.Idb -> "Select the simulator transport for Apple logs"
+        // Discovery can run on the companion alone; every per-target operation is a gRPC call
+        // that needs the client. Naming the install is more use than "not installed".
+        device.transport == DeviceTransport.Idb && controlExecutable(DeviceTransport.Idb) == null ->
+            "Install the idb client to inspect Apple targets: pipx install fb-idb"
+        action == DeviceAction.Logs && device.transport == DeviceTransport.Idb ->
+            "idb has no bounded log read; use the simulator transport, or read this device's log from Xcode"
         action == DeviceAction.ReadFile && device.transport != DeviceTransport.Adb -> "Bounded text preview currently requires an adb target"
         else -> null
     }
 
-    fun executable(transport: DeviceTransport): String? {
-        val name = when (transport) {
-            DeviceTransport.Adb -> "adb"
-            DeviceTransport.Simctl -> "xcrun"
-            DeviceTransport.Idb -> "idb"
-        }
+    /** Looks a binary up on PATH and the usual install roots. */
+    private fun locate(name: String, androidSdk: Boolean = false): String? {
         val candidates = buildList {
-            if (transport == DeviceTransport.Adb) {
+            if (androidSdk) {
                 listOfNotNull(System.getenv("ANDROID_HOME"), System.getenv("ANDROID_SDK_ROOT"),
                     "${System.getProperty("user.home")}/Library/Android/sdk").forEach {
                     add(File(it, "platform-tools/adb"))
@@ -79,12 +80,47 @@ object DeviceTools {
         return candidates.firstOrNull { it.isFile && it.canExecute() }?.absolutePath
     }
 
+    /**
+     * The tool that can *list* a transport's targets.
+     *
+     * Apple has two, and they are not interchangeable. `idb` is the Python client; `idb_companion`
+     * is the native server it drives over gRPC. The companion alone can enumerate targets —
+     * `idb_companion --list 1` reports simulators *and* physically attached devices — so a machine
+     * with only the Homebrew companion installed can still discover an attached iPhone. Looking
+     * only for `idb` reported "transport not installed" on exactly that machine.
+     */
+    fun discoveryExecutable(transport: DeviceTransport): String? = when (transport) {
+        DeviceTransport.Adb -> locate("adb", androidSdk = true)
+        DeviceTransport.Simctl -> locate("xcrun")
+        DeviceTransport.Idb -> locate("idb") ?: locate("idb_companion")
+    }
+
+    /**
+     * The tool that can *act on* one target.
+     *
+     * Per-target operations are gRPC calls the companion serves but does not expose as
+     * subcommands, so they need the `idb` client. Discovery can proceed without it; inspection
+     * cannot, and [unavailableReason] says so rather than hiding the target.
+     */
+    fun controlExecutable(transport: DeviceTransport): String? = when (transport) {
+        DeviceTransport.Idb -> locate("idb")
+        else -> discoveryExecutable(transport)
+    }
+
+    @Deprecated("Say which capability is needed", ReplaceWith("discoveryExecutable(transport)"))
+    fun executable(transport: DeviceTransport): String? = discoveryExecutable(transport)
+
     fun discovery(transport: DeviceTransport): DeviceCommand {
-        val tool = executable(transport) ?: error("${transport.name} is not installed or cannot be found")
+        val tool = discoveryExecutable(transport)
+            ?: error("${transport.name} is not installed or cannot be found")
         return DeviceCommand(when (transport) {
             DeviceTransport.Adb -> listOf(tool, "devices", "-l")
             DeviceTransport.Simctl -> listOf(tool, "simctl", "list", "devices", "available", "--json")
-            DeviceTransport.Idb -> listOf(tool, "list-targets", "--json")
+            // Both emit one JSON object per target with udid/name/state/os_version, which
+            // parseDevices already reads; only the invocation differs.
+            DeviceTransport.Idb ->
+                if (tool.endsWith("idb_companion")) listOf(tool, "--list", "1")
+                else listOf(tool, "list-targets", "--json")
         }, SafetyClass.ReadOnly)
     }
 
@@ -122,7 +158,7 @@ object DeviceTools {
         action: DeviceAction,
         applicationId: String = "",
         path: String = "",
-        resolveExecutable: (DeviceTransport) -> String? = ::executable,
+        resolveExecutable: (DeviceTransport) -> String? = ::controlExecutable,
     ): DeviceCommand {
         require(Regex("[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}").matches(device.id)) { "Invalid device identity" }
         require(unavailableReason(device, action) == null) { unavailableReason(device, action).orEmpty() }

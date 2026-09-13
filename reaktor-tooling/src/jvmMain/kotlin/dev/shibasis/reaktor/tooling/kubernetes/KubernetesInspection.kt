@@ -10,7 +10,11 @@ data class KubernetesObservedObject(
     val phase: String, val ready: String, val restarts: Int,
     val node: String, val addresses: List<String>, val images: List<String>,
     val owners: List<String>, val conditions: List<String>, val ports: List<String>,
-) { val key get() = "$namespace/$kind/$name" }
+    val apiVersion: String = "", val clusterId: String = "",
+) {
+    val key get() = if (uid.isNotBlank()) "$clusterId/uid/$uid"
+        else "$clusterId/${apiVersion.substringBeforeLast('/', "core")}/$namespace/$kind/$name"
+}
 
 object KubernetesInspection {
     private val identity = Regex("[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?")
@@ -34,12 +38,15 @@ object KubernetesInspection {
         val root = Json.parseToJsonElement(output).jsonObject
         val items = root["items"] as? JsonArray ?: error("Kubernetes returned no resource list")
         require(items.size <= 2000) { "Select a smaller namespace; inventory exceeds 2,000 resources" }
-        return items.map { value ->
+        val observed = items.map { value ->
             val item = value.jsonObject
             val metadata = item.obj("metadata")
             val spec = item.obj("spec")
             val status = item.obj("status")
             val kind = item.string("kind")
+            require(kind.isNotBlank() && metadata.string("name").isNotBlank()) {
+                "Kubernetes inventory contains an object without a kind or name; refresh the inventory"
+            }
             val containerStatus = status.objects("containerStatuses")
             val pod = if (kind == "Pod") spec else spec.obj("template").obj("spec")
             val desired = spec.string("replicas")
@@ -56,8 +63,13 @@ object KubernetesInspection {
                     containerStatus.flatMap { container -> container.obj("state").entries.map { (state, detail) ->
                         "${container.string("name")}: $state · ${(detail as? JsonObject)?.string("reason").orEmpty()}"
                     } },
-                spec.objects("ports").map { "${it.string("name")} ${it.string("port")} → ${it.string("targetPort")} / ${it.string("protocol")}" })
+                spec.objects("ports").map { "${it.string("name")} ${it.string("port")} → ${it.string("targetPort")} / ${it.string("protocol")}" },
+                item.string("apiVersion"), root.string("clusterId"))
         }.sortedWith(compareBy(KubernetesObservedObject::kind, KubernetesObservedObject::name))
+        require(observed.map { it.key }.distinct().size == observed.size) {
+            "Kubernetes inventory contains duplicate resource identities; refresh the inventory"
+        }
+        return observed
     }
 
     private fun JsonObject.obj(key: String) = this[key] as? JsonObject ?: JsonObject(emptyMap())

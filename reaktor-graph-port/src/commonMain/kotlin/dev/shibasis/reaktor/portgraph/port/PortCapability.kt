@@ -38,8 +38,8 @@ interface PortCapability {
 
 @JsExport
 open class PortCapabilityImpl(
-    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = hashMapOf(),
-    override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = hashMapOf(),
+    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = TypedKeyedMap(),
+    override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = TypedKeyedMap(),
     private val listeners: MutableList<PortEventListener> = mutableListOf()
 ): PortCapability {
     override fun addPortEventListener(listener: PortEventListener) {

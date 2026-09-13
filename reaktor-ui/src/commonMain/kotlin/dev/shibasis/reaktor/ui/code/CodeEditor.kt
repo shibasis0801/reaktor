@@ -7,7 +7,8 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +45,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -156,7 +158,7 @@ fun CodeEditor(
     val scope = rememberCoroutineScope()
     val focus = remember { FocusRequester() }
     val listState = rememberLazyListState()
-    val hScroll = rememberScrollState()
+    val hScroll = remember { CodeHorizontalViewport() }
 
     val style = remember(fontSize, fonts) {
         TextStyle(
@@ -176,12 +178,15 @@ fun CodeEditor(
         else (state.document.lineCount.toString().length * metrics.charWidth).toDp() +
             MachineSignal.Editor.Code.gutterPaddingX * 2
     }
-    val contentWidth = remember(state.document, metrics) {
-        with(density) { (state.document.longestLine * metrics.charWidth).toDp() + 48.dp }
+    val contentWidth = remember(state.document, metrics, density) {
+        state.document.longestLine * metrics.charWidth + with(density) { 48.dp.toPx() }
     }
 
     var focused by remember { mutableStateOf(false) }
     var viewportWidth by remember { mutableIntStateOf(0) }
+    LaunchedEffect(contentWidth, viewportWidth) {
+        hScroll.resize(contentWidth, viewportWidth)
+    }
     var caretOn by remember { mutableStateOf(true) }
     var completionItems by remember { mutableStateOf<List<CodeCompletionItem>>(emptyList()) }
     var completionSelected by remember { mutableIntStateOf(0) }
@@ -430,7 +435,6 @@ fun CodeEditor(
                         style = style,
                         lineHeight = lineHeightDp,
                         gutterWidth = gutterWidth,
-                        contentWidth = contentWidth,
                         showGutter = showGutter,
                         occurrences = occurrences,
                         caretVisible = focused && caretOn,
@@ -467,22 +471,28 @@ private fun CodeLine(
     style: TextStyle,
     lineHeight: Dp,
     gutterWidth: Dp,
-    contentWidth: Dp,
     showGutter: Boolean,
     occurrences: List<CodeSpan>,
     caretVisible: Boolean,
-    hScroll: androidx.compose.foundation.ScrollState,
+    hScroll: CodeHorizontalViewport,
     onViewportWidth: (Int) -> Unit,
     onPress: () -> Unit,
 ) {
     val text = state.document.line(index)
     val entry = state.entryState(index)
     val language = state.language
-    val annotated = remember(text, entry, language) {
+    val spans = remember(text, entry, language) { language.spans(text, entry) }
+    var lineWidth by remember { mutableIntStateOf(0) }
+    val firstColumn = (hScroll.value / metrics.charWidth).toInt().coerceIn(0, text.length)
+    val lastColumn = (firstColumn + (lineWidth / metrics.charWidth).toInt() + 2).coerceAtMost(text.length)
+    val annotated = remember(text, spans, firstColumn, lastColumn) {
         AnnotatedString(
-            text = text,
-            spanStyles = language.spans(text, entry).map {
-                AnnotatedString.Range(SpanStyle(color = CodePalette.color(it.token)), it.start, it.end)
+            text = text.substring(firstColumn, lastColumn),
+            spanStyles = spans.mapNotNull {
+                val start = maxOf(it.start, firstColumn)
+                val end = minOf(it.end, lastColumn)
+                if (start < end) AnnotatedString.Range(SpanStyle(color = CodePalette.color(it.token)),
+                    start - firstColumn, end - firstColumn) else null
             },
         )
     }
@@ -519,20 +529,23 @@ private fun CodeLine(
         }
         Box(
             Modifier.weight(1f).fillMaxHeight().clipToBounds()
-                .onSizeChanged { onViewportWidth(it.width) }
-                .horizontalScroll(hScroll),
+                .onSizeChanged { lineWidth = it.width; onViewportWidth(it.width) }
+                .scrollable(hScroll.scrollState, Orientation.Horizontal),
         ) {
             Box(
-                Modifier.width(contentWidth).fillMaxHeight()
+                Modifier.fillMaxSize()
                     .pointerHoverIcon(PointerIcon.Text)
                     .drawWithContent {
                         if (onCaretLine && selection == null) {
                             drawRect(MachineSignal.Editor.Code.CurrentLine, size = Size(size.width, size.height))
                         }
+                        translate(left = -hScroll.value.toFloat()) {
                         marks.forEach { fillColumns(it.start.column, it.end.column, metrics, MachineSignal.Editor.Code.Occurrence) }
                         matches.forEach { fillColumns(it.start.column, it.end.column, metrics, MachineSignal.Editor.Code.Match) }
                         selection?.let { fillColumns(it.first, it.last + 1, metrics, MachineSignal.Editor.Code.Selection) }
+                        }
                         drawContent()
+                        translate(left = -hScroll.value.toFloat()) {
                         problems.forEach { problem ->
                             val span = problem.span.ordered
                             val from = if (span.start.line == index) span.start.column else 0
@@ -546,13 +559,14 @@ private fun CodeLine(
                                 size = Size(MachineSignal.Editor.Code.caretWidth.toPx(), size.height - 2f),
                             )
                         }
+                        }
                     }
                     .pointerInput(state, metrics, index) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             onPress()
                             val extend = currentEvent.keyboardModifiers.isPointerShiftPressed
-                            val at = positionOf(down.position, index, state, metrics)
+                            val at = positionOf(down.position + Offset(hScroll.value.toFloat(), 0f), index, state, metrics)
                             when (clicks.register(at)) {
                                 2 -> state.selectWordAt(at)
                                 3 -> state.selectLines(at.line, at.line)
@@ -560,13 +574,14 @@ private fun CodeLine(
                             }
                             down.consume()
                             drag(down.id) { change ->
-                                state.moveTo(positionOf(change.position, index, state, metrics), extend = true)
+                                state.moveTo(positionOf(change.position + Offset(hScroll.value.toFloat(), 0f), index, state, metrics), extend = true)
                                 change.consume()
                             }
                         }
                     },
             ) {
-                Text(text = annotated, style = style, softWrap = false, maxLines = 1)
+                Text(text = annotated, style = style, softWrap = false, maxLines = 1,
+                    modifier = Modifier.graphicsLayer { translationX = firstColumn * metrics.charWidth - hScroll.value })
             }
         }
     }

@@ -31,12 +31,23 @@ open class ConsumerPort<Functionality: Any>(
         return impl ?: error("Can't invoke functions through unconnected ports. ${toString()}")
     }
 
-    inline operator fun<R> invoke(fn: Functionality.() -> R): R {
-        return fn(invoke())
+    /**
+     * K1 — the call crosses the port here, so this is where it can be observed or altered.
+     * Deliberately not `inline`: an inlined body leaves no frame to wrap. When nothing is
+     * attached the cost is one volatile read.
+     */
+    @Suppress("UNCHECKED_CAST")
+    operator fun<R> invoke(fn: Functionality.() -> R): R {
+        val target = impl ?: error("Can't invoke functions through unconnected ports. ${toString()}")
+        val chain = interceptorChain() ?: return fn(target)
+        return runInterceptors(chain, PortInvocation(this, edge)) { fn(target) } as R
     }
 
-    suspend inline fun<R> suspended(fn: suspend Functionality.() -> R): R {
-        return fn(invoke())
+    @Suppress("UNCHECKED_CAST")
+    suspend fun<R> suspended(fn: suspend Functionality.() -> R): R {
+        val target = impl ?: error("Can't invoke functions through unconnected ports. ${toString()}")
+        val chain = interceptorChain() ?: return fn(target)
+        return runInterceptorsSuspend(chain, PortInvocation(this, edge)) { fn(target) } as R
     }
 
     override fun close() {
@@ -53,21 +64,16 @@ open class ConsumerPort<Functionality: Any>(
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerConsumer(key: Key, type: Type): ConsumerPort<Functionality> {
-    val ports = consumerPorts.getOrPut(type) { linkedMapOf() }
-    val existing = ports[key] as? ConsumerPort<Functionality>
-    if (existing != null) {
-        return existing
-    }
-
-    val created = ConsumerPort<Functionality>(this, key, type)
-    ports[key] = created as ConsumerPort<Any>
-    emit(PortEvent.Created(created))
-    return created
+    // See registerProvider: one atomic registration, one Created event per port.
+    val registration = consumerPorts.putIfAbsent(type, key) { ConsumerPort<Functionality>(this, key, type) as ConsumerPort<Any> }
+    val port = registration.value as ConsumerPort<Functionality>
+    if (registration.created) emit(PortEvent.Created(port))
+    return port
 }
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.getConsumer(key: Key, type: Type): ConsumerPort<Functionality>? {
-    return consumerPorts[type]?.get(key) as? ConsumerPort<Functionality>
+    return consumerPorts.get(type, key) as? ConsumerPort<Functionality>
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerConsumer(key: String = ""): ConsumerPort<Functionality> {

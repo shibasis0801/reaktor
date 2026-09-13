@@ -82,13 +82,15 @@ fun connect(
 }
 
 private fun connectConsumerProvider(consumerNode: PortCapability, providerNode: PortCapability) {
-    val consumerTypes = consumerNode.consumerPorts.keys
-    val providerTypes = providerNode.providerPorts.keys
-    consumerTypes.intersect(providerTypes)
+    // Both indexes are snapshotted once. Wiring one pair of nodes can register ports on another,
+    // and the type set has to agree with the per-type maps it is then used to look up.
+    val consumers = consumerNode.consumerPorts.snapshot()
+    val providers = providerNode.providerPorts.snapshot()
+    consumers.keys.intersect(providers.keys)
         .forEach {
             connect(
-                consumerNode.consumerPorts[it] ?: mapOf(),
-                providerNode.providerPorts[it] ?: mapOf()
+                consumers[it] ?: mapOf(),
+                providers[it] ?: mapOf()
             ).getOrThrow()
         }
 }

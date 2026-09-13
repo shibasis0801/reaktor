@@ -16,6 +16,29 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.*
 
 class KubernetesJvmClientTest {
+    @Test fun eventsRetainKindAndUidAndLogsRejectAReplacedPod() = fixture { server, client, _ ->
+        server.enqueue(json("""{"kind":"EventList","items":[]}"""))
+        client.inspect("test", "Events", "api", "Deployment", "uid-1")
+        assertEquals("involvedObject.name=api,involvedObject.kind=Deployment,involvedObject.uid=uid-1",
+            server.takeRequest(5, TimeUnit.SECONDS)!!.requestUrl!!.queryParameter("fieldSelector"))
+        server.enqueue(json("""{"kind":"Pod","metadata":{"uid":"replacement"},"spec":{"containers":[{"name":"worker"}]}}"""))
+        assertFailsWith<IllegalArgumentException> { client.inspect("test", "Logs", "api", "Pod", "uid-1") }
+        assertEquals(2, server.requestCount, "A replaced pod must not receive a log request")
+        assertFailsWith<IllegalArgumentException> { client.inspect("test", "Events", "api", "Pod,other", "uid-1") }
+    }
+
+    @Test fun typedInventoryPreservesIdentityWhenListItemsOmitKindAndApiVersion() = fixture { server, client, _ ->
+        val kinds = listOf("Pod", "Deployment", "StatefulSet", "DaemonSet", "Service", "Ingress", "Job", "CronJob", "Endpoints")
+        kinds.forEach { kind ->
+            val spec = if (kind == "CronJob") ",\"spec\":{\"schedule\":\"* * * * *\",\"jobTemplate\":{\"spec\":{\"template\":{\"spec\":{\"containers\":[],\"restartPolicy\":\"Never\"}}}}}" else ""
+            server.enqueue(json("""{"kind":"${kind}List","items":[{"metadata":{"name":"app-server","namespace":"test"}$spec}]}"""))
+        }
+        val rows = dev.shibasis.reaktor.tooling.kubernetes.KubernetesInspection.inventory(client.inspect("test", "Inventory", ""))
+        assertEquals(kinds.toSet(), rows.map { it.kind }.toSet())
+        assertEquals(kinds.size, rows.map { it.key }.distinct().size)
+        assertTrue(rows.all { it.clusterId.isNotBlank() && it.apiVersion.isNotBlank() })
+    }
+
     @Test fun serviceTunnelResolvesNamedPortSkipsUnreadyPodsAndTransportsBothWays() = fixture { server, client, session ->
         enqueueService(server, "\"bolt\"")
         server.enqueue(json("""{"kind":"PodList","items":[

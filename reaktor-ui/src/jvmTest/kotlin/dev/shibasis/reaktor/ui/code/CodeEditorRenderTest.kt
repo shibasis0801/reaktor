@@ -107,4 +107,20 @@ class CodeEditorRenderTest {
         onNodeWithTag("huge").assertExists()
         onNodeWithTag("huge-caret").assertTextEquals("Ln 1, Col 1")
     }
+
+    @Test fun aHugeSingleLineRemainsNavigableAndEditable() = runComposeUiTest {
+        val source = "start " + "x".repeat(300_000) + " END_MARKER"
+        val state = CodeEditorState(source, CodeLanguage.Plain)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 200.dp)) }
+        onNode(hasText("start ", substring = true)).assertExists()
+        state.moveTo(state.document.end)
+        waitForIdle()
+        onNode(hasText("END_MARKER", substring = true)).assertExists()
+        onNodeWithTag("code-editor-surface").requestFocus()
+        onNodeWithTag("code-editor-surface").performKeyInput { pressKey(Key.X) }
+        waitForIdle()
+        assertEquals(source + "x", state.text)
+        state.selectAll()
+        assertEquals(source + "x", state.selectedText)
+    }
 }
