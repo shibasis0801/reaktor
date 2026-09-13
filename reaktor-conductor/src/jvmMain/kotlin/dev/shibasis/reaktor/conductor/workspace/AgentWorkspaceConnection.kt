@@ -54,6 +54,10 @@ class AgentWorkspaceConnection private constructor(
     }))
     suspend fun cancel(id: String): AgentRunRecord = decode(call("agent_cancel", buildJsonObject { put("runId", id) }))
 
+    /** Re-attaches to a run after a disconnect. Observation only; never takes the execution lease. */
+    suspend fun attach(runId: String): AgentAttachment = ConductorJson.decodeFromJsonElement(
+        AgentAttachment.serializer(), call("agent_attach", buildJsonObject { put("runId", runId) }))
+
     /** Answers a request a provider is blocked on. Unsupported when that run holds no session. */
     suspend fun answer(runId: String, agent: String, requestId: String, decision: AgentDecision): CommandOutcome =
         ConductorJson.decodeFromJsonElement(CommandOutcome.serializer(), call("agent_answer", buildJsonObject {

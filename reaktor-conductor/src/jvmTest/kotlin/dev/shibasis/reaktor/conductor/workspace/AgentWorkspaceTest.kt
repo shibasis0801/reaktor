@@ -179,6 +179,40 @@ class AgentWorkspaceTest {
         }
     }
 
+    @Test fun aReconnectingClientLearnsWhatTheRunIsBlockedOnWithoutReAsking() = runBlocking {
+        val root = Files.createTempDirectory("agent-attach-root").toFile()
+        val directory = Files.createTempDirectory("agent-attach-state")
+        val runtime = BlockingHarness()
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(runtime.kind to runtime)).use { owner ->
+                val run = owner.submit(AgentSubmission("attach-1", runtime.kind, "do the thing"))
+                withTimeout(10000) {
+                    var record = owner.get(run.id)
+                    while (record.pending.isEmpty()) record = owner.wait(record.id, record.revision, 5000)
+                }
+                // A second client that never saw the request still learns about it, and learns
+                // which participant it can actually answer through.
+                AgentWorkspaceConnection.open(root, directory).use { reconnected ->
+                    val attachment = reconnected.attach(run.id)
+                    assertTrue(attachment.live, "The run is still executing")
+                    assertEquals(listOf("codex"), attachment.answerable)
+                    assertEquals("rm -rf /", attachment.pending.single().scope)
+                    // Attaching is observation: it must not have dispatched anything.
+                    assertEquals(AgentRunStatus.Running, reconnected.get(run.id).status)
+                    assertIs<CommandOutcome.Accepted>(reconnected.answer(run.id, "codex", "req-1", AgentDecision.Approve))
+                }
+                val done = terminal(owner, owner.get(run.id))
+                assertEquals(AgentRunStatus.Completed, done.status)
+
+                // A finished run attaches to its receipt rather than erroring, and offers nothing
+                // to answer, because its session is gone.
+                val after = owner.attach(run.id)
+                assertFalse(after.live)
+                assertTrue(after.answerable.isEmpty())
+            }
+        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+    }
+
     private suspend fun terminal(connection: AgentWorkspaceConnection, initial: AgentRunRecord): AgentRunRecord = withTimeout(10000) {
         var record = initial
         while (record.status == AgentRunStatus.Running) record = connection.wait(record.id, record.revision, 5000)

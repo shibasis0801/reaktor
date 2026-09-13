@@ -62,6 +62,10 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
         McpTool("agent_cancel", "Interrupt this exact run and wait for its owned harness to stop. Never targets a newer run.", runSchema, false, true) {
             runBlocking { result(workspace.cancel(it.string("runId"))) }
         },
+        McpTool("agent_attach", "Re-attach to a run after a disconnect: its current state, whether it is still executing, which participants can be answered, and what it is blocked on. Observation only — this never takes the execution lease or dispatches work.",
+            runSchema, readOnly = true, idempotent = true) {
+            AgentWorkspaceJson.encodeToJsonElement(AgentAttachment.serializer(), workspace.attach(it.string("runId")))
+        },
         McpTool("agent_answer", "Answer one request a provider stopped for: approve it, deny it, or supply text. Only runs on an interactive transport hold a session that can hear the answer; others report unsupported. This resumes provider work and may execute tools.",
             objectSchema(mapOf(
                 "runId" to stringSchema("Exact run id"),
