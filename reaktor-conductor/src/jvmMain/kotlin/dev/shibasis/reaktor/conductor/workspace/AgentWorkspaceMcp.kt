@@ -23,7 +23,9 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace): ReaktorMcpServer {
         McpTool("agent_runs", "Read up to 50 recent run summaries; direct run ids remain addressable beyond the recent index.",
             objectSchema(mapOf("limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) })), true, true) {
             val summaries = workspace.list(it.long("limit", 20).toInt()).map { run ->
-                run.copy(output = "", context = null, reasoning = "", pending = emptyList(), outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
+                run.copy(output = "", context = null, reasoning = "", pending = emptyList(),
+                    pendingCount = (run.pending.map { it.id } + run.participants.values.flatMap { it.pending }.map { it.id }).distinct().size,
+                    outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
                     participants = run.participants.mapValues { (_, participant) -> participant.copy(output = "",
                         reasoning = "", pending = emptyList(),
                         outputTruncated = participant.outputTruncated || participant.output.isNotEmpty()) })
