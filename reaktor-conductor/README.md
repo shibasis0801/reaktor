@@ -21,6 +21,8 @@ Usage summaries report inclusive input, cached input, fresh input (including cac
 
 `AgentWorkspace` exposes a plain JVM API with no graph or GUI dependency. `AgentWorkspaceConnection` supplies one process owner per canonical workspace and the same authenticated MCP boundary for the desktop, CLI and external clients. BestBuds' optional `KernelAgentsNode` projects it into the kernel; the desktop Agent → Chat pane consumes that port.
 
+That describes the current implementation. The [13 September agent-layer plan](experiments/graph-agent-layer-2026-09-13.md) makes the graph the primary owner of tasks, provider sessions, context and operations. The former requirement to build a separate graph-agnostic surface is superseded; existing harnesses and APIs remain useful migration components.
+
 Build the launcher once after source changes, then start the owner:
 
 ```sh

@@ -2,7 +2,9 @@
 
 Status: design experiment completed; tab navigation is not implemented by this change.
 
-The council recommends an independently usable tab/navigation controller, projected into graph-runtime and then into the desktop. Start with two real document flows on screen, each with its own history and editor state, over explicitly shared workspace services. The proposed Surface kernel is an eventual integration point, not a prerequisite.
+**Updated architecture decision, 13 September:** tabs and navigation belong directly to Reaktor's graph. The original council's independently usable, graph-neutral controller recommendation is superseded by the user's direction that the graph is Reaktor's foundation; a separate graph-agnostic API is unnecessary. The historical council outputs and measurements below remain unchanged. The [graph-based agent layer plan](graph-agent-layer-2026-09-13.md) applies this correction across Conductor and the workbench.
+
+Start with two real document flows on screen, each with its own history and editor state, over explicitly shared workspace services. A graph-owned tab set serializes navigation commands and owns activation lifetime. The complete proposed Surface kernel remains a later integration point.
 
 ## Experiment
 
@@ -16,12 +18,12 @@ This exercised the standalone Conductor council. It did not make council runs av
 
 ```mermaid
 flowchart TD
-    H[Human event with captured target] --> C[Graph-neutral tab controller]
+    H[Human event with captured target] --> C[Graph-owned tab set and command mailbox]
     A[Agent command with explicit target and revision] --> C
     C --> S[One immutable tab-set snapshot and ordered transitions]
     C --> E[Effects with tagged completions]
     E --> C
-    S --> G[Graph-runtime projection]
+    S --> G[Entry activation and route bindings]
     G --> T1[Tab A: entries, cursor, draft, selection]
     G --> T2[Tab B: entries, cursor, draft, selection]
     T1 --> W[Borrowed workspace services and job references]
@@ -29,13 +31,12 @@ flowchart TD
     S --> U[Desktop strip and presentation slots]
 ```
 
-- **Graph-neutral KMP library:** durable IDs, route references/codecs, entries and cursor, immutable snapshots, policies, serialized command owner and explicit effect completion. It must be usable without Graph, Compose, DI or a database.
-- **Graph-runtime:** adapt legacy navigation, construct/dispose per-flow graphs and per-entry state, bind borrowed services, and project committed history. Generic tab commands do not directly inherit the runtime's sealed `NavCommand`; adaptation preserves module direction and Kotlin's sealed hierarchy constraints.
+- **Graph-runtime:** the tab set is a graph-owned capability with durable IDs, typed route contracts, entries and cursor, immutable snapshots, a serialized command mailbox and tagged effect completion. Adapt legacy navigation to that same owner; construct/dispose owned entry activations, bind borrowed services and render committed history. A separate graph-free controller or parallel navigation store is unnecessary. Extend the existing sealed `NavCommand` in its defining module when needed, or bridge typed tab commands through the graph-owned capability.
 - **Graph UI / platform adapters:** keyed content rendering, focus/back handling, presentation slots and browser history integration.
 - **BestBuds engine:** workbench intents, the mode launcher, tab chrome, draft persistence policy, close decisions and job observation.
-- **Surface:** later adapt the same controller to the proposed `TabHost`/`Candidate`/layout contracts. Existing `reaktor-core` Fact is real; the entire proposed Surface API is not implemented.
+- **Surface:** later bind the graph-owned tab capability to the proposed `TabHost`/`Candidate`/layout contracts. Existing `reaktor-core` Fact is real; the entire proposed Surface API is not implemented.
 
-The tab controller owns membership and activation lifetime. Each content owner mutates its own content state. Shared application, connection and agent-job owners remain outside individual views.
+The graph-owned tab set owns membership and activation lifetime. Each content owner mutates its own content state. Shared application, connection and agent-job owners remain outside individual views.
 
 ## Identity and command contract
 
@@ -107,7 +108,7 @@ Items 1–3 are one first usable delivery, with internal checkpoints. Do not shi
 
 Claude adopted Codex's single authoritative history, forward cursor and missing graph-navigation cleanup finding. Codex adopted Claude's continuous draft-persistence requirement and refined it to ordered durable acknowledgements. Cross-critique caught overclaims about all deferred results hanging, a proposed popstate implementation that could only go backward, and unsafe post-commit transfer rollback. Both converged on early co-presentation, explicit service ownership and postponing the unimplemented Surface kernel.
 
-Remaining choices include exact controller packaging, closed-browser-history behavior, retention failure policy and future transfer schema. The recommendation here resolves controller ordering for the graph-neutral API and captures human targets at event time. It does not claim that both original proposals agreed on every detail.
+Remaining choices include closed-browser-history behavior, retention failure policy and future transfer schema. The revised recommendation places ordered transitions in the graph-owned tab capability and captures human targets at event time. This packaging correction came from the subsequent user direction, not agreement in the original council.
 
 ## Harness findings
 
