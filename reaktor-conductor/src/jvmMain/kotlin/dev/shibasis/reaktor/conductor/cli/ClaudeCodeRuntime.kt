@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentOutcome
 import dev.shibasis.reaktor.conductor.AgentRequest
 import dev.shibasis.reaktor.conductor.AgentUsage
+import dev.shibasis.reaktor.conductor.EffortRecord
+import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
@@ -40,6 +42,10 @@ class ClaudeCodeRuntime(
         request.agent.model?.let {
             add("--model")
             add(it)
+        }
+        request.agent.effort?.let {
+            add("--effort")
+            add(it.value)
         }
         request.agent.budget.maxCostUsd?.let {
             add("--max-budget-usd")
@@ -79,19 +85,24 @@ class ClaudeCodeRuntime(
         }
     }
 
-    override fun parser(request: AgentRequest): CliEventParser =
-        ClaudeCodeEventParser(request.agent.id)
+    override fun parser(request: AgentRequest): CliEventParser = ClaudeCodeEventParser(
+        request.agent.id,
+        // The result envelope reports no effective effort, so `observed` stays unknown.
+        request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
+    )
 }
 
 /** Parses Claude Code's `stream-json` line protocol. */
 class ClaudeCodeEventParser(
     private val agent: AgentId,
+    private val effort: EffortRecord = EffortRecord.none,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : CliEventParser {
     private var session: ProviderSession? = null
     private var result: String? = null
     private var failed: String? = null
     private var usage: AgentUsage? = null
+    private var serviceTier: String? = null
     private var completed = false
     private val text = StringBuilder()
 
@@ -111,12 +122,20 @@ class ClaudeCodeEventParser(
 
             "assistant" -> {
                 val content = root["message"]?.jsonObject?.get("content")?.jsonArray.orEmpty()
+                val parentToolUse = root.string("parent_tool_use_id")
                 content.mapNotNull { element ->
                     val block = element.jsonObject
                     when (block.string("type")) {
                         "text" -> block.string("text")?.let { chunk ->
                             text.append(chunk)
                             AgentEvent.Delta(agent, chunk)
+                        }
+
+                        // Verified against 2.1.270: the payload is `thinking`, not `text`, and it
+                        // carries a `signature` that is deliberately dropped — it authenticates the
+                        // block for the API and is not content anyone should be shown.
+                        "thinking" -> block.string("thinking")?.takeIf { it.isNotBlank() }?.let { chunk ->
+                            AgentEvent.Reasoning(agent, chunk, ReasoningFidelity.Thinking, parentToolUse)
                         }
 
                         "tool_use" -> AgentEvent.ToolUse(agent, block.string("name") ?: "tool")
@@ -146,6 +165,7 @@ class ClaudeCodeEventParser(
                     costUsd = root.double("total_cost_usd"),
                     durationMillis = root.long("duration_ms"),
                 )
+                serviceTier = reported?.string("service_tier")
                 emptyList()
             }
 
@@ -169,6 +189,8 @@ class ClaudeCodeEventParser(
             },
             session = session,
             usage = usage,
+            effort = effort,
+            serviceTier = serviceTier,
         )
     }
 }

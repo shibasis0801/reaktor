@@ -14,7 +14,7 @@ enum class AgentRunStatus { Running, Completed, Failed, Interrupted }
 enum class AgentCollaboration { Single, Compare, Council }
 
 @Serializable
-data class AgentPartner(val provider: RuntimeKind, val model: String? = null)
+data class AgentPartner(val provider: RuntimeKind, val model: String? = null, val effort: NativeEffort? = null)
 
 @Serializable
 data class AgentParticipantRun(
@@ -24,6 +24,14 @@ data class AgentParticipantRun(
     val outputTruncated: Boolean = false,
     val lastTool: String? = null,
     val session: ProviderSession? = null,
+    /**
+     * Reasoning is kept out of [output] so a view can collapse it by default and so a transport
+     * that exposes none is visibly different from one that produced none this turn.
+     */
+    val reasoning: String = "",
+    val reasoningTruncated: Boolean = false,
+    val reasoningFidelity: ReasoningFidelity? = null,
+    val effort: EffortRecord = EffortRecord.none,
 )
 
 @Serializable
@@ -37,6 +45,8 @@ data class AgentSubmission(
     val context: ContextPacket? = null,
     val collaboration: AgentCollaboration = AgentCollaboration.Single,
     val partner: AgentPartner? = null,
+    /** Provider vocabulary, validated against the capability record before anything is dispatched. */
+    val effort: NativeEffort? = null,
 )
 
 @Serializable
@@ -63,6 +73,11 @@ data class AgentRunRecord(
     val partner: AgentPartner? = null,
     val participants: Map<String, AgentParticipantRun> = emptyMap(),
     val turnUsage: UsageSummary? = null,
+    val effort: EffortRecord = EffortRecord.none,
+    val serviceTier: String? = null,
+    val reasoning: String = "",
+    val reasoningTruncated: Boolean = false,
+    val reasoningFidelity: ReasoningFidelity? = null,
 )
 
 @Serializable
@@ -75,4 +90,11 @@ data class AgentWorkspaceInfo(
     val maxActiveRuns: Int,
     val sessionMode: String = "CLI batch turns with persisted provider continuation",
     val collaborations: List<AgentCollaboration> = listOf(AgentCollaboration.Single),
-)
+    /**
+     * What each installed harness advertises here. A client must offer only what this reports:
+     * a control with no capability behind it is how a schema entry becomes a broken button.
+     */
+    val capabilities: List<ProviderCapability> = emptyList(),
+) {
+    fun capability(provider: RuntimeKind): ProviderCapability? = capabilities.firstOrNull { it.runtime == provider }
+}
