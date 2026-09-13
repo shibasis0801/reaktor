@@ -93,6 +93,8 @@ data class AgentRunRecord(
     val pending: List<PendingRequest> = emptyList(),
     val context: ContextPacket? = null,
     val candidateId: String? = null,
+    /** Summary attention state, retained when request bodies are omitted from task listings. */
+    val pendingCount: Int = 0,
 )
 
 @Serializable

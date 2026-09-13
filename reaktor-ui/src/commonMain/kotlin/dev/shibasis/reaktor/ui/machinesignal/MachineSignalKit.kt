@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -76,7 +77,7 @@ fun SignalText(
 ) = Text(
     text = text,
     modifier = modifier,
-    color = color,
+    color = workspaceColor(color),
     fontFamily = if (mono) LocalMachineSignalFonts.current.mono else LocalMachineSignalFonts.current.ui,
     fontSize = size,
     fontWeight = weight,
@@ -88,7 +89,7 @@ fun SignalText(
 fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = MachineSignal.Text4) = Text(
     text = text.uppercase(),
     modifier = modifier,
-    color = color,
+    color = workspaceColor(color),
     fontFamily = LocalMachineSignalFonts.current.ui,
     fontSize = MachineSignal.Type.eyebrow,
     fontWeight = FontWeight.SemiBold,
@@ -107,7 +108,7 @@ fun PaneToolbar(
     modifier
         .fillMaxWidth()
         .height(40.dp)
-        .background(MachineSignal.Bg1)
+        .background(workspaceColor(MachineSignal.Bg1))
         .padding(horizontal = MachineSignal.Space.s3),
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3),
     verticalAlignment = Alignment.CenterVertically,
@@ -142,7 +143,7 @@ fun JumpOutStrip(
     Row(
         modifier
             .fillMaxWidth()
-            .background(MachineSignal.Bg1)
+            .background(workspaceColor(MachineSignal.Bg1))
             .testTag("jump-out")
             .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
@@ -187,11 +188,11 @@ fun SignalContextMenu(
 
 @Composable
 fun VerticalDivider(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
-    Box(modifier.fillMaxHeight().width(1.dp).background(color))
+    Box(modifier.fillMaxHeight().width(1.dp).background(workspaceColor(color)))
 
 @Composable
 fun DividerLine(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
-    Box(modifier.fillMaxWidth().height(1.dp).background(color))
+    Box(modifier.fillMaxWidth().height(1.dp).background(workspaceColor(color)))
 
 @Composable
 fun SignalPanel(
@@ -201,7 +202,9 @@ fun SignalPanel(
     background: Color = MachineSignal.Bg1,
     contentPadding: Dp = MachineSignal.Space.s3,
     content: @Composable ColumnScope.() -> Unit,
-) = Column(modifier.background(background)) {
+) = Column(modifier.background(workspaceColor(background)).then(
+    if (LocalSignalWorkspaceStyle.current) Modifier.border(1.dp, MachineSignal.Editor.Code.GutterLine) else Modifier
+)) {
     if (title != null || trailing != null) {
         Row(
             Modifier
@@ -248,20 +251,21 @@ fun SignalButton(
     leading: (@Composable () -> Unit)? = null,
 ) {
     val (interaction, hovered) = rememberHover()
+    val editor = LocalSignalWorkspaceStyle.current
     Row(
     modifier
-        .height(MachineSignal.Metrics.buttonHeight)
+        .height(if (editor) MachineSignal.Editor.controlHeight else MachineSignal.Metrics.buttonHeight)
         .hoverable(interaction)
         .pointerHoverIcon(PointerIcon.Hand)
         .background(
             when {
                 !enabled -> Color.Transparent
-                hovered -> tone.hover
-                else -> tone.fill
+                hovered -> workspaceColor(tone.hover)
+                else -> workspaceColor(tone.fill)
             },
             MachineSignal.Shape.Control,
         )
-        .border(1.dp, if (enabled) tone.line else MachineSignal.Line1, MachineSignal.Shape.Control)
+        .border(1.dp, if (editor && tone == SignalTone.Ghost) Color.Transparent else workspaceColor(if (enabled) tone.line else MachineSignal.Line1), MachineSignal.Shape.Control)
         .clickable(
             interactionSource = interaction,
             indication = null,
@@ -271,7 +275,7 @@ fun SignalButton(
         )
         .semantics { role = Role.Button; if (!enabled) disabled() }
         .padding(
-            horizontal = if (tone == SignalTone.Ghost) {
+            horizontal = if (editor) MachineSignal.Space.s2 else if (tone == SignalTone.Ghost) {
                 MachineSignal.Metrics.ghostPaddingX
             } else {
                 MachineSignal.Metrics.buttonPaddingX
@@ -284,7 +288,7 @@ fun SignalButton(
     SignalText(
         text = label,
         color = if (enabled) tone.text else MachineSignal.Text4,
-        size = MachineSignal.Type.control,
+        size = if (editor) MachineSignal.Editor.label else MachineSignal.Type.control,
         weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) {
             FontWeight.SemiBold
         } else {
@@ -350,8 +354,8 @@ fun MetricTile(
     Modifier
         .width(MachineSignal.Metrics.metricTileWidth)
         .then(modifier)
-        .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
-        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
+        .background(workspaceColor(MachineSignal.Bg1), MachineSignal.Shape.Panel)
+        .border(1.dp, workspaceColor(MachineSignal.Line1), MachineSignal.Shape.Panel)
         .padding(MachineSignal.Metrics.metricTilePadding),
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.metricTileGap),
 ) {
@@ -380,17 +384,18 @@ fun KeyValueRow(
     modifier: Modifier = Modifier,
     keyWidth: Dp = 132.dp,
 ) = Row(
-    modifier.fillMaxWidth().height(MachineSignal.Metrics.kvRowHeight),
+    modifier.fillMaxWidth().then(if (LocalSignalWorkspaceStyle.current) Modifier.heightIn(min = MachineSignal.Editor.treeRowHeight).padding(vertical = MachineSignal.Space.s1) else Modifier.height(MachineSignal.Metrics.kvRowHeight)),
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    SignalText(key, Modifier.width(keyWidth), color = MachineSignal.Text4, size = MachineSignal.Type.caption)
+    SignalText(key, if (LocalSignalWorkspaceStyle.current) Modifier.weight(.38f) else Modifier.width(keyWidth), color = MachineSignal.Text4, size = MachineSignal.Editor.label, maxLines = if (LocalSignalWorkspaceStyle.current) Int.MAX_VALUE else 1)
     SignalText(
         text = fact.value,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(if (LocalSignalWorkspaceStyle.current) .62f else 1f),
         color = if (fact.provesHealth) MachineSignal.Text2 else MachineSignal.Text4,
         size = MachineSignal.Type.caption,
-        mono = true,
+        mono = !LocalSignalWorkspaceStyle.current,
+        maxLines = if (LocalSignalWorkspaceStyle.current) Int.MAX_VALUE else 1,
     )
     if (fact.truth != TruthClass.Live) ProvenanceBadge(fact.truth)
 }
@@ -399,8 +404,8 @@ fun KeyValueRow(
 fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier) = Column(
     modifier
         .fillMaxWidth()
-        .background(MachineSignal.Bg1, MachineSignal.Shape.Panel)
-        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Panel)
+        .background(workspaceColor(MachineSignal.Bg1), MachineSignal.Shape.Panel)
+        .border(1.dp, workspaceColor(MachineSignal.Line1), MachineSignal.Shape.Panel)
         .padding(MachineSignal.Space.s4)
         .testTag("not-wired-yet"),
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
@@ -410,7 +415,7 @@ fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ProvenanceBadge(TruthClass.Unknown)
-        SignalText(what, color = MachineSignal.Text2, weight = FontWeight.Medium)
+        SignalText(what, color = MachineSignal.Text2, weight = FontWeight.Medium, maxLines = 4)
     }
     SignalText("Turns on with: $turnsOnWith", color = MachineSignal.Text4, size = MachineSignal.Type.caption, maxLines = 3)
 }
@@ -435,7 +440,8 @@ fun SubTab(
         .width(IntrinsicSize.Max)
         // Fixed to the authored total so the underline lands on the authored baseline whatever the
         // label's intrinsic height turns out to be — the prose ramp is a touch smaller than the file.
-        .height(MachineSignal.Metrics.subTabHeight)
+        .height(if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.documentTabHeight else MachineSignal.Metrics.subTabHeight)
+        .background(if (LocalSignalWorkspaceStyle.current && selected) MachineSignal.Editor.AccentSoft else Color.Transparent)
         .clickable(role = Role.Tab, onClick = onClick)
         .semantics { this.selected = selected; this.role = Role.Tab }
         .padding(
@@ -453,7 +459,7 @@ fun SubTab(
         SignalText(
             text = label,
             color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-            size = MachineSignal.Type.label,
+            size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.label,
             weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
         )
         if (count != null && count > 0) {
@@ -474,7 +480,7 @@ fun SubTabRow(modifier: Modifier = Modifier, content: @Composable RowScope.() ->
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(MachineSignal.Bg1)
+                .background(workspaceColor(MachineSignal.Bg1))
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
@@ -490,17 +496,18 @@ fun ContextBar(
     modifier: Modifier = Modifier,
     truth: TruthClass? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
-) = Column(modifier.fillMaxWidth().height(MachineSignal.Metrics.contextBarHeight)) {
+) = Column(modifier.fillMaxWidth().height(if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.menuHeight else MachineSignal.Metrics.contextBarHeight)) {
     Row(
         Modifier
             .fillMaxWidth()
             .weight(1f)
-            .background(MachineSignal.Bg1)
+            .background(workspaceColor(MachineSignal.Bg1))
             .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
+            Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.contextBarGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -622,7 +629,7 @@ fun KindBadge(kind: String, modifier: Modifier = Modifier, color: Color = Machin
 ) {
     Text(
         text = kind.uppercase(),
-        color = color,
+        color = workspaceColor(color),
         fontFamily = LocalMachineSignalFonts.current.mono,
         fontSize = MachineSignal.Type.dataMicro,
         fontWeight = FontWeight.Bold,
