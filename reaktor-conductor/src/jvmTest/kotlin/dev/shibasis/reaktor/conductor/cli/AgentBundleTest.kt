@@ -41,7 +41,12 @@ class AgentBundleTest {
             val installed = codex.readText()
             assertTrue(installed.contains("[mcp_servers.reaktor]"))
             assertTrue(installed.contains("\"--dir\", \"/tmp/ws\""))
-            assertTrue(AgentBundle.status(targets).codex)
+            // Both servers: the workspace over stdio, the kernel's graph over loopback http.
+            assertTrue(installed.contains("[mcp_servers.reaktor-graph]"))
+            assertTrue(installed.contains(AgentBundle.DEFAULT_GRAPH_URL))
+            val status = AgentBundle.status(targets)
+            assertTrue(status.codex)
+            assertTrue(status.codexGraph)
             // Neighbours are untouched while ours is present.
             assertTrue(installed.contains("Authorization = \"Bearer secret-token\""))
 
@@ -61,7 +66,8 @@ class AgentBundleTest {
 
             AgentBundle.install(targets, command)
             val servers = Json.parseToJsonElement(mcp.readText()).jsonObject.getValue("mcpServers").jsonObject
-            assertEquals(setOf("pencil", "reaktor"), servers.keys)
+            assertEquals(setOf("pencil", "reaktor", "reaktor-graph"), servers.keys)
+            assertEquals("http", servers.getValue("reaktor-graph").jsonObject.getValue("type").jsonPrimitive.content)
             assertEquals("pencil-mcp", servers.getValue("pencil").jsonObject.getValue("command").jsonPrimitive.content)
 
             AgentBundle.uninstall(targets)
@@ -92,7 +98,9 @@ class AgentBundleTest {
             val once = java.io.File(home, ".codex/config.toml").readText()
             val second = AgentBundle.install(targets, command)
             assertEquals(once, java.io.File(home, ".codex/config.toml").readText())
-            assertTrue(second.any { it.contains("already installed") })
+            // Two servers across two harnesses: every one of them reports itself already there
+            // rather than appending a second copy.
+            assertEquals(second.size, second.count { it.contains("already installed") })
         } finally { home.deleteRecursively(); root.deleteRecursively() }
     }
 
