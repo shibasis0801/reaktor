@@ -29,6 +29,13 @@ class AgentWorkspace(
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
     private val active = mutableMapOf<String, Job>()
+    /**
+     * Live sessions by run and agent, for as long as a turn is in flight.
+     *
+     * Only interactive runtimes ever appear here. A run on the batch pair has nothing to register,
+     * which is why every command below answers Unsupported rather than silently doing nothing.
+     */
+    private val sessions = java.util.concurrent.ConcurrentHashMap<String, MutableMap<String, AgentSession>>()
     private val records = mutableMapOf<String, AgentRunRecord>()
     private val index = directory.resolve("recent.json")
     private var recent = emptyList<String>()
@@ -73,6 +80,37 @@ class AgentWorkspace(
     private fun requireSupportedEffort(provider: RuntimeKind, effort: NativeEffort?) {
         val resolution = capabilities.firstOrNull { it.runtime == provider }?.effort.resolve(effort)
         if (resolution is EffortResolution.Unsupported) throw UnsupportedEffortException(resolution)
+    }
+
+    /**
+     * Answers one request a provider is blocked on.
+     *
+     * Routed to the live session rather than recorded as an intention, so nothing is "approved" in
+     * the journal that the provider never heard. A run whose transport holds no session reports
+     * [CommandOutcome.Unsupported] instead of accepting an answer nobody will act on.
+     */
+    suspend fun resolve(runId: String, agent: String, requestId: String, decision: AgentDecision): CommandOutcome =
+        withSession(runId, agent) { it.resolve(requestId, decision) }
+            .also { if (it is CommandOutcome.Accepted) update(runId, true) { record -> record.withRequestResolved(agent, requestId) } }
+
+    /** Adds input to a turn in flight. [expectedTurn] is a precondition the provider checks. */
+    suspend fun steer(runId: String, agent: String, text: String, expectedTurn: String?): CommandOutcome {
+        require(text.isNotBlank() && text.length <= 100000)
+        return withSession(runId, agent) { it.steer(text, expectedTurn) }
+    }
+
+    suspend fun interrupt(runId: String, agent: String): CommandOutcome =
+        withSession(runId, agent) { it.interrupt() }
+
+    /** What each participant can be asked to do right now, for a client deciding which controls to show. */
+    fun controls(runId: String): Map<String, Boolean> =
+        sessions[runId]?.mapValues { true }.orEmpty()
+
+    private suspend fun withSession(runId: String, agent: String, body: suspend (AgentSession) -> CommandOutcome): CommandOutcome {
+        val session = sessions[runId]?.get(agent)
+            ?: return CommandOutcome.Unsupported(
+                if (records[runId] == null && load(runId) == null) "unknown run" else "interactive session")
+        return body(session)
     }
 
     fun submit(request: AgentSubmission): AgentRunRecord = synchronized(lock) {
@@ -209,6 +247,9 @@ class AgentWorkspace(
                     val result = Conductor(runtimes, clock = System::currentTimeMillis, idFactory = { EventId(UUID.randomUUID().toString()) }).run(
                         document, request.prompt, protocol, root.canonicalPath,
                         context = request.context, resumeProviderSession = request.collaboration == AgentCollaboration.Single,
+                        onSession = { agentId, session ->
+                            sessions.computeIfAbsent(initial.id) { java.util.concurrent.ConcurrentHashMap() }[agentId.value] = session
+                        },
                         onCheckpoint = { checkpoint ->
                             store.checkpoint(if (request.collaboration == AgentCollaboration.Single) checkpoint else
                                 checkpoint.copy(providerSessions = checkpoint.providerSessions - ids.map { it.value }.toSet()))
@@ -280,6 +321,8 @@ class AgentWorkspace(
                     participant.copy(status = if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed) else participant },
                 failure = if (failure is CancellationException) "Interrupted by the workspace owner" else failure.message.orEmpty().take(2000)) }
         } finally {
+            // A session outliving its run would let a late answer reach a finished turn.
+            sessions.remove(initial.id)
             synchronized(lock) { active.remove(initial.id); changes.value++ }
         }
     }

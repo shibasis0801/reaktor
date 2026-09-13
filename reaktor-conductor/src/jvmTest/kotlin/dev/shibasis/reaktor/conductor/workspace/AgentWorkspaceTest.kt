@@ -108,6 +108,77 @@ class AgentWorkspaceTest {
         } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
     }
 
+    @Test fun aBlockedTurnIsAnsweredThroughTheWorkspaceAndTheJournalClears() = runBlocking {
+        val root = Files.createTempDirectory("agent-answer-root").toFile()
+        val directory = Files.createTempDirectory("agent-answer-state")
+        val runtime = BlockingHarness()
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(runtime.kind to runtime)).use { owner ->
+                val run = owner.submit(AgentSubmission("answer-1", runtime.kind, "do the thing"))
+                val waiting = withTimeout(10000) {
+                    var record = owner.get(run.id)
+                    while (record.pending.isEmpty()) record = owner.wait(record.id, record.revision, 5000)
+                    record
+                }
+                assertEquals("Run a command", waiting.pending.single().title)
+                assertEquals("rm -rf /", waiting.pending.single().scope, "The subject has to reach the journal")
+
+                // Answering a request that is not pending must not look like success.
+                assertIs<CommandOutcome.Stale>(owner.answer(run.id, "codex", "no-such-request", AgentDecision.Approve))
+
+                assertIs<CommandOutcome.Accepted>(owner.answer(run.id, "codex", "req-1", AgentDecision.Deny("not that")))
+                assertEquals(AgentDecision.Deny("not that"), runtime.answered.await())
+
+                val done = terminal(owner, owner.get(run.id))
+                assertEquals(AgentRunStatus.Completed, done.status)
+                assertTrue(done.pending.isEmpty(), "An answered request must leave the journal")
+            }
+        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+    }
+
+    @Test fun aBatchRunReportsUnsupportedRatherThanAcceptingAnAnswerNobodyHears() = runBlocking {
+        val root = Files.createTempDirectory("agent-batch-root").toFile()
+        val directory = Files.createTempDirectory("agent-batch-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                val run = terminal(owner, owner.submit(AgentSubmission("batch-1", harness.kind, "plain turn")))
+                val outcome = owner.answer(run.id, "codex", "req-1", AgentDecision.Approve)
+                assertEquals("interactive session", assertIs<CommandOutcome.Unsupported>(outcome).capability)
+                assertIs<CommandOutcome.Unsupported>(owner.steer(run.id, "codex", "more input"))
+                Unit
+            }
+        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+    }
+
+    /** An interactive runtime that stops for one approval and finishes once it is answered. */
+    private class BlockingHarness : InteractiveAgentRuntime {
+        override val kind = RuntimeKind.Codex
+        override val interactive = Qualification.qualified("AgentWorkspaceTest")
+        val answered = CompletableDeferred<AgentDecision>()
+        override fun run(request: AgentRequest) = flow<AgentEvent> { error("opened as a session") }
+        override suspend fun open(request: AgentRequest): AgentSession = object : AgentSession {
+            override val activeTurn = "turn-1"
+            override val events = flow {
+                emit(AgentEvent.Started(request.agent.id, ProviderSession(RuntimeKind.Codex, "fixture-thread")))
+                emit(AgentEvent.RequestPending(request.agent.id,
+                    PendingRequest("req-1", RequestKind.CommandApproval, "Run a command", scope = "rm -rf /")))
+                val decision = answered.await()
+                emit(AgentEvent.RequestResolved(request.agent.id, "req-1", decision))
+                emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "declined and stopped", true,
+                    session = ProviderSession(RuntimeKind.Codex, "fixture-thread"))))
+            }
+            override suspend fun steer(text: String, expectedTurn: String?) = CommandOutcome.Accepted
+            override suspend fun resolve(requestId: String, decision: AgentDecision): CommandOutcome {
+                if (requestId != "req-1") return CommandOutcome.Stale(requestId, activeTurn)
+                answered.complete(decision)
+                return CommandOutcome.Accepted
+            }
+            override suspend fun interrupt() = CommandOutcome.Accepted
+            override fun close() = Unit
+        }
+    }
+
     private suspend fun terminal(connection: AgentWorkspaceConnection, initial: AgentRunRecord): AgentRunRecord = withTimeout(10000) {
         var record = initial
         while (record.status == AgentRunStatus.Running) record = connection.wait(record.id, record.revision, 5000)

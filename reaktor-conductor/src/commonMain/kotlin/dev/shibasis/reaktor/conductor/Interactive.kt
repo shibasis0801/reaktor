@@ -89,3 +89,34 @@ interface InteractiveAgentRuntime : AgentRuntime {
 
     suspend fun open(request: AgentRequest): AgentSession
 }
+
+/**
+ * Drains one turn, handing the live session to [onSession] first when the runtime has one.
+ *
+ * The batch adapters have nothing to hand over and fall through to [await], so a caller writes one
+ * path and the difference stays where it belongs: in whether a control is offered at all.
+ */
+suspend fun AgentRuntime.awaitSession(
+    request: AgentRequest,
+    onSession: (AgentSession) -> Unit,
+    onEvent: suspend (AgentEvent) -> Unit = {},
+): AgentOutcome {
+    if (this !is InteractiveAgentRuntime) return await(request, onEvent)
+    val session = open(request)
+    onSession(session)
+    var outcome: AgentOutcome? = null
+    try {
+        session.events.collect { event ->
+            onEvent(event)
+            if (event is AgentEvent.Finished) outcome = event.outcome
+        }
+    } finally {
+        session.close()
+    }
+    return outcome ?: AgentOutcome(
+        agent = request.agent.id,
+        text = "",
+        ok = false,
+        failure = "Session for ${kind.name} produced no outcome",
+    )
+}

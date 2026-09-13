@@ -101,3 +101,11 @@ data class AgentWorkspaceInfo(
 ) {
     fun capability(provider: RuntimeKind): ProviderCapability? = capabilities.firstOrNull { it.runtime == provider }
 }
+
+/** Drops one answered request from the run and whichever participant was waiting on it. */
+fun AgentRunRecord.withRequestResolved(agent: String, requestId: String): AgentRunRecord = copy(
+    pending = pending.filterNot { it.id == requestId },
+    participants = participants.mapValues { (id, participant) ->
+        if (id == agent) participant.copy(pending = participant.pending.filterNot { it.id == requestId }) else participant
+    },
+)

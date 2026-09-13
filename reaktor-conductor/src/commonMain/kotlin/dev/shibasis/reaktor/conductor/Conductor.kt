@@ -38,6 +38,14 @@ class Conductor(
         context: ContextPacket? = null,
         resumeProviderSession: Boolean = false,
         onCheckpoint: (ThreadDocument) -> Unit = {},
+        /**
+         * Called with the live session for a turn, when the runtime has one. It is the only way a
+         * caller can answer a provider's question: the event stream reports that one is waiting,
+         * and this is the handle that can reply.
+         *
+         * Declared before [onEvent] so the trailing lambda a caller writes still binds to events.
+         */
+        onSession: (AgentId, AgentSession) -> Unit = { _, _ -> },
         onEvent: (AgentEvent) -> Unit = {},
     ): ConductorResult {
         require(!resumeProviderSession || protocol is Protocol.Ask) { "Provider continuation is supported only for Ask" }
@@ -108,9 +116,10 @@ class Conductor(
                     context = context,
                 ),
             )
-            val outcome = runtime.await(
+            val outcome = runtime.awaitSession(
                 AgentRequest(agent = agent, prompt = compiled, workingDirectory = workingDirectory,
                     resume = resume, persistSession = resumeProviderSession),
+                onSession = { session -> onSession(agent.id, session) },
             ) { event ->
                 if (event is AgentEvent.Started && event.session != null) {
                     checkpointMutex.withLock {
