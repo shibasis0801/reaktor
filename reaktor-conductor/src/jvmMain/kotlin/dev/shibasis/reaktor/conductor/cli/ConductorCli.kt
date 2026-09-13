@@ -173,6 +173,9 @@ private fun render(event: AgentEvent) {
             "  ${event.agent.value} ${if (event.outcome.ok) "done" else "failed: ${event.outcome.failure}"}",
         )
 
+        is AgentEvent.RequestPending -> println("  ${event.agent.value} waiting: ${event.request.title}${event.request.scope?.let { " · $it" }.orEmpty()}")
+        is AgentEvent.RequestResolved -> Unit
+
         is AgentEvent.Delta, is AgentEvent.Reasoning -> Unit
     }
 }

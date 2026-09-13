@@ -44,6 +44,24 @@ sealed interface AgentEvent {
         val parentToolUse: String? = null,
     ) : AgentEvent
 
+    /**
+     * The provider stopped and is waiting for an answer.
+     *
+     * Emitted rather than resolved inside the adapter so policy, not the transport, decides — and
+     * so a person can see the scope of what is being asked before anything acts on their behalf.
+     */
+    data class RequestPending(
+        override val agent: AgentId,
+        val request: PendingRequest,
+    ) : AgentEvent
+
+    /** A pending request stopped waiting, whether answered, withdrawn or abandoned. */
+    data class RequestResolved(
+        override val agent: AgentId,
+        val requestId: String,
+        val decision: AgentDecision?,
+    ) : AgentEvent
+
     data class Finished(override val agent: AgentId, val outcome: AgentOutcome) : AgentEvent
 }
 

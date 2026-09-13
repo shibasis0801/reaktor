@@ -217,6 +217,12 @@ class AgentWorkspace(
                                 is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
                                 // Kept out of `output` so a view can collapse it, and tagged with the
                                 // provider's own classification so a summary is never shown as thinking.
+                                // A request the provider is blocked on is journalled rather than
+                                // answered here: policy decides, and a reconnect must not re-ask.
+                                is AgentEvent.RequestPending -> participant.copy(
+                                    pending = (participant.pending.filterNot { it.id == event.request.id } + event.request).takeLast(20))
+                                is AgentEvent.RequestResolved -> participant.copy(
+                                    pending = participant.pending.filterNot { it.id == event.requestId })
                                 is AgentEvent.Reasoning -> participant.copy(
                                     reasoning = (participant.reasoning + event.text).takeLast(6000),
                                     reasoningTruncated = participant.reasoningTruncated || participant.reasoning.length + event.text.length > 6000,
@@ -233,6 +239,10 @@ class AgentWorkspace(
                             is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
                                 outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
                             is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
+                            is AgentEvent.RequestPending -> withParticipant.copy(
+                                pending = (current.pending.filterNot { it.id == event.request.id } + event.request).takeLast(20))
+                            is AgentEvent.RequestResolved -> withParticipant.copy(
+                                pending = current.pending.filterNot { it.id == event.requestId })
                             is AgentEvent.Reasoning -> withParticipant.copy(
                                 reasoning = (current.reasoning + event.text).takeLast(12000),
                                 reasoningTruncated = current.reasoningTruncated || current.reasoning.length + event.text.length > 12000,
