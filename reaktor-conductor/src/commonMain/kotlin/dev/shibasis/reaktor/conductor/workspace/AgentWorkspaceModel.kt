@@ -109,3 +109,18 @@ fun AgentRunRecord.withRequestResolved(agent: String, requestId: String): AgentR
         if (id == agent) participant.copy(pending = participant.pending.filterNot { it.id == requestId }) else participant
     },
 )
+
+/**
+ * What a reconnecting client needs to resume without re-asking anything.
+ *
+ * [live] and [answerable] are separate facts. A run can still be executing while holding no session
+ * a client could answer through — that is exactly the batch transport — so a client that conflates
+ * them would offer controls that cannot work.
+ */
+@Serializable
+data class AgentAttachment(
+    val run: AgentRunRecord,
+    val live: Boolean,
+    val answerable: List<String> = emptyList(),
+    val pending: List<PendingRequest> = emptyList(),
+)

@@ -83,6 +83,27 @@ class AgentWorkspace(
     }
 
     /**
+     * Re-attaches to a run that is still in flight.
+     *
+     * A client that dropped — a closed desktop, a restarted MCP session — needs the run's current
+     * state and, crucially, what it is blocked on, without re-asking anything. Observation is not
+     * ownership: attaching does not take the execution lease and does not dispatch work. A run that
+     * has already ended attaches to its saved receipt, which is the honest answer rather than an
+     * error, because the client's question was "what happened", not "is it running".
+     */
+    fun attach(runId: String): AgentAttachment {
+        val record = records[runId] ?: load(runId) ?: throw IllegalArgumentException("Run not found in this workspace")
+        val live = sessions[runId].orEmpty()
+        return AgentAttachment(
+            run = record,
+            live = record.status == AgentRunStatus.Running && active.containsKey(runId),
+            // Only a participant whose session is still held can be answered or steered.
+            answerable = live.keys.toList().sorted(),
+            pending = (record.pending + record.participants.values.flatMap { it.pending }).distinctBy { it.id },
+        )
+    }
+
+    /**
      * Answers one request a provider is blocked on.
      *
      * Routed to the live session rather than recorded as an intention, so nothing is "approved" in
