@@ -19,7 +19,11 @@ data class AgentActivityItem(
     val parentId: String? = null,
     val subjectRefs: List<String> = emptyList(),
     val detailTruncated: Boolean = false,
+    val nativeAgents: List<NativeAgentState> = emptyList(),
 )
+
+@Serializable data class NativeAgentState(val id: String, val parentId: String? = null, val name: String? = null,
+    val status: String = "unknown", val turnId: String? = null, val output: String? = null)
 
 @Serializable
 data class AgentActivityRecord(

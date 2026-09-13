@@ -65,7 +65,7 @@ def initialize(db):
       PRIMARY KEY (tenant_id,workspace_id,principal_id))''')
 
 
-def import_snapshot(path, embed):
+def import_snapshot(path, embed, offline=False):
     started = time.perf_counter()
     if Path(path).stat().st_size > 20_000_000:
         raise ValueError('Snapshot exceeds 20 MB; use a smaller subscription')
@@ -101,7 +101,7 @@ def import_snapshot(path, embed):
             chunk_id = str(offset // 1400)
             if (row['ref'], row['revision'], chunk_id) not in existing:
                 chunks.append((row, chunk_id, row['text'][offset:offset + 1600]))
-    vectors = list(embedding_model().passage_embed([chunk[2] for chunk in chunks])) if embed and chunks else []
+    vectors = list(embedding_model(offline=offline).passage_embed([chunk[2] for chunk in chunks])) if embed and chunks else []
 
     # Build a new graph snapshot first. Readers use only the snapshot activated in PostgreSQL.
     with graph() as driver, driver.session() as session:
@@ -208,6 +208,7 @@ def main():
     load = sub.add_parser('import')
     load.add_argument('snapshot')
     load.add_argument('--embed', action='store_true')
+    load.add_argument('--offline', action='store_true')
     search = sub.add_parser('query')
     search.add_argument('query')
     search.add_argument('--tenant', required=True)
@@ -220,7 +221,7 @@ def main():
     if args.command == 'import':
         with (ROOT / 'import.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            import_snapshot(args.snapshot, args.embed)
+            import_snapshot(args.snapshot, args.embed, args.offline)
     else: print(canonical(retrieve(args.query, (args.tenant, args.workspace, args.principal), args.semantic, args.limit, args.max_chars)))
 
 

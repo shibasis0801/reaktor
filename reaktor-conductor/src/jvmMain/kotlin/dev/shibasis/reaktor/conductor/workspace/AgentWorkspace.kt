@@ -24,6 +24,8 @@ class AgentWorkspace(
     private val batchRuntimes: Map<RuntimeKind, AgentRuntime> = emptyMap(),
     private val harnessMcpConfig: String? = null,
     private val background: Boolean = false,
+    private val workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
+    private val externalBusy: () -> Boolean = { false },
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -42,6 +44,33 @@ class AgentWorkspace(
     private var queued: List<AgentQueuedTurn> = if (Files.exists(queueFile))
         ConductorJson.decodeFromString(ListSerializer(AgentQueuedTurn.serializer()), Files.readString(queueFile)) else emptyList()
     val evidence = AgentEvidenceStore(root, directory.resolve("evidence"))
+    val checkpoints = AgentCheckpoints(directory.resolve("checkpoints"))
+    val runbooks = AgentRunbooks(directory.resolve("runbooks"))
+    val worktrees = AgentWorktrees(root, directory.resolve("worktrees"), evidence.artifacts)
+    val localContext = AgentLocalContext(root, directory)
+    val memory = AgentMemoryStore(root, directory.resolve("memory"), evidence.artifacts)
+    fun remember(runId: String, eventId: String) = memory.remember(get(runId), requireNotNull(checkpoint(runId)), eventId)
+    private var draining = false
+
+    fun drain(enabled: Boolean): Int = synchronized(lock) { draining = enabled; active.size + if (externalBusy()) 1 else 0 }
+    fun acceptsWork(): Boolean = synchronized(lock) { !closed && !draining }
+    fun <T> admitOperation(action: () -> T): T = synchronized(lock) { check(acceptsWork()) { "Workspace is draining" }; action() }
+    fun applyWorktree(id: String, patch: String, revision: String): AgentWorktreeReview = synchronized(lock) {
+        require(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
+        worktrees.apply(id, patch, revision)
+    }
+    fun compactActivity(olderThanDays: Int = 30): Long = synchronized(lock) {
+        require(olderThanDays in 1..3650)
+        val cutoff = System.currentTimeMillis() - olderThanDays * 86400000L
+        Files.list(directory.resolve("runs")).use { files -> files.filter { it.fileName.toString().matches(Regex("[a-f0-9]{64}\\.json")) }.toList() }
+            .mapNotNull { load(it.fileName.toString().removeSuffix(".json")) }
+            .filter { it.id !in active && it.status != AgentRunStatus.Running && it.recovery == AgentRecovery.None && it.updatedAt < cutoff }
+            .sumOf { activity.archive(it.id) }
+    }
+    fun pruneRuntimeImages(olderThanDays: Int = 30): Long = synchronized(lock) {
+        require(active.isEmpty() && !externalBusy()) { "Wait for running work before pruning service images" }
+        pruneServiceImages(directory, olderThanDays)
+    }
 
     fun taskEvidence(taskId: String): AgentTaskEvidence {
         require(Files.exists(threadPath(taskId)) || synchronized(lock) { records.values.any { it.threadId == taskId } }) { "Task not found in this workspace" }
@@ -121,7 +150,7 @@ class AgentWorkspace(
     }
     private fun persistQueue() = atomicWrite(queueFile, ConductorJson.encodeToString(ListSerializer(AgentQueuedTurn.serializer()), queued))
     private fun dispatchQueued() = synchronized(lock) {
-        if (closed || active.isNotEmpty()) return@synchronized
+        if (closed || draining || active.isNotEmpty()) return@synchronized
         for (item in queued.filter { it.state == "waiting" }) {
             val parent = records[item.afterRunId] ?: load(item.afterRunId)
             if (parent == null) {
@@ -168,6 +197,7 @@ class AgentWorkspace(
             // Only a participant whose session is still held can be answered or steered.
             answerable = live.filterValues { it.activeTurn != null }.keys.toList().sorted(),
             activeTurns = live.mapNotNull { (id, session) -> session.activeTurn?.let { id to it } }.toMap(),
+            nativeAgents = live.mapValues { it.value.nativeAgents() },
             pending = (record.pending + record.participants.values.flatMap { it.pending }).distinctBy { it.id },
         )
     }
@@ -184,6 +214,11 @@ class AgentWorkspace(
     suspend fun interrupt(runId: String, agent: String): CommandOutcome =
         withSession(runId, agent) { it.interrupt() }
 
+    suspend fun controlNative(runId: String, agent: String, child: String, expectedTurn: String, text: String?): CommandOutcome {
+        require(text == null || text.length in 1..100000)
+        return withSession(runId, agent) { it.controlNative(child, expectedTurn, text) }
+    }
+
     fun controls(runId: String): Map<String, Boolean> = sessions[runId]?.mapValues { true }.orEmpty()
 
     private suspend fun withSession(runId: String, agent: String, body: suspend (AgentSession) -> CommandOutcome): CommandOutcome {
@@ -193,12 +228,23 @@ class AgentWorkspace(
         return body(session)
     }
 
-    fun submit(request: AgentSubmission): AgentRunRecord = synchronized(lock) {
+    fun submit(request: AgentSubmission): AgentRunRecord = admit(request)
+
+    private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
+        check(!draining) { "Workspace is draining for a service upgrade" }
         require(request.requestId.isNotBlank() && request.requestId.length <= 200)
         require(request.prompt.isNotBlank() && request.prompt.length <= 100000)
         require(request.model == null || request.model.length in 1..256)
         require(request.provider in runtimes) { "Provider is not configured" }
+        request.workflow?.let { workflow ->
+            workflow.validate()
+            require(request.collaboration == AgentCollaboration.Single && request.partner == null) { "A workflow supplies its own roster" }
+            require(workflow.participants.all { it.runtime in runtimes }) { "Workflow provider unavailable" }
+            workflow.participants.forEach { requireSupportedEffort(it.runtime, it.effort) }
+            require(workflow.stages.none { it.action == WorkflowAction.Check } || workflowCheck != null) { "This host has no kernel check executor" }
+            require(request.isolation != AgentIsolation.Worktree || workflow.stages.none { it.action == WorkflowAction.Check }) { "Kernel checks currently target the source workspace; apply an isolated patch before checking it" }
+        }
         require(request.collaboration in info().collaborations) { "Collaboration is not available in this workspace" }
         if (request.collaboration == AgentCollaboration.Single) {
             require(request.partner == null) { "Single-agent turns cannot have a partner" }
@@ -206,7 +252,7 @@ class AgentWorkspace(
             val partner = requireNotNull(request.partner) { "Choose a second provider" }
             require(partner.provider in runtimes && partner.provider != request.provider) { "Choose two different configured providers" }
             require(partner.model == null || partner.model.length in 1..256)
-            require(!request.allowWrites) { "Collaborative turns request inspection; parallel editing requires owned worktrees" }
+            require(!request.allowWrites || request.isolation == AgentIsolation.Worktree) { "Parallel editing requires owned worktrees" }
             requireSupportedEffort(partner.provider, partner.effort)
         }
         requireSupportedEffort(request.provider, request.effort)
@@ -223,7 +269,8 @@ class AgentWorkspace(
         require(active.keys.sumOf { if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
             "Agent capacity is busy; wait for an active run"
         }
-        require(active.keys.none { records[it]?.allowWrites == true } && (!request.allowWrites || active.isEmpty())) {
+        require(active.keys.none { records[it]?.allowWrites == true && records[it]?.isolation == AgentIsolation.Shared } &&
+            (!request.allowWrites || request.isolation == AgentIsolation.Worktree || active.isEmpty())) {
             "Workspace edits require exclusive agent execution"
         }
         val threadId = request.threadId ?: UUID.randomUUID().toString()
@@ -235,10 +282,12 @@ class AgentWorkspace(
         val record = AgentRunRecord(id, threadId, request.provider, fingerprint, request.prompt.take(200),
             request.model, request.allowWrites, startedAt = now, updatedAt = now,
             collaboration = request.collaboration, partner = request.partner,
+            workflow = request.workflow, workflowProgress = seed?.workflow, forkedFrom = forkedFrom, isolation = request.isolation,
             context = request.context,
             transport = if (useBatch(request)) AgentTransport.Batch else if (runtimes[request.provider] is InteractiveAgentRuntime) AgentTransport.Interactive else AgentTransport.Batch,
             effort = request.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none)
         atomicWrite(directory.resolve("requests/$id.json"), ConductorJson.encodeToString(AgentSubmission.serializer(), request))
+        seed?.let { checkpoints.save(id, it.copy(thread = it.thread.copy(id = ThreadId(threadId)))) }
         persist(record)
         records[id] = record
         recent = (listOf(id) + recent).distinct().take(200)
@@ -282,13 +331,14 @@ class AgentWorkspace(
     }
 
     private fun recoverPending() {
-        if (closed || active.isNotEmpty()) return
+        if (closed || draining || active.isNotEmpty()) return
         records.values.filter { it.recovery == AgentRecovery.Pending }.sortedBy { it.startedAt }.forEach { saved ->
             val reason = runCatching { when {
                 saved.attempt >= 3 -> "Recovery paused after three attempts; inspect the repeated failure"
                 saved.pending.isNotEmpty() || saved.participants.values.any { it.pending.isNotEmpty() } -> "A provider was waiting for a decision when its owner exited"
                 activity.unresolved(saved.id, saved.attempt).isNotEmpty() -> "A tool was in flight when the owner exited; inspect its effects before resuming"
                 checkpoint(saved.id)?.inFlight?.isNotEmpty() == true -> "The native stage ended without a durable result. Inspect its session and effects before retrying that stage"
+                checkpoint(saved.id)?.workflow?.stages?.values?.any { it.status == WorkflowStageStatus.Running || it.status == WorkflowStageStatus.Waiting } == true -> "A workflow stage needs review before continuing; inspect its saved results and any kernel receipt"
                 else -> null
             } }.getOrElse { "Saved execution state could not be read: ${it.message.orEmpty().take(300)}" }
             if (reason != null) update(saved.id, true) { it.copy(recovery = AgentRecovery.NeedsReview, recoveryReason = reason) }
@@ -301,15 +351,32 @@ class AgentWorkspace(
         }
     }
 
-    fun resume(id: String): AgentRunRecord = synchronized(lock) {
-        check(!closed)
+    private fun settleTerminal(id: String) {
+        val finishing = synchronized(lock) { active[id]?.takeIf { records[id]?.status != AgentRunStatus.Running } }
+        if (finishing != null) runBlocking { withTimeout(10000) { finishing.join() } }
+    }
+
+    fun resume(id: String, expectedRevision: Long? = null): AgentRunRecord {
+        settleTerminal(id)
+        return synchronized(lock) {
+        check(!closed && !draining) { "Workspace is closed or draining" }
         val saved = get(id)
+        if (expectedRevision != null) require(saved.revision == expectedRevision) { "Run changed since review; inspect the current checkpoint before continuing" }
         if (saved.status == AgentRunStatus.Running) return@synchronized saved
         require(saved.recovery != AgentRecovery.None) { "This run is not awaiting recovery" }
         require(active.isEmpty()) { "Wait for active workspace work before recovering this run" }
         val request = ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(directory.resolve("requests/$id.json")))
         require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
-        checkpoint(id)
+        val checkpoint = checkpoint(id)
+        val currentRoot = saved.workingDirectory?.let(::File) ?: root
+        checkpoint?.sourceRevision?.takeIf { request.workflow != null }?.let { expected ->
+            require(SourceCandidates(currentRoot, evidence.artifacts).capture().sourceDigest == expected) {
+                "Source changed since the saved checkpoint. Fork from the beginning to recompute evidence, or restore the reviewed source before resuming."
+            }
+        }
+        val gates = checkpoint?.workflow?.stages.orEmpty().filterValues { it.status == WorkflowStageStatus.Waiting }.keys
+        require(gates.isEmpty() || expectedRevision != null) { "Review the current run and provide expectedRevision to continue a workflow gate" }
+        if (checkpoint != null && gates.isNotEmpty()) checkpoints.save(id, checkpoint.copy(workflow = checkpoint.workflow.copy(approvedGates = checkpoint.workflow.approvedGates + gates)))
         val next = saved.copy(status = AgentRunStatus.Running, recovery = AgentRecovery.Resuming, attempt = saved.attempt + 1,
             recoveryReason = "Continuing from saved stage results; completed stages are reused", failure = null,
             pending = emptyList(), participants = saved.participants.mapValues { it.value.copy(pending = emptyList(), activeTurn = null) },
@@ -318,7 +385,33 @@ class AgentWorkspace(
         activity.append(id, "workspace", next.attempt, AgentActivityItem("recovery-${next.attempt}", ActivityKind.Recovery, "Resuming saved work", output = next.recoveryReason))
         startRun(next, request)
         next
-    }
+    } }
+
+    fun fork(id: String, checkpointId: String, requestId: String, fromStage: String? = null): AgentRunRecord {
+        settleTerminal(id)
+        return synchronized(lock) {
+        val origin = "$id/$checkpointId:${fromStage ?: "all"}"
+        (records[digest(requestId)] ?: load(digest(requestId)))?.let {
+            require(it.forkedFrom == origin) { "Fork request id already has different content" }
+            return@synchronized recover(it)
+        }
+        val original = get(id)
+        require(original.status != AgentRunStatus.Running) { "Pause or finish the source run before forking" }
+        val saved = checkpoints.read(id, checkpointId)
+        val request = ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(directory.resolve("requests/$id.json")))
+        require(request.workflow != null) { "Checkpoint forks need a workflow definition" }
+        val definition = request.workflow
+        require(fromStage == null || definition.stages.any { it.id == fromStage })
+        val invalidated = if (fromStage == null) definition.stages.map { it.id }.toMutableSet() else mutableSetOf(fromStage)
+        repeat(definition.stages.size) { definition.edges.filter { it.from in invalidated }.forEach { invalidated += it.to } }
+        val retained = saved.workflow.stages.filter { it.key !in invalidated && it.value.status in listOf(WorkflowStageStatus.Completed, WorkflowStageStatus.Skipped) }
+        require(saved.inFlight.isEmpty()) { "Choose a checkpoint without an in-flight native action" }
+        val revision = SourceCandidates(root, evidence.artifacts).capture().sourceDigest
+        if (retained.isNotEmpty()) require(request.isolation == AgentIsolation.Shared && revision == saved.sourceRevision) { "Source moved; fork from the beginning" }
+        val seed = saved.copy(completed = saved.completed.filterKeys { key -> retained.keys.any { key == "graph:$it" } }, inFlight = emptySet(),
+            thread = saved.thread.copy(providerSessions = emptyMap()), workflow = WorkflowProgress(retained), sourceRevision = revision)
+        admit(request.copy(requestId = requestId, threadId = null), seed, origin)
+    } }
 
     fun get(id: String): AgentRunRecord = synchronized(lock) {
         recover(records[id] ?: load(id) ?: error("Run not found"))
@@ -372,17 +465,21 @@ class AgentWorkspace(
     private suspend fun execute(initial: AgentRunRecord, request: AgentSubmission) {
         try {
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
+                val isolated = if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
+                val workingRoot = isolated?.roots?.first { it.source == root.canonicalPath }?.path?.let(::File) ?: root
+                update(initial.id, true) { it.copy(workingDirectory = workingRoot.canonicalPath) }
                 val supplied = request.context
                 val subjects = supplied?.entries.orEmpty().filter { it.kind == "graph-subject" }
                     .map { AgentGraphSubject(it.ref, supplied?.revision) }
-                val candidate = evidence.capture(initial.threadId, subjects)
+                val candidate = if (isolated == null) evidence.capture(initial.threadId, subjects) else SourceCandidates(workingRoot, evidence.artifacts).capture(subjects)
                 val prior = evidence.get(initial.threadId)
                 val context = ContextPacket(workspaceId = root.canonicalPath, principalId = supplied?.principalId ?: "local-operator",
                     source = "Reaktor agent workspace", observedAt = System.currentTimeMillis().toString(),
                     revision = supplied?.revision, freshness = "captured-before-turn", partial = !candidate.complete || supplied?.partial == true,
                     entries = listOf(ContextEntry("candidate:${candidate.id}", "candidate", "Source candidate",
                         "Task: ${initial.threadId}\nCandidate: ${candidate.id}\nBase commit: ${candidate.baseCommit}\nChanged paths: ${candidate.changedFiles.take(50).joinToString()}\n" +
-                            "Use agent_candidate_capture after editing, agent_task_graph for findings/checks and agent_artifact for the exact diff. Report findings through agent_finding with producerRunId=${initial.id}.",
+                            (if (isolated == null) "Use agent_candidate_capture after editing, agent_task_graph for findings/checks and agent_artifact for the exact diff. Report findings through agent_finding with producerRunId=${initial.id}."
+                             else "This candidate belongs to the isolated checkout. Use agent_worktrees(runId=${initial.id}) and agent_worktree_review for its task-only diff. Generic candidate/check tools refer to the original workspace; do not claim they verify this worktree. Applying the exact reviewed patch is a separate operation."),
                         "Binds this attempt to local source evidence")) + supplied?.entries.orEmpty().take(20) +
                         prior.findings.filter { it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
                             it.detail.take(600), "Unresolved finding from ${it.participant} on ${it.candidateId}") },
@@ -394,25 +491,43 @@ class AgentWorkspace(
                     AgentId(provider.name.lowercase()), provider.name, provider,
                     "Follow the workspace's repository instructions.", model = model, effort = effort,
                     tools = ToolPolicy(allowWrites = request.allowWrites, mcpConfig = harnessMcpConfig))
-                val specs = listOf(spec(request.provider, request.model, request.effort)) +
-                    listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) })
+                val specs = request.workflow?.participants?.map { it.copy(tools = ToolPolicy(allowWrites = request.allowWrites && it.tools.allowWrites, mcpConfig = harnessMcpConfig)) }
+                    ?: (listOf(spec(request.provider, request.model, request.effort)) +
+                    listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) }))
                 val restored = checkpoint(initial.id)
                 val saved = restored?.thread ?: store.load() ?: ThreadDocument(ThreadId(initial.threadId), initial.title)
                 val ids = specs.map { it.id }
                 val invalidated = specs.filter { saved.agent(it.id)?.let { prior -> prior != it } == true }.map { it.id.value }
                 val document = saved.copy(participants = saved.participants.filterNot { it.id in ids } + specs,
                     providerSessions = saved.providerSessions - invalidated.toSet())
-                val protocol = when (request.collaboration) {
+                val protocol = request.workflow?.let { Protocol.Graph(it.copy(participants = specs)) } ?: when (request.collaboration) {
                     AgentCollaboration.Single -> Protocol.Ask(agentId)
                     AgentCollaboration.Compare -> Protocol.All(ids, blind = true)
                     AgentCollaboration.Council -> Protocol.Council(ids, synthesizer = agentId)
                 }
+                val directories = if (request.isolation == AgentIsolation.Worktree && request.collaboration != AgentCollaboration.Single) specs.associate { agent ->
+                    agent.id to worktrees.prepare(initial.id, agent.id.value).roots.first { it.source == root.canonicalPath }.path
+                } else specs.associate { it.id to workingRoot.canonicalPath }
+                var lastWorkflow = restored?.workflow
+                var sourceRevision = restored?.sourceRevision ?: candidate.sourceDigest
+                val inheritedEvents = initial.forkedFrom?.let { origin ->
+                    checkpoints.read(origin.substringBefore('/'), origin.substringAfter('/').substringBefore(':')).thread.events.map { it.id }.toSet()
+                }.orEmpty()
                 try {
                     val result = Conductor(if (useBatch(request)) batchRuntimes else runtimes, clock = System::currentTimeMillis, idFactory = { EventId(UUID.randomUUID().toString()) }).run(
-                        document, request.prompt, protocol, root.canonicalPath,
-                        context = context, resumeProviderSession = request.collaboration == AgentCollaboration.Single,
+                        document, request.prompt, protocol, workingRoot.canonicalPath,
+                        context = context, resumeProviderSession = request.collaboration == AgentCollaboration.Single && request.workflow == null,
                         resumeFrom = restored,
-                        onProgress = { progress -> atomicWrite(checkpointPath(initial.id), ConductorJson.encodeToString(ProtocolCheckpoint.serializer(), progress)) },
+                        workingDirectoryFor = { directories.getValue(it) },
+                        runCheck = { stage -> requireNotNull(workflowCheck).invoke(initial.threadId, "${initial.id}:${stage.id}", stage) },
+                        onProgress = { progress ->
+                            if (request.workflow != null && progress.workflow != lastWorkflow && progress.workflow.stages.values.none { it.status == WorkflowStageStatus.Running })
+                                sourceRevision = SourceCandidates(workingRoot, evidence.artifacts).capture().sourceDigest
+                            lastWorkflow = progress.workflow
+                            checkpoints.save(initial.id, progress.copy(sourceRevision = sourceRevision))
+                            update(initial.id, true) { it.copy(workflowProgress = progress.workflow.takeIf { request.workflow != null },
+                                turnUsage = progress.thread.copy(events = progress.completed.values.filter { it.id !in inheritedEvents }).usageSummary()) }
+                        },
                         onSession = { agentId, session ->
                             sessions.computeIfAbsent(initial.id) { java.util.concurrent.ConcurrentHashMap() }[agentId.value] = session
                         },
@@ -426,7 +541,6 @@ class AgentWorkspace(
                         onCheckpoint = { checkpoint ->
                             store.checkpoint(if (request.collaboration == AgentCollaboration.Single) checkpoint else
                                 checkpoint.copy(providerSessions = checkpoint.providerSessions - ids.map { it.value }.toSet()))
-                            update(initial.id, true) { it.copy(turnUsage = checkpoint.copy(events = checkpoint.events.drop(saved.events.size)).usageSummary()) }
                         },
                         onEvent = { event ->
                             recordActivity(initial.id, event)
@@ -436,14 +550,18 @@ class AgentWorkspace(
                     )
                     val answer = result.answer
                     val failures = result.added.filter { it.kind == EventKind.Failure }
-                    update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
+                    val workflowFailed = request.workflow?.let { definition ->
+                        val terminals = definition.stages.filter { stage -> definition.edges.none { it.from == stage.id } }.mapNotNull { lastWorkflow?.stages?.get(it.id) }
+                        terminals.none { it.status == WorkflowStageStatus.Completed } || terminals.any { it.status == WorkflowStageStatus.Failed }
+                    }
+                    update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (workflowFailed ?: failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
                         pending = emptyList(), recovery = AgentRecovery.None, recoveryReason = null,
                         output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
                         usage = answer?.usage?.takeIf { request.collaboration == AgentCollaboration.Single },
                         reportedUsage = answer?.reportedUsage?.takeIf { request.collaboration == AgentCollaboration.Single },
-                        turnUsage = result.thread.copy(events = result.added).usageSummary(),
                         failure = failures.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.text }?.take(2000)) }
                 } catch (failure: Exception) {
+                    if (failure is WorkflowPaused) throw failure
                     store.load()?.let { latest -> store.checkpoint(latest.append(ThreadEvent(EventId(UUID.randomUUID().toString()),
                         Author.Orchestrator("workspace"), EventKind.Failure,
                         if (failure is CancellationException) "Turn interrupted. Inspect workspace changes before continuing." else failure.message.orEmpty().take(2000),
@@ -452,6 +570,13 @@ class AgentWorkspace(
                 }
             }
         } catch (failure: Exception) {
+            if (failure is WorkflowPaused) {
+                update(initial.id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.NeedsReview,
+                    recoveryReason = "${failure.message}. Review the stage results and source, then continue this gate.", pending = emptyList()) }
+                activity.append(initial.id, "workspace", initial.attempt, AgentActivityItem("gate:${failure.stageId}", ActivityKind.Control,
+                    failure.message.orEmpty(), ActivityStatus.Waiting))
+                return
+            }
             update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (suspending) AgentRunStatus.Running else if (failure is CancellationException) AgentRunStatus.Interrupted else AgentRunStatus.Failed,
                 recovery = if (suspending) AgentRecovery.Pending else AgentRecovery.None,
                 pending = emptyList(),

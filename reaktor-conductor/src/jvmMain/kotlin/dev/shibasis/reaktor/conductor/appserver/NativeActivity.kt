@@ -24,5 +24,12 @@ internal fun codexActivity(agent: AgentId, item: JsonObject, completed: Boolean)
         output = text("aggregatedOutput") ?: text("aggregated_output") ?: text("text")
             ?: (item["result"] ?: item["error"] ?: item["agentsStates"])?.toString(),
         parentId = text("parentToolUseId"),
+        nativeAgents = ((item["agentsStates"] ?: item["agents_states"]) as? JsonObject).orEmpty().map { (id, value) ->
+            val state = value as? JsonObject
+            NativeAgentState(id, text("senderThreadId"), status = state?.get("status")?.jsonPrimitive?.contentOrNull ?: (value as? JsonPrimitive)?.contentOrNull ?: "unknown",
+                output = state?.get("message")?.jsonPrimitive?.contentOrNull?.take(6000))
+        }.ifEmpty { ((item["receiverThreadIds"] ?: item["receiver_thread_ids"]) as? JsonArray).orEmpty().map {
+            NativeAgentState(it.jsonPrimitive.content, text("senderThreadId"))
+        } },
         subjectRefs = (item["changes"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.get("path")?.jsonPrimitive?.contentOrNull }))
 }

@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.conductor.NativeAgentState
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+
 import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentOutcome
@@ -134,8 +138,9 @@ class ClaudeCodeEventParser(
                     val block = element.jsonObject
                     when (block.string("type")) {
                         "text" -> block.string("text")?.let { chunk ->
-                            text.append(chunk)
-                            AgentEvent.Delta(agent, chunk)
+                            if (parentToolUse != null) AgentEvent.Activity(agent, AgentActivityItem("message:$parentToolUse", ActivityKind.Agent,
+                                "Subagent output", output = chunk, parentId = parentToolUse))
+                            else { text.append(chunk); AgentEvent.Delta(agent, chunk) }
                         }
 
                         // Verified against 2.1.270: the payload is `thinking`, not `text`, and it
@@ -149,8 +154,11 @@ class ClaudeCodeEventParser(
                             val id = block.string("id") ?: "unknown-tool"
                             val name = block.string("name") ?: "tool"
                             toolNames[id] = name
-                            AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, name,
-                                ActivityStatus.Started, input = block["input"]?.toString(), parentId = parentToolUse))
+                            val child = name in listOf("Agent", "Task")
+                            AgentEvent.Activity(agent, AgentActivityItem(id, if (child) ActivityKind.Agent else ActivityKind.Tool, name,
+                                ActivityStatus.Started, input = block["input"]?.toString(), parentId = parentToolUse,
+                                nativeAgents = if (child) listOf(NativeAgentState(id, parentToolUse ?: session?.sessionId,
+                                    block["input"]?.jsonObject?.get("description")?.jsonPrimitive?.contentOrNull, "running")) else emptyList()))
                         }
                         else -> null
                     }
@@ -161,9 +169,13 @@ class ClaudeCodeEventParser(
                 val block = element.jsonObject
                 if (block.string("type") != "tool_result") null else {
                     val id = block.string("tool_use_id") ?: return@mapNotNull null
-                    AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, toolNames.remove(id) ?: "Tool result",
+                    val name = toolNames.remove(id) ?: "Tool result"
+                    val child = name in listOf("Agent", "Task")
+                    AgentEvent.Activity(agent, AgentActivityItem(id, if (child) ActivityKind.Agent else ActivityKind.Tool, name,
                         if (block.boolean("is_error") == true) ActivityStatus.Failed else ActivityStatus.Completed,
-                        output = block["content"]?.toString(), parentId = root.string("parent_tool_use_id")))
+                        output = block["content"]?.toString(), parentId = root.string("parent_tool_use_id"),
+                        nativeAgents = if (child) listOf(NativeAgentState(id, root.string("parent_tool_use_id") ?: session?.sessionId,
+                            status = if (block.boolean("is_error") == true) "failed" else "completed", output = block["content"]?.toString()?.take(6000))) else emptyList()))
                 }
             }
 

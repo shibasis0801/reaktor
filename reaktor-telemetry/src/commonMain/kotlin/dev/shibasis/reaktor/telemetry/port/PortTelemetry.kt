@@ -117,21 +117,30 @@ class PortTelemetryInterceptor(
     private val tracer: Tracer,
     private val activationId: String? = null,
     private val defaults: TelemetryFacet = TelemetryFacet(),
+    /**
+     * Where aggregate measures go. Shared across every interceptor in one installation, so the
+     * figures cover the whole graph rather than one node.
+     */
+    val metrics: PortMetrics = PortMetrics(),
 ) : PortInterceptor {
 
     override fun intercept(invocation: PortInvocation, proceed: () -> Any?): Any? {
         val facet = invocation.port.resolvedTelemetryFacet(defaults)
-        if (!shouldTrace(facet)) return proceed()
-        val span = startSpan(invocation, facet)
+        if (!shouldObserve(facet)) return proceed()
+        val span = if (shouldTrace(facet)) startSpan(invocation, facet) else null
         val started = TimeSource.Monotonic.markNow()
+        var failed = false
         return try {
-            proceed().also { span.status = StatusData.Ok }
+            proceed().also { span?.status = StatusData.Ok }
         } catch (error: Throwable) {
-            span.status = StatusData.Error(error.message ?: error::class.simpleName.orEmpty())
+            failed = true
+            span?.status = StatusData.Error(error.message ?: error::class.simpleName.orEmpty())
             throw error
         } finally {
-            span.setLongAttribute(ReaktorAttributes.DurationNanos, started.elapsedNow().inWholeNanoseconds)
-            span.end()
+            val elapsed = started.elapsedNow().inWholeNanoseconds
+            metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
+            span?.end()
         }
     }
 
@@ -140,19 +149,34 @@ class PortTelemetryInterceptor(
         proceed: suspend () -> Any?,
     ): Any? {
         val facet = invocation.port.resolvedTelemetryFacet(defaults)
-        if (!shouldTrace(facet)) return proceed()
-        val span = startSpan(invocation, facet)
+        if (!shouldObserve(facet)) return proceed()
+        val span = if (shouldTrace(facet)) startSpan(invocation, facet) else null
         val started = TimeSource.Monotonic.markNow()
+        var failed = false
         return try {
-            proceed().also { span.status = StatusData.Ok }
+            proceed().also { span?.status = StatusData.Ok }
         } catch (error: Throwable) {
-            span.status = StatusData.Error(error.message ?: error::class.simpleName.orEmpty())
+            failed = true
+            span?.status = StatusData.Error(error.message ?: error::class.simpleName.orEmpty())
             throw error
         } finally {
-            span.setLongAttribute(ReaktorAttributes.DurationNanos, started.elapsedNow().inWholeNanoseconds)
-            span.end()
+            val elapsed = started.elapsedNow().inWholeNanoseconds
+            metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
+            span?.end()
         }
     }
+
+    /**
+     * Whether this call is observed at all.
+     *
+     * [TracePolicy.Metrics] is documented as "aggregate only — the interceptor runs but emits no
+     * span", and until there was something to aggregate into it did nothing whatsoever: the
+     * interceptor returned `proceed()` and recorded neither a span nor a measure. It now means
+     * what it says.
+     */
+    private fun shouldObserve(facet: TelemetryFacet): Boolean =
+        facet.tracePolicy != TracePolicy.Off && facet.semantics != PortSemantics.Reference
 
     private fun shouldTrace(facet: TelemetryFacet): Boolean =
         facet.tracePolicy == TracePolicy.Spans && facet.semantics != PortSemantics.Reference

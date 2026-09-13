@@ -79,6 +79,8 @@ sealed interface CommandOutcome {
  * control in front of a person that silently does nothing.
  */
 interface AgentSession : AutoCloseable {
+    fun nativeAgents(): List<NativeAgentState> = emptyList()
+    suspend fun controlNative(id: String, expectedTurn: String, text: String?): CommandOutcome = CommandOutcome.Unsupported("native subagent control")
     val events: Flow<AgentEvent>
 
     /** The provider's own id for the turn in flight, or null between turns. */
