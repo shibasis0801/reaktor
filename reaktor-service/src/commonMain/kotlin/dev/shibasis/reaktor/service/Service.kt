@@ -35,7 +35,16 @@ abstract class Service(
         interceptors += interceptor.map { it.boundTo(stages) }
     }
 
-    protected open fun serviceInterceptors(): List<ServiceInterceptor> = interceptors
+    /**
+     * The chain this service runs, its own plus anything installed process-wide.
+     *
+     * Global interceptors exist for one reason: an observer that has to be attached to every
+     * service instance by hand is an observer that misses the one nobody remembered. DevTools
+     * installs its traffic tap here, so a call is captured because it crossed a boundary rather
+     * than because someone wired the service up.
+     */
+    protected open fun serviceInterceptors(): List<ServiceInterceptor> =
+        if (globalInterceptors.isEmpty()) interceptors else globalInterceptors + interceptors
 
     private suspend fun <In : Request, Out : Response> invokeWithInterceptors(
         phase: ServiceExecutionPhase,
@@ -52,6 +61,20 @@ abstract class Service(
         index = 0,
         terminal = terminal,
     ).proceed()
+
+    companion object {
+        private val globals = arrayListOf<ServiceInterceptor>()
+
+        /** Interceptors every service in this process runs, outermost first. */
+        val globalInterceptors: List<ServiceInterceptor> get() = globals
+
+        /** Installs a process-wide interceptor and hands back the undo. */
+        @JsExport.Ignore
+        fun installGlobal(interceptor: ServiceInterceptor): () -> Unit {
+            globals += interceptor
+            return { globals -= interceptor }
+        }
+    }
 
     fun <In : Request, Out: Response> server(
         factory: RequestHandler.Factory,

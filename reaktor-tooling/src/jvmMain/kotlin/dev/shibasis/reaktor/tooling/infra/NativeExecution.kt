@@ -58,6 +58,10 @@ class NativeExecutionRequest private constructor(
                 is InfrastructureOperation.KubernetesRead -> listOf("JVM Kubernetes", operation.action, operation.namespace, operation.resourceName)
                 is InfrastructureOperation.DatabaseRead -> listOf("JVM ${operation.engine}", if (operation.queryFile == null) "inspect connection" else "sealed query", "limit=${operation.maxRows}")
                 is InfrastructureOperation.WorkerCall -> listOf("Worker", operation.endpoint, operation.operation)
+                is InfrastructureOperation.DeviceCall -> listOf(
+                    "Device ${operation.transport}", operation.action,
+                    operation.deviceName.ifBlank { operation.deviceId },
+                )
             }
             val plan = TaskPlan(PlanId("plan-${fingerprint.take(24)}"), WorkspaceId("workspace-${digest(root.path).take(24)}"),
                 taskId, TaskInvocation(taskId, environment = frozen["REAKTOR_ENVIRONMENT"], approval = approval), safety,
@@ -111,6 +115,12 @@ class JvmInfrastructureExecutor {
                                 .inspect(op.namespace, op.action, op.resourceName, op.resourceKind, op.resourceUid)
                             is InfrastructureOperation.DatabaseRead -> DatabaseJvmClient(session).execute(op, request.environment, request.timeoutMillis)
                             is InfrastructureOperation.WorkerCall -> WorkerJvmClient(session).execute(op, request.environment)
+                            // Device work runs on the same virtual thread as every other native
+                            // operation, so a hung adb call is cancelled by the same timeout.
+                            is InfrastructureOperation.DeviceCall ->
+                                kotlinx.coroutines.runBlocking {
+                                    dev.shibasis.reaktor.tooling.device.DeviceJvmClient().execute(op)
+                                }
                         }
                     }
                     check(output.length <= request.captureStdoutChars) { "Native result exceeds capture limit" }

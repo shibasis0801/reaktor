@@ -28,6 +28,23 @@ sealed interface InfrastructureOperation {
         val parameterized: Boolean = false,
     ) : InfrastructureOperation
 
+    /**
+     * One operation against an attached device, executed in-process by the device backends.
+     *
+     * Device work used to reach the ledger only as an argv vector, which the library-backed
+     * backends cannot produce — adblib speaks a protocol and idb speaks gRPC. Describing the call
+     * instead of the command line is what lets those backends keep the same discipline every other
+     * operation has: a fingerprinted plan, approval bound to that exact plan, and a receipt.
+     */
+    @Serializable
+    data class DeviceCall(
+        val transport: String,
+        val deviceId: String,
+        val deviceName: String = "",
+        val action: String,
+        val arguments: Map<String, String> = emptyMap(),
+    ) : InfrastructureOperation
+
     @Serializable
     data class WorkerCall(
         val endpoint: String,

@@ -30,6 +30,13 @@ kotlin {
             implementation("com.google.auth:google-auth-library-oauth2-http:1.48.0")
             implementation("org.postgresql:postgresql:42.7.3")
             implementation("org.neo4j.driver:neo4j-java-driver:5.28.9")
+            // Google's own client for the adb server protocol, coroutines-native. Replaces
+            // shelling out to the `adb` binary: device tracking, shellV2, sync and forwarding are
+            // all streaming operations that a one-shot argv grammar cannot express.
+            implementation("com.android.tools.adblib:adblib:9.4.0")
+            // The idb companion's gRPC service, so Apple targets need only the companion binary
+            // rather than the Python client on top of it.
+            api(project(":reaktor-idb"))
         }
     }
 
