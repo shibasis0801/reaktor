@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setText
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -415,7 +416,21 @@ fun CodeEditor(
         false
     }
 
-    Column(modifier.background(MachineSignal.Editor.Canvas).testTag(tag)) {
+    Column(
+        modifier.background(MachineSignal.Editor.Canvas)
+            // The editor keeps its own document and caret rather than wrapping a text field, so
+            // no `SetText` action reached it and no harness could fill it in — which is how the
+            // desktop MCP flow ended up unable to supply a tool's arguments. Reading is already
+            // covered: every line is its own Text node. `editableText` is deliberately left off,
+            // because publishing the whole buffer here would duplicate those lines under every
+            // text query.
+            .semantics {
+                setText { value ->
+                    if (state.readOnly) false else { state.replaceAll(value.text); true }
+                }
+            }
+            .testTag(tag),
+    ) {
         if (state.findVisible) CodeFindBar(state, Modifier.fillMaxWidth(), tag)
         Box(
             Modifier.fillMaxWidth().weight(1f)

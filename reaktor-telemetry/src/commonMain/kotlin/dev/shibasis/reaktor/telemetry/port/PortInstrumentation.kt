@@ -67,6 +67,17 @@ class TelemetryPlan internal constructor(
     /** Detaching is exactly attach-then-detach on K2 — a capture can expire cleanly. */
     fun uninstall() = instrumented.forEach { it.removeInterceptor(interceptor) }
 
+    /**
+     * Combines two plans over different roots so a caller instrumenting several graphs can report
+     * one coverage number. [uninstall] on the result removes only this plan's own interceptor;
+     * keep the originals if the roots used different ones.
+     */
+    fun merge(other: TelemetryPlan) = TelemetryPlan(
+        interceptor,
+        instrumented + other.instrumented,
+        skipped + other.skipped,
+    )
+
     override fun toString() =
         "[TelemetryPlan] instrumented=${instrumented.size} skipped=${skipped.size}"
 }

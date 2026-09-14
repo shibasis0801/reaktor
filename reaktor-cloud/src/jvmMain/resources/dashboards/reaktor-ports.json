@@ -17,6 +17,15 @@
   "templating": {
     "list": [
       {
+        "name": "tempo",
+        "label": "Traces",
+        "type": "datasource",
+        "query": "tempo",
+        "refresh": 1,
+        "hide": 0,
+        "description": "Tempo source holding the reaktor.* spans"
+      },
+      {
         "name": "service",
         "label": "Service",
         "type": "textbox",
@@ -71,7 +80,7 @@
       "type": "table",
       "datasource": {
         "type": "tempo",
-        "uid": "__TEMPO_DS__"
+        "uid": "${tempo}"
       },
       "gridPos": {
         "x": 0,
@@ -84,7 +93,7 @@
           "refId": "A",
           "datasource": {
             "type": "tempo",
-            "uid": "__TEMPO_DS__"
+            "uid": "${tempo}"
           },
           "queryType": "traceql",
           "query": "{ .reaktor.port.id != \"\" && .reaktor.node.id =~ \"$node.*\" && .reaktor.port.shape =~ \"$shape.*\" } | select(.reaktor.port.id, .reaktor.node.id, .reaktor.contract.id, .reaktor.port.direction, .reaktor.duration_ns)",
@@ -112,7 +121,7 @@
       "type": "table",
       "datasource": {
         "type": "tempo",
-        "uid": "__TEMPO_DS__"
+        "uid": "${tempo}"
       },
       "gridPos": {
         "x": 0,
@@ -125,7 +134,7 @@
           "refId": "A",
           "datasource": {
             "type": "tempo",
-            "uid": "__TEMPO_DS__"
+            "uid": "${tempo}"
           },
           "queryType": "traceql",
           "query": "{ .reaktor.port.id != \"\" && status = error } | select(.reaktor.port.id, .reaktor.node.id, .reaktor.contract.id)",
@@ -141,7 +150,7 @@
       "type": "table",
       "datasource": {
         "type": "tempo",
-        "uid": "__TEMPO_DS__"
+        "uid": "${tempo}"
       },
       "gridPos": {
         "x": 12,
@@ -154,7 +163,7 @@
           "refId": "A",
           "datasource": {
             "type": "tempo",
-            "uid": "__TEMPO_DS__"
+            "uid": "${tempo}"
           },
           "queryType": "traceql",
           "query": "{ .reaktor.port.shape = \"mailbox\" || .reaktor.port.shape = \"stream\" } | select(.reaktor.port.id, .reaktor.port.shape, .reaktor.node.id)",
@@ -182,7 +191,7 @@
       "type": "nodeGraph",
       "datasource": {
         "type": "tempo",
-        "uid": "__TEMPO_DS__"
+        "uid": "${tempo}"
       },
       "gridPos": {
         "x": 0,
@@ -195,7 +204,7 @@
           "refId": "A",
           "datasource": {
             "type": "tempo",
-            "uid": "__TEMPO_DS__"
+            "uid": "${tempo}"
           },
           "queryType": "serviceMap"
         }

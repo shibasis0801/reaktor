@@ -77,12 +77,13 @@ fun telemetry(ctx: Context, g: GrafanaContext): TelemetryOutputs {
         g.opts,
     )
 
+    // The board names its traces source through a `datasource` template variable, so it carries no
+    // uid to substitute here and the same file deploys through `sync-grafana.py` — which is what
+    // actually put the other seven boards on reaktor.grafana.net — without a templating step.
     val portsDashboard = Dashboard(
         "reaktor-ports",
         DashboardArgs.builder()
-            .configJson(
-                Output.of(resource("/dashboards/reaktor-ports.json").replace("__TEMPO_DS__", tracesDatasourceUid)),
-            )
+            .configJson(Output.of(resource("/dashboards/reaktor-ports.json")))
             .folder(g.folder.uid())
             .build(),
         g.opts,
