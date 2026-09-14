@@ -10,6 +10,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.code.CodeDiagnostic
@@ -32,6 +35,24 @@ class CodeEditorRenderTest {
         onNodeWithTag("code-editor-status").assertExists()
         onNodeWithTag("code-editor-caret").assertTextEquals("Ln 1, Col 1")
         onNode(hasText("println", substring = true)).assertExists()
+    }
+
+    @Test fun aHarnessCanSetTheWholeBufferThroughSemantics() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor")
+            .performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString("{\"worker\":\"messaging-service\"}")) }
+        waitForIdle()
+        assertEquals("{\"worker\":\"messaging-service\"}", state.text)
+    }
+
+    @Test fun aReadOnlyEditorRefusesTheSameWrite() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin, readOnly = true)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor")
+            .performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString("nope")) }
+        waitForIdle()
+        assertEquals(source, state.text)
     }
 
     @Test fun theStatusBarFollowsTheCaret() = runComposeUiTest {
