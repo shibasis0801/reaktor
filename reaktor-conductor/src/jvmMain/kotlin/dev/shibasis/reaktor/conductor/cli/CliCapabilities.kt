@@ -124,12 +124,18 @@ object CliCapabilities {
     fun probe(runtime: RuntimeKind, binary: String = defaultBinary(runtime)): ProviderCapability = when (runtime) {
         RuntimeKind.ClaudeCode -> claude(parseVersion(capture(binary, "--version").orEmpty()), capture(binary, "--help"))
         RuntimeKind.Codex -> codex(parseVersion(capture(binary, "--version").orEmpty()))
+        RuntimeKind.Gemini, RuntimeKind.ChatGptGemini -> ProviderCapability(runtime, "agy", parseVersion(capture(binary, "--version")),
+            effort = EffortSupport(listOf("low", "medium", "high").map(::NativeEffort), source = "agy --help"),
+            effortControl = Qualification(true, true, true),
+            notes = listOf("Gemini through Antigravity headless. Native permissions apply; missing permissions fail the turn. Plan mode requests inspection; it is not an OS sandbox. No live steering or permission responses on this transport.",
+                if (runtime == RuntimeKind.ChatGptGemini) "One composite seat: ChatGPT plans and reviews each cycle around Gemini execution, looping until it says the work is done or the cycle cap stops it. The programmatic planner is Codex on its ChatGPT account and spends that pool; pausing it falls back to operator-transferred planning rather than to another provider." else "Antigravity uses the saved Google account and native credit policies; remaining capacity is unknown."))
         RuntimeKind.Echo -> ProviderCapability(runtime = RuntimeKind.Echo, executable = null, version = "in-process")
     }
 
     private fun defaultBinary(runtime: RuntimeKind) = when (runtime) {
         RuntimeKind.ClaudeCode -> "claude"
         RuntimeKind.Codex -> "codex"
+        RuntimeKind.Gemini, RuntimeKind.ChatGptGemini -> "agy"
         RuntimeKind.Echo -> "echo"
     }
 

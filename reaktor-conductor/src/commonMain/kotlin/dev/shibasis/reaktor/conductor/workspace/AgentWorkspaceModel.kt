@@ -69,6 +69,30 @@ data class AgentSubmission(
     val transport: AgentTransport = AgentTransport.Automatic,
     val workflow: WorkflowDefinition? = null,
     val isolation: AgentIsolation = AgentIsolation.Shared,
+    val councilHybrid: Boolean = false,
+    /**
+     * How long one executor turn may run, in milliseconds.
+     *
+     * The default suits a question about a repository. It does not suit a change to one: a turn that
+     * has to build the project spends most of its budget in the compiler, and when the budget ends
+     * mid-build the harness is killed and returns nothing, which reads as an unexplained failure
+     * rather than as "there was not enough time". Set it for tasks that build or test.
+     */
+    val timeoutMillis: Long? = null,
+    /**
+     * How many plan/execute passes the composite seat may take before it stops regardless.
+     *
+     * A cap belongs to the task, not to the code: "answer a question about this repo" is one or two
+     * passes, "build a feature and prove it" is many. Null keeps [HybridHandoff]'s own default.
+     */
+    val maxCycles: Int? = null,
+    /**
+     * Commands the planner may ask Reaktor to run as acceptance checks, matched by prefix.
+     *
+     * Empty — the default — means none, and a planner that names one is told so. This is the
+     * operator sanctioning a set of verifications, not the model gaining a shell.
+     */
+    val allowedChecks: List<String> = emptyList(),
 )
 
 @Serializable
@@ -114,6 +138,8 @@ data class AgentRunRecord(
     val forkedFrom: String? = null,
     val isolation: AgentIsolation = AgentIsolation.Shared,
     val workingDirectory: String? = null,
+    val councilHybrid: Boolean = false,
+    val pendingHandoff: String? = null,
 )
 
 @Serializable

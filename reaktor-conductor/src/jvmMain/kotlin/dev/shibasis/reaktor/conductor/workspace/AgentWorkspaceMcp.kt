@@ -1,5 +1,10 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.conductor.HybridHandoff
+import dev.shibasis.reaktor.conductor.HybridReply
+import dev.shibasis.reaktor.conductor.Entitlement
+import dev.shibasis.reaktor.conductor.EntitlementAdmission
+
 import dev.shibasis.reaktor.conductor.AgentDecision
 import dev.shibasis.reaktor.conductor.CommandOutcome
 import dev.shibasis.reaktor.conductor.ConductorJson
@@ -32,7 +37,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
             }
             buildJsonObject { put("runs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentRunRecord.serializer()), summaries)) }
         },
-        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
+        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider; councilHybrid adds the third ChatGPT + Gemini seat. Single ChatGptGemini uses only human ChatGPT handoffs and Gemini execution. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
             objectSchema(mapOf(
                 "requestId" to stringSchema("Unique idempotency key for this exact submission"),
                 "provider" to enumSchema("Provider configured by this workspace", workspace.info().providers.map { it.name }),
@@ -42,6 +47,7 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
                 "effort" to stringSchema("Native reasoning effort; omitted preserves provider defaults"),
                 "transport" to enumSchema("Automatic uses interactive Single and batch collaboration", listOf("Automatic", "Interactive", "Batch")),
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
+                "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Add the third ChatGPT + Gemini seat to a Codex/Claude Council. ChatGPT planning and review require durable human handoffs.") },
                 "isolation" to enumSchema("Shared source or owned Worktree", listOf("Shared", "Worktree")),
                 "workflow" to buildJsonObject { put("type", "object"); put("description", "WorkflowDefinition: id,title,participants AgentSpecs,stages(id,title,agent,instruction,action Agent|Check|Gate,contract Text|Decision,checkId),edges(from,to,whenResult Always|Succeeded|Failed|Pass|Repair),subjectRefs. Bounded DAG, explicit gate resume."); put("additionalProperties", true) },
                 "collaboration" to enumSchema("Single by default; Compare and Council require a partner; editing requires Worktree isolation", workspace.info().collaborations.map { it.name }),
@@ -59,6 +65,24 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
             result(workspace.submit(ConductorJson.decodeFromJsonElement(AgentSubmission.serializer(), it)))
         },
         McpTool("agent_run", "Read bounded output, status, usage and provider identity for one run.", runSchema, true, true) { result(workspace.get(it.string("runId"))) },
+        McpTool("agent_entitlements", "Read local entitlement scheduling policies. Remaining subscription quota is unknown; policy is not a provider usage observation.", objectSchema(emptyMap()), true, true) {
+            buildJsonObject { putJsonArray("entitlements") { Entitlement.entries.forEach { add(AgentWorkspaceJson.encodeToJsonElement(EntitlementAdmission.serializer(), workspace.entitlements.get(it))) } } }
+        },
+        McpTool("agent_entitlement_set", "Pause or enable a compute pool for future task admission and resume. Running calls are unaffected. Never reroutes to another provider or API billing.",
+            objectSchema(mapOf("entitlement" to enumSchema("Compute pool", Entitlement.entries.map { it.name }), "paused" to buildJsonObject { put("type", "boolean") },
+                "reason" to stringSchema("Operator reason"), "expectedRevision" to buildJsonObject { put("type", "integer") }), listOf("entitlement", "paused", "expectedRevision")), false, false) {
+            AgentWorkspaceJson.encodeToJsonElement(EntitlementAdmission.serializer(), workspace.entitlements.set(Entitlement.valueOf(it.string("entitlement")),
+                it.getValue("paused").jsonPrimitive.boolean, it["reason"]?.jsonPrimitive?.content.orEmpty(), it.getValue("expectedRevision").jsonPrimitive.long))
+        },
+        McpTool("agent_handoffs", "Read this run's durable ChatGPT + Gemini handoffs. Copy packet() fields to ordinary ChatGPT Chat; no ChatGPT API or browser automation is used.", runSchema, true, true) {
+            buildJsonObject { putJsonArray("handoffs") { workspace.handoffs(it.string("runId")).forEach { handoff ->
+                addJsonObject { put("handoff", AgentWorkspaceJson.encodeToJsonElement(HybridHandoff.serializer(), handoff)); put("packet", handoff.packet()) }
+            } } }
+        },
+        McpTool("agent_handoff_reply", "Import an operator-transferred ChatGPT plan or review bound to the exact handoff, phase, revision and source. This records data; call agent_resume separately to execute it.",
+            objectSchema(mapOf("runId" to stringSchema("Owning run"), "reply" to buildJsonObject { put("type", "object"); put("description", "HybridReply: handoffId,revision,phase Planning|Reviewing,text,acceptanceCriteria[]"); put("additionalProperties", true) }), listOf("runId", "reply")), false, true) {
+            AgentWorkspaceJson.encodeToJsonElement(HybridHandoff.serializer(), workspace.replyHandoff(it.string("runId"), ConductorJson.decodeFromJsonElement(HybridReply.serializer(), it.getValue("reply"))))
+        },
         McpTool("agent_activity", "Read durable activity events after a cursor. Completed tool events carry recorded outcomes; missing outcomes stay unknown.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"), "after" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
                 "limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 100) }), listOf("runId")), true, true) {

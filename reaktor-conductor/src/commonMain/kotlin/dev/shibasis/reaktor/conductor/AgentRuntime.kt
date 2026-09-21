@@ -10,6 +10,8 @@ data class AgentRequest(
     val workingDirectory: String,
     val resume: ProviderSession? = null,
     val persistSession: Boolean = false,
+    val executionId: String? = null,
+    val subjectRefs: List<String> = emptyList(),
 )
 
 /**
@@ -81,6 +83,7 @@ data class AgentOutcome(
     /** The provider's own service tier for the turn, when it reports one. */
     val serviceTier: String? = null,
     val interrupted: Boolean = false,
+    val attributes: Map<String, String> = emptyMap(),
 )
 
 /**

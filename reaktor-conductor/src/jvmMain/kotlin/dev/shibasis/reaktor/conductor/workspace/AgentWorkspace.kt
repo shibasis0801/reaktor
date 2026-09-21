@@ -17,15 +17,28 @@ import java.util.UUID
 class AgentWorkspace(
     private val root: File,
     private val directory: Path,
-    private val runtimes: Map<RuntimeKind, AgentRuntime>,
-    private val maxActive: Int = 2,
+    runtimes: Map<RuntimeKind, AgentRuntime>,
+    private val maxActive: Int = if (RuntimeKind.Gemini in runtimes) 3 else 2,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe,
-    private val batchRuntimes: Map<RuntimeKind, AgentRuntime> = emptyMap(),
+    batchRuntimes: Map<RuntimeKind, AgentRuntime> = emptyMap(),
     private val harnessMcpConfig: String? = null,
     private val background: Boolean = false,
     private val workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
     private val externalBusy: () -> Boolean = { false },
+    /**
+     * Which pool, if any, may plan for the composite seat without a person.
+     *
+     * Null by default, and the default is the whole point of this seat. It is the third option for
+     * when Claude and Codex are exhausted, and it earns that by spending neither: ChatGPT chat
+     * quota for the thinking, the Google allowance for the work. Planning it with
+     * [RuntimeKind.Codex] would spend the pool whose exhaustion is the reason anyone reached for
+     * this seat, so the fallback would stop working exactly when it is needed.
+     *
+     * Set it deliberately when a pool is known to be healthy and the unattended loop is worth more
+     * than the quota — [HybridPlanner] never gets write grants either way.
+     */
+    private val plannerRuntime: RuntimeKind? = null,
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -44,6 +57,60 @@ class AgentWorkspace(
     private var queued: List<AgentQueuedTurn> = if (Files.exists(queueFile))
         ConductorJson.decodeFromString(ListSerializer(AgentQueuedTurn.serializer()), Files.readString(queueFile)) else emptyList()
     val evidence = AgentEvidenceStore(root, directory.resolve("evidence"))
+    val hybrid = HybridHandoffs(directory.resolve("handoffs"), evidence.artifacts) { runId, candidate ->
+        evidence.recordCandidate(get(runId).threadId, candidate)
+    }
+    val entitlements = AgentEntitlements(directory.resolve("entitlements"))
+    private fun requireEntitlements(request: AgentSubmission) = entitlements.requireAdmitted(request.workflow?.participants?.map { it.runtime }
+        ?: (listOfNotNull(request.provider, request.partner?.provider) + if (request.councilHybrid) listOf(RuntimeKind.ChatGptGemini) else emptyList()))
+    private val runtimes = withHybrid(runtimes)
+    private val batchRuntimes = withHybrid(batchRuntimes)
+    /**
+     * Gives the composite seat its executor, and a planner only if one was asked for.
+     *
+     * The pool is read at the moment a turn opens rather than when the map is built, because pausing
+     * a pool has to stop the next cycle, not the next process. A paused or absent planner leaves the
+     * seat on the operator relay, which still works — ChatGPT chat has no programmatic surface, so a
+     * person carrying the packet is the only thing that reaches that quota at all.
+     */
+    private fun withHybrid(values: Map<RuntimeKind, AgentRuntime>) = values[RuntimeKind.Gemini]?.let { gemini ->
+        values + (RuntimeKind.ChatGptGemini to HybridRuntime(gemini, hybrid) {
+            plannerRuntime?.let(values::get)
+                ?.takeIf { runtime -> runtime.kind.entitlements().none { entitlements.get(it.entitlement).paused } }
+                ?.let(::HybridPlanner)
+        })
+    } ?: values
+    fun handoffs(runId: String): List<HybridHandoff> { get(runId); return hybrid.list(runId) }
+    fun replyHandoff(runId: String, reply: HybridReply, via: HybridPlannerVia = HybridPlannerVia.Operator): HybridHandoff = synchronized(lock) {
+        val run = get(runId)
+        require(run.status != AgentRunStatus.Running && run.recovery != AgentRecovery.None) { "Wait for the council to pause before importing a handoff" }
+        hybrid.reply(runId, reply, via = via)
+    }
+
+    /**
+     * Runs a task's permitted acceptance checks now, outside any executor turn.
+     *
+     * The run has to be parked, for the same reason two builds should not share a daemon: the
+     * executor is usually in the middle of one, and a second would contend for the very output
+     * both are trying to measure.
+     */
+    fun checkHandoff(runId: String, handoffId: String, checks: List<HybridCheck>): java.util.concurrent.CompletableFuture<List<HybridCheckRun>> {
+        synchronized(lock) {
+            val run = get(runId)
+            require(run.status != AgentRunStatus.Running) {
+                "The executor is still working on this task. Await the cycle, then run the check against what it produced."
+            }
+        }
+        // Started outside the lock and finished on its own thread: a check is a build, and the
+        // workspace cannot stop serving everything else for the length of one.
+        return hybrid.check(runId, handoffId, checks)
+    }
+
+    /** Pages an artifact this task's own handoffs recorded — the turn diffs, and nothing else. */
+    fun handoffArtifact(runId: String, id: String, offset: Long = 0, limit: Int = 24000): AgentArtifactPage {
+        get(runId)
+        return hybrid.artifact(runId, id, offset, limit)
+    }
     val checkpoints = AgentCheckpoints(directory.resolve("checkpoints"))
     val runbooks = AgentRunbooks(directory.resolve("runbooks"))
     val worktrees = AgentWorktrees(root, directory.resolve("worktrees"), evidence.artifacts)
@@ -237,6 +304,13 @@ class AgentWorkspace(
         require(request.prompt.isNotBlank() && request.prompt.length <= 100000)
         require(request.model == null || request.model.length in 1..256)
         require(request.provider in runtimes) { "Provider is not configured" }
+        if (request.councilHybrid) {
+            require(request.collaboration == AgentCollaboration.Council && request.workflow == null &&
+                setOf(request.provider, request.partner?.provider) == setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) {
+                "The three-seat council consists of Codex, Claude Code, and ChatGPT + Gemini"
+            }
+            require(RuntimeKind.ChatGptGemini in runtimes) { "Gemini executor is unavailable" }
+        }
         request.workflow?.let { workflow ->
             workflow.validate()
             require(request.collaboration == AgentCollaboration.Single && request.partner == null) { "A workflow supplies its own roster" }
@@ -257,7 +331,7 @@ class AgentWorkspace(
         }
         requireSupportedEffort(request.provider, request.effort)
         require(request.transport != AgentTransport.Batch || batchRuntimes.isNotEmpty() || runtimes[request.provider] !is InteractiveAgentRuntime) { "Batch transport is not configured" }
-        require(request.transport != AgentTransport.Interactive || runtimes[request.provider] is InteractiveAgentRuntime) { "Interactive transport is not configured" }
+        require(request.transport != AgentTransport.Interactive || (runtimes[request.provider] as? InteractiveAgentRuntime)?.interactive?.usable == true) { "Interactive transport is not configured for this provider; use Automatic or Batch" }
         require(request.context == null || ConductorJson.encodeToString(ContextPacket.serializer(), request.context).length <= 24000)
         val id = digest(request.requestId)
         val fingerprint = digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request))
@@ -265,8 +339,9 @@ class AgentWorkspace(
             require(it.requestFingerprint == fingerprint) { "Request id already belongs to a different submission" }
             return@synchronized recover(it)
         }
-        val slots = if (request.collaboration == AgentCollaboration.Single) 1 else 2
-        require(active.keys.sumOf { if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
+        val slots = if (request.councilHybrid) 3 else if (request.collaboration == AgentCollaboration.Single) 1 else 2
+        requireEntitlements(request)
+        require(active.keys.sumOf { if (records[it]?.councilHybrid == true) 3 else if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
             "Agent capacity is busy; wait for an active run"
         }
         require(active.keys.none { records[it]?.allowWrites == true && records[it]?.isolation == AgentIsolation.Shared } &&
@@ -281,10 +356,10 @@ class AgentWorkspace(
         val now = System.currentTimeMillis()
         val record = AgentRunRecord(id, threadId, request.provider, fingerprint, request.prompt.take(200),
             request.model, request.allowWrites, startedAt = now, updatedAt = now,
-            collaboration = request.collaboration, partner = request.partner,
+            collaboration = request.collaboration, partner = request.partner, councilHybrid = request.councilHybrid,
             workflow = request.workflow, workflowProgress = seed?.workflow, forkedFrom = forkedFrom, isolation = request.isolation,
             context = request.context,
-            transport = if (useBatch(request)) AgentTransport.Batch else if (runtimes[request.provider] is InteractiveAgentRuntime) AgentTransport.Interactive else AgentTransport.Batch,
+            transport = if (useBatch(request)) AgentTransport.Batch else if ((runtimes[request.provider] as? InteractiveAgentRuntime)?.interactive?.usable == true) AgentTransport.Interactive else AgentTransport.Batch,
             effort = request.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none)
         atomicWrite(directory.resolve("requests/$id.json"), ConductorJson.encodeToString(AgentSubmission.serializer(), request))
         seed?.let { checkpoints.save(id, it.copy(thread = it.thread.copy(id = ThreadId(threadId)))) }
@@ -306,7 +381,7 @@ class AgentWorkspace(
         records.keys.retainAll(recent.toSet() + active.keys)
         job.invokeOnCompletion {
             synchronized(lock) {
-                if (records[id]?.status == AgentRunStatus.Running && !suspending) {
+                if (records[id]?.status == AgentRunStatus.Running && records[id]?.attempt == record.attempt && !suspending) {
                     FileThreadStore.open(path).use { store ->
                         val saved = store.load() ?: ThreadDocument(ThreadId(threadId), record.title)
                         val prompt = ThreadEvent(EventId(UUID.randomUUID().toString()), Author.Human(), EventKind.Prompt,
@@ -317,7 +392,7 @@ class AgentWorkspace(
                     }
                     update(id, true) { running -> running.copy(status = AgentRunStatus.Interrupted, failure = "Run stopped before a terminal result") }
                 }
-                active.remove(id)
+                active.remove(id, job)
                 changes.value++
             }
         }
@@ -367,6 +442,7 @@ class AgentWorkspace(
         require(active.isEmpty()) { "Wait for active workspace work before recovering this run" }
         val request = ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(directory.resolve("requests/$id.json")))
         require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
+        requireEntitlements(request)
         val checkpoint = checkpoint(id)
         val currentRoot = saved.workingDirectory?.let(::File) ?: root
         checkpoint?.sourceRevision?.takeIf { request.workflow != null }?.let { expected ->
@@ -378,7 +454,7 @@ class AgentWorkspace(
         require(gates.isEmpty() || expectedRevision != null) { "Review the current run and provide expectedRevision to continue a workflow gate" }
         if (checkpoint != null && gates.isNotEmpty()) checkpoints.save(id, checkpoint.copy(workflow = checkpoint.workflow.copy(approvedGates = checkpoint.workflow.approvedGates + gates)))
         val next = saved.copy(status = AgentRunStatus.Running, recovery = AgentRecovery.Resuming, attempt = saved.attempt + 1,
-            recoveryReason = "Continuing from saved stage results; completed stages are reused", failure = null,
+            recoveryReason = "Continuing from saved stage results; completed stages are reused", failure = null, pendingHandoff = null,
             pending = emptyList(), participants = saved.participants.mapValues { it.value.copy(pending = emptyList(), activeTurn = null) },
             revision = saved.revision + 1, updatedAt = System.currentTimeMillis())
         persist(next); records[id] = next
@@ -437,7 +513,7 @@ class AgentWorkspace(
         val job = synchronized(lock) {
             val saved = get(id)
             if (saved.status != AgentRunStatus.Running && saved.recovery == AgentRecovery.None) return saved
-            update(id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.None, recoveryReason = null, failure = "Stopped by the user",
+            update(id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.None, recoveryReason = null, failure = "Stopped by the user", pendingHandoff = null,
                 pending = emptyList(), participants = it.participants.mapValues { (_, participant) -> participant.copy(
                     status = if (participant.status == AgentRunStatus.Running) AgentRunStatus.Interrupted else participant.status,
                     activeTurn = null, pending = emptyList()) }) }
@@ -463,6 +539,9 @@ class AgentWorkspace(
     }
 
     private suspend fun execute(initial: AgentRunRecord, request: AgentSubmission) {
+        // A paused turn can be resumed before this one finishes unwinding. Releasing by id alone
+        // would drop the next attempt's job out of `active`, and a live run would read as stopped.
+        val self = currentCoroutineContext()[Job]
         try {
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
                 val isolated = if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
@@ -490,10 +569,15 @@ class AgentWorkspace(
                 fun spec(provider: RuntimeKind, model: String?, effort: NativeEffort?) = AgentSpec(
                     AgentId(provider.name.lowercase()), provider.name, provider,
                     "Follow the workspace's repository instructions.", model = model, effort = effort,
-                    tools = ToolPolicy(allowWrites = request.allowWrites, mcpConfig = harnessMcpConfig))
+                    tools = ToolPolicy(allowWrites = request.allowWrites, mcpConfig = harnessMcpConfig),
+                    budget = request.timeoutMillis?.let { AgentBudget(timeoutMillis = it) } ?: AgentBudget(),
+                    attributes = (request.maxCycles?.let { mapOf("maxCycles" to it.toString()) }.orEmpty()) +
+                        (request.allowedChecks.takeIf { it.isNotEmpty() }
+                            ?.let { mapOf("allowedChecks" to it.joinToString("\u0001")) }.orEmpty()))
                 val specs = request.workflow?.participants?.map { it.copy(tools = ToolPolicy(allowWrites = request.allowWrites && it.tools.allowWrites, mcpConfig = harnessMcpConfig)) }
                     ?: (listOf(spec(request.provider, request.model, request.effort)) +
-                    listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) }))
+                    listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) }) +
+                    if (request.councilHybrid) listOf(spec(RuntimeKind.ChatGptGemini, null, null)) else emptyList())
                 val restored = checkpoint(initial.id)
                 val saved = restored?.thread ?: store.load() ?: ThreadDocument(ThreadId(initial.threadId), initial.title)
                 val ids = specs.map { it.id }
@@ -518,6 +602,7 @@ class AgentWorkspace(
                         document, request.prompt, protocol, workingRoot.canonicalPath,
                         context = context, resumeProviderSession = request.collaboration == AgentCollaboration.Single && request.workflow == null,
                         resumeFrom = restored,
+                        executionPrefix = initial.id,
                         workingDirectoryFor = { directories.getValue(it) },
                         runCheck = { stage -> requireNotNull(workflowCheck).invoke(initial.threadId, "${initial.id}:${stage.id}", stage) },
                         onProgress = { progress ->
@@ -558,7 +643,7 @@ class AgentWorkspace(
                         reportedUsage = answer?.reportedUsage?.takeIf { request.collaboration == AgentCollaboration.Single },
                         failure = failures.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.text }?.take(2000)) }
                 } catch (failure: Exception) {
-                    if (failure is WorkflowPaused) throw failure
+                    if (failure is WorkflowPaused || failure is AgentHandoffRequired) throw failure
                     store.load()?.let { latest -> store.checkpoint(latest.append(ThreadEvent(EventId(UUID.randomUUID().toString()),
                         Author.Orchestrator("workspace"), EventKind.Failure,
                         if (failure is CancellationException) "Turn interrupted. Inspect workspace changes before continuing." else failure.message.orEmpty().take(2000),
@@ -567,6 +652,19 @@ class AgentWorkspace(
                 }
             }
         } catch (failure: Exception) {
+            if (failure is AgentHandoffRequired) {
+                if (request.workflow != null) checkpoint(initial.id)?.takeIf { it.inFlight.isEmpty() }?.let { saved ->
+                    val handoff = hybrid.read(failure.handoffId)
+                    checkpoints.save(initial.id, saved.copy(sourceRevision = handoff.sourceRevision))
+                }
+                update(initial.id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.NeedsReview, pendingHandoff = failure.handoffId,
+                    recoveryReason = "ChatGPT + Gemini is waiting for a ChatGPT handoff. Transfer the packet in Conversation, import the response, then continue.",
+                    pending = emptyList(), participants = it.participants.mapValues { (_, p) ->
+                        if (p.provider == RuntimeKind.ChatGptGemini) p.copy(status = AgentRunStatus.Interrupted, activeTurn = null, pending = emptyList()) else p }) }
+                activity.append(initial.id, "chatgptgemini", initial.attempt, AgentActivityItem("handoff:${failure.handoffId}", ActivityKind.Control,
+                    "Waiting for ChatGPT", ActivityStatus.Waiting, output = failure.handoffId))
+                return
+            }
             if (failure is WorkflowPaused) {
                 update(initial.id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.NeedsReview,
                     recoveryReason = "${failure.message}. Review the stage results and source, then continue this gate.", pending = emptyList()) }
@@ -583,7 +681,7 @@ class AgentWorkspace(
         } finally {
             sessions.remove(initial.id)
             activityProjection.finished(initial.id)
-            synchronized(lock) { active.remove(initial.id); changes.value++ }
+            synchronized(lock) { self?.let { active.remove(initial.id, it) } ?: active.remove(initial.id); changes.value++ }
             synchronized(lock) { recoverPending() }
             dispatchQueued()
         }

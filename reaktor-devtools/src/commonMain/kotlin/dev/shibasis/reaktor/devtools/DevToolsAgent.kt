@@ -155,7 +155,44 @@ class DevToolsAgent(
         writable = policy.writable,
     )
 
-    private fun capabilities(): List<AgentCapability> = buildList {
+    /**
+     * What this agent can do, one entry per name.
+     *
+     * The merge at the end is load-bearing. A capability can be both a stream and a control —
+     * `logs` is exactly that: it streams, and it accepts a level change. Adding both produced two
+     * entries under one name, and since [AgentDescriptor.capability] answers with the first match,
+     * whichever was added second became unreachable. A workbench asking whether it could change the
+     * log level got the stream's `Read` entry and concluded it could not.
+     *
+     * Merged, the entry says both things without contradicting itself: [Fidelity.Interactive]
+     * already means "accepts commands that change the running system", so the fidelity carries the
+     * control and the safety keeps describing how the capability is *reached*. Safety therefore
+     * settles on the most permissive contributor — a read-only build can still subscribe to logs —
+     * and the write is refused where it is actually enforced, in [execute], for every handler at
+     * once.
+     */
+    private fun capabilities(): List<AgentCapability> = declaredCapabilities()
+        .groupBy { it.name }
+        .map { (_, declared) -> declared.reduce(::mergeCapability) }
+
+    private fun mergeCapability(left: AgentCapability, right: AgentCapability): AgentCapability {
+        // Reachable through any of its facets is reachable. A refusal only survives when every
+        // facet was refused, and then the first reason is the one that explains it.
+        val reachable = listOf(left, right).filter { it.available }
+        // Only a facet that is actually served may raise the rung. Otherwise a read-only build,
+        // where the stream is live and the command is refused, would still advertise `Interactive`
+        // — claiming it accepts commands that it will in fact turn away.
+        val contributing = reachable.ifEmpty { listOf(left, right) }
+        return AgentCapability(
+            name = left.name,
+            fidelity = contributing.maxOf { it.fidelity },
+            safety = contributing.minOf { it.safety },
+            unavailableReason = if (reachable.isNotEmpty()) null
+            else left.unavailableReason ?: right.unavailableReason,
+        )
+    }
+
+    private fun declaredCapabilities(): List<AgentCapability> = buildList {
         add(
             AgentCapability(
                 AgentCapability.Semantics,

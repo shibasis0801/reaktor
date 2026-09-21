@@ -39,6 +39,7 @@ class Conductor(
         context: ContextPacket? = null,
         resumeProviderSession: Boolean = false,
         resumeFrom: ProtocolCheckpoint? = null,
+        executionPrefix: String = thread.id.value,
         onProgress: (ProtocolCheckpoint) -> Unit = {},
         onCheckpoint: (ThreadDocument) -> Unit = {},
         /**
@@ -100,6 +101,7 @@ class Conductor(
             parents: List<EventId>,
             round: Int,
             snapshot: ThreadDocument,
+            executionKey: String,
         ): ThreadEvent {
             val runtime = runtimes[agent.runtime]
                 ?: return ThreadEvent(
@@ -133,7 +135,8 @@ class Conductor(
                     "Native instructions, tools and provider history are added by the harness. Character counts are not token counts.")))
             val outcome = runtime.awaitSession(
                 AgentRequest(agent = agent, prompt = compiled, workingDirectory = workingDirectoryFor(agent.id),
-                    resume = resume, persistSession = resumeProviderSession),
+                    resume = resume, persistSession = resumeProviderSession, executionId = "$executionPrefix:$executionKey",
+                    subjectRefs = context?.entries.orEmpty().filter { it.kind == "graph-subject" }.map { it.ref }),
                 onSession = { session -> onSession(agent.id, session) },
                 onClosed = { session -> onSessionClosed(agent.id, session) },
             ) { event ->
@@ -159,6 +162,7 @@ class Conductor(
                 session = outcome.session,
                 usage = turnUsage(outcome),
                 reportedUsage = outcome.usage,
+                attributes = outcome.attributes,
             )
         }
 
@@ -174,6 +178,7 @@ class Conductor(
             stageKey: String? = null,
         ): List<ThreadEvent> {
             val snapshot = document
+            var handoff: AgentHandoffRequired? = null
             val identities = agents.associate { agent ->
                 val key = stageKey ?: "$index:${kind.name}:${agent.id.value}"
                 key to (completed[key]?.id ?: nextId())
@@ -184,7 +189,11 @@ class Conductor(
                         val key = stageKey ?: "$index:${kind.name}:${agent.id.value}"
                         checkpointMutex.withLock { completed[key] } ?: run {
                             checkpointMutex.withLock { inFlight.add(key); progress() }
-                            turn(agent, task, kind, visibility, peers, parents, index, snapshot)
+                            try { turn(agent, task, kind, visibility, peers, parents, index, snapshot, key) }
+                            catch (waiting: AgentHandoffRequired) {
+                                checkpointMutex.withLock { inFlight.remove(key); handoff = waiting; progress() }
+                                return@async null
+                            }
                         }.let { result ->
                             checkpointMutex.withLock {
                                 val identified = result.copy(id = identities.getValue(key))
@@ -197,7 +206,7 @@ class Conductor(
                     }
                 }.awaitAll()
             }
-            val committed = results.map { result ->
+            val committed = results.filterNotNull().map { result ->
                 val identified = result
                 if (document.event(identified.id) == null) document = document.append(identified)
                 added += identified
@@ -205,6 +214,7 @@ class Conductor(
                 progress()
                 identified
             }
+            handoff?.let { throw it }
             return committed
         }
 

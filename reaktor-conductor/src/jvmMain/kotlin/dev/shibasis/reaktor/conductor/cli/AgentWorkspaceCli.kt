@@ -67,7 +67,7 @@ internal suspend fun workspaceCli(args: List<String>) {
             "uninstall" -> AgentBundle.uninstall(targets)
             else -> AgentBundle.status(targets).let { status ->
                 fun say(present: Boolean) = if (present) "installed" else "not installed"
-                listOf("codex: " + say(status.codex), "claude: " + say(status.claude))
+                listOf("codex: " + say(status.codex), "claude: " + say(status.claude), "antigravity: " + say(status.antigravity), "antigravity graph: " + say(status.antigravityGraph))
             }
         }.forEach(::println)
         return
@@ -76,15 +76,19 @@ internal suspend fun workspaceCli(args: List<String>) {
     val runtimes = if ("--dry" in options) mapOf(RuntimeKind.Echo to EchoRuntime()) else null
     (if (options["--remote"] != null) AgentWorkspaceConnection.remote(ConductorJson.decodeFromString(AgentRemoteProfile.serializer(), File(options.getValue("--remote")).readText()))
         else if (action == "mcp") AgentBackgroundService.connect(root) else
-        AgentWorkspaceConnection.open(root, runtimes = runtimes, allowStart = action == "serve", background = "--background" in options)).use { connection ->
+        AgentWorkspaceConnection.open(root, runtimes = runtimes, allowStart = action == "serve", background = "--background" in options,
+            hybridConnector = "--connector" in options)).use { connection ->
         if (action == "serve") {
             check(connection.ownsService) { "A workspace owner is already running at ${connection.url}" }
             System.err.println("Agent workspace ${if (runtimes == null) "Codex/Claude" else "Echo dry run"}: ${root.path}\n${connection.url}\nDiscovery: ${connection.discoveryFile}")
+            // Publishing is a separate, visible act from serving: the tunnel is its own process and
+            // its address is printed once, because that address is the credential.
+            val tunnel = connection.hybridConnector?.let { announceConnector(it, options["--tunnel-origin"]) }
             val stopped = CountDownLatch(1)
-            val hook = Thread { connection.close(); stopped.countDown() }
+            val hook = Thread { tunnel?.close(); connection.close(); stopped.countDown() }
             Runtime.getRuntime().addShutdownHook(hook)
             try { withContext(Dispatchers.IO) { stopped.await() } }
-            finally { runCatching { Runtime.getRuntime().removeShutdownHook(hook) } }
+            finally { runCatching { Runtime.getRuntime().removeShutdownHook(hook) }; tunnel?.close() }
             return
         }
         if (action == "mcp") {
@@ -149,4 +153,26 @@ private suspend fun bridgeStdio(exchange: suspend (String) -> JsonElement?) = co
             } finally { admission.release() }
         }
     }
+}
+
+/**
+ * Brings up the public front for the ChatGPT planning surface and prints where to paste it.
+ *
+ * Printed to stderr and exactly once, because the address contains the secret that stands in for
+ * the credential ChatGPT connectors cannot send. Anyone holding that line holds the connector.
+ */
+private fun announceConnector(connector: HybridConnector, origin: String?): HybridTunnel? {
+    val tunnel = runCatching { HybridTunnel.start(connector.port(), origin = origin) }.getOrElse { failure ->
+        System.err.println("Connector is serving on ${connector.url("http://127.0.0.1:" + connector.port())} " +
+            "but is not reachable from outside this machine: ${failure.message}")
+        return null
+    }
+    System.err.println(
+        "\nChatGPT connector URL — this is the credential, treat it like a password:\n" +
+            "  ${tunnel.url(connector)}\n\n" +
+            "In ChatGPT: Settings > Apps > Advanced > Developer mode, add it as a custom connector with\n" +
+            "No authentication, then ask it to work on your waiting Reaktor tasks.\n" +
+            "It stops answering the moment this command exits.\n",
+    )
+    return tunnel
 }

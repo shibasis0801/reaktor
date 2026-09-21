@@ -97,6 +97,7 @@ data class ProviderCapability(
     val session: Qualification = Qualification.unavailable,
     val notes: List<String> = emptyList(),
     val controls: Map<String, Qualification> = emptyMap(),
+    val entitlements: List<AgentEntitlement> = runtime.entitlements(),
 )
 
 /**

@@ -17,9 +17,12 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
     }
     @Synchronized fun capture(taskId: String, subjects: List<AgentGraphSubject> = emptyList()): AgentCandidate {
         val candidate = candidates.capture(subjects)
+        recordCandidate(taskId, candidate)
+        return candidate
+    }
+    @Synchronized internal fun recordCandidate(taskId: String, candidate: AgentCandidate) {
         val task = get(taskId)
         save(task.copy(candidates = (task.candidates.filterNot { it.id == candidate.id } + candidate).takeLast(100)))
-        return candidate
     }
     @Synchronized fun requireChecks(taskId: String, checks: List<String>): AgentTaskEvidence {
         require(checks.size <= 30 && checks.all { it.isNotBlank() && it.length <= 200 })

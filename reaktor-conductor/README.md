@@ -1,6 +1,6 @@
 # Conductor: conversation and bounded context
 
-Conductor runs replaceable Codex/Claude CLI harnesses over a Reaktor conversation. The CLI now defaults to one-agent `ask`. Protocols remain explicitly selectable.
+Conductor runs native Codex, Claude Code and Gemini harnesses over a Reaktor conversation. The CLI now defaults to one-agent `ask`. Protocols remain explicitly selectable.
 
 ## Continue a saved task
 
@@ -32,7 +32,7 @@ reaktor-conductor/tools/agent-workspace start --dir /Users/ovd/dev/bestbuds
 
 Opening the desktop Chat pane starts or attaches to the same owner. A second `serve` reports the existing owner. The desktop now connects to a macOS launchd service with its own headless kernel; closing the pane or desktop only detaches the UI. `workspace start` and the MCP bridge also start or attach to a supervised owner. Explicit `serve` remains a foreground owner whose exit ends its processes. Existing foreground owners are attached to without interrupting their work; stop them before switching to background supervision. `serve --dry` exposes only Echo for offline qualification.
 
-The core conversation tools are: `agent_workspace_info`, `agent_runs`, `agent_submit`, `agent_run`, `agent_wait`, `agent_cancel`, and `agent_transcript`. A submission contains `requestId`, `provider` (`Codex` or `ClaudeCode`), `prompt`, optional `threadId`, optional `model`, `allowWrites`, and optional `ContextPacket` as `context`. Retries of the same request ID and identical input return the saved run; changed input fails. A new request ID starts a new turn.
+The core conversation tools are: `agent_workspace_info`, `agent_runs`, `agent_submit`, `agent_run`, `agent_wait`, `agent_cancel`, and `agent_transcript`. A submission contains `requestId`, `provider` (`Codex`, `ClaudeCode`, or `ChatGptGemini`; `Gemini` is also available to tool clients), `prompt`, optional `threadId`, optional `model`, `allowWrites`, and optional `ContextPacket` as `context`. Retries of the same request ID and identical input return the saved run; changed input fails. A new request ID starts a new turn.
 
 ```json
 {"requestId":"feature-001","provider":"Codex","prompt":"Implement the first screen in this workspace","allowWrites":true}
@@ -49,7 +49,7 @@ claude mcp add --scope local reaktor-agents -- /Users/ovd/dev/reaktor/reaktor-co
 
 Run the Claude registration from the intended project. These are optional installation commands; building this module does not change provider configuration. The bridge requires a running owner and emits JSON-RPC only on stdout. It negotiates MCP 2025-06-18 (used by the qualified Codex CLI) and 2025-11-25. An actual external Codex call to `agent_workspace_info` passed through this bridge. It never starts a short-lived owner that would disappear immediately after a submission.
 
-State lives in `~/.reaktor/agents/<sha256(canonical-workspace)>`, with private directories, atomic private JSON records, a workspace binding, an owner lock and a rotating bearer credential. Credentials never appear in advertised tool results. The recent index holds 200 runs; listing returns at most 50 summaries. Exact older run IDs remain addressable. Output is capped at 12,000 characters; transcript responses retain the last 20 events within a 24,000-character text budget. Two concurrent runs are allowed. Shared-source editing is exclusive; editing in owned worktrees can overlap. The HTTP transport bounds workers and queued requests; long waits have separate admission.
+State lives in `~/.reaktor/agents/<sha256(canonical-workspace)>`, with private directories, atomic private JSON records, a workspace binding, an owner lock and a rotating bearer credential. Credentials never appear in advertised tool results. The recent index holds 200 runs; listing returns at most 50 summaries. Exact older run IDs remain addressable. Output is capped at 12,000 characters; transcript responses retain the last 20 events within a 24,000-character text budget. The native three-provider host has three execution slots; two-provider hosts retain two. A three-seat council reserves three slots. Shared-source editing is exclusive; editing in owned worktrees can overlap. The HTTP transport bounds workers and queued requests; long waits have separate admission.
 
 Request records, canonical prompts/provider IDs and terminal results survive restart. An unfinished record becomes Interrupted; recovery does not rerun a possible effect. Native continuation is used only immediately after a successful turn by the same unchanged provider specification. Switching providers or recovering an interrupted turn starts a fresh provider session with bounded canonical context.
 
@@ -101,6 +101,43 @@ The desktop agent node connects to a workspace-scoped macOS LaunchAgent. The ser
 The desktop also persists task drafts locally (300 ms debounce, flush on close), previews next-turn context with per-entry exclusions, and resolves recorded node selections back into the matching graph/context. Mounted graph dependency coverage is bounded and explicitly partial. The service's `agent_check_catalog`, `agent_check_start` and `agent_check_link` run admitted local Develop/Testing checks through the kernel, retain logs, and link terminal evidence to the exact checked source candidate. Source changes during a check invalidate its revision claim. Deployments and other higher-effect operations are excluded from this shortcut. The standalone framework service has no product check catalog; open the desktop first to install the kernel-hosted service.
 
 Qualification includes actual launchd client detachment, SIGKILL/restart and reviewed recovery, automatic reuse after a completed-stage checkpoint, queue and explicit-stop semantics, kernel checks through MCP, and live tool lifecycle capture from installed Codex 0.154.0 and Claude Code 2.1.270. The workflow, checkpoint, isolation and context extensions below build on this foundation. Delegated client authority and arbitrary effect compensation remain outside the local-owner execution contract.
+
+
+## ChatGPT + Gemini: a standalone third agent and council seat
+
+In the desktop **Agent** pane, choose **ChatGPT + Gemini** from the composer or Settings. This selects **One agent** and clears the previous provider's model, effort and workflow. Send a new task or follow up in an existing task: the canonical history, graph context and source evidence carry forward. Single hybrid mode never calls Codex or Claude. A stopped task with saved recovery can use **Switch to ChatGPT + Gemini** to close that attempt and prepare a new hybrid turn in the same conversation; uncertain effects remain in its history.
+
+The agent posts its handoff directly in **Conversation**, alongside the task and its other messages:
+
+1. Copy the planning packet to **ordinary ChatGPT Chat**, then paste its bound JSON response into the pane and import it.
+2. Choose **Continue task**. Gemini executes through the installed Google Antigravity CLI. Follow native tool events in Activity and captured candidates/diffs in Changes.
+3. Copy the observation packet back to ChatGPT for review. Import the reviewed JSON, then continue to retain the final answer. Follow-up turns repeat this loop.
+
+This is a human transfer, not a ChatGPT API integration. Reaktor cannot verify which ChatGPT entitlement supplied the response or measure its tokens. It does not automate chatgpt.com or silently switch to API billing. The planner's text never expands tool authority. Native Gemini usage is recorded separately; remaining subscription quota stays unknown.
+
+For the council, choose **Codex + Claude + ChatGPT/Gemini council** in Settings. The third seat participates in independent proposals and cross-review; Codex synthesizes the three critiques. There are four human handoffs across a complete three-seat council. Completed peer stages are checkpointed before the pause and are not dispatched again when a response arrives.
+
+A real workspace is rarely fully readable — vendored pods, APKs, design files and build outputs run past the source capture budget — so a partial snapshot does not refuse the turn. The digest advances per file either way, so it still detects a changed or added file; what it could not read is listed in the packet, bounded, and says so when the list itself is truncated. Refusing on partial coverage would have made this seat unusable in exactly the repositories it is for.
+
+`agent_handoffs(runId)` returns packets and durable state. `agent_handoff_reply(runId, reply)` imports `HybridReply { handoffId, revision, phase, text, acceptanceCriteria }` with exact phase/revision/source binding; it never starts execution. `agent_resume` is the separate execution action. Exact duplicate imports are idempotent, changed source invalidates a packet, and a human review cannot turn a failed native execution into a successful contribution. Gemini's bounded observation includes a source candidate, changed paths, a diff excerpt and a task-attached artifact retrievable with `agent_artifact`; partial capture is explicit. Existing dirty source is part of the candidate, not an attribution that Gemini authored every change.
+
+Handoffs, source bindings, outcomes and admission policy live in the private local workspace directory. Closing the desktop detaches from the background service. A crash during native execution follows the existing uncertain-effect recovery rules; a clean human handoff remains paused across owner restart. No machine can compute while powered off.
+
+### Google harness and configuration
+
+The tested installation on 14 September 2026 rejected Gemini CLI consumer OAuth with a server instruction to migrate to Antigravity. The executor therefore uses **`agy` 1.2.2**, with Gemini models and the saved Google account. The upgraded `gemini` 0.59.0 is not the default execution path. A configured API model provider or non-Gemini model is rejected for this seat. Antigravity's own account/credit policies still apply; Reaktor does not configure an API fallback.
+
+`workspace install --dir <root>` also registers the workspace and graph MCP bridges for this harness. Antigravity has no project-scoped MCP configuration — `agy` reads one file per user — so these two entries go in `~/.gemini/config/mcp_config.json` and are visible to every Antigravity project on the machine. They therefore carry no `--dir`: each resolves the workspace `agy` was started in, and says so plainly when that directory is not a Reaktor workspace. Other servers in that file are preserved, and uninstall removes only the exact entries it owns, leaving a file it did not create in place. The per-project Codex and Claude entries keep their pinned workspace. Keep machine-specific launch commands outside source control.
+
+Registering a server is not permission to call it. Antigravity defaults `mcp` to **Ask**, and a headless turn cannot answer a prompt, so it reports the denial instead. Install prints the rule to add: `mcp(reaktor/*)` and `mcp(reaktor-graph/*)` under `permissions.allow` in `~/.gemini/antigravity-cli/settings.json`. Reaktor names that rule and never edits the operator's permission policy.
+
+Headless execution uses native `plan` or `accept-edits`, canonical workspace paths and bounded timeouts. The mode is the whole difference between inspecting and editing here, because Antigravity auto-allows writes inside the active workspace — so Reaktor does not send `--disable-slash-commands`, which the CLI warns makes `--mode` do nothing. Slash expansion reads only a prompt that begins with a slash, and this prompt always begins with Reaktor's own workspace line. Inspection is still a requested mode, not an OS sandbox. Native command/MCP permissions govern actions; headless mode cannot answer an interactive permission request or steer a running turn. A denied action or empty terminal answer is reported as incomplete even if the CLI says `SUCCESS`; there is no blanket permission bypass. Stop remains available through the owned process lifecycle.
+
+Live qualification against `agy` 1.2.2 on 14 September 2026 covers a real file read through the adapter (`GeminiLiveTest`), an editing turn that writes and the same inspecting turn being refused, and the complete seat — plan transfer, real Gemini execution with its own session and captured evidence, review transfer, completed run (`HybridLiveTest`). They run only with `REAKTOR_GEMINI_LIVE=1`, because they spend the operator's Google allowance.
+
+**Compute pools** in Settings exposes operator admission controls for Codex, Claude, ordinary ChatGPT and Google Agent. `agent_entitlements` reads the persisted policies; `agent_entitlement_set` changes one with an expected revision. Pause exhausted pools and choose the standalone hybrid to keep working. These are future admission/resume controls, not measured quota balances, resets, automatic routing or changes to a running call.
+
+Sources: [Antigravity migration](https://www.antigravity.google/docs/cli/gcli-migration/), [headless protocol](https://www.antigravity.google/docs/cli/headless/), [native permissions](https://www.antigravity.google/docs/cli/permissions), [ChatGPT Work pricing](https://learn.chatgpt.com/docs/pricing).
 
 ## Manna context
 

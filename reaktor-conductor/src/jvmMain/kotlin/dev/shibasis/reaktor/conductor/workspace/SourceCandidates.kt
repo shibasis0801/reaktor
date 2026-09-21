@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import dev.shibasis.reaktor.conductor.SourceManifest
 import dev.shibasis.reaktor.tooling.gradleSourceRoots
 
 /** Captures working files, not just HEAD. A budget miss prevents an acceptance claim. */
@@ -19,6 +20,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         val hash = MessageDigest.getInstance("SHA-256")
         val nestedRoots = mutableListOf<File>()
         var remaining = 256_000_000L
+        var bulky = 0
         for (name in names) {
             hash.update(name.toByteArray()); hash.update(0)
             val file = File(root, name)
@@ -27,6 +29,13 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
                 Files.isSymbolicLink(file.toPath()) -> hash.update(Files.readSymbolicLink(file.toPath()).toString().toByteArray())
                 !file.exists() -> hash.update("deleted".toByteArray())
                 !file.isFile -> if (File(file, ".git").exists()) nestedRoots += file else notices += "Non-file source: $name"
+                // An APK, a vendored framework or a checked-in archive is not source, and reading one
+                // costs the snapshot a hundred megabytes of budget that the code it exists to cover
+                // then cannot have. Fingerprinting it by size keeps it in the revision — a replaced
+                // binary almost always changes length — for the price of one stat call. Size rather
+                // than mtime on purpose: rebuilding an identical artifact moves mtime, and a
+                // revision that flips on that would abort live tasks for no change at all.
+                file.length() > CONTENT_LIMIT -> { hash.update("size:${file.length()}".toByteArray()); bulky++ }
                 file.length() > remaining -> notices += "Source capture budget exceeded at $name"
                 else -> {
                     hash.update(if (file.canExecute()) 1 else 0)
@@ -86,8 +95,96 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         return AgentCandidate(digest(root.canonicalPath + "\n" + base + "\n" + sourceDigest), root.canonicalPath,
             base, sourceDigest, System.currentTimeMillis(), allChanged.distinct(),
             diffArtifact, notices.isEmpty(), notices.distinct().take(100), subjects,
-            sourceRoots = (listOf(root.canonicalPath) + captured.flatMap { it.sourceRoots }).distinct())
+            sourceRoots = (listOf(root.canonicalPath) + captured.flatMap { it.sourceRoots }).distinct(),
+            // Deliberately not a notice: a repository with one committed PDF would otherwise be
+            // permanently incomplete, and incomplete is what blocks an acceptance claim. This is a
+            // narrower statement — the bytes of these files are outside the revision — and it
+            // belongs in what the packet says the snapshot cannot see, not in what voids it.
+            fingerprintedBySize = bulky + captured.sumOf { it.fingerprintedBySize })
     }
+    /**
+     * The diff for [paths] alone: what one turn did, rather than how the checkout differs from HEAD.
+     *
+     * [capture] answers the second question, which is the right one for a candidate and useless for
+     * review — in a repository carrying other uncommitted work it buries a twenty-line change under
+     * deleted images and unrelated config. A reviewer who cannot cheaply see what a task changed
+     * ends up trusting the executor's description of it, which is the one thing this seat exists to
+     * avoid.
+     *
+     * Still measured against HEAD, so a file the turn edited that the operator had *also* edited
+     * before it started shows both changes. Only a task-local overlay fixes that; this fixes the
+     * much larger half, which is the hundred files the turn never touched at all.
+     */
+    fun diffOf(paths: List<String>): ScopedDiff {
+        val notices = mutableListOf<String>()
+        val wanted = paths.filter { it.isNotBlank() }.distinct().sorted()
+        if (wanted.isEmpty()) return ScopedDiff("", emptyList())
+        val bounded = wanted.take(SCOPE_LIMIT)
+        if (wanted.size > bounded.size) notices += "Diff scoped to the first ${bounded.size} of ${wanted.size} changed paths"
+        val untracked = (git("ls-files", "-z", "--others", "--exclude-standard") ?: "")
+            .split(NUL).filter { it.isNotEmpty() }.toSet()
+        val base = git("rev-parse", "HEAD")?.trim() ?: "--cached"
+        val text = StringBuilder()
+        // Chunked because a path list is argv, and a turn that touches hundreds of files would
+        // otherwise run into the platform's argument limit and produce nothing at all.
+        bounded.filter { it !in untracked }.chunked(ARGV_CHUNK).forEach { chunk ->
+            val part = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base, "--") + chunk).toTypedArray())
+            if (part == null) notices += "Diff unavailable for ${chunk.size} tracked ${if (chunk.size == 1) "path" else "paths"}"
+            else text.append(part)
+        }
+        bounded.filter { it in untracked }.forEach { name ->
+            val addition = git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+            if (addition == null) notices += "New-file diff unavailable: $name" else text.append(addition)
+        }
+        return ScopedDiff(text.toString(), notices)
+    }
+
+    /**
+     * A fingerprint of every file git currently considers dirty, for telling one turn's work apart.
+     *
+     * [capture] answers "how does this tree differ from HEAD", which is the right question for a
+     * candidate and the wrong one for a report: in a checkout carrying other uncommitted work it
+     * names a hundred files the agent never touched, and the planner is told the agent changed them
+     * all. Comparing two of these instead answers "what did *this* turn do".
+     *
+     * Only the dirty set is fingerprinted, because a file the agent edits necessarily becomes dirty:
+     * a clean file it touches enters the set, a dirty file it edits changes digest, one it reverts
+     * leaves. Fingerprinting the whole tree would also be correct, and far too slow to run twice a
+     * cycle on a real repository.
+     */
+    fun dirtyManifest(): SourceManifest {
+        val status = git("status", "--porcelain=v1", "-z", "--untracked-files=all")
+            ?: return SourceManifest(emptyMap(), available = false)
+        // Porcelain v1 with -z emits "XY path" records separated by NUL; a rename or copy adds a
+        // second record holding the original path, which is not itself a changed file.
+        val records = status.split(NUL).filter { it.length > 3 }
+        val paths = mutableListOf<String>()
+        var index = 0
+        while (index < records.size) {
+            val record = records[index]
+            paths += record.substring(3)
+            if (record[0] == 'R' || record[0] == 'C') index++
+            index++
+        }
+        val distinct = paths.distinct().sorted()
+        val entries = distinct.take(MANIFEST_LIMIT).associateWith { name ->
+            val file = File(root, name)
+            when {
+                Files.isSymbolicLink(file.toPath()) ->
+                    "link:" + runCatching { Files.readSymbolicLink(file.toPath()).toString() }.getOrDefault("?")
+                !file.exists() -> "absent"
+                !file.isFile -> "directory"
+                // Too big to hash twice a cycle; size and mtime still move when it is edited.
+                file.length() > MANIFEST_FILE_LIMIT -> "large:" + file.length() + ":" + file.lastModified()
+                else -> contentDigest(file.readBytes())
+            }
+        }
+        return SourceManifest(entries, available = true, truncated = distinct.size > MANIFEST_LIMIT)
+    }
+
+    private fun contentDigest(bytes: ByteArray) =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
     private fun git(vararg args: String): String? = runCatching {
         val process = ProcessBuilder(listOf("git", "--no-optional-locks", "-C", root.canonicalPath) + args)
             .redirectError(ProcessBuilder.Redirect.DISCARD).start()
@@ -99,3 +196,14 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         } finally { if (process.isAlive) process.destroyForcibly() }
     }.getOrNull()
 }
+
+/** A diff narrowed to one turn's paths, honest about what narrowing it cost. */
+data class ScopedDiff(val text: String, val notices: List<String>)
+
+private const val MANIFEST_LIMIT = 5000
+/** Above this a file is fingerprinted by size. Source files are far below it; binaries are not. */
+private const val CONTENT_LIMIT = 1_000_000L
+private const val SCOPE_LIMIT = 400
+private const val ARGV_CHUNK = 100
+private const val MANIFEST_FILE_LIMIT = 8_000_000L
+private const val NUL = '\u0000'

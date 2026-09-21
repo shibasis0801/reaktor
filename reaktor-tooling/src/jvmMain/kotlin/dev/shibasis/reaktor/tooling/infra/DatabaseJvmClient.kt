@@ -90,9 +90,37 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
             socketTimeout = (timeout / 1000).toInt().coerceAtLeast(1)
             applicationName = "reaktor-kernel"
         }
-        val connection = session.own(dataSource.connection)
-        connection.isReadOnly = true
-        connection.autoCommit = false
+        val identity = PostgresConnectionReuse.identityOf(
+            host = host,
+            port = dataSource.portNumbers.first(),
+            database = required("PGDATABASE"),
+            user = user,
+            password = required("PGPASSWORD"),
+            sslMode = env["PGSSLMODE"] ?: "require",
+        )
+        return PostgresConnectionReuse.withConnection(identity, dataSource) { connection ->
+            readOn(connection, op, query, env, timeout, parameters, host, user, clock)
+        }
+    }
+
+    /**
+     * One read on an already-authenticated connection.
+     *
+     * Split out so the connection's lifetime belongs to [PostgresConnectionReuse] rather than to
+     * the session: a session that owned it would close it on the way out and there would be
+     * nothing left to reuse. Everything the read verifies is unchanged and still runs per read.
+     */
+    private fun readOn(
+        connection: java.sql.Connection,
+        op: InfrastructureOperation.DatabaseRead,
+        query: String?,
+        env: Map<String, String>,
+        timeout: Long,
+        parameters: List<BoundQueryParameter>?,
+        host: String,
+        user: String,
+        clock: QueryClock,
+    ): QueryReceipt {
         val policyWarnings = mutableListOf<String>()
         if (query != null) {
             val policy = env["REAKTOR_PG_INSPECTOR_POLICY"]
