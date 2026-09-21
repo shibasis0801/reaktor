@@ -7,7 +7,17 @@ import androidx.compose.ui.graphics.vector.PathParser
 /** Native Lucide outlines from the Pencil specification; same glyph source as StudioIcons.
  * Copyright Lucide Contributors and Cole Bemis (ISC/MIT). No runtime design assets. */
 internal object ReaktorTypedNodeIcons {
-    fun path(name: String): Path = PathParser().parsePathString(paths.getValue(name)).toPath().apply {
+    /**
+     * The outline for [name], or the generic box when there is no such glyph.
+     *
+     * A missing icon is an authoring mistake, and the place it would have surfaced is the graph
+     * canvas mid-render — where a `NoSuchElementException` is not a missing icon, it is the window
+     * closing. The node still draws, with the shape that already stands for "something we have no
+     * specific glyph for".
+     */
+    fun path(name: String): Path = PathParser()
+        .parsePathString(paths[name] ?: paths.getValue("box"))
+        .toPath().apply {
         transform(Matrix().apply {
             translate((24f - 13.99993896484375f * (24f / 14f)) / 2f, 0f)
             scale(24f / 14f, 24f / 14f)

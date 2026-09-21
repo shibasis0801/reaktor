@@ -53,6 +53,14 @@ class AgentRoundTripTest {
                 "the refusal should name what is missing: ${semantics?.unavailableReason}",
             )
 
+            // `logs` both streams and accepts a level change. Declared as two entries it resolved
+            // to whichever was added first, and the control half was unreachable — a workbench
+            // asking whether it could set the level was told no by a descriptor that could.
+            val logs = descriptor.capabilities.filter { it.name == AgentCapability.Logs }
+            assertEquals(1, logs.size, "one name, one entry: $logs")
+            assertEquals(Fidelity.Interactive, logs.single().fidelity, "the control half must survive the merge")
+            assertTrue(logs.single().available, "a read-only facet keeps the capability reachable")
+
             val accepted = attachment.execute(
                 AgentCapability.Overrides,
                 "set",

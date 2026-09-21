@@ -11,20 +11,41 @@ object AgentBundle {
     const val GRAPH_SERVER_NAME = "reaktor-graph"
     const val DEFAULT_GRAPH_URL = "http://127.0.0.1:8765/mcp"
 
-    data class Targets(val codexConfig: File, val claudeProjectConfig: File) {
+    /**
+     * Where each harness actually reads its servers from.
+     *
+     * Codex and Claude are configured per project, so their entries live beside the source they
+     * serve. Antigravity has no project-scoped MCP configuration — `agy` reads one file per user —
+     * so [antigravityConfig] is a machine-wide file the operator shares with every other project,
+     * and it is passed in rather than derived so no caller can reach the real home by accident.
+     */
+    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File) {
         val manifest: File get() = File(claudeProjectConfig.parentFile, ".reaktor/agent-bundle.json")
     }
 
-    @Suppress("UNUSED_PARAMETER")
     fun targets(root: File, home: File = File(System.getProperty("user.home"))) = Targets(
-        File(root, ".codex/config.toml"), File(root, ".mcp.json"))
+        File(root, ".codex/config.toml"), File(root, ".mcp.json"), File(home, ".gemini/config/mcp_config.json"))
 
-    data class Status(val codex: Boolean, val claude: Boolean, val codexGraph: Boolean = false, val claudeGraph: Boolean = false)
+    data class Status(val codex: Boolean, val claude: Boolean, val codexGraph: Boolean = false, val claudeGraph: Boolean = false,
+        val antigravity: Boolean = false, val antigravityGraph: Boolean = false)
     fun status(targets: Targets): Status {
         val text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         val servers = readObject(targets.claudeProjectConfig).servers()
         return Status(hasTable(text, SERVER_NAME), SERVER_NAME in servers,
-            hasTable(text, GRAPH_SERVER_NAME), GRAPH_SERVER_NAME in servers)
+            hasTable(text, GRAPH_SERVER_NAME), GRAPH_SERVER_NAME in servers,
+            SERVER_NAME in readObject(targets.antigravityConfig).servers(), GRAPH_SERVER_NAME in readObject(targets.antigravityConfig).servers())
+    }
+
+    /**
+     * The same bridge with its workspace left to the harness's working directory.
+     *
+     * One file serves every project here, so pinning `--dir` would point Gemini at whichever
+     * workspace happened to be installed last. Without it the bridge resolves the directory `agy`
+     * was started in, and says so plainly when that is not a Reaktor workspace.
+     */
+    fun workspaceFollowingCommand(command: List<String>): List<String> {
+        val directory = command.indexOfLast { it == "--dir" }
+        return if (directory < 0) command else command.filterIndexed { index, _ -> index != directory && index != directory + 1 }
     }
 
     fun launchCommand(root: File, override: List<String>?): List<String> {
@@ -49,10 +70,12 @@ object AgentBundle {
         val configs = listOf(SERVER_NAME to command, GRAPH_SERVER_NAME to graphCommand)
         // Parse before touching either config; malformed JSON must never become an empty config.
         var claude = readObject(targets.claudeProjectConfig)
+        var antigravity = readObject(targets.antigravityConfig)
         var text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         val manifest = readObject(targets.manifest).toMutableMap()
         manifest.putIfAbsent("codexCreated", JsonPrimitive(!targets.codexConfig.exists()))
         manifest.putIfAbsent("claudeCreated", JsonPrimitive(!targets.claudeProjectConfig.exists()))
+        manifest.putIfAbsent("antigravityCreated", JsonPrimitive(!targets.antigravityConfig.exists()))
         val owned = (manifest["entries"] as? JsonObject).orEmpty().toMutableMap()
         val messages = mutableListOf<String>()
         configs.forEach { (name, argv) ->
@@ -73,6 +96,18 @@ object AgentBundle {
             val servers = claude.servers()
             val claudeKey = "claude/$name"
             val entry = buildJsonObject { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
+            val agyServers = antigravity.servers()
+            val agyKey = "antigravity/$name"
+            val following = workspaceFollowingCommand(argv)
+            val agyEntry = buildJsonObject { put("command", following.first()); put("args", JsonArray(following.drop(1).map(::JsonPrimitive))) }
+            if (name in agyServers && owned[agyKey] != agyServers[name]) messages += "$agyKey: collision; preserved unowned or modified entry"
+            else {
+                antigravity = JsonObject(antigravity + ("mcpServers" to JsonObject(agyServers + (name to agyEntry))))
+                owned[agyKey] = agyEntry
+                messages += "$agyKey: " + if (agyServers[name] == agyEntry) "already installed"
+                    else if (name in agyServers) "updated owned entry"
+                    else "installed for every Antigravity project in ${targets.antigravityConfig.path}; it serves the workspace agy is started in"
+            }
             when {
                 name in servers && owned[claudeKey] != servers[name] -> messages += "$claudeKey: collision; preserved unowned or modified entry"
                 else -> {
@@ -82,8 +117,16 @@ object AgentBundle {
                 }
             }
         }
+        // Registering the server is not the same as being allowed to call it: Antigravity defaults
+        // `mcp` to Ask, and a headless turn cannot answer a prompt, so it reports the denial
+        // instead. Reaktor does not edit the operator's permission policy; it names the rule.
+        if (messages.any { it.startsWith("antigravity/") && !it.contains("collision") && !it.contains("already installed") })
+            messages += "antigravity: add \"mcp(reaktor/*)\" and \"mcp(reaktor-graph/*)\" to permissions.allow in " +
+                File(targets.antigravityConfig.parentFile.parentFile, "antigravity-cli/settings.json").path +
+                "; without it a headless Gemini turn reports these tools as denied"
         writeText(targets.codexConfig, text)
         writeObject(targets.claudeProjectConfig, claude)
+        writeObject(targets.antigravityConfig, antigravity)
         writeObject(targets.manifest, JsonObject(manifest + ("entries" to JsonObject(owned))))
         messages
     }
@@ -93,6 +136,7 @@ object AgentBundle {
         val owned = (manifest["entries"] as? JsonObject).orEmpty()
         var text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         var claude = readObject(targets.claudeProjectConfig)
+        var antigravity = readObject(targets.antigravityConfig)
         val messages = mutableListOf<String>()
         owned.forEach { (key, value) ->
             val name = key.substringAfter('/')
@@ -101,6 +145,10 @@ object AgentBundle {
                 // If a nested table was added after our marker, the entry was extended by its owner.
                 val extended = Regex("(?m)^\\s*\\[mcp_servers\\." + Regex.escape(name) + "\\.").containsMatchIn(text)
                 if (text.contains(chunk) && !extended) { text = text.replace(chunk, ""); messages += "$key: removed" }
+                else messages += "$key: modified; preserved"
+            } else if (key.startsWith("antigravity/")) {
+                val servers = antigravity.servers()
+                if (servers[name] == value) { antigravity = JsonObject(antigravity + ("mcpServers" to JsonObject(servers - name))); messages += "$key: removed" }
                 else messages += "$key: modified; preserved"
             } else if (key.startsWith("claude/")) {
                 val servers = claude.servers()
@@ -119,13 +167,29 @@ object AgentBundle {
             else writeObject(targets.claudeProjectConfig, claude)
         }
         targets.manifest.delete()
+        if (targets.antigravityConfig.exists()) {
+            if (antigravity.keys == setOf("mcpServers") && antigravity.servers().isEmpty() && manifest["antigravityCreated"] == JsonPrimitive(true)) targets.antigravityConfig.delete()
+            else writeObject(targets.antigravityConfig, antigravity)
+        }
         messages.ifEmpty { listOf("No owned entries; existing configuration preserved") }
     }
 
+    /**
+     * The project's lock, and a second one beside the shared Antigravity file.
+     *
+     * The manifest lock is per project, which was enough while every target was too. Antigravity's
+     * is one file for the whole machine, so two projects installing at once would otherwise write
+     * over each other's entry through it.
+     */
     private fun <T> locked(targets: Targets, action: () -> T): T = synchronized(this) {
         targets.manifest.parentFile.mkdirs()
-        FileChannel.open(File(targets.manifest.parentFile, "agent-bundle.lock").toPath(), CREATE, WRITE).use { channel ->
-            channel.lock().use { action() }
+        targets.antigravityConfig.parentFile.mkdirs()
+        FileChannel.open(File(targets.manifest.parentFile, "agent-bundle.lock").toPath(), CREATE, WRITE).use { project ->
+            project.lock().use {
+                FileChannel.open(File(targets.antigravityConfig.parentFile, ".reaktor-agent-bundle.lock").toPath(), CREATE, WRITE).use { shared ->
+                    shared.lock().use { action() }
+                }
+            }
         }
     }
     private fun hasTable(text: String, name: String): Boolean =

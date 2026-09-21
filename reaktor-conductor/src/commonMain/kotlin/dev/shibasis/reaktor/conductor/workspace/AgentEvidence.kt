@@ -19,6 +19,14 @@ data class AgentCandidate(
     val notices: List<String> = emptyList(),
     val subjects: List<AgentGraphSubject> = emptyList(),
     val sourceRoots: List<String> = listOf(workspaceRoot),
+    /**
+     * Files whose length, not whose content, went into [sourceDigest].
+     *
+     * Binaries — APKs, vendored frameworks, checked-in archives — are not source, and streaming them
+     * spends the capture budget that the code the snapshot exists to cover then cannot have. They
+     * stay in the revision by size, which moves whenever one is replaced by a different build.
+     */
+    val fingerprintedBySize: Int = 0,
 )
 
 @Serializable

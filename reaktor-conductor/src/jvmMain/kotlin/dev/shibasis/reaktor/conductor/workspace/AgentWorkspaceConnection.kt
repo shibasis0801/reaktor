@@ -43,6 +43,8 @@ class AgentWorkspaceConnection private constructor(
     val ownsService: Boolean,
     private val remote: AgentRemoteWorkspace? = null,
     private val closeOwner: () -> Unit = {},
+    /** The ChatGPT planning surface this process is serving, when it was asked to serve one. */
+    val hybridConnector: HybridConnector? = null,
 ) : AutoCloseable {
     private val closed = AtomicBoolean()
     @Volatile private var protocolVersion = REAKTOR_MCP_PROTOCOL_VERSION
@@ -140,7 +142,15 @@ class AgentWorkspaceConnection private constructor(
                  workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
                  externalBusy: () -> Boolean = { false },
                  // Injectable so a test states a capability instead of probing whichever CLIs the host has.
-                 discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe): AgentWorkspaceConnection {
+                 discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe,
+                 /**
+                  * Serve the narrow ChatGPT planning surface from this process.
+                  *
+                  * Default off, and it stays a decision rather than a configuration: this is the one
+                  * surface here meant to be reachable from outside the machine, and it should exist
+                  * only while somebody is deliberately letting ChatGPT drive.
+                  */
+                 hybridConnector: Boolean = false): AgentWorkspaceConnection {
             require(root.isDirectory)
             privateDirectory(directory)
             val discovery = directory.resolve("connection.json")
@@ -190,13 +200,33 @@ class AgentWorkspaceConnection private constructor(
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token).also { server = it }
                 val endpoint = AgentEndpoint(workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token)
                 atomicWrite(discovery, ConductorJson.encodeToString(AgentEndpoint.serializer(), endpoint))
+                // Off unless the caller says otherwise. Opening a workspace must never publish it.
+                // Reuse the port and secret this workspace published before. A tunnel points at a
+                // port and a connector stores a URL, so regenerating either on every restart means
+                // reconfiguring both by hand; the identity belongs to the workspace, not the process.
+                val connectorFile = directory.resolve("hybrid-connector.json")
+                val connector = if (hybridConnector) {
+                    val saved = runCatching { ConductorJson.parseToJsonElement(Files.readString(connectorFile)).jsonObject }.getOrNull()
+                    val secret = (saved?.get("secret") as? JsonPrimitive)?.contentOrNull?.takeIf { it.length >= 32 }
+                        ?: HybridConnector.newSecret()
+                    val preferred = (saved?.get("port") as? JsonPrimitive)?.intOrNull ?: 0
+                    // A port something else has taken is not a reason to refuse to serve.
+                    val auditPath = directory.resolve("hybrid-connector-audit.jsonl")
+                    (runCatching { HybridConnector.start(hostedWorkspace, preferred, secret, auditPath) }
+                        .getOrElse { HybridConnector.start(hostedWorkspace, 0, secret, auditPath) }).also {
+                        atomicWrite(connectorFile, buildJsonObject {
+                            put("port", it.port()); put("secret", it.secret); put("path", "/mcp/" + it.secret)
+                        }.toString())
+                    }
+                } else null
                 hostedWorkspace.recoverInBackground()
-                return AgentWorkspaceConnection(endpoint, discovery, true) {
-                    try { hostedServer.close() }
+                return AgentWorkspaceConnection(endpoint, discovery, true, hybridConnector = connector, closeOwner = {
+                    try { connector?.close() }
+                    finally { try { hostedServer.close() }
                     finally { try { if (background) hostedWorkspace.suspendAndClose() else hostedWorkspace.close() }
                     finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery); Files.deleteIfExists(graphDiscovery) }
-                    finally { ownerLock.release(); channel.close() } } }
-                }
+                    finally { ownerLock.release(); channel.close() } } } }
+                })
             } catch (failure: Throwable) {
                 try { server?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
                 finally { ownerLock.release(); channel.close() }

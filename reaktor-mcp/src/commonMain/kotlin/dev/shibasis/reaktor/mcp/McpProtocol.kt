@@ -81,6 +81,15 @@ class ReaktorMcpServer(
 
     init { require(this.tools.size == tools.size) { "Duplicate tool names" } }
 
+    /**
+     * What this server actually serves.
+     *
+     * A prompt that names a tool the server does not expose costs the model a failed call and then
+     * a detour around a capability it was promised. Generating that claim from here instead of
+     * writing it out keeps the two from drifting apart.
+     */
+    val toolNames: List<String> get() = this.tools.keys.toList()
+
     override fun handle(body: String): JsonElement? {
         val parsed = runCatching { Json.parseToJsonElement(body) }.getOrNull()
             ?: return rpcError(JsonNull, -32700, "Parse error")

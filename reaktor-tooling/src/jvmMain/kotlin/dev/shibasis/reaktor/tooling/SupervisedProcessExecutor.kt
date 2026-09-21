@@ -625,20 +625,16 @@ private fun processDefinitionDigest(
             "Sealed task definition directory no longer exists: ${root.directory.absolutePath}"
         }
         val canonicalRoot = root.directory.canonicalFile
-        canonicalRoot.walkTopDown()
-            .onEnter { directory ->
-                directory == canonicalRoot || canonicalRoot.extension == "app" || directory.name !in DEFINITION_EXCLUDED_DIRECTORIES
+        DefinitionDigestCache.listing(
+            directory = canonicalRoot,
+            includedSuffixes = root.includedSuffixes,
+            excludedDirectoryNames = DEFINITION_EXCLUDED_DIRECTORIES,
+        ) { file ->
+            check(resolvedFiles.size < MAX_DEFINITION_FILES) {
+                "Task definition closure exceeds $MAX_DEFINITION_FILES files: ${canonicalRoot.absolutePath}"
             }
-            .filter(File::isFile)
-            .filter { file ->
-                root.includedSuffixes.isEmpty() || root.includedSuffixes.any(file.name::endsWith)
-            }
-            .forEach { file ->
-                check(resolvedFiles.size < MAX_DEFINITION_FILES) {
-                    "Task definition closure exceeds $MAX_DEFINITION_FILES files: ${canonicalRoot.absolutePath}"
-                }
-                resolvedFiles[file.canonicalPath] = file.canonicalFile
-            }
+            resolvedFiles[file.canonicalPath] = file.canonicalFile
+        }
     }
     var totalBytes = 0L
     val framed = buildString {
@@ -650,14 +646,15 @@ private fun processDefinitionDigest(
             append('\n')
         }
         resolvedFiles.toSortedMap().forEach { (path, file) ->
-            val content = file.readBytes()
-            totalBytes += content.size
+            // Size comes from the stat the cache already performs, so the byte ceiling is still
+            // enforced over the whole closure without reading a file this pass has hashed before.
+            totalBytes += file.length()
             check(totalBytes <= MAX_DEFINITION_BYTES) {
                 "Task definition closure exceeds $MAX_DEFINITION_BYTES bytes"
             }
             append(path)
             append('\u0000')
-            append(sha256(content))
+            append(DefinitionDigestCache.digestOf(file))
             append('\n')
         }
     }

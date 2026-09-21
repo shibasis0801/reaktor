@@ -17,6 +17,8 @@ value class AgentId(val value: String)
 enum class RuntimeKind {
     ClaudeCode,
     Codex,
+    Gemini,
+    ChatGptGemini,
 
     /** Deterministic, no-subprocess runtime. Used by tests and by offline dry runs. */
     Echo,

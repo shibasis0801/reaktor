@@ -36,7 +36,7 @@ class AgentBundleTest {
             """.trimIndent() + "\n"
             codex.writeText(original)
 
-            val targets = AgentBundle.Targets(codex, java.io.File(root, ".mcp.json"))
+            val targets = AgentBundle.Targets(codex, java.io.File(root, ".mcp.json"), java.io.File(home, ".gemini/config/mcp_config.json"))
             AgentBundle.install(targets, command)
             val installed = codex.readText()
             assertTrue(installed.contains("[mcp_servers.reaktor]"))
@@ -160,5 +160,58 @@ class AgentBundleTest {
             assertTrue(targets.codexConfig.readText().contains("USER_SETTING"))
             assertTrue(targets.codexConfig.readText().contains("[mcp_servers.reaktor]"))
         } finally { root.deleteRecursively() }
+    }
+
+    @Test fun antigravityIsRegisteredWhereAgyReadsItAndFollowsTheWorkspaceItIsStartedIn() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            // CAPTURED shape: `agy` keeps one file per user, and someone else's server is in it.
+            val config = java.io.File(home, ".gemini/config/mcp_config.json").apply { parentFile.mkdirs() }
+            config.writeText("""{"mcpServers":{"pencil":{"command":"pencil-mcp","args":[],"env":{}}}}""")
+            val targets = AgentBundle.targets(root, home)
+            assertEquals(config, targets.antigravityConfig, "agy reads ~/.gemini/config/mcp_config.json, not a project file")
+
+            val installed = AgentBundle.install(targets, command)
+            // A registered server the harness will refuse to call is not a working install, so the
+            // operator is told the exact rule rather than left to discover the denial mid-turn.
+            assertTrue(installed.any { it.contains("mcp(reaktor/*)") && it.contains("permissions.allow") }, installed.toString())
+            val servers = Json.parseToJsonElement(config.readText()).jsonObject.getValue("mcpServers").jsonObject
+            assertEquals(setOf("pencil", "reaktor", "reaktor-graph"), servers.keys)
+            assertEquals("pencil-mcp", servers.getValue("pencil").jsonObject.getValue("command").jsonPrimitive.content)
+            // One file serves every project, so this entry names no workspace: it resolves the
+            // directory agy was started in. The per-project harnesses keep their pinned --dir.
+            val args = servers.getValue("reaktor").jsonObject.getValue("args").jsonArray.map { it.jsonPrimitive.content }
+            assertFalse("--dir" in args, "A machine-wide entry that pins one workspace would serve the wrong project")
+            assertEquals(listOf("workspace", "mcp"), args.takeLast(2))
+            assertTrue("--dir" in Json.parseToJsonElement(targets.claudeProjectConfig.readText()).jsonObject
+                .getValue("mcpServers").jsonObject.getValue("reaktor").jsonObject.getValue("args").jsonArray.map { it.jsonPrimitive.content })
+            assertTrue(AgentBundle.status(targets).antigravity)
+            assertTrue(AgentBundle.status(targets).antigravityGraph)
+
+            AgentBundle.uninstall(targets)
+            val after = Json.parseToJsonElement(config.readText()).jsonObject.getValue("mcpServers").jsonObject
+            assertEquals(setOf("pencil"), after.keys, "Someone else's server is not ours to remove")
+            assertEquals("{}", after.getValue("pencil").jsonObject.getValue("env").toString(), "Their entry is returned as it was")
+            assertFalse(AgentBundle.status(targets).antigravity)
+        } finally { home.deleteRecursively(); root.deleteRecursively() }
+    }
+
+    @Test fun aSharedAntigravityFileWeDidNotCreateSurvivesUninstall() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val targets = AgentBundle.targets(root, home)
+            AgentBundle.install(targets, command)
+            assertTrue(targets.antigravityConfig.isFile)
+            AgentBundle.uninstall(targets)
+            assertFalse(targets.antigravityConfig.exists(), "An empty file we created is litter")
+
+            targets.antigravityConfig.parentFile.mkdirs()
+            targets.antigravityConfig.writeText("""{"mcpServers":{}}""")
+            AgentBundle.install(targets, command)
+            AgentBundle.uninstall(targets)
+            assertTrue(targets.antigravityConfig.isFile, "A user-owned file is emptied of our entries, never deleted")
+        } finally { home.deleteRecursively(); root.deleteRecursively() }
     }
 }

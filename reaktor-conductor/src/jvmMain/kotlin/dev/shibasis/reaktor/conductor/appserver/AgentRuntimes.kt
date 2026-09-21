@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.conductor.AgentRuntime
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
+import dev.shibasis.reaktor.conductor.cli.AntigravityRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ object AgentRuntimes {
     fun batch(executor: SupervisedProcessExecutor): Map<RuntimeKind, AgentRuntime> = mapOf(
         RuntimeKind.Codex to CodexRuntime(executor),
         RuntimeKind.ClaudeCode to ClaudeCodeRuntime(executor),
+        RuntimeKind.Gemini to AntigravityRuntime(executor),
     )
 
     /** Interactive turns with native continuation: Codex over its App Server, Claude over stream-json stdin. */
@@ -31,5 +33,6 @@ object AgentRuntimes {
     ): Map<RuntimeKind, AgentRuntime> = mapOf(
         RuntimeKind.Codex to CodexAppServerRuntime(scope = scope),
         RuntimeKind.ClaudeCode to ClaudeCodeSessionRuntime(scope = scope),
+        RuntimeKind.Gemini to AntigravityRuntime(SupervisedProcessExecutor(scope = scope)),
     )
 }
