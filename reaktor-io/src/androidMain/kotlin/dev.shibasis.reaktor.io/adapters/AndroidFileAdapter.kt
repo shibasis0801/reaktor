@@ -37,6 +37,7 @@ class AndroidFileAdapter(activity: Activity): FileAdapter<Activity>(activity) {
     }
 
     override suspend fun writeBinaryFile(path: String, data: ByteArray) {
+        ensureParentDirectory(path)
         val output = SystemFileSystem.sink(Path(path)).buffered()
         output.use { sink ->
             sink.write(data)

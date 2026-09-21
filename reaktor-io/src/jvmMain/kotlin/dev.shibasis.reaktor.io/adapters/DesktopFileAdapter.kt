@@ -70,8 +70,3 @@ private fun ensureDirectory(path: String) {
         SystemFileSystem.createDirectories(directory, false)
     }
 }
-
-private fun ensureParentDirectory(path: String) {
-    val target = Path(path)
-    target.parent?.toString()?.let(::ensureDirectory)
-}

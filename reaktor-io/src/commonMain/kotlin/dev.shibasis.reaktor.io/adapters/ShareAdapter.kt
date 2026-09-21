@@ -10,13 +10,27 @@ import dev.shibasis.reaktor.core.framework.Feature
  * [FileAdapter] writes inside the app sandbox, which the user cannot reach — exporting anything
  * (a backup, a report, a log bundle) means going through the OS sharing mechanism instead.
  */
-data class SharePayload(
+class SharePayload(
     val fileName: String,
-    val contents: String,
+    val bytes: ByteArray,
     val mimeType: String = "application/json",
     /** Sheet heading; defaults to the file name. */
     val title: String? = null,
-)
+) {
+    /**
+     * Text convenience, for the documents most apps share — a JSON export, a log, a report.
+     *
+     * Bytes are the primary form because plenty of what an app wants to hand out is not text at
+     * all: an image of a chart, a PDF, a recording. Encoding those through a String would corrupt
+     * them, and every caller would have to know that.
+     */
+    constructor(
+        fileName: String,
+        contents: String,
+        mimeType: String = "application/json",
+        title: String? = null,
+    ) : this(fileName, contents.encodeToByteArray(), mimeType, title)
+}
 
 abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     /**
@@ -27,6 +41,19 @@ abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Contro
      * reporting a success the user never saw.
      */
     abstract suspend fun shareFile(payload: SharePayload): Boolean
+
+    /**
+     * Offers [text] itself, rather than a document containing it.
+     *
+     * Separate from [shareFile] because the destination treats them as different things: a link
+     * or a message shared as text lands in a chat as something the recipient can read and tap,
+     * while the same string shared as a file arrives as an attachment nobody opens. Anything
+     * meant to be pasted belongs here.
+     *
+     * [subject] fills in where a target asks for one — an email's subject line, mostly — and is
+     * ignored everywhere else.
+     */
+    abstract suspend fun shareText(text: String, title: String? = null, subject: String? = null): Boolean
 }
 
 var Feature.Share by CreateSlot<ShareAdapter<*>>()
