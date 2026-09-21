@@ -24,26 +24,12 @@ kotlin {
         }
     }
     droid {
-        dependencies {
-            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
-            implementation("com.google.firebase:firebase-messaging")
-        }
     }
+    // Local notifications only. The FCM transport — and with it firebase-messaging, the
+    // FirebaseMessaging pod, and the INTERNET / c2dm.RECEIVE permissions they merge into an
+    // app's manifest — lives in :reaktor-notification-fcm. Apps that receive remote push depend
+    // on that module; apps that only schedule reminders no longer pay for it.
     darwin {
-        dependencies {
-            implementation("dev.gitlive:firebase-app:2.4.0")
-        }
-        podDependencies {
-            // FCM transport (DarwinRemoteMessaging) lives in this module now — these pods
-            // moved out of the app. NOTE: the Xcode 26 "Catalyst-only" xcodebuild workaround
-            // tasks in the app's build.gradle.kts (`darwinPods` loop) must be replicated here
-            // for FirebaseCore + FirebaseMessaging, and shared FirebaseCore reconciled with
-            // reaktor-telemetry (Analytics/Crashlytics) — verify with an on-device iOS build.
-            pod("FirebaseMessaging") {
-                version = "11.0"
-                extraOpts += listOf("-compiler-option", "-fmodules")
-            }
-        }
     }
     web {
         dependencies {

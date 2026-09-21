@@ -24,7 +24,7 @@ import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
 import platform.darwin.NSObject
 
 /**
- * Firebase Cloud Messaging + APNs transport for iOS, owned by reaktor-notification.
+ * Firebase Cloud Messaging + APNs transport for iOS, owned by reaktor-notification-fcm.
  *
  * This is the plumbing that used to live in the app's `UIApplicationDelegate`: it owns
  * the [UNUserNotificationCenter] delegate and the [FIRMessaging] delegate, configures
@@ -34,6 +34,10 @@ import platform.darwin.NSObject
  * Wire it up by listing it in a `ReaktorAppDelegate`'s `handlers()` — it implements
  * [AppLaunchHandler] (configure on launch) and [RemoteNotificationHandler] (APNs token).
  * Nothing app-specific lives here.
+ *
+ * An app that never receives remote push should not depend on this module at all: the
+ * FirebaseMessaging pod and the Firebase SDK come with it, and local notifications in
+ * reaktor-notification need neither.
  */
 object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
     private var configured = false

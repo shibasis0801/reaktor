@@ -82,6 +82,16 @@ sealed class NotificationSettingsTarget {
 
     @Serializable
     data class Category(val categoryId: String) : NotificationSettingsTarget()
+
+    /**
+     * Where the user allows this app to schedule alarms that land on time.
+     *
+     * Android only, and the only route: the right behind [NotificationSchedulingFeature.
+     * ExactDelivery] cannot be requested with a permission dialog, just a settings page the app
+     * sends the user to. Elsewhere this opens the ordinary notification settings.
+     */
+    @Serializable
+    data object ExactAlarms : NotificationSettingsTarget()
 }
 
 @Serializable
@@ -126,6 +136,16 @@ enum class NotificationSchedulingFeature {
     BackgroundSync,
     CancelScheduled,
     DeliveredInbox,
+
+    /**
+     * Scheduled notifications will actually arrive at the time they were asked for.
+     *
+     * Reported rather than assumed because on Android it is a right the user grants and can take
+     * away at any moment, so it is a fact about right now, not about the build. Absent, a request
+     * asking for [NotificationPrecision.Exact] still gets scheduled -- it simply lands inside a
+     * batching window, which is currently about an hour wide.
+     */
+    ExactDelivery,
 }
 
 @Serializable

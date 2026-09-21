@@ -1,24 +1,29 @@
 package dev.shibasis.reaktor.media.camera
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.media.gallery.MediaPick
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-/*
-This interface should be the specs for a Camera
-How to handle multiple cameras
-How to switch between them
-etc
+enum class CameraFacing {
+    Back,
+    Front;
 
-The main camera implementation can switch between front and rear cameras.
-But you can create multiple adapters for a platform if you wish to implement multiple views.
+    fun flipped() = if (this == Back) Front else Back
+}
 
-Study if ECS can help here (platform differences)
-*/
+/**
+ * A camera that previews and captures. [capturePhoto] returns the same [MediaPick] the gallery
+ * yields, so both feed one upload path.
+ */
 abstract class CameraAdapter<Controller>(
-    controller: Controller
-): Adapter<Controller>(controller) {
+    controller: Controller,
+) : Adapter<Controller>(controller) {
     enum class CameraStart {
         Success,
         ControllerFailure,
@@ -26,39 +31,25 @@ abstract class CameraAdapter<Controller>(
         CameraFailure,
     }
 
-    // Switching between cameras is optional
-    open suspend fun switchCamera(): CameraStart { return CameraStart.Success
+    private val _facing = MutableStateFlow(CameraFacing.Back)
+    val facing: StateFlow<CameraFacing> = _facing.asStateFlow()
+
+    protected fun setFacing(value: CameraFacing) {
+        _facing.value = value
     }
-    abstract suspend fun start(): CameraStart
+
+    abstract suspend fun start(facing: CameraFacing = this.facing.value): CameraStart
+
+    open suspend fun switchCamera(): CameraStart = start(facing.value.flipped())
+
+    /** Null when the capture failed or the session was not running. */
+    abstract suspend fun capturePhoto(): MediaPick?
+
+    /** Release the device. Callers must invoke this when the camera surface leaves the screen. */
+    abstract suspend fun stop()
+
     @Composable
-    abstract fun Render()
-
-    // Use kotlinx-io to read and write images
-    interface FileCapability {
-        fun storeFile(name: String)
-    }
-
-    interface AnalyserCapability {
-        fun addAnalyser(): Boolean
-    }
+    abstract fun Render(modifier: Modifier)
 }
-
-/*
-The framework must be AI first for rapid prototyping with high performance.
-There should be multiple guard rails in the form of Functional Tests, Security Tests, Memory Tests etc.
-It should factor into account that AIs are going to be immensely more powerful.
-*/
 
 var Feature.Camera by CreateSlot<CameraAdapter<*>>()
-
-
-
-
-fun useCamera(cameraAdapter: CameraAdapter<*>) {
-    if(cameraAdapter is CameraAdapter.AnalyserCapability) {
-        cameraAdapter.addAnalyser()
-    }
-}
-
-
-

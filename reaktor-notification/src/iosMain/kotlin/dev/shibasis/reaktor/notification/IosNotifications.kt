@@ -80,6 +80,8 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
                 NotificationSchedulingFeature.BackgroundSync,
                 NotificationSchedulingFeature.CancelScheduled,
                 NotificationSchedulingFeature.DeliveredInbox,
+                // UNCalendarNotificationTrigger fires on the minute and asks nobody's permission.
+                NotificationSchedulingFeature.ExactDelivery,
             ),
             extensionFeatures = setOf(
                 NotificationExtensionFeature.ServiceExtension,

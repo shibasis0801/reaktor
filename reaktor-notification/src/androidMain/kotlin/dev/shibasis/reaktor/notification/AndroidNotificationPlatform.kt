@@ -14,8 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import com.google.firebase.messaging.FirebaseMessagingService
-import com.google.firebase.messaging.RemoteMessage
+import android.util.Log
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.core.framework.json
@@ -36,6 +35,9 @@ private const val EXTRA_ROUTE = "reaktor_route"
 private const val EXTRA_ROUTE_PAYLOAD = "reaktor_route_payload"
 private const val EXTRA_ACTION_ID = "reaktor_action_id"
 internal const val EXTRA_DISMISSES_NOTIFICATION = "reaktor_dismisses_notification"
+// Distinct from any notification's own request code, which is derived from its id.
+private const val SHOW_ALARM_REQUEST_CODE = 0x5245414B
+private const val ALARM_LOG_TAG = "ReaktorNotifications"
 private const val EXTRA_REQUEST_JSON = "reaktor_request_json"
 private const val EXTRA_ENVELOPE_JSON = "reaktor_envelope_json"
 private const val ALARM_STORE_NAME = "reaktor_scheduled_alarms"
@@ -290,14 +292,75 @@ class AndroidNotificationScheduler(
         }
     }
 
+    /**
+     * Arms the OS alarm, as close to the requested moment as the app is allowed to get.
+     *
+     * `AlarmManager.set` has been inexact since API 19 and currently batches to a window of about
+     * an hour, which is fine for a digest and useless for a reminder somebody set a clock face to.
+     * An exact request therefore tries `setExactAndAllowWhileIdle`, then falls back.
+     *
+     * Every exact path on Android needs `SCHEDULE_EXACT_ALARM` or `USE_EXACT_ALARM` from API 31 --
+     * `setAlarmClock` included, despite its history of being the permission-free way to do this.
+     * Verified the hard way: it throws the same SecurityException as the rest. Which permission to
+     * declare, and how to justify it to the store, is the *host app's* decision, so this module
+     * declares neither and reads what it was given.
+     *
+     * The fallback matters more than the precision. A notification that arrives late is a poor
+     * outcome; one that never arrives because it could not arrive *precisely* is a much worse one,
+     * and that is what an unguarded exact call produces on any device where the right is missing.
+     */
     private fun scheduleAt(request: LocalNotificationRequest, triggerAtMillis: Long) {
         store.edit()
             .putString(request.id, json.encodeToString(ScheduledAlarm(request, triggerAtMillis)))
             .apply()
-        alarmManager.set(
-            AlarmManager.RTC_WAKEUP,
-            triggerAtMillis,
-            alarmIntent(request.id, request),
+
+        val intent = alarmIntent(request.id, request)
+        if (request.precision == NotificationPrecision.Approximate) {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
+            return
+        }
+
+        // Both exact paths can be refused at runtime — the right can be revoked between the check
+        // and the call, and OEM builds have their own rules about which of them an app may use. A
+        // notification that arrives late is a poor outcome; one that never arrives because it
+        // could not arrive *precisely* is a far worse one, so this degrades rather than gives up.
+        val armed = runCatching {
+            if (canScheduleExact()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
+            } else {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerAtMillis, showAlarmIntent()),
+                    intent,
+                )
+            }
+        }.onFailure {
+            Log.w(ALARM_LOG_TAG, "Exact alarm refused for ${request.id}, falling back", it)
+        }.isSuccess
+
+        if (!armed) alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
+    }
+
+    /**
+     * Whether the exact-alarm right is held. Always true below API 31, where it did not exist.
+     *
+     * Re-read on every arm rather than cached, because the user can revoke it in Settings at any
+     * moment and a cached yes would silently downgrade every later alarm to a broken promise.
+     */
+    internal fun canScheduleExact(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+
+    /**
+     * What the lock screen opens when the alarm entry is tapped. The launcher activity, looked up
+     * rather than named, since a framework cannot know the host app's entry point.
+     */
+    private fun showAlarmIntent(): PendingIntent? {
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?: return null
+        return PendingIntent.getActivity(
+            context,
+            SHOW_ALARM_REQUEST_CODE,
+            launch,
+            pendingIntentFlags(immutable = true),
         )
     }
 
@@ -403,18 +466,17 @@ class AndroidNotificationDevHarness(
     }
 }
 
-open class ReaktorFirebaseMessagingService : FirebaseMessagingService() {
-    override fun onMessageReceived(message: RemoteMessage) {
-        AndroidNotificationsRuntime.ensure(this).handleRemoteMessage(message)
-    }
-
-    override fun onNewToken(token: String) {
-        AndroidNotificationsRuntime.ensure(this).recordNewToken(token)
-    }
-}
-
 object AndroidNotificationsRuntime {
     private var client: AndroidNotificationsClient? = null
+
+    /**
+     * The listeners for this process, shared by every client built inside it.
+     *
+     * See the note in AndroidNotificationsClient: responses arrive through a process-scoped
+     * receiver, so holding listeners on one client instance loses them as soon as another is
+     * constructed.
+     */
+    internal val events = NotificationEventHub()
 
     fun install(client: AndroidNotificationsClient) {
         this.client = client
