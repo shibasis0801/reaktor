@@ -1,6 +1,8 @@
 @file:OptIn(ExperimentalUuidApi::class)
 package dev.shibasis.reaktor.io.network
 
+import dev.shibasis.reaktor.io.network.websocket.ExponentialBackoffStrategy
+import dev.shibasis.reaktor.io.network.websocket.ReconnectionStrategy
 import dev.shibasis.reaktor.io.network.websocket.WebSocket
 import dev.shibasis.reaktor.io.network.websocket.WebSocketOptions
 import io.ktor.client.HttpClient
@@ -33,6 +35,16 @@ data class PartySocketOptions(
     val queryProvider: QueryProvider = { emptyMap() },
     val webSocketOptions: WebSocketOptions = WebSocketOptions(),
     val id: String = Uuid.random().toString(),
+    /**
+     * How hard to try after a connection drops.
+     *
+     * [WebSocket] has always taken one; this did not pass it on, so every party socket ran the
+     * default — ten attempts, then permanent silence. That is right for a request that has a caller
+     * waiting and wrong for a socket an app expects to stay up: a laptop that sleeps for an hour,
+     * or a phone in a tunnel, comes back to a connection that gave up long ago and reports itself
+     * as failed rather than reconnecting. An app that wants to keep trying can now say so.
+     */
+    val reconnectionStrategy: ReconnectionStrategy = ExponentialBackoffStrategy(),
 )
 
 open class PartySocket(
@@ -41,6 +53,7 @@ open class PartySocket(
 ): WebSocket(
     options = partyOptions.webSocketOptions,
     httpClient = httpClient,
+    reconnectionStrategy = partyOptions.reconnectionStrategy,
     urlProvider = {
         // Logic moved inside the provider so it re-evaluates on every reconnect
         // This is crucial if queryProvider returns dynamic tokens that expire.
