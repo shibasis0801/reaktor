@@ -45,6 +45,10 @@ private val programRepo by consumes<ProgramRepository>("programRepository")
 A child graph's DI scope chains to its parent, so cross-graph sharing works as long as the keys
 match and the provider is exposed **before** the child graph's `autoWire()` runs.
 
+Because the key is a property *name*, **minification breaks wiring**. R8 renames fields, so a
+release build raises this same unconnected-port error on its first launch while every debug build
+is fine. The keep rules that prevent it are in `reaktor-ship`.
+
 ### 2. Never touch a port from `init`
 
 Nodes are all constructed first; `autoWire()` runs afterwards. Reading a port during construction
@@ -166,6 +170,51 @@ An `expect` with no `actual` for jvm or js breaks those targets, and you will no
 target you rarely build fails. Write no-op actuals for the platforms where the capability is
 meaningless. This is cheap and it keeps the module compiling everywhere.
 
+## A connection that is supposed to stay open
+
+`WebSocket` and `PartySocket` reconnect through a `ReconnectionStrategy`, and the default
+`ExponentialBackoffStrategy` stops after **ten attempts**. That is right for a request with a
+caller waiting and wrong for a socket the app expects to hold: a laptop that slept for an hour, or
+a phone that spent the commute underground, comes back to a socket that gave up long ago and now
+reports itself as `Failed`. Say so explicitly:
+
+```kotlin
+PartySocketOptions(
+    host = config.host,
+    room = self.room,
+    party = config.party,
+    reconnectionStrategy = ExponentialBackoffStrategy(maxRetries = Int.MAX_VALUE),
+    webSocketOptions = WebSocketOptions(eager = false),
+)
+```
+
+Backoff only covers a connection that **drops**. Two states leave a socket parked with nobody
+retrying: a first `connect()` that fails — which is what launching with no network looks like —
+and a `Failed` reached after the strategy ran out. Both end in a device that is quietly not
+connected, which is the worst failure this kind of app has, because everything looks fine and
+nothing arrives. A supervising loop beside the socket costs one `delay` and closes both:
+
+```kotlin
+private suspend fun keepOpen(connection: PartySocket) {
+    while (true) {
+        delay(RETRY_MILLIS)
+        if (socket !== connection) return   // a newer socket owns the room now
+        when (connection.state.value) {
+            is ConnectionState.Open, is ConnectionState.Connecting -> continue
+            else -> {
+                connection.reconnectionStrategy.reset()
+                runCatching { connection.connect() }
+                    .onFailure { Logger.w(it) { "Could not re-open." } }
+            }
+        }
+    }
+}
+```
+
+Pair it with `eager = false` and connect yourself, so nothing opens before there is a token to
+open it with — and re-read the token in `queryProvider`, which runs on every reconnect, so one
+refreshed while offline is picked up without tearing the socket down.
+
 ## Extending reaktor rather than working around it
 
 When an app needs something reaktor does not have, the default is to add it to reaktor rather
@@ -186,4 +235,6 @@ when the capability would cost every other app a permission or a heavy SDK it di
 - [ ] Same-graph consumers use `consumes<T>("")`; cross-graph ones name the provider's key.
 - [ ] Adapters installed File-before-Sql.
 - [ ] Every new `expect` has an `actual` on every target, no-ops included.
-- [ ] Run it. These failures are all runtime, so a green build proves nothing about wiring.
+- [ ] Any socket meant to stay open: `maxRetries` raised, and something re-opens a `Failed` one.
+- [ ] Run it. These failures are all runtime, so a green build proves nothing about wiring. Run the
+      **minified** build too: renamed properties break wiring there and nowhere else.

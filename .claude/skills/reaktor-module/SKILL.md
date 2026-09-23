@@ -50,6 +50,29 @@ Prefer widening an existing type over adding a parallel one. If two platform ada
 the same three lines, that is a base-class method, and the third adapter that arrives later gets
 it for free.
 
+**Look for the other half before you add one.** Capabilities here often shipped in one direction
+only — `reaktor-io` had `ShareAdapter` for sharing *out* long before anything could receive a
+share coming *in*. The inbound half is a sibling of the outbound one in the same module, not a new
+module and not app-local code, and naming it after its direction (`ShareReceiver` beside
+`ShareAdapter`) keeps the next reader from concluding the module does not do it.
+
+**Directories in this repo lie about packages.** Several modules carry both a dotted source
+directory and a nested one under the same source set:
+
+```
+reaktor-io/src/jvmMain/kotlin/dev.shibasis.reaktor.io/   <- one file tree
+reaktor-io/src/jvmMain/kotlin/dev/shibasis/reaktor/io/   <- another, same package
+```
+
+Kotlin reads the `package` declaration and ignores the path, so both are the same package and a
+class you "could not find" may be sitting in the branch you did not open. Adding your version
+gives `Redeclaration: <Name>` from a file that looks unrelated. Search by package, never by
+directory:
+
+```bash
+grep -rn "^package dev.shibasis.reaktor.io" reaktor-io/src --include=*.kt -l
+```
+
 ## 4. Only then: a new module
 
 Create one when the capability would **cost every consumer something** they did not ask for. That
