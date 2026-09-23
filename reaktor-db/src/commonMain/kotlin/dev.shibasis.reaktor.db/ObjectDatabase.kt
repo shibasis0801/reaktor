@@ -82,6 +82,21 @@ sealed class DatabaseEvent {
     data object ClearAll : DatabaseEvent()
 }
 
+/**
+ * A payload is stored under [storeName]/[key], but the serializer the current build uses cannot
+ * read it — a required field appeared, an enum lost a name, a write landed half-finished.
+ *
+ * Distinct from a missing object on purpose. "Nothing is stored here" invites a caller to start
+ * from a default and write it back; doing that over a payload that is merely unreadable destroys
+ * data the user still has, and does it silently. Anything catching this must leave the bytes
+ * alone — see `ObjectState.load`, which sets them aside instead.
+ */
+class UnreadableObjectException(
+    val storeName: String,
+    val key: String,
+    override val cause: Throwable,
+) : IllegalStateException("Cannot read stored object $storeName/$key: ${cause.message}")
+
 abstract class ObjectDatabase(
     val objectSerializer: ObjectSerializer<*>
 ) {
@@ -224,6 +239,41 @@ abstract class ObjectDatabase(
         _events.emit(event)
     }
 
+    /**
+     * Moves the payload at [key] out of the way under a generated key, and reports where it went.
+     *
+     * For a document this build cannot read. Deleting it would destroy data the user may still
+     * recover from a backup or a later build; leaving it in place means every read fails the same
+     * way forever and the app never starts working again. Setting it aside does neither: the key
+     * reads as absent so the caller can start fresh, and the original bytes stay in the store,
+     * where an export still carries them.
+     *
+     * Returns null when the database cannot move rows, which leaves the payload untouched.
+     */
+    internal suspend fun quarantine(storeName: String, key: String): String? {
+        // A key set aside once can be set aside again, and the earlier copy is somebody's data
+        // too — so look for a free name rather than writing over it. Bounded, because a key that
+        // has gone unreadable this many times is not going to be fixed by a longer search.
+        val quarantineKey = (0 until QUARANTINE_ATTEMPTS)
+            .map { attempt -> "$key$QUARANTINE_SUFFIX" + if (attempt == 0) "" else ".$attempt" }
+            .firstOrNull { candidate -> renameRaw(storeName, key, candidate) }
+            ?: return null
+        // Deliberately no invalidate: this runs inside the caller's per-key lock, and an
+        // invalidation would send every open state for the key straight back through it.
+        // The one caller drops its cached copy itself, which is the same outcome without
+        // the deadlock.
+        return quarantineKey
+    }
+
+    /**
+     * Renames a stored payload without decoding it, reporting whether a row actually moved.
+     *
+     * Defaults to doing nothing, so a database that cannot express this keeps working — it simply
+     * has no way to set an unreadable document aside.
+     */
+    protected open suspend fun renameRaw(storeName: String, key: String, newKey: String): Boolean =
+        false
+
     protected abstract suspend fun <T : Any> putRaw(
         storeName: String,
         key: String,
@@ -250,5 +300,11 @@ abstract class ObjectDatabase(
 
     protected abstract suspend fun clearRaw()
 }
+
+/** Marks a key holding bytes this build could not read. Kept stable so a later build can find them. */
+private const val QUARANTINE_SUFFIX = "#unreadable"
+
+/** How many times one key may be set aside before the payload is left where it is. */
+private const val QUARANTINE_ATTEMPTS = 10
 
 var Feature.Database by CreateSlot<ObjectDatabase>()

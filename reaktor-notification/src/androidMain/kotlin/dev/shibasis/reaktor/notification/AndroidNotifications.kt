@@ -3,23 +3,33 @@ package dev.shibasis.reaktor.notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.RemoteMessage
 import dev.shibasis.reaktor.core.adapters.AndroidPermissionAdapter
 import dev.shibasis.reaktor.core.adapters.NotificationPermissionOptions
 import dev.shibasis.reaktor.core.adapters.NotificationPermissionStatus
 import dev.shibasis.reaktor.core.framework.Dispatch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 import kotlin.math.absoluteValue
+
+/** A token arrived from a transport the config never named — possible, but worth not calling FCM. */
+private const val PROVIDER_UNKNOWN = "unknown"
+
+/** No transport is installed at all, which is the normal state for a local-only app. */
+private const val PROVIDER_NONE = "none"
 
 data class AndroidNotificationsConfig(
     val fcmProjectId: String? = null,
     val defaultSmallIconName: String? = null,
     val smallIconResId: Int? = null,
     val autoDisplayRemoteMessages: Boolean = true,
+    /**
+     * How remote push reaches this app, or null for local notifications only.
+     *
+     * Supplied by a transport module — `FcmPushTransport` from `reaktor-notification-fcm`.
+     * See [AndroidPushTransport] for why it is not linked in by default.
+     */
+    val pushTransport: AndroidPushTransport? = null,
 )
 
 class AndroidNotificationsClient(
@@ -27,7 +37,15 @@ class AndroidNotificationsClient(
     private val config: AndroidNotificationsConfig = AndroidNotificationsConfig(),
 ) : NotificationAdapter<Context>(context.applicationContext, AndroidPermissionAdapter(context)) {
     private val appContext = context.applicationContext
-    private val events = NotificationEventHub()
+
+    // Process-wide rather than per-instance. What delivers a notification response on Android is
+    // a BroadcastReceiver, which is scoped to the process and reaches whichever client happens to
+    // be installed when it fires — while listeners are registered once, by application code that
+    // has no reason to run again. An Activity that builds a client in onCreate therefore silently
+    // orphans every listener the moment it is recreated: the action fires, the notification is
+    // dismissed, and nothing else happens. Two clients in one process are always the same app, so
+    // sharing the hub is both the fix and the honest model.
+    private val events = AndroidNotificationsRuntime.events
     private val channelRegistry = AndroidNotificationChannelRegistry(appContext)
     private val renderer = AndroidNotificationRenderer(appContext, channelRegistry, config)
     private val scheduler = AndroidNotificationScheduler(appContext)
@@ -89,7 +107,11 @@ class AndroidNotificationsClient(
                 NotificationSchedulingFeature.BackgroundSync,
                 NotificationSchedulingFeature.CancelScheduled,
                 NotificationSchedulingFeature.DeliveredInbox,
-            ),
+            ) + if (scheduler.canScheduleExact()) {
+                setOf(NotificationSchedulingFeature.ExactDelivery)
+            } else {
+                emptySet()
+            },
             extensionFeatures = setOf(
                 NotificationExtensionFeature.ForegroundService,
                 NotificationExtensionFeature.FullScreenIntent,
@@ -103,39 +125,38 @@ class AndroidNotificationsClient(
     }
 
     override suspend fun getDeviceToken(): DevicePushToken? {
-        val token = suspendCancellableCoroutine<String?> { continuation ->
-            FirebaseMessaging.getInstance().token
-                .addOnCompleteListener { task ->
-                    continuation.resume(if (task.isSuccessful) task.result else null)
-                }
-        }
-        cachedToken = token?.let {
-            DevicePushToken(
-                provider = "fcm",
-                value = it,
-                projectId = config.fcmProjectId,
-                deviceId = appContext.notificationDeviceId(),
-            )
-        }
+        // No transport is the normal case for a local-only app, and it is not a failure: there is
+        // simply no remote endpoint to name.
+        val transport = config.pushTransport ?: return null
+        cachedToken = transport.token()?.let { pushToken(it, transport.providerId) }
         return cachedToken
     }
 
     fun recordNewToken(token: String) {
-        cachedToken = DevicePushToken(
-            provider = "fcm",
-            value = token,
-            projectId = config.fcmProjectId,
-            deviceId = appContext.notificationDeviceId(),
-        )
+        cachedToken = pushToken(token, config.pushTransport?.providerId ?: PROVIDER_UNKNOWN)
         devHarness.recordToken(cachedToken)
     }
 
+    private fun pushToken(value: String, provider: String) = DevicePushToken(
+        provider = provider,
+        value = value,
+        projectId = config.fcmProjectId,
+        deviceId = appContext.notificationDeviceId(),
+    )
+
     override suspend fun registerRemoteEndpoint(userId: String?): RegisterEndpointResult {
         val token = cachedToken ?: getDeviceToken()
+        val provider = token?.provider ?: config.pushTransport?.providerId
         return RegisterEndpointResult(
-            endpointId = token?.value?.let { "android-fcm-${it.hashCode().absoluteValue}" } ?: "android-fcm-unavailable",
+            endpointId = token?.value?.let { "android-$provider-${it.hashCode().absoluteValue}" }
+                ?: "android-${provider ?: PROVIDER_NONE}-unavailable",
             registered = token != null,
-            detail = if (token == null) "No FCM token available" else "Local endpoint probe only",
+            detail = when {
+                config.pushTransport == null ->
+                    "No push transport installed — add reaktor-notification-fcm to receive remote push"
+                token == null -> "No device token available"
+                else -> "Local endpoint probe only"
+            },
         )
     }
 
@@ -202,6 +223,16 @@ class AndroidNotificationsClient(
         val intent = when (target) {
             NotificationSettingsTarget.App -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, appContext.packageName)
+            NotificationSettingsTarget.ExactAlarms ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        .setData(Uri.fromParts("package", appContext.packageName, null))
+                } else {
+                    // Nothing to grant before Android 12 - exact alarms were simply allowed.
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, appContext.packageName)
+                }
+
             is NotificationSettingsTarget.Category ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
@@ -221,8 +252,14 @@ class AndroidNotificationsClient(
     override fun addResponseListener(listener: suspend (NotificationResponseEvent) -> Unit): ListenerHandle =
         events.addResponseListener(listener)
 
-    fun handleRemoteMessage(message: RemoteMessage) {
-        val envelope = NotificationEnvelope.fromDataMap(message.data)
+    /**
+     * A remote payload arrived, as the flat data map every push transport ultimately delivers.
+     *
+     * Taking the map rather than a transport's own message type is what keeps this module free of
+     * Firebase — see [AndroidPushTransport].
+     */
+    fun handleRemoteMessage(data: Map<String, String>) {
+        val envelope = NotificationEnvelope.fromDataMap(data)
         Dispatch.Default.launch {
             events.emitReceived(envelope)
             devHarness.recordReceivedFromPlatform(envelope)

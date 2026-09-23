@@ -40,6 +40,16 @@ class R2ObjectBody internal constructor(
     @JsExport.Ignore
     suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
 
+    /**
+     * The object's `ReadableStream`, for serving it onward without buffering.
+     *
+     * Pair with `CloudflareRouteContext.stream` to hand a large object straight back to the
+     * caller; [bytes] is the right choice only when the whole payload is small enough to belong in
+     * the isolate.
+     */
+    val body: dynamic
+        get() = raw.asDynamic().body
+
     @JsExport.Ignore
     suspend fun bytes(maxBytes: Int): ByteArray = readBoundedStream(raw.asDynamic().body, maxBytes)
 
@@ -61,6 +71,38 @@ class R2ObjectBody internal constructor(
 class R2Bucket internal constructor(
     private val raw: RawR2Bucket,
 ) {
+    /**
+     * Keys under a prefix.
+     *
+     * R2 has no way to ask "does this set of objects exist" other than listing, and a caller that
+     * stored one logical thing as many objects — a file in chunks, say — needs exactly that to know
+     * what it still has to send. Doing it with one `head` per object would be one round trip per
+     * chunk before a byte moves.
+     *
+     * Paged, because R2 caps a listing at 1000 and silently truncating would make "what is missing"
+     * answer wrongly on a large object. The cursor is followed here so callers get the whole set.
+     */
+    @JsExport.Ignore
+    suspend fun list(prefix: String, limit: Int = 1000): List<String> {
+        val keys = mutableListOf<String>()
+        var cursor: String? = null
+
+        do {
+            val options = js("({})")
+            options.prefix = prefix
+            options.limit = limit
+            if (cursor != null) options.cursor = cursor
+
+            val page = raw.asDynamic().list(options).unsafeCast<Promise<dynamic>>().await()
+            val objects = page.objects.unsafeCast<Array<dynamic>>()
+            objects.forEach { entry -> keys += entry.key.unsafeCast<String>() }
+
+            cursor = if (page.truncated == true) page.cursor.unsafeCast<String?>() else null
+        } while (cursor != null)
+
+        return keys
+    }
+
     @JsExport.Ignore
     suspend fun head(key: String): R2Object? = raw.head(key).await()?.let(::R2Object)
 
@@ -74,6 +116,28 @@ class R2Bucket internal constructor(
     @JsExport.Ignore
     suspend fun put(key: String, value: ByteArray): R2Object =
         R2Object(raw.put(key, value.toUint8Array()).await())
+
+    /**
+     * Stores a `ReadableStream` — a request body, or another R2 object's body — without pulling it
+     * through the isolate.
+     *
+     * The [ByteArray] overloads are right for small payloads and wrong for large ones: a 50 MB
+     * upload buffered into Kotlin costs 50 MB of isolate memory to achieve nothing, since the
+     * bytes are only ever on their way to R2. Take the stream off
+     * [CloudflareHttpRequest.body] and pass it here instead.
+     */
+    @JsExport.Ignore
+    suspend fun putStream(
+        key: String,
+        stream: dynamic,
+        contentType: String? = null,
+    ): R2Object =
+        R2Object(
+            raw.asDynamic()
+                .put(key, stream, putOptions(contentType))
+                .unsafeCast<kotlin.js.Promise<RawR2Object>>()
+                .await(),
+        )
 
     @JsExport.Ignore
     suspend fun put(key: String, value: String): R2Object =

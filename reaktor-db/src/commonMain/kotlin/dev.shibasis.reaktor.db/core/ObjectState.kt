@@ -3,6 +3,9 @@ package dev.shibasis.reaktor.db.core
 import dev.shibasis.reaktor.db.DatabaseEvent
 import dev.shibasis.reaktor.db.ObjectAddress
 import dev.shibasis.reaktor.db.StoredObject
+import dev.shibasis.reaktor.db.UnreadableObjectException
+import dev.shibasis.reaktor.core.utils.logger
+import dev.shibasis.reaktor.core.utils.warn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +21,8 @@ class ObjectState<T : Any> internal constructor(
     val type: KClass<T>,
     val serializer: KSerializer<T>,
 ) {
+    private val log = "ObjectState".logger()
+
     private val _stored = MutableStateFlow<StoredObject<T>?>(null)
 
     val stored: StateFlow<StoredObject<T>?> =
@@ -130,12 +135,27 @@ class ObjectState<T : Any> internal constructor(
                 }
         }
 
-        val loaded = store.database.get(
-            storeName = store.storeName,
-            key = key,
-            type = type,
-            serializer = serializer,
-        )
+        val loaded = try {
+            store.database.get(
+                storeName = store.storeName,
+                key = key,
+                type = type,
+                serializer = serializer,
+            )
+        } catch (exception: UnreadableObjectException) {
+            // Callers overwhelmingly answer a null with a default and write it back, so returning
+            // null over a payload still sitting in the store would quietly destroy it on the next
+            // save. Set the bytes aside first; then absent is the truth.
+            val quarantined = store.database.quarantine(store.storeName, key)
+            log.warn {
+                if (quarantined != null) {
+                    "Set aside unreadable ${store.storeName}/$key as $quarantined: ${exception.cause?.message}"
+                } else {
+                    "Cannot read ${store.storeName}/$key and cannot set it aside: ${exception.cause?.message}"
+                }
+            }
+            null
+        }
 
         if (loaded == null) {
             store.cache.remove(ObjectAddress(store.storeName, key))

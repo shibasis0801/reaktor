@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.files.Path
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
@@ -105,6 +107,17 @@ abstract class FileAdapter<Controller>(controller: Controller) : Adapter<Control
 
     open suspend fun writeTextFile(path: String, data: String) {
         writeBinaryFile(path, data.encodeToByteArray())
+    }
+
+    /**
+     * Creates the directories [path] sits in.
+     *
+     * A sink cannot open inside a folder that is not there, so without this every caller wanting
+     * a subdirectory has to make it first — and the first one to forget gets a write that throws
+     * for a reason nothing about "write this file" suggests.
+     */
+    protected fun ensureParentDirectory(path: String) {
+        Path(path).parent?.let { SystemFileSystem.createDirectories(it) }
     }
 
     abstract suspend fun writeBinaryFile(path: String, data: ByteArray)

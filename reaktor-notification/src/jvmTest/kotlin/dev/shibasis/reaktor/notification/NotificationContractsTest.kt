@@ -86,6 +86,26 @@ class NotificationContractsTest {
     }
 
     @Test
+    fun aScheduledRequestIsExactUnlessItSaysOtherwise() {
+        // The default decides whether every reminder in every app built on this arrives when it
+        // said it would. Android's plain `set` batches to roughly an hour, so a default of
+        // Approximate would make "18:30" mean "some time before 19:30" for callers who never
+        // thought to ask.
+        assertEquals(NotificationPrecision.Exact, dailyGymNudge().precision)
+    }
+
+    @Test
+    fun precisionSurvivesSerialisation() {
+        // Pending alarms are persisted and re-armed after a reboot. Precision that did not
+        // round-trip would come back as the default and silently re-tighten an alarm the caller
+        // had deliberately left loose.
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val loose = dailyGymNudge().copy(precision = NotificationPrecision.Approximate)
+        val restored = json.decodeFromString<LocalNotificationRequest>(json.encodeToString(loose))
+        assertEquals(NotificationPrecision.Approximate, restored.precision)
+    }
+
+    @Test
     fun aHeldRequestStillCountsAsRepeating() {
         // Suppressing one occurrence must not look like cancelling the recurrence.
         assertTrue(dailyGymNudge(notBeforeMillis = 9_000L).trigger.isRepeating)
