@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 object Version {
     object SDK {
         const val minSdk = 26
-        const val compileSdk = 36
+        const val compileSdk = 37
         const val targetSdk = 36
         const val ndkVersion = "25.0.8775105"
         const val CMake = "3.22.1"

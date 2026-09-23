@@ -26,7 +26,7 @@ class AgentMemoryStore(private val root: File, private val directory: Path, priv
     }
     @Synchronized fun forget(id: String) { require(id.matches(Regex("[a-f0-9]{64}"))); Files.deleteIfExists(directory.resolve("$id.json")) }
     @Synchronized fun search(query: String, subject: String?, includeStale: Boolean): ContextPacket {
-        require(query.length <= 2000 && (query.isNotBlank() || !subject.isNullOrBlank()))
+        require(query.length <= 2000 && (query.isNotBlank() || !subject.isNullOrBlank())) { "Give a query of up to 2000 characters, or a subjectRef" }
         val source = SourceCandidates(root, artifacts).capture()
         val terms = query.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
         val now = System.currentTimeMillis()

@@ -177,6 +177,8 @@ enum class ProviderAvailability {
     Available,
     Degraded,
     Unavailable,
+    /** Reachable, but it wants a credential this host does not hold yet. The detail says how to supply it. */
+    AuthRequired,
     Unknown,
 }
 

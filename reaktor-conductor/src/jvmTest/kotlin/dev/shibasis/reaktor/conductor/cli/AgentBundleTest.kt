@@ -41,12 +41,12 @@ class AgentBundleTest {
             val installed = codex.readText()
             assertTrue(installed.contains("[mcp_servers.reaktor]"))
             assertTrue(installed.contains("\"--dir\", \"/tmp/ws\""))
-            // Both servers: the workspace over stdio, the kernel's graph over loopback http.
-            assertTrue(installed.contains("[mcp_servers.reaktor-graph]"))
-            assertFalse(installed.contains("--graph-url"), "Default graph registration follows workspace discovery across restarts")
+            // One server: the kernel is a provider behind it, not a second entry to keep in step.
+            assertFalse(installed.contains("[mcp_servers.reaktor-graph]"))
+            assertTrue(installed.contains("\"--seat\", \"codex\""), "each harness is seated so its calls can be attributed")
             val status = AgentBundle.status(targets)
             assertTrue(status.codex)
-            assertTrue(status.codexGraph)
+            assertFalse(status.codexGraph)
             // Neighbours are untouched while ours is present.
             assertTrue(installed.contains("Authorization = \"Bearer secret-token\""))
 
@@ -66,8 +66,8 @@ class AgentBundleTest {
 
             AgentBundle.install(targets, command)
             val servers = Json.parseToJsonElement(mcp.readText()).jsonObject.getValue("mcpServers").jsonObject
-            assertEquals(setOf("pencil", "reaktor", "reaktor-graph"), servers.keys)
-            assertTrue(servers.getValue("reaktor-graph").jsonObject.getValue("args").jsonArray.any { it.jsonPrimitive.content == "graph-mcp" })
+            assertEquals(setOf("pencil", "reaktor"), servers.keys)
+            assertEquals(listOf("--seat", "claude-code"), servers.getValue("reaktor").jsonObject.getValue("args").jsonArray.map { it.jsonPrimitive.content }.takeLast(2))
             assertEquals("pencil-mcp", servers.getValue("pencil").jsonObject.getValue("command").jsonPrimitive.content)
 
             AgentBundle.uninstall(targets)
@@ -128,9 +128,11 @@ class AgentBundleTest {
             tb.codexConfig.writeText(original)
             tb.claudeProjectConfig.writeText("""{"mcpServers":{"reaktor":{"command":"operator-owned"}},"setting":true}""")
             AgentBundle.install(ta, AgentBundle.launchCommand(a, listOf("java")))
-            AgentBundle.install(tb, AgentBundle.launchCommand(b, listOf("java")))
+            val collided = AgentBundle.install(tb, AgentBundle.launchCommand(b, listOf("java")))
             assertTrue(ta.codexConfig.readText().contains(a.canonicalPath))
-            assertTrue(tb.codexConfig.readText().contains(b.canonicalPath))
+            // With one entry there is nothing else of ours to add: a name the operator already owns stays exactly theirs.
+            assertEquals(original, tb.codexConfig.readText())
+            assertTrue(collided.any { it.startsWith("codex/reaktor: collision") }, collided.toString())
             assertFalse(ta.codexConfig.readText().contains(b.canonicalPath))
             AgentBundle.uninstall(tb)
             assertEquals(original, tb.codexConfig.readText())
@@ -177,17 +179,17 @@ class AgentBundleTest {
             // operator is told the exact rule rather than left to discover the denial mid-turn.
             assertTrue(installed.any { it.contains("mcp(reaktor/*)") && it.contains("permissions.allow") }, installed.toString())
             val servers = Json.parseToJsonElement(config.readText()).jsonObject.getValue("mcpServers").jsonObject
-            assertEquals(setOf("pencil", "reaktor", "reaktor-graph"), servers.keys)
+            assertEquals(setOf("pencil", "reaktor"), servers.keys)
             assertEquals("pencil-mcp", servers.getValue("pencil").jsonObject.getValue("command").jsonPrimitive.content)
             // One file serves every project, so this entry names no workspace: it resolves the
             // directory agy was started in. The per-project harnesses keep their pinned --dir.
             val args = servers.getValue("reaktor").jsonObject.getValue("args").jsonArray.map { it.jsonPrimitive.content }
             assertFalse("--dir" in args, "A machine-wide entry that pins one workspace would serve the wrong project")
-            assertEquals(listOf("workspace", "mcp"), args.takeLast(2))
+            assertEquals(listOf("workspace", "mcp", "--seat", "gemini"), args.takeLast(4))
             assertTrue("--dir" in Json.parseToJsonElement(targets.claudeProjectConfig.readText()).jsonObject
                 .getValue("mcpServers").jsonObject.getValue("reaktor").jsonObject.getValue("args").jsonArray.map { it.jsonPrimitive.content })
             assertTrue(AgentBundle.status(targets).antigravity)
-            assertTrue(AgentBundle.status(targets).antigravityGraph)
+            assertFalse(AgentBundle.status(targets).antigravityGraph)
 
             AgentBundle.uninstall(targets)
             val after = Json.parseToJsonElement(config.readText()).jsonObject.getValue("mcpServers").jsonObject
@@ -213,5 +215,43 @@ class AgentBundleTest {
             AgentBundle.uninstall(targets)
             assertTrue(targets.antigravityConfig.isFile, "A user-owned file is emptied of our entries, never deleted")
         } finally { home.deleteRecursively(); root.deleteRecursively() }
+    }
+
+    @Test fun anEarlierTwoServerInstallIsRetiredToOneAndAGraphEntrySomeoneEditedIsLeftAlone() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val targets = AgentBundle.targets(root, home)
+            val graph = buildJsonObject { put("command", "java"); put("args", JsonArray(listOf("workspace", "graph-mcp").map(::JsonPrimitive))) }
+            val chunk = "\n# reaktor-bundle begin reaktor-graph\n[mcp_servers.reaktor-graph]\ncommand = \"java\"\nargs = [\"workspace\", \"graph-mcp\"]\n# reaktor-bundle end reaktor-graph\n"
+            targets.codexConfig.apply { parentFile.mkdirs() }.writeText(chunk)
+            targets.claudeProjectConfig.writeText(buildJsonObject { putJsonObject("mcpServers") { put("reaktor-graph", graph); put("pencil", buildJsonObject { put("command", "pencil-mcp") }) } }.toString())
+            // Antigravity's copy was edited by its owner after we wrote it.
+            targets.antigravityConfig.apply { parentFile.mkdirs() }.writeText(buildJsonObject { putJsonObject("mcpServers") { put("reaktor-graph", buildJsonObject { put("command", "edited") }) } }.toString())
+            targets.manifest.apply { parentFile.mkdirs() }.writeText(buildJsonObject { putJsonObject("entries") {
+                put("codex/reaktor-graph", chunk); put("claude/reaktor-graph", graph); put("antigravity/reaktor-graph", graph)
+            } }.toString())
+
+            val messages = AgentBundle.install(targets, command)
+            assertFalse(targets.codexConfig.readText().contains("reaktor-graph"))
+            assertEquals(setOf("pencil", "reaktor"), Json.parseToJsonElement(targets.claudeProjectConfig.readText()).jsonObject.getValue("mcpServers").jsonObject.keys)
+            assertEquals("edited", Json.parseToJsonElement(targets.antigravityConfig.readText()).jsonObject.getValue("mcpServers").jsonObject
+                .getValue("reaktor-graph").jsonObject.getValue("command").jsonPrimitive.content, "an entry its owner changed is not ours to remove")
+            assertTrue(messages.any { it.startsWith("antigravity/reaktor-graph: modified") }, messages.toString())
+            assertFalse(Json.parseToJsonElement(targets.manifest.readText()).jsonObject.getValue("entries").jsonObject.keys.any { it.endsWith("reaktor-graph") })
+        } finally { home.deleteRecursively(); root.deleteRecursively() }
+    }
+
+    @Test fun aLongClasspathMovesIntoAnArgumentFileAndAShortCommandIsLeftAsItIs() {
+        val directory = Files.createTempDirectory("bundle-launcher").toFile()
+        try {
+            val classpath = (1..200).joinToString(":") { "/Applications/Reaktor Preview.app/Contents/app/library-$it.jar" }
+            val argfile = java.io.File(directory, "launcher.argfile")
+            val compact = AgentBundle.compact(listOf("/jdk/bin/java", "-cp", classpath, "dev.Main", "workspace", "mcp", "--dir", "/tmp/ws"), argfile)
+            assertEquals(listOf("/jdk/bin/java", "@${argfile.absolutePath}", "workspace", "mcp", "--dir", "/tmp/ws"), compact)
+            assertEquals("-cp\n\"$classpath\"\ndev.Main\n", argfile.readText(), "quoted, because an app bundle's path has spaces")
+            val short = listOf("reaktor", "workspace", "mcp", "--dir", "/tmp/ws")
+            assertEquals(short, AgentBundle.compact(short, argfile))
+        } finally { directory.deleteRecursively() }
     }
 }

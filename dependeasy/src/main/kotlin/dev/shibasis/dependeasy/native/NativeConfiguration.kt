@@ -208,7 +208,7 @@ fun Project.nativeProjectDependencies(): List<NativeProjectDependency> {
                 configuration.dependencies
                     .withType(ProjectDependency::class.java)
                     .asSequence()
-                    .map(ProjectDependency::getDependencyProject)
+                    .map { dependency -> current.project(dependency.path) }
             }
             .distinctBy(Project::getPath)
             .forEach { dependencyProject ->

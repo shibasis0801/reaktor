@@ -46,6 +46,8 @@ data class McpTool(
     val idempotent: Boolean,
     val destructive: Boolean = false,
     val openWorld: Boolean = false,
+    /** The value is already a complete tool result; re-wrapping it would flatten image and error content into text. */
+    val raw: Boolean = false,
     val execute: (JsonObject) -> JsonElement,
 )
 
@@ -74,6 +76,8 @@ class ReaktorMcpServer(
     private val instructions: String,
     tools: List<McpTool>,
     resources: List<McpReadResource> = emptyList(),
+    /** True only for a host that can push `notifications/tools/list_changed` on its own channel. */
+    private val toolsListChanged: Boolean = false,
 ) : McpMessageHandler {
     private val json = Json { encodeDefaults = true; explicitNulls = false; prettyPrint = true }
     private val tools = tools.associateBy(McpTool::name)
@@ -130,7 +134,7 @@ class ReaktorMcpServer(
     private fun initialize(protocolVersion: String): JsonObject = buildJsonObject {
         put("protocolVersion", protocolVersion)
         putJsonObject("capabilities") {
-            putJsonObject("tools") { put("listChanged", false) }
+            putJsonObject("tools") { put("listChanged", toolsListChanged) }
             putJsonObject("resources") { put("listChanged", false) }
         }
         putJsonObject("serverInfo") {
@@ -165,6 +169,7 @@ class ReaktorMcpServer(
         val arguments = params["arguments"] as? JsonObject ?: JsonObject(emptyMap())
         val result = runCatching { tool.execute(arguments) }
             .getOrElse { error -> return toolText(id, error.message ?: "Tool failed", isError = true) }
+        if (tool.raw && result is JsonObject) return rpcResult(id, result)
         return rpcResult(id, buildJsonObject {
             putJsonArray("content") {
                 addJsonObject {

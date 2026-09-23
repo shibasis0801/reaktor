@@ -74,6 +74,29 @@ tasks.register("prepareAgentLauncher") {
     }
 }
 
+// A launcher that does not point into build/classes. `prepareAgentLauncher` is right for a test
+// run; a harness entry that lives for weeks has to survive the next `clean`, so it gets its own
+// copy: jars only, one directory, one script. Install with
+//   workspace install --dir <workspace> --command <agent-dist>/bin/reaktor-agent
+tasks.register<Sync>("agentDist") {
+    val jvmMain = kotlin.jvm().compilations.getByName("main")
+    val distribution = layout.buildDirectory.dir("agent-dist")
+    from(tasks.named("jvmJar")) { into("lib") }
+    from(jvmMain.runtimeDependencyFiles.filter { it.name.endsWith(".jar") }) { into("lib") }
+    into(distribution)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    preserve { include("bin/**") }
+    val java = javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }.map { it.executablePath.asFile.path }
+    doLast {
+        distribution.get().file("bin/reaktor-agent").asFile.apply {
+            parentFile.mkdirs()
+            writeText("#!/bin/sh\nhere=\$(cd \"\$(dirname \"\$0\")/..\" && pwd)\n" +
+                "exec '${java.get().replace("'", "'\"'\"'")}' -cp \"\$here/lib/*\" dev.shibasis.reaktor.conductor.cli.ConductorCliKt \"\$@\"\n")
+            setExecutable(true)
+        }
+    }
+}
+
 tasks.named<Test>("jvmTest") {
     val compilation = kotlin.jvm().compilations.getByName("test")
     inputs.property("serviceTest", providers.environmentVariable("REAKTOR_AGENT_SERVICE_TEST").getOrElse("0"))

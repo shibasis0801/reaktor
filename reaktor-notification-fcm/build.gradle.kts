@@ -25,7 +25,7 @@ kotlin {
     }
     droid {
         dependencies {
-            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
+            api(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
             api("com.google.firebase:firebase-messaging")
         }
     }

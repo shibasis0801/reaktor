@@ -198,7 +198,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().con
 }
 
 android {
-   defaults("dev.shibasis.reaktor.core")
+   defaults("dev.shibasis.reaktor.flexbuffer")
 }
 
 // ── Flamechart benchmark tasks ─────────────────────────────────────────
