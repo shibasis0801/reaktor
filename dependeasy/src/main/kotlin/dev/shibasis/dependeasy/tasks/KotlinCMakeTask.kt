@@ -12,8 +12,13 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.process.ExecOperations
+import javax.inject.Inject
 
 abstract class KotlinCMakeTask : DefaultTask() {
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
     @get:Internal
     abstract val sourceDirectory: DirectoryProperty
 
@@ -42,7 +47,7 @@ abstract class KotlinCMakeTask : DefaultTask() {
         val buildDir = buildDirectory.get().asFile
         buildDir.mkdirs()
 
-        project.exec {
+        execOperations.exec {
             workingDir = sourceDir
             executable = cmakeExecutable.get()
             args(
@@ -53,7 +58,7 @@ abstract class KotlinCMakeTask : DefaultTask() {
             args(configureArguments.get())
         }
 
-        project.exec {
+        execOperations.exec {
             workingDir = sourceDir
             executable = cmakeExecutable.get()
             args(

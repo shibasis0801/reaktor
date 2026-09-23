@@ -184,13 +184,10 @@ class AgentWorkspaceConnection private constructor(
                 val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
                 val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
                 val mcpConfig = if (runtimes == null) directory.resolve("harness-mcp.json").also { path ->
-                    val command = AgentBundle.launchCommand(root, null)
-                    val graphCommand = command.toMutableList().apply { this[indexOfLast { it == "workspace" } + 1] = "graph-mcp"
-                        graphUrl?.let { addAll(listOf("--graph-url", it)) } }
+                    // One server: the door reaches the kernel through graph-connection.json, which is written just above.
+                    val command = AgentBundle.launchCommand(root, null) + listOf("--seat", "spawned")
                     atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") {
-                        mapOf("reaktor" to command, "reaktor-graph" to graphCommand).forEach { (name, argv) ->
-                            putJsonObject(name) { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
-                        }
+                        putJsonObject(AgentBundle.SERVER_NAME) { put("command", command.first()); put("args", JsonArray(command.drop(1).map(::JsonPrimitive))) }
                     } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,

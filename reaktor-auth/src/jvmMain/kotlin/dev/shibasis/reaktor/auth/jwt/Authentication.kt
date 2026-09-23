@@ -321,6 +321,7 @@ class JwtMinter(
         credentialType = AuthCredentialType.DELEGATION.wireName,
     ) {
         claim("act", mapOf("sub" to actorSubject)) // RFC 8693 actor chain
+        if (appId != null) claim("app_id", appId)
         if (contextId != null) claim("ctx", contextId)
     }
 }

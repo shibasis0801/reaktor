@@ -62,12 +62,14 @@ object AgentBundle {
             "workspace", "mcp", "--dir", root.canonicalPath)
     }
 
-    fun install(targets: Targets, command: List<String>, graphUrl: String? = null): List<String> = locked(targets) {
+    /**
+     * One entry per harness. The kernel used to need a second one; it is a provider behind this
+     * server now, so an earlier install's `reaktor-graph` entry is retired here, if it is still ours.
+     */
+    fun install(targets: Targets, command: List<String>): List<String> = locked(targets) {
         require(command.isNotEmpty())
         val workspaceIndex = command.indexOfLast { it == "workspace" }
         require(workspaceIndex >= 0 && command.getOrNull(workspaceIndex + 1) == "mcp") { "Expected a workspace mcp launch command" }
-        val graphCommand = command.toMutableList().apply { this[workspaceIndex + 1] = "graph-mcp" } + (graphUrl?.let { listOf("--graph-url", it) } ?: emptyList())
-        val configs = listOf(SERVER_NAME to command, GRAPH_SERVER_NAME to graphCommand)
         // Parse before touching either config; malformed JSON must never become an empty config.
         var claude = readObject(targets.claudeProjectConfig)
         var antigravity = readObject(targets.antigravityConfig)
@@ -78,50 +80,66 @@ object AgentBundle {
         manifest.putIfAbsent("antigravityCreated", JsonPrimitive(!targets.antigravityConfig.exists()))
         val owned = (manifest["entries"] as? JsonObject).orEmpty().toMutableMap()
         val messages = mutableListOf<String>()
-        configs.forEach { (name, argv) ->
-            val key = "codex/$name"
-            val chunk = "\n# reaktor-bundle begin $name\n[mcp_servers.$name]\n" +
-                "command = ${toml(argv.first())}\nargs = [${argv.drop(1).joinToString(", ") { toml(it) }}]\n" +
-                "# reaktor-bundle end $name\n"
-            val previous = (owned[key] as? JsonPrimitive)?.content
-            when {
-                previous != null && text.contains(previous) -> {
-                    text = text.replace(previous, chunk)
-                    owned[key] = JsonPrimitive(chunk)
-                    messages += "$key: " + if (previous == chunk) "already installed" else "updated owned entry"
-                }
-                hasTable(text, name) -> messages += "$key: collision; preserved unowned or modified entry"
-                else -> { text += chunk; owned[key] = JsonPrimitive(chunk); messages += "$key: installed in ${targets.codexConfig.path}" }
+        val name = SERVER_NAME
+        // The seat says which harness is calling. It is written here, per harness, so a call can be attributed; it grants nothing.
+        fun seated(seat: String) = command + listOf("--seat", seat)
+        fun entry(argv: List<String>) = buildJsonObject { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
+
+        val codexArgv = seated("codex")
+        val key = "codex/$name"
+        val chunk = "\n# reaktor-bundle begin $name\n[mcp_servers.$name]\n" +
+            "command = ${toml(codexArgv.first())}\nargs = [${codexArgv.drop(1).joinToString(", ") { toml(it) }}]\n" +
+            "# reaktor-bundle end $name\n"
+        val previous = (owned[key] as? JsonPrimitive)?.content
+        when {
+            previous != null && text.contains(previous) -> {
+                text = text.replace(previous, chunk)
+                owned[key] = JsonPrimitive(chunk)
+                messages += "$key: " + if (previous == chunk) "already installed" else "updated owned entry"
             }
-            val servers = claude.servers()
-            val claudeKey = "claude/$name"
-            val entry = buildJsonObject { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
-            val agyServers = antigravity.servers()
-            val agyKey = "antigravity/$name"
-            val following = workspaceFollowingCommand(argv)
-            val agyEntry = buildJsonObject { put("command", following.first()); put("args", JsonArray(following.drop(1).map(::JsonPrimitive))) }
-            if (name in agyServers && owned[agyKey] != agyServers[name]) messages += "$agyKey: collision; preserved unowned or modified entry"
-            else {
-                antigravity = JsonObject(antigravity + ("mcpServers" to JsonObject(agyServers + (name to agyEntry))))
-                owned[agyKey] = agyEntry
-                messages += "$agyKey: " + if (agyServers[name] == agyEntry) "already installed"
-                    else if (name in agyServers) "updated owned entry"
-                    else "installed for every Antigravity project in ${targets.antigravityConfig.path}; it serves the workspace agy is started in"
-            }
-            when {
-                name in servers && owned[claudeKey] != servers[name] -> messages += "$claudeKey: collision; preserved unowned or modified entry"
-                else -> {
-                    claude = JsonObject(claude + ("mcpServers" to JsonObject(servers + (name to entry))))
-                    owned[claudeKey] = entry
-                    messages += "$claudeKey: " + if (servers[name] == entry) "already installed" else if (name in servers) "updated owned entry" else "installed in ${targets.claudeProjectConfig.path}"
-                }
-            }
+            hasTable(text, name) -> messages += "$key: collision; preserved unowned or modified entry"
+            else -> { text += chunk; owned[key] = JsonPrimitive(chunk); messages += "$key: installed in ${targets.codexConfig.path}" }
         }
+
+        val agyServers = antigravity.servers()
+        val agyKey = "antigravity/$name"
+        val agyEntry = entry(workspaceFollowingCommand(seated("gemini")))
+        if (name in agyServers && owned[agyKey] != agyServers[name]) messages += "$agyKey: collision; preserved unowned or modified entry"
+        else {
+            antigravity = JsonObject(antigravity + ("mcpServers" to JsonObject(agyServers + (name to agyEntry))))
+            owned[agyKey] = agyEntry
+            messages += "$agyKey: " + if (agyServers[name] == agyEntry) "already installed"
+                else if (name in agyServers) "updated owned entry"
+                else "installed for every Antigravity project in ${targets.antigravityConfig.path}; it serves the workspace agy is started in"
+        }
+
+        val servers = claude.servers()
+        val claudeKey = "claude/$name"
+        val claudeEntry = entry(seated("claude-code"))
+        if (name in servers && owned[claudeKey] != servers[name]) messages += "$claudeKey: collision; preserved unowned or modified entry"
+        else {
+            claude = JsonObject(claude + ("mcpServers" to JsonObject(servers + (name to claudeEntry))))
+            owned[claudeKey] = claudeEntry
+            messages += "$claudeKey: " + if (servers[name] == claudeEntry) "already installed" else if (name in servers) "updated owned entry" else "installed in ${targets.claudeProjectConfig.path}"
+        }
+
+        listOf("codex", "claude", "antigravity").forEach { harness ->
+            val graphKey = "$harness/$GRAPH_SERVER_NAME"
+            val value = owned[graphKey] ?: return@forEach
+            val retired = when (harness) {
+                "codex" -> value.jsonPrimitive.content.let { old -> text.contains(old).also { if (it) text = text.replace(old, "") } }
+                "claude" -> (claude.servers()[GRAPH_SERVER_NAME] == value).also { if (it) claude = JsonObject(claude + ("mcpServers" to JsonObject(claude.servers() - GRAPH_SERVER_NAME))) }
+                else -> (antigravity.servers()[GRAPH_SERVER_NAME] == value).also { if (it) antigravity = JsonObject(antigravity + ("mcpServers" to JsonObject(antigravity.servers() - GRAPH_SERVER_NAME))) }
+            }
+            owned.remove(graphKey)
+            messages += "$graphKey: " + if (retired) "retired; the kernel is now a provider behind $name" else "modified; preserved, and no longer tracked"
+        }
+
         // Registering the server is not the same as being allowed to call it: Antigravity defaults
         // `mcp` to Ask, and a headless turn cannot answer a prompt, so it reports the denial
         // instead. Reaktor does not edit the operator's permission policy; it names the rule.
-        if (messages.any { it.startsWith("antigravity/") && !it.contains("collision") && !it.contains("already installed") })
-            messages += "antigravity: add \"mcp(reaktor/*)\" and \"mcp(reaktor-graph/*)\" to permissions.allow in " +
+        if (messages.any { it.startsWith("antigravity/$name") && !it.contains("collision") && !it.contains("already installed") })
+            messages += "antigravity: add \"mcp(reaktor/*)\" to permissions.allow in " +
                 File(targets.antigravityConfig.parentFile.parentFile, "antigravity-cli/settings.json").path +
                 "; without it a headless Gemini turn reports these tools as denied"
         writeText(targets.codexConfig, text)
@@ -129,6 +147,21 @@ object AgentBundle {
         writeObject(targets.antigravityConfig, antigravity)
         writeObject(targets.manifest, JsonObject(manifest + ("entries" to JsonObject(owned))))
         messages
+    }
+
+    /**
+     * A Java launch with its classpath moved into an argument file.
+     *
+     * The classpath of a packaged app runs to tens of kilobytes. Written into three harness configs
+     * it makes them unreadable and pins each one to a build; in a file beside the workspace's other
+     * state, a reinstall refreshes every harness at once and the entries themselves never change.
+     */
+    fun compact(command: List<String>, argfile: File): List<String> {
+        val classpath = command.indexOf("-cp").takeIf { it == 1 && command.size > 3 } ?: return command
+        if (command[classpath + 1].length < 2_000) return command
+        fun quoted(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+        writeText(argfile, "-cp\n${quoted(command[classpath + 1])}\n${command[classpath + 2]}\n")
+        return listOf(command.first(), "@${argfile.absolutePath}") + command.drop(classpath + 3)
     }
 
     fun uninstall(targets: Targets): List<String> = locked(targets) {

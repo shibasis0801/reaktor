@@ -447,22 +447,7 @@ class SupervisedProcessExecutor(
         withTimeoutOrNull(250) { readers.joinAll() }
     }
 
-    private suspend fun terminateProcessTree(process: Process) {
-        withContext(Dispatchers.IO + NonCancellable) {
-            val root = process.toHandle()
-            val descendants = root.descendants().toList().asReversed()
-            val handles = descendants + root
-            handles.filter(ProcessHandle::isAlive).forEach { it.destroy() }
-            val deadline = System.nanoTime() + terminationGraceMillis * 1_000_000
-            while (handles.any(ProcessHandle::isAlive) && System.nanoTime() < deadline) {
-                delay(25)
-            }
-            handles.filter(ProcessHandle::isAlive).forEach { it.destroyForcibly() }
-            withTimeoutOrNull(250) {
-                while (handles.any(ProcessHandle::isAlive)) delay(10)
-            }
-        }
-    }
+    private suspend fun terminateProcessTree(process: Process) = process.terminateTree(terminationGraceMillis)
 
     private data class ActiveProcess(
         val job: Job,
@@ -691,5 +676,23 @@ class ProcessRedactor(secrets: Set<String> = emptySet()) {
         private val SECRET_ASSIGNMENT = Regex(
             "(?i)\\b([A-Z0-9_]*(?:TOKEN|PASSWORD|PASSWD|SECRET|API_KEY|PRIVATE_KEY)[A-Z0-9_]*)\\s*[=:]\\s*([^\\s]+)",
         )
+    }
+}
+
+/** Children first, politely, then by force. A run and a long-lived provider child end the same way. */
+internal suspend fun Process.terminateTree(graceMillis: Long = 750) {
+    withContext(Dispatchers.IO + NonCancellable) {
+        val root = toHandle()
+        val descendants = root.descendants().toList().asReversed()
+        val handles = descendants + root
+        handles.filter(ProcessHandle::isAlive).forEach { it.destroy() }
+        val deadline = System.nanoTime() + graceMillis * 1_000_000
+        while (handles.any(ProcessHandle::isAlive) && System.nanoTime() < deadline) {
+            delay(25)
+        }
+        handles.filter(ProcessHandle::isAlive).forEach { it.destroyForcibly() }
+        withTimeoutOrNull(250) {
+            while (handles.any(ProcessHandle::isAlive)) delay(10)
+        }
     }
 }

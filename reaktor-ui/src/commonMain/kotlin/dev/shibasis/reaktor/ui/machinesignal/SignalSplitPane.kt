@@ -97,7 +97,7 @@ fun SignalResizeHandle(
                 Key.DirectionRight -> if (horizontal) { resize(step); true } else false
                 Key.DirectionUp -> if (!horizontal) { resize(-step); true } else false
                 Key.DirectionDown -> if (!horizontal) { resize(step); true } else false
-                Key.Home -> { reset(); true }
+                Key.MoveHome -> { reset(); true }
                 else -> false
             }
         }.focusable()

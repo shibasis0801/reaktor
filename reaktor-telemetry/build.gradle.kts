@@ -25,6 +25,7 @@ kotlin {
     }
     droid {
         dependencies {
+            api(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
             api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
         }
     }

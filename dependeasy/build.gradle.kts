@@ -1,4 +1,4 @@
-val kotlinVersion = "2.3.0"
+val kotlinVersion = "2.3.20"
 
 plugins {
     id("java-gradle-plugin")
@@ -16,7 +16,7 @@ repositories {
 dependencies {
     // Align Version of all Kotlin components
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
-    implementation("com.android.tools.build:gradle:8.8.0") {
+    implementation("com.android.tools.build:gradle:9.1.1") {
         exclude(group = "org.apache.commons", module = "commons-compress")
     }
     implementation("org.apache.commons:commons-compress:1.28.0") // todo remember to upgrade on upgrading Spring
