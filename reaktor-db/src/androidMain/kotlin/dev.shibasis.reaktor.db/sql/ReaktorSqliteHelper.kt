@@ -5,6 +5,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 
 
+/**
+ * Deliberately leaves `onCorruption` to the framework, which deletes the file and starts over.
+ * Overriding it to rethrow would leave the app unable to launch at all — see DarwinSqlAdapter,
+ * which reproduces this behaviour by hand because SQLiter has no equivalent.
+ */
 class ReaktorSqliteHelper(version: Int): SupportSQLiteOpenHelper.Callback(version) {
     override fun onCreate(db: SupportSQLiteDatabase) {
 //        // Create your tables here

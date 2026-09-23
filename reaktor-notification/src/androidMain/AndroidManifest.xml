@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        Android 13+ will not show a notification from an app that has not been granted this, and
+        will not let the app ask without declaring it. It belongs here rather than in each app:
+        this module is what posts notifications, and a module whose whole job is delivery should
+        not depend on every consumer remembering to ask for permission to deliver.
+
+        It arrived transitively from firebase-messaging until the FCM transport moved out to
+        :reaktor-notification-fcm, at which point an app using only local reminders silently lost
+        the ability to show any of them.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Scheduled local notifications are cleared on reboot unless they are re-armed. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -12,6 +24,16 @@
         <receiver
             android:name=".ReaktorNotificationActionReceiver"
             android:exported="false" />
+
+        <!-- Taps on an ongoing activity's actions. Not exported: the broadcast is sent with the
+             package set, so it reaches this receiver and nothing outside the app can send one. -->
+        <receiver
+            android:name=".ongoing.OngoingActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="dev.shibasis.reaktor.notification.ONGOING_ACTION" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".ReaktorNotificationBootReceiver"

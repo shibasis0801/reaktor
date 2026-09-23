@@ -51,6 +51,9 @@ open class PortCapabilityImpl(
     }
 
     override fun emit(event: PortEvent) {
-        listeners.forEach { it(event) }
+        // Over a snapshot: a one-shot listener — the common shape for "wake me when this port is
+        // connected" — removes itself while being called, which mutates the list mid-iteration.
+        // Adding a listener from inside a handler has the same problem, and the same fix.
+        listeners.toList().forEach { it(event) }
     }
 }

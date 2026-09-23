@@ -250,9 +250,28 @@ data class LocalNotificationRequest(
     val notBeforeMillis: Long? = null,
     val priority: NotificationPriority = NotificationPriority.Default,
     val foreground: Boolean = false,
+    val precision: NotificationPrecision = NotificationPrecision.Exact,
     val android: AndroidNotificationOptions? = null,
     val ios: IosNotificationOptions? = null,
 )
+
+/**
+ * How closely the delivery has to match the requested time.
+ *
+ * [Exact] is the default because a reminder is a promise about a moment: something told to arrive
+ * at 18:30 and arriving at 19:20 has not been delayed, it has been broken, and the user learns to
+ * stop believing it. Anything a person chose a time for wants this.
+ *
+ * [Approximate] lets the OS batch the alarm with other wakeups to save battery. On Android that
+ * currently means a window of up to an hour. Worth choosing for anything where only the rough time
+ * of day matters -- a digest, a "still there?" nudge -- and wrong for anything the user set a clock
+ * face to.
+ *
+ * iOS schedules on `UNCalendarNotificationTrigger`, which is exact either way, so this changes
+ * nothing there.
+ */
+@Serializable
+enum class NotificationPrecision { Exact, Approximate }
 
 @Serializable
 sealed class NotificationTrigger {

@@ -64,9 +64,19 @@ external interface HonoContext {
     val executionCtx: WorkerExecutionContext
 }
 
+/**
+ * The `hono` module itself.
+ *
+ * Bound as an external object rather than as `@JsModule @JsName("Hono") external val`, because that
+ * form emits `import Hono from "hono"` — a *default* import — and hono has only named exports. The
+ * bundler rejects it outright once anything actually references it. An external object maps to the
+ * module's namespace, so [Hono] below reads a named export the way the package provides it.
+ */
 @JsModule("hono")
-@JsName("Hono")
-external val HonoFactory: dynamic
+external object HonoModule {
+    @JsName("Hono")
+    val HonoFactory: dynamic
+}
 
 external interface Hono {
     fun on(method: String, path: String, handler: (HonoContext) -> dynamic): Hono
@@ -74,7 +84,24 @@ external interface Hono {
     fun fetch(request: dynamic, env: CloudflareEnv = definedExternally, executionCtx: WorkerExecutionContext = definedExternally): dynamic
 }
 
-fun Hono(): Hono = js("new HonoFactory()")
+/**
+ * A Hono app.
+ *
+ * The indirection through [newInstance] is load-bearing. `js("new HonoFactory()")` is a string the
+ * Kotlin compiler does not read, so the *only* reference to the module used to be invisible to it —
+ * the import was eliminated as unused, and the emitted code then called a `HonoFactory` that did
+ * not exist. It failed at the first request with `ReferenceError: HonoFactory is not defined`,
+ * having compiled and bundled without complaint.
+ *
+ * Reading it into a Kotlin local first is a real reference, so the import survives; the `js()` call
+ * then constructs a value that was passed to it as a parameter rather than naming a module binding.
+ */
+fun Hono(): Hono {
+    val factory = HonoModule.HonoFactory
+    return newInstance(factory)
+}
+
+private fun newInstance(ctor: dynamic): Hono = js("new ctor()")
 
 internal external interface RawD1Result {
     val success: Boolean?

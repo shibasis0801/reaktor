@@ -19,3 +19,19 @@ fun AsyncImage(
         contentScale = contentScale
     )
 }
+
+/** For images that exist only in memory — a fresh camera shot has no URL to load from yet. */
+@Composable
+fun AsyncImage(
+    bytes: ByteArray,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "image",
+    contentScale: ContentScale = ContentScale.Fit
+) {
+    CoilAsyncImage(
+        model = bytes,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = contentScale
+    )
+}

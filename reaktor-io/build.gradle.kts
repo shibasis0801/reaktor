@@ -60,3 +60,10 @@ fun getMachineIpAddress(): String = Socket().run {
 }
 
 tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
+
+// Only classes whose names end in `Test` are suites. Without this the runner tries to instantiate
+// every class on the test classpath — including a nested fixture like `AwtSharesTest$Offer`, which
+// it then reports as an invalid test class rather than as what it is.
+tasks.withType<Test>().configureEach {
+    include("**/*Test.class")
+}

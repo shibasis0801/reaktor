@@ -23,7 +23,7 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
                 // everything else in the sandbox stays unreachable.
                 val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
                 val file = File(directory, payload.fileName)
-                file.writeText(payload.contents)
+                file.writeBytes(payload.bytes)
                 FileProvider.getUriForFile(context, authority(context.packageName), file)
             }.getOrNull()
         } ?: return false
@@ -40,6 +40,20 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
 
         return runCatching {
             context.startActivity(Intent.createChooser(send, payload.title ?: payload.fileName))
+        }.isSuccess
+    }
+
+    override suspend fun shareText(text: String, title: String?, subject: String?): Boolean {
+        val context = controller ?: return false
+
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+            subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+        }
+
+        return runCatching {
+            context.startActivity(Intent.createChooser(send, title))
         }.isSuccess
     }
 

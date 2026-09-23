@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Normal permission: granted at install, never prompted for, and revocable only by turning
+        off system-wide haptics. Declared here rather than in each app so that depending on this
+        module is enough to make it work.
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+</manifest>
