@@ -177,6 +177,30 @@ Build every target before claiming it works:
 ./gradlew :reaktor-<name>:build
 ```
 
+**And run the suites on every target, not the fast one.** `commonMain` compiles against a different
+regex engine on Kotlin/JS, and the difference is not a compile error — it is a `SyntaxError` thrown
+when the pattern is constructed:
+
+| In common code | JVM | Kotlin/JS |
+|---|---|---|
+| `\p{L}`, `\p{N}`, `\p{Alpha}` | fine | needs a `u` flag; throws without one |
+| `\[ ]` — an unescaped `]` | fine | "Lone quantifier brackets" in unicode mode |
+| `RegexOption.DOT_MATCHES_ALL` | fine | does not exist — use `[\s\S]` |
+
+Only the third is caught by the compiler. The other two are thrown at runtime, and because a
+pattern is nearly always a file-level `val`, the throw happens during that file's initialisation
+and takes **every function in the file** with it. The call sites then fail with `TypeError`, naming
+neither the pattern nor the file, so one bad character reads as a dozen unrelated failures in code
+that is fine.
+
+```bash
+./gradlew :reaktor-<name>:jvmTest :reaktor-<name>:jsTest
+```
+
+Where a pattern is doing something the stdlib can answer directly — splitting on non-alphanumerics,
+say — prefer `Char.isLetterOrDigit` and a loop. It is the same question in a form every target
+answers the same way.
+
 ## Shaping the API
 
 A capability that crosses the common/platform line takes one of two shapes. Choose by whether
