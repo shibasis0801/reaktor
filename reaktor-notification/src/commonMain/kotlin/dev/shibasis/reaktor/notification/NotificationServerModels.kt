@@ -57,6 +57,18 @@ data class NotificationDeliveryRecord(
     val createdAt: String = "",
 )
 
+@JsExport
+@Serializable
+data class NotificationInboxRecord(
+    val id: String,
+    val categoryId: String,
+    val title: String,
+    val body: String,
+    val link: String = "",
+    val createdAt: String = "",
+    val readAt: String? = null,
+)
+
 object NotificationDeliveryStatuses {
     const val Queued = "queued"
     const val DryRunAccepted = "dry_run_accepted"
