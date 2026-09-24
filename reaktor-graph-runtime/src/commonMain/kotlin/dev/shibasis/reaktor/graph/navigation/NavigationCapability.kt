@@ -26,11 +26,18 @@ open class NavigationCapabilityImpl: NavigationCapability {
 
     protected open fun onReturn(navCommand: Return<*>) {
         val popped = backStack.pop() ?: return
+        restoreTopPayload()
         popped.complete(navCommand.value as Any)
     }
 
     protected open fun onPop(navCommand: Pop) {
-        backStack.pop()
+        backStack.pop() ?: return
+        restoreTopPayload()
+    }
+
+    private fun restoreTopPayload() {
+        val top = backStack.top.value ?: return
+        top.edge.end.navBinding.invoke { update(top.payload) }
     }
 
     override fun dispatch(navCommand: NavCommand) {

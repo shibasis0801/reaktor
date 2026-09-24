@@ -152,7 +152,7 @@ class AppleDeviceSession(
     private suspend fun idb(): IdbCompanionClient = companionLock.withLock {
         companionClient?.takeIf { companion?.alive == true } ?: run {
             companion?.close()
-            val started = IdbCompanion.start(device.id)
+            val started = IdbCompanion.start(udid)
             companion = started
             started.client().also { companionClient = it }
         }
@@ -160,6 +160,8 @@ class AppleDeviceSession(
 
     private val properties = raw["deviceProperties"]?.jsonObject
     private val connection = raw["connectionProperties"]?.jsonObject
+    private val udid = raw["hardwareProperties"]?.jsonObject?.get("udid")?.jsonPrimitive?.contentOrNull ?: device.id
+    private val relays = java.util.concurrent.ConcurrentHashMap<Int, IdbRelay>()
 
     private val developerMode =
         properties?.get("developerModeStatus")?.jsonPrimitive?.contentOrNull == "enabled"
@@ -193,6 +195,14 @@ class AppleDeviceSession(
 
             DeviceOperation.Input,
             DeviceOperation.ViewTree,
+            ->
+                DeviceCapabilityReport(
+                    operation,
+                    false,
+                    "idb drives input and reads the accessibility tree on simulators only; on a physical iPhone use a UI test runner or the app's devtools agent",
+                    "none",
+                )
+
             DeviceOperation.Screenshot,
             DeviceOperation.ScreenRecord,
             DeviceOperation.Crash,
@@ -420,17 +430,18 @@ class AppleDeviceSession(
             else -> error("Apple forwarding addresses a TCP port; there are no abstract sockets")
         }
         val binary = idbCompanion ?: error(refusalFor(DeviceOperation.Forward))
-        // `--forward` relays the device socket over stdin/stdout, so this is a long-lived relay
-        // rather than a call that returns. It is owned by the caller, not by the session.
-        error(
-            "usbmux forwarding runs as a relay process: " +
-                "$binary --udid ${device.id} --forward ${device.id}:$port"
-        )
+        val relay = IdbRelay(binary, udid, port, localPort)
+        relays.put(relay.localPort, relay)?.close()
+        return relay.localPort
     }
 
-    override suspend fun removeForward(localPort: Int) = Unit
+    override suspend fun removeForward(localPort: Int) {
+        relays.remove(localPort)?.close()
+    }
 
     override fun close() {
+        relays.values.forEach(IdbRelay::close)
+        relays.clear()
         companionClient?.close()
         companion?.close()
         companionClient = null

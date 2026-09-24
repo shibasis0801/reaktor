@@ -25,13 +25,14 @@ open class ContainerNode(
     val activeGraph: Graph?
         get() = graphs.getOrNull(activeGraphIndex.value)
 
-    open fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
-        val index = graphs.indexOfFirst { graph -> graph.nodes.any { it == route } }
-        if (index >= 0) {
-            activeGraphIndex.value = index
-            return true
-        }
-        return false
+    fun activateGraphForRoute(route: RouteNode<*, *>): Boolean =
+        graphs.firstOrNull { graph -> graph.nodes.any { it == route } }?.let(::activate) ?: false
+
+    open fun activate(graph: Graph): Boolean {
+        val index = graphs.indexOf(graph)
+        if (index < 0) return false
+        activeGraphIndex.value = index
+        return true
     }
 
     override fun toString(): String {

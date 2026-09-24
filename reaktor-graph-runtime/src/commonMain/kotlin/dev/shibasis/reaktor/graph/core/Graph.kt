@@ -96,18 +96,17 @@ open class Graph(
             return
         }
 
-        // We are the root graph — find the container and handle it
-        val edge = navCommand.entry.edge
-        val destGraph = edge.destinationGraph
-        val container = findContainerForGraph(destGraph)
-
-        if (container != null) {
-            pushContainerEntry(container, navCommand.entry.payload)
-            container.activateGraphForRoute(edge.end)
-            destGraph.navigationImpl.dispatch(navCommand)
-        } else {
+        val destGraph = navCommand.entry.edge.destinationGraph
+        val path = containerPathTo(destGraph)
+        if (path == null) {
             Logger.w("Cross-graph navigation failed: no container found for graph '${destGraph.label}' (${destGraph.id}).")
+            return
         }
+        path.forEach { (container, child) ->
+            container.graph.pushContainerEntry(container, navCommand.entry.payload)
+            container.activate(child)
+        }
+        destGraph.navigationImpl.dispatch(navCommand)
     }
 
     private fun pushContainerEntry(
@@ -261,18 +260,15 @@ fun Graph.requireFullyWired() {
 
 fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this)
 
-fun Graph.findContainerForGraph(
+fun Graph.containerPathTo(
     targetGraph: Graph,
     visited: MutableSet<Graph> = mutableSetOf()
-): ContainerNode? {
+): List<Pair<ContainerNode, Graph>>? {
     if (!visited.add(this)) return null
     for (container in nodes.filterIsInstance<ContainerNode>()) {
-        if (container.graphs.contains(targetGraph)) {
-            return container
-        }
         for (childGraph in container.graphs) {
-            val found = childGraph.findContainerForGraph(targetGraph, visited)
-            if (found != null) return found
+            if (childGraph == targetGraph) return listOf(container to childGraph)
+            childGraph.containerPathTo(targetGraph, visited)?.let { return listOf(container to childGraph) + it }
         }
     }
     return null

@@ -3,7 +3,10 @@ plugins {
     application
 }
 
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+    google()
+}
 
 dependencies {
     // Clikt 5 (typed composable subcommands) + Mordant 3 (rich terminal); same author.
@@ -12,6 +15,12 @@ dependencies {
     // For reading the project's package.json "reaktor" key (runtime only; no @Serializable codegen needed).
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("dev.shibasis:reaktor-tooling:local")
+    implementation("dev.shibasis:reaktor-devtools:local") {
+        listOf("org.jetbrains.compose", "androidx.compose", "org.jetbrains.skiko").forEach { prefix ->
+            listOf("runtime", "ui", "foundation", "animation", "material", "material3", "annotation-internal", "collection-internal").forEach { exclude(group = "$prefix.$it") }
+        }
+        exclude(group = "org.jetbrains.skiko")
+    }
 }
 
 val e2e by sourceSets.creating

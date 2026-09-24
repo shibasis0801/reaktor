@@ -13,7 +13,7 @@ import com.github.ajalt.mordant.rendering.TextStyles.dim
 val BUILT_IN_COMMANDS = setOf(
     "tasks", "run", "logs", "dev", "build", "deploy", "test", "gradle",
     "doctor", "install", "self", "new", "add", "infra", "db", "cloud", "dagger", "graph",
-    "auth", "explain", "docs", "engine",
+    "auth", "explain", "docs", "engine", "devtools",
 )
 
 private val DIRECT_SCRIPT_SHORTCUTS = setOf(

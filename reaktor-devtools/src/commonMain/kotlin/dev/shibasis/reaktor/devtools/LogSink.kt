@@ -24,6 +24,7 @@ class LogSink(
         fields: Map<String, String> = emptyMap(),
         throwable: Throwable? = null,
         correlationId: String? = null,
+        mirrored: Boolean = true,
     ) {
         if (level.ordinal < minimumLevel.ordinal) return
         stream.emit { sequence, nanos ->
@@ -38,7 +39,7 @@ class LogSink(
                 throwable = throwable?.stackTraceToString(),
             )
         }
-        mirror(level, subsystem, message)
+        if (mirrored) mirror(level, subsystem, message)
     }
 
     fun verbose(subsystem: String, message: String) = log(LogLevel.Verbose, subsystem, message)
