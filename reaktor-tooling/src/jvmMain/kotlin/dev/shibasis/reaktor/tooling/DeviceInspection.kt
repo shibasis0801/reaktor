@@ -77,17 +77,7 @@ object DeviceInspection {
                 val start = output.indexOf("<hierarchy")
                 val end = output.lastIndexOf("</hierarchy>")
                 require(start >= 0 && end >= start) { "Capture contains no complete Android hierarchy" }
-                val factory = DocumentBuilderFactory.newInstance().apply {
-                    setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-                    setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-                    setFeature("http://xml.org/sax/features/external-general-entities", false)
-                    setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-                    setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "")
-                    setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
-                    isXIncludeAware = false
-                    isExpandEntityReferences = false
-                }
-                val document = factory.newDocumentBuilder().parse(InputSource(StringReader(output.substring(start, end + 12))))
+                val document = secureXml(output.substring(start, end + 12))
                 fun visit(element: Element, parent: String?, depth: Int) {
                     val id = append(parent, depth, (0 until element.attributes.length).associate {
                         val attribute = element.attributes.item(it); attribute.nodeName to attribute.nodeValue
@@ -112,6 +102,39 @@ object DeviceInspection {
         }
         return DeviceViewSnapshot(elements)
     }
+
+    fun webDriverSource(output: String): DeviceViewSnapshot {
+        require(output.length <= MaxCharacters * 4) { "WebDriverAgent source exceeds the 8 MiB inspection limit" }
+        val start = output.indexOf("<XCUIElementType")
+        require(start >= 0) { "Capture contains no WebDriverAgent source" }
+        val elements = mutableListOf<DeviceViewElement>()
+        fun visit(element: Element, parent: String?, depth: Int) {
+            require(elements.size < MaxElements && depth < 128) { "View hierarchy exceeds the bounded inspection limit" }
+            val attributes = (0 until element.attributes.length).associate { element.attributes.item(it).let { attribute -> attribute.nodeName to attribute.nodeValue } }
+            val frame = listOf("x", "y", "width", "height").mapNotNull { key -> attributes[key]?.let { key to it } }
+            val id = elements.size.toString()
+            elements += DeviceViewElement(
+                id,
+                parent,
+                depth,
+                attributes + if (frame.size == 4) mapOf("frame" to frame.joinToString(",", "{", "}") { (key, value) -> "\"$key\":$value" }) else emptyMap(),
+            )
+            for (i in 0 until element.childNodes.length) (element.childNodes.item(i) as? Element)?.let { visit(it, id, depth + 1) }
+        }
+        visit(secureXml(output.substring(start)).documentElement, null, 0)
+        return DeviceViewSnapshot(elements)
+    }
+
+    private fun secureXml(xml: String) = DocumentBuilderFactory.newInstance().apply {
+        setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+        setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        setFeature("http://xml.org/sax/features/external-general-entities", false)
+        setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+        setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "")
+        setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
+        isXIncludeAware = false
+        isExpandEntityReferences = false
+    }.newDocumentBuilder().parse(InputSource(StringReader(xml)))
 
     fun adbFiles(output: String): List<DeviceFileEntry> = output.lineSequence().mapNotNull { line ->
         val fields = line.trim().split(Regex("\\s+"), limit = 8)

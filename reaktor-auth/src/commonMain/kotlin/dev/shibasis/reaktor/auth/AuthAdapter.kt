@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.RefreshRequest
+import dev.shibasis.reaktor.auth.api.RefreshResponse
 import dev.shibasis.reaktor.auth.api.LogoutRequest
 import dev.shibasis.reaktor.auth.api.TokenSet
 import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
@@ -44,6 +45,9 @@ abstract class AuthAdapter<Controller>(
     val loginState: StateFlow<AuthLoginState> = _loginState.asStateFlow()
     val currentLoginState: AuthLoginState
         get() = _loginState.value
+
+    private val _sessionEndedAt = MutableStateFlow(0L)
+    val sessionEndedAt: StateFlow<Long> = _sessionEndedAt.asStateFlow()
 
     protected val providers = hashMapOf<UserProvider, AuthProvider<AuthAdapter<*>, out AuthProviderUser>>()
 
@@ -236,7 +240,7 @@ abstract class AuthAdapter<Controller>(
             val token = current.tokens.refreshToken ?: return@withLock null
             val response = authClient.sessionRefresh(RefreshRequest(token, environment = environment))
             if (response.statusCode == StatusCode.UNAUTHORIZED) {
-                sessionStore.clear(environment); resetLoginState(); return@withLock null
+                sessionStore.clear(environment); resetLoginState(); _sessionEndedAt.value = Clock.System.now().toEpochMilliseconds(); return@withLock null
             }
             check(response.statusCode == StatusCode.OK) { "Reaktor session refresh is temporarily unavailable" }
             val tokens = response.tokenSet ?: return@withLock null
@@ -254,11 +258,17 @@ abstract class AuthAdapter<Controller>(
             return@withLock null
         }
 
+        if (response.statusCode == StatusCode.UNAUTHORIZED) {
+            store.clear(); resetLoginState(); _sessionEndedAt.value = Clock.System.now().toEpochMilliseconds(); return@withLock null
+        }
         if (response.statusCode != StatusCode.OK) return@withLock null
         val tokenSet = response.tokenSet ?: return@withLock null
         cache(tokenSet)
         tokenSet
     }
+
+    suspend fun exchangeRefreshToken(refreshToken: String, environment: Environment = activeEnvironment): RefreshResponse =
+        authClient.sessionRefresh(RefreshRequest(refreshToken = refreshToken, environment = environment))
 
     /** Revoke remotely, then clear local credentials even when offline; report an unconfirmed revocation. */
     protected suspend fun logoutSession(environment: Environment = activeEnvironment): Result<Unit> = refreshMutex.withLock {
