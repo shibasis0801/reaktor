@@ -28,12 +28,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.PopupProperties
 import dev.shibasis.reaktor.surface.DisclosureInput
 import dev.shibasis.reaktor.surface.DisclosureKernel
 import dev.shibasis.reaktor.surface.Release
@@ -73,11 +67,8 @@ class SheetScope internal constructor(private val disclosure: Disclosure) {
     ) {
         val dismiss = { disclosure.machine.send(DisclosureInput.Dismiss) }
         Presence(disclosure.properties.expanded) { exiting, exited ->
-            Popup(
-                popupPositionProvider = WholeWindow,
-                onDismissRequest = dismiss,
-                properties = PopupProperties(focusable = true, dismissOnClickOutside = false),
-            ) {
+            Overlay(modal = !exiting) {
+                OverlayBack(enabled = !exiting, onBack = dismiss)
                 BottomSheetFrame(scrim, dismiss, exiting, exited) {
                     disclosure.Panel(appearance, disclosure::initialFocus) { PanelScope(disclosure).content() }
                 }
@@ -140,6 +131,3 @@ private fun BottomSheetFrame(scrim: Color, onDismiss: () -> Unit, exiting: Boole
     }
 }
 
-private object WholeWindow : PopupPositionProvider {
-    override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize) = IntOffset.Zero
-}

@@ -52,8 +52,7 @@ fun SurfaceEnvironmentProvider(environment: SurfaceEnvironment, content: @Compos
         LocalSurfaceEnvironment provides environment,
         LocalDensity provides Density(density.density, density.fontScale * environment.textScale),
         LocalLayoutDirection provides (environment.layoutDirection ?: LocalLayoutDirection.current),
-        content = content,
-    )
+    ) { OverlayHost(content) }
 }
 val LocalCuePlayer = staticCompositionLocalOf<(FeedbackCue) -> Unit> { {} }
 

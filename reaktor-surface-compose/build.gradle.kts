@@ -17,6 +17,7 @@ kotlin {
             api(compose.runtime)
             api(compose.foundation)
             api(compose.ui)
+            api("org.jetbrains.compose.ui:ui-backhandler:${project.property("compose.version")}")
         }
     }
     droid {}
