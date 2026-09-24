@@ -1,19 +1,23 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.unit.roundToIntRect
 import dev.shibasis.reaktor.surface.DisclosureInput
 import dev.shibasis.reaktor.surface.DisclosureKernel
 import dev.shibasis.reaktor.surface.PartKey
@@ -28,7 +32,10 @@ fun Menu(
     content: @Composable MenuScope.() -> Unit,
 ) {
     val disclosure = rememberDisclosure(expanded, onExpandedChange, enabled, behavior)
-    Box(modifier, propagateMinConstraints = true) { MenuScope(disclosure).content() }
+    val anchor = remember { mutableStateOf(IntRect.Zero) }
+    Box(modifier.onGloballyPositioned { anchor.value = it.boundsInWindow().roundToIntRect() }, propagateMinConstraints = true) {
+        MenuScope(disclosure, anchor).content()
+    }
 }
 
 @Composable
@@ -41,7 +48,7 @@ fun Menu(
 ) = Menu(state.expanded, { state.expanded = it }, modifier, enabled, behavior, content)
 
 @Stable
-class MenuScope internal constructor(private val disclosure: Disclosure) {
+class MenuScope internal constructor(private val disclosure: Disclosure, private val anchor: MutableState<IntRect>) {
     @Composable
     fun Trigger(
         modifier: Modifier = Modifier,
@@ -56,13 +63,30 @@ class MenuScope internal constructor(private val disclosure: Disclosure) {
     ) {
         if (!disclosure.properties.expanded) return
         val gap = with(LocalDensity.current) { 6.dp.roundToPx() }
-        Popup(
-            popupPositionProvider = remember(gap) { Anchored(gap) },
-            onDismissRequest = { disclosure.machine.send(DisclosureInput.Dismiss) },
-            properties = PopupProperties(focusable = true),
-        ) {
-            disclosure.Panel(appearance, { disclosure.choices.keys.firstOrNull()?.let(::PartKey) }) {
-                MenuPopupScope(disclosure).content()
+        val dismiss = { disclosure.machine.send(DisclosureInput.Dismiss) }
+        Overlay {
+            OverlayBack(onBack = dismiss)
+            val origin = LocalOverlayOrigin.current
+            Layout(
+                content = {
+                    Box(Modifier.pointerInput(Unit) { detectTapGestures { dismiss() } })
+                    Box(Modifier.pointerInput(Unit) { detectTapGestures { } }) {
+                        disclosure.Panel(appearance, { disclosure.choices.keys.firstOrNull()?.let(::PartKey) }) {
+                            MenuPopupScope(disclosure).content()
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            ) { measurables, constraints ->
+                val canvas = IntSize(constraints.maxWidth, constraints.maxHeight)
+                val scrim = measurables[0].measure(constraints.copy(minWidth = canvas.width, minHeight = canvas.height))
+                val panel = measurables[1].measure(constraints.copy(minWidth = 0, minHeight = 0))
+                val bounds = anchor.value.translate(-origin.x.toInt(), -origin.y.toInt())
+                val position = anchoredOffset(bounds, canvas, IntSize(panel.width, panel.height), gap, layoutDirection)
+                layout(canvas.width, canvas.height) {
+                    scrim.place(0, 0)
+                    panel.place(position)
+                }
             }
         }
     }
@@ -79,19 +103,4 @@ class MenuPopupScope internal constructor(private val disclosure: Disclosure) {
         appearance: ButtonAppearance = LocalAppearances.current.menuItem,
         content: @Composable () -> Unit,
     ) = disclosure.Choice(key, onActivate, modifier, enabled, appearance, content)
-}
-
-internal class Anchored(private val gap: Int) : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize,
-    ): IntOffset {
-        val below = anchorBounds.bottom + gap
-        val y = if (below + popupContentSize.height <= windowSize.height) below
-        else (anchorBounds.top - gap - popupContentSize.height).coerceAtLeast(0)
-        val start = if (layoutDirection == LayoutDirection.Ltr) anchorBounds.right - popupContentSize.width else anchorBounds.left
-        return IntOffset(start.coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0)), y)
-    }
 }

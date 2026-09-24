@@ -1,11 +1,15 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import dev.shibasis.reaktor.surface.DisclosureInput
 import dev.shibasis.reaktor.surface.DisclosureKernel
 import dev.shibasis.reaktor.surface.PartKey
@@ -48,15 +52,22 @@ class DialogScope internal constructor(private val disclosure: Disclosure, priva
     @Composable
     fun Content(
         appearance: PanelAppearance = LocalAppearances.current.dialog,
+        scrim: Color = Color.Black.copy(alpha = 0.4f),
         content: @Composable PanelScope.() -> Unit,
     ) {
         if (!disclosure.properties.expanded) return
-        Dialog(
-            onDismissRequest = { disclosure.machine.send(DisclosureInput.Dismiss) },
-            properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = dismissOutside),
-        ) {
-            disclosure.Panel(appearance, disclosure::initialFocus) {
-                PanelScope(disclosure).content()
+        val dismiss = { disclosure.machine.send(DisclosureInput.Dismiss) }
+        Overlay {
+            OverlayBack(onBack = dismiss)
+            Box(
+                Modifier.fillMaxSize().background(scrim).pointerInput(dismissOutside) { detectTapGestures { if (dismissOutside) dismiss() } },
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.pointerInput(Unit) { detectTapGestures { } }) {
+                    disclosure.Panel(appearance, disclosure::initialFocus) {
+                        PanelScope(disclosure).content()
+                    }
+                }
             }
         }
     }
