@@ -53,6 +53,19 @@ class GraphGateway internal constructor(
         return send("/query-id", body.toString(), headers(JSON_BODY))
     }
 
+    /**
+     * Run a server-registered named WRITE query by id. Same allow-list discipline as [queryId] —
+     * the write Cypher lives in reaktorServer's registry and runs under the gateway's tenant
+     * policy; the Worker passes only the id and params. Returns the gateway's write summary.
+     */
+    suspend fun writeId(id: String, params: JsonObject = EMPTY_PARAMS): JsonElement {
+        val body = buildJsonObject {
+            put("id", id)
+            put("params", params)
+        }
+        return send("/write-id", body.toString(), headers(JSON_BODY))
+    }
+
     private suspend fun sendCypher(
         path: String,
         cypher: String,
