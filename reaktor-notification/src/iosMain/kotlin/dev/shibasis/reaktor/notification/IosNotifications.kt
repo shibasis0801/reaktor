@@ -248,7 +248,22 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
             events.emitReceived(envelope)
             devHarness.recordReceivedFromPlatform(envelope)
         }
+        val focused = NotificationFocus.conversation
+        if (focused != null && focused == (envelope.content.conversation?.id ?: notification.request.content.threadIdentifier)) return 0uL
         return foregroundPresentation.toIosPresentationOptions()
+    }
+
+    override suspend fun clearConversation(id: String) {
+        val center = UNUserNotificationCenter.currentNotificationCenter()
+        val delivered = suspendCancellableCoroutine { continuation ->
+            center.getDeliveredNotificationsWithCompletionHandler { found ->
+                continuation.resume(found.orEmpty().filterIsInstance<UNNotification>())
+            }
+        }
+        val matching = delivered
+            .filter { it.request.content.threadIdentifier == id || it.request.content.userInfo["reaktor_conversation_id"] == id }
+            .map { it.request.identifier }
+        if (matching.isNotEmpty()) center.removeDeliveredNotificationsWithIdentifiers(matching)
     }
 
     fun didReceive(response: UNNotificationResponse) {

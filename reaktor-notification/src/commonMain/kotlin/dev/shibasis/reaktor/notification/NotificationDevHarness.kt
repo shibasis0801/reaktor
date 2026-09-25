@@ -41,6 +41,7 @@ interface NotificationDevHarness {
     suspend fun refreshToken(): NotificationDevState
     suspend fun sendLocal(): NotificationDevState
     suspend fun injectRemoteEnvelope(): NotificationDevState
+    suspend fun inject(envelope: NotificationEnvelope): NotificationDevState
     suspend fun simulateTap(): NotificationDevState
     suspend fun probePlatformSurface(): NotificationDevState
     fun markWorkStatus(status: String)
@@ -166,8 +167,11 @@ open class BaseNotificationDevHarness(
         return refresh()
     }
 
-    override suspend fun injectRemoteEnvelope(): NotificationDevState {
-        lastReceived = devEnvelope(id = "dev-remote-${Clock.nowEpochMillis()}")
+    override suspend fun injectRemoteEnvelope(): NotificationDevState =
+        inject(devEnvelope(id = "dev-remote-${Clock.nowEpochMillis()}"))
+
+    override suspend fun inject(envelope: NotificationEnvelope): NotificationDevState {
+        lastReceived = envelope
         return refresh()
     }
 

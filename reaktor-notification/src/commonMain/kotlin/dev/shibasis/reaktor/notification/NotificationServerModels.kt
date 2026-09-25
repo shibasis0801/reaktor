@@ -95,6 +95,9 @@ data class NotificationDispatchPayload(
     val type: String = "reaktor.notification.delivery",
     val route: NotificationRoute = NotificationRoute.None,
     val data: Map<String, String> = emptyMap(),
+    val sender: NotificationPerson? = null,
+    val conversation: NotificationConversation? = null,
+    val capabilities: List<String> = emptyList(),
 )
 
 @Serializable
@@ -133,6 +136,9 @@ fun NotificationDispatchPayload.envelope(): NotificationEnvelope =
         content = NotificationContent(
             title = title,
             body = body,
+            threadId = conversation?.id,
+            sender = sender,
+            conversation = conversation,
         ),
         route = route,
         correlationId = deliveryId,
@@ -142,6 +148,10 @@ fun NotificationDispatchPayload.envelope(): NotificationEnvelope =
 fun NotificationDispatchPayload.providerData(): Map<String, String> =
     envelope().toDataMap()
 
+val NotificationDispatchPayload.drawsItself: Boolean
+    get() = platform.equals(NotificationPlatform.Android.name, ignoreCase = true) &&
+        NotificationPresentationFeature.DataMessages.capabilityName in capabilities
+
 fun NotificationDispatchPayload.fcmRequestBody(): String =
     buildJsonObject {
         put(
@@ -149,13 +159,15 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
             buildJsonObject {
                 val providerData = providerData()
                 put("token", token)
-                put(
-                    "notification",
-                    buildJsonObject {
-                        put("title", title)
-                        put("body", body)
-                    },
-                )
+                if (!drawsItself) {
+                    put(
+                        "notification",
+                        buildJsonObject {
+                            put("title", title)
+                            put("body", body)
+                        },
+                    )
+                }
                 put(
                     "data",
                     buildJsonObject {
@@ -166,15 +178,17 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
                     "android",
                     buildJsonObject {
                         put("priority", "HIGH")
-                        put(
-                            "notification",
-                            buildJsonObject {
-                                put("channel_id", categoryId)
-                                put("tag", notificationId)
-                                put("notification_priority", "PRIORITY_HIGH")
-                                put("default_sound", true)
-                            },
-                        )
+                        if (!drawsItself) {
+                            put(
+                                "notification",
+                                buildJsonObject {
+                                    put("channel_id", categoryId)
+                                    put("tag", notificationId)
+                                    put("notification_priority", "PRIORITY_HIGH")
+                                    put("default_sound", true)
+                                },
+                            )
+                        }
                     },
                 )
                 put(
@@ -184,6 +198,7 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
                             "headers",
                             buildJsonObject {
                                 put("apns-priority", "10")
+                                put("apns-push-type", "alert")
                             },
                         )
                         put(
@@ -200,8 +215,9 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
                                             },
                                         )
                                         put("category", categoryId)
-                                        put("thread-id", data["chatId"] ?: categoryId)
+                                        put("thread-id", conversation?.id ?: data["chatId"] ?: categoryId)
                                         put("sound", "default")
+                                        if (sender != null) put("mutable-content", 1)
                                     },
                                 )
                             },
