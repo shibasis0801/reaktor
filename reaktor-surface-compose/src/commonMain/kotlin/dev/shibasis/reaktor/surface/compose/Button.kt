@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.Activated
 import dev.shibasis.reaktor.surface.BehaviorKernel
+import dev.shibasis.reaktor.surface.Held
 import dev.shibasis.reaktor.surface.PressInput
 import dev.shibasis.reaktor.surface.PressKernel
 import dev.shibasis.reaktor.surface.PressProperties
@@ -32,18 +33,30 @@ fun Button(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     busy: Boolean = false,
+    onHold: (() -> Unit)? = null,
     behavior: ButtonBehavior = PressKernel,
     appearance: ButtonAppearance = LocalAppearances.current.button,
     content: @Composable () -> Unit,
 ) {
-    val properties = PressProperties(enabled, busy)
-    val machine = rememberMachine(behavior, properties) { if (it == Activated) onActivate() }
+    val properties = PressProperties(enabled, busy, holdable = onHold != null)
+    val machine = rememberMachine(behavior, properties) { pressed ->
+        when (pressed) {
+            Activated -> onActivate()
+            Held -> onHold?.invoke()
+        }
+    }
     val source = remember { MutableInteractionSource() }
     source.feed(machine)
     Box(
         modifier
             .semantics { if (busy) stateDescription = "Busy" }
-            .clickable(source, indication = null, enabled = enabled, role = Role.Button) {
+            .combinedClickable(
+                interactionSource = source,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+                onLongClick = onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } },
+            ) {
                 machine.send(PressInput.Activate(machine.nextSequence()))
             },
         propagateMinConstraints = true,
