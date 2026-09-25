@@ -67,6 +67,7 @@ data class NotificationInboxRecord(
     val link: String = "",
     val createdAt: String = "",
     val readAt: String? = null,
+    val kind: String? = null,
 )
 
 object NotificationDeliveryStatuses {
