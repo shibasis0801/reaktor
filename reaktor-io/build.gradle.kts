@@ -32,6 +32,12 @@ kotlin {
     darwin {}
     server {}
     useNetworking()
+
+    sourceSets {
+        jvmTest.dependencies {
+            implementation("com.squareup.okhttp3:mockwebserver:${Version.OkHttp}")
+        }
+    }
 }
 
 android {
