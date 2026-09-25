@@ -28,6 +28,8 @@ import kotlin.coroutines.cancellation.CancellationException
 
 expect val http: HttpClient
 
+private val QueryString = Regex("""\?\S*""")
+
 // todo Take a Authenticator interface as dependency, use io.ktor:ktor-client-auth
 fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     install(ContentNegotiation) {
@@ -39,10 +41,10 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     install(Logging) {
         logger = object: Logger {
             override fun log(message: String) {
-                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { message }
+                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { message.replace(QueryString, "?…") }
             }
         }
-        level = LogLevel.ALL
+        level = LogLevel.INFO
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
     install(WebSockets) {
