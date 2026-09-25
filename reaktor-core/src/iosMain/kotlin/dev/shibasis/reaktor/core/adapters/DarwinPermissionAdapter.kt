@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.core.adapters
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import platform.AVFAudio.AVAudioSession
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.requestAccessForMediaType
@@ -41,6 +42,7 @@ class DarwinPermissionAdapter(): PermissionAdapter<Unit>(Unit) {
         addHandler(Permission.CAMERA, ::cameraPermissionHandler)
         addHandler(Permission.GALLERY, ::galleryPermissionHandler)
         addHandler(Permission.SPEECH_RECOGNITION, ::speechRecognitionHandler)
+        addHandler(Permission.MICROPHONE, ::microphonePermissionHandler)
         addHandler(Permission.NOTIFICATIONS) { requestNotificationPermission().toPermissionResult() }
     }
 
@@ -152,6 +154,12 @@ suspend fun cameraPermissionHandler() = suspendCancellableCoroutine { continuati
     }
 }
 
+
+suspend fun microphonePermissionHandler() = suspendCancellableCoroutine { continuation ->
+    AVAudioSession.sharedInstance().requestRecordPermission { granted ->
+        continuation.resume(granted.toPermissionResult())
+    }
+}
 
 suspend fun galleryPermissionHandler() = suspendCancellableCoroutine { continuation ->
     PHPhotoLibrary.requestAuthorization {
