@@ -111,8 +111,7 @@ private fun BottomSheetFrame(scrim: Color, onDismiss: () -> Unit, exiting: Boole
         Modifier
             .fillMaxSize()
             .background(scrim)
-            .then(if (exiting) Modifier.clearAndSetSemantics {} else Modifier)
-            .pointerInput(exiting) { if (!exiting) detectTapGestures { onDismiss() } else awaitPointerEventScope { while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() } } },
+            .then(if (exiting) Modifier.clearAndSetSemantics {} else Modifier.pointerInput(Unit) { detectTapGestures { onDismiss() } }),
     ) {
         Box(
             Modifier
@@ -121,7 +120,7 @@ private fun BottomSheetFrame(scrim: Color, onDismiss: () -> Unit, exiting: Boole
                 .onSizeChanged { extent = it.height.toFloat() }
                 .offset { IntOffset(0, offset.value.coerceAtMost(extent.coerceAtLeast(0f) + 1f).roundToInt()) }
                 .then(if (settled) Modifier else Modifier.clearAndSetSemantics {})
-                .pointerInput(Unit) { detectTapGestures { } }
+                .pointerInput(exiting) { if (exiting) awaitPointerEventScope { while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() } } else detectTapGestures { } }
                 .draggable(
                     orientation = Orientation.Vertical,
                     state = rememberDraggableState { delta -> scope.launch { offset.snapTo((offset.value + delta).coerceAtLeast(0f)) } },
