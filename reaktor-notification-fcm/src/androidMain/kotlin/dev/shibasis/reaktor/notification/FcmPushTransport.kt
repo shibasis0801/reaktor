@@ -3,8 +3,11 @@ package dev.shibasis.reaktor.notification
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Firebase Cloud Messaging as the remote push transport for [AndroidNotificationsClient].
@@ -39,11 +42,19 @@ object FcmPushTransport : AndroidPushTransport {
  * manifest, long before any application code has run.
  */
 open class ReaktorFirebaseMessagingService : FirebaseMessagingService() {
+    open val notificationsConfig: AndroidNotificationsConfig
+        get() = AndroidNotificationsConfig(pushTransport = FcmPushTransport)
+
     override fun onMessageReceived(message: RemoteMessage) {
-        AndroidNotificationsRuntime.ensure(this).handleRemoteMessage(message.data)
+        val client = AndroidNotificationsRuntime.ensure(this, notificationsConfig)
+        runBlocking { withTimeoutOrNull(ReceiveBudget) { client.receiveRemoteMessage(message.data) } }
     }
 
     override fun onNewToken(token: String) {
-        AndroidNotificationsRuntime.ensure(this).recordNewToken(token)
+        AndroidNotificationsRuntime.ensure(this, notificationsConfig).recordNewToken(token)
+    }
+
+    private companion object {
+        val ReceiveBudget = 9.seconds
     }
 }

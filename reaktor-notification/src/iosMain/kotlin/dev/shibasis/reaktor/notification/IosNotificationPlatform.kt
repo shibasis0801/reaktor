@@ -55,6 +55,10 @@ class IosNotificationDevHarness(
             ),
             route = NotificationRoute.GraphAction("reaktor.notification.open", "{}"),
         )
+        return inject(envelope)
+    }
+
+    override suspend fun inject(envelope: NotificationEnvelope): NotificationDevState {
         lastEnvelope = envelope
         return client.injectRemoteEnvelope(envelope)
     }

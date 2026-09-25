@@ -30,6 +30,7 @@ data class AndroidNotificationsConfig(
      * See [AndroidPushTransport] for why it is not linked in by default.
      */
     val pushTransport: AndroidPushTransport? = null,
+    val selfName: String = "You",
 )
 
 class AndroidNotificationsClient(
@@ -91,6 +92,7 @@ class AndroidNotificationsClient(
                 NotificationPresentationFeature.Conversation,
                 NotificationPresentationFeature.RichMedia,
                 NotificationPresentationFeature.Progress,
+                NotificationPresentationFeature.DataMessages,
             ),
             actionFeatures = setOf(
                 NotificationActionFeature.Tap,
@@ -259,21 +261,27 @@ class AndroidNotificationsClient(
      * Firebase — see [AndroidPushTransport].
      */
     fun handleRemoteMessage(data: Map<String, String>) {
+        Dispatch.Default.launch { receiveRemoteMessage(data) }
+    }
+
+    suspend fun receiveRemoteMessage(data: Map<String, String>) {
         val envelope = NotificationEnvelope.fromDataMap(data)
-        Dispatch.Default.launch {
-            events.emitReceived(envelope)
-            devHarness.recordReceivedFromPlatform(envelope)
-            if (config.autoDisplayRemoteMessages) {
-                scheduleLocal(
-                    LocalNotificationRequest(
-                        id = envelope.id,
-                        categoryId = envelope.categoryId,
-                        content = envelope.content,
-                        route = envelope.route,
-                    ),
-                )
-            }
+        events.emitReceived(envelope)
+        devHarness.recordReceivedFromPlatform(envelope)
+        if (config.autoDisplayRemoteMessages) {
+            scheduleLocal(
+                LocalNotificationRequest(
+                    id = envelope.id,
+                    categoryId = envelope.categoryId,
+                    content = envelope.content,
+                    route = envelope.route,
+                ),
+            )
         }
+    }
+
+    override suspend fun clearConversation(id: String) {
+        renderer.clearConversation(id)
     }
 
     fun handleLaunchIntent(intent: Intent?): Boolean {
