@@ -20,4 +20,6 @@ interface AndroidPushTransport {
 
     /** The current device token, or null when one cannot be obtained. */
     suspend fun token(): String?
+
+    suspend fun forget() = Unit
 }

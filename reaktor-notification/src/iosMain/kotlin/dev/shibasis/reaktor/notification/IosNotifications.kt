@@ -24,12 +24,19 @@ import platform.UIKit.UIApplicationOpenSettingsURLString
 import platform.UIKit.UIDevice
 import kotlin.coroutines.resume
 import kotlin.math.absoluteValue
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionAdapter()) {
     private val center = UNUserNotificationCenter.currentNotificationCenter()
     private val events = NotificationEventHub()
     private var categories: List<NotificationCategorySpec> = emptyList()
     private var token: DevicePushToken? = null
+    private val tokens = MutableSharedFlow<DevicePushToken>(replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    override val tokenChanges: Flow<DevicePushToken> = tokens.asSharedFlow()
     private var apnsTokenLength: ULong? = null
     private var foregroundPresentation = ForegroundPresentationPolicy()
     private var badgeCount: Int? = null
@@ -122,6 +129,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
     }
 
     fun recordFcmToken(value: String?) {
+        val changed = value != null && value != token?.value
         token = value?.let {
             DevicePushToken(
                 provider = "fcm",
@@ -129,6 +137,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
                 deviceId = UIDevice.currentDevice.identifierForVendor?.UUIDString,
             )
         }
+        if (changed) token?.let(tokens::tryEmit)
         devHarness.recordToken(token, apnsTokenLength)
     }
 
@@ -141,6 +150,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
 
     override suspend fun unregisterRemoteEndpoint() {
         token = null
+        IosNotificationsRuntime.forgetRemoteToken()
     }
 
     override suspend fun updatePreferences(command: UpdateNotificationPreferences) {

@@ -78,6 +78,15 @@ class IosNotificationDevHarness(
 object IosNotificationsRuntime {
     private var client: IosNotificationsClient? = null
     private var remoteTransportStarter: (() -> Unit)? = null
+    private var remoteTokenForgetter: (() -> Unit)? = null
+
+    fun installRemoteTokenForgetter(forgetter: () -> Unit) {
+        remoteTokenForgetter = forgetter
+    }
+
+    fun forgetRemoteToken() {
+        remoteTokenForgetter?.invoke()
+    }
 
     fun install(client: IosNotificationsClient) {
         this.client = client

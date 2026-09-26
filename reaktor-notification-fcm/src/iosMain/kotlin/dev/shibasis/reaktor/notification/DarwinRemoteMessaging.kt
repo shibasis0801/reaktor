@@ -109,6 +109,11 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
         IosNotificationsRuntime.installRemoteTransportStarter {
             Dispatch.Main.launch { start() }
         }
+        IosNotificationsRuntime.installRemoteTokenForgetter {
+            FIRMessaging.messaging().deleteTokenWithCompletion { error ->
+                if (error != null) Logger.w { "Could not delete the FCM token: ${error.localizedDescription}" }
+            }
+        }
         configured = true
     }
 

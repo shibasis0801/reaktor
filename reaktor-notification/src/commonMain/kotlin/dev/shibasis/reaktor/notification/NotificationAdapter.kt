@@ -6,6 +6,8 @@ import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
 import kotlin.concurrent.Volatile
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 abstract class NotificationAdapter<Controller>(
     controller: Controller,
@@ -17,6 +19,9 @@ var Feature.Notifications by CreateSlot<NotificationsClient>()
 interface NotificationsClient : NotificationPermissionClient {
     val devHarness: NotificationDevHarness?
         get() = null
+
+    val tokenChanges: Flow<DevicePushToken>
+        get() = emptyFlow()
 
     suspend fun getPlatformCapabilities(): NotificationPlatformCapabilities
     suspend fun registerCategories(categories: List<NotificationCategorySpec>)
