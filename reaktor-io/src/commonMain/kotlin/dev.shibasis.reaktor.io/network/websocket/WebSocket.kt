@@ -11,6 +11,7 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 sealed class ConnectionState {
     data object Idle: ConnectionState()
@@ -31,13 +33,22 @@ sealed class ConnectionState {
 data class WebSocketOptions(
     val connectionTimeout: Duration = 4.seconds,
     val eager: Boolean = true,
-    val receiverReplay: Int = 0
+    val receiverReplay: Int = 0,
+    val heartbeat: Heartbeat? = null,
+)
+
+data class Heartbeat(
+    val every: Duration = 25.seconds,
+    val wait: Duration = 10.seconds,
+    val ping: String = "ping",
+    val pong: String = "pong",
 )
 typealias UrlProvider = suspend () -> String
 
 open class WebSocket(
     var options: WebSocketOptions = WebSocketOptions(),
     var urlProvider: UrlProvider, // round-robin if needed, or whatever logic you need.
+    var headerProvider: suspend () -> Map<String, String> = { emptyMap() },
     var reconnectionStrategy: ReconnectionStrategy = ExponentialBackoffStrategy(),
     // A single-threaded dispatcher is created from this.
     dispatcher: CoroutineDispatcher = Dispatchers.Async,
@@ -46,6 +57,7 @@ open class WebSocket(
     private val connection = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val state: StateFlow<ConnectionState> = connection
     private var reconnectJob: Job? = null
+    private var openedAt: TimeSource.Monotonic.ValueTimeMark? = null
 
     init {
         if (options.eager) launch { connect() }
@@ -64,13 +76,18 @@ open class WebSocket(
         val url = urlProvider()
         connection.value = ConnectionState.Connecting(url)
         try {
+            val extra = headerProvider()
             connection.value = ConnectionState.Open(
                 httpClient.webSocketSession(url) {
                     timeout {
                         requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
                     }
+                    extra.forEach { (name, value) -> headers.append(name, value) }
                 })
-            reconnectionStrategy.reset()
+            openedAt = TimeSource.Monotonic.markNow()
+        } catch (cancelled: CancellationException) {
+            if (connection.value is ConnectionState.Connecting) connection.value = ConnectionState.Idle
+            throw cancelled
         } catch (e: Exception) {
             connection.value = ConnectionState.Failed(e)
             scheduleReconnect(e, null)
@@ -126,7 +143,10 @@ open class WebSocket(
         val lost = withContext {
             val current = connection.value
             (current is ConnectionState.Open && current.session === session).also {
-                if (it) connection.value = ConnectionState.Failed(DroppedConnection(reason, cause))
+                if (it) {
+                    if ((openedAt?.elapsedNow() ?: Duration.ZERO) >= SteadyConnection) reconnectionStrategy.reset()
+                    connection.value = ConnectionState.Failed(DroppedConnection(reason, cause))
+                }
             }
         }
         if (lost) scheduleReconnect(cause, reason)
@@ -140,3 +160,5 @@ class DroppedConnection(val reason: CloseReason?, cause: Throwable?) : Exception
     reason?.let { "Closed by the server: ${it.knownReason ?: it.code} ${it.message}".trim() } ?: cause?.message ?: "Connection lost",
     cause,
 )
+
+private val SteadyConnection = 30.seconds
