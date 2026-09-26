@@ -13,19 +13,6 @@ interface ReconnectionStrategy {
     fun reset()
 }
 
-/**
- * Keeps trying, because a live socket is the only way the app hears anything.
- *
- * Giving up after a fixed number of attempts left a phone that had been in a tunnel, or asleep,
- * permanently silent until something else happened to reopen the socket. The default is therefore
- * unlimited: the delay grows to [maxDelay] and stays there.
- *
- * A server that closes normally is the one case worth respecting — it means "we are done", not
- * "try again".
- *
- * Jitter is drawn per attempt rather than once per socket, so a server coming back does not meet
- * every client that was waiting on the same schedule.
- */
 class ExponentialBackoffStrategy(
     val minDelay: Duration = 1.seconds,
     val maxDelay: Duration = 10.seconds,

@@ -50,9 +50,6 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     }
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
-        // Without a ping, a socket that died with no FIN - a phone leaving wifi, a middlebox
-        // dropping an idle connection - stays Open forever and the app waits for frames that can
-        // never arrive. The ping fails instead, which is what drives the reconnect.
         pingIntervalMillis = 20.seconds.inWholeMilliseconds
     }
     install(HttpTimeout)
