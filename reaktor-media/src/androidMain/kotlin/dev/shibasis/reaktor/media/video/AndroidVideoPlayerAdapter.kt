@@ -1,12 +1,15 @@
 package dev.shibasis.reaktor.media.video
 
 import android.content.Context
+import android.graphics.SurfaceTexture
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.view.Surface
+import android.view.TextureView
 import android.net.Uri
 import android.view.Gravity
 import android.webkit.MimeTypeMap
 import android.widget.FrameLayout
-import android.widget.MediaController
-import android.widget.VideoView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
+import kotlin.math.min
 
 class AndroidVideoPlayerAdapter(context: Context) : VideoPlayerAdapter<Context>(context) {
     @Composable
@@ -48,29 +52,85 @@ class AndroidVideoPlayerAdapter(context: Context) : VideoPlayerAdapter<Context>(
     }
 }
 
-private class VideoFrame(context: Context) : FrameLayout(context) {
-    private val video = VideoView(context)
-    private val controls = MediaController(context)
+private class VideoFrame(context: Context) : FrameLayout(context), TextureView.SurfaceTextureListener {
+    private val texture = TextureView(context)
+    private var player: MediaPlayer? = null
+    private var surface: Surface? = null
+    private var waiting: Uri? = null
     private var playing: Uri? = null
+    private var sourceWidth = 0
+    private var sourceHeight = 0
 
     init {
         setBackgroundColor(android.graphics.Color.BLACK)
-        addView(video, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER))
-        video.setMediaController(controls)
-        video.setOnPreparedListener { video.start() }
+        addView(texture, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER))
+        texture.surfaceTextureListener = this
+        setOnClickListener { player?.let { if (it.isPlaying) it.pause() else it.start() } }
     }
 
     fun play(uri: Uri) {
         if (uri == playing) return
         playing = uri
-        video.setVideoURI(uri)
+        waiting = uri
+        begin()
     }
 
     fun release() {
-        controls.hide()
-        video.stopPlayback()
+        player?.release()
+        player = null
         playing = null
+        waiting = null
     }
+
+    private fun begin() {
+        val target = waiting ?: return
+        val output = surface ?: return
+        waiting = null
+        player?.release()
+        player = runCatching {
+            MediaPlayer().apply {
+                setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build())
+                setSurface(output)
+                setDataSource(context, target)
+                setOnVideoSizeChangedListener { _, width, height ->
+                    sourceWidth = width
+                    sourceHeight = height
+                    fit()
+                }
+                setOnPreparedListener { it.start() }
+                prepareAsync()
+            }
+        }.onFailure { Logger.e(it) { "Video playback could not start" } }.getOrNull()
+    }
+
+    private fun fit() {
+        if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0) return
+        val scale = min(width / sourceWidth.toFloat(), height / sourceHeight.toFloat())
+        texture.layoutParams = LayoutParams((sourceWidth * scale).toInt(), (sourceHeight * scale).toInt(), Gravity.CENTER)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        post { fit() }
+    }
+
+    override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
+        surface = Surface(texture)
+        begin()
+    }
+
+    override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) = Unit
+
+    override fun onSurfaceTextureDestroyed(texture: SurfaceTexture): Boolean {
+        player?.release()
+        player = null
+        surface?.release()
+        surface = null
+        playing?.let { waiting = it }
+        return true
+    }
+
+    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) = Unit
 }
 
 private fun VideoSource.uri(directory: File): Uri = when (this) {
