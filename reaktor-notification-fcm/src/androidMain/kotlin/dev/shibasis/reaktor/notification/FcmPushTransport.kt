@@ -33,6 +33,11 @@ object FcmPushTransport : AndroidPushTransport {
                 continuation.resume(if (task.isSuccessful) task.result else null)
             }
     }
+
+    override suspend fun forget() = suspendCancellableCoroutine { continuation ->
+        FirebaseMessaging.getInstance().deleteToken()
+            .addOnCompleteListener { continuation.resume(Unit) }
+    }
 }
 
 /**
