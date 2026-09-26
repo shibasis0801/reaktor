@@ -116,28 +116,43 @@ class PartyServerConnection internal constructor(
     inline fun <reified T> setState(value: T?): JsonElement? =
         setState(value?.let { json.encodeToJsonElement(kSerializer<T>(), it) })
 
+    val open: Boolean
+        get() {
+            val state: dynamic = raw.asDynamic().readyState
+            return state == undefined || state == SocketOpen
+        }
+
     fun send(message: String) {
-        raw.send(message)
+        deliver(message)
     }
 
     @JsExport.Ignore
     fun send(message: ByteArray) {
-        raw.send(message.toUint8Array())
+        deliver(message.toUint8Array())
     }
 
     @JsExport.Ignore
     fun sendJson(value: JsonElement) {
-        raw.send(json.encodeToString(JsonElement.serializer(), value))
+        deliver(json.encodeToString(JsonElement.serializer(), value))
     }
 
     @PublishedApi
     @JsExport.Ignore
     internal fun sendEncodedJson(encoded: String) {
-        raw.send(encoded)
+        deliver(encoded)
     }
 
     fun sendJsonText(jsonText: String) {
-        raw.send(jsonText)
+        deliver(jsonText)
+    }
+
+    private fun deliver(message: dynamic) {
+        if (!open) return
+        try {
+            raw.send(message)
+        } catch (error: Throwable) {
+            if (open) throw error
+        }
     }
 
     @JsExport.Ignore
@@ -190,7 +205,7 @@ class PartyServerRoom internal constructor(
     fun hasRawDurableObjectState(): Boolean = raw.asDynamic().ctx != null
 
     fun broadcast(message: String) {
-        raw.broadcast(message)
+        everyone(emptyList()) { it.send(message) }
     }
 
     @JsExport.Ignore
@@ -198,18 +213,14 @@ class PartyServerRoom internal constructor(
         message: String,
         without: List<String> = emptyList(),
     ) {
-        if (without.isEmpty()) {
-            raw.broadcast(message)
-        } else {
-            raw.broadcast(message, without.toTypedArray())
-        }
+        everyone(without) { it.send(message) }
     }
 
     fun broadcastWithout(
         message: String,
         without: Array<String>,
     ) {
-        raw.broadcast(message, without)
+        everyone(without.toList()) { it.send(message) }
     }
 
     @JsExport.Ignore
@@ -217,12 +228,11 @@ class PartyServerRoom internal constructor(
         message: ByteArray,
         without: List<String> = emptyList(),
     ) {
-        val payload = message.toUint8Array()
-        if (without.isEmpty()) {
-            raw.broadcast(payload)
-        } else {
-            raw.broadcast(payload, without.toTypedArray())
-        }
+        everyone(without) { it.send(message) }
+    }
+
+    private inline fun everyone(without: List<String>, send: (PartyServerConnection) -> Unit) {
+        connections().forEach { connection -> if (connection.id !in without) send(connection) }
     }
 
     @JsExport.Ignore
@@ -246,11 +256,7 @@ class PartyServerRoom internal constructor(
         jsonText: String,
         without: Array<String> = emptyArray(),
     ) {
-        if (without.isEmpty()) {
-            raw.broadcast(jsonText)
-        } else {
-            raw.broadcast(jsonText, without)
-        }
+        everyone(without.toList()) { it.send(jsonText) }
     }
 
     @JsExport.Ignore
@@ -476,3 +482,5 @@ private fun ByteArray.toUint8Array(): dynamic {
 
 private fun iterableToList(iterable: dynamic): List<dynamic> =
     js("Array.from(iterable)").unsafeCast<Array<dynamic>>().toList()
+
+private const val SocketOpen = 1
