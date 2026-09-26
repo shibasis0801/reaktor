@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -12,6 +13,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.KSerializer
 import kotlin.js.JsExport
+import kotlin.time.Duration.Companion.seconds
 import io.ktor.http.HttpMethod as KtorMethod
 
 @JsExport
@@ -109,6 +111,10 @@ abstract class Service(
 
                 val response = httpClient.request(fullUrl) {
                     method = ktorMethod
+                    timeout {
+                        connectTimeoutMillis = ClientConnectTimeout.inWholeMilliseconds
+                        socketTimeoutMillis = ClientIdleTimeout.inWholeMilliseconds
+                    }
                     headers.append(Environment.Header, intercepted.environment.name)
                     intercepted.headers.forEach { (k, v) -> headers.append(k, v) }
                     intercepted.queryParams.forEach { (k, v) -> url.parameters.append(k, v) }
@@ -225,3 +231,6 @@ inline fun <reified In: Request, reified Out: Response> Service.HeadHandler(
     endpoint: String,
     operation: String = endpoint,
 ) = client<In, Out>(HeadHandler.Companion, endpoint, operation) as HeadHandler<In, Out>
+
+private val ClientConnectTimeout = 10.seconds
+private val ClientIdleTimeout = 30.seconds
