@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
+
+if(iOS)
+    setup_ios()
+endif()
+
 project(ReaktorFlexbuffer)
 
 set(flatbuffers_dir ../../.github_modules/flatbuffers)
@@ -27,7 +32,6 @@ if(ANDROID)
             log
     )
 elseif(APPLE)
-    setup_ios()
     add_library(
             ${PROJECT_NAME}
             STATIC
