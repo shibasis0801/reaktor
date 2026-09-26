@@ -34,21 +34,23 @@ class AndroidAudioRecorder(
         if (!permissionAdapter.request(Permission.MICROPHONE)) return RecordStart.PermissionFailure
         cancel()
         val target = withContext(Dispatchers.IO) { File.createTempFile("voice", ".m4a", activity.cacheDir) }
-        val started = runCatching {
-            @Suppress("DEPRECATION")
-            val created = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(activity) else MediaRecorder()
-            created.apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioChannels(1)
-                setAudioSamplingRate(44_100)
-                setAudioEncodingBitRate(48_000)
-                setOutputFile(target.absolutePath)
-                prepare()
-                start()
-            }
-        }.onFailure { Logger.e(it) { "Audio recording could not start" } }.getOrNull()
+        val started = withContext(Dispatchers.IO) {
+            runCatching {
+                @Suppress("DEPRECATION")
+                val created = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(activity) else MediaRecorder()
+                created.apply {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setAudioChannels(1)
+                    setAudioSamplingRate(44_100)
+                    setAudioEncodingBitRate(48_000)
+                    setOutputFile(target.absolutePath)
+                    prepare()
+                    start()
+                }
+            }.onFailure { Logger.e(it) { "Audio recording could not start" } }.getOrNull()
+        }
         if (started == null) {
             target.delete()
             return RecordStart.RecorderFailure
@@ -70,7 +72,7 @@ class AndroidAudioRecorder(
         val active = recorder ?: return null
         val target = file
         val duration = SystemClock.elapsedRealtime() - startedAt
-        val stopped = runCatching { active.stop() }.isSuccess
+        val stopped = withContext(Dispatchers.IO) { runCatching { active.stop() }.isSuccess }
         release()
         file = null
         val bytes = if (stopped && target != null) withContext(Dispatchers.IO) { runCatching { target.readBytes() }.getOrNull() } else null
@@ -106,16 +108,18 @@ class AndroidAudioPlayer(activity: ComponentActivity) : AudioPlayerAdapter<Compo
         val activity = controller ?: return
         stop()
         val target = withContext(Dispatchers.IO) { File.createTempFile("voice-play", ".m4a", activity.cacheDir).apply { writeBytes(bytes) } }
-        val started = runCatching {
-            MediaPlayer().apply {
-                setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-                setDataSource(target.absolutePath)
-                prepare()
-                if (fromMillis > 0) seekTo(fromMillis.toInt())
-                setOnCompletionListener { stop() }
-                start()
-            }
-        }.onFailure { Logger.e(it) { "Audio playback could not start" } }.getOrNull()
+        val started = withContext(Dispatchers.IO) {
+            runCatching {
+                MediaPlayer().apply {
+                    setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                    setDataSource(target.absolutePath)
+                    prepare()
+                    if (fromMillis > 0) seekTo(fromMillis.toInt())
+                    setOnCompletionListener { stop() }
+                    start()
+                }
+            }.onFailure { Logger.e(it) { "Audio playback could not start" } }.getOrNull()
+        }
         if (started == null) {
             target.delete()
             return
