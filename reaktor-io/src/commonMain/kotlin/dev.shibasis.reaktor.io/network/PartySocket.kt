@@ -23,6 +23,8 @@ private fun String.isInternal(): Boolean {
 
 typealias QueryProvider = suspend () -> Map<String, String>
 
+typealias HeaderProvider = suspend () -> Map<String, String>
+
 data class PartySocketOptions(
     val host: String,
     val room: String,
@@ -31,6 +33,7 @@ data class PartySocketOptions(
     val path: String? = null,
     val protocol: String? = null,
     val queryProvider: QueryProvider = { emptyMap() },
+    val headerProvider: HeaderProvider = { emptyMap() },
     val webSocketOptions: WebSocketOptions = WebSocketOptions(),
     val id: String = Uuid.random().toString(),
 )
@@ -45,7 +48,8 @@ open class PartySocket(
         // Logic moved inside the provider so it re-evaluates on every reconnect
         // This is crucial if queryProvider returns dynamic tokens that expire.
         buildPartyUrl(partyOptions)
-    }
+    },
+    headerProvider = partyOptions.headerProvider,
 )
 
 // Standalone generator logic, separated for clarity and testability

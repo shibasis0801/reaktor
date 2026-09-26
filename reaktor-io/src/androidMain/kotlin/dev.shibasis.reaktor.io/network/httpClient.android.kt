@@ -15,3 +15,5 @@ actual val http = HttpClient(OkHttp) {
 //        preconfigured = okHttpClientInstance
     }
 }
+
+actual val socketHeadersSupported: Boolean = true

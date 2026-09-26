@@ -24,7 +24,7 @@ class ExponentialBackoffStrategy(
     private var retries = 0
 
     override suspend fun shouldReconnect(throwable: Throwable?, closeReason: CloseReason?): Boolean {
-        if (closeReason?.knownReason == CloseReason.Codes.NORMAL) return false
+        if (closeReason?.knownReason == CloseReason.Codes.NORMAL || closeReason?.knownReason == CloseReason.Codes.VIOLATED_POLICY) return false
         if (waitTime < maxDelay) {
             waitTime = (waitTime * growFactor).coerceAtMost(maxDelay)
         }

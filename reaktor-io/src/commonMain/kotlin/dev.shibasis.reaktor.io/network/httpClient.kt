@@ -29,6 +29,8 @@ import kotlin.time.Duration.Companion.seconds
 
 expect val http: HttpClient
 
+expect val socketHeadersSupported: Boolean
+
 private val QueryString = Regex("""\?\S*""")
 
 // todo Take a Authenticator interface as dependency, use io.ktor:ktor-client-auth

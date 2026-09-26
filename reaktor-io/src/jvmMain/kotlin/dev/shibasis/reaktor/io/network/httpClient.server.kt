@@ -10,3 +10,5 @@ actual val http = HttpClient(OkHttp) {
         pipelining = true
     }
 }
+
+actual val socketHeadersSupported: Boolean = true
