@@ -50,7 +50,6 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     }
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
-        pingIntervalMillis = 20.seconds.inWholeMilliseconds
     }
     install(HttpTimeout)
     defaultRequest {
