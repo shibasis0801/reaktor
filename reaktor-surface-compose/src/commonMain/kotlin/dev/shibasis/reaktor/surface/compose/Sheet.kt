@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
@@ -113,20 +114,22 @@ private fun BottomSheetFrame(scrim: Color, onDismiss: () -> Unit, exiting: Boole
             .background(scrim)
             .then(if (exiting) Modifier.clearAndSetSemantics {} else Modifier.pointerInput(Unit) { detectTapGestures { onDismiss() } }),
     ) {
-        Box(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .onSizeChanged { extent = it.height.toFloat() }
-                .offset { IntOffset(0, offset.value.coerceAtMost(extent.coerceAtLeast(0f) + 1f).roundToInt()) }
-                .then(if (settled) Modifier else Modifier.clearAndSetSemantics {})
-                .pointerInput(exiting) { if (exiting) awaitPointerEventScope { while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() } } else detectTapGestures { } }
-                .draggable(
-                    orientation = Orientation.Vertical,
-                    state = rememberDraggableState { delta -> scope.launch { offset.snapTo((offset.value + delta).coerceAtLeast(0f)) } },
-                    onDragStopped = { velocity -> settle.send(Release(offset.value, extent, velocity)) },
-                ),
-        ) { content() }
+        Box(Modifier.fillMaxSize().imePadding()) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { extent = it.height.toFloat() }
+                    .offset { IntOffset(0, offset.value.coerceAtMost(extent.coerceAtLeast(0f) + 1f).roundToInt()) }
+                    .then(if (settled) Modifier else Modifier.clearAndSetSemantics {})
+                    .pointerInput(exiting) { if (exiting) awaitPointerEventScope { while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() } } else detectTapGestures { } }
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta -> scope.launch { offset.snapTo((offset.value + delta).coerceAtLeast(0f)) } },
+                        onDragStopped = { velocity -> settle.send(Release(offset.value, extent, velocity)) },
+                    ),
+            ) { content() }
+        }
     }
 }
 

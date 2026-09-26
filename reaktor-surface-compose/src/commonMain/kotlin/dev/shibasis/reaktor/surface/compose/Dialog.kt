@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
@@ -59,13 +60,12 @@ class DialogScope internal constructor(private val disclosure: Disclosure, priva
         val dismiss = { disclosure.machine.send(DisclosureInput.Dismiss) }
         Overlay {
             OverlayBack(onBack = dismiss)
-            Box(
-                Modifier.fillMaxSize().background(scrim).pointerInput(dismissOutside) { detectTapGestures { if (dismissOutside) dismiss() } },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(Modifier.pointerInput(Unit) { detectTapGestures { } }) {
-                    disclosure.Panel(appearance, disclosure::initialFocus) {
-                        PanelScope(disclosure).content()
+            Box(Modifier.fillMaxSize().background(scrim).pointerInput(dismissOutside) { detectTapGestures { if (dismissOutside) dismiss() } }) {
+                Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.Center) {
+                    Box(Modifier.pointerInput(Unit) { detectTapGestures { } }) {
+                        disclosure.Panel(appearance, disclosure::initialFocus) {
+                            PanelScope(disclosure).content()
+                        }
                     }
                 }
             }
