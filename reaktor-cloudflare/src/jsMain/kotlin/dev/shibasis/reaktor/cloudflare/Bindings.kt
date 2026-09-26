@@ -217,6 +217,8 @@ class CloudflareContext internal constructor(
     fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
     @JsExport.Ignore
     fun aiOrNull(name: String): WorkersAI? = rawBindingOrNull<RawWorkersAI>(name)?.let(::WorkersAI)
+    @JsExport.Ignore
+    fun rateLimiterOrNull(name: String): RateLimiter? = rawBindingOrNull<RawRateLimiter>(name)?.let(::RateLimiter)
     internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")
