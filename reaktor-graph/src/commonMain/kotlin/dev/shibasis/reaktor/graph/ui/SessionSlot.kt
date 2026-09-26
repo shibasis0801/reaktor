@@ -28,6 +28,10 @@ class SessionSlot<K : Any>(
         coroutineScope.launch(Dispatchers.Main) { identity.collect(::swap) }
     }
 
+    fun preview(key: K) {
+        if (current.value == null) swap(key)
+    }
+
     private fun swap(next: K?) {
         val previous = current.value
         val built = next?.let(build)
