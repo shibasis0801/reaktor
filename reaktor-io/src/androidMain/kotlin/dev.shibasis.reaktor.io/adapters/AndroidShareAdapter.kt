@@ -30,9 +30,7 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        return runCatching {
-            context.startActivity(Intent.createChooser(send, payload.title ?: payload.fileName))
-        }.isSuccess
+        return launch(context, Intent.createChooser(send, payload.title ?: payload.fileName))
     }
 
     override suspend fun shareText(text: String, title: String?, subject: String?): Boolean {
@@ -44,9 +42,7 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
             subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
         }
 
-        return runCatching {
-            context.startActivity(Intent.createChooser(send, title))
-        }.isSuccess
+        return launch(context, Intent.createChooser(send, title))
     }
 
     override suspend fun openFile(payload: SharePayload): Boolean {
@@ -58,8 +54,11 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        return runCatching { context.startActivity(view) }.isSuccess ||
-            runCatching { context.startActivity(Intent.createChooser(view, payload.title ?: payload.fileName)) }.isSuccess
+        return launch(context, view) || launch(context, Intent.createChooser(view, payload.title ?: payload.fileName))
+    }
+
+    private suspend fun launch(context: Context, intent: Intent): Boolean = withContext(Dispatchers.Main) {
+        runCatching { context.startActivity(intent) }.isSuccess
     }
 
     private suspend fun stage(context: Context, payload: SharePayload): Uri? = withContext(Dispatchers.IO) {
