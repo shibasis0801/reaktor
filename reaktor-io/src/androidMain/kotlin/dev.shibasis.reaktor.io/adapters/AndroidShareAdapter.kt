@@ -2,7 +2,9 @@ package dev.shibasis.reaktor.io.adapters
 
 import android.app.Activity
 import android.content.ClipData
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,17 +18,7 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
 
     override suspend fun shareFile(payload: SharePayload): Boolean {
         val context = controller ?: return false
-
-        val uri = withContext(Dispatchers.IO) {
-            runCatching {
-                // Staged in a dedicated cache folder that the provider's paths file exposes;
-                // everything else in the sandbox stays unreachable.
-                val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
-                val file = File(directory, payload.fileName)
-                file.writeBytes(payload.bytes)
-                FileProvider.getUriForFile(context, authority(context.packageName), file)
-            }.getOrNull()
-        } ?: return false
+        val uri = stage(context, payload) ?: return false
 
         val send = Intent(Intent.ACTION_SEND).apply {
             type = payload.mimeType
@@ -55,6 +47,30 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
         return runCatching {
             context.startActivity(Intent.createChooser(send, title))
         }.isSuccess
+    }
+
+    override suspend fun openFile(payload: SharePayload): Boolean {
+        val context = controller ?: return false
+        val uri = stage(context, payload) ?: return false
+
+        val view = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, payload.mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        return runCatching { context.startActivity(view) }.isSuccess ||
+            runCatching { context.startActivity(Intent.createChooser(view, payload.title ?: payload.fileName)) }.isSuccess
+    }
+
+    private suspend fun stage(context: Context, payload: SharePayload): Uri? = withContext(Dispatchers.IO) {
+        runCatching {
+            // Staged in a dedicated cache folder that the provider's paths file exposes;
+            // everything else in the sandbox stays unreachable.
+            val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
+            val file = File(directory, payload.fileName)
+            file.writeBytes(payload.bytes)
+            FileProvider.getUriForFile(context, authority(context.packageName), file)
+        }.getOrNull()
     }
 
     companion object {
