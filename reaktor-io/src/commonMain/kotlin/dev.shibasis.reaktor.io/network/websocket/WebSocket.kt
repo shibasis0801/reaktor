@@ -12,6 +12,7 @@ import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +45,7 @@ open class WebSocket(
 ): ConcurrencyCapability by ConcurrencyCapabilityImpl(coroutineDispatcher = dispatcher.limitedParallelism(1)) {
     private val connection = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val state: StateFlow<ConnectionState> = connection
+    private var reconnectJob: Job? = null
 
     init {
         if (options.eager) launch { connect() }
@@ -71,13 +73,35 @@ open class WebSocket(
             reconnectionStrategy.reset()
         } catch (e: Exception) {
             connection.value = ConnectionState.Failed(e)
+            // A first connect that fails is the common case on a phone: no network yet, a captive
+            // portal, the server still starting. Without this the socket stayed Failed forever and
+            // the caller had to notice and rebuild it.
+            scheduleReconnect(e, null)
         }
+    }
+
+    /**
+     * Runs the reconnect loop once at a time.
+     *
+     * [connect] reports its own failures here, and so does a dropped session. The guard keeps the
+     * two from starting competing loops, and means a `connect` failing *inside* the loop does not
+     * nest another one.
+     */
+    private fun scheduleReconnect(throwable: Throwable?, reason: CloseReason?) {
+        if (reconnectJob?.isActive == true) return
+        reconnectJob = launch { reconnect(throwable, reason) }
     }
 
     suspend fun disconnect(
         reason: CloseReason = CloseReason(CloseReason.Codes.NORMAL, "")
     ) = withContext {
         if (connection.value is ConnectionState.Closed) return@withContext
+
+        // Cancel first. Otherwise a reconnect already waiting on its backoff wakes up after this
+        // returns and reopens a socket the caller has just closed - which used to leave a live,
+        // signed-in socket behind after leaving a screen.
+        reconnectJob?.cancel()
+        reconnectJob = null
 
         val previousState = connection.value
         connection.value = ConnectionState.Closing(reason)
@@ -118,7 +142,7 @@ open class WebSocket(
                 if (it) connection.value = ConnectionState.Failed(DroppedConnection(reason, cause))
             }
         }
-        if (lost) reconnect(cause, reason)
+        if (lost) scheduleReconnect(cause, reason)
     }
 
     private val ConnectionState.stopped: Boolean
