@@ -173,15 +173,6 @@ private fun VerifiedToken.toPlainJsObject(): Any {
     return out.unsafeCast<Any>()
 }
 
-/**
- * JWKS held for the life of an isolate.
- *
- * Verifying a token is the first thing every authenticated request does, so a JWKS fetch per
- * request put a second on the wire before any handler ran. Three layers now sit in front of that
- * fetch: this map, the colo's Cache API (shared by every worker that verifies the same issuer),
- * and KV when a namespace is bound. A `kid` miss still bypasses all three, so a manual key
- * rotation is picked up without redeploying anything.
- */
 private class HeldJwks(val text: String, private val expiresAtMillis: Double) {
     fun freshAt(now: Double) = now < expiresAtMillis
 }
