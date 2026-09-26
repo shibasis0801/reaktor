@@ -32,6 +32,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 abstract class AuthAdapter<Controller>(
     controller: Controller,
@@ -233,10 +235,23 @@ abstract class AuthAdapter<Controller>(
         return mutableMapOf(AUTHORIZATION_HEADER to bearerAuthorization(accessToken))
     }
 
-    suspend fun refreshSession(environment: Environment = Environment.PROD): TokenSet? = refreshMutex.withLock {
+    suspend fun sessionExpiresAt(environment: Environment = Environment.PROD): Long? =
+        if (sessionStore != null) sessionStore.read(environment)?.expiresAtEpochMillis
+        else authStoreOrNull()?.getAccessTokenExpiresAtEpochMillis()
+
+    suspend fun renewAhead(lead: Duration, environment: Environment = Environment.PROD): Boolean {
+        val expiresAt = sessionExpiresAt(environment) ?: return false
+        if (expiresAt > Clock.System.now().toEpochMilliseconds() + lead.inWholeMilliseconds) return false
+        return refreshSession(environment, lead) != null
+    }
+
+    suspend fun refreshSession(
+        environment: Environment = Environment.PROD,
+        lead: Duration = REFRESH_SKEW_MILLIS.milliseconds,
+    ): TokenSet? = refreshMutex.withLock {
         if (sessionStore != null) {
             val current = sessionStore.read(environment) ?: return@withLock null
-            if (current.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + REFRESH_SKEW_MILLIS) return@withLock current.tokens
+            if (current.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + lead.inWholeMilliseconds) return@withLock current.tokens
             val token = current.tokens.refreshToken ?: return@withLock null
             val response = authClient.sessionRefresh(RefreshRequest(token, environment = environment))
             if (response.statusCode == StatusCode.UNAUTHORIZED) {
