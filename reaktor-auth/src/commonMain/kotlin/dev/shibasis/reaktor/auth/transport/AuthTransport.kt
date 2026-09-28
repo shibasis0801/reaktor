@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.transport
 
+import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.AuthRequirement
@@ -61,6 +62,7 @@ fun Request.setAuthContext(context: AuthContext?) {
 class BearerAuthClientInterceptor(
     private val tokenProvider: suspend (InterceptorContext<*, *>) -> String?,
     private val replaceExisting: Boolean = false,
+    private val renewal: (suspend (InterceptorContext<*, *>) -> String?)? = null,
 ) : ServiceInterceptor {
     override val stages: Set<InterceptorStage> =
         setOf(InterceptorStage.CLIENT_APPLICATION, InterceptorStage.CLIENT_TRANSPORT)
@@ -71,6 +73,11 @@ class BearerAuthClientInterceptor(
                 chain.request.headers.putBearerAuthorization(token)
             }
         }
+        val sent = bearerTokenFromHeaders(chain.request.headers)
+        val response = chain.proceed()
+        if (sent == null || response.statusCode != StatusCode.UNAUTHORIZED) return response
+        val renewed = renewal?.invoke(chain.context)?.trim()?.takeIf { it.isNotEmpty() && it != sent } ?: return response
+        chain.request.headers.putBearerAuthorization(renewed)
         return chain.proceed()
     }
 }
