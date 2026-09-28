@@ -6,6 +6,10 @@ It is the shared runtime used by:
 - [BestBuds](/Users/ovd/dev/bestbuds/README.md)
 - `Manna`
 
+Before trusting a green build here, read [BUILD_HEALTH.md](BUILD_HEALTH.md): three modules do not
+compile or test on JS, two fail on the JVM, and a root `jvmTest` runs only half of the modules that
+have tests.
+
 ## Graph Blueprint
 
 The graph blueprint is a live visualization of how a Reaktor application is assembled. Every screen, service, repository, and navigation binding is a node in the graph, wired together through typed ports and edges.
