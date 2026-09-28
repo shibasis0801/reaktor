@@ -13,6 +13,7 @@ import dev.shibasis.reaktor.service.ServiceChain
 import dev.shibasis.reaktor.service.ServiceInterceptor
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import dev.shibasis.reaktor.service.ServiceStatusException
 
 const val AUTHORIZATION_HEADER = "Authorization"
 const val BEARER_PREFIX = "Bearer "
@@ -74,9 +75,14 @@ class BearerAuthClientInterceptor(
             }
         }
         val sent = bearerTokenFromHeaders(chain.request.headers)
-        val response = chain.proceed()
-        if (sent == null || response.statusCode != StatusCode.UNAUTHORIZED) return response
-        val renewed = renewal?.invoke(chain.context)?.trim()?.takeIf { it.isNotEmpty() && it != sent } ?: return response
+        val first = runCatching { chain.proceed() }
+        val unauthorized = first.fold(
+            onSuccess = { it.statusCode == StatusCode.UNAUTHORIZED },
+            onFailure = { (it as? ServiceStatusException)?.status == StatusCode.UNAUTHORIZED.code },
+        )
+        val renew = renewal
+        if (!unauthorized || renew == null) return first.getOrThrow()
+        val renewed = renew(chain.context)?.trim()?.takeIf { it.isNotEmpty() && it != sent } ?: return first.getOrThrow()
         chain.request.headers.putBearerAuthorization(renewed)
         return chain.proceed()
     }
