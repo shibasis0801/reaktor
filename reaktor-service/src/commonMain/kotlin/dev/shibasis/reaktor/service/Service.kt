@@ -5,14 +5,21 @@ import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.HttpClient
+import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.serialization.KSerializer
 import kotlin.js.JsExport
+import kotlin.random.Random
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import io.ktor.http.HttpMethod as KtorMethod
 
@@ -109,20 +116,22 @@ abstract class Service(
                 val fullUrl = baseUrl + created.url(intercepted)
                 val ktorMethod = created.method.toKtorMethod()
 
-                val response = httpClient.request(fullUrl) {
-                    method = ktorMethod
-                    timeout {
-                        connectTimeoutMillis = ClientConnectTimeout.inWholeMilliseconds
-                        socketTimeoutMillis = ClientIdleTimeout.inWholeMilliseconds
-                    }
-                    headers.append(Environment.Header, intercepted.environment.name)
-                    intercepted.headers.forEach { (k, v) -> headers.append(k, v) }
-                    intercepted.queryParams.forEach { (k, v) -> url.parameters.append(k, v) }
+                val response = persistently(ktorMethod) {
+                    httpClient.request(fullUrl) {
+                        method = ktorMethod
+                        timeout {
+                            connectTimeoutMillis = ClientConnectTimeout.inWholeMilliseconds
+                            socketTimeoutMillis = ClientIdleTimeout.inWholeMilliseconds
+                        }
+                        headers.append(Environment.Header, intercepted.environment.name)
+                        intercepted.headers.forEach { (k, v) -> headers.append(k, v) }
+                        intercepted.queryParams.forEach { (k, v) -> url.parameters.append(k, v) }
 
-                    when (method) {
-                        KtorMethod.Post, KtorMethod.Put, KtorMethod.Patch -> {
-                            contentType(ContentType.Application.Json)
-                            setBody(json.encodeToString(requestSerializer, intercepted))
+                        when (method) {
+                            KtorMethod.Post, KtorMethod.Put, KtorMethod.Patch -> {
+                                contentType(ContentType.Application.Json)
+                                setBody(json.encodeToString(requestSerializer, intercepted))
+                            }
                         }
                     }
                 }
@@ -234,3 +243,37 @@ inline fun <reified In: Request, reified Out: Response> Service.HeadHandler(
 
 private val ClientConnectTimeout = 10.seconds
 private val ClientIdleTimeout = 30.seconds
+private const val ClientAttempts = 3
+private val ClientBackoff = listOf(400.milliseconds, 1200.milliseconds)
+private val ClientRetryAfterCap = 4.seconds
+private val Idempotent = setOf(KtorMethod.Get, KtorMethod.Head, KtorMethod.Put, KtorMethod.Delete, KtorMethod.Options)
+private val Unprocessed = setOf(429, 503)
+private val Transient = setOf(408, 500, 502, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530)
+
+internal suspend fun persistently(method: KtorMethod, send: suspend () -> HttpResponse): HttpResponse {
+    val idempotent = method in Idempotent
+    var attempt = 1
+    while (true) {
+        val response = try {
+            send()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            if (attempt >= ClientAttempts || !(idempotent || failure is ConnectTimeoutException)) throw failure
+            delay(backoff(attempt, null))
+            attempt += 1
+            continue
+        }
+        val status = response.status.value
+        val retry = status in Unprocessed || (idempotent && status in Transient)
+        if (!retry || attempt >= ClientAttempts) return response
+        delay(backoff(attempt, response.headers["Retry-After"]))
+        attempt += 1
+    }
+}
+
+private fun backoff(attempt: Int, retryAfter: String?): Duration {
+    val asked = retryAfter?.trim()?.toIntOrNull()?.seconds?.coerceAtMost(ClientRetryAfterCap)
+    val base = ClientBackoff[(attempt - 1).coerceIn(0, ClientBackoff.lastIndex)]
+    return asked ?: (base * Random.nextDouble(0.7, 1.3))
+}
