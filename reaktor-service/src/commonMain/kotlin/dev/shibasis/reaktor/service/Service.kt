@@ -22,6 +22,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import io.ktor.http.HttpMethod as KtorMethod
+import kotlinx.coroutines.withTimeoutOrNull
 
 @JsExport
 abstract class Service(
@@ -116,7 +117,7 @@ abstract class Service(
                 val fullUrl = baseUrl + created.url(intercepted)
                 val ktorMethod = created.method.toKtorMethod()
 
-                val response = persistently(ktorMethod) {
+                val response = withTimeoutOrNull(ClientDeadline) { persistently(ktorMethod) {
                     httpClient.request(fullUrl) {
                         method = ktorMethod
                         timeout {
@@ -134,9 +135,14 @@ abstract class Service(
                             }
                         }
                     }
-                }
+                } } ?: throw ServiceUnanswered(ClientDeadline)
 
-                val decoded = json.decodeFromString(responseSerializer, response.bodyAsText())
+                val body = response.bodyAsText()
+                val decoded = try {
+                    json.decodeFromString(responseSerializer, body)
+                } catch (unreadable: IllegalArgumentException) {
+                    throw ServiceStatusException(response.status.value, unreadable)
+                }
                 decoded.applyTransportMetadata(
                     headers = response.headers.entries().associate { (key, values) -> key to values.joinToString(", ") },
                     statusCode = StatusCode(response.status.value),
@@ -241,6 +247,11 @@ inline fun <reified In: Request, reified Out: Response> Service.HeadHandler(
     operation: String = endpoint,
 ) = client<In, Out>(HeadHandler.Companion, endpoint, operation) as HeadHandler<In, Out>
 
+class ServiceStatusException(val status: Int, cause: Throwable? = null) : IllegalStateException("The server answered $status in a shape this client cannot read", cause)
+
+class ServiceUnanswered(deadline: Duration) : IllegalStateException("No answer within $deadline")
+
+private val ClientDeadline = 25.seconds
 private val ClientConnectTimeout = 10.seconds
 private val ClientIdleTimeout = 30.seconds
 private const val ClientAttempts = 3

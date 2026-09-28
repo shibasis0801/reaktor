@@ -31,7 +31,7 @@ sealed class ConnectionState {
 }
 
 data class WebSocketOptions(
-    val connectionTimeout: Duration = 4.seconds,
+    val connectionTimeout: Duration = 12.seconds,
     val eager: Boolean = true,
     val receiverReplay: Int = 0,
     val heartbeat: Heartbeat? = null,

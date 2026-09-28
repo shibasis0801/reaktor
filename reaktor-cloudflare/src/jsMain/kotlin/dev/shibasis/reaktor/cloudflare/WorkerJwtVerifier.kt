@@ -76,9 +76,8 @@ class WorkerJwtVerifier(
         if (pinned != null) return parseJson(pinned)
 
         val cache = kv // local val so the smart-cast survives into the inline runCatching lambdas below
-        if (forceRefresh) {
-            jwksMemory.remove(jwksUrl)
-        } else {
+        val stale = jwksMemory[jwksUrl]
+        if (!forceRefresh) {
             val held = jwksMemory[jwksUrl]
             if (held != null && held.freshAt(nowMillis())) {
                 val parsed = parseOrNull(held.text)
@@ -103,7 +102,7 @@ class WorkerJwtVerifier(
             }
         }
 
-        val text = fetchText(jwksUrl) ?: return null
+        val text = runCatching { fetchText(jwksUrl) }.getOrNull() ?: return stale?.let { parseOrNull(it.text) }
         remember(text)
         cacheApiWrite(jwksUrl, text, cacheTtlSeconds)
         if (cache != null) runCatching { cache.putString(cacheKey, text, cacheTtlSeconds) }
@@ -115,7 +114,7 @@ class WorkerJwtVerifier(
     }
 
     private suspend fun fetchText(url: String): String? {
-        val response = (js("fetch(url)").unsafeCast<Promise<dynamic>>()).await()
+        val response = (js("fetch(url, { signal: AbortSignal.timeout(5000) })").unsafeCast<Promise<dynamic>>()).await()
         if (response == null || !(response.ok as Boolean)) return null
         return response.text().unsafeCast<Promise<String>>().await()
     }

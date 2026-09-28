@@ -9,6 +9,7 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -54,17 +55,21 @@ class DarwinAudioRecorder(private val permissionAdapter: PermissionAdapter<*>) :
     override suspend fun start(): RecordStart {
         if (!permissionAdapter.request(Permission.MICROPHONE)) return RecordStart.PermissionFailure
         cancel()
-        if (!speakerSession()) return RecordStart.RecorderFailure
         val target = NSURL.fileURLWithPath(NSTemporaryDirectory() + "voice-${NSUUID().UUIDString}.m4a")
-        val settings = mapOf<Any?, Any?>(
-            AVFormatIDKey to NSNumber(unsignedInt = kAudioFormatMPEG4AAC),
-            AVSampleRateKey to NSNumber(double = 44_100.0),
-            AVNumberOfChannelsKey to NSNumber(int = 1),
-            AVEncoderBitRateKey to NSNumber(int = 48_000),
-        )
-        val created = AVAudioRecorder(uRL = target, settings = settings, error = null)
-        created.meteringEnabled = true
-        if (!created.record()) {
+        val created = withContext(Dispatchers.Default) {
+            if (!speakerSession()) return@withContext null
+            val settings = mapOf<Any?, Any?>(
+                AVFormatIDKey to NSNumber(unsignedInt = kAudioFormatMPEG4AAC),
+                AVSampleRateKey to NSNumber(double = 44_100.0),
+                AVNumberOfChannelsKey to NSNumber(int = 1),
+                AVEncoderBitRateKey to NSNumber(int = 48_000),
+            )
+            AVAudioRecorder(uRL = target, settings = settings, error = null).takeIf { recorder ->
+                recorder.meteringEnabled = true
+                recorder.record()
+            }
+        }
+        if (created == null) {
             Logger.e { "Audio recording could not start" }
             return RecordStart.RecorderFailure
         }
@@ -123,11 +128,14 @@ class DarwinAudioPlayer : AudioPlayerAdapter<Unit>(Unit) {
 
     override suspend fun play(key: String, bytes: ByteArray, fromMillis: Long) {
         stop()
-        speakerSession()
-        val data = bytes.usePinned { NSData.dataWithBytes(it.addressOf(0), bytes.size.toULong()) }
-        val created = AVAudioPlayer(data = data, error = null)
-        created.prepareToPlay()
-        if (fromMillis > 0) created.currentTime = fromMillis / 1000.0
+        val created = withContext(Dispatchers.Default) {
+            speakerSession()
+            val data = bytes.usePinned { NSData.dataWithBytes(it.addressOf(0), bytes.size.toULong()) }
+            AVAudioPlayer(data = data, error = null).also { player ->
+                player.prepareToPlay()
+                if (fromMillis > 0) player.currentTime = fromMillis / 1000.0
+            }
+        }
         if (!created.play()) {
             Logger.e { "Audio playback could not start" }
             return

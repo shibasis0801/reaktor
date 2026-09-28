@@ -253,33 +253,41 @@ abstract class AuthAdapter<Controller>(
             val current = sessionStore.read(environment) ?: return@withLock null
             if (current.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + lead.inWholeMilliseconds) return@withLock current.tokens
             val token = current.tokens.refreshToken ?: return@withLock null
-            val response = authClient.sessionRefresh(RefreshRequest(token, environment = environment))
-            if (response.statusCode == StatusCode.UNAUTHORIZED) {
-                sessionStore.clear(environment); resetLoginState(); _sessionEndedAt.value = Clock.System.now().toEpochMilliseconds(); return@withLock null
+            return@withLock withContext(NonCancellable) {
+                val response = authClient.sessionRefresh(RefreshRequest(token, environment = environment))
+                if (response.statusCode == StatusCode.UNAUTHORIZED) {
+                    sessionStore.clear(environment); resetLoginState(); _sessionEndedAt.value = Clock.System.now().toEpochMilliseconds(); return@withContext null
+                }
+                check(response.statusCode == StatusCode.OK) { "Reaktor session refresh is temporarily unavailable" }
+                val tokens = response.tokenSet ?: return@withContext null
+                require(!tokens.refreshToken.isNullOrBlank() && tokens.expiresInSeconds > 0) { "Refresh did not return a complete rotated session" }
+                sessionStore.write(environment, current.copy(tokens = tokens, expiresAtEpochMillis = requireNotNull(tokens.accessTokenExpiresAtEpochMillis())))
+                tokens
             }
-            check(response.statusCode == StatusCode.OK) { "Reaktor session refresh is temporarily unavailable" }
-            val tokens = response.tokenSet ?: return@withLock null
-            require(!tokens.refreshToken.isNullOrBlank() && tokens.expiresInSeconds > 0) { "Refresh did not return a complete rotated session" }
-            sessionStore.write(environment, current.copy(tokens = tokens, expiresAtEpochMillis = requireNotNull(tokens.accessTokenExpiresAtEpochMillis())))
-            return@withLock tokens
         }
         val store = authStoreOrNull() ?: return@withLock null
+        val now = Clock.System.now().toEpochMilliseconds()
+        val held = store.getAccessToken()
+        val heldUntil = store.getAccessTokenExpiresAtEpochMillis()
+        if (held != null && heldUntil != null && heldUntil > now + lead.inWholeMilliseconds) {
+            return@withLock TokenSet(accessToken = held, refreshToken = store.getRefreshToken(), expiresInSeconds = ((heldUntil - now) / 1000).toInt())
+        }
         val refreshToken = store.getRefreshToken() ?: return@withLock null
-        val response = runCatching {
-            authClient.sessionRefresh(RefreshRequest(refreshToken = refreshToken, environment = environment))
-        }.getOrElse { error ->
-            if (error is CancellationException) throw error
-            Logger.e(error) { "Failed to refresh Reaktor auth session" }
-            return@withLock null
+        withContext(NonCancellable) {
+            val response = runCatching {
+                authClient.sessionRefresh(RefreshRequest(refreshToken = refreshToken, environment = environment))
+            }.getOrElse { error ->
+                Logger.e(error) { "Failed to refresh Reaktor auth session" }
+                return@withContext null
+            }
+            if (response.statusCode == StatusCode.UNAUTHORIZED) {
+                store.clear(); resetLoginState(); _sessionEndedAt.value = Clock.System.now().toEpochMilliseconds(); return@withContext null
+            }
+            if (response.statusCode != StatusCode.OK) return@withContext null
+            val tokenSet = response.tokenSet ?: return@withContext null
+            cache(tokenSet)
+            tokenSet
         }
-
-        if (response.statusCode == StatusCode.UNAUTHORIZED) {
-            store.clear(); resetLoginState(); _sessionEndedAt.value = Clock.System.now().toEpochMilliseconds(); return@withLock null
-        }
-        if (response.statusCode != StatusCode.OK) return@withLock null
-        val tokenSet = response.tokenSet ?: return@withLock null
-        cache(tokenSet)
-        tokenSet
     }
 
     suspend fun exchangeRefreshToken(refreshToken: String, environment: Environment = activeEnvironment): RefreshResponse =

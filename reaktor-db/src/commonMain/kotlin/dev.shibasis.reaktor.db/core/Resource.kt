@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class Resource<T : Any>(
     private val state: ObjectState<T>?,
@@ -25,6 +26,8 @@ class Resource<T : Any>(
     private val gate = Mutex()
     private var fetchedAt = 0L
     private var loaded = false
+    private var misses = 0
+    private var firstMissAt = 0L
 
     val value: StateFlow<T?> = held.asStateFlow()
 
@@ -64,7 +67,15 @@ class Resource<T : Any>(
             } catch (_: Throwable) {
                 null
             }
-            _failed.value = fresh == null
+            if (fresh == null) {
+                misses += 1
+                if (firstMissAt == 0L) firstMissAt = now()
+                _failed.value = misses >= FailAfterMisses || now() - firstMissAt >= FailAfter.inWholeMilliseconds
+            } else {
+                misses = 0
+                firstMissAt = 0L
+                _failed.value = false
+            }
             if (fresh != null) {
                 held.value = fresh
                 fetchedAt = now()
@@ -90,3 +101,6 @@ class Resource<T : Any>(
         }
     }
 }
+
+private const val FailAfterMisses = 3
+private val FailAfter = 10.seconds
