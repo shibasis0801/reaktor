@@ -102,7 +102,7 @@ fun decodeJwt(jwt: String): String? {
 
         // Decode base64 to JSON string
         utf8(atob(padded))
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         console.error("Failed to decode JWT", e)
         null
     }
