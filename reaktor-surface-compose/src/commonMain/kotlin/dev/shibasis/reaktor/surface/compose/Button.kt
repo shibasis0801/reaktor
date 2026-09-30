@@ -53,7 +53,7 @@ fun Button(
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
-                enabled = enabled,
+                enabled = enabled && !busy,
                 role = Role.Button,
                 onLongClick = onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } },
             ) {
