@@ -28,6 +28,7 @@ class AndroidPermissionAdapter(
 
             when (perm) {
                 Permission.CAMERA        -> result.add(Manifest.permission.CAMERA)
+                Permission.MICROPHONE    -> result.add(Manifest.permission.RECORD_AUDIO)
                 Permission.NOTIFICATIONS -> result.add(Manifest.permission.POST_NOTIFICATIONS)
                 Permission.LOCATION      -> result.addAll(listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                 else                     -> result.add(perm)

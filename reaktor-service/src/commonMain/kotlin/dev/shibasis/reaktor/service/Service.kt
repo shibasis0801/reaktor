@@ -5,14 +5,24 @@ import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.io.network.http
 import io.ktor.client.HttpClient
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.serialization.KSerializer
 import kotlin.js.JsExport
+import kotlin.random.Random
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import io.ktor.http.HttpMethod as KtorMethod
+import kotlinx.coroutines.withTimeoutOrNull
 
 @JsExport
 abstract class Service(
@@ -35,7 +45,16 @@ abstract class Service(
         interceptors += interceptor.map { it.boundTo(stages) }
     }
 
-    protected open fun serviceInterceptors(): List<ServiceInterceptor> = interceptors
+    /**
+     * The chain this service runs, its own plus anything installed process-wide.
+     *
+     * Global interceptors exist for one reason: an observer that has to be attached to every
+     * service instance by hand is an observer that misses the one nobody remembered. DevTools
+     * installs its traffic tap here, so a call is captured because it crossed a boundary rather
+     * than because someone wired the service up.
+     */
+    protected open fun serviceInterceptors(): List<ServiceInterceptor> =
+        if (globalInterceptors.isEmpty()) interceptors else globalInterceptors + interceptors
 
     private suspend fun <In : Request, Out : Response> invokeWithInterceptors(
         phase: ServiceExecutionPhase,
@@ -52,6 +71,20 @@ abstract class Service(
         index = 0,
         terminal = terminal,
     ).proceed()
+
+    companion object {
+        private val globals = arrayListOf<ServiceInterceptor>()
+
+        /** Interceptors every service in this process runs, outermost first. */
+        val globalInterceptors: List<ServiceInterceptor> get() = globals
+
+        /** Installs a process-wide interceptor and hands back the undo. */
+        @JsExport.Ignore
+        fun installGlobal(interceptor: ServiceInterceptor): () -> Unit {
+            globals += interceptor
+            return { globals -= interceptor }
+        }
+    }
 
     fun <In : Request, Out: Response> server(
         factory: RequestHandler.Factory,
@@ -84,21 +117,32 @@ abstract class Service(
                 val fullUrl = baseUrl + created.url(intercepted)
                 val ktorMethod = created.method.toKtorMethod()
 
-                val response = httpClient.request(fullUrl) {
-                    method = ktorMethod
-                    headers.append(Environment.Header, intercepted.environment.name)
-                    intercepted.headers.forEach { (k, v) -> headers.append(k, v) }
-                    intercepted.queryParams.forEach { (k, v) -> url.parameters.append(k, v) }
+                val response = withTimeoutOrNull(ClientDeadline) { persistently(ktorMethod) {
+                    httpClient.request(fullUrl) {
+                        method = ktorMethod
+                        timeout {
+                            connectTimeoutMillis = ClientConnectTimeout.inWholeMilliseconds
+                            socketTimeoutMillis = ClientIdleTimeout.inWholeMilliseconds
+                        }
+                        headers.append(Environment.Header, intercepted.environment.name)
+                        intercepted.headers.forEach { (k, v) -> headers.append(k, v) }
+                        intercepted.queryParams.forEach { (k, v) -> url.parameters.append(k, v) }
 
-                    when (method) {
-                        KtorMethod.Post, KtorMethod.Put, KtorMethod.Patch -> {
-                            contentType(ContentType.Application.Json)
-                            setBody(json.encodeToString(requestSerializer, intercepted))
+                        when (method) {
+                            KtorMethod.Post, KtorMethod.Put, KtorMethod.Patch -> {
+                                contentType(ContentType.Application.Json)
+                                setBody(json.encodeToString(requestSerializer, intercepted))
+                            }
                         }
                     }
-                }
+                } } ?: throw ServiceUnanswered(ClientDeadline)
 
-                val decoded = json.decodeFromString(responseSerializer, response.bodyAsText())
+                val body = response.bodyAsText()
+                val decoded = try {
+                    json.decodeFromString(responseSerializer, body)
+                } catch (unreadable: IllegalArgumentException) {
+                    throw ServiceStatusException(response.status.value, unreadable)
+                }
                 decoded.applyTransportMetadata(
                     headers = response.headers.entries().associate { (key, values) -> key to values.joinToString(", ") },
                     statusCode = StatusCode(response.status.value),
@@ -202,3 +246,45 @@ inline fun <reified In: Request, reified Out: Response> Service.HeadHandler(
     endpoint: String,
     operation: String = endpoint,
 ) = client<In, Out>(HeadHandler.Companion, endpoint, operation) as HeadHandler<In, Out>
+
+class ServiceStatusException(val status: Int, cause: Throwable? = null) : IllegalStateException("The server answered $status in a shape this client cannot read", cause)
+
+class ServiceUnanswered(deadline: Duration) : IllegalStateException("No answer within $deadline")
+
+private val ClientDeadline = 25.seconds
+private val ClientConnectTimeout = 10.seconds
+private val ClientIdleTimeout = 30.seconds
+private const val ClientAttempts = 3
+private val ClientBackoff = listOf(400.milliseconds, 1200.milliseconds)
+private val ClientRetryAfterCap = 4.seconds
+private val Idempotent = setOf(KtorMethod.Get, KtorMethod.Head, KtorMethod.Put, KtorMethod.Delete, KtorMethod.Options)
+private val Unprocessed = setOf(429, 503)
+private val Transient = setOf(408, 500, 502, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530)
+
+internal suspend fun persistently(method: KtorMethod, send: suspend () -> HttpResponse): HttpResponse {
+    val idempotent = method in Idempotent
+    var attempt = 1
+    while (true) {
+        val response = try {
+            send()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            if (attempt >= ClientAttempts || !(idempotent || failure is ConnectTimeoutException)) throw failure
+            delay(backoff(attempt, null))
+            attempt += 1
+            continue
+        }
+        val status = response.status.value
+        val retry = status in Unprocessed || (idempotent && status in Transient)
+        if (!retry || attempt >= ClientAttempts) return response
+        delay(backoff(attempt, response.headers["Retry-After"]))
+        attempt += 1
+    }
+}
+
+private fun backoff(attempt: Int, retryAfter: String?): Duration {
+    val asked = retryAfter?.trim()?.toIntOrNull()?.seconds?.coerceAtMost(ClientRetryAfterCap)
+    val base = ClientBackoff[(attempt - 1).coerceIn(0, ClientBackoff.lastIndex)]
+    return asked ?: (base * Random.nextDouble(0.7, 1.3))
+}

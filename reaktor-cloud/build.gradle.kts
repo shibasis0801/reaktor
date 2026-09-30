@@ -3,6 +3,7 @@ import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.darwin.*
 import dev.shibasis.dependeasy.server.*
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import java.io.File
 
 // reaktor-cloud: the cloud control-plane library (commonMain model + jvmMain tool runners) PLUS
@@ -67,6 +68,7 @@ kotlin {
         dependencies {
             api(project(":reaktor-core"))
             api(project(":reaktor-graph"))
+            api(project(":reaktor-tooling"))
         }
     }
     droid {}
@@ -79,6 +81,15 @@ kotlin {
             implementation("com.google.code.findbugs:jsr305:3.0.2")
             implementation("org.yaml:snakeyaml:2.2")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+        }
+    }
+    targets.named<KotlinJvmTarget>("jvm") {
+        val mainCompilation = compilations.getByName("main")
+        compilations.create("e2e") {
+            associateWith(mainCompilation)
+            defaultSourceSet {
+                kotlin.srcDir("src/e2e/kotlin")
+            }
         }
     }
 }
@@ -95,6 +106,20 @@ dependencies {
 // Pulumi's java runtime runs `gradle run`; expose the observability program (jvmMain) as `run`.
 // Both JavaExec tasks run JVM-25 bytecode (the module's jvmTarget), so use a matching launcher.
 val jvmLauncher = javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) }
+
+val cloudToolE2e by tasks.registering(JavaExec::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Exercises approved, blocked, duplicate, and cleaned-up cloud process runs end to end."
+    mainClass.set("dev.shibasis.reaktor.cloud.CloudToolE2eKt")
+    javaLauncher.set(jvmLauncher)
+    val e2e = kotlin.jvm().compilations.getByName("e2e")
+    classpath = files(e2e.output.allOutputs, e2e.runtimeDependencyFiles)
+    dependsOn(e2e.compileTaskProvider)
+}
+
+tasks.named("check") {
+    dependsOn(cloudToolE2e)
+}
 
 tasks.register<JavaExec>("run") {
     group = "application"

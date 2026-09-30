@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cli
 
+import dev.shibasis.reaktor.tooling.JvmProjectDiscovery
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -165,16 +166,11 @@ class ReaktorProject(
 
     companion object {
         fun discover(start: File = File(System.getProperty("user.dir"))): ReaktorProject? {
-            var dir: File? = start.absoluteFile
-            while (dir != null) {
-                val pkg = File(dir, "package.json")
-                if (pkg.exists()) {
-                    val json = runCatching { Json.parseToJsonElement(pkg.readText()).jsonObject }.getOrNull()
-                    if (json != null && json.containsKey("reaktor")) return load(dir, json)
-                }
-                dir = dir.parentFile
-            }
-            return null
+            val root = JvmProjectDiscovery.locateRoot(start) ?: return null
+            val pkg = runCatching {
+                Json.parseToJsonElement(File(root, "package.json").readText()).jsonObject
+            }.getOrNull() ?: return null
+            return load(root, pkg)
         }
 
         private fun load(root: File, pkg: JsonObject): ReaktorProject {

@@ -145,6 +145,20 @@ sealed class NotificationRoute {
 }
 
 @Serializable
+data class NotificationPerson(
+    val id: String,
+    val name: String,
+    val photoUrl: String? = null,
+)
+
+@Serializable
+data class NotificationConversation(
+    val id: String,
+    val title: String? = null,
+    val group: Boolean = false,
+)
+
+@Serializable
 data class NotificationContent(
     val title: String,
     val body: String,
@@ -153,7 +167,8 @@ data class NotificationContent(
     val imageUrl: String? = null,
     val threadId: String? = null,
     val groupId: String? = null,
-    val sender: String? = null,
+    val sender: NotificationPerson? = null,
+    val conversation: NotificationConversation? = null,
     val badge: Int? = null,
     val sound: NotificationSound = NotificationSound.Default,
     val data: Map<String, String> = emptyMap(),
@@ -179,7 +194,17 @@ data class NotificationEnvelope(
         content.summary?.let { put("reaktor_summary", it) }
         content.threadId?.let { put("reaktor_thread_id", it) }
         content.groupId?.let { put("reaktor_group_id", it) }
-        content.sender?.let { put("reaktor_sender", it) }
+        content.imageUrl?.let { put("reaktor_image_url", it) }
+        content.sender?.let { sender ->
+            put("reaktor_sender_id", sender.id)
+            put("reaktor_sender_name", sender.name)
+            sender.photoUrl?.let { put("reaktor_sender_photo", it) }
+        }
+        content.conversation?.let { conversation ->
+            put("reaktor_conversation_id", conversation.id)
+            conversation.title?.let { put("reaktor_conversation_title", it) }
+            if (conversation.group) put("reaktor_conversation_group", "true")
+        }
         content.badge?.let { put("reaktor_badge", it.toString()) }
         correlationId?.let { put("reaktor_correlation_id", it) }
         when (route) {
@@ -218,7 +243,13 @@ data class NotificationEnvelope(
                     summary = data["reaktor_summary"],
                     threadId = data["reaktor_thread_id"],
                     groupId = data["reaktor_group_id"],
-                    sender = data["reaktor_sender"],
+                    imageUrl = data["reaktor_image_url"],
+                    sender = data["reaktor_sender_id"]?.let { id ->
+                        NotificationPerson(id, data["reaktor_sender_name"].orEmpty(), data["reaktor_sender_photo"])
+                    },
+                    conversation = data["reaktor_conversation_id"]?.let { id ->
+                        NotificationConversation(id, data["reaktor_conversation_title"], data["reaktor_conversation_group"] == "true")
+                    },
                     badge = data["reaktor_badge"]?.toIntOrNull(),
                 ),
                 route = route,
