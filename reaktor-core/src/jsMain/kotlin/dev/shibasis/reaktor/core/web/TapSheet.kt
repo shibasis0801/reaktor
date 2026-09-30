@@ -11,13 +11,18 @@ class TapSheet private constructor(
     private val backdrop: HTMLElement,
     val content: HTMLElement,
     private val palette: TapSheetPalette,
+    private val returnFocus: HTMLElement?,
     private val onDismiss: () -> Unit,
 ) {
     var isOpen = true
         private set
 
     private val escape: (Event) -> Unit = { event ->
-        if ((event as? KeyboardEvent)?.key == "Escape") dismiss()
+        if ((event as? KeyboardEvent)?.key == "Escape") {
+            event.stopPropagation()
+            event.preventDefault()
+            dismiss()
+        }
     }
 
     fun button(label: String, primary: Boolean = true, onTap: () -> Unit): HTMLButtonElement {
@@ -34,8 +39,9 @@ class TapSheet private constructor(
     fun close() {
         if (!isOpen) return
         isOpen = false
-        document.removeEventListener("keydown", escape)
+        document.removeEventListener("keydown", escape, true)
         backdrop.remove()
+        returnFocus?.focus()
     }
 
     fun dismiss() {
@@ -49,7 +55,9 @@ class TapSheet private constructor(
             val palette = TapSheetPalette.current()
             val backdrop = element("div", palette.backdrop)
             backdrop.setAttribute("data-reaktor-tap-sheet", "")
+            val returnFocus = document.activeElement as? HTMLElement
             val card = element("div", palette.card)
+            card.tabIndex = -1
             card.setAttribute("role", "dialog")
             card.setAttribute("aria-modal", "true")
             card.setAttribute("aria-label", title)
@@ -65,10 +73,11 @@ class TapSheet private constructor(
             card.appendChild(content)
             backdrop.appendChild(card)
 
-            val sheet = TapSheet(backdrop, content, palette, onDismiss)
+            val sheet = TapSheet(backdrop, content, palette, returnFocus, onDismiss)
             backdrop.addEventListener("click", { event -> if (event.target === backdrop) sheet.dismiss() })
-            document.addEventListener("keydown", sheet.escape)
+            document.addEventListener("keydown", sheet.escape, true)
             (document.body ?: document.documentElement)?.appendChild(backdrop)
+            card.focus()
             return sheet
         }
 
@@ -98,7 +107,7 @@ internal class TapSheetPalette(
             return TapSheetPalette(
                 backdrop = "position:fixed;inset:0;z-index:2147483646;display:flex;align-items:flex-end;" +
                     "justify-content:center;background:rgba(12,11,9,.48);$font",
-                card = "box-sizing:border-box;width:calc(100% - 24px);max-width:420px;margin:0 12px 12px;" +
+                card = "box-sizing:border-box;outline:none;width:calc(100% - 24px);max-width:420px;margin:0 12px 12px;" +
                     "padding:22px 20px calc(18px + env(safe-area-inset-bottom));border-radius:22px;" +
                     "background:$surface;color:$ink;box-shadow:0 18px 48px rgba(0,0,0,.28);",
                 title = "margin:0 0 6px;font-size:17px;font-weight:650;line-height:1.3;",
