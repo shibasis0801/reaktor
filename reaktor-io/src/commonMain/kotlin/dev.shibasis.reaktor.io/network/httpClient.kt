@@ -35,6 +35,7 @@ private val QueryString = Regex("""\?\S*""")
 
 // todo Take a Authenticator interface as dependency, use io.ktor:ktor-client-auth
 fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
+    install(OriginRouting)
     install(ContentNegotiation) {
         json(Json {
             classDiscriminator = "type"

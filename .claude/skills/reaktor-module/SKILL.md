@@ -50,6 +50,29 @@ Prefer widening an existing type over adding a parallel one. If two platform ada
 the same three lines, that is a base-class method, and the third adapter that arrives later gets
 it for free.
 
+**Look for the other half before you add one.** Capabilities here often shipped in one direction
+only — `reaktor-io` had `ShareAdapter` for sharing *out* long before anything could receive a
+share coming *in*. The inbound half is a sibling of the outbound one in the same module, not a new
+module and not app-local code, and naming it after its direction (`ShareReceiver` beside
+`ShareAdapter`) keeps the next reader from concluding the module does not do it.
+
+**Directories in this repo lie about packages.** Several modules carry both a dotted source
+directory and a nested one under the same source set:
+
+```
+reaktor-io/src/jvmMain/kotlin/dev.shibasis.reaktor.io/   <- one file tree
+reaktor-io/src/jvmMain/kotlin/dev/shibasis/reaktor/io/   <- another, same package
+```
+
+Kotlin reads the `package` declaration and ignores the path, so both are the same package and a
+class you "could not find" may be sitting in the branch you did not open. Adding your version
+gives `Redeclaration: <Name>` from a file that looks unrelated. Search by package, never by
+directory:
+
+```bash
+grep -rn "^package dev.shibasis.reaktor.io" reaktor-io/src --include=*.kt -l
+```
+
 ## 4. Only then: a new module
 
 Create one when the capability would **cost every consumer something** they did not ask for. That
@@ -153,6 +176,30 @@ Build every target before claiming it works:
 ```bash
 ./gradlew :reaktor-<name>:build
 ```
+
+**And run the suites on every target, not the fast one.** `commonMain` compiles against a different
+regex engine on Kotlin/JS, and the difference is not a compile error — it is a `SyntaxError` thrown
+when the pattern is constructed:
+
+| In common code | JVM | Kotlin/JS |
+|---|---|---|
+| `\p{L}`, `\p{N}`, `\p{Alpha}` | fine | needs a `u` flag; throws without one |
+| `\[ ]` — an unescaped `]` | fine | "Lone quantifier brackets" in unicode mode |
+| `RegexOption.DOT_MATCHES_ALL` | fine | does not exist — use `[\s\S]` |
+
+Only the third is caught by the compiler. The other two are thrown at runtime, and because a
+pattern is nearly always a file-level `val`, the throw happens during that file's initialisation
+and takes **every function in the file** with it. The call sites then fail with `TypeError`, naming
+neither the pattern nor the file, so one bad character reads as a dozen unrelated failures in code
+that is fine.
+
+```bash
+./gradlew :reaktor-<name>:jvmTest :reaktor-<name>:jsTest
+```
+
+Where a pattern is doing something the stdlib can answer directly — splitting on non-alphanumerics,
+say — prefer `Char.isLetterOrDigit` and a loop. It is the same question in a form every target
+answers the same way.
 
 ## Shaping the API
 

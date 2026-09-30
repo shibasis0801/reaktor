@@ -46,7 +46,17 @@ inline fun <reified T : Activity> ComponentActivity.startActivity(disableAnimati
 }
 
 private val resultId = AtomicInteger(0)
-sealed class ActivityResultError: Error() {
+
+/**
+ * Why a result never arrived.
+ *
+ * An `Exception` rather than an `Error`, because both of these are ordinary outcomes: a person
+ * dismissing a permission dialog is the system working, and an activity that went away while a
+ * dialog was open is a race every app has. `Error` means the JVM is in trouble and is conventionally
+ * not caught — so throwing one here takes down the process of any caller that did not know to guard
+ * a suspend call it had no reason to think could fail that way.
+ */
+sealed class ActivityResultError: Exception() {
     data object Cancelled : ActivityResultError()
     data object IllegalState : ActivityResultError()
 }
@@ -56,7 +66,15 @@ suspend fun<Input, Output> ComponentActivity.getResultFromActivity(
     contract: ActivityResultContract<Input, Output>,
     input: Input
 ) = suspendCancellableCoroutine { continuation ->
-    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) {
+    // INITIALIZED, not CREATED: an activity is INITIALIZED for the whole of `onCreate`, which is
+    // where an app naturally asks for a permission — and `lifecycleScope` dispatches on
+    // Main.immediate, so the request runs there synchronously. Requiring CREATED failed exactly the
+    // callers that were doing the normal thing. What this guard is actually for is an activity that
+    // is already gone, which is DESTROYED and below INITIALIZED.
+    //
+    // Registering that early is safe: `activityResultRegistry.register` without a LifecycleOwner
+    // carries none of the lifecycle restrictions the owner-aware overload does.
+    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.INITIALIZED)) {
         continuation.resumeWithException(ActivityResultError.IllegalState)
         return@suspendCancellableCoroutine
     }
