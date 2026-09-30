@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -72,7 +73,10 @@ fun TextField(
     val feedback = rememberFeedback(press.state.pressed, press.state.focused)
     val reveal = remember { BringIntoViewRequester() }
     LaunchedEffect(press.state.focused, LocalWindowInfo.current.containerSize) {
-        if (press.state.focused) reveal.bringIntoView()
+        if (press.state.focused) {
+            withFrameNanos { }
+            reveal.bringIntoView()
+        }
     }
     BasicTextField(
         state = state,
