@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
@@ -75,8 +74,8 @@ open class BottomNavigationContainer(
         override val selected = this@BottomNavigationContainer.selected
     })
 
-    override fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
-        val activated = super.activateGraphForRoute(route)
+    override fun activate(graph: Graph): Boolean {
+        val activated = super.activate(graph)
         if (activated) {
             val index = activeGraphIndex.value
             val key = children.keys.elementAtOrNull(index)

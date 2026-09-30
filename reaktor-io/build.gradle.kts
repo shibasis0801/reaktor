@@ -32,6 +32,15 @@ kotlin {
     darwin {}
     server {}
     useNetworking()
+
+    sourceSets {
+        commonTest.dependencies {
+            implementation("io.ktor:ktor-client-mock:${Version.Ktor}")
+        }
+        jvmTest.dependencies {
+            implementation("com.squareup.okhttp3:mockwebserver:${Version.OkHttp}")
+        }
+    }
 }
 
 android {

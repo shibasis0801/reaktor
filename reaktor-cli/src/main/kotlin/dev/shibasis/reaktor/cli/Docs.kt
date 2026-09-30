@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
+import dev.shibasis.reaktor.tooling.platformExecutable
 import java.io.File
 
 /**
@@ -20,6 +21,9 @@ class Docs : CliktCommand("docs") {
         val p = env.requireProject()
         val command = p.docsCommand(args)
             ?: throw UsageError("No Docusaurus site found in this project (looked for a docusaurus.config.* file).")
+        if (!File(command.cwd, "node_modules").isDirectory) {
+            throw UsageError("Docs dependencies are missing in ${command.cwd}; run npm install there first.")
+        }
         runChecked(env, command)
     }
 }
@@ -29,13 +33,13 @@ fun ReaktorProject.docsCommand(args: List<String> = emptyList()): ProjectCommand
     val docsDir = docusaurusDir() ?: return null
     val script = args.firstOrNull() ?: "start"
     val rest = if (args.isEmpty()) emptyList() else args.drop(1)
-    val npmArgs = (listOf("run", script) + rest).joinToString(" ")
+    val npmArgs = listOf("run", script, "--") + rest
     val relative = runCatching { root.toPath().relativize(docsDir.toPath()).toString() }.getOrNull() ?: docsDir.path
-    // Ensure deps once, then exec the docusaurus script. `start` is the local dev server (includes
-    // the private/ docs); production builds omit them.
+    // Dependency installation is explicit in [Docs.run]. Execution stays argv-only so arguments
+    // are never interpreted by a shell and npm.cmd works on Windows.
     return ProjectCommand(
-        label = "docs · npm $npmArgs  ($relative)",
-        command = listOf("sh", "-c", "test -d node_modules || npm install; exec npm $npmArgs"),
+        label = "docs · npm ${npmArgs.joinToString(" ")}  ($relative)",
+        command = listOf(platformExecutable("npm")) + npmArgs,
         cwd = docsDir,
     )
 }

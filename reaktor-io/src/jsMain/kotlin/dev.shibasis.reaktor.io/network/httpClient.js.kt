@@ -7,3 +7,5 @@ import io.ktor.client.engine.js.Js
 actual val http = HttpClient(Js) {
     middleware()
 }
+
+actual val socketHeadersSupported: Boolean = false

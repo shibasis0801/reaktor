@@ -25,11 +25,17 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.seconds
 
 expect val http: HttpClient
 
+expect val socketHeadersSupported: Boolean
+
+private val QueryString = Regex("""\?\S*""")
+
 // todo Take a Authenticator interface as dependency, use io.ktor:ktor-client-auth
 fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
+    install(OriginRouting)
     install(ContentNegotiation) {
         json(Json {
             classDiscriminator = "type"
@@ -39,10 +45,10 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     install(Logging) {
         logger = object: Logger {
             override fun log(message: String) {
-                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { message }
+                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { message.replace(QueryString, "?…") }
             }
         }
-        level = LogLevel.ALL
+        level = LogLevel.INFO
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
     install(WebSockets) {

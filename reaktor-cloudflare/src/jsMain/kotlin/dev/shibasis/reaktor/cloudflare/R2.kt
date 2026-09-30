@@ -51,6 +51,9 @@ class R2ObjectBody internal constructor(
         get() = raw.asDynamic().body
 
     @JsExport.Ignore
+    suspend fun bytes(maxBytes: Int): ByteArray = readBoundedStream(raw.asDynamic().body, maxBytes)
+
+    @JsExport.Ignore
     suspend fun text(): String = raw.text().await()
 
     fun textAsync(): Promise<String> = promiseOf { text() }
@@ -243,13 +246,15 @@ class R2Bucket internal constructor(
         getText(key)?.let(dev.shibasis.reaktor.core.framework.json::decodeFromString)
 
     @JsExport.Ignore
-    suspend fun list(prefix: String? = null, limit: Int? = null): R2ListResult {
+    suspend fun list(prefix: String? = null, limit: Int? = null, cursor: String? = null, delimiter: String? = null): R2ListResult {
         val options: dynamic = js("({})")
         if (prefix != null) options.prefix = prefix
         if (limit != null) options.limit = limit
+        if (cursor != null) options.cursor = cursor
+        if (delimiter != null) options.delimiter = delimiter
         val result: RawR2Objects = raw.list(options).await()
         val objects = result.objects.map { R2Object(it) }
-        return R2ListResult(objects, result.truncated, result.cursor)
+        return R2ListResult(objects, result.truncated, result.cursor, (result.asDynamic().delimitedPrefixes as? Array<String>)?.toList().orEmpty())
     }
 
     @JsExport.Ignore
@@ -272,6 +277,7 @@ class R2ListResult(
     val objects: List<R2Object>,
     val truncated: Boolean,
     val cursor: String?,
+    val delimitedPrefixes: List<String> = emptyList(),
 )
 
 private fun ByteArray.toUint8Array(): dynamic {

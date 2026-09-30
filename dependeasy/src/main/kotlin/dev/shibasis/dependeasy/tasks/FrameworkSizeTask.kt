@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy.tasks
 
 import org.gradle.api.Task
-import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -64,12 +63,9 @@ private fun Task.logSizes(aarSize: Double, xcfSize: Double) {
     val csvFile = project.file("./buildSize.csv")
     val date = SimpleDateFormat("dd/MM/yy").format(Date())
 
-    val outputStream = ByteArrayOutputStream()
-    project.exec {
+    val commitId = project.providers.exec {
         commandLine("git", "rev-parse", "HEAD")
-        standardOutput = outputStream
-    }
-    val commitId = outputStream.toString().trim()
+    }.standardOutput.asText.get().trim()
 
     if (!csvFile.exists() || csvFile.length() == 0L) {
         csvFile.writeText("date, commitId, aarSizeKb, xcfSizeKb\n")

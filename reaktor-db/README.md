@@ -44,8 +44,21 @@ Android, iOS (Darwin), JVM, JavaScript/Web
 |---|---|
 | `GraphDbPolicy` | Tenant safety enforcement for Cypher queries |
 | `MandatoryTenantParameterization` | Validates `$tenant_id` injection in all Cypher queries |
+| `MemgraphInspection` | Closed catalog of bounded label, property, node, relationship and count reads for an authorized database inspector |
+| `MemgraphReadPage` | Graph-neutral, bounded node/relationship result identities, returned properties and explicit unloaded endpoints |
 
 The graph DB surface adds soft multi-tenancy through mandatory parameterization, intended for graph databases like Memgraph where tenant isolation is enforced by query shape.
+
+`MemgraphInspection` is a pure query catalog, separate from tenant-facing graph access. Its parser accepts
+only a registered statement with a limit of 1–500 and an offset of 0–1,000,000. Callers must still bind
+the query to an authorized target and enforce their transport boundary. BestBuds Desktop independently
+validates this catalog in its cluster query broker; it does not accept free-form Cypher through that path.
+Node and relationship pagination orders by internal ID, whose identity is local to the database snapshot.
+
+`MemgraphReadPage` validates registered node/relationship result columns and keeps parallel edges and
+self-loops. It rejects malformed or duplicate identities. A relationship row establishes its endpoint IDs,
+not their labels or properties; those endpoints remain `loaded = false`. Desktop supplies an optional
+`reaktor-flow` projection of the returned page, with no automatic join to the mounted application graph.
 
 ### SQL and sync
 

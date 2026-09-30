@@ -20,6 +20,10 @@ import dev.shibasis.reaktor.auth.api.TokenRequest
 import dev.shibasis.reaktor.auth.api.TokenResponse
 import dev.shibasis.reaktor.auth.api.VerifyPatRequest
 import dev.shibasis.reaktor.auth.api.VerifyPatResponse
+import dev.shibasis.reaktor.auth.api.AuthorityGrantsRequest
+import dev.shibasis.reaktor.auth.api.AuthorityGrantsResponse
+import dev.shibasis.reaktor.auth.api.AuthorityResolveRequest
+import dev.shibasis.reaktor.auth.api.AuthorityResolveResponse
 import dev.shibasis.reaktor.auth.runtime.AuthAccount
 import dev.shibasis.reaktor.auth.runtime.AuthHttpService
 import dev.shibasis.reaktor.auth.runtime.AuthLogin
@@ -38,9 +42,16 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph), AuthHttpService {
     val tokenGrantsPort by consumes<AuthTokenGrants>()
     val sessionsPort by consumes<AuthSessions>()
     val accountPort by consumes<AuthAccount>()
+    val authorityPort by consumes<dev.shibasis.reaktor.auth.runtime.ports.AuthAuthority>()
     val httpServicePort by provides<AuthHttpService>(this)
 
     override val service: AuthService = object : AuthService() {
+        override val authorityGrants = PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/authority/grants") {
+            authorityPort.suspended { grants(it) }
+        }
+        override val authorityResolve = PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/authority/resolve") {
+            authorityPort.suspended { resolve(it) }
+        }
         override val anonymous = PostHandler<AnonymousAuthRequest, LoginResponse>("/anonymous") {
             loginPort.suspended { anonymous(it) }
         }

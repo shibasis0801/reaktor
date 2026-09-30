@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
+
+if(iOS)
+    setup_ios()
+endif()
+
 project(ReaktorPerformance)
 
 init()
@@ -7,7 +12,6 @@ init()
 if(ANDROID)
     add_library(${PROJECT_NAME} SHARED common/reaktor_perf_timer.cpp)
 elseif(APPLE)
-    setup_ios()
     add_library(${PROJECT_NAME} STATIC common/reaktor_perf_timer.cpp)
 else()
     add_library(${PROJECT_NAME} STATIC common/reaktor_perf_timer.cpp)

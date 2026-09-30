@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.media.image
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -10,13 +11,15 @@ fun AsyncImage(
     url: String,
     modifier: Modifier = Modifier,
     contentDescription: String = "url",
-    contentScale: ContentScale = ContentScale.FillBounds
+    contentScale: ContentScale = ContentScale.FillBounds,
+    onSize: ((Size) -> Unit)? = null,
 ) {
     CoilAsyncImage(
         model = url,
         contentDescription = contentDescription,
         modifier = modifier,
-        contentScale = contentScale
+        contentScale = contentScale,
+        onSuccess = onSize?.let { report -> { loaded -> report(loaded.painter.intrinsicSize) } },
     )
 }
 
@@ -26,12 +29,14 @@ fun AsyncImage(
     bytes: ByteArray,
     modifier: Modifier = Modifier,
     contentDescription: String = "image",
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    onSize: ((Size) -> Unit)? = null,
 ) {
     CoilAsyncImage(
         model = bytes,
         contentDescription = contentDescription,
         modifier = modifier,
-        contentScale = contentScale
+        contentScale = contentScale,
+        onSuccess = onSize?.let { report -> { loaded -> report(loaded.painter.intrinsicSize) } },
     )
 }

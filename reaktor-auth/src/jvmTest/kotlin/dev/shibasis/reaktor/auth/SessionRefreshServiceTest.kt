@@ -8,11 +8,12 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 
 /**
  * Integration tests for the flow-A session lifecycle against in-memory H2 (no production DB touched).
  * The crown jewel is RFC 9700 refresh-token reuse-detection: replaying a rotated token must revoke the
- * whole family.
+ * whole family — outside the short grace window that keeps concurrent refresh from reading as theft.
  */
 class SessionRefreshServiceTest {
     private val sessions = SessionRefreshService()
@@ -37,16 +38,35 @@ class SessionRefreshServiceTest {
 
     @Test
     fun replayingARotatedTokenRevokesTheWholeFamily() {
+        // No grace: every replay is theft, which is the property the window relaxes.
+        val strict = SessionRefreshService(reuseGrace = Duration.ZERO)
         val (appId, principalId) = AuthDbFixture.seedUser()
-        val created = sessions.createSession(principalId, appId)
+        val created = strict.createSession(principalId, appId)
 
-        val successor = sessions.rotate(created.rawRefreshToken)
+        val successor = strict.rotate(created.rawRefreshToken)
         assertNotNull(successor)
 
         // Replay the already-used ORIGINAL token → theft signal → family revoked.
-        assertNull(sessions.rotate(created.rawRefreshToken), "a replayed token is rejected")
+        assertNull(strict.rotate(created.rawRefreshToken), "a replayed token is rejected")
         // The legitimately-issued successor is now dead too (the whole family was revoked).
-        assertNull(sessions.rotate(successor.rawRefreshToken), "reuse revokes the entire family")
+        assertNull(strict.rotate(successor.rawRefreshToken), "reuse revokes the entire family")
+    }
+
+    @Test
+    fun concurrentRefreshInsideTheGraceWindowKeepsTheSessionAlive() {
+        val (appId, principalId) = AuthDbFixture.seedUser()
+        val created = sessions.createSession(principalId, appId)
+
+        // Two tabs (or one page's assets) present the same stored token at once.
+        val first = sessions.rotate(created.rawRefreshToken)
+        val second = sessions.rotate(created.rawRefreshToken)
+        assertNotNull(first, "the first refresh rotates")
+        assertNotNull(second, "a refresh racing it is not theft")
+        assertNotEquals(first.rawRefreshToken, second.rawRefreshToken, "each gets its own successor")
+        assertEquals(first.session.id, second.session.id, "both stay in the same session")
+
+        // Crucially, the family survives: whichever token the browser kept still works.
+        assertNotNull(sessions.rotate(second.rawRefreshToken), "the session is still alive")
     }
 
     @Test

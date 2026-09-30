@@ -125,6 +125,92 @@ class AuthKernelIntegrationTest {
     }
 
     @Test
+    fun allowingAlternativeStillRequiresOuterPermissionsAndScopes() {
+        val alternatives = anyOf(permits("event.read"))
+        val missingCapability = PermissionRef(name = "event.delete")
+        val requirements = listOf(
+            alternatives.copy(permissions = setOf(missingCapability)),
+            alternatives.copy(scopes = setOf(missingCapability)),
+        )
+
+        requirements.forEach { requirement ->
+            val denied = assertIs<AuthDecision.Deny>(LocalAuthorizer.authorize(userContext, requirement))
+            assertEquals(AuthDenyReason.MISSING_PERMISSION, denied.reason)
+        }
+    }
+
+    @Test
+    fun allowingAlternativeStillRequiresOuterRoles() {
+        val requirement = anyOf(permits("event.read"))
+            .copy(roles = setOf(RoleRef(name = "admin")))
+
+        val denied = assertIs<AuthDecision.Deny>(LocalAuthorizer.authorize(userContext, requirement))
+        assertEquals(AuthDenyReason.MISSING_ROLE, denied.reason)
+    }
+
+    @Test
+    fun allowingAlternativeStillRequiresEveryAllOfBranch() {
+        val requirement = anyOf(permits("event.read")).copy(
+            allOf = listOf(
+                permits("event.write"),
+                anyOf(permits("event.delete"), permits("admin.all")),
+            ),
+        )
+
+        val denied = assertIs<AuthDecision.Deny>(LocalAuthorizer.authorize(userContext, requirement))
+        assertEquals(AuthDenyReason.MISSING_PERMISSION, denied.reason)
+    }
+
+    @Test
+    fun allowingAlternativeDoesNotOverrideOuterDelegationDenial() {
+        val actor = PrincipalRef("principal_svc_worker", PrincipalKind.SERVICE)
+        val context = userContext.copy(
+            actor = actor,
+            delegation = Delegation(actor = actor, subject = userContext.principal),
+        )
+        val requirement = anyOf(permits("event.read").allowDelegatedActor())
+
+        val denied = assertIs<AuthDecision.Deny>(LocalAuthorizer.authorize(context, requirement))
+        assertEquals(AuthDenyReason.DELEGATION_DENIED, denied.reason)
+        assertIs<AuthDecision.Allow>(LocalAuthorizer.authorize(context, requirement.allowDelegatedActor()))
+
+        val branchDenial = assertIs<AuthDecision.Deny>(
+            LocalAuthorizer.authorize(context, anyOf(permits("event.read")).allowDelegatedActor()),
+        )
+        assertEquals(AuthDenyReason.DELEGATION_DENIED, branchDenial.reason)
+    }
+
+    @Test
+    fun mixedRequirementAllowsOnlyWhenAlternativeAndOuterGatesPass() {
+        val requirement = anyOf(permits("admin.all"), permits("event.read"))
+            .audience("manna-api")
+            .inApp("app_manna")
+            .inTenant("tenant_456")
+            .copy(
+                permissions = setOf(PermissionRef(name = "event.create")),
+                scopes = setOf(PermissionRef(name = "event.write")),
+                roles = setOf(RoleRef(name = "owner")),
+                allOf = listOf(permits("event.read"), anyOf(permits("event.write"))),
+            )
+
+        assertIs<AuthDecision.Allow>(LocalAuthorizer.authorize(userContext, requirement))
+    }
+
+    @Test
+    fun standaloneAnyOfStillRequiresAnAllowedAlternative() {
+        val requirement = anyOf(
+            AuthRequirement(roles = setOf(RoleRef(name = "admin"))),
+            permits("event.delete"),
+        )
+
+        val denied = assertIs<AuthDecision.Deny>(LocalAuthorizer.authorize(userContext, requirement))
+        assertEquals(AuthDenyReason.MISSING_ROLE, denied.reason)
+        assertIs<AuthDecision.Allow>(
+            LocalAuthorizer.authorize(userContext, requirement.copy(anyOf = requirement.anyOf.reversed() + permits("event.read"))),
+        )
+    }
+
+    @Test
     fun delegatedCallsRequireExplicitDelegationAllowance() {
         val delegatedContext = userContext.copy(
             actor = PrincipalRef("principal_svc_worker", PrincipalKind.SERVICE),

@@ -15,13 +15,19 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphNodeData
+import dev.shibasis.reaktor.flow.graph.model.ReaktorScopeDisclosure
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.defaultNodeHeight
@@ -41,11 +47,20 @@ internal fun BoxScope.GraphRegionsOverlay(
     selectedGraphId: String?,
     onSelectGraph: (String?) -> Unit,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     val density = LocalDensity.current
     val regionLabelOffset = style.regionLabelOffset()
+    val labelPaddingX = with(density) { dpOf(style.region.labelPaddingXPx) }
+    val labelPaddingY = with(density) { dpOf(style.region.labelPaddingYPx) }
+    // A folded scope is already a card that carries its own name. Framing that one card in a
+    // dashed boundary and captioning it with the same word again is the same thing said three
+    // times, so the boundary is drawn only for scopes that actually contain something.
+    val folded = flow.nodes.mapNotNullTo(mutableSetOf()) { node ->
+        node.id.takeIf { (node.data as? ReaktorGraphNodeData)?.isScopeSummary == true }
+    }
     Canvas(Modifier.fillMaxSize()) {
-        flow.regions.sortedBy { it.depth }.forEach { region ->
+        flow.regions.sortedBy { it.depth }.filterNot { it.id in folded }.forEach { region ->
             val topLeft = Offset(region.x.toFloat(), region.y.toFloat())
             val size = Size(region.width.toFloat(), region.height.toFloat())
             drawRoundRect(
@@ -82,7 +97,13 @@ internal fun BoxScope.GraphRegionsOverlay(
         }
     }
 
-    flow.regions.sortedBy { it.depth }.forEach { region ->
+    flow.regions.sortedBy { it.depth }.filterNot { it.id in folded }.forEach { region ->
+        // An expanded scope's only handle on the canvas is its name, so the name is the control:
+        // clicking it folds the scope back into a card, which unfolds on its own next click.
+        val fold = scopeDisclosure?.takeIf {
+            region.id != flow.focusedScopeId && flow.scopes[region.id]?.parentId != null
+        }
+        val labelColor = region.color.copy(alpha = if (selectedGraphId == region.id) 0.96f else 0.72f)
         Surface(
             color = if (selectedGraphId == region.id) {
                 style.regionSelectedLabelSurface()
@@ -91,28 +112,43 @@ internal fun BoxScope.GraphRegionsOverlay(
             },
             shape = RoundedCornerShape(with(density) { dpOf(style.region.labelRadiusPx) }),
             tonalElevation = 0.dp,
-            modifier = Modifier
-                .offset {
-                    IntOffset(
-                        x = (region.x + regionLabelOffset.x).roundToInt(),
-                        y = (region.y + regionLabelOffset.y).roundToInt(),
-                    )
-                }
-                .clickable { onSelectGraph(region.id) },
+            modifier = Modifier.offset {
+                IntOffset(
+                    x = (region.x + regionLabelOffset.x).roundToInt(),
+                    y = (region.y + regionLabelOffset.y).roundToInt(),
+                )
+            },
         ) {
             Text(
                 text = region.label,
-                color = region.color.copy(alpha = if (selectedGraphId == region.id) 0.96f else 0.72f),
+                color = labelColor,
                 fontSize = with(density) { spOf(style.chrome.titleFontPx) },
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(
-                    horizontal = with(density) { dpOf(style.region.labelPaddingXPx) },
-                    vertical = with(density) { dpOf(style.region.labelPaddingYPx) },
-                ),
+                modifier = Modifier
+                    .then(
+                        fold?.let { scope ->
+                            Modifier
+                                .testTag("reaktor-graph-region-toggle-${region.id}")
+                                .clickable(role = Role.Button) { scope.onToggle(region.id) }
+                                .semantics { contentDescription = "Collapse scope ${region.label}" }
+                        } ?: Modifier.clickable { onSelectGraph(region.id) },
+                    )
+                    .padding(horizontal = labelPaddingX, vertical = labelPaddingY),
             )
         }
     }
 }
+
+/**
+ * Where a scope's content begins in graph space, in whichever form it is currently drawn: the
+ * boundary card when folded, the region's content origin when expanded. Disclosure uses this as
+ * a fixed point so unfolding grows the graph under the pointer instead of moving the camera.
+ */
+internal fun ReaktorFlowGraph.scopeOrigin(scopeId: String, style: ReaktorGraphStyle): XYPosition? =
+    nodes.firstOrNull { it.id == scopeId }?.position
+        ?: regions.firstOrNull { it.id == scopeId }?.let { region ->
+            XYPosition(region.x + style.region.boundsInsetXPx, region.y + style.region.boundsInsetTopPx)
+        }
 
 internal data class FlowBounds(
     val left: Double,

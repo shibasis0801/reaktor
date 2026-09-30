@@ -3,18 +3,17 @@ package dev.shibasis.reaktor.db.service
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.service.Environment
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.concurrent.Executors
 
 open class ExposedAdapter(
     val stageDb: Database,
     val prodDb: Database
 ): Adapter<Unit>(Unit) {
-    private val dbDispatcher: CoroutineDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val dbDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(DatabaseParallelism)
 
     /**
      * The database handle for [environment]. Any code opening its own transaction must resolve
@@ -42,3 +41,5 @@ open class ExposedAdapter(
         }
     }
 }
+
+private const val DatabaseParallelism = 8

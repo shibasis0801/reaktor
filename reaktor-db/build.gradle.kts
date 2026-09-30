@@ -30,6 +30,12 @@ kotlin {
         }
     }
 
+    sourceSets {
+        jsTest.dependencies {
+            implementation(npm("fake-indexeddb", "6.2.5"))
+        }
+    }
+
     droid {
         dependencies {
             implementation("androidx.sqlite:sqlite-framework:2.4.0")

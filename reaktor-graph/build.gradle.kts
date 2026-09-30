@@ -19,16 +19,18 @@ val resilience4jVersion = "2.2.0"
 kotlin {
     common {
         dependencies {
-            api(project(":reaktor-graph-port"))
-            api(project(":reaktor-service"))
+            api(project(":reaktor-graph-runtime"))
             api(project(":reaktor-ui"))
-            api(project(":reaktor-db"))
             arrow()
         }
     }
     droid {}
     darwin {}
-    web {}
+    web {
+        dependencies {
+            api("org.jetbrains.androidx.navigationevent:navigationevent-compose:1.1.0")
+        }
+    }
     server {
         dependencies {
             // Spring beans/context for SpringDependencyAdapter. The service Spring router moved to
