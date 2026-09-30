@@ -83,6 +83,11 @@ class DeviceJvmClient {
                 "Uninstalled ${argument("applicationId")}"
             }
 
+            "clearData" -> {
+                val adb = this as? AdbDeviceSession ?: error("Clearing app data is Android only")
+                adb.shell("pm clear ${argument("applicationId")}").trim()
+            }
+
             "launch" -> {
                 launch(argument("applicationId"), arguments["args"]?.split(' ').orEmpty())
                 "Launched ${argument("applicationId")}"

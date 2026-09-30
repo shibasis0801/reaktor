@@ -58,6 +58,7 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     defaultRequest {
         contentType(ContentType.Application.Json)
     }
+    observation()
 }
 
 

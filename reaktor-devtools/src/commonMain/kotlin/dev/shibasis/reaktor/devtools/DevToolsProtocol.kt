@@ -100,11 +100,13 @@ data class AgentCapability(
     companion object {
         const val Semantics = "semantics"
         const val Screenshot = "screenshot"
+        const val Screen = "screen"
         const val Logs = "logs"
         const val PortEvents = "port.events"
         const val Traffic = "traffic"
         const val FrameVitals = "vitals.frame"
         const val MemoryVitals = "vitals.memory"
+        const val StartupVitals = "vitals.startup"
         const val Crash = "crash"
         const val Input = "input"
         const val Navigate = "navigate"
@@ -178,6 +180,7 @@ sealed interface AgentFact {
         val portKey: String,
         val portType: String,
         val nodeId: String? = null,
+        val nodeLabel: String? = null,
         val peerPortKey: String? = null,
         /** Wall time the call took, for [PortEventKind.Invoked] and [PortEventKind.Failed]. */
         val durationNanos: Long? = null,
@@ -208,6 +211,28 @@ sealed interface AgentFact {
         val failure: String? = null,
         /** The graph port that issued the call, when the call went through a typed handler. */
         val portKey: String? = null,
+        val requestHeaders: Map<String, String> = emptyMap(),
+        val responseHeaders: Map<String, String> = emptyMap(),
+        val requestBody: String? = null,
+        val responseBody: String? = null,
+        val startedNanos: Long? = null,
+        val respondedNanos: Long? = null,
+        val source: String = "service",
+        override val perturbed: Boolean = false,
+    ) : AgentFact
+
+    @Serializable
+    @SerialName("screen")
+    data class Screen(
+        override val sequence: Long,
+        override val monotonicNanos: Long,
+        val widthPixels: Int,
+        val heightPixels: Int,
+        val imageWidth: Int,
+        val imageHeight: Int,
+        val jpegBase64: String,
+        val density: Float,
+        val nodes: List<SemanticsNodeFact>? = null,
         override val perturbed: Boolean = false,
     ) : AgentFact
 
@@ -230,6 +255,32 @@ sealed interface AgentFact {
         val usedBytes: Long,
         val totalBytes: Long,
         val nativeBytes: Long = 0,
+        override val perturbed: Boolean = false,
+    ) : AgentFact
+
+    @Serializable
+    @SerialName("socket")
+    data class Socket(
+        override val sequence: Long,
+        override val monotonicNanos: Long,
+        val connection: String,
+        val url: String,
+        val event: String,
+        val text: String? = null,
+        val bytes: Long = 0,
+        val binary: Boolean = false,
+        val heartbeat: Boolean = false,
+        val code: Int? = null,
+        override val perturbed: Boolean = false,
+    ) : AgentFact
+
+    @Serializable
+    @SerialName("startup")
+    data class Startup(
+        override val sequence: Long,
+        override val monotonicNanos: Long,
+        val firstFrameMillis: Double,
+        val kind: String,
         override val perturbed: Boolean = false,
     ) : AgentFact
 
@@ -337,6 +388,14 @@ data class AgentCommand(
     val capability: String,
     val action: String,
     val arguments: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class NetworkConditions(
+    val latencyMillis: Long = 0,
+    val failureRate: Double = 0.0,
+    val offline: Boolean = false,
+    val blocked: List<String> = emptyList(),
 )
 
 @Serializable

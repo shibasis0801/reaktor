@@ -63,15 +63,16 @@ class VitalsRecorder(
     }
 
     private fun startFrames() {
-        frameHandle = frames.start { frameNanos, intervalNanos ->
+        frameHandle = frames.start { frameNanos, expectedNanos ->
             val duration = frameNanos / 1_000_000.0
+            val budget = if (expectedNanos > 0) expectedNanos / 1_000_000.0 * 1.5 else jankThresholdMillis
             agent.frames.emit { sequence, nanos ->
                 AgentFact.Frame(
                     sequence = sequence,
                     monotonicNanos = nanos,
                     durationMillis = duration,
-                    jank = duration > jankThresholdMillis,
-                    frameIntervalMillis = intervalNanos / 1_000_000.0,
+                    jank = duration > budget,
+                    frameIntervalMillis = expectedNanos / 1_000_000.0,
                 )
             }
         }

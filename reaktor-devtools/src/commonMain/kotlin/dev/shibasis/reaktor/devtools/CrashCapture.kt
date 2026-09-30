@@ -49,6 +49,9 @@ private fun render(stream: FactStream, fact: AgentFact): String = when (fact) {
     is AgentFact.Frame -> "frame ${fact.durationMillis}ms${if (fact.jank) " JANK" else ""}"
     is AgentFact.Memory -> "memory ${fact.usedBytes / 1024 / 1024}MiB of ${fact.totalBytes / 1024 / 1024}MiB"
     is AgentFact.Crash -> "crash ${fact.kind}: ${fact.message}"
+    is AgentFact.Screen -> "screen ${fact.widthPixels}x${fact.heightPixels}"
+    is AgentFact.Startup -> "startup ${fact.firstFrameMillis} ms"
+    is AgentFact.Socket -> "socket ${fact.event} ${fact.url}"
 }
 
 /** Builds the report the store persists and the workbench replays. */

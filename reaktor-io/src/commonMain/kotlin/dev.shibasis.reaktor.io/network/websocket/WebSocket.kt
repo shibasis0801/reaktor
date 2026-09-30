@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.io.network.websocket
 
+import dev.shibasis.reaktor.io.network.SocketEventKind
+import dev.shibasis.reaktor.io.network.SocketObservation
+
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
@@ -58,6 +61,10 @@ open class WebSocket(
     val state: StateFlow<ConnectionState> = connection
     private var reconnectJob: Job? = null
     private var openedAt: TimeSource.Monotonic.ValueTimeMark? = null
+    internal var observedConnection: String? = null
+        private set
+    internal var observedUrl: String? = null
+        private set
 
     init {
         if (options.eager) launch { connect() }
@@ -74,21 +81,25 @@ open class WebSocket(
         }
 
         val url = urlProvider()
+        observedConnection = SocketObservation.nextConnection()
+        observedUrl = url
         connection.value = ConnectionState.Connecting(url)
         try {
             val extra = headerProvider()
-            connection.value = ConnectionState.Open(
-                httpClient.webSocketSession(url) {
-                    timeout {
-                        requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
-                    }
-                    extra.forEach { (name, value) -> headers.append(name, value) }
-                })
+            val session = httpClient.webSocketSession(url) {
+                timeout {
+                    requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
+                }
+                extra.forEach { (name, value) -> headers.append(name, value) }
+            }
+            SocketObservation.publish(observedConnection, url, SocketEventKind.Opened)
+            connection.value = ConnectionState.Open(session)
             openedAt = TimeSource.Monotonic.markNow()
         } catch (cancelled: CancellationException) {
             if (connection.value is ConnectionState.Connecting) connection.value = ConnectionState.Idle
             throw cancelled
         } catch (e: Exception) {
+            SocketObservation.publish(observedConnection, url, SocketEventKind.Failed, text = e.message ?: e::class.simpleName)
             connection.value = ConnectionState.Failed(e)
             scheduleReconnect(e, null)
         }
@@ -109,6 +120,9 @@ open class WebSocket(
 
         val previousState = connection.value
         connection.value = ConnectionState.Closing(reason)
+        if (previousState is ConnectionState.Open) {
+            SocketObservation.publish(observedConnection, observedUrl, SocketEventKind.Closed, text = reason.message, code = reason.code.toInt())
+        }
 
         if (previousState is ConnectionState.Open) {
             try {
@@ -145,6 +159,8 @@ open class WebSocket(
             (current is ConnectionState.Open && current.session === session).also {
                 if (it) {
                     if ((openedAt?.elapsedNow() ?: Duration.ZERO) >= SteadyConnection) reconnectionStrategy.reset()
+                    SocketObservation.publish(observedConnection, observedUrl, SocketEventKind.Closed,
+                        text = reason?.message?.ifBlank { null } ?: cause?.message, code = reason?.code?.toInt())
                     connection.value = ConnectionState.Failed(DroppedConnection(reason, cause))
                 }
             }

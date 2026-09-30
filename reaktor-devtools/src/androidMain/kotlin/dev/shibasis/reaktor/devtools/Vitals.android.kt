@@ -27,14 +27,15 @@ private object AndroidFrameVitals : FrameVitalsSource {
         val main = Handler(Looper.getMainLooper())
         var installed: Choreographer? = null
         lateinit var callback: Choreographer.FrameCallback
+        val recent = ArrayDeque<Long>()
         callback = Choreographer.FrameCallback { frameTimeNanos ->
             if (!running) return@FrameCallback
             if (previous != 0L) {
                 val interval = frameTimeNanos - previous
-                // The callback reports when a frame *started*, so the gap between two callbacks is
-                // how long the previous frame occupied the display. Reporting it as both duration
-                // and interval keeps the fact honest about what was actually measured.
-                onFrame(interval, interval)
+                val expected = recent.sorted().let { if (it.isEmpty()) interval else it[it.size / 2] }
+                onFrame(interval, expected)
+                recent.addLast(interval)
+                if (recent.size > 31) recent.removeFirst()
             }
             previous = frameTimeNanos
             installed?.postFrameCallback(callback)

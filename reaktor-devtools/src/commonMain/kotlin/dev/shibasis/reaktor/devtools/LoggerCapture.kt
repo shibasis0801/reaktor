@@ -16,10 +16,11 @@ private val bareSecrets = listOf(
 
 private val namedSecret = Regex("(?i)((?:access|refresh|id)?_?token|secret|password|authorization|api_?key)([\"']?\\s*[:=]\\s*[\"']?)((?:Bearer\\s+)?[^\\s\"'&,}]+)")
 
-internal fun String.redacted(): String {
-    val summary = lineSequence().firstOrNull().orEmpty()
-    val named = namedSecret.replace(summary) { match -> match.groupValues[1] + match.groupValues[2] + "***" }
-    return bareSecrets.fold(named) { line, secret -> line.replace(secret, "***") }
+internal fun String.redacted(): String = lineSequence().firstOrNull().orEmpty().masked()
+
+internal fun String.masked(): String {
+    val named = namedSecret.replace(this) { match -> match.groupValues[1] + match.groupValues[2] + "***" }
+    return bareSecrets.fold(named) { text, secret -> text.replace(secret, "***") }
 }
 
 private val Severity.level: LogLevel

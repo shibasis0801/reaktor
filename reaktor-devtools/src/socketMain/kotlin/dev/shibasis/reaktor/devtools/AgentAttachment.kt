@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
 /**
@@ -37,6 +38,9 @@ class AgentAttachment(
 
     private val droppedState = MutableStateFlow(0L)
 
+    private val connectedState = MutableStateFlow(false)
+    val connected: StateFlow<Boolean> = connectedState
+
     /** Facts the agent discarded before we read them. Surfaced, never hidden. */
     val dropped: StateFlow<Long> = droppedState
 
@@ -60,7 +64,8 @@ class AgentAttachment(
             }
         }
         peer = peerClient
-        reader = peerClient.start()
+        reader = peerClient.start().also { job -> job.invokeOnCompletion { connectedState.value = false } }
+        connectedState.value = true
         return peerClient.call(client.describe, DescribeRequest())
             .descriptor
             .also { descriptorState.value = it }
@@ -99,6 +104,7 @@ class AgentAttachment(
     /** Closes the link cleanly. Prefer this to [close] when the caller can suspend. */
     suspend fun detach() {
         reader?.cancel()
+        connectedState.value = false
         peer = null
         runCatching { channel?.close() }
         channel = null
@@ -107,8 +113,11 @@ class AgentAttachment(
 
     override fun close() {
         reader?.cancel()
+        connectedState.value = false
         peer = null
+        val open = channel
         channel = null
+        scope.launch { runCatching { open?.close() } }
         selector.close()
     }
 }

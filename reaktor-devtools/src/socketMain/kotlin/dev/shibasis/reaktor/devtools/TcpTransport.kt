@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.Volatile
 
 /**
  * A loopback TCP listener.
@@ -27,14 +28,26 @@ import kotlinx.coroutines.sync.withLock
  */
 class TcpAgentTransport(private val port: Int) : AgentTransport {
     private val selector = SelectorManager(Dispatchers.Async)
+
+    @Volatile
     private var socket: ServerSocket? = null
 
     override val description: String
         get() = "tcp 127.0.0.1:$port"
 
     override suspend fun accept(): PeerChannel {
-        val server = socket ?: aSocket(selector).tcp().bind("127.0.0.1", port).also { socket = it }
-        return SocketPeerChannel(server.accept())
+        val server = socket ?: aSocket(selector).tcp().bind("127.0.0.1", port) { reuseAddress = true }.also { socket = it }
+        return try {
+            SocketPeerChannel(server.accept())
+        } catch (failure: Throwable) {
+            if (socket === server) socket = null
+            server.close()
+            throw failure
+        }
+    }
+
+    fun relisten() {
+        socket?.close()
     }
 
     override fun close() {
