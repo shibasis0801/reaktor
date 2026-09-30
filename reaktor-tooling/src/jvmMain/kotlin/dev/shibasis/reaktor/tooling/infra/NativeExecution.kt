@@ -58,6 +58,12 @@ class NativeExecutionRequest private constructor(
                 is InfrastructureOperation.KubernetesRead -> listOf("JVM Kubernetes", operation.action, operation.namespace, operation.resourceName)
                 is InfrastructureOperation.DatabaseRead -> listOf("JVM ${operation.engine}", if (operation.queryFile == null) "inspect connection" else "sealed query", "limit=${operation.maxRows}")
                 is InfrastructureOperation.WorkerCall -> listOf("Worker", operation.endpoint, operation.operation)
+                is InfrastructureOperation.CloudInventoryRead -> listOfNotNull(
+                    "Cloud inventory",
+                    operation.cloudflareAccount?.let { "Cloudflare $it" },
+                    operation.googleProject?.let { "Google Cloud $it" },
+                    operation.kubeconfig?.let { "Kubernetes" },
+                )
                 is InfrastructureOperation.DeviceCall -> listOf(
                     "Device ${operation.transport}", operation.action,
                     operation.deviceName.ifBlank { operation.deviceId },
@@ -115,6 +121,9 @@ class JvmInfrastructureExecutor {
                                 .inspect(op.namespace, op.action, op.resourceName, op.resourceKind, op.resourceUid)
                             is InfrastructureOperation.DatabaseRead -> DatabaseJvmClient(session).execute(op, request.environment, request.timeoutMillis)
                             is InfrastructureOperation.WorkerCall -> WorkerJvmClient(session).execute(op, request.environment)
+                            is InfrastructureOperation.CloudInventoryRead -> kotlinx.coroutines.runBlocking {
+                                dev.shibasis.reaktor.tooling.cloud.CloudInventoryReads.execute(op)
+                            }
                             // Device work runs on the same virtual thread as every other native
                             // operation, so a hung adb call is cancelled by the same timeout.
                             is InfrastructureOperation.DeviceCall ->

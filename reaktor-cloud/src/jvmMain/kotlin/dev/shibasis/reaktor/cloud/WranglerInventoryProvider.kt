@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.reaktor.tooling.cloud.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -20,36 +21,48 @@ class WranglerInventoryProvider(private val repoRoot: Path) : CloudProvider {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun inventory(): List<CloudResource> = withContext(Dispatchers.IO) {
-        buildList {
-            val root = readConfig(repoRoot.resolve("wrangler.json"))
-            val account = root?.account_id
-            fun dash(path: String) = account?.let { "https://dash.cloudflare.com/$it/$path" }
-
-            // Shared bindings live in the root config (per AGENTS.md §4.3).
+    override suspend fun read(): CloudReading = withContext(Dispatchers.IO) {
+        val started = System.currentTimeMillis()
+        val root = readConfig(repoRoot.resolve("wrangler.json"))
+        val account = root?.account_id
+        fun dash(path: String) = account?.let { "https://dash.cloudflare.com/$it/$path" }
+        fun evidence(path: Path) = listOf(CloudEvidence(CloudSource.Repository, repoRoot.relativize(path).toString()))
+        val resources = buildList {
             root?.r2_buckets?.forEach {
-                add(CloudResource("cloudflare", "R2", it.bucket_name, it.bucket_name, ResourceStatus.Unknown,
-                    metrics = mapOf("binding" to it.binding), consoleUrl = dash("r2/default/buckets/${it.bucket_name}")))
+                add(CloudResource("cf:r2:${it.bucket_name}", CloudKind.R2, CloudPlatform.Cloudflare, it.bucket_name,
+                    attributes = mapOf("binding" to it.binding), evidence = evidence(repoRoot.resolve("wrangler.json")),
+                    consoleUrl = dash("r2/default/buckets/${it.bucket_name}")))
             }
             root?.hyperdrive?.forEach {
-                add(CloudResource("cloudflare", "Hyperdrive", it.id, it.binding, ResourceStatus.Unknown,
-                    metrics = mapOf("id" to it.id), consoleUrl = dash("workers/hyperdrive")))
+                add(CloudResource("cf:hyperdrive:${it.id}", CloudKind.Hyperdrive, CloudPlatform.Cloudflare, it.binding,
+                    attributes = mapOf("id" to it.id), evidence = evidence(repoRoot.resolve("wrangler.json")),
+                    consoleUrl = dash("workers/hyperdrive")))
             }
-
-            // One Worker per targets/<x>/wrangler.json that declares a name or entrypoint.
             val targets = repoRoot.resolve("targets")
             if (Files.isDirectory(targets)) {
                 Files.list(targets).use { stream ->
                     stream.sorted().forEach { dir ->
-                        val cfg = readConfig(dir.resolve("wrangler.json")) ?: return@forEach
-                        if (cfg.name == null && cfg.main == null) return@forEach // shared/base, not a worker
+                        val config = dir.resolve("wrangler.json")
+                        val cfg = readConfig(config) ?: return@forEach
+                        if (cfg.name == null && cfg.main == null) return@forEach
                         val name = cfg.name ?: dir.fileName.toString()
-                        add(CloudResource("cloudflare", "Worker", name, name, ResourceStatus.Unknown,
-                            metrics = mapOf("dir" to dir.fileName.toString()), consoleUrl = dash("workers/services/view/$name/production")))
+                        add(CloudResource("cf:worker:$name", CloudKind.Worker, CloudPlatform.Cloudflare, name,
+                            attributes = mapOf("workspace" to dir.fileName.toString()), evidence = evidence(config),
+                            consoleUrl = dash("workers/services/view/$name/production")))
                     }
                 }
             }
         }
+        val finished = System.currentTimeMillis()
+        CloudReading(
+            provider = id,
+            platform = CloudPlatform.Cloudflare,
+            health = ProviderHealth(id, ResourceStatus.Unknown, "static inventory from wrangler.json (no live API)"),
+            readAtMillis = finished,
+            durationMillis = finished - started,
+            resources = resources,
+            source = repoRoot.toString(),
+        )
     }
 
     override suspend fun health(): ProviderHealth =

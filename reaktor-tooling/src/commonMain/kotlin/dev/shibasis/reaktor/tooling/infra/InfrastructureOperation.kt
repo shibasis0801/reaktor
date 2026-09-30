@@ -46,6 +46,14 @@ sealed interface InfrastructureOperation {
     ) : InfrastructureOperation
 
     @Serializable
+    data class CloudInventoryRead(
+        val workspace: String,
+        val cloudflareAccount: String? = null,
+        val kubeconfig: String? = null,
+        val googleProject: String? = null,
+    ) : InfrastructureOperation
+
+    @Serializable
     data class WorkerCall(
         val endpoint: String,
         val operation: String,
