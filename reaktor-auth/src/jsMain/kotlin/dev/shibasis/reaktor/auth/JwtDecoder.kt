@@ -18,6 +18,13 @@ import kotlin.js.json
  */
 external fun atob(encoded: String): String
 
+private val Claims = Json { ignoreUnknownKeys = true }
+
+private fun utf8(binary: String): String {
+    val bytes = js("Uint8Array.from(binary, function (c) { return c.charCodeAt(0); })")
+    return js("new TextDecoder().decode(bytes)") as String
+}
+
 /**
  * Decoded Google JWT payload
  * Contains user information from Google Sign-In
@@ -94,7 +101,7 @@ fun decodeJwt(jwt: String): String? {
         }
 
         // Decode base64 to JSON string
-        atob(padded)
+        utf8(atob(padded))
     } catch (e: Exception) {
         console.error("Failed to decode JWT", e)
         null
@@ -111,7 +118,7 @@ fun decodeGoogleJwt(idToken: String): GoogleJwtPayload? {
     val payloadJson = decodeJwt(idToken) ?: return null
 
     return try {
-        Json.decodeFromString<GoogleJwtPayload>(payloadJson)
+        Claims.decodeFromString<GoogleJwtPayload>(payloadJson)
     } catch (e: Exception) {
         console.error("Failed to parse Google JWT payload", e)
         null
@@ -131,7 +138,7 @@ fun decodeAppleJwt(idToken: String): AppleJwtPayload? {
     val payloadJson = decodeJwt(idToken) ?: return null
 
     return try {
-        Json.decodeFromString<AppleJwtPayload>(payloadJson)
+        Claims.decodeFromString<AppleJwtPayload>(payloadJson)
     } catch (e: Exception) {
         console.error("Failed to parse Apple JWT payload", e)
         null

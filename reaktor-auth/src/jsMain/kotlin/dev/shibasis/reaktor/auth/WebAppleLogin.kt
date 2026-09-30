@@ -3,110 +3,68 @@ package dev.shibasis.reaktor.auth
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
-import kotlinx.coroutines.CancellableContinuation
+import dev.shibasis.reaktor.core.web.TapSheet
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-/**
- * Apple Sign-In implementation for Web using Apple Sign In JavaScript SDK
- * Official Documentation: https://developer.apple.com/documentation/signinwithapplejs
- *
- * Prerequisites:
- * 1. Load the AppleID JS SDK: <script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
- * 2. Register a Service ID at: https://developer.apple.com/account/resources/identifiers/list/serviceId
- * 3. Configure Service ID with domains and Return URLs
- *
- * CRITICAL: Apple only sends user name (firstName, lastName) on FIRST sign-in!
- * Your server MUST store this information immediately.
- */
 class WebAppleLogin(
     adapter: WebAuthAdapter,
     private val clientId: String,
-    private val redirectUri: String
+    private val redirectUri: String,
+    private val prompt: String = "Continue with Apple",
+    private val explanation: String? = null,
 ): AppleAuthProvider<WebAuthAdapter>(adapter) {
 
     private var currentUser: AppleUser? = null
-    private var isInitialized = false
+    private var initialized = false
 
-    private fun initializeAppleID() {
-        if (isInitialized) return
+    override suspend fun login(): Result<AppleUser> {
+        val auth = awaitAppleAuth()
+            ?: return fail("Sign in with Apple could not load. Check your connection and try again.")
+        runCatching { initialize(auth) }.onFailure { return fail(it) }
 
-        try {
-            AppleID.auth.init(js("""({
-                clientId: clientId,
-                scope: 'name email',
-                redirectURI: redirectUri,
-                usePopup: true
-            })""").unsafeCast<AppleAuthConfig>().apply {
-                this.clientId = this@WebAppleLogin.clientId
-                this.scope = "name email"
-                this.redirectURI = this@WebAppleLogin.redirectUri
-                this.usePopup = true
-            })
-
-            isInitialized = true
-            Logger.i { "Apple Sign In initialized with clientId: $clientId" }
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to initialize Apple Sign In" }
-            throw e
+        return suspendCancellableCoroutine { continuation ->
+            val sheet = TapSheet.open(prompt, explanation) {
+                if (continuation.isActive) continuation.resume(fail("Sign in with Apple was cancelled"))
+            }
+            sheet.button(prompt) {
+                sheet.close()
+                auth.signIn().then(
+                    { response -> if (continuation.isActive) continuation.resume(handleAppleResponse(response)) },
+                    { error ->
+                        Logger.e { "Sign in with Apple failed: ${describe(error)}" }
+                        if (continuation.isActive) continuation.resume(fail("Sign in with Apple failed: ${describe(error)}"))
+                    },
+                )
+            }
+            sheet.button("Cancel", primary = false) { sheet.dismiss() }
+            continuation.invokeOnCancellation { sheet.close() }
         }
     }
 
-    override suspend fun login(): Result<AppleUser> {
-        currentUser?.let { return succeed(it) }
-
-        return suspendCancellableCoroutine { continuation ->
-            runCatching {
-                initializeAppleID()
-
-                AppleID.auth.signIn()
-                    .then { response ->
-                        continuation.resumeIfActive(handleAppleResponse(response))
-                    }
-                    .catch { error ->
-                        Logger.e { "Apple Sign-In failed: $error" }
-                        continuation.resumeIfActive(fail("Apple Sign-In failed: $error"))
-                    }
-            }.onFailure {
-                Logger.e(it) { "Apple Sign-In failed" }
-                continuation.resumeIfActive(fail(it))
-            }
-        }
+    private fun initialize(auth: AppleAuth) {
+        if (initialized) return
+        val configuration = js("({})").unsafeCast<AppleAuthConfig>()
+        configuration.clientId = clientId
+        configuration.scope = "name email"
+        configuration.redirectURI = redirectUri
+        configuration.usePopup = true
+        auth.init(configuration)
+        initialized = true
     }
 
     private fun handleAppleResponse(response: AppleAuthResponse): Result<AppleUser> {
         return runCatching {
-            val authorization = response.authorization
-            val idToken = authorization.id_token
-
-            Logger.i { "Received Apple authorization" }
-
-            var givenName: String? = null
-            var familyName: String? = null
-            var email: String? = null
-
-            if (response.user != null) {
-                val userInfo = response.user!!
-                givenName = userInfo.name?.firstName
-                familyName = userInfo.name?.lastName
-                email = userInfo.email
-
-                Logger.i { "Apple Sign-In: First sign-in detected, name available" }
-            } else {
-                Logger.w { "Apple Sign-In: Subsequent sign-in, name NOT available" }
-                val payload = decodeAppleJwt(idToken)
-                email = payload?.email
-            }
-
+            val idToken = response.authorization.id_token
+            val user = response.user
+            val claims = decodeAppleJwt(idToken)
             AppleUser(
                 idToken = idToken,
-                givenName = givenName,
-                familyName = familyName,
-                emailId = email ?: ""
-            ).also {
-                currentUser = it
-                Logger.i { "Apple Sign-In successful: ${it.emailId}" }
-            }
+                givenName = user?.name?.firstName,
+                familyName = user?.name?.lastName,
+                emailId = user?.email ?: claims?.email ?: "",
+            ).also { currentUser = it }
         }.fold(::succeed) { error ->
             Logger.e(error) { "Failed to process Apple authorization response" }
             fail(error)
@@ -115,20 +73,28 @@ class WebAppleLogin(
 
     override suspend fun getUser(): Result<AppleUser> {
         return currentUser?.let(::succeed)
-            ?: fail(
-                NoSuchElementException(
-                    "No Apple User found. User info must be stored after first login since Apple only provides name once."
-                )
-            )
+            ?: fail(NoSuchElementException("No Apple user in this page; Apple only returns the name on the first sign-in"))
     }
 
     override suspend fun logout(): Result<Unit> {
         currentUser = null
-        Logger.i { "Apple Sign-In: user logged out locally" }
         return succeed(Unit)
     }
+}
 
-    private fun CancellableContinuation<Result<AppleUser>>.resumeIfActive(result: Result<AppleUser>) {
-        if (isActive) resume(result)
+private fun describe(error: dynamic): String = (error?.error as? String) ?: "$error"
+
+private fun loadedAppleAuth(): AppleAuth? {
+    val auth = js("globalThis.AppleID && globalThis.AppleID.auth")
+    return if (auth == null || auth == false) null else auth.unsafeCast<AppleAuth>()
+}
+
+private suspend fun awaitAppleAuth(): AppleAuth? {
+    loadScriptOnce(AppleAuthScript)
+    repeat(100) {
+        loadedAppleAuth()?.let { return it }
+        delay(100)
     }
+    Logger.e { "$AppleAuthScript did not define AppleID.auth within 10s" }
+    return null
 }

@@ -3,67 +3,85 @@ package dev.shibasis.reaktor.auth
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
-import kotlinx.coroutines.CancellableContinuation
+import dev.shibasis.reaktor.core.web.TapSheet
+import kotlinx.browser.document
+import kotlinx.browser.window
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.w3c.dom.HTMLElement
 import kotlin.coroutines.resume
 
-/**
- * Google Sign-In implementation for Web using Google Identity Services (GIS)
- * Official Documentation: https://developers.google.com/identity/gsi/web/guides/overview
- *
- * Prerequisites:
- * 1. Load the GIS library: <script src="https://accounts.google.com/gsi/client" async defer></script>
- * 2. Register OAuth 2.0 Client ID at: https://console.cloud.google.com/apis/credentials
- * 3. Configure authorized JavaScript origins for your web domain
- */
 class WebGoogleLogin(
     adapter: WebAuthAdapter,
-    private val audience: String
+    private val audience: String,
+    private val prompt: String = "Continue with Google",
+    private val explanation: String? = null,
 ): GoogleAuthProvider<WebAuthAdapter>(adapter) {
 
     private var currentUser: GoogleUser? = null
-
-    private fun initializeGIS(callback: (CredentialResponse) -> Unit) {
-        google.accounts.id.initialize(js("({})").unsafeCast<IdConfiguration>().apply {
-            client_id = audience
-            this.callback = callback
-            auto_select = false
-            cancel_on_tap_outside = true
-        })
-    }
+    private var initialized = false
+    private var onCredential: ((CredentialResponse) -> Unit)? = null
 
     override suspend fun login(): Result<GoogleUser> {
-        currentUser?.let { return succeed(it) }
+        val identity = awaitGoogleIdentity()
+            ?: return fail("Google sign-in could not load. Check your connection and try again.")
+        runCatching { initialize(identity) }.onFailure { return fail(it) }
 
         return suspendCancellableCoroutine { continuation ->
-            runCatching {
-                initializeGIS { response ->
-                    continuation.resumeIfActive(handleCredentialResponse(response))
-                }
-
-                google.accounts.id.prompt { notification ->
-                    if (notification.isNotDisplayed()) {
-                        continuation.resumeIfActive(
-                            fail("Google One Tap not displayed: ${notification.getNotDisplayedReason()}")
-                        )
-                    } else if (notification.isSkippedMoment()) {
-                        continuation.resumeIfActive(
-                            fail("Google One Tap skipped: ${notification.getSkippedReason()}")
-                        )
-                    }
-                }
-            }.onFailure {
-                Logger.e(it) { "Google Sign-In failed" }
-                continuation.resumeIfActive(fail(it))
+            val sheet = TapSheet.open(prompt, explanation) {
+                onCredential = null
+                if (continuation.isActive) continuation.resume(fail("Google sign-in was cancelled"))
+            }
+            onCredential = { response ->
+                onCredential = null
+                sheet.close()
+                if (continuation.isActive) continuation.resume(handleCredentialResponse(response))
+            }
+            val slot = document.createElement("div") as HTMLElement
+            slot.style.cssText = "display:flex;justify-content:center;min-height:48px;"
+            sheet.content.appendChild(slot)
+            runCatching { identity.renderButton(slot, buttonConfiguration()) }.onFailure { error ->
+                Logger.e(error) { "The Google sign-in button could not render" }
+                onCredential = null
+                sheet.close()
+                if (continuation.isActive) continuation.resume(fail(error))
+            }
+            sheet.button("Cancel", primary = false) { sheet.dismiss() }
+            continuation.invokeOnCancellation {
+                onCredential = null
+                sheet.close()
             }
         }
+    }
+
+    private fun initialize(identity: GoogleId) {
+        if (initialized) return
+        val configuration = js("({})").unsafeCast<IdConfiguration>()
+        configuration.client_id = audience
+        configuration.callback = { response -> onCredential?.invoke(response) }
+        configuration.auto_select = false
+        configuration.cancel_on_tap_outside = true
+        configuration.itp_support = true
+        configuration.ux_mode = "popup"
+        identity.initialize(configuration)
+        initialized = true
+    }
+
+    private fun buttonConfiguration(): GsiButtonConfiguration {
+        val configuration = js("({})").unsafeCast<GsiButtonConfiguration>()
+        configuration.type = "standard"
+        configuration.theme = "filled_black"
+        configuration.size = "large"
+        configuration.text = "continue_with"
+        configuration.shape = "pill"
+        configuration.logo_alignment = "left"
+        configuration.width = (window.innerWidth - 88).coerceIn(200, 360)
+        return configuration
     }
 
     private fun handleCredentialResponse(response: CredentialResponse): Result<GoogleUser> {
         return runCatching {
             val idToken = response.credential
-            Logger.i { "Received Google credential via: ${response.select_by}" }
-
             val payload = decodeGoogleJwt(idToken)
                 ?: throw IllegalArgumentException("Failed to decode Google JWT")
 
@@ -73,10 +91,7 @@ class WebGoogleLogin(
                 familyName = payload.family_name,
                 emailId = payload.email ?: "",
                 imageUrl = payload.picture ?: ""
-            ).also {
-                currentUser = it
-                Logger.i { "Google Sign-In successful: ${it.emailId}" }
-            }
+            ).also { currentUser = it }
         }.fold(::succeed) { error ->
             Logger.e(error) { "Failed to process Google credential response" }
             fail(error)
@@ -90,12 +105,22 @@ class WebGoogleLogin(
 
     override suspend fun logout(): Result<Unit> {
         currentUser = null
-        google.accounts.id.disableAutoSelect()
-        Logger.i { "Google Sign-In: auto-select disabled after logout" }
+        loadedGoogleIdentity()?.disableAutoSelect()
         return succeed(Unit)
     }
+}
 
-    private fun CancellableContinuation<Result<GoogleUser>>.resumeIfActive(result: Result<GoogleUser>) {
-        if (isActive) resume(result)
+private fun loadedGoogleIdentity(): GoogleId? {
+    val identity = js("globalThis.google && globalThis.google.accounts && globalThis.google.accounts.id")
+    return if (identity == null || identity == false) null else identity.unsafeCast<GoogleId>()
+}
+
+private suspend fun awaitGoogleIdentity(): GoogleId? {
+    loadScriptOnce(GoogleIdentityScript)
+    repeat(100) {
+        loadedGoogleIdentity()?.let { return it }
+        delay(100)
     }
+    Logger.e { "$GoogleIdentityScript did not define google.accounts.id within 10s" }
+    return null
 }
