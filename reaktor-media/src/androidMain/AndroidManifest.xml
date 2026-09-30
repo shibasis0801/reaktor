@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Android's platform SpeechRecognizer needs RECORD_AUDIO. It belongs here rather than in each app:
+        this module is what captures speech, and a module whose job is speech input should not depend on
+        every consumer remembering to declare the permission. Apps still request the runtime grant.
+
+        The iOS usage strings (NSMicrophoneUsageDescription, NSSpeechRecognitionUsageDescription) stay in
+        the app's Info.plist — the OS shows them to the user, so they are the app's words, not the module's.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+</manifest>
