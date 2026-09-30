@@ -22,4 +22,8 @@ library(namespace = "dev.shibasis.reaktor.media", targets = Targets.Web + Target
             implementation(Versions.Android.PdfDocumentService)
         }
     }
+
+    sourceSets {
+        commonTest.dependencies { implementation(kotlin("test")) }
+    }
 }
