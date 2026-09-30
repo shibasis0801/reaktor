@@ -20,6 +20,16 @@ object Feature: DependencyModule {
     private var moduleMap = ConcurrentHashMap<Int, Any>()
     override fun createId() = moduleIdx.getAndIncrement()
     override fun <T> storeDependency(id: Int, dependency: T) {
+        // Null clears the slot rather than crashing on the cast. `CreateSlot` is a
+        // `ReadWriteProperty<Any, T?>`, so `Feature.Something = null` type-checks everywhere and
+        // used to throw a NullPointerException out of this line — which meant a slot could be
+        // filled and never emptied. A test that installs an adapter cannot then take it away, so
+        // every later test in the process runs against it; a shell tearing down cannot let go of
+        // one either.
+        if (dependency == null) {
+            moduleMap.remove(id)
+            return
+        }
         moduleMap[id] = dependency as Any
     }
 

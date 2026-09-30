@@ -41,11 +41,54 @@ without shipping the original filenames:
 ```
 
 Also keep anything else constructed by name or by reflection — Health Connect record classes are
-one example — and reaktor's slot machinery, which is looked up by type.
+one example.
 
-**Proving it works takes more than launching the app.** A serializer that has been stripped only
-fails when something is *read back*. Install the release build, write data, force-stop, relaunch,
-and confirm the data is still there.
+## The other one: autoWire matches on a property *name*
+
+`autoWire()` pairs a consumer with a provider by type **and by the name of the property holding
+it**. R8 renames fields, so in a minified build the names stop agreeing and `requireFullyWired()`
+throws — on the first launch of the release build and nowhere else, as a bare
+`IllegalStateException` with an obfuscated stack. Nothing about the debug build predicts it.
+
+```proguard
+-keepclassmembers class * extends dev.shibasis.reaktor.graph.core.node.BasicNode {
+    <fields>;
+}
+-keepclassmembers class * extends dev.shibasis.reaktor.graph.core.node.ComposeNode {
+    <fields>;
+}
+```
+
+Ktor resolves its engines by service loader and by name, and wants its own:
+
+```proguard
+-keep class io.ktor.client.engine.okhttp.** { *; }
+-keepclassmembers class io.ktor.** { volatile <fields>; }
+```
+
+Then `-dontwarn` the optional back ends your libraries reference and you do not ship
+(`org.slf4j.**`, `java.lang.management.**`, `javax.naming.**`, `kotlinx.coroutines.debug.**`), or
+R8 fails the build on classes nothing ever calls.
+
+**Reading a minified crash.** The stack names classes like `e2.c`, which tells you nothing until
+you map it back. `mapping.txt` is written beside the APK and lists the obfuscated name on the
+right of each arrow, so the lookup is a grep — no extra tooling, and it works from a logcat line
+pasted out of a tester's phone:
+
+```bash
+M=app/build/outputs/mapping/release/mapping.txt
+# Class lines start at column 0 and end in a colon; members are indented under them.
+grep -n " -> e2\.c:$" "$M"
+# Then read that class's block to find the method the frame named (say `d`):
+awk '/ -> e2\.c:$/{on=1} on&&/^[^ ]/&&!/ -> e2\.c:$/{exit} on' "$M" | grep -- "-> d$"
+```
+
+Keep that `mapping.txt` with the build that produced it. Regenerating it later gives different
+names, and a crash report you cannot read is a crash you cannot fix.
+
+**Proving any of this works takes more than launching the app.** A serializer that has been
+stripped only fails when something is *read back*. Install the release build, write data,
+force-stop, relaunch, and confirm the data is still there.
 
 ## Permissions you can defend
 
@@ -65,6 +108,28 @@ notifications. Check the merged manifest, not the one you wrote:
 ```
 app/build/outputs/logs/manifest-merger-release-report.txt
 ```
+
+A module earns its permissions for the app that uses *all* of it. `reaktor-notification` declares
+`RECEIVE_BOOT_COMPLETED` and a boot receiver so scheduled notifications survive a restart; an app
+that schedules nothing inherits both and has to explain them to a reviewer anyway. Subtract them in
+the app's own manifest — the same works for a `<receiver>`, `<service>` or `<provider>`:
+
+```xml
+<manifest xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission
+        android:name="android.permission.RECEIVE_BOOT_COMPLETED"
+        tools:node="remove" />
+
+    <application>
+        <receiver
+            android:name="dev.shibasis.reaktor.notification.ReaktorNotificationBootReceiver"
+            tools:node="remove" />
+    </application>
+</manifest>
+```
+
+Remove the component as well as the permission. A receiver left behind without the permission that
+feeds it is dead weight the merger still registers.
 
 Two designs that remove a permission rather than justify it:
 
