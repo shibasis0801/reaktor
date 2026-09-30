@@ -19,15 +19,15 @@ costume test up front. Most of a read-aloud reader is already owned:
 | Read-later / retained reader | Cairn arc II |
 | Media playback, long-lived out-of-route scope | Podcast |
 | Inbound share / OS ingestion (`ShareReceiver`) | Cairn arc I & II |
-| Speech **recognition** (STT) | Recorder phase 1 |
 | Mic permission | existing `PermissionAdapter` (`speech` constant) |
 
 What nothing owns is exactly three forces, and they are the entire reason this stands alone:
 
-1. **The synthesizer half of `reaktor-media/speech`.** `SpeechSynthesizer` is a `commonMain` stub
-   with an empty body and no Android or Darwin implementation. Recorder forces the *recognizer* impl
-   and never needs to speak; Lector is the first thing that does. Together the two make
-   `reaktor-media/speech` real in both directions.
+1. **Both halves of `reaktor-media/speech`.** `SpeechSynthesizer` and `SpeechRecognizer` were
+   `commonMain` stubs with no Android or Darwin bodies. Lector writes the synthesizer (nothing else in
+   the portfolio speaks) and — now that the standalone Recorder is folded into Lector (idea 7) — owns
+   the recognizer too, absorbed from Recorder and promoted out of Lector's app code into
+   `reaktor-media`. Together they make `reaktor-media/speech` real in both directions.
 2. **Full-duplex voice control (barge-in).** Speaking while listening for a command, ducking or
    pausing the synthesizer the instant the mic opens, resuming cleanly after — two half-duplex OS
    engines contending for one audio focus. No other app in the portfolio holds capture and output at
@@ -106,8 +106,8 @@ transition. This is the one genuinely new muscle in the app (§11).
 ### 4.3 Speech adapters — the new framework work
 
 `reaktor-media/speech` already defines the shape: an `Adapter<Controller>` bound to a `Feature` slot
-via `CreateSlot`. `SpeechRecognizer` is stubbed; `SpeechSynthesizer` is stubbed the same way. Lector
-writes the synthesizer bodies:
+via `CreateSlot`. `SpeechRecognizer` and `SpeechSynthesizer` were stubbed the same way; Lector fills
+both. The synthesizer bodies:
 
 | Target | Synthesizer | Word-range callback |
 |---|---|---|
@@ -118,9 +118,13 @@ Surface both as one common `Flow<SpokenRange>` off `SpeechSynthesizer`, so the r
 platform-agnostic. Add `Feature.SpeechSynthesizer by CreateSlot<…>()` beside the existing
 `Feature.SpeechRecognizer`.
 
-For the recognizer: **reuse Recorder's impl** if it has landed (`SFSpeechRecognizer` / Android
-`SpeechRecognizer` behind the stub). If Lector starts first, build only the push-to-talk subset it
-needs and let Recorder generalize it later — the interface is already common, so this is not a fork.
+For the recognizer: Lector built the push-to-talk subset in its own app code first, then **promoted it
+into `reaktor-media`** — `AndroidSpeechRecognizer` (`android.speech.SpeechRecognizer`) and
+`DarwinSpeechRecognizer` (`SFSpeechRecognizer` + `AVAudioEngine`) behind the common `SpeechRecognizer`
+— once the standalone Recorder was folded in (idea 7). Its `events` stream mirrors the synthesizer's:
+partial + final results and a small typed error set (Android error codes and iOS `NSError`s mapped, not
+strings), plus start/stop/cancel, `isListening`, availability, and a request carrying BCP-47 language and
+a prefer-on-device flag. The interface was common from the start, so this was a move, not a fork.
 
 ### 4.4 PDF render + text layer
 
@@ -146,7 +150,7 @@ Split the way sync does, so the cheap tier ships first:
 
 | Module | Role | New or reuse |
 |---|---|---|
-| `reaktor-media/speech` | `SpeechSynthesizer` impls + `Flow<SpokenRange>`; recognizer subset | **new** (the app's reason to exist) |
+| `reaktor-media/speech` | `SpeechSynthesizer` + `SpeechRecognizer` impls (both halves) + `Flow<SpokenRange>` | **new** (the app's reason to exist) |
 | `reaktor-media` (pdf) | PDF render + word-box extraction, OCR fallback | **new-ish** (no PDF today) |
 | `reaktor-ui` / `compose-flow` | reader screen, highlight overlay, transport | reuse |
 | `reaktor-db` | highlights, notes, reading position (SQLDelight) | reuse |
@@ -223,6 +227,12 @@ the only parts with unknowns — before any command work.
 grammar (highlight / note / navigate / transport). Persist highlights, notes, position. Both
 platforms. This is a shippable app.
 
+- **Done — recognizer promoted.** The push-to-talk recognizer, built in Lector's app code, is moved
+  into `reaktor-media` (`AndroidSpeechRecognizer` / `DarwinSpeechRecognizer` behind the common
+  `SpeechRecognizer`), with RECORD_AUDIO declared in the module's manifest and an in-memory fake for
+  tests. Both halves of speech now live in the framework; Lector consumes them through the `Feature`
+  slots.
+
 **Phase 2 — reach.** Semantic intent via the worker; wake word; EPUB/plain text; share-in wired to
 `ShareReceiver`; "remove that" and edit.
 
@@ -253,8 +263,9 @@ Where the risk actually is (all integration, none blocking):
    reading order make this fiddly — the whole reason Phase 0 exists.
 3. **Command reliability** — mitigated by push-to-talk + a constrained grammar in v1; open vocabulary
    waits for the semantic tier.
-4. **Recognizer ordering** — cheapest if Recorder phase 1 lands first; otherwise Lector builds the
-   push-to-talk subset (§4.3), which is not a fork.
+4. **Recognizer ordering — closed.** Lector built the push-to-talk subset in app code and promoted it
+   into `reaktor-media` (§4.3); with Recorder folded into Lector (idea 7), Lector owns the recognizer,
+   so there is nothing left to sequence.
 
 Verdict: buildable to a real, shippable app in ~2 weeks of focused work once the `SpeechSynthesizer`
 impl exists, with the reading loop de-risked in a 2–4 day spike first.
@@ -265,14 +276,15 @@ impl exists, with the reading loop de-risked in a 2–4 day spike first.
 
 - **Android PDF library** — PdfBox-Android vs iText-style vs Pdfium-plus-shim, traded on text-box
   fidelity, license and size. Blocks the reading loop on Android; pick during Phase 0.
-- **Recognizer: wait or build** — take Recorder phase 1's impl, or build the push-to-talk subset now.
-  Depends on portfolio sequencing.
+- **Recognizer: wait or build — resolved.** Lector built the push-to-talk subset and promoted it into
+  `reaktor-media`; with Recorder folded in (idea 7), Lector owns both halves of speech.
 - **Highlight anchor** — char-offset-primary (chosen, §5) vs quad-primary; confirm once the Android
   extractor is chosen, since determinism depends on it.
 - **Ambient overlay** — Android `AccessibilityService` Play-policy check before any phase-3 work;
   iOS excluded regardless.
-- **On-device voice quality** — ship OS voices; revisit bundling a small neural voice (Kokoro/Piper
-  via `reaktor-ffi`) only if OS quality tests poorly. Defer.
+- **On-device voice quality** — ship the OS voices and the OS recognizer. Revisit bundling a small
+  neural voice (Kokoro/Piper via `reaktor-ffi`) and on-device recognition (whisper.cpp via `reaktor-ffi`
+  — the parked Recorder phase 2) together, only if the OS engines test poorly. Defer.
 
 ---
 
