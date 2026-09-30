@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.graph.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -13,12 +12,12 @@ actual fun BackHandlerContainer(
     modifier: Modifier,
     intercept: Boolean,
     onBack: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable (backProgress: () -> Float) -> Unit
 ) {
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier) {
         BackHandler(enabled = intercept) {
             onBack()
         }
-        content()
+        content { 0f }
     }
 }
