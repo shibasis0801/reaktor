@@ -27,8 +27,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 @JsExport
 abstract class Service(
     baseUrl: String = "",
-    val httpClient: HttpClient = http
+    httpClient: HttpClient? = null
 ) {
+    private val suppliedHttpClient = httpClient
+    val httpClient: HttpClient get() = suppliedHttpClient ?: http
+
     val handlers = arrayListOf<RequestHandler<*, *>>()
     val baseUrl: String = baseUrl.trimEnd('/')
     private val interceptors = arrayListOf<ServiceInterceptor>()
