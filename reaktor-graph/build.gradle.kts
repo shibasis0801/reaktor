@@ -26,7 +26,11 @@ kotlin {
     }
     droid {}
     darwin {}
-    web {}
+    web {
+        dependencies {
+            api("org.jetbrains.androidx.navigationevent:navigationevent-compose:1.1.0")
+        }
+    }
     server {
         dependencies {
             // Spring beans/context for SpringDependencyAdapter. The service Spring router moved to
