@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.reaktor.tooling.cloud.CloudInventory
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Paths
 
@@ -9,10 +10,10 @@ import java.nio.file.Paths
  */
 fun main(args: Array<String>) {
     val root = Paths.get(args.firstOrNull() ?: ".")
-    val resources = runBlocking { CloudInventory(listOf(WranglerInventoryProvider(root))).refresh() }
+    val resources = runBlocking { CloudInventory(listOf(WranglerInventoryProvider(root)), System::currentTimeMillis).read().resources }
     println("Cloud inventory from $root  ->  ${resources.size} resources")
-    resources.groupBy { it.kind }.toSortedMap().forEach { (kind, list) ->
+    resources.groupBy { it.kind }.toSortedMap(compareBy { it.ordinal }).forEach { (kind, list) ->
         println("  $kind (${list.size}):")
-        list.forEach { println("    - ${it.name}   ${it.metrics}   ${it.consoleUrl ?: ""}") }
+        list.forEach { println("    - ${it.name}   ${it.attributes}   ${it.consoleUrl ?: ""}") }
     }
 }

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.reaktor.tooling.cloud.CloudProvider
+import dev.shibasis.reaktor.tooling.cloud.ResourceStatus
 import dev.shibasis.reaktor.tooling.CatalogProvider
 import dev.shibasis.reaktor.tooling.ProviderAvailability
 import dev.shibasis.reaktor.tooling.SafetyClass
@@ -118,21 +120,20 @@ class CloudInventoryCatalogProvider(
     override val providerId: String = cloud.id
 
     override suspend fun resources(workspace: ToolingWorkspace): List<ToolingResource> =
-        cloud.inventory().map { resource ->
+        cloud.read().resources.map { resource ->
             ToolingResource(
-                id = "${resource.provider}/${resource.kind}/${resource.id}",
-                provider = resource.provider,
-                kind = resource.kind,
+                id = "${resource.platform.name.lowercase()}/${resource.kind.name}/${resource.id}",
+                provider = resource.platform.name.lowercase(),
+                kind = resource.kind.label,
                 name = resource.name,
-                targetId = resource.tags["targetId"],
-                environment = resource.tags["environment"],
+                targetId = resource.attributes["targetId"],
+                environment = resource.attributes["environment"],
                 attributes = buildMap {
                     put("status", resource.status.name)
                     resource.region?.let { put("region", it) }
                     resource.consoleUrl?.let { put("consoleUrl", it) }
-                    resource.grafanaUrl?.let { put("grafanaUrl", it) }
-                    putAll(resource.metrics.mapKeys { "metric.${it.key}" })
-                    putAll(resource.tags.mapKeys { "tag.${it.key}" })
+                    resource.metrics.forEach { put("metric.${it.key}", it.value.toString()) }
+                    putAll(resource.attributes.mapKeys { "tag.${it.key}" })
                 },
             )
         }
@@ -156,7 +157,7 @@ class CloudInventoryCatalogProvider(
         )
 
     private fun ResourceStatus.toAvailability(): ProviderAvailability = when (this) {
-        ResourceStatus.Healthy -> ProviderAvailability.Available
+        ResourceStatus.Healthy, ResourceStatus.Idle -> ProviderAvailability.Available
         ResourceStatus.Degraded -> ProviderAvailability.Degraded
         ResourceStatus.Down -> ProviderAvailability.Unavailable
         ResourceStatus.Unknown -> ProviderAvailability.Unknown

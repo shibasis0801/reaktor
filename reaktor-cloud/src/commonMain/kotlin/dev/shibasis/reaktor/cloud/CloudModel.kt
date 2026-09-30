@@ -2,39 +2,7 @@ package dev.shibasis.reaktor.cloud
 
 import dev.shibasis.reaktor.tooling.SafetyClass
 
-/**
- * Provider-neutral cloud model — the substrate the reaktorDesktop Cloud pane renders and the
- * workbench/agents consume. See the design at reaktor.build/docs/reaktor-cloud-pane.
- *
- * One [CloudResource] shape every provider maps onto, one [CloudOperation] shape every tool maps
- * onto, and [CloudRun]/[CloudEvent] for streamed tool execution. (Kept plain for now; add
- * kotlinx.serialization annotations when transport/persistence needs them.)
- */
-
-enum class ResourceStatus { Healthy, Degraded, Down, Unknown }
-
 enum class RunStatus { Pending, Running, Succeeded, Failed, Cancelled }
-
-/** A single cloud resource (Worker, Durable Object, D1, R2, Pod, PgTable, …) from any provider. */
-data class CloudResource(
-    val provider: String,            // "cloudflare" | "supabase" | "gcp" | "k3s" | "memgraph" | "grafana"
-    val kind: String,                // "Worker" | "DurableObject" | "D1" | "R2" | "Pod" | "PgTable" | ...
-    val id: String,
-    val name: String,
-    val status: ResourceStatus,
-    val region: String? = null,
-    val metrics: Map<String, String> = emptyMap(),   // "req/s" -> "1.2k", "size" -> "4.2 GB"
-    val consoleUrl: String? = null,                   // provider dashboard deep-link (open in Chrome)
-    val grafanaUrl: String? = null,                   // the right Grafana dashboard, if any
-    val tags: Map<String, String> = emptyMap(),
-)
-
-/** Rollup health for a provider section in the pane. */
-data class ProviderHealth(
-    val provider: String,
-    val status: ResourceStatus,
-    val detail: String? = null,
-)
 
 /** A declared input for an operation (e.g. the stack to target, the pod to restart). */
 data class CloudInput(
