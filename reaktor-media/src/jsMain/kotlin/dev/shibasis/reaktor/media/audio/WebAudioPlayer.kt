@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.web.TapSheet
 import kotlinx.browser.window
 import kotlinx.coroutines.await
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.js.Promise
 
 class WebAudioPlayer : AudioPlayerAdapter<Unit>(Unit) {
@@ -24,14 +25,19 @@ class WebAudioPlayer : AudioPlayerAdapter<Unit>(Unit) {
         this.key = key
         if (fromMillis > 0) audio.currentTime = fromMillis / 1000.0
         try {
-            audio.play().unsafeCast<Promise<Any?>>().await()
-            tick()
+            start(audio).await()
+            if (element === audio) tick()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: Throwable) {
-            if (error.asDynamic().name == "NotAllowedError") {
-                offerPlayback(audio)
-            } else {
-                Logger.e(error) { "Audio playback could not start" }
-                stop()
+            if (element !== audio) return
+            when (error.asDynamic().name as? String) {
+                "NotAllowedError" -> offerPlayback(audio)
+                "AbortError" -> Unit
+                else -> {
+                    Logger.e(error) { "Audio playback could not start" }
+                    stop()
+                }
             }
         }
     }
@@ -44,7 +50,7 @@ class WebAudioPlayer : AudioPlayerAdapter<Unit>(Unit) {
 
     override fun resume() {
         val audio = element ?: return
-        audio.play()
+        start(audio).catch { publish() }
         tick()
     }
 
@@ -69,11 +75,13 @@ class WebAudioPlayer : AudioPlayerAdapter<Unit>(Unit) {
         sheet.button("Play") {
             sheet.close()
             if (element === audio) {
-                audio.play()
+                start(audio).catch { publish() }
                 tick()
             }
         }
     }
+
+    private fun start(audio: dynamic): Promise<Any?> = audio.play().unsafeCast<Promise<Any?>>()
 
     private fun tick() {
         stopTicking()
