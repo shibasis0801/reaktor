@@ -22,6 +22,7 @@ object Permission {
     const val GALLERY = "GALLERY"
     const val SPEECH_RECOGNITION = "SPEECH_RECOGINTION"
     const val NOTIFICATIONS = "NOTIFICATIONS"
+    const val MICROPHONE = "MICROPHONE"
 }
 
 @Serializable

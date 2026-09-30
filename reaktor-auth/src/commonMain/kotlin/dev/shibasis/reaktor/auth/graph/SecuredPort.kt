@@ -13,6 +13,7 @@ import dev.shibasis.reaktor.portgraph.port.Type
 import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortDelegate
+import dev.shibasis.reaktor.portgraph.port.PortEvent
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
@@ -74,9 +75,16 @@ fun <Functionality: Any> PortCapability.registerSecuredProvider(requiredScopes: 
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerSecuredProvider(requirement: AuthRequirement, requiredScopes: List<String>, key: Key, type: Type, impl: Functionality): SecuredProviderPort<Functionality> {
-    return providerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { SecuredProviderPort(this, requiredScopes, requirement, key.key, type, impl) } as SecuredProviderPort<Functionality>
+    // Atomic, like the unsecured registerProvider: the index is read by live-graph surfaces while
+    // a graph wires itself. Created is emitted here too — a secured port that never announced
+    // itself was invisible to every PortEventListener, which is how the telemetry capture and the
+    // auth pane both learn a port exists.
+    val registration = providerPorts.putIfAbsent(type, key) {
+        SecuredProviderPort(this, requiredScopes, requirement, key.key, type, impl) as ProviderPort<Any>
+    }
+    val port = registration.value as SecuredProviderPort<Functionality>
+    if (registration.created) emit(PortEvent.Created(port))
+    return port
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerSecuredProvider(requiredScopes: List<String>, key: String = "", impl: Functionality): SecuredProviderPort<Functionality> {
@@ -106,9 +114,13 @@ fun <Functionality: Any> PortCapability.registerSecuredConsumer(requiredScopes: 
 
 @Suppress("UNCHECKED_CAST")
 fun <Functionality: Any> PortCapability.registerSecuredConsumer(requirement: AuthRequirement, requiredScopes: List<String>, key: Key, type: Type): SecuredConsumerPort<Functionality> {
-    return consumerPorts
-        .getOrPut(type) { linkedMapOf() }
-        .getOrPut(key) { SecuredConsumerPort(this, requiredScopes, requirement, key.key, type) } as SecuredConsumerPort<Functionality>
+    // See registerSecuredProvider.
+    val registration = consumerPorts.putIfAbsent(type, key) {
+        SecuredConsumerPort<Functionality>(this, requiredScopes, requirement, key.key, type) as ConsumerPort<Any>
+    }
+    val port = registration.value as SecuredConsumerPort<Functionality>
+    if (registration.created) emit(PortEvent.Created(port))
+    return port
 }
 
 inline fun <reified Functionality: Any> PortCapability.registerSecuredConsumer(requiredScopes: List<String>, key: String = ""): SecuredConsumerPort<Functionality> {

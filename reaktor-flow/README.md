@@ -64,6 +64,25 @@ That boundary is the reason the graph editor is now easier to understand and tun
 
 `ReaktorGraphEditor(...)` is the preferred high-level host surface for desktop/product code.
 
+## Architecture and C4 read model
+
+The runtime graph can also be projected as a primitive-only, serializable architecture snapshot:
+
+```kotlin
+val snapshot = buildReaktorArchitectureSnapshot(graph)
+val json = snapshot.encode()
+```
+
+`ReaktorArchitectureSnapshot` contains stable scopes, elements, typed relationships, ports, and
+provenance. Its named levels are `System`, `Container`, `Component`, and `Code`. Products can merge
+live operational facts through `ReaktorArchitectureOverlay`; open element kinds such as `task`,
+`resource`, `run`, `provider`, and `deployment` keep control-plane semantics out of this framework.
+
+`ReaktorFlowScopeView.focus(scopeId)` changes the canvas root without losing the breadcrumb path,
+and `atArchitectureLevel(...)` applies a C4 level relative to that focus. `ReaktorGraphLens` is the
+orthogonal search/relationship-filter primitive. Desktop composes these primitives; the canvas
+does not own product state.
+
 ## One graph style contract
 
 The single graph-scene tuning entrypoint is:
@@ -96,7 +115,12 @@ Current default layout model:
 
 Current strategy shape:
 - `ReaktorGraphLayoutStrategy`
-- `BlueprintReaktorGraphLayoutStrategy`
+- `BlueprintReaktorGraphLayoutStrategy` for compact cards
+- `TypedReaktorGraphLayoutStrategy` for typed cards, delegating to viewport-aware compound packing when both canvas dimensions are available
+
+Typed hosts supply `layout.targetContentWidthPx` and `targetContentHeightPx` from the actual graph canvas after surrounding panes and toolbars are measured. Landscape (including square) canvases place descendants to the right; portrait canvases place them below. Measured node and subtree areas balance dense layouts so full expansion can grow on both axes without becoming a single strip. Route/screen pairs remain adjacent, and relayout preserves scope, node, port and edge identities. Width-only callers retain wrapping behavior; dimension-free exports retain the authored lane layout.
+
+`atDisplayDensity` scales both target dimensions along with node and region geometry. A host that measures physical pixels should set the measured target dimensions **after** scaling its authored style. Orientation is a property of the available canvas, not a hard-coded monitor model or window-width breakpoint.
 
 This is deliberate. The layout strategy is separated so future layout variants can be added without collapsing placement logic back into the builder.
 

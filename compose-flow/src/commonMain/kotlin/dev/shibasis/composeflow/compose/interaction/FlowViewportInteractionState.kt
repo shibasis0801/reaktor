@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 
 // References:
 // - "Thinking in Compose": keep interaction state explicit instead of hiding it inside a large UI
@@ -26,6 +27,12 @@ class FlowViewportInteractionState internal constructor(
     var canvasOriginInWindow by mutableStateOf(Offset.Zero)
         private set
 
+    var canvasBoundsInWindow by mutableStateOf(Rect.Zero)
+        private set
+
+    var canvasDensity by mutableStateOf(1f)
+        private set
+
     fun markViewportAsUserModified() {
         userModifiedViewport = true
     }
@@ -40,6 +47,18 @@ class FlowViewportInteractionState internal constructor(
 
     fun updateCanvasOriginInWindow(origin: Offset) {
         canvasOriginInWindow = origin
+    }
+
+    fun updateCanvasGeometry(origin: Offset, visibleBounds: Rect, density: Float) {
+        canvasOriginInWindow = origin
+        canvasBoundsInWindow = visibleBounds
+        canvasDensity = density
+    }
+
+    /** AWT uses logical content coordinates; Compose viewports use physical pixels. */
+    fun canvasPositionFromWindow(position: Offset): Offset? {
+        val physical = position * canvasDensity
+        return if (canvasBoundsInWindow.contains(physical)) physical - canvasOriginInWindow else null
     }
 }
 

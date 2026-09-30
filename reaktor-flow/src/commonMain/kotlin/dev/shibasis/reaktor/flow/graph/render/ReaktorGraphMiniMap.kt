@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -49,9 +50,10 @@ internal fun BoxScope.GraphMiniMap(
     val density = LocalDensity.current
     val miniMapPaddingPx = style.chrome.miniMapInnerPaddingPx.toFloat()
 
-    Panel(position = PanelPosition.TopRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
+    Panel(position = PanelPosition.BottomRight, modifier = Modifier.padding(with(density) { dpOf(style.chrome.overlayPaddingPx) })) {
         Box(
             modifier = Modifier
+                .testTag("reaktor-graph-minimap")
                 .padding(end = rightInset)
                 .size(
                     width = with(density) { dpOf(style.chrome.miniMapWidthPx) },
@@ -64,7 +66,7 @@ internal fun BoxScope.GraphMiniMap(
                 tonalElevation = 0.dp,
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(flow, state.canvasSize, state.viewport, miniMapPaddingPx, style) {
+                    .pointerInput(flow, state, miniMapPaddingPx, style) {
                         awaitPointerEventScope {
                             while (true) {
                                 val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue

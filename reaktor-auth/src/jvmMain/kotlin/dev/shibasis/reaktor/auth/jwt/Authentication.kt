@@ -190,6 +190,7 @@ class JwtMinter(
         permissions: List<String> = emptyList(),
         ttlSeconds: Int = AuthDefaults.ACCESS_TOKEN_TTL_SECONDS,
         expirationMs: Long = ttlSeconds * 1000L,
+        expiresAtEpochMillis: Long? = null,
         principalKind: PrincipalKind,
         credentialType: String,
         configure: JWTClaimsSet.Builder.() -> Unit = {},
@@ -207,7 +208,7 @@ class JwtMinter(
             .claim("principal_type", principalKind.name.lowercase())
             .claim("credential_type", credentialType)
             .issueTime(now)
-            .expirationTime(Date(now.time + expirationMs))
+            .expirationTime(Date(expiresAtEpochMillis ?: (now.time + expirationMs)))
 
         builder.configure()
         return sign(builder.build())
@@ -235,7 +236,8 @@ class JwtMinter(
         credentialType: String = AuthCredentialType.ACCESS_TOKEN.wireName,
         audience: String = appId,
         ttlSeconds: Int = AuthDefaults.ACCESS_TOKEN_TTL_SECONDS,
-        expirationMs: Long = ttlSeconds * 1000L
+        expirationMs: Long = ttlSeconds * 1000L,
+        expiresAtEpochMillis: Long? = null,
     ): String = mintReaktorToken(
         subject = principalId,
         audience = audience,
@@ -244,6 +246,7 @@ class JwtMinter(
         permissions = permissions,
         ttlSeconds = ttlSeconds,
         expirationMs = expirationMs,
+        expiresAtEpochMillis = expiresAtEpochMillis,
         principalKind = principalKind,
         credentialType = credentialType,
     ) {
@@ -318,6 +321,7 @@ class JwtMinter(
         credentialType = AuthCredentialType.DELEGATION.wireName,
     ) {
         claim("act", mapOf("sub" to actorSubject)) // RFC 8693 actor chain
+        if (appId != null) claim("app_id", appId)
         if (contextId != null) claim("ctx", contextId)
     }
 }

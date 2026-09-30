@@ -19,10 +19,8 @@ val resilience4jVersion = "2.2.0"
 kotlin {
     common {
         dependencies {
-            api(project(":reaktor-graph-port"))
-            api(project(":reaktor-service"))
+            api(project(":reaktor-graph-runtime"))
             api(project(":reaktor-ui"))
-            api(project(":reaktor-db"))
             arrow()
         }
     }

@@ -10,11 +10,17 @@ import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
 import platform.Foundation.create
 import platform.Foundation.writeToFile
+import platform.QuickLook.QLPreviewController
+import platform.QuickLook.QLPreviewControllerDataSourceProtocol
+import platform.QuickLook.QLPreviewItemProtocol
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
 import platform.UIKit.popoverPresentationController
+import platform.UniformTypeIdentifiers.UTType
+import platform.darwin.NSInteger
+import platform.darwin.NSObject
 
 /**
  * Shares through `UIActivityViewController`.
@@ -26,6 +32,8 @@ import platform.UIKit.popoverPresentationController
  */
 @OptIn(ExperimentalForeignApi::class)
 class DarwinShareAdapter : ShareAdapter<Unit>(Unit) {
+
+    private var preview: PreviewSource? = null
 
     override suspend fun shareFile(payload: SharePayload): Boolean {
         val url = withContext(Dispatchers.Default) { write(payload) } ?: return false
@@ -52,10 +60,32 @@ class DarwinShareAdapter : ShareAdapter<Unit>(Unit) {
             true
         }
 
-    private fun write(payload: SharePayload): NSURL? {
-        val path = NSTemporaryDirectory() + payload.fileName
+    override suspend fun openFile(payload: SharePayload): Boolean {
+        val url = withContext(Dispatchers.Default) { write(payload, previewName(payload)) } ?: return false
+
+        return withContext(Dispatchers.Main) {
+            val item = PreviewItem(url, payload.title ?: payload.fileName)
+            if (!QLPreviewController.canPreviewItem(item)) return@withContext false
+            val presenter = topViewController() ?: return@withContext false
+            val source = PreviewSource(item)
+            preview = source
+            val controller = QLPreviewController()
+            controller.dataSource = source
+            presenter.presentViewController(controller, animated = true, completion = null)
+            true
+        }
+    }
+
+    private fun write(payload: SharePayload, fileName: String = payload.fileName): NSURL? {
+        val path = NSTemporaryDirectory() + fileName
         val data = payload.bytes.toNSData()
         return if (data.writeToFile(path, atomically = true)) NSURL.fileURLWithPath(path) else null
+    }
+
+    private fun previewName(payload: SharePayload): String {
+        if (payload.fileName.substringAfterLast('/').contains('.')) return payload.fileName
+        val extension = UTType.typeWithMIMEType(payload.mimeType)?.preferredFilenameExtension ?: return payload.fileName
+        return "${payload.fileName}.$extension"
     }
 
     /**
@@ -82,4 +112,16 @@ class DarwinShareAdapter : ShareAdapter<Unit>(Unit) {
         } else {
             usePinned { pinned -> NSData.create(bytes = pinned.addressOf(0), length = size.toULong()) }
         }
+}
+
+private class PreviewItem(private val url: NSURL, private val title: String) : NSObject(), QLPreviewItemProtocol {
+    override fun previewItemURL(): NSURL = url
+
+    override fun previewItemTitle(): String = title
+}
+
+private class PreviewSource(private val item: PreviewItem) : NSObject(), QLPreviewControllerDataSourceProtocol {
+    override fun numberOfPreviewItemsInPreviewController(controller: QLPreviewController): NSInteger = 1
+
+    override fun previewController(controller: QLPreviewController, previewItemAtIndex: NSInteger): QLPreviewItemProtocol = item
 }

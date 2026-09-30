@@ -83,10 +83,12 @@ class Update : CliktCommand("update") {
         val source = File(ref.readText().trim())
         if (!File(source, "build.gradle.kts").exists()) throw CliktError("Source not found at ${source.path}.")
         env.terminal.println(dim("rebuilding from ") + source.path)
-        if (env.runner.run(listOf("./gradlew", "installDist", "--console=plain", "--quiet"), source) != 0) {
+        val windows = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
+        val wrapper = File(source, if (windows) "gradlew.bat" else "gradlew").absolutePath
+        if (env.runner.run(listOf(wrapper, "installDist", "--console=plain", "--quiet"), source) != 0) {
             throw CliktError("build failed")
         }
-        val fresh = File(source, "build/install/reaktor/bin/reaktor").absolutePath
+        val fresh = File(source, "build/install/reaktor/bin/${if (windows) "reaktor.bat" else "reaktor"}").absolutePath
         if (env.runner.run(listOf(fresh, "install"), source) != 0) throw CliktError("reinstall failed")
         env.terminal.println(green("✓") + " updated")
     }

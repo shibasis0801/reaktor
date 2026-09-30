@@ -9,10 +9,10 @@ import androidx.compose.runtime.setValue
 import dev.shibasis.composeflow.runtime.EdgesState
 import dev.shibasis.composeflow.runtime.NodesState
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphEditorState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
 import dev.shibasis.reaktor.flow.graph.style.DefaultReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
-import kotlinx.coroutines.delay
 
 @Composable
 internal fun SyncGraphScene(
@@ -23,29 +23,35 @@ internal fun SyncGraphScene(
     edgesState: EdgesState,
     rightInsetPx: Float,
     style: ReaktorGraphStyle = DefaultReaktorGraphStyle,
+    editorState: ReaktorGraphEditorState? = null,
 ) {
-    var hasFramedGraph by remember(flow) { mutableStateOf(false) }
+    var hasFramedGraph by remember(state) { mutableStateOf(false) }
 
     LaunchedEffect(flow) {
-        nodesState.replaceNodes(mergeGraphNodes(nodesState.nodes, flow.nodes, selectedFlowId))
+        if (editorState == null) nodesState.replaceNodes(mergeGraphNodes(nodesState.nodes, flow.nodes, selectedFlowId))
         edgesState.replaceEdges(flow.edges)
-        hasFramedGraph = false
     }
 
     LaunchedEffect(selectedFlowId) {
-        nodesState.updateNodes { nodes ->
+        if (editorState == null) nodesState.updateNodes { nodes ->
             nodes.map { node -> node.copy(selected = node.id == selectedFlowId) }
         }
     }
 
-    LaunchedEffect(flow, state.canvasSize, hasFramedGraph) {
-        if (hasFramedGraph || state.canvasSize.width <= 0 || state.canvasSize.height <= 0) {
+    LaunchedEffect(flow, state.canvasSize, editorState?.frameRequest, hasFramedGraph) {
+        if (editorState != null) {
+            frameGraphIfRequested(editorState, flow, rightInsetPx, style)
             return@LaunchedEffect
         }
-        delay(style.viewport.startupFrameDelayMillis)
-        if (state.canvasSize.width <= 0 || state.canvasSize.height <= 0) {
+        if (hasFramedGraph || state.canvasSize.width <= 0 || state.canvasSize.height <= 0 || flow.nodes.isEmpty()) {
             return@LaunchedEffect
         }
+        // Frame the moment the canvas has a size. Waiting a wall-clock delay here painted an
+        // unframed viewport first — a flash of arbitrary zoom on every open, and permanently so
+        // for single-frame offscreen renders.
+        // Land contained and centred — the whole topology visible, slack split evenly. A zoom
+        // floor that centres on the selection reads as an off-corner accident on sparse layouts;
+        // 100% and Fit are one click away for the close-up.
         frameGraph(
             state = state,
             flow = flow,

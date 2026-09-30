@@ -13,7 +13,7 @@ import com.github.ajalt.mordant.rendering.TextStyles.dim
 val BUILT_IN_COMMANDS = setOf(
     "tasks", "run", "logs", "dev", "build", "deploy", "test", "gradle",
     "doctor", "install", "self", "new", "add", "infra", "db", "cloud", "dagger", "graph",
-    "auth", "explain", "docs", "engine",
+    "auth", "explain", "docs", "engine", "devtools",
 )
 
 private val DIRECT_SCRIPT_SHORTCUTS = setOf(
@@ -157,9 +157,10 @@ class GradleModuleShortcut(private val moduleName: String) : CliktCommand(module
 }
 
 fun runChecked(env: ReaktorEnv, command: ProjectCommand) {
-    env.terminal.println(dim("→ ") + bold(command.label))
+    val safeLabel = env.runner.redactedCommand(command.command)
+    env.terminal.println(dim("→ ") + bold(safeLabel))
     val code = env.run(command)
-    if (code != 0) throw CliktError("${command.label} exited with $code")
+    if (code != 0) throw CliktError("$safeLabel exited with $code")
 }
 
 fun knownTopLevelNames(project: ReaktorProject?): Set<String> {

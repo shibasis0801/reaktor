@@ -1,6 +1,9 @@
 package dev.shibasis.reaktor.cli
 
 import java.io.File
+import dev.shibasis.reaktor.tooling.DiscoveredJvmWorkspace
+import dev.shibasis.reaktor.tooling.SafetyApproval
+import dev.shibasis.reaktor.tooling.TaskInvocation
 
 data class ProjectCommand(
     val label: String,
@@ -49,10 +52,13 @@ private fun ReaktorProject.npm(script: String, args: List<String> = emptyList())
 
 private fun ReaktorProject.gradle(args: List<String>): ProjectCommand =
     ProjectCommand(
-        label = "./gradlew ${args.joinToString(" ")}",
-        command = listOf("./gradlew") + args,
+        label = "${gradleWrapper().name} ${args.joinToString(" ")}",
+        command = listOf(gradleWrapper().absolutePath) + args,
         cwd = root,
     )
+
+fun ReaktorProject.gradleWrapper(osName: String = System.getProperty("os.name")): File =
+    File(root, if (osName.startsWith("Windows", ignoreCase = true)) "gradlew.bat" else "gradlew")
 
 private fun ReaktorProject.shell(path: String, args: List<String> = emptyList()): ProjectCommand =
     ProjectCommand(
@@ -185,5 +191,87 @@ fun ReaktorProject.testCommand(path: List<String>, args: List<String> = emptyLis
 fun ReaktorProject.storeConsoleCommand(store: String, args: List<String> = emptyList()): ProjectCommand? =
     if (store in scripts) npm(store, args) else null
 
-fun ReaktorEnv.run(command: ProjectCommand): Int =
-    runner.run(command.command, command.cwd)
+fun ReaktorEnv.run(command: ProjectCommand): Int {
+    val tooling = toolingWorkspace
+    val toolingInvocation = tooling?.let { workspace ->
+        toolingInvocationFor(command, workspace, project)
+    }
+    if (tooling != null && toolingInvocation != null) {
+        val preview = tooling.prepare(toolingInvocation)
+        val approval = if (preview.plan.safety.requiresApproval) {
+            terminal.println("This command may change external state: ${runner.redactedCommand(command.command)}")
+            terminal.println("Plan ${preview.plan.fingerprint}: ${preview.plan.displayCommand.joinToString(" ")}")
+            if (com.github.ajalt.mordant.terminal.YesNoPrompt("Proceed?", terminal).ask() != true) return 130
+            SafetyApproval(
+                approvedBy = System.getProperty("user.name", "interactive-cli-user"),
+                approvedAtEpochMillis = System.currentTimeMillis(),
+                reason = "Explicit interactive CLI confirmation",
+                planFingerprint = preview.plan.fingerprint,
+            )
+        } else null
+        val prepared = tooling.prepare(toolingInvocation.copy(approval = approval))
+        return runner.runPrepared(prepared.request)
+    }
+    val approval = if (runner.requiresApproval(command.command)) {
+        terminal.println("This command may change external state: ${runner.redactedCommand(command.command)}")
+        if (com.github.ajalt.mordant.terminal.YesNoPrompt("Proceed?", terminal).ask() != true) {
+            return 130
+        }
+        System.getProperty("user.name", "interactive-cli-user")
+    } else {
+        null
+    }
+    return runner.run(command.command, command.cwd, approvedBy = approval)
+}
+
+/**
+ * Resolve a legacy CLI command back to its private shared-tooling binding without dropping user
+ * arguments. Keeping this mapping executable-testable prevents the CLI and Desktop from preparing
+ * subtly different plans for the same task.
+ */
+fun toolingInvocationFor(
+    command: ProjectCommand,
+    tooling: DiscoveredJvmWorkspace,
+    project: ReaktorProject?,
+): TaskInvocation? {
+    val argv = command.command
+    if (argv.getOrNull(0)?.portableBasename()?.removeSuffix(".cmd")?.removeSuffix(".exe") == "npm" && argv.getOrNull(1) == "run") {
+        val script = argv.getOrNull(2) ?: return null
+        val workspaceName = argv.firstOrNull { it.startsWith("--workspace=") }?.substringAfter('=')
+        val workspaceTarget = workspaceName?.let { requested ->
+            project?.projectTargets?.firstOrNull { target ->
+                project.npmWorkspaceForTarget(target.name)?.name == requested
+            }?.name
+        }
+        val candidates = tooling.catalog.tasks.filter { task ->
+            task.provider == "npm" && task.attributes["script"] == script
+        }
+        val task = if (workspaceName == null) {
+            candidates.firstOrNull { it.id.value == "npm/$script" }
+                ?: candidates.firstOrNull { it.targetId == null }
+        } else {
+            candidates.firstOrNull { candidate ->
+                workspaceTarget != null && candidate.targetId?.substringAfterLast('/') == workspaceTarget
+            }
+        } ?: return null
+        return TaskInvocation(
+            taskId = task.id,
+            arguments = argv.argumentsAfterDelimiter(),
+        )
+    }
+    if (argv.firstOrNull()?.portableBasename() in setOf("gradlew", "gradlew.bat")) {
+        val gradleTask = argv.getOrNull(1) ?: return null
+        val task = tooling.catalog.tasks.firstOrNull { candidate ->
+            candidate.provider == "gradle" && candidate.attributes["gradleTask"] == gradleTask
+        } ?: return null
+        return TaskInvocation(taskId = task.id, arguments = argv.drop(2))
+    }
+    return null
+}
+
+private fun String.portableBasename(): String = substringAfterLast('/').substringAfterLast('\\')
+
+private fun List<String>.argumentsAfterDelimiter(): List<String> {
+    val delimiter = indexOf("--")
+    return if (delimiter < 0) emptyList() else drop(delimiter + 1)
+}

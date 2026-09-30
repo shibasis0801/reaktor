@@ -86,11 +86,11 @@ class AuthSessionNode(
         val credentialType =
             if (isAnonymous) AuthCredentialType.ANONYMOUS.wireName else AuthCredentialType.ACCESS_TOKEN.wireName
         val permissions = (principalDirectoryPort.suspended {
-            getPrincipalPermissions(request, rotated.session.principalId.uuid(), rotated.session.appId.uuid())
+            getPrincipalPermissions(request, rotated.session.principalId.uuid(), rotated.session.appId.uuid(), rotated.session.tenantId, rotated.session.contextId)
         }.getOrElse { emptyList() } + if (isAnonymous) config.anonymousPermissions else emptyList())
             .normalizedAuthNames()
         val roles = (principalDirectoryPort.suspended {
-            getPrincipalRoles(request, rotated.session.principalId.uuid(), rotated.session.appId.uuid())
+            getPrincipalRoles(request, rotated.session.principalId.uuid(), rotated.session.appId.uuid(), rotated.session.tenantId, rotated.session.contextId)
         }.getOrElse { emptyList() } + if (isAnonymous) config.anonymousRoles else emptyList())
             .normalizedAuthNames()
         val scopes = (permissions + if (isAnonymous) config.anonymousScopes else emptyList())

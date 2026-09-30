@@ -11,12 +11,15 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 sealed class ConnectionState {
     data object Idle: ConnectionState()
@@ -28,22 +31,33 @@ sealed class ConnectionState {
 }
 
 data class WebSocketOptions(
-    val connectionTimeout: Duration = 4.seconds,
+    val connectionTimeout: Duration = 12.seconds,
     val eager: Boolean = true,
-    val receiverReplay: Int = 0
+    val receiverReplay: Int = 0,
+    val heartbeat: Heartbeat? = null,
+)
+
+data class Heartbeat(
+    val every: Duration = 25.seconds,
+    val wait: Duration = 10.seconds,
+    val ping: String = "ping",
+    val pong: String = "pong",
 )
 typealias UrlProvider = suspend () -> String
 
 open class WebSocket(
     var options: WebSocketOptions = WebSocketOptions(),
     var urlProvider: UrlProvider, // round-robin if needed, or whatever logic you need.
+    var headerProvider: suspend () -> Map<String, String> = { emptyMap() },
     var reconnectionStrategy: ReconnectionStrategy = ExponentialBackoffStrategy(),
     // A single-threaded dispatcher is created from this.
     dispatcher: CoroutineDispatcher = Dispatchers.Async,
     val httpClient: HttpClient = http
-): ConcurrencyCapability by ConcurrencyCapabilityImpl(dispatcher.limitedParallelism(1)) {
+): ConcurrencyCapability by ConcurrencyCapabilityImpl(coroutineDispatcher = dispatcher.limitedParallelism(1)) {
     private val connection = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val state: StateFlow<ConnectionState> = connection
+    private var reconnectJob: Job? = null
+    private var openedAt: TimeSource.Monotonic.ValueTimeMark? = null
 
     init {
         if (options.eager) launch { connect() }
@@ -62,22 +76,36 @@ open class WebSocket(
         val url = urlProvider()
         connection.value = ConnectionState.Connecting(url)
         try {
+            val extra = headerProvider()
             connection.value = ConnectionState.Open(
                 httpClient.webSocketSession(url) {
                     timeout {
                         requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
                     }
+                    extra.forEach { (name, value) -> headers.append(name, value) }
                 })
-            reconnectionStrategy.reset()
+            openedAt = TimeSource.Monotonic.markNow()
+        } catch (cancelled: CancellationException) {
+            if (connection.value is ConnectionState.Connecting) connection.value = ConnectionState.Idle
+            throw cancelled
         } catch (e: Exception) {
             connection.value = ConnectionState.Failed(e)
+            scheduleReconnect(e, null)
         }
+    }
+
+    private fun scheduleReconnect(throwable: Throwable?, reason: CloseReason?) {
+        if (reconnectJob?.isActive == true) return
+        reconnectJob = launch { reconnect(throwable, reason) }
     }
 
     suspend fun disconnect(
         reason: CloseReason = CloseReason(CloseReason.Codes.NORMAL, "")
     ) = withContext {
         if (connection.value is ConnectionState.Closed) return@withContext
+
+        reconnectJob?.cancel()
+        reconnectJob = null
 
         val previousState = connection.value
         connection.value = ConnectionState.Closing(reason)
@@ -94,22 +122,43 @@ open class WebSocket(
     }
 
     suspend fun reconnect(throwable: Throwable?, closeReason: CloseReason? = null) = withContext {
-        if (connection.value is ConnectionState.Closed) return@withContext
+        if (connection.value.stopped) return@withContext
 
         while (reconnectionStrategy.shouldReconnect(throwable, closeReason)) {
             reconnectionStrategy.wait()
-            if (connection.value is ConnectionState.Closed) return@withContext
+            if (connection.value.stopped) return@withContext
 
             connect()
             if (connection.value is ConnectionState.Open) return@withContext
         }
 
-        if (connection.value !is ConnectionState.Closed) {
-            if (closeReason != null) {
-                connection.value = ConnectionState.Closed(closeReason)
-            } else {
-                connection.value = ConnectionState.Failed(RuntimeException(throwable?.message ?: "Reconnection Failure"))
-            }
+        if (!connection.value.stopped) {
+            connection.value = ConnectionState.Closed(
+                closeReason ?: CloseReason(CloseReason.Codes.INTERNAL_ERROR, throwable?.message ?: "Reconnection Failure")
+            )
         }
     }
+
+    internal suspend fun dropped(session: DefaultClientWebSocketSession, cause: Throwable?, reason: CloseReason?) {
+        val lost = withContext {
+            val current = connection.value
+            (current is ConnectionState.Open && current.session === session).also {
+                if (it) {
+                    if ((openedAt?.elapsedNow() ?: Duration.ZERO) >= SteadyConnection) reconnectionStrategy.reset()
+                    connection.value = ConnectionState.Failed(DroppedConnection(reason, cause))
+                }
+            }
+        }
+        if (lost) scheduleReconnect(cause, reason)
+    }
+
+    private val ConnectionState.stopped: Boolean
+        get() = this is ConnectionState.Closed || this is ConnectionState.Closing
 }
+
+class DroppedConnection(val reason: CloseReason?, cause: Throwable?) : Exception(
+    reason?.let { "Closed by the server: ${it.knownReason ?: it.code} ${it.message}".trim() } ?: cause?.message ?: "Connection lost",
+    cause,
+)
+
+private val SteadyConnection = 30.seconds

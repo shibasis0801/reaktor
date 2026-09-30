@@ -5,6 +5,9 @@ import dev.shibasis.reaktor.core.adapters.PermissionAdapter
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
+import kotlin.concurrent.Volatile
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 abstract class NotificationAdapter<Controller>(
     controller: Controller,
@@ -17,6 +20,9 @@ interface NotificationsClient : NotificationPermissionClient {
     val devHarness: NotificationDevHarness?
         get() = null
 
+    val tokenChanges: Flow<DevicePushToken>
+        get() = emptyFlow()
+
     suspend fun getPlatformCapabilities(): NotificationPlatformCapabilities
     suspend fun registerCategories(categories: List<NotificationCategorySpec>)
     suspend fun getDeviceToken(): DevicePushToken?
@@ -24,6 +30,7 @@ interface NotificationsClient : NotificationPermissionClient {
     suspend fun unregisterRemoteEndpoint()
     suspend fun updatePreferences(command: UpdateNotificationPreferences)
     suspend fun scheduleLocal(request: LocalNotificationRequest): LocalNotificationId
+    suspend fun clearConversation(id: String) = Unit
     suspend fun getState(): NotificationRuntimeState =
         NotificationRuntimeState(
             platform = getPlatformCapabilities().platform,
@@ -47,4 +54,9 @@ class SimpleListenerHandle(
     private val onRemove: () -> Unit,
 ) : ListenerHandle {
     override fun remove() = onRemove()
+}
+
+object NotificationFocus {
+    @Volatile
+    var conversation: String? = null
 }

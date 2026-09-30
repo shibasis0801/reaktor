@@ -116,7 +116,10 @@ enum class NotificationPresentationFeature {
     Conversation,
     RichMedia,
     Progress,
+    DataMessages,
 }
+
+val NotificationPresentationFeature.capabilityName: String get() = "presentation:$name"
 
 @Serializable
 enum class NotificationActionFeature {
@@ -166,4 +169,11 @@ data class NotificationPlatformCapabilities(
     val actionFeatures: Set<NotificationActionFeature> = emptySet(),
     val schedulingFeatures: Set<NotificationSchedulingFeature> = emptySet(),
     val extensionFeatures: Set<NotificationExtensionFeature> = emptySet(),
-)
+) {
+    fun names(): List<String> =
+        authorizationModes.map { "auth:${it.name}" } +
+            presentationFeatures.map { it.capabilityName } +
+            actionFeatures.map { "action:${it.name}" } +
+            schedulingFeatures.map { "schedule:${it.name}" } +
+            extensionFeatures.map { "extension:${it.name}" }
+}

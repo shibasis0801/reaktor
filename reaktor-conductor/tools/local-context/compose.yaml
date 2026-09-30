@@ -1,0 +1,40 @@
+name: reaktor-local-context
+services:
+  postgres:
+    image: pgvector/pgvector:pg17@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: reaktor_context
+      POSTGRES_USER: reaktor_context
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    ports: ["127.0.0.1:55439:5432"]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../sql/context-pgvector.sql:/docker-entrypoint-initdb.d/001-context.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reaktor_context -d reaktor_context"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  memgraph:
+    # Match the existing Reaktor deployment's graph engine for the first local replica.
+    image: memgraph/memgraph:2.14.1@sha256:4e5b93c9f995c0c84473d1224737df47ce7f7ccf8cc258236bbc024f9f3e262c
+    restart: unless-stopped
+    command: ["--storage-wal-enabled=true", "--storage-snapshot-interval-sec=300", "--storage-snapshot-on-exit=true", "--data-recovery-on-startup=true", "--memory-limit=1024"]
+    ports: ["127.0.0.1:57689:7687"]
+    volumes:
+      - memgraph-data:/var/lib/memgraph
+      - memgraph-log:/var/log/memgraph
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | mgconsole >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  postgres-data:
+  memgraph-data:
+  memgraph-log:
+secrets:
+  postgres_password:
+    file: ${REAKTOR_LOCAL_DATA_DIR:?Set REAKTOR_LOCAL_DATA_DIR}/postgres-password

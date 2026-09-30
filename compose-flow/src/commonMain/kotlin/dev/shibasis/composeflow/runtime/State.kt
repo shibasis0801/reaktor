@@ -85,8 +85,8 @@ fun rememberEdgesState(initialEdges: List<Edge> = emptyList()): EdgesState {
 }
 
 @Stable
-class ReactFlowState internal constructor(
-    initialViewport: Viewport,
+class ReactFlowState(
+    initialViewport: Viewport = Viewport(),
 ) {
     var viewport by mutableStateOf(initialViewport)
         internal set
@@ -160,6 +160,7 @@ class ReactFlowState internal constructor(
     ) {
         val nextZoom = zoom.coerceIn(minZoom, maxZoom)
         val current = viewport
+        if (nextZoom == current.zoom) return
 
         if (anchorX == null || anchorY == null) {
             viewport = current.copy(zoom = nextZoom)
@@ -187,8 +188,10 @@ class ReactFlowState internal constructor(
             zoom = viewport.zoom * factor,
             anchorX = anchorX,
             anchorY = anchorY,
-            minZoom = minZoom,
-            maxZoom = maxZoom,
+            // Fit can legitimately land below the manual zoom floor. The first gesture must
+            // approach the normal range continuously, not jump up to it (even on zoom-out).
+            minZoom = minOf(minZoom, viewport.zoom),
+            maxZoom = maxOf(maxZoom, viewport.zoom),
         )
     }
 

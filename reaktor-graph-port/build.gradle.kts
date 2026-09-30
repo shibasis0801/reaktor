@@ -24,3 +24,12 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.graph.port")
 }
+
+// The JVM test runner scans every class in the test source set, so a plain fixture class
+// (no @Test methods) fails with initializationError. Restrict it to test classes by name.
+tasks.withType<Test>().configureEach {
+    filter {
+        isFailOnNoMatchingTests = false
+        includeTestsMatching("*Test")
+    }
+}

@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlin.js.ExperimentalJsStatic
 import kotlin.js.JsExport
 import kotlin.js.JsStatic
+import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 
 @JsExport
 @Serializable
@@ -200,7 +201,7 @@ data class TokenRequest(
     @SerialName("client_assertion_type")
     val clientAssertionType: String? = null,
     val contextId: String? = null,
-    val ttlSeconds: Int = 15 * 60,
+    val ttlSeconds: Int = AuthDefaults.ACCESS_TOKEN_TTL_SECONDS,
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
@@ -345,6 +346,8 @@ abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val sessionMe: PostHandler<MeRequest, MeResponse>
     abstract val sessionLogoutAll: PostHandler<LogoutAllRequest, LogoutAllResponse>
     abstract val accountDeactivate: PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>
+    abstract val authorityGrants: PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>
+    abstract val authorityResolve: PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>
 }
 
 @JsExport
@@ -359,4 +362,6 @@ open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
     override val sessionMe = PostHandler<MeRequest, MeResponse>("/auth/session/me")
     override val sessionLogoutAll = PostHandler<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
     override val accountDeactivate = PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
+    override val authorityGrants = PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
+    override val authorityResolve = PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")
 }

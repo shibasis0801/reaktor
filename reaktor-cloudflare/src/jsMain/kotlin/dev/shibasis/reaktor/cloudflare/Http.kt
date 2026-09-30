@@ -6,6 +6,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.promise
+import kotlin.js.Promise
 
 class CloudflareHeaders internal constructor(
     private val raw: RawHeaders,
@@ -60,6 +61,30 @@ class CloudflareHttpRequest internal constructor(
         get() = headers["content-type"] ?: headers["Content-Type"]
 
     suspend fun text(): String = raw.text().await()
+
+    suspend fun text(maxBytes: Int): String {
+        require(maxBytes > 0)
+        val reader = raw.asDynamic().body?.getReader() ?: return ""
+        val chunks = mutableListOf<ByteArray>()
+        var size = 0
+        try {
+            while (true) {
+                val next = reader.read().unsafeCast<Promise<dynamic>>().await()
+                if (next.done == true) break
+                val length = (next.value.byteLength as Number).toInt()
+                size += length
+                require(size <= maxBytes) { "Request body exceeds its limit" }
+                chunks += ByteArray(length) { (next.value[it] as Number).toByte() }
+            }
+        } finally {
+            reader.cancel().unsafeCast<Promise<dynamic>>().await()
+            reader.releaseLock()
+        }
+        val bytes = ByteArray(size)
+        var offset = 0
+        chunks.forEach { it.copyInto(bytes, offset); offset += it.size }
+        return bytes.decodeToString(throwOnInvalidSequence = true)
+    }
 
     suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
 

@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.graph.ui
 
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.provides
 import kotlinx.coroutines.flow.MutableStateFlow
 import react.FC
@@ -34,8 +33,8 @@ open class WebBottomNavigationContainer(
         override val selected = this@WebBottomNavigationContainer.selected
     })
 
-    override fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
-        val activated = super.activateGraphForRoute(route)
+    override fun activate(graph: Graph): Boolean {
+        val activated = super.activate(graph)
         if (activated) {
             val index = activeGraphIndex.value
             val key = children.keys.elementAtOrNull(index)

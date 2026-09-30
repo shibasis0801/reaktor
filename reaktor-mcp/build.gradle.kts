@@ -3,6 +3,7 @@ import dev.shibasis.dependeasy.android.*
 import dev.shibasis.dependeasy.common.*
 import dev.shibasis.dependeasy.server.*
 import dev.shibasis.dependeasy.darwin.*
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("dev.shibasis.dependeasy.library")
@@ -10,6 +11,7 @@ plugins {
 kotlin {
     common {
         dependencies {
+            commonSerialization(protobuf = false)
             implementation("io.modelcontextprotocol:kotlin-sdk-client:0.7.2")
         }
     }
@@ -21,6 +23,8 @@ kotlin {
 
         }
     }
+    jvmToolchain(21)
+    jvm().compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
 }
 
 android {

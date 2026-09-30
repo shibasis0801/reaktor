@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.core.framework
 import platform.Foundation.NSData
 import platform.Foundation.NSError
 import platform.Foundation.NSURL
+import platform.Foundation.NSUserActivity
+import platform.Foundation.NSUserActivityTypeBrowsingWeb
 import platform.UIKit.UIApplication
 import platform.UIKit.UIScreen
 import platform.UIKit.UIViewController
@@ -93,5 +95,10 @@ class ReaktorAppDelegate(
         var handled = false
         each<UrlHandler> { if (!handled) handled = it.handleUrl(url) }
         return handled
+    }
+
+    fun continueUserActivity(activity: NSUserActivity): Boolean {
+        if (activity.activityType != NSUserActivityTypeBrowsingWeb) return false
+        return activity.webpageURL?.let(::handleUrl) ?: false
     }
 }

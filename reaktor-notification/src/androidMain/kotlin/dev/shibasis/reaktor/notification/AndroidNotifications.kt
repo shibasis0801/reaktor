@@ -11,6 +11,10 @@ import dev.shibasis.reaktor.core.adapters.NotificationPermissionOptions
 import dev.shibasis.reaktor.core.adapters.NotificationPermissionStatus
 import dev.shibasis.reaktor.core.framework.Dispatch
 import kotlin.math.absoluteValue
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /** A token arrived from a transport the config never named — possible, but worth not calling FCM. */
 private const val PROVIDER_UNKNOWN = "unknown"
@@ -30,6 +34,7 @@ data class AndroidNotificationsConfig(
      * See [AndroidPushTransport] for why it is not linked in by default.
      */
     val pushTransport: AndroidPushTransport? = null,
+    val selfName: String = "You",
 )
 
 class AndroidNotificationsClient(
@@ -54,6 +59,7 @@ class AndroidNotificationsClient(
 
     private var categories: List<NotificationCategorySpec> = emptyList()
     private var cachedToken: DevicePushToken? = null
+    private val tokens = MutableSharedFlow<DevicePushToken>(replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var foregroundPresentation = ForegroundPresentationPolicy()
     private var badgeCount: Int? = null
     private val preferences = mutableMapOf<String, Boolean>()
@@ -91,6 +97,7 @@ class AndroidNotificationsClient(
                 NotificationPresentationFeature.Conversation,
                 NotificationPresentationFeature.RichMedia,
                 NotificationPresentationFeature.Progress,
+                NotificationPresentationFeature.DataMessages,
             ),
             actionFeatures = setOf(
                 NotificationActionFeature.Tap,
@@ -124,17 +131,25 @@ class AndroidNotificationsClient(
         channelRegistry.register(categories)
     }
 
+    override val tokenChanges: Flow<DevicePushToken> = tokens.asSharedFlow()
+
     override suspend fun getDeviceToken(): DevicePushToken? {
         // No transport is the normal case for a local-only app, and it is not a failure: there is
         // simply no remote endpoint to name.
         val transport = config.pushTransport ?: return null
-        cachedToken = transport.token()?.let { pushToken(it, transport.providerId) }
-        return cachedToken
+        return transport.token()?.let { remember(pushToken(it, transport.providerId)) }
     }
 
     fun recordNewToken(token: String) {
-        cachedToken = pushToken(token, config.pushTransport?.providerId ?: PROVIDER_UNKNOWN)
+        remember(pushToken(token, config.pushTransport?.providerId ?: PROVIDER_UNKNOWN))
         devHarness.recordToken(cachedToken)
+    }
+
+    private fun remember(token: DevicePushToken): DevicePushToken {
+        val changed = cachedToken?.value != token.value
+        cachedToken = token
+        if (changed) tokens.tryEmit(token)
+        return token
     }
 
     private fun pushToken(value: String, provider: String) = DevicePushToken(
@@ -162,6 +177,7 @@ class AndroidNotificationsClient(
 
     override suspend fun unregisterRemoteEndpoint() {
         cachedToken = null
+        runCatching { config.pushTransport?.forget() }
     }
 
     override suspend fun updatePreferences(command: UpdateNotificationPreferences) {
@@ -259,21 +275,27 @@ class AndroidNotificationsClient(
      * Firebase — see [AndroidPushTransport].
      */
     fun handleRemoteMessage(data: Map<String, String>) {
+        Dispatch.Default.launch { receiveRemoteMessage(data) }
+    }
+
+    suspend fun receiveRemoteMessage(data: Map<String, String>) {
         val envelope = NotificationEnvelope.fromDataMap(data)
-        Dispatch.Default.launch {
-            events.emitReceived(envelope)
-            devHarness.recordReceivedFromPlatform(envelope)
-            if (config.autoDisplayRemoteMessages) {
-                scheduleLocal(
-                    LocalNotificationRequest(
-                        id = envelope.id,
-                        categoryId = envelope.categoryId,
-                        content = envelope.content,
-                        route = envelope.route,
-                    ),
-                )
-            }
+        events.emitReceived(envelope)
+        devHarness.recordReceivedFromPlatform(envelope)
+        if (config.autoDisplayRemoteMessages) {
+            scheduleLocal(
+                LocalNotificationRequest(
+                    id = envelope.id,
+                    categoryId = envelope.categoryId,
+                    content = envelope.content,
+                    route = envelope.route,
+                ),
+            )
         }
+    }
+
+    override suspend fun clearConversation(id: String) {
+        renderer.clearConversation(id)
     }
 
     fun handleLaunchIntent(intent: Intent?): Boolean {

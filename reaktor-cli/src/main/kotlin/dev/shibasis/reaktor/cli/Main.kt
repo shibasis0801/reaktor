@@ -43,6 +43,7 @@ fun main(args: Array<String>) {
         Cloud().subcommands(CloudDagger(), CloudPulumi(), CloudInventory()),
         Auth().subcommands(AuthLogin(), AuthToken(), AuthWhoami()),
         Doctor(), Install(), Self().subcommands(Update(), Uninstall()),
+        Devtools().subcommands(DevtoolsDevices(), DevtoolsDescribe(), DevtoolsRun(), DevtoolsScreenshot(), DevtoolsSemantics(), DevtoolsContrast(), DevtoolsLogs(), DevtoolsWatch(), DevtoolsTap()),
     ) +
         scriptFamilies(env.project) +   // fastlane / maestro / karate / k6 / perf ... from the project's scripts
         shortcutCommands(env.project)   // targets, services, stores, gradle modules, direct ops scripts

@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.transport
 
+import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.AuthRequirement
@@ -12,6 +13,7 @@ import dev.shibasis.reaktor.service.ServiceChain
 import dev.shibasis.reaktor.service.ServiceInterceptor
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import dev.shibasis.reaktor.service.ServiceStatusException
 
 const val AUTHORIZATION_HEADER = "Authorization"
 const val BEARER_PREFIX = "Bearer "
@@ -61,6 +63,7 @@ fun Request.setAuthContext(context: AuthContext?) {
 class BearerAuthClientInterceptor(
     private val tokenProvider: suspend (InterceptorContext<*, *>) -> String?,
     private val replaceExisting: Boolean = false,
+    private val renewal: (suspend (InterceptorContext<*, *>) -> String?)? = null,
 ) : ServiceInterceptor {
     override val stages: Set<InterceptorStage> =
         setOf(InterceptorStage.CLIENT_APPLICATION, InterceptorStage.CLIENT_TRANSPORT)
@@ -71,6 +74,16 @@ class BearerAuthClientInterceptor(
                 chain.request.headers.putBearerAuthorization(token)
             }
         }
+        val sent = bearerTokenFromHeaders(chain.request.headers)
+        val first = runCatching { chain.proceed() }
+        val unauthorized = first.fold(
+            onSuccess = { it.statusCode == StatusCode.UNAUTHORIZED },
+            onFailure = { (it as? ServiceStatusException)?.status == StatusCode.UNAUTHORIZED.code },
+        )
+        val renew = renewal
+        if (!unauthorized || renew == null) return first.getOrThrow()
+        val renewed = renew(chain.context)?.trim()?.takeIf { it.isNotEmpty() && it != sent } ?: return first.getOrThrow()
+        chain.request.headers.putBearerAuthorization(renewed)
         return chain.proceed()
     }
 }

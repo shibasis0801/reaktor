@@ -14,7 +14,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -23,10 +25,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.compose.interaction.requestPointerFocusOnFirstDown
 import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphSelection
+import dev.shibasis.reaktor.flow.graph.ReaktorGraphEditorState
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import dev.shibasis.composeflow.runtime.rememberReactFlowState
 import dev.shibasis.reaktor.flow.graph.model.ReaktorFlowGraph
+import dev.shibasis.reaktor.flow.graph.model.ReaktorGraphLensResult
 import dev.shibasis.reaktor.flow.graph.model.ReaktorNodeKind
+import dev.shibasis.reaktor.flow.graph.model.ReaktorScopeDisclosure
 import dev.shibasis.reaktor.flow.graph.style.ReaktorGraphStyle
 import dev.shibasis.reaktor.flow.graph.style.dpOf
 import dev.shibasis.reaktor.graph.core.node.Node as GraphNode
@@ -43,17 +49,30 @@ fun ReaktorGraphEditor(
     onPaneClick: (() -> Unit)? = null,
     rightInset: Dp = 0.dp,
     style: ReaktorGraphStyle? = null,
+    /** The boards float the kind legend on the canvas only while the navigator rail is collapsed. */
+    showKindLegend: Boolean = true,
     modifier: Modifier = Modifier,
     state: ReactFlowState = rememberReactFlowState(),
+    lensResult: ReaktorGraphLensResult? = null,
+    editorState: ReaktorGraphEditorState? = null,
+    showChrome: Boolean = true,
+    selectedSubject: ReaktorGraphSelection? = null,
+    onSelectSubject: ((ReaktorGraphSelection?) -> Unit)? = null,
+    scopeDisclosure: ReaktorScopeDisclosure? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     val graphStyle = style ?: flow.style
     val density = LocalDensity.current
+    val canvasState = editorState?.canvas ?: state
 
     // Compose desktop routes keyboard input through the focused subtree. We keep the editor root
     // focusable so graph shortcuts stay local to the editor instead of leaking into window chrome.
     fun zoomGraph(factor: Double) {
-        state.zoomAroundCanvasCenter(
+        if (editorState != null) {
+            editorState.zoomBy(factor, graphStyle)
+            return
+        }
+        canvasState.zoomAroundCanvasCenter(
             factor = factor,
             minZoom = graphStyle.viewport.minZoom,
             maxZoom = graphStyle.viewport.maxZoom,
@@ -73,7 +92,13 @@ fun ReaktorGraphEditor(
             .focusable()
             .requestPointerFocusOnFirstDown { focusRequester.requestFocus() }
             .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown || (!event.isMetaPressed && !event.isCtrlPressed)) {
+                if (event.type != KeyEventType.KeyDown || event.isAltPressed) return@onPreviewKeyEvent false
+                if (!event.isMetaPressed && !event.isCtrlPressed) {
+                    if (event.key == Key.F && editorState != null) {
+                        if (event.isShiftPressed) selectedSubject?.let(editorState::frameSelection)
+                        else editorState.fit()
+                        return@onPreviewKeyEvent true
+                    }
                     return@onPreviewKeyEvent false
                 }
                 when (event.key) {
@@ -94,6 +119,7 @@ fun ReaktorGraphEditor(
             selectedNode = selectedNode,
             selectedGraphId = selectedGraphId,
             highlightedKind = highlightedKind,
+            lensResult = lensResult,
             onSelectNode = onSelectNode,
             onSelectGraph = onSelectGraph,
             onHighlightKind = onHighlightKind,
@@ -103,7 +129,13 @@ fun ReaktorGraphEditor(
             },
             rightInset = rightInset,
             style = graphStyle,
-            state = state,
+            showKindLegend = showKindLegend,
+            state = canvasState,
+            editorState = editorState,
+            showChrome = showChrome,
+            selectedSubject = selectedSubject,
+            onSelectSubject = onSelectSubject,
+            scopeDisclosure = scopeDisclosure,
             modifier = Modifier.fillMaxSize(),
         )
     }
