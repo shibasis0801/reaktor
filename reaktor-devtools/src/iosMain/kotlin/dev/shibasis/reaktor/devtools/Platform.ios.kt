@@ -3,7 +3,10 @@ package dev.shibasis.reaktor.devtools
 import kotlin.experimental.ExperimentalNativeApi
 import platform.Foundation.NSDate
 import platform.Foundation.NSLog
+import platform.Foundation.NSNotificationCenter
+import platform.Foundation.NSOperationQueue
 import platform.Foundation.timeIntervalSince1970
+import platform.UIKit.UIApplicationWillEnterForegroundNotification
 import platform.UIKit.UIDevice
 
 /**
@@ -31,4 +34,17 @@ private object DarwinPlatformInfo : DevToolsPlatformInfo {
 
 actual fun devToolsPlatformInfo(): DevToolsPlatformInfo = DarwinPlatformInfo
 
-actual fun devToolsTransport(port: Int): AgentTransport = TcpAgentTransport(port)
+actual fun devToolsTransport(port: Int): AgentTransport = RelistenOnForeground(TcpAgentTransport(port))
+
+private class RelistenOnForeground(private val tcp: TcpAgentTransport) : AgentTransport by tcp {
+    private val observer = NSNotificationCenter.defaultCenter.addObserverForName(
+        name = UIApplicationWillEnterForegroundNotification,
+        `object` = null,
+        queue = NSOperationQueue.mainQueue,
+    ) { _ -> tcp.relisten() }
+
+    override fun close() {
+        NSNotificationCenter.defaultCenter.removeObserver(observer)
+        tcp.close()
+    }
+}

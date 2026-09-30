@@ -2,9 +2,11 @@ package dev.shibasis.reaktor.devtools
 
 import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.PostHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
@@ -76,14 +78,25 @@ class DevToolsHost(
 ) {
     private val service = DevToolsHostService(agent)
     private var connection: Job? = null
+    private var listening: Job? = null
 
     fun start(): Job = scope.launch {
+        var failures = 0
         while (isActive) {
-            val channel = runCatching { transport.accept() }.getOrNull() ?: break
+            val channel = try {
+                transport.accept()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Throwable) {
+                delay(RelistenBackoffMillis shl failures.coerceAtMost(MaxBackoffDoublings))
+                failures++
+                continue
+            }
+            failures = 0
             connection?.cancelAndJoin()
             connection = launch { serve(channel) }
         }
-    }
+    }.also { listening = it }
 
     private suspend fun serve(channel: PeerChannel) {
         val subscriptions = mutableMapOf<String, Job>()
@@ -139,6 +152,7 @@ class DevToolsHost(
             stream.facts
                 .onEach { emit(channel, CarrierFrame.Facts(subscription.capability, listOf(it))) }
                 .launchIn(this)
+            agent.subscribed(subscription.capability)
         }
     }
 
@@ -150,7 +164,11 @@ class DevToolsHost(
     }
 
     fun stop() {
+        listening?.cancel()
         connection?.cancel()
         transport.close()
     }
 }
+
+private const val RelistenBackoffMillis = 250L
+private const val MaxBackoffDoublings = 4

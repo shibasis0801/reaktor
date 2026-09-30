@@ -33,15 +33,14 @@ private class DisplayLinkTarget(
     private val onFrame: (frameNanos: Long, intervalNanos: Long) -> Unit,
 ) : NSObject() {
     private var previous = 0.0
+    private var expected = 0.0
 
     @kotlinx.cinterop.ObjCAction
     fun step(link: CADisplayLink) {
         val timestamp = link.timestamp
-        if (previous != 0.0) {
-            val nanos = ((timestamp - previous) * 1_000_000_000).toLong()
-            onFrame(nanos, nanos)
-        }
+        if (previous != 0.0) onFrame(((timestamp - previous) * 1e9).toLong(), (expected * 1e9).toLong())
         previous = timestamp
+        expected = link.targetTimestamp - timestamp
     }
 }
 

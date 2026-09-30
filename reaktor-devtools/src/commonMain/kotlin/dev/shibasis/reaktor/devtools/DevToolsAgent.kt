@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.devtools
 
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -58,7 +59,11 @@ class DevToolsAgent(
     private val recordVitals: Boolean = true,
     private val platform: DevToolsPlatformInfo = devToolsPlatformInfo(),
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + CoroutineName("reaktor-devtools"))
+    private val scope = CoroutineScope(
+        SupervisorJob() + CoroutineName("reaktor-devtools") + CoroutineExceptionHandler { _, failure ->
+            log.warn("devtools", "The agent recovered from ${failure::class.simpleName}: ${failure.message}")
+        },
+    )
 
     val portEvents = FactStream(AgentCapability.PortEvents, policy.factCapacity)
     val traffic = FactStream(AgentCapability.Traffic, policy.factCapacity)
@@ -66,8 +71,10 @@ class DevToolsAgent(
     val frames = FactStream(AgentCapability.FrameVitals, policy.factCapacity)
     val memory = FactStream(AgentCapability.MemoryVitals, 64, BufferPolicy.Conflate)
     val crashes = FactStream(AgentCapability.Crash, 16)
+    val startup = FactStream(AgentCapability.StartupVitals, 4)
+    val screen = FactStream(AgentCapability.Screen, 1, BufferPolicy.Conflate, recentCapacity = 0)
 
-    private val streams = listOf(portEvents, traffic, logs, frames, memory, crashes)
+    private val streams = listOf(portEvents, traffic, logs, frames, memory, crashes, startup, screen)
         .associateBy { it.capability }
 
     val log = LogSink(logs, policy.logLevel, platform::mirrorLog)
@@ -77,6 +84,7 @@ class DevToolsAgent(
 
     var semanticsProvider: SemanticsProvider? = null
     var screenshotProvider: ScreenshotProvider? = null
+    var screenFeed: ScreenFeed? = null
 
     private val commands = mutableListOf<CommandHandler>()
     private val started = MutableStateFlow(false)
@@ -87,6 +95,16 @@ class DevToolsAgent(
     private var vitals: VitalsRecorder? = null
 
     fun register(handler: CommandHandler): DevToolsAgent = apply { commands += handler }
+
+    fun unregister(handler: CommandHandler) {
+        commands -= handler
+    }
+
+    fun subscribed(capability: String) {
+        if (capability == AgentCapability.Screen) screenFeed?.refresh()
+    }
+
+    fun epochMillis(): Long = platform.epochMillis()
 
     fun stream(capability: String): FactStream? = streams[capability]
 
@@ -207,12 +225,26 @@ class DevToolsAgent(
                 unavailableReason = if (screenshotProvider == null) "No screenshot provider is installed" else null,
             )
         )
+        add(
+            AgentCapability(
+                AgentCapability.Screen,
+                Fidelity.Stream,
+                unavailableReason = if (screenFeed == null) "The app root is not wrapped in ReaktorDevTools" else null,
+            )
+        )
         add(AgentCapability(AgentCapability.Logs, Fidelity.Stream))
         add(AgentCapability(AgentCapability.PortEvents, Fidelity.Attributed))
         add(AgentCapability(AgentCapability.Traffic, Fidelity.Attributed))
         add(AgentCapability(AgentCapability.FrameVitals, platform.frameVitalsFidelity))
         add(AgentCapability(AgentCapability.MemoryVitals, platform.memoryVitalsFidelity))
         add(AgentCapability(AgentCapability.Crash, Fidelity.Capture))
+        add(
+            AgentCapability(
+                AgentCapability.StartupVitals,
+                Fidelity.Capture,
+                unavailableReason = if (millisSinceProcessStart() == null) "This platform does not report when the process started" else null,
+            )
+        )
         commands.forEach { handler ->
             add(
                 AgentCapability(

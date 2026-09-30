@@ -306,6 +306,12 @@ class AdbDeviceSession(
             is RemoteSocket.LocalAbstract -> SocketSpec.LocalAbstract(remote.name)
             is RemoteSocket.Jdwp -> SocketSpec.Jdwp(remote.pid)
         }
+        if (localPort == 0) {
+            val existing = runCatching { session.hostServices.listForward() }.getOrNull()
+                ?.firstOrNull { it.deviceSerial == device.id && it.remote.toQueryString() == remoteSpec.toQueryString() }
+                ?.let { (it.local as? SocketSpec.Tcp)?.port }
+            if (existing != null && existing > 0) return existing
+        }
         val bound = session.hostServices.forward(
             selector,
             SocketSpec.Tcp(localPort),

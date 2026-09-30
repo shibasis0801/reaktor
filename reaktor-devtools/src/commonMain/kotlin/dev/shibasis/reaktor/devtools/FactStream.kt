@@ -6,6 +6,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,6 +38,7 @@ class FactStream(
     val capability: String,
     private val capacity: Int = 512,
     private val policy: BufferPolicy = BufferPolicy.DropOldest,
+    private val recentCapacity: Int = RecentCapacity,
 ) {
     private val sequence = atomic(0L)
     private val dropped = atomic(0L)
@@ -58,6 +60,8 @@ class FactStream(
     /** Live facts, for a subscribed workbench. Late subscribers use [since] to catch up. */
     val facts: SharedFlow<AgentFact> = shared
 
+    val subscribers: StateFlow<Int> get() = shared.subscriptionCount
+
     /**
      * A fixed ring of the most recent facts, readable without suspending or taking a lock.
      *
@@ -66,7 +70,7 @@ class FactStream(
      * writer can see a torn view of one slot, which is an acceptable flaw in a crash report and
      * an unacceptable one in a deadlock.
      */
-    private val recent = arrayOfNulls<AgentFact>(RecentCapacity)
+    private val recent = arrayOfNulls<AgentFact>(recentCapacity)
     private val recentCursor = atomic(0)
 
     /**
@@ -112,17 +116,20 @@ class FactStream(
     }
 
     /** Facts around a crash, newest last. Safe to call from a dying thread. */
-    fun recentFacts(limit: Int = RecentCapacity): List<AgentFact> {
+    fun recentFacts(limit: Int = recentCapacity): List<AgentFact> {
+        if (recentCapacity == 0) return emptyList()
         val end = recentCursor.value
-        val count = minOf(limit, RecentCapacity)
+        val count = minOf(limit, recentCapacity)
         return (0 until count)
-            .map { offset -> recent[((end - count + offset) % RecentCapacity + RecentCapacity) % RecentCapacity] }
+            .map { offset -> recent[((end - count + offset) % recentCapacity + recentCapacity) % recentCapacity] }
             .filterNotNull()
     }
 
     private fun retain(fact: AgentFact) {
-        recent[recentCursor.value % RecentCapacity] = fact
-        recentCursor.incrementAndGet()
+        if (recentCapacity > 0) {
+            recent[recentCursor.value % recentCapacity] = fact
+            recentCursor.incrementAndGet()
+        }
         when (policy) {
             BufferPolicy.Conflate -> {
                 buffer.clear()

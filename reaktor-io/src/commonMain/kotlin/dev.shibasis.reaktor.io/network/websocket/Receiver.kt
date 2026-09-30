@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.io.network.websocket
 
+import dev.shibasis.reaktor.io.network.SocketEventKind
+import dev.shibasis.reaktor.io.network.SocketObservation
+
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
@@ -31,8 +34,18 @@ class Receiver(
                 for (frame in session.incoming) {
                     heard = TimeSource.Monotonic.markNow()
                     when (frame) {
-                        is Frame.Text -> if (beat == null || frame.readText() != beat.pong) textFrames.emit(frame)
-                        is Frame.Binary -> binaryFrames.emit(frame)
+                        is Frame.Text -> {
+                            val text = frame.readText()
+                            val heartbeat = beat != null && text == beat.pong
+                            SocketObservation.publish(webSocket.observedConnection, webSocket.observedUrl, SocketEventKind.Received,
+                                text = text, bytes = frame.data.size.toLong(), heartbeat = heartbeat)
+                            if (!heartbeat) textFrames.emit(frame)
+                        }
+                        is Frame.Binary -> {
+                            SocketObservation.publish(webSocket.observedConnection, webSocket.observedUrl, SocketEventKind.Received,
+                                bytes = frame.data.size.toLong(), binary = true)
+                            binaryFrames.emit(frame)
+                        }
                         else -> Unit
                     }
                 }
@@ -52,6 +65,7 @@ class Receiver(
             delay(beat.every)
             val asked = TimeSource.Monotonic.markNow()
             if (runCatching { session.send(Frame.Text(beat.ping)) }.isFailure) return
+            SocketObservation.publish(webSocket.observedConnection, webSocket.observedUrl, SocketEventKind.Sent, text = beat.ping, heartbeat = true)
             delay(beat.wait)
             if (heard() < asked) {
                 session.cancel(CancellationException("No ${beat.pong} within ${beat.wait}"))

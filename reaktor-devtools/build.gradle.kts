@@ -26,7 +26,11 @@ kotlin {
             commonCoroutines()
         }
     }
-    droid {}
+    droid {
+        dependencies {
+            implementation("androidx.activity:activity:${Version.Activity}")
+        }
+    }
     darwin {}
     server {}
     web {}

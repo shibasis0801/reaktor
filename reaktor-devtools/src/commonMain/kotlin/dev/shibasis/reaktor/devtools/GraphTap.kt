@@ -54,6 +54,7 @@ class GraphTap(private val stream: FactStream) : PortInterceptor {
                 portKey = port.key.key,
                 portType = port.type.type,
                 nodeId = (port.owner as? Unique)?.id?.toString(),
+                nodeLabel = (port.owner as? Unique)?.label?.takeIf(String::isNotBlank) ?: port.owner::class.simpleName,
                 peerPortKey = invocation.edge?.id?.toString(),
                 durationNanos = nanos - startNanos,
                 failure = failure?.let { it::class.simpleName + (it.message?.let { m -> ": " + m } ?: "") },

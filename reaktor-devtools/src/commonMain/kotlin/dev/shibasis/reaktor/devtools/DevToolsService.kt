@@ -113,6 +113,15 @@ data class SemanticsNodeFact(
     val graphNodeId: String = "",
     /** The navigation route this element was composed under, when known. */
     val route: String = "",
+    val selected: Boolean = false,
+    val checked: String = "",
+    val editable: Boolean = false,
+    val password: Boolean = false,
+    val heading: Boolean = false,
+    val value: String = "",
+    val actions: List<String> = emptyList(),
+    val source: String = "registry",
+    val window: Int = 0,
 ) {
     val width: Float get() = right - left
     val height: Float get() = bottom - top

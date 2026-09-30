@@ -4,12 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
 
@@ -199,12 +201,6 @@ fun ReaktorRouteScope(route: String, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalElementRoute provides route, content = content)
 }
 
-/**
- * Installs the registry and wires the agent's semantics capability to it.
- *
- * Put this at the app root. An app that never calls it still runs an agent; it simply reports
- * `semantics` as unavailable rather than pretending to have a tree.
- */
 @Composable
 fun ReaktorDevTools(
     agent: DevToolsAgent,
@@ -212,30 +208,37 @@ fun ReaktorDevTools(
     content: @Composable () -> Unit,
 ) {
     val layer = rememberCaptureLayer()
-    DisposableEffect(agent, registry, layer) {
-        agent.semanticsProvider = ComposeSemanticsProvider(registry)
+    val inspector = rememberPlatformInspector()
+    val density = LocalDensity.current.density
+    val feed = remember(agent, layer, inspector, registry, density) {
+        ScreenFeed(agent, layer, density, { mergedTree(inspector, registry) })
+    }
+    DisposableEffect(agent, registry, layer, feed) {
+        val input = inputHandler(inspector, registry)
+        agent.semanticsProvider = ComposeSemanticsProvider(inspector, registry)
         agent.screenshotProvider = ComposeScreenshotProvider(layer)
-        agent.register(registry.activationHandler())
+        agent.screenFeed = feed
+        agent.register(input)
+        val streaming = feed.start(agent.scope())
         onDispose {
+            streaming.cancel()
+            agent.unregister(input)
             agent.semanticsProvider = null
             agent.screenshotProvider = null
+            agent.screenFeed = null
         }
     }
     CompositionLocalProvider(LocalElementRegistry provides registry) {
-        CaptureRoot(layer, content)
+        CaptureRoot(layer, {
+            LaunchTiming.firstFrame(agent)
+            feed.onDraw()
+        }, content)
     }
 }
 
-/**
- * A pass-through layout that records the composition into [layer].
- *
- * A raw `Layout` rather than a `Box` so the agent does not pull in `compose.foundation`, and so it
- * adds no sizing behaviour of its own — it measures its child with the constraints it was given
- * and reports the child's size.
- */
 @Composable
-private fun CaptureRoot(layer: GraphicsLayer, content: @Composable () -> Unit) {
-    Layout(content = content, modifier = Modifier.captureInto(layer)) { measurables, constraints ->
+private fun CaptureRoot(layer: GraphicsLayer, onDraw: () -> Unit, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = Modifier.captureInto(layer, onDraw)) { measurables, constraints ->
         val placeables = measurables.map { it.measure(constraints) }
         val width = placeables.maxOfOrNull { it.width } ?: constraints.minWidth
         val height = placeables.maxOfOrNull { it.height } ?: constraints.minHeight
@@ -243,53 +246,12 @@ private fun CaptureRoot(layer: GraphicsLayer, content: @Composable () -> Unit) {
     }
 }
 
-/**
- * Runs an element's own action by id.
- *
- * The workbench sends `activate` with the element it selected in the tree; the app runs the
- * lambda that element registered. No coordinate is involved, so nothing breaks when the layout
- * moves between the capture and the tap.
- */
-fun ElementRegistry.activationHandler(): CommandHandler = commandHandler(
-    AgentCapability.Input,
-    "activate",
-    "hit",
-) { command ->
-    when (command.action) {
-        "hit" -> {
-            val x = command.arguments["x"]?.toFloatOrNull()
-            val y = command.arguments["y"]?.toFloatOrNull()
-            if (x == null || y == null) {
-                AgentCommandResult(command.id, false, "hit needs x and y")
-            } else {
-                val node = hitTest(x, y)
-                AgentCommandResult(
-                    command.id,
-                    node != null,
-                    node?.let { "Hit ${it.id}" } ?: "Nothing registered at ($x, $y)",
-                    payload = node?.id,
-                )
-            }
-        }
-
-        else -> {
-            val id = command.arguments["id"].orEmpty()
-            val action = activation(id)
-            when {
-                id.isBlank() -> AgentCommandResult(command.id, false, "An element id is required")
-                action == null ->
-                    AgentCommandResult(command.id, false, "Element '$id' has no registered action")
-
-                else -> {
-                    action()
-                    AgentCommandResult(command.id, true, "Activated $id")
-                }
-            }
-        }
+class ComposeSemanticsProvider(
+    private val inspector: PlatformInspector?,
+    private val registry: ElementRegistry,
+) : SemanticsProvider {
+    override suspend fun capture(rootId: String, maxDepth: Int, maxNodes: Int): SemanticsSnapshot {
+        val nodes = mergedTree(inspector, registry)
+        return SemanticsSnapshot(nodes.take(maxNodes), nodes.size > maxNodes, DevToolsClock.nanos())
     }
-}
-
-class ComposeSemanticsProvider(private val registry: ElementRegistry) : SemanticsProvider {
-    override suspend fun capture(rootId: String, maxDepth: Int, maxNodes: Int): SemanticsSnapshot =
-        registry.snapshot(rootId, maxDepth, maxNodes)
 }

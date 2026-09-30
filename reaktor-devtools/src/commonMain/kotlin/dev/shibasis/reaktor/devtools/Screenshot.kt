@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 /** Encodes a captured frame. PNG rather than JPEG because a UI capture is flat colour and text. */
 expect fun ImageBitmap.encodeToPngBytes(): ByteArray?
 
+internal expect suspend fun GraphicsLayer.readPixels(): ImageBitmap?
+
 /**
  * Captures the app's own surface.
  *
@@ -22,7 +24,7 @@ expect fun ImageBitmap.encodeToPngBytes(): ByteArray?
  */
 class ComposeScreenshotProvider(private val layer: GraphicsLayer) : ScreenshotProvider {
     override suspend fun capture(): ScreenshotResponse {
-        val bitmap = runCatching { layer.toImageBitmap() }.getOrNull()
+        val bitmap = layer.readPixels()
             ?: return ScreenshotResponse("", 0, 0, "The surface has not drawn yet")
         val png = bitmap.encodeToPngBytes()
             ?: return ScreenshotResponse("", bitmap.width, bitmap.height, "This platform cannot encode a PNG")
@@ -41,9 +43,10 @@ class ComposeScreenshotProvider(private val layer: GraphicsLayer) : ScreenshotPr
  * redraw. The layer is recorded on every frame the app was drawing anyway.
  */
 @Composable
-internal fun Modifier.captureInto(layer: GraphicsLayer): Modifier = drawWithContent {
+internal fun Modifier.captureInto(layer: GraphicsLayer, onDraw: () -> Unit): Modifier = drawWithContent {
     layer.record { this@drawWithContent.drawContent() }
     drawLayer(layer)
+    onDraw()
 }
 
 @Composable
