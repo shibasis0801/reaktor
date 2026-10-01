@@ -124,3 +124,61 @@ The JVM `MeasureLocalServer` locates the ecosystem launcher, starts it, checks
 readiness and obtains a renewable local dashboard connection. Reaktor Desktop
 uses this surface at startup and in its Measure pane. See
 [the ecosystem instructions](../ecosystem/README.md) for ports and debug capture.
+
+## Web sessions: React, DevTools and the Chrome DevTools Protocol
+
+The TypeScript side measures a web app the way a person uses it: real headed Chrome, a
+production build, real gestures. Each piece is a plain module you can call from any
+Playwright or CDP script.
+
+| Module | What it gives you |
+| --- | --- |
+| `ts/src/react.ts` | `installReactProbe()` hooks `__REACT_DEVTOOLS_GLOBAL_HOOK__` (wrapping React DevTools when it is there) and counts commits, components rendered, mounts, wasted renders (a parent re-rendered a non-memo child whose props did not change) and why each component rendered (props, state, hooks, context, parent). `recordProfilerRender` feeds a `<Profiler>`; `connectReactDevtools` attaches the standalone React DevTools. |
+| `ts/src/mutations.ts` | `installMutationProbe({ root, camera })` counts DOM mutations under `root`, split into structural, attribute and text changes, with the busiest targets and attributes. Writes to the `camera` elements are counted apart, so a gesture can be held to zero mutations. |
+| `ts/src/cdp.ts` | Tracing with the DevTools timeline categories, `Performance.getMetrics` deltas, screencast capture, paint flashing, the compositor layer tree, and the frame event categories. |
+| `ts/src/trace.ts` | Reads a trace: main-thread breakdown, frames presented, dropped and missing content, long tasks, style and layout counts, raster and GPU time, interactions, and JavaScript by function. |
+| `ts/src/flicker.ts` | Runs in a page: measures screencast frames for coverage dips (a frame that loses content and gets it back), whole-frame or per cell, and draws a strip of the frames it flagged. |
+| `ts/src/session.ts` | Turns a set of runs into one `ReaktorSessionReport` (medians with p25/p75 and min/max per step and metric, React component table, layer summaries) and writes a before/after markdown table. |
+| `ts/src/bundle.ts` | Splits a build into what the first page load fetches and what loads later, by package, using the source maps. |
+
+Command-line tools:
+
+```
+node tools/static-server.mjs --dist dist --port 4300 --immutable   # serve a build with brotli and immutable assets
+node tools/bundle-report.mjs --dist dist --target app --out bundle.json
+node tools/trace-report.mjs --trace run.json --target app --maps dist/assets --out trace.json
+node tools/session-report.mjs --runs runs/after --target app --label after \
+  --compare before.json --rows rows.json --out after.json
+```
+
+`tools/route-host.mjs` serves a build over HTTP and accepts Playwright-style `route` and
+`routeWebSocket` handlers, so a fake backend runs without request interception and the
+HTTP cache and V8 code cache behave as they do in production.
+
+### React DevTools
+
+The standalone React DevTools (`react-devtools-core`) connect over a WebSocket on port 8097.
+Keep them out of production bundles: load the backend only in a profiling or development
+build, and only when the page asks for it.
+
+1. Start the DevTools window: `npx react-devtools`.
+2. Run a build that carries the backend. In Manna that is `npx vite build --mode profile`
+   (React's profiling build, names kept, output in `dist-profile`) or
+   `VITE_REACT_DEVTOOLS=1 npm run dev`.
+3. Open the app with `?devtools` in the URL. `?devtools&devtoolsPort=8098&devtoolsHost=host`
+   picks another address.
+
+Without `?devtools` the backend stays idle, and the probe from `installReactProbe` still
+counts commits and renders, so a test can read the same numbers headless.
+
+### Chrome DevTools
+
+Every trace the harness keeps is a DevTools trace file: open it in the Performance panel
+(Load profile). To watch a run live, start Chrome with a debugging port; in Manna's perf
+harness that is `PERF_DEBUG_PORT=9222`, which launches Chrome with
+`--remote-debugging-port=9222`. Then open `chrome://inspect` in another Chrome, or point any
+CDP client at `http://localhost:9222/json`.
+
+The harness runs the same steps in the GPU-less browser that CI uses when you set
+`PERF_HEADLESS=1 PERF_EXECUTABLE=<path to chrome-headless-shell>`. Raster there is in
+software, so it shows raster costs that a GPU hides.

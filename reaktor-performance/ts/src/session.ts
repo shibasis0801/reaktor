@@ -28,11 +28,11 @@ export interface GestureSample {
   trace: {
     busyMs: number;
     categories: Record<string, number>;
-    frames: { presented: number; dropped: number; partial: number; p95Ms: number; maxMs: number };
+    frames: { presented: number; dropped: number; partial: number; p95Ms: number; maxMs: number; missingContent?: number };
     longTasks: Array<{ startMs: number; durationMs: number }>;
     style: { recalcs: number; elements: number; maxElements: number };
     layout: { layouts: number; dirtyObjects: number };
-    raster: { tiles: number; paintImages: number; paints: number; gpuBusyMs: number };
+    raster: { tiles: number; paintImages: number; paints: number; gpuBusyMs: number; rasterWorkerMs?: number };
     interactions: Array<{ type: string; durationMs: number }>;
     paints: number;
     js: Array<{ name: string; location: string; selfMs: number; totalMs: number }>;
@@ -133,7 +133,9 @@ export function gestureValues(prefix: string, step: GestureSample, table: Map<st
     add('style.elements', step.trace.style.elements);
     add('layout.count', step.trace.layout.layouts);
     add('paint.count', step.trace.paints);
+    add('frames.missing', frames.missingContent);
     add('raster.tiles', step.trace.raster.tiles);
+    add('raster.worker', step.trace.raster.rasterWorkerMs);
     add('gpu.busy', step.trace.raster.gpuBusyMs);
     add('longTasks.count', step.trace.longTasks.length);
     add('longTasks.max', step.trace.longTasks.reduce((most, task) => Math.max(most, task.durationMs), 0));

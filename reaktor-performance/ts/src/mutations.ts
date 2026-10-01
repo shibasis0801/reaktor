@@ -32,7 +32,7 @@ export function installMutationProbe(options: MutationProbeOptions): void {
   const record = (mutations: MutationRecord[]) => {
     const now = performance.now();
     for (const mutation of mutations) {
-      if (mutation.type === 'attributes' && options.camera && mutation.attributeName === 'style' && (mutation.target as Element).matches?.(options.camera)) {
+      if (mutation.type === 'attributes' && options.camera && (mutation.target as Element).matches?.(options.camera)) {
         counts.camera += 1;
         continue;
       }

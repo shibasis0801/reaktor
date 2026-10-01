@@ -225,8 +225,7 @@
 .bp-wire__arrow { fill: var(--bp-wire); fill-opacity: var(--bp-alpha, 1); transform: scale(var(--bp-inv)); }
 :where(.react-flow__pane:not(.dragging)) .bp-wire:hover { --bp-alpha: 1 !important; }
 :where(.react-flow__pane:not(.dragging)) .bp-wire:hover .bp-wire__line { stroke-width: 2.6px !important; }
-.bp-wire[data-marching] .bp-wire__line { stroke-dasharray: 7 5; }
-.bp-map[data-look='chapter'] .bp-wire[data-marching] .bp-wire__line { animation: bp-march 0.7s linear infinite; }
+.bp-map[data-look='chapter'] .bp-wire[data-marching] .bp-wire__line { stroke-dasharray: 7 5; }
 .bp-corridor { stroke: var(--bp-corridor); stroke-opacity: 0.45; }
 .bp-wires__labels { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 .bp-pill {
@@ -243,8 +242,6 @@
   white-space: nowrap;
   box-shadow: var(--bp-panel-shadow);
 }
-
-@keyframes bp-march { to { stroke-dashoffset: -12; } }
 
 .bp-legend {
   position: absolute;
@@ -308,7 +305,3 @@
 }
 
 .bp-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-
-@media (prefers-reduced-motion: reduce) {
-  .bp-wire[data-marching] .bp-wire__line { animation: none; }
-}
