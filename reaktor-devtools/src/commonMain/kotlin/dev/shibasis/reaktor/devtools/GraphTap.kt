@@ -20,13 +20,13 @@ import dev.shibasis.reaktor.portgraph.port.removeInterceptor
  * Installed as a K1 [PortInterceptor] on the ports worth watching rather than on all of them —
  * an unattached port stays at one volatile read, which is the cost the kernel promises.
  */
-class GraphTap(private val stream: FactStream) : PortInterceptor {
+class GraphTap(private val stream: FactStream, private val watches: PortWatches? = null) : PortInterceptor {
 
     override fun intercept(invocation: PortInvocation, proceed: () -> Any?): Any? {
         if (!stream.enabled) return proceed()
         val start = DevToolsClock.nanos()
         return try {
-            proceed().also { record(invocation, start, null) }
+            proceed().also { result -> record(invocation, start, null, result) }
         } catch (failure: Throwable) {
             record(invocation, start, failure)
             throw failure
@@ -37,15 +37,16 @@ class GraphTap(private val stream: FactStream) : PortInterceptor {
         if (!stream.enabled) return proceed()
         val start = DevToolsClock.nanos()
         return try {
-            proceed().also { record(invocation, start, null) }
+            proceed().also { result -> record(invocation, start, null, result) }
         } catch (failure: Throwable) {
             record(invocation, start, failure)
             throw failure
         }
     }
 
-    private fun record(invocation: PortInvocation, startNanos: Long, failure: Throwable?) {
+    private fun record(invocation: PortInvocation, startNanos: Long, failure: Throwable?, result: Any? = null) {
         val port = invocation.port
+        val nodeId = (port.owner as? Unique)?.id?.toString()
         stream.emit { sequence, nanos ->
             AgentFact.Port(
                 sequence = sequence,
@@ -53,11 +54,12 @@ class GraphTap(private val stream: FactStream) : PortInterceptor {
                 kind = if (failure == null) PortEventKind.Invoked else PortEventKind.Failed,
                 portKey = port.key.key,
                 portType = port.type.type,
-                nodeId = (port.owner as? Unique)?.id?.toString(),
+                nodeId = nodeId,
                 nodeLabel = (port.owner as? Unique)?.label?.takeIf(String::isNotBlank) ?: port.owner::class.simpleName,
                 peerPortKey = invocation.edge?.id?.toString(),
                 durationNanos = nanos - startNanos,
                 failure = failure?.let { it::class.simpleName + (it.message?.let { m -> ": " + m } ?: "") },
+                value = if (failure == null && watches?.watching(nodeId, port.key.key) == true) watchedValue(result) else null,
             )
         }
     }
@@ -96,8 +98,9 @@ fun installGraphTaps(
     owner: PortCapability,
     ports: List<Attachable>,
     stream: FactStream,
+    watches: PortWatches? = null,
 ): () -> Unit {
-    val interceptor = GraphTap(stream)
+    val interceptor = GraphTap(stream, watches)
     val listener = graphStructureTap(stream)
     ports.forEach { it.addInterceptor(interceptor) }
     owner.addPortEventListener(listener)

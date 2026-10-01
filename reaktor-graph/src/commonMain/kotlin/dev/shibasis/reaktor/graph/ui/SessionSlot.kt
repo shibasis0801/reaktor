@@ -6,6 +6,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.GraphShape
+import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +26,17 @@ class SessionSlot<K : Any>(
     private val retired = mutableSetOf<Graph>()
     val child: StateFlow<Graph?> = current.asStateFlow()
 
+    var blueprint: GraphShape? = null
+        private set
+
     fun start() {
         coroutineScope.launch(Dispatchers.Main) { identity.collect(::swap) }
     }
 
     fun preview(key: K) {
-        if (current.value == null) swap(key)
+        if (current.value != null) return
+        swap(key)
+        blueprint = current.value?.shape()
     }
 
     private fun swap(next: K?) {

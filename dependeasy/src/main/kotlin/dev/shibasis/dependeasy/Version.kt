@@ -49,6 +49,10 @@ object Version {
     const val Koin = "4.1.0"
     const val KoinAnnotations = "2.0.0"
 
+    // Graph layout
+    const val Elk = "0.12.0"
+    const val XbaseLib = "2.44.0"
+
     // Cloud
     const val Firebase = "32.0.0"
 

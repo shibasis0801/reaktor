@@ -24,6 +24,8 @@ enum class AuthDirectory(val label: String) {
     /** Every permission with the roles that carry it, so an orphan permission is visible as one. */
     Permissions("Permissions"),
 
+    RolePermissions("Role permissions"),
+
     /**
      * Signing-key metadata — never `private_key_ref`, never key material.
      *
@@ -109,6 +111,8 @@ object AuthDirectoryQueries {
     /** Days of inactivity after which access counts as unused. Reported alongside every finding. */
     const val UnusedWindowDays: Int = 90
 
+    const val CatalogueRows: Int = 500
+
     /**
      * Free text is interpolated, so it is restricted rather than escaped: anything outside this set
      * is rejected before a statement is built. Quote, backslash, semicolon and comment markers are
@@ -118,7 +122,7 @@ object AuthDirectoryQueries {
      * search for — which means it arrives as a live LIKE wildcard and has to be escaped rather than
      * banned. `%` stays out, so the only wildcard the query has is the one it added itself.
      */
-    private val Searchable = Regex("[A-Za-z0-9@._+:\\- ]{1,120}")
+    private val Searchable = Regex("[\\p{L}\\p{M}\\p{N}@._+:\\- ]{1,120}")
 
     fun read(
         directory: AuthDirectory,
@@ -133,7 +137,7 @@ object AuthDirectoryQueries {
         val principal = principalId.takeIf(String::isNotBlank)?.let(::uuid)
         val term = search.trim().takeIf(String::isNotEmpty)?.also {
             require(Searchable.matches(it)) {
-                "Search accepts letters, digits and @ . _ + : - only."
+                "Search accepts letters, digits, spaces and @ . _ + : - only."
             }
         }
 
@@ -204,10 +208,15 @@ object AuthDirectoryQueries {
                 SELECT p.id AS principal_id, p.kind, p.status,
                     COALESCE(
                         (SELECT MIN(sa.name) FROM heimdall.service_account sa WHERE sa.principal_id = p.id),
-                        i.primary_email, CAST(p.id AS VARCHAR)
+                        i.primary_email,
+                        (SELECT MIN(pa.email) FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id),
+                        CAST(p.id AS VARCHAR)
                     ) AS name,
-                    i.primary_email,
+                    COALESCE(i.primary_email,
+                        (SELECT MIN(pa.email) FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id)) AS primary_email,
                     (SELECT MIN(sa.client_id) FROM heimdall.service_account sa WHERE sa.principal_id = p.id) AS service_client_id,
+                    (SELECT STRING_AGG(DISTINCT r.name, ', ') FROM heimdall.principal_role pr
+                        JOIN heimdall.role r ON r.id = pr.role_id WHERE pr.principal_id = p.id) AS roles,
                     (SELECT COUNT(*) FROM heimdall.principal_role pr WHERE pr.principal_id = p.id) AS role_grants,
                     (SELECT COUNT(*) FROM heimdall.membership m WHERE m.principal_id = p.id) AS memberships,
                     (SELECT COUNT(*) FROM heimdall.session s WHERE s.principal_id = p.id
@@ -217,28 +226,34 @@ object AuthDirectoryQueries {
                     (SELECT COUNT(*) FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id) AS provider_accounts,
                     GREATEST(
                         (SELECT MAX(s.created_at) FROM heimdall.session s WHERE s.principal_id = p.id),
+                        (SELECT MAX(COALESCE(rt.used_at, rt.created_at)) FROM heimdall.refresh_token rt WHERE rt.principal_id = p.id),
                         (SELECT MAX(t.last_used_at) FROM heimdall.personal_access_token t WHERE t.principal_id = p.id),
                         (SELECT MAX(e.created_at) FROM heimdall.auth_audit_event e
-                            WHERE e.actor_principal_id = p.id OR e.subject_principal_id = p.id)
-                    ) AS last_seen,
-                    p.created_at
+                            WHERE (e.actor_principal_id = p.id OR e.subject_principal_id = p.id) AND e.outcome ILIKE 'succ%')
+                    ) AS last_seen_at,
+                    p.created_at,
+                    COUNT(*) OVER () AS total_matches
                 FROM heimdall.principal p
                 LEFT JOIN heimdall.identity i ON i.id = p.identity_id
                 WHERE 1=1
             """.trimIndent() +
                 (app?.let { " AND EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND m.app_id = '$it')" } ?: "") +
-                (principal?.let { " AND p.id = '$it'" } ?: "") +
-                match(
-                    "i.primary_email", "CAST(p.id AS VARCHAR)", "CAST(i.id AS VARCHAR)", "p.kind", "p.status",
-                    "(SELECT MIN(sa.name) FROM heimdall.service_account sa WHERE sa.principal_id = p.id)",
-                    "(SELECT MIN(sa.client_id) FROM heimdall.service_account sa WHERE sa.principal_id = p.id)",
-                    "(SELECT MIN(pa.subject) FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id)",
-                ) +
-                " ORDER BY last_seen DESC NULLS LAST, p.created_at DESC, p.id"
+                (pattern?.let { text ->
+                    fun like(column: String) = "$column ILIKE '%$text%' ESCAPE '\\'"
+                    listOf(
+                        like("CAST(p.id AS VARCHAR)"), like("CAST(p.identity_id AS VARCHAR)"), like("i.primary_email"),
+                        like("p.kind"), like("p.status"),
+                        "EXISTS (SELECT 1 FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id AND (${like("pa.email")} OR ${like("pa.subject")}))",
+                        "EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND ${like("CAST(m.profile AS VARCHAR)")})",
+                        "EXISTS (SELECT 1 FROM heimdall.service_account sa WHERE sa.principal_id = p.id AND (${like("sa.name")} OR ${like("sa.client_id")}))",
+                    ).joinToString(" OR ", prefix = " AND (", postfix = ")")
+                } ?: "") +
+                " ORDER BY p.created_at DESC, p.id DESC"
             AuthDirectory.Roles -> """
                 SELECT r.id AS role_id, r.name AS role, a.name AS app, r.app_id,
-                    (SELECT COUNT(*) FROM heimdall.role_permissions rp WHERE rp.role_id = r.id) AS permissions,
-                    (SELECT COUNT(*) FROM heimdall.principal_role pr WHERE pr.role_id = r.id) AS principals,
+                    (SELECT COUNT(*) FROM heimdall.role_permissions rp JOIN heimdall.permission pm ON pm.id = rp.permission_id
+                        WHERE rp.role_id = r.id AND pm.app_id = r.app_id) AS permissions,
+                    (SELECT COUNT(DISTINCT pr.principal_id) FROM heimdall.principal_role pr WHERE pr.role_id = r.id) AS principals,
                     r.created_at
                 FROM heimdall.role r JOIN heimdall.app a ON a.id = r.app_id
                 WHERE 1=1
@@ -259,6 +274,16 @@ object AuthDirectoryQueries {
                 (principal?.let { " AND EXISTS (SELECT 1 FROM heimdall.principal_role pr JOIN heimdall.role_permissions rp ON rp.role_id = pr.role_id WHERE rp.permission_id = pm.id AND pr.principal_id = '$it')" } ?: "") +
                 match("pm.name", "a.name") +
                 " ORDER BY a.name, pm.name, pm.id"
+            AuthDirectory.RolePermissions -> """
+                SELECT r.id AS role_id, r.name AS role, a.name AS app, r.app_id,
+                    pm.id AS permission_id, pm.name AS permission,
+                    (SELECT COUNT(DISTINCT pr.principal_id) FROM heimdall.principal_role pr WHERE pr.role_id = r.id) AS principals
+                FROM heimdall.role r JOIN heimdall.app a ON a.id = r.app_id
+                LEFT JOIN heimdall.role_permissions rp ON rp.role_id = r.id
+                LEFT JOIN heimdall.permission pm ON pm.id = rp.permission_id AND pm.app_id = r.app_id
+                WHERE 1=1
+            """.trimIndent() + (app?.let { " AND r.app_id = '$it'" } ?: "") +
+                " ORDER BY a.name, r.name, r.id, pm.name"
             AuthDirectory.SigningKeys -> """
                 SELECT k.kid, k.alg, k.status,
                     CASE
@@ -342,6 +367,7 @@ object AuthDirectoryQueries {
                 ) +
                 " ORDER BY e.created_at DESC, e.id"
         }
+        if (directory == AuthDirectory.RolePermissions) return "$projection LIMIT $CatalogueRows"
         return "$projection LIMIT $PageSize OFFSET ${page * PageSize}"
     }
 

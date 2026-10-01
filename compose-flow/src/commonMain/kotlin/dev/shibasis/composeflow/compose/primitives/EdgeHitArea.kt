@@ -23,15 +23,14 @@ internal fun findClosestEdge(
         if (edge.hidden) continue
         val source = nodeById[edge.source] ?: continue
         val target = nodeById[edge.target] ?: continue
-        val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
-        val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
         val threshold = edge.interactionWidth.toFloat()
-        val path = flowEdgePath(start, end, pathStyle).path
+        val resolved = resolvedEdgePath(source, target, edge, pathStyle, defaultNodeWidth, defaultNodeHeight)
+        val path = resolved.path
         if (!path.getBounds().inflate(threshold).contains(tap)) continue
         val measure = PathMeasure().apply { setPath(path, false) }
         // Sample the same rendered path, bounded even for pathological distant endpoints.
         val segments = ceil(measure.length / (threshold / 2f).coerceAtLeast(1f)).toInt().coerceIn(1, 4096)
-        var previous = start.point
+        var previous = resolved.start
         var dist = Float.MAX_VALUE
         for (index in 1..segments) {
             val next = measure.getPosition(measure.length * index / segments)

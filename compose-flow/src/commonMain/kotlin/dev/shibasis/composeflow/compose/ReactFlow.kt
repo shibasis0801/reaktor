@@ -65,6 +65,7 @@ import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeTypes
 import dev.shibasis.composeflow.compose.primitives.anchorFor
+import dev.shibasis.composeflow.compose.primitives.routedEdgePath
 import dev.shibasis.composeflow.compose.primitives.drawConnectionLine
 import dev.shibasis.composeflow.compose.primitives.drawFlowEdge
 import dev.shibasis.composeflow.model.BackgroundVariant
@@ -180,7 +181,7 @@ fun ReactFlow(
                 .background(canvasBackground)
                 .onSizeChanged {
                     canvasSize = it
-                    state.canvasSize = it
+                    state.setCanvasSize(it)
                 }
                 .onGloballyPositioned { coordinates ->
                     interactionState.updateCanvasGeometry(
@@ -267,20 +268,19 @@ fun ReactFlow(
                         .sortedBy { it.zIndex }
                         .map { it to edgeRenderStyle(it) }
                     val anyFlowAnimated = edgeStyles.any { (_, style) -> style.flowAnimated }
-                    val flowTransition = rememberInfiniteTransition(label = "edgeFlow")
-                    val flowPhase by flowTransition.animateFloat(
-                        initialValue = 0f,
-                        targetValue = FlowSizing.edgeFlowDashPeriodPx,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
-                            repeatMode = RepeatMode.Restart,
-                        ),
-                        label = "edgeFlowPhase",
-                    )
+                    val flowPhase = if (anyFlowAnimated) {
+                        rememberInfiniteTransition(label = "edgeFlow").animateFloat(
+                            initialValue = 0f,
+                            targetValue = FlowSizing.edgeFlowDashPeriodPx,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart,
+                            ),
+                            label = "edgeFlowPhase",
+                        )
+                    } else null
                     Canvas(Modifier.fillMaxSize()) {
-                        // Only read the animated phase when a wire actually flows — otherwise the
-                        // canvas would invalidate every frame for a static graph.
-                        val dashPhase = if (anyFlowAnimated) flowPhase else 0f
+                        val dashPhase = flowPhase?.value ?: 0f
                         edgeStyles.forEach { (edge, style) ->
                             val source = nodeById[edge.source] ?: return@forEach
                             val target = nodeById[edge.target] ?: return@forEach
@@ -426,10 +426,16 @@ private fun FlowEdgeLabels(
         if (!visible) return@forEach
         val source = nodeById[edge.source] ?: return@forEach
         val target = nodeById[edge.target] ?: return@forEach
-        val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
-        val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
-        val midX = (start.point.x + end.point.x) / 2f
-        val midY = (start.point.y + end.point.y) / 2f
+        val (midX, midY) = if (edge.points.size >= 2) {
+            val measure = androidx.compose.ui.graphics.PathMeasure().apply {
+                setPath(routedEdgePath(edge.points.map { androidx.compose.ui.geometry.Offset(it.x.toFloat(), it.y.toFloat()) }).path, false)
+            }
+            measure.getPosition(measure.length / 2f).let { it.x to it.y }
+        } else {
+            val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
+            val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
+            (start.point.x + end.point.x) / 2f to (start.point.y + end.point.y) / 2f
+        }
         Box(
             modifier = Modifier
                 .layout { measurable, constraints ->

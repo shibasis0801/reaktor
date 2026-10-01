@@ -55,9 +55,9 @@ class FlowViewportInteractionState internal constructor(
         canvasDensity = density
     }
 
-    /** AWT uses logical content coordinates; Compose viewports use physical pixels. */
-    fun canvasPositionFromWindow(position: Offset): Offset? {
-        val physical = position * canvasDensity
+    /** AWT uses logical content coordinates; Compose viewports use physical pixels, [scale] apart. */
+    fun canvasPositionFromWindow(position: Offset, scale: Float = canvasDensity): Offset? {
+        val physical = position * scale
         return if (canvasBoundsInWindow.contains(physical)) physical - canvasOriginInWindow else null
     }
 }

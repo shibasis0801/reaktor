@@ -3,11 +3,13 @@ package dev.shibasis.composeflow.compose.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -101,6 +103,7 @@ internal fun FlowNodeBox(
     Box(
         modifier = Modifier
             .offset { IntOffset(node.position.x.roundToInt(), node.position.y.roundToInt()) }
+            .wrapContentSize(Alignment.TopStart, unbounded = true)
             .size(widthDp, heightDp)
             .zIndex(if (node.dragging || node.selected) FlowRuntimeDefaults.selectedNodeZIndex else node.zIndex.toFloat())
             .graphicsLayer {

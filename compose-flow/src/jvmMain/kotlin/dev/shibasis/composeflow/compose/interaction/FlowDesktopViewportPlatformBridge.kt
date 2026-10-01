@@ -85,8 +85,9 @@ class FlowDesktopViewportPlatformBridge internal constructor(
                 return@newProxyInstance null
             }
 
+            val scale = window.graphicsConfiguration?.defaultTransform?.scaleX?.toFloat() ?: interactionState.canvasDensity
             val anchor = pointerPositionInContent(content)
-                ?.let(interactionState::canvasPositionFromWindow) ?: return@newProxyInstance null
+                ?.let { interactionState.canvasPositionFromWindow(it, scale) } ?: return@newProxyInstance null
 
             val factor = exp(magnification * FlowSizing.pinchZoomSensitivity)
             interactionState.markViewportAsUserModified()
