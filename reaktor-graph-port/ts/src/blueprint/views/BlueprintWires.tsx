@@ -100,7 +100,7 @@ export function BlueprintWires() {
     const nearby = look === 'chapter' && (visible.has(link.from) || visible.has(link.to));
     const style = scene.wireStyle(link, { look, lit, route, hovered: hover, nearby, crowd, highlighting, focus: selection.focus });
     if (!style) continue;
-    const pooled = style.batch && !hover && (!lit || (crowd > 120 && !route));
+    const pooled = style.batch && !style.marching && !style.dash && !hover && (!lit || (crowd > 120 && !route));
     if (pooled) {
       const key = `${lit ? 'lit' : 'faint'}|${style.tone}|${style.width ?? 1.5}|${style.dash ?? ''}|${style.alpha ?? 1}|${style.glow ? 'glow' : ''}|${style.marching ? 'march' : ''}`;
       const batch = batches.get(key) ?? { style, parts: [], lit };
