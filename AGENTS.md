@@ -81,3 +81,11 @@ Performance work uses the harnesses in `reaktor-performance` and
 
 - a layer boundary in §3 would have to be crossed to make something work
 - design tokens would need a second source of truth
+
+## Report to Manna
+
+Work here is tracked in Manna through the `manna` MCP server (https://manna.ac/mcp/private, scopes manna:read and manna:agent).
+
+- At session start, call `manna_version`. If it differs from the version in the server instructions, reconnect `manna` before anything else. Then find the mission you are working on with `search_workspace` (your task in a few words, mode `related`) or `list_records` (collection `work`, status `doing`), and read it with `get_record` (collection `work`).
+- At session end, call `log_session` with `mission_id`, `repo: "reaktor"`, `commits` (every SHA you committed), `pr_url` and `deploy` when there are any, `agent: {harness: "claude-code" or "codex", model, worktree}`, `artifact`, `decisions` and `next_action`. Use a new `request_id` for each session and reuse it if you retry.
+- Never mark a mission done. When the work is finished, call `propose_completion` with `mission_id`, a `summary` of what was done and how it was checked, `evidence_refs` (SHAs, URLs, session ids) and a new `request_id`. The owner decides.
