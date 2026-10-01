@@ -1,8 +1,7 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
-import { useStore } from '@xyflow/react';
 import { isLit } from '../highlight';
 import type { BlueprintLayout, Card, Link, Point } from '../types';
-import { useHoveredPin, useScene, type WireStyle } from './context';
+import { intersects, useHoveredPin, useRest, useScene, useSelection, type WireStyle } from './context';
 import { useLook } from './looks';
 import { linkMidpoint, linkPath } from './paths';
 
@@ -68,47 +67,38 @@ function tail(link: Link): { at: Point; angle: number } | null {
   return { at: end, angle: Math.atan2(end[1] - before[1], end[0] - before[0]) * 180 / Math.PI };
 }
 
-const sameList = (a: string, b: string) => a === b;
+const nothing = new Set<string>();
 
-function useVisibleCards(cards: Card[], active: boolean): Set<string> {
-  const key = useStore(state => {
-    if (!active) return '';
-    const [x, y, zoom] = state.transform;
-    const left = -x / zoom;
-    const top = -y / zoom;
-    const right = left + state.width / zoom;
-    const bottom = top + state.height / zoom;
-    let found = '';
-    for (const card of cards) if (card.x < right && card.x + card.width > left && card.y < bottom && card.y + card.height > top) found += `${card.id}\n`;
-    return found;
-  }, sameList);
-  return useMemo(() => new Set(key ? key.split('\n').filter(Boolean) : []), [key]);
+function useNearCards(cards: Card[]): Set<string> {
+  const window = useRest(rest => (rest.look === 'chapter' ? rest.window : null));
+  return useMemo(() => (window ? new Set(cards.filter(card => intersects(window, card)).map(card => card.id)) : nothing), [window, cards]);
 }
 
 export function BlueprintWires() {
   const scene = useScene();
-  const look = useLook(scene.thresholds);
+  const look = useLook();
   const hovered = useHoveredPin(scene.pins);
+  const selection = useSelection(value => value);
   const { layout } = scene;
   const cards = useMemo(() => Object.values(layout.cards), [layout]);
-  const visible = useVisibleCards(cards, look === 'chapter');
+  const visible = useNearCards(cards);
   const paths = useMemo(() => new Map(layout.links.map(link => [link.id, linkPath(link)])), [layout]);
   const corridors = useMemo(() => corridorsOf(layout, scene.frameOf), [layout, scene.frameOf]);
-  const highlighting = scene.highlight.size > 0;
+  const highlighting = selection.highlight.size > 0;
   const batches = new Map<string, { style: WireStyle; parts: string[]; lit: boolean }>();
   const singles: Array<{ link: Link; style: WireStyle; lit: boolean }> = [];
   const touchesHover = (link: Link) => !!hovered && (
     (link.from === hovered.card && link.fromPort !== undefined && scene.rowOfPort.get(`${link.from}>${link.fromPort}`) === hovered.row)
     || (link.to === hovered.card && link.toPort !== undefined && scene.rowOfPort.get(`${link.to}<${link.toPort}`) === hovered.row));
   const states = layout.links.map(link => {
-    const route = scene.litLinks.has(link.id);
-    return { link, route, lit: route || isLit(link, scene.highlight, scene.selected, scene.focus), hover: touchesHover(link) };
+    const route = selection.litLinks.has(link.id);
+    return { link, route, lit: route || isLit(link, selection.highlight, selection.selected, selection.focus), hover: touchesHover(link) };
   });
   const crowd = states.reduce((count, state) => count + (state.lit ? 1 : 0), 0);
   for (const { link, route, lit, hover } of states) {
     if (look === 'domain' && !lit && !hover) continue;
     const nearby = look === 'chapter' && (visible.has(link.from) || visible.has(link.to));
-    const style = scene.wireStyle(link, { look, lit, route, hovered: hover, nearby, crowd, highlighting, focus: scene.focus });
+    const style = scene.wireStyle(link, { look, lit, route, hovered: hover, nearby, crowd, highlighting, focus: selection.focus });
     if (!style) continue;
     const pooled = style.batch && !hover && (!lit || (crowd > 120 && !route));
     if (pooled) {
@@ -136,7 +126,7 @@ export function BlueprintWires() {
         {corridors.map(corridor => <path key={corridor.key} className="bp-corridor" d={corridorPath(corridor.points)} style={{ strokeWidth: Math.min(2 + Math.log2(corridor.count + 1) * 1.6, 12) }}/>)}
       </g>}
       <g className="bp-wires__batch">
-        {[...batches.entries()].map(([key, { style, parts, lit }]) => <g key={key} className="bp-wire bp-wire--pooled" data-lit={lit || undefined} data-marching={style.marching || undefined} style={{ '--bp-wire': style.tone, opacity: style.alpha ?? 1 } as CSSProperties}>
+        {[...batches.entries()].map(([key, { style, parts, lit }]) => <g key={key} className="bp-wire bp-wire--pooled" data-lit={lit || undefined} data-marching={style.marching || undefined} style={{ '--bp-wire': style.tone, '--bp-alpha': style.alpha ?? 1 } as CSSProperties}>
           {style.glow && <path className="bp-wire__glow" d={parts.join('')} style={{ strokeWidth: (style.width ?? 1.5) * 2.8 }}/>}
           <path className="bp-wire__line" d={parts.join('')} style={{ strokeWidth: style.width ?? 1.5, strokeDasharray: style.marching ? undefined : style.dash }}/>
         </g>)}
@@ -145,7 +135,7 @@ export function BlueprintWires() {
         {singles.map(({ link, style, lit }) => {
           const d = paths.get(link.id) ?? '';
           const end = style.arrow ? tail(link) : null;
-          return <g key={link.id} className="bp-wire" data-link={link.id} data-lit={lit || undefined} data-marching={style.marching || undefined} style={{ '--bp-wire': style.tone, opacity: style.alpha ?? 1 } as CSSProperties}>
+          return <g key={link.id} className="bp-wire" data-link={link.id} data-lit={lit || undefined} data-marching={style.marching || undefined} style={{ '--bp-wire': style.tone, '--bp-alpha': style.alpha ?? 1 } as CSSProperties}>
             {style.glow && <path className="bp-wire__glow" d={d} style={{ strokeWidth: (style.width ?? 1.5) * 2.8 }}/>}
             <path className="bp-wire__line" d={d} style={{ strokeWidth: style.width ?? 1.5, strokeDasharray: style.marching ? undefined : style.dash }}/>
             {end && <g transform={`translate(${round(end.at[0])} ${round(end.at[1])}) rotate(${round(end.angle)})`}><path className="bp-wire__arrow" d="M-10 -5L0 0L-10 5Z"/></g>}

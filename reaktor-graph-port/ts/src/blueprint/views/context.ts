@@ -1,7 +1,7 @@
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
 import type { Focus } from '../highlight';
 import type { BlueprintLayout, Card, Frame, Link } from '../types';
-import type { Viewport } from './camera';
+import type { Bounds, Viewport } from './camera';
 import type { Look, LookThresholds } from './looks';
 
 export interface WireState {
@@ -36,14 +36,37 @@ export interface PinFocus {
   ready: boolean;
 }
 
-export interface MapScene {
-  layout: BlueprintLayout;
-  thresholds: LookThresholds;
+export interface Selection {
   selected: string | null;
   selectedRow: number | null;
   highlight: ReadonlySet<string>;
   focus: Focus;
   litLinks: ReadonlySet<string>;
+}
+
+export class SelectionStore {
+  private value: Selection;
+  private readonly listeners = new Set<() => void>();
+  constructor(initial: Selection) {
+    this.value = initial;
+  }
+  get = () => this.value;
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  };
+  set(value: Selection) {
+    const current = this.value;
+    if (current.selected === value.selected && current.selectedRow === value.selectedRow && current.highlight === value.highlight && current.focus === value.focus && current.litLinks === value.litLinks) return;
+    this.value = value;
+    this.listeners.forEach(listener => listener());
+  }
+}
+
+export interface MapScene {
+  layout: BlueprintLayout;
+  thresholds: LookThresholds;
+  selection: SelectionStore;
   corridors: boolean;
   frameOf: Map<string, string>;
   rowOfPort: Map<string, number>;
@@ -51,21 +74,22 @@ export interface MapScene {
   renderFrame: (frame: Frame, look: Look) => ReactNode;
   wireStyle: (link: Link, state: WireState) => WireStyle | null;
   pins: HoverStore;
+  rest: RestStore;
 }
 
 export interface CameraControls {
   ready: boolean;
   canCentre: boolean;
-  fit(): void;
+  fit(duration?: number): void;
   centre(): void;
   zoomTo(zoom: number): void;
   zoomBy(factor: number): void;
   panBy(dx: number, dy: number): void;
-  frameBounds(bounds: { x: number; y: number; width: number; height: number }, maxZoom?: number): void;
+  frameBounds(bounds: { x: number; y: number; width: number; height: number }, maxZoom?: number, duration?: number): void;
   back(): void;
   forward(): void;
   viewport(): Viewport;
-  setViewport(viewport: Viewport, remember?: boolean): void;
+  setViewport(viewport: Viewport, remember?: boolean, duration?: number): void;
 }
 
 export class HoverStore {
@@ -83,11 +107,49 @@ export class HoverStore {
   }
 }
 
+export interface CameraRest {
+  x: number;
+  y: number;
+  zoom: number;
+  look: Look;
+  view: Bounds;
+  window: Bounds;
+  width: number;
+  height: number;
+}
+
+export class RestStore {
+  private value: CameraRest;
+  private readonly listeners = new Set<() => void>();
+  moving = false;
+  constructor(initial: CameraRest) {
+    this.value = initial;
+  }
+  get = () => this.value;
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  };
+  set(value: CameraRest) {
+    const current = this.value;
+    if (current.x === value.x && current.y === value.y && current.zoom === value.zoom && current.look === value.look && current.width === value.width && current.height === value.height) return;
+    this.value = value;
+    this.listeners.forEach(listener => listener());
+  }
+}
+
+export function intersects(a: Bounds, b: { x: number; y: number; width: number; height: number }): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
 export type FramePart = 'body' | 'banner';
+
+const silent = () => () => undefined;
 
 export const SceneContext = createContext<MapScene | null>(null);
 export const FramePartContext = createContext<FramePart>('body');
 export const CameraContext = createContext<CameraControls | null>(null);
+export const RestContext = createContext<RestStore | null>(null);
 
 export function useScene(): MapScene {
   const scene = useContext(SceneContext);
@@ -101,6 +163,23 @@ export function useCameraControls(): CameraControls {
   return controls;
 }
 
+export function useSelection<T>(select: (selection: Selection) => T): T {
+  const scene = useContext(SceneContext);
+  const read = () => select(scene ? scene.selection.get() : emptySelection);
+  return useSyncExternalStore(scene ? scene.selection.subscribe : silent, read, read);
+}
+
+const emptySelection: Selection = { selected: null, selectedRow: null, highlight: new Set(), focus: 'all', litLinks: new Set() };
+
 export function useHoveredPin(store: HoverStore): PinFocus | null {
   return useSyncExternalStore(store.subscribe, store.get, store.get);
 }
+
+export function useRest<T>(select: (rest: CameraRest) => T, store?: RestStore | null): T {
+  const context = useContext(RestContext);
+  const source = store ?? context;
+  const read = () => select(source ? source.get() : fallbackRest);
+  return useSyncExternalStore(source ? source.subscribe : silent, read, read);
+}
+
+const fallbackRest: CameraRest = { x: 0, y: 0, zoom: 1, look: 'chapter', view: { x: 0, y: 0, width: 0, height: 0 }, window: { x: 0, y: 0, width: 0, height: 0 }, width: 0, height: 0 };

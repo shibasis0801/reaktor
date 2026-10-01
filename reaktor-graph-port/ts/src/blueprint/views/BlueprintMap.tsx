@@ -19,8 +19,8 @@ import type { Focus } from '../highlight';
 import type { BlueprintLayout, Card, Frame, Link } from '../types';
 import { BlueprintWires } from './BlueprintWires';
 import { cameraMemory, centreOn, clamp, fitBounds, GestureZoom, place, ProgrammaticZoom, wheelFactor, zoomAround, type Bounds, type Insets, type Viewport } from './camera';
-import { CameraContext, FramePartContext, HoverStore, SceneContext, useHoveredPin, useScene, type CameraControls, type MapScene, type WireState, type WireStyle } from './context';
-import { DefaultThresholds, lookFor, useLook, type Look, type LookThresholds } from './looks';
+import { CameraContext, FramePartContext, HoverStore, RestContext, RestStore, SceneContext, SelectionStore, useHoveredPin, useScene, type CameraControls, type CameraRest, type MapScene, type WireState, type WireStyle } from './context';
+import { DefaultThresholds, nextLook, useLook, type Look, type LookThresholds } from './looks';
 
 export interface Reveal {
   id: string;
@@ -63,18 +63,51 @@ export interface BlueprintMapProps {
 
 const WiresId = '__blueprint_wires';
 const LabelsId = '__blueprint_labels';
+const RestDelay = 120;
+const Overscan = 1;
 const empty = new Set<string>();
+const noEdges: never[] = [];
+const proOptions = { hideAttribution: true };
+
+type Transform = readonly [number, number, number];
+
+function restFor(transform: Transform, width: number, height: number, previous: Look | null, thresholds: LookThresholds): CameraRest {
+  const [x, y, zoom] = transform;
+  const w = (width > 0 ? width : typeof window === 'undefined' ? 1280 : window.innerWidth) / zoom;
+  const h = (height > 0 ? height : typeof window === 'undefined' ? 800 : window.innerHeight) / zoom;
+  const view = { x: -x / zoom, y: -y / zoom, width: w, height: h };
+  return {
+    x, y, zoom, width, height, view,
+    look: nextLook(previous, zoom, thresholds),
+    window: { x: view.x - w * Overscan, y: view.y - h * Overscan, width: w * (1 + 2 * Overscan), height: h * (1 + 2 * Overscan) },
+  };
+}
+
+function writeRest(host: HTMLElement, rest: CameraRest) {
+  const zoom = rest.zoom;
+  const inverse = (1 / zoom).toFixed(4);
+  if (host.style.getPropertyValue('--bp-inv') !== inverse) {
+    host.style.setProperty('--bp-zoom', zoom.toFixed(4));
+    host.style.setProperty('--bp-inv', inverse);
+  }
+  const minor = 16 * zoom >= 7 ? 'on' : 'off';
+  const major = 128 * zoom >= 7 ? 'on' : 'off';
+  if (host.dataset.minor !== minor) host.dataset.minor = minor;
+  if (host.dataset.major !== major) host.dataset.major = major;
+  host.dataset.zoom = zoom.toFixed(4);
+  if (host.dataset.look !== rest.look) host.dataset.look = rest.look;
+}
 
 function CardNode({ id }: NodeProps) {
   const scene = useScene();
-  const look = useLook(scene.thresholds);
+  const look = useLook();
   const card = scene.layout.cards[id];
   return card ? <>{scene.renderCard(card, look)}</> : null;
 }
 
 function FrameNode({ id }: NodeProps) {
   const scene = useScene();
-  const look = useLook(scene.thresholds);
+  const look = useLook();
   const frame = scene.layout.frames.find(item => `frame:${item.key}` === id);
   return frame ? <>{scene.renderFrame(frame, look)}</> : null;
 }
@@ -85,7 +118,7 @@ function WiresNode() {
 
 function LabelsNode() {
   const scene = useScene();
-  const look = useLook(scene.thresholds);
+  const look = useLook();
   if (look === 'chapter') return null;
   return <div className="bp-labels" data-part="frame-labels">
     <FramePartContext.Provider value="banner">
@@ -146,6 +179,16 @@ function MapHost(props: BlueprintMapProps) {
   const [revealed, setRevealed] = useState(memory.revealed);
   const pins = useMemo(() => new HoverStore(), []);
   const thresholds = props.thresholds ?? DefaultThresholds;
+  const thresholdsRef = useRef(thresholds);
+  thresholdsRef.current = thresholds;
+  const rest = useMemo(() => {
+    const start = memory.viewport ?? { x: 0, y: 0, zoom: 0.1 };
+    const state = store.getState();
+    return new RestStore(restFor([start.x, start.y, start.zoom], state.width, state.height, null, thresholds));
+  }, [store]);
+  const settleRef = useRef<() => void>(() => undefined);
+  const splitRef = useRef<() => void>(() => undefined);
+  const immediate = useRef(false);
 
   const frameOf = useMemo(() => new Map(layout?.frames.flatMap(frame => frame.nodes.map(id => [id, frame.key] as const)) ?? []), [layout]);
   const rowOfPort = useMemo(() => new Map(Object.values(layout?.cards ?? {}).flatMap(card => card.pins.map(pin => [`${card.id}${pin.provides ? '>' : '<'}${pin.key}`, pin.row] as const))), [layout]);
@@ -210,67 +253,114 @@ function MapHost(props: BlueprintMapProps) {
     memory.future = [];
   }, [flow, memory]);
 
-  const apply = useCallback((viewport: Viewport) => {
+  const apply = useCallback((viewport: Viewport, duration = 0) => {
+    if (duration > 0) {
+      void flow.setViewport(viewport, { duration });
+      return;
+    }
+    immediate.current = true;
+    try {
+      void flow.setViewport(viewport);
+    } finally {
+      immediate.current = false;
+    }
+    settleRef.current();
+  }, [flow]);
+
+  const move = useCallback((viewport: Viewport) => {
     void flow.setViewport(viewport);
   }, [flow]);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    let last: [number, number, number] | null = null;
-    let settle = 0;
-    let rest = 0;
-    let look: Look | null = null;
-    let scaled = 0;
-    const write = (transform: [number, number, number]) => {
-      const [x, y, zoom] = transform;
-      if (scaled === 0 || Math.abs(Math.log(zoom / scaled)) > 0.03) {
-        scaled = zoom;
-        host.style.setProperty('--bp-zoom', zoom.toFixed(4));
-        host.style.setProperty('--bp-inv', (1 / zoom).toFixed(4));
-        host.style.setProperty('--bp-frame-scale', Math.min(1 / clamp(zoom, 0.35, 1), 1.8).toFixed(4));
-      }
-      const minor = 16 * zoom;
-      const major = 128 * zoom;
-      host.style.setProperty('--bp-grid-minor', `${minor.toFixed(3)}px`);
-      host.style.setProperty('--bp-grid-major', `${major.toFixed(3)}px`);
-      host.style.setProperty('--bp-grid-x', `${x.toFixed(2)}px`);
-      host.style.setProperty('--bp-grid-y', `${y.toFixed(2)}px`);
-      host.dataset.minor = minor >= 7 ? 'on' : 'off';
-      host.dataset.major = major >= 7 ? 'on' : 'off';
-      host.dataset.zoom = zoom.toFixed(4);
-      const next = lookFor(zoom, latest.current.thresholds ?? DefaultThresholds);
-      if (next !== look) { look = next; host.dataset.look = next; }
-    };
-    const settled = () => {
-      const viewport = flow.getViewport();
-      latest.current.onCamera?.(viewport);
+    let timer = 0;
+    let last = store.getState().transform;
+    let size: readonly [number, number] = [store.getState().width, store.getState().height];
+    const announceAt = (next: CameraRest) => {
       const current = latest.current.layout;
       const announce = latest.current.announce;
       if (!current || !announce) return;
-      const centreX = (store.getState().width / 2 - viewport.x) / viewport.zoom;
-      const centreY = (store.getState().height / 2 - viewport.y) / viewport.zoom;
+      const centreX = next.view.x + next.view.width / 2;
+      const centreY = next.view.y + next.view.height / 2;
       const frame = current.frames.find(item => centreX >= item.x && centreX <= item.x + item.width && centreY >= item.y && centreY <= item.y + item.height);
       if (frame) setAnnouncement(announce(frame));
     };
-    write(store.getState().transform);
-    return store.subscribe(state => {
+    const settle = () => {
+      window.clearTimeout(timer);
+      timer = 0;
+      const state = store.getState();
+      const next = restFor(state.transform, state.width, state.height, rest.get().look, thresholdsRef.current);
+      rest.moving = false;
+      writeRest(host, next);
+      rest.set(next);
+      latest.current.onCamera?.({ x: next.x, y: next.y, zoom: next.zoom });
+      announceAt(next);
+    };
+    settleRef.current = settle;
+    writeRest(host, rest.get());
+    let layer: HTMLElement | null = null;
+    let scaled: HTMLElement | null = null;
+    let queued = false;
+    let gridZoom = 0;
+    const grid = host.querySelector<HTMLElement>(':scope > .bp-grid');
+    const paintGrid = (x: number, y: number, zoom: number) => {
+      if (!grid) return;
+      const major = 128 * zoom;
+      if (zoom !== gridZoom) {
+        gridZoom = zoom;
+        const fade = (spacing: number) => Math.min(1, Math.max(0, (spacing - 5) / 4));
+        const minorAlpha = fade(16 * zoom);
+        grid.style.setProperty('--bp-grid-major', `${major}px`);
+        grid.style.setProperty('--bp-grid-minor', `${minorAlpha > 0 ? 16 * zoom : Math.max(major, 64)}px`);
+        grid.style.setProperty('--bp-grid-minor-alpha', minorAlpha.toFixed(3));
+        grid.style.setProperty('--bp-grid-major-alpha', fade(major).toFixed(3));
+      }
+      const offset = (value: number) => ((value % major) + major) % major - major;
+      grid.style.transform = `translate(${offset(x)}px, ${offset(y)}px)`;
+    };
+    const split = () => {
+      queued = false;
+      const transform = store.getState().transform;
+      paintGrid(transform[0], transform[1], transform[2]);
+      if (!layer || !layer.isConnected) layer = host.querySelector<HTMLElement>('.react-flow__viewport');
+      if (!scaled || !scaled.isConnected) scaled = host.querySelector<HTMLElement>('.react-flow__nodes');
+      if (!layer || !scaled) return;
+      const translate = `translate(${transform[0]}px, ${transform[1]}px)`;
+      const scale = `scale(${transform[2]})`;
+      if (layer.style.transform !== translate) layer.style.transform = translate;
+      if (scaled.style.transform !== scale) scaled.style.transform = scale;
+    };
+    splitRef.current = split;
+    split();
+    const unsubscribe = store.subscribe(state => {
       const transform = state.transform;
-      if (last && transform[0] === last[0] && transform[1] === last[1] && transform[2] === last[2]) return;
-      last = [transform[0], transform[1], transform[2]];
-      write(last);
+      if (!queued) {
+        queued = true;
+        queueMicrotask(split);
+      }
+      const moved = transform[0] !== last[0] || transform[1] !== last[1] || transform[2] !== last[2];
+      const resized = state.width !== size[0] || state.height !== size[1];
+      if (!moved && !resized) return;
+      last = transform;
+      size = [state.width, state.height];
       memory.viewport = { x: transform[0], y: transform[1], zoom: transform[2] };
-      if (host.dataset.moving !== 'true') host.dataset.moving = 'true';
-      window.clearTimeout(rest);
-      rest = window.setTimeout(() => {
-        delete host.dataset.moving;
-        const exact = store.getState().transform[2];
-        if (exact !== scaled) { scaled = 0; write([...store.getState().transform] as [number, number, number]); }
-      }, 160);
-      window.clearTimeout(settle);
-      settle = window.setTimeout(settled, 300);
+      if (immediate.current) return;
+      rest.moving = true;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, RestDelay);
     });
-  }, [store, flow, memory]);
+    return () => {
+      unsubscribe();
+      window.clearTimeout(timer);
+      settleRef.current = () => undefined;
+      splitRef.current = () => undefined;
+    };
+  }, [store, flow, memory, rest]);
+
+  useLayoutEffect(() => {
+    splitRef.current();
+  }, [layout]);
 
   useLayoutEffect(() => {
     if (!layout || !ready || width <= 0 || height <= 0) return;
@@ -316,32 +406,32 @@ function MapHost(props: BlueprintMapProps) {
       const viewport = flow.getViewport();
       const rect = host.getBoundingClientRect();
       if (event.ctrlKey || event.metaKey) {
-        apply(zoomAround(viewport, wheelFactor(event.deltaY, event.deltaMode), event.clientX - rect.left, event.clientY - rect.top, Math.min(GestureZoom.min, memory.fitZoom), GestureZoom.max));
+        move(zoomAround(viewport, wheelFactor(event.deltaY, event.deltaMode), event.clientX - rect.left, event.clientY - rect.top, Math.min(GestureZoom.min, memory.fitZoom), GestureZoom.max));
         return;
       }
       const unit = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? rect.height : 1;
       let dx = event.deltaX * unit;
       let dy = event.deltaY * unit;
       if (event.shiftKey && dx === 0) { dx = dy; dy = 0; }
-      apply({ x: viewport.x - dx, y: viewport.y - dy, zoom: viewport.zoom });
+      move({ x: viewport.x - dx, y: viewport.y - dy, zoom: viewport.zoom });
     };
     host.addEventListener('wheel', wheel, { passive: false });
     return () => host.removeEventListener('wheel', wheel);
-  }, [flow, apply, memory]);
+  }, [flow, move, memory]);
 
   const controls = useMemo<CameraControls>(() => {
     const size = measure;
-    const frameBounds = (bounds: Bounds, maxZoom = 1) => {
+    const frameBounds = (bounds: Bounds, maxZoom = 1, duration = 0) => {
       const { width: w, height: h } = size();
       const viewport = fitBounds(bounds, w, h, insetsRef.current, 0.03, maxZoom);
       if (!viewport) return;
       remember();
-      apply(viewport);
+      apply(viewport, duration);
     };
     return {
       ready,
       canCentre: !!selected && !!layout?.cards[selected],
-      fit: () => { const current = latest.current.layout; if (current) frameBounds(layoutBounds(current)); },
+      fit: (duration = 0) => { const current = latest.current.layout; if (current) frameBounds(layoutBounds(current), 1, duration); },
       centre: () => {
         const current = latest.current.layout;
         const id = latest.current.selected;
@@ -379,7 +469,7 @@ function MapHost(props: BlueprintMapProps) {
         apply(next);
       },
       viewport: () => flow.getViewport(),
-      setViewport: (viewport, keep = true) => { if (keep) remember(); apply(viewport); },
+      setViewport: (viewport, keep = true, duration = 0) => { if (keep) remember(); apply(viewport, duration); },
     };
   }, [ready, selected, layout, flow, memory, remember, apply, measure]);
 
@@ -390,14 +480,17 @@ function MapHost(props: BlueprintMapProps) {
     return () => { if (cameraRef.current === controls) cameraRef.current = null; };
   }, [cameraRef, controls]);
 
+  const selection = useMemo(() => new SelectionStore({ selected, selectedRow, highlight: props.highlight ?? empty, focus, litLinks: props.litLinks ?? empty }), []);
+  const highlight = props.highlight ?? empty;
+  const litLinks = props.litLinks ?? empty;
+  useLayoutEffect(() => {
+    selection.set({ selected, selectedRow, highlight, focus, litLinks });
+  }, [selection, selected, selectedRow, highlight, focus, litLinks]);
+
   const scene = useMemo<MapScene | null>(() => layout ? {
     layout,
     thresholds,
-    selected,
-    selectedRow,
-    highlight: props.highlight ?? empty,
-    focus,
-    litLinks: props.litLinks ?? empty,
+    selection,
     corridors: props.corridors ?? true,
     frameOf,
     rowOfPort,
@@ -405,10 +498,16 @@ function MapHost(props: BlueprintMapProps) {
     renderFrame: props.renderFrame,
     wireStyle: props.wireStyle,
     pins,
-  } : null, [layout, thresholds, selected, selectedRow, props.highlight, focus, props.litLinks, props.corridors, frameOf, rowOfPort, props.renderCard, props.renderFrame, props.wireStyle, pins]);
+    rest,
+  } : null, [layout, thresholds, selection, props.corridors, frameOf, rowOfPort, props.renderCard, props.renderFrame, props.wireStyle, pins, rest]);
 
-  const select = (id: string | null, detail: SelectDetail) => latest.current.onSelect?.(id, detail);
-  const onNodeClick = (event: ReactMouseEvent, node: Node) => {
+  const controlsRef = useRef(controls);
+  controlsRef.current = controls;
+  const rowOfPortRef = useRef(rowOfPort);
+  rowOfPortRef.current = rowOfPort;
+  const select = useCallback((id: string | null, detail: SelectDetail) => latest.current.onSelect?.(id, detail), []);
+  const onNodeClick = useCallback((event: ReactMouseEvent, node: Node) => {
+    const rowOfPort = rowOfPortRef.current;
     if (node.type === 'card') {
       const row = (event.target as HTMLElement).closest('[data-row]')?.getAttribute('data-row');
       select(node.id, { row: row === null || row === undefined ? null : Number(row), source: 'pointer' });
@@ -426,18 +525,20 @@ function MapHost(props: BlueprintMapProps) {
       }
     }
     select(null, { row: null, source: 'pointer' });
-  };
-  const onNodeDoubleClick = (_: ReactMouseEvent, node: Node) => {
+  }, [select]);
+  const onNodeDoubleClick = useCallback((_: ReactMouseEvent, node: Node) => {
     const current = latest.current.layout;
     if (!current) return;
     if (node.type === 'card') {
       const card = current.cards[node.id];
-      if (card) controls.frameBounds({ x: card.x - 24, y: card.y - 24, width: card.width + 48, height: card.height + 48 }, 1.2);
+      if (card) controlsRef.current.frameBounds({ x: card.x - 24, y: card.y - 24, width: card.width + 48, height: card.height + 48 }, 1.2);
     } else if (node.type === 'frame') {
       const frame = current.frames.find(item => `frame:${item.key}` === node.id);
-      if (frame) controls.frameBounds(frame);
+      if (frame) controlsRef.current.frameBounds(frame);
     }
-  };
+  }, []);
+  const onPaneClick = useCallback(() => select(null, { row: null, source: 'pointer' }), [select]);
+  const [initialViewport] = useState(() => memory.viewport ?? { x: 0, y: 0, zoom: 0.1 });
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     latest.current.onKeyDown?.(event);
     if (event.defaultPrevented || isTyping(event.target)) return;
@@ -485,17 +586,17 @@ function MapHost(props: BlueprintMapProps) {
     style={{ touchAction: 'none' }}
   >
     <div className="bp-grid" aria-hidden="true"/>
+    <RestContext.Provider value={rest}>
     <CameraContext.Provider value={controls}>
       {scene && <SceneContext.Provider value={scene}>
         <ReactFlow
           className="bp-flow nowheel"
           nodes={nodes}
-          edges={[]}
+          edges={noEdges}
           nodeTypes={nodeTypes}
-          defaultViewport={memory.viewport ?? { x: 0, y: 0, zoom: 0.1 }}
+          defaultViewport={initialViewport}
           minZoom={ProgrammaticZoom.min}
           maxZoom={ProgrammaticZoom.max}
-          onlyRenderVisibleElements
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
@@ -514,15 +615,16 @@ function MapHost(props: BlueprintMapProps) {
           panActivationKeyCode={null}
           zoomActivationKeyCode={null}
           elevateNodesOnSelect={false}
-          proOptions={{ hideAttribution: true }}
+          proOptions={proOptions}
           onNodeClick={onNodeClick}
           onNodeDoubleClick={onNodeDoubleClick}
-          onPaneClick={() => select(null, { row: null, source: 'pointer' })}
+          onPaneClick={onPaneClick}
         />
         <PinTooltip host={hostRef.current} render={props.pinTooltip}/>
       </SceneContext.Provider>}
       {props.children}
     </CameraContext.Provider>
+    </RestContext.Provider>
     <div className="bp-sr" aria-live="polite">{announcement}</div>
   </div>;
 }

@@ -34,7 +34,7 @@ export function BlueprintCamera({ className, children }: { className?: string; c
   const percent = useZoomPercent();
   return <div className={['bp-camera', className].filter(Boolean).join(' ')} data-part="camera" role="toolbar" aria-label="Map camera">
     <button type="button" className="bp-camera__zoom" data-testid="map-zoom-reset" aria-label={`Zoom ${percent} percent, back to 100 percent`} onClick={() => camera.zoomTo(1)}>{percent}%</button>
-    <button type="button" className="bp-camera__button" data-testid="map-fit" aria-label="Frame everything" title="Frame everything" disabled={!camera.ready} onClick={camera.fit}><FitIcon/></button>
+    <button type="button" className="bp-camera__button" data-testid="map-fit" aria-label="Frame everything" title="Frame everything" disabled={!camera.ready} onClick={() => camera.fit()}><FitIcon/></button>
     <button type="button" className="bp-camera__button" data-testid="map-frame-selection" aria-label="Centre the selection" title="Centre the selection" disabled={!camera.ready || !camera.canCentre} onClick={camera.centre}><CentreIcon/></button>
     {children}
   </div>;
