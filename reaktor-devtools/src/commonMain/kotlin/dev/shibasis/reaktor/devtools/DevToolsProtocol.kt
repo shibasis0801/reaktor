@@ -139,6 +139,7 @@ data class AgentDescriptor(
     val monotonicNanos: Long,
     /** False in release builds, where the agent serves reads and refuses every write. */
     val writable: Boolean,
+    val measureSessionId: String? = null,
 ) {
     fun capability(name: String): AgentCapability? = capabilities.firstOrNull { it.name == name }
 }

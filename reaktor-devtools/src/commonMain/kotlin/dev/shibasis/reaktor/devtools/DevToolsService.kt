@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
+import dev.shibasis.reaktor.service.ServiceContract
 
 /**
  * The agent's operation surface, declared once for both ends.
@@ -16,6 +17,8 @@ import kotlinx.serialization.Serializable
  * [DevToolsCarrier], because a request that never ends is not a request.
  */
 abstract class DevToolsService(baseUrl: String = "") : Service(baseUrl) {
+    override val contract = ServiceContract("reaktor.devtools")
+
     companion object {
         const val Describe = "/devtools/describe"
         const val Semantics = "/devtools/semantics"

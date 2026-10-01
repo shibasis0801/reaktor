@@ -20,6 +20,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-service"))
+            api(project(":reaktor-performance"))
             api(project(":reaktor-graph-port"))
             api(compose.runtime)
             api(compose.ui)
