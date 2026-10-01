@@ -24,6 +24,7 @@ import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 
 interface Navigable {
     val key: String
@@ -56,6 +57,14 @@ open class BottomNavigationContainer(
     ArrayList(children.values.map { it.graph })
 ), ComposeContainer {
     val selected = MutableStateFlow(initialSelection)
+
+    override val changes: List<Flow<*>> get() = listOf(activeGraphIndex, selected)
+
+    override fun shows(graph: Graph): Boolean = children[selected.value]?.graph == graph
+
+    override fun labelOf(graph: Graph): String =
+        children.entries.firstOrNull { it.value.graph == graph }?.let { (key, child) -> child.label.ifBlank { key } }
+            ?: super.labelOf(graph)
 
     var topBar: (@Composable (selectedKey: String, isAtRoot: Boolean) -> Unit)? = null
 

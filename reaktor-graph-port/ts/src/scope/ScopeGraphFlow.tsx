@@ -20,6 +20,7 @@ import {
     ReactFlow,
     type Node,
     type NodeMouseHandler,
+    type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -234,6 +235,10 @@ export interface ScopeGraphFlowProps extends ScopeProjectionOptions, ScopeDecora
     fitViewKey?: string | number;
     /** Rendered inside the ReactFlow provider (camera rigs, overlays). */
     children?: React.ReactNode;
+    /** Product appearances compose over the shared projection and camera. */
+    nodeTypes?: NodeTypes;
+    colorMode?: 'light' | 'dark';
+    keyboardNavigation?: boolean;
 }
 
 export default function ScopeGraphFlow({
@@ -247,6 +252,9 @@ export default function ScopeGraphFlow({
     style,
     fitViewKey,
     children,
+    nodeTypes: appearanceNodes = nodeTypes,
+    colorMode = 'dark',
+    keyboardNavigation = false,
     selectedNodeId,
     highlightedNodeIds,
     ...options
@@ -284,7 +292,7 @@ export default function ScopeGraphFlow({
                 key={fitViewKey}
                 nodes={decorated.flowNodes}
                 edges={decorated.flowEdges}
-                nodeTypes={nodeTypes}
+                nodeTypes={appearanceNodes}
                 onNodeClick={handleNodeClick}
                 onNodeMouseEnter={(_, node) => { if (node.type === 'scopeItem') setHoveredNodeId(node.id); }}
                 onNodeMouseLeave={() => setHoveredNodeId(null)}
@@ -294,7 +302,7 @@ export default function ScopeGraphFlow({
                 minZoom={0.04}
                 proOptions={{ hideAttribution: true }}
                 nodesConnectable={false}
-                colorMode="dark"
+                colorMode={colorMode}
                 // Perf: cull offscreen elements (the big lever at 300+ nodes /
                 // 1k+ edges) and drop focus/keyboard machinery this canvas
                 // doesn't use — fewer DOM nodes, cheaper interaction frames.
@@ -305,11 +313,11 @@ export default function ScopeGraphFlow({
                 zoomOnScroll={false}
                 zoomOnPinch
                 elevateNodesOnSelect={false}
-                nodesFocusable={false}
+                nodesFocusable={keyboardNavigation}
                 edgesFocusable={false}
-                disableKeyboardA11y
+                disableKeyboardA11y={!keyboardNavigation}
             >
-                <Background variant={BackgroundVariant.Dots} gap={26} size={1.1} color="#232635" />
+                <Background variant={BackgroundVariant.Dots} gap={26} size={1.1} color={colorMode === 'light' ? '#d8e0d7' : '#232635'} />
                 {showControls && <Controls showInteractive={false} />}
                 {children}
                 {showMiniMap && (
@@ -317,8 +325,8 @@ export default function ScopeGraphFlow({
                         pannable
                         zoomable
                         nodeColor={(node) => ((node.data as { color?: string })?.color as string) ?? '#3a4160'}
-                        maskColor="rgba(8,8,12,0.72)"
-                        style={{ background: '#101218' }}
+                        maskColor={colorMode === 'light' ? 'rgba(246,245,239,0.72)' : 'rgba(8,8,12,0.72)'}
+                        style={{ background: colorMode === 'light' ? '#eff1eb' : '#101218' }}
                     />
                 )}
             </ReactFlow>

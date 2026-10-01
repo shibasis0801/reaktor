@@ -17,6 +17,7 @@ import kotlin.js.ExperimentalJsStatic
 import kotlin.js.JsExport
 import kotlin.js.JsStatic
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
+import dev.shibasis.reaktor.service.ServiceContract
 
 @JsExport
 @Serializable
@@ -336,6 +337,8 @@ data class DeactivateAccountResponse(
 
 @JsExport
 abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
+    override val contract = ServiceContract("reaktor.auth")
+
     abstract val anonymous: PostHandler<AnonymousAuthRequest, LoginResponse>
     abstract val login: PostHandler<LoginRequest, LoginResponse>
     abstract val token: PostHandler<TokenRequest, TokenResponse>
@@ -352,16 +355,16 @@ abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
 
 @JsExport
 open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
-    override val anonymous = PostHandler<AnonymousAuthRequest, LoginResponse>("/auth/anonymous")
-    override val login = PostHandler<LoginRequest, LoginResponse>("/auth/sign-in")
-    override val mintPat = PostHandler<MintPatRequest, MintPatResponse>("/auth/pat/mint")
-    override val token = PostHandler<TokenRequest, TokenResponse>("/auth/token")
-    override val verifyPat = PostHandler<VerifyPatRequest, VerifyPatResponse>("/auth/pat/verify")
-    override val sessionRefresh = PostHandler<RefreshRequest, RefreshResponse>("/auth/session/refresh")
-    override val sessionLogout = PostHandler<LogoutRequest, LogoutResponse>("/auth/session/logout")
-    override val sessionMe = PostHandler<MeRequest, MeResponse>("/auth/session/me")
-    override val sessionLogoutAll = PostHandler<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
-    override val accountDeactivate = PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
-    override val authorityGrants = PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
-    override val authorityResolve = PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")
+    override val anonymous by PostHandler<AnonymousAuthRequest, LoginResponse>("/auth/anonymous")
+    override val login by PostHandler<LoginRequest, LoginResponse>("/auth/sign-in")
+    override val mintPat by PostHandler<MintPatRequest, MintPatResponse>("/auth/pat/mint")
+    override val token by PostHandler<TokenRequest, TokenResponse>("/auth/token")
+    override val verifyPat by PostHandler<VerifyPatRequest, VerifyPatResponse>("/auth/pat/verify")
+    override val sessionRefresh by PostHandler<RefreshRequest, RefreshResponse>("/auth/session/refresh")
+    override val sessionLogout by PostHandler<LogoutRequest, LogoutResponse>("/auth/session/logout")
+    override val sessionMe by PostHandler<MeRequest, MeResponse>("/auth/session/me")
+    override val sessionLogoutAll by PostHandler<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
+    override val accountDeactivate by PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
+    override val authorityGrants by PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
+    override val authorityResolve by PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")
 }

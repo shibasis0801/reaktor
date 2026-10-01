@@ -1,6 +1,9 @@
 package dev.shibasis.reaktor.graph.core.node
 
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.GraphShape
+import dev.shibasis.reaktor.graph.core.NodeKind
+import kotlinx.coroutines.flow.Flow
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.graph.navigation.Payload
@@ -24,6 +27,17 @@ open class ContainerNode(
 
     val activeGraph: Graph?
         get() = graphs.getOrNull(activeGraphIndex.value)
+
+    override val kind: NodeKind get() = NodeKind.Container
+
+    open val changes: List<Flow<*>> get() = listOf(activeGraphIndex)
+
+    open val dormant: GraphShape? get() = null
+
+    open fun labelOf(graph: Graph): String =
+        graph.label.ifBlank { route.pattern.original.trim('/').ifBlank { this::class.simpleName ?: "Graph" } }
+
+    open fun shows(graph: Graph): Boolean = activeGraph == graph
 
     fun activateGraphForRoute(route: RouteNode<*, *>): Boolean =
         graphs.firstOrNull { graph -> graph.nodes.any { it == route } }?.let(::activate) ?: false

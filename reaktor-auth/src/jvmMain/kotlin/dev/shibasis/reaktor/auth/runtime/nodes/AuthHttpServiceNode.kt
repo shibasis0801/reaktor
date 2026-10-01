@@ -46,49 +46,49 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph), AuthHttpService {
     val httpServicePort by provides<AuthHttpService>(this)
 
     override val service: AuthService = object : AuthService() {
-        override val authorityGrants = PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/authority/grants") {
+        override val authorityGrants by PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/authority/grants") {
             authorityPort.suspended { grants(it) }
         }
-        override val authorityResolve = PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/authority/resolve") {
+        override val authorityResolve by PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/authority/resolve") {
             authorityPort.suspended { resolve(it) }
         }
-        override val anonymous = PostHandler<AnonymousAuthRequest, LoginResponse>("/anonymous") {
+        override val anonymous by PostHandler<AnonymousAuthRequest, LoginResponse>("/anonymous") {
             loginPort.suspended { anonymous(it) }
         }
 
-        override val login = PostHandler<LoginRequest, LoginResponse>("/sign-in") {
+        override val login by PostHandler<LoginRequest, LoginResponse>("/sign-in") {
             loginPort.suspended { login(it) }
         }
 
-        override val mintPat = PostHandler<MintPatRequest, MintPatResponse>("/pat/mint") {
+        override val mintPat by PostHandler<MintPatRequest, MintPatResponse>("/pat/mint") {
             patPort.suspended { mint(it) }
         }
 
-        override val verifyPat = PostHandler<VerifyPatRequest, VerifyPatResponse>("/pat/verify") {
+        override val verifyPat by PostHandler<VerifyPatRequest, VerifyPatResponse>("/pat/verify") {
             patPort.suspended { verify(it) }
         }
 
-        override val token = PostHandler<TokenRequest, TokenResponse>("/token") {
+        override val token by PostHandler<TokenRequest, TokenResponse>("/token") {
             tokenGrantsPort.suspended { issue(it) }
         }
 
-        override val sessionRefresh = PostHandler<RefreshRequest, RefreshResponse>("/session/refresh") {
+        override val sessionRefresh by PostHandler<RefreshRequest, RefreshResponse>("/session/refresh") {
             sessionsPort.suspended { refresh(it) }
         }
 
-        override val sessionLogout = PostHandler<LogoutRequest, LogoutResponse>("/session/logout") {
+        override val sessionLogout by PostHandler<LogoutRequest, LogoutResponse>("/session/logout") {
             sessionsPort.suspended { logout(it) }
         }
 
-        override val sessionMe = PostHandler<MeRequest, MeResponse>("/session/me") {
+        override val sessionMe by PostHandler<MeRequest, MeResponse>("/session/me") {
             sessionsPort.suspended { me(it) }
         }
 
-        override val sessionLogoutAll = PostHandler<LogoutAllRequest, LogoutAllResponse>("/session/logout-all") {
+        override val sessionLogoutAll by PostHandler<LogoutAllRequest, LogoutAllResponse>("/session/logout-all") {
             sessionsPort.suspended { logoutAll(it) }
         }
 
-        override val accountDeactivate = PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/account/deactivate") {
+        override val accountDeactivate by PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/account/deactivate") {
             accountPort.suspended { deactivate(it) }
         }
     }

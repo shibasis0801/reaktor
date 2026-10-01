@@ -54,6 +54,26 @@ sealed interface InfrastructureOperation {
     ) : InfrastructureOperation
 
     @Serializable
+    data class IslandShapesRead(
+        val hosts: List<String>,
+        val tokenEndpoint: String,
+        val audience: String,
+        val authEnvironment: String,
+        val credentialFile: String? = null,
+        val clientIdKey: String = "REAKTOR_WORKER_CLIENT_ID",
+        val clientSecretKey: String = "REAKTOR_WORKER_CLIENT_SECRET",
+        val scopes: List<String> = emptyList(),
+    ) : InfrastructureOperation
+
+    @Serializable
+    data class SpanRead(
+        val connection: DatabaseConnection.KubernetesService,
+        val database: String,
+        val windowMinutes: Int = 60,
+        val limit: Int = 500,
+    ) : InfrastructureOperation
+
+    @Serializable
     data class WorkerCall(
         val endpoint: String,
         val operation: String,
@@ -103,3 +123,9 @@ data class ServiceTokenSource(val tokenEndpoint: String, val audience: String, v
 
 fun InfrastructureOperation.WorkerCall.tokenSource() = ServiceTokenSource(tokenEndpoint, audience, authEnvironment,
     credentialFile, clientIdKey, clientSecretKey, scopes)
+
+fun InfrastructureOperation.IslandShapesRead.tokenSource() = ServiceTokenSource(tokenEndpoint, audience, authEnvironment,
+    credentialFile, clientIdKey, clientSecretKey, scopes)
+
+@Serializable
+data class IslandReading(val host: String, val shape: kotlinx.serialization.json.JsonElement? = null, val failure: String? = null)

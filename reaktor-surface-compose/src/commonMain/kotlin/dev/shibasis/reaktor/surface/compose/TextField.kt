@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import dev.shibasis.reaktor.surface.PressKernel
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
@@ -64,6 +66,7 @@ fun TextField(
     placeholder: (@Composable () -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    label: String? = null,
 ) {
     val properties = FieldProperties(enabled, error, state.text.isEmpty())
     val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
@@ -80,7 +83,7 @@ fun TextField(
     }
     BasicTextField(
         state = state,
-        modifier = modifier.bringIntoViewRequester(reveal),
+        modifier = (if (label == null) modifier else modifier.semantics { contentDescription = label }).bringIntoViewRequester(reveal),
         enabled = enabled,
         textStyle = appearance.textStyle(properties, theme),
         keyboardOptions = keyboardOptions,

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import dev.shibasis.reaktor.graph.core.NodeKind
 
 @JsExport
 open class RouteBinding<P: Payload>(
@@ -66,6 +67,8 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
     portName: String,
     binder: Binder<P, Binding>
 ): Node(graph) {
+    override val kind: NodeKind get() = NodeKind.Route
+
     @JsName("constructNamed")
     constructor(graph: Graph, pattern: String, portName: String, binder: (RouteNode<P, Binding>) -> Binding):
             this(graph, RoutePattern.from(pattern), portName, binder)

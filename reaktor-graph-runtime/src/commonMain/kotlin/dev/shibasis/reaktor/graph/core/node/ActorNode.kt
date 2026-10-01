@@ -34,6 +34,7 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
+import dev.shibasis.reaktor.graph.core.NodeKind
 
 @JsExport
 data class ActorAddress(
@@ -143,6 +144,8 @@ abstract class ActorNode<M : Any>(
     id = key.nodeId,
     label = key.name,
 ), ActorRef<M> {
+    override val kind: NodeKind get() = NodeKind.Actor
+
     final override val address: ActorAddress =
         ActorAddress(
             graphId = graph.id.toString(),

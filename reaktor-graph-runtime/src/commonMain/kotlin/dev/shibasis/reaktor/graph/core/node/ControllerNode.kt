@@ -5,11 +5,14 @@ import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
+import dev.shibasis.reaktor.graph.core.NodeKind
 
 @JsExport
 abstract class ControllerNode<State>(
     graph: Graph
 ): Node(graph), Node.Routable {
+    override val kind: NodeKind get() = NodeKind.Controller
+
     abstract val state: MutableStateFlow<State>
 //    abstract val routeBinding: ConsumerPort<out RouteBinding<out Payload>>
 

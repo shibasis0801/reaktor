@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
@@ -34,6 +35,8 @@ sealed class Node(
         graph.coroutineScope.coroutineContext,
         dispatcher
     )
+
+    open val kind: NodeKind get() = NodeKind.Node
 
     override val lifecycle get() = lifecycleCapability.lifecycle
     override val coroutineScope get() = concurrencyCapability.coroutineScope

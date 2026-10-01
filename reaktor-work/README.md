@@ -1,54 +1,9 @@
 # reaktor-work
 
-> **Stability: Experimental** - Functional with platform-native schedulers. API may evolve.
+**Status: Experimental. Source reviewed 26 September 2026.**
 
-`reaktor-work` is Reaktor's background task orchestration layer. Products define work in shared Kotlin code; the platform's task manager (Android WorkManager, iOS BGTaskScheduler, JVM scheduler, or Node.js) handles actual scheduling and execution.
+This module currently wraps Meeseeks 1.0.2 with `TaskManager`, `Feature.Work` and thin Android, iOS, JVM and browser JS context adapters. It forwards scheduling, cancellation, rescheduling and status observation. The ten bundled workers are log-only placeholder bodies; they do not implement sync, upload, token refresh or the other effects their names suggest.
 
-## Platforms
+Native persistence and execution must be qualified with application-level bootstrap. The pinned JVM dependency has a documented initialization defect. Browser JS is not Node.js support, and there is no dedicated Hermes or Cloudflare Work executor.
 
-Android, iOS (Darwin), JVM, JavaScript/Web
-
-## Core types
-
-| Type | Purpose |
-|---|---|
-| `TaskManager<Controller>` | Abstract base; delegates to platform manager |
-| `AndroidTaskManager` | Android WorkManager implementation |
-| `DarwinTaskManager` | iOS BGTaskScheduler implementation |
-| `JvmTaskManager` | JVM/server implementation |
-| `JsTaskManager` | JavaScript/Node.js implementation |
-| `Worker<TPayload>` | Base class for reusable task implementations |
-
-## Built-in worker shapes
-
-| Worker | Purpose |
-|---|---|
-| `SyncWorker` | Periodic data synchronization |
-| `TokenRefreshWorker` | OAuth token refresh before expiry |
-| `AnalyticsUploadWorker` | Batch upload of analytics events |
-| `MediaUploadWorker` | Upload pending media files |
-| `DatabaseMaintenanceWorker` | Database optimization (vacuum, compact) |
-| `CacheCleanupWorker` | Remove expired cache entries |
-| `NotificationSyncWorker` | Sync notification state |
-| `HeartbeatWorker` | Periodic keep-alive |
-| `PrefetchWorker` | Preload content for offline use |
-| `LogUploadWorker` | Collect and upload logs |
-
-## Task capabilities
-
-- One-time and periodic scheduling
-- Initial delay and flex windows
-- Backoff configuration (min: 15s, max retries: 3)
-- Max parallel tasks (4 concurrent by default)
-- Task status monitoring and cancellation
-- Observable task flows
-
-## Dependencies
-
-- `reaktor-core`
-- Meeseeks runtime (unified task scheduling framework)
-- Koin dependency injection (JVM)
-
-## Goal
-
-Products should be able to schedule background work from shared code while leaving the host runtime details to the platform task manager.
+The [public Work status page](https://reaktor.build/docs/reaktor-work) and the authenticated [Durable Execution Roadmap](https://reaktor.build/docs/private/reaktor-work-roadmap) replace the previous guide. The roadmap owns the proposed graph contract, durable intent and effect protocol, platform qualification, dependency migration, delivery milestones and acceptance gates. Those proposed APIs are not implemented by this README change.

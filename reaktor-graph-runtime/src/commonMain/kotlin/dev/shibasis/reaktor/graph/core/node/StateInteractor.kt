@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import dev.shibasis.reaktor.graph.core.NodeKind
 
 /**
  * A node that owns a single immutable [state] and is the only thing able to change it.
@@ -19,6 +20,8 @@ abstract class StateInteractor<S : Any>(
     graph: Graph,
     initialState: S,
 ) : BasicNode(graph) {
+    override val kind: NodeKind get() = NodeKind.Interactor
+
     private val mutableState = MutableStateFlow(initialState)
 
     val state: StateFlow<S> = mutableState.asStateFlow()

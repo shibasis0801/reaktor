@@ -14,7 +14,6 @@ import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.service.DeleteHandler
 import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.HeadHandler
-import dev.shibasis.reaktor.service.HttpMethod
 import dev.shibasis.reaktor.service.OptionsHandler
 import dev.shibasis.reaktor.service.PatchHandler
 import dev.shibasis.reaktor.service.PostHandler
@@ -23,11 +22,12 @@ import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
-import dev.shibasis.reaktor.service.ServiceEndpoint
+import dev.shibasis.reaktor.service.operationPortType
 import dev.shibasis.reaktor.service.serviceOperationKey
 import kotlin.js.JsExport
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.reflect.KProperty1
+import dev.shibasis.reaktor.graph.core.NodeKind
 
 object GetApi
 object PostApi
@@ -43,11 +43,13 @@ open class ServiceNode(
         val service: Service,
         val serviceLabel: String = service::class.simpleName ?: "ServiceNode",
 ) : BasicNode(graph) {
+    override val kind: NodeKind get() = NodeKind.Service
+
     init {
         service.handlers.forEach { handler ->
             registerProvider(
                     Key(handler.endpoint.portKey),
-                    Type(handler.endpoint.portType),
+                    Type(operationPortType(handler.endpoint.operation, handler.requestSerializer, handler.responseSerializer)),
                     handler
             )
         }
@@ -77,11 +79,11 @@ class ServiceApiPort<In : Request, Out : Response, H : RequestHandler<In, Out>>(
 
     operator fun invoke(): H = requireImpl()
 
-    operator fun <R> invoke(fn: H.() -> R): R = fn(requireImpl())
+    operator fun <R> invoke(fn: H.() -> R): R = requireImpl().let { consumer(fn) }
 
-    suspend fun <R> suspended(fn: suspend H.() -> R): R = fn(requireImpl())
+    suspend fun <R> suspended(fn: suspend H.() -> R): R = requireImpl().let { consumer.suspended(fn) }
 
-    suspend operator fun invoke(request: In): Out = requireImpl()(request)
+    suspend operator fun invoke(request: In): Out = requireImpl().let { consumer.suspended { this(request) } }
 
     override fun close() {
         consumer.close()
@@ -97,12 +99,11 @@ internal inline fun <
     reified H : RequestHandler<In, Out>,
 > PortCapability.serviceApi(
     propertyName: String,
-    method: HttpMethod,
 ) = PropertyDelegateProvider<PortCapability, PortDelegate<ServiceApiPort<In, Out, H>>> { thisRef, _ ->
     val operation = serviceOperationKey(kSerializer<In>(), propertyName)
     val port = thisRef.registerConsumer<H>(
         Key(operation),
-        Type(ServiceEndpoint.http(method, "", operation).portType),
+        Type(operationPortType(operation, kSerializer<In>(), kSerializer<Out>())),
     )
     val api = ServiceApiPort(port)
     PortDelegate { _, _ -> api }
@@ -111,34 +112,34 @@ internal inline fun <
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, GetHandler<In, Out>>,
     marker: GetApi = GetApi,
-) = serviceApi<In, Out, GetHandler<In, Out>>(route.name, HttpMethod.GET)
+) = serviceApi<In, Out, GetHandler<In, Out>>(route.name)
 
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, PostHandler<In, Out>>,
     marker: PostApi = PostApi,
-) = serviceApi<In, Out, PostHandler<In, Out>>(route.name, HttpMethod.POST)
+) = serviceApi<In, Out, PostHandler<In, Out>>(route.name)
 
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, PutHandler<In, Out>>,
     marker: PutApi = PutApi,
-) = serviceApi<In, Out, PutHandler<In, Out>>(route.name, HttpMethod.PUT)
+) = serviceApi<In, Out, PutHandler<In, Out>>(route.name)
 
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, DeleteHandler<In, Out>>,
     marker: DeleteApi = DeleteApi,
-) = serviceApi<In, Out, DeleteHandler<In, Out>>(route.name, HttpMethod.DELETE)
+) = serviceApi<In, Out, DeleteHandler<In, Out>>(route.name)
 
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, PatchHandler<In, Out>>,
     marker: PatchApi = PatchApi,
-) = serviceApi<In, Out, PatchHandler<In, Out>>(route.name, HttpMethod.PATCH)
+) = serviceApi<In, Out, PatchHandler<In, Out>>(route.name)
 
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, OptionsHandler<In, Out>>,
     marker: OptionsApi = OptionsApi,
-) = serviceApi<In, Out, OptionsHandler<In, Out>>(route.name, HttpMethod.OPTIONS)
+) = serviceApi<In, Out, OptionsHandler<In, Out>>(route.name)
 
 inline fun <reified S : Service, reified In : Request, reified Out : Response> PortCapability.api(
     route: KProperty1<S, HeadHandler<In, Out>>,
     marker: HeadApi = HeadApi,
-) = serviceApi<In, Out, HeadHandler<In, Out>>(route.name, HttpMethod.HEAD)
+) = serviceApi<In, Out, HeadHandler<In, Out>>(route.name)
