@@ -1,24 +1,19 @@
 package dev.shibasis.reaktor.graph.core
 
 import dev.shibasis.reaktor.graph.ServiceNode
-import dev.shibasis.reaktor.graph.core.node.ActorNode
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.ControllerNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
-import dev.shibasis.reaktor.graph.core.node.StateInteractor
-import dev.shibasis.reaktor.graph.ui.BottomNavigationContainer
-import dev.shibasis.reaktor.graph.ui.ChildGraph
-import dev.shibasis.reaktor.graph.ui.ComposeContent
-import dev.shibasis.reaktor.graph.ui.SessionSlot
-import dev.shibasis.reaktor.graph.ui.TabbedContainer
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
+import dev.shibasis.reaktor.service.OperationDescriptor
+import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 import kotlinx.serialization.Serializable
+import kotlin.js.JsExport
 
 @Serializable
 data class GraphShape(
@@ -27,6 +22,9 @@ data class GraphShape(
     val wires: List<WireShape>,
     val routes: List<RouteShape>,
 )
+
+@Serializable
+data class IslandShape(val island: String, val runtime: String, val graph: GraphShape, val objects: List<IslandShape> = emptyList())
 
 @Serializable
 data class ScopeShape(
@@ -38,6 +36,7 @@ data class ScopeShape(
     val backStack: List<String> = emptyList(),
 )
 
+@JsExport
 @Serializable
 enum class NodeKind { Route, Screen, Container, Service, Actor, Controller, Interactor, Node }
 
@@ -53,6 +52,7 @@ data class NodeShape(
     val lifecycle: String? = null,
     val ports: List<PortShape> = emptyList(),
     val attributes: Map<String, String> = emptyMap(),
+    val operations: List<OperationDescriptor> = emptyList(),
 )
 
 @Serializable
@@ -105,14 +105,15 @@ fun Graph.shape(): GraphShape {
             nodes += NodeShape(
                 id = node.id.toString(),
                 scope = scope,
-                label = node.label.ifBlank { node::class.simpleName ?: "Node" },
+                label = node.label.ifBlank { node.contractLabel() ?: node::class.simpleName ?: "Node" },
                 type = node::class.simpleName ?: "Node",
-                kind = node.kind(route != null),
+                kind = node.kind.let { if (route != null && it != NodeKind.Route && it != NodeKind.Container) NodeKind.Screen else it },
                 route = (node as? RouteNode<*, *>)?.pattern?.original ?: route?.pattern?.original,
                 attachedTo = route?.id?.toString(),
                 lifecycle = node.lifecycle.value::class.simpleName,
                 ports = node.portShapes(graph),
                 attributes = node.attributes(),
+                operations = (node as? ServiceNode)?.service?.operations.orEmpty(),
             )
             node.consumerPorts.flattenedValues().forEach { consumer ->
                 val edge = consumer.edge ?: return@forEach
@@ -131,7 +132,7 @@ fun Graph.shape(): GraphShape {
         }
         members.filterIsInstance<ContainerNode>().forEach { child ->
             child.graphs.toList().forEach { visit(it, child) }
-            if (child is SessionSlot<*> && child.child.value == null) child.blueprint?.let { dormant ->
+            child.dormant?.let { dormant ->
                 val root = dormant.scopes.first { it.parent == null }
                 scopes += dormant.scopes.map { shown ->
                     if (shown.id == root.id) shown.copy(parent = scope, container = child.id.toString(), active = false, backStack = emptyList())
@@ -162,26 +163,9 @@ private val InternalPorts = setOf("routeBinding", "navBinding")
 private fun Graph.watched(): List<Flow<*>> = buildList {
     add(backStack.entries)
     nodes.toList().filterIsInstance<ContainerNode>().forEach { container ->
-        add(container.activeGraphIndex)
-        when (container) {
-            is SessionSlot<*> -> add(container.child)
-            is BottomNavigationContainer -> add(container.selected)
-            is TabbedContainer -> add(container.selected)
-            else -> Unit
-        }
+        addAll(container.changes)
         container.graphs.toList().forEach { addAll(it.watched()) }
     }
-}
-
-private fun Node.kind(attached: Boolean): NodeKind = when {
-    this is RouteNode<*, *> -> NodeKind.Route
-    this is ContainerNode -> NodeKind.Container
-    attached || this is ComposeContent -> NodeKind.Screen
-    this is ServiceNode -> NodeKind.Service
-    this is ActorNode<*> -> NodeKind.Actor
-    this is ControllerNode<*> -> NodeKind.Controller
-    this is StateInteractor<*> -> NodeKind.Interactor
-    else -> NodeKind.Node
 }
 
 private fun Node.portShapes(graph: Graph): List<PortShape> =
@@ -210,27 +194,18 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
         )
     }
 
-private fun ContainerNode.children(): Map<String, ChildGraph>? = when (this) {
-    is BottomNavigationContainer -> children
-    is TabbedContainer -> children
-    else -> null
-}
-
-private fun ContainerNode.labelOf(graph: Graph): String =
-    children()?.entries?.firstOrNull { it.value.graph == graph }?.let { (key, child) -> child.label.ifBlank { key } }
-        ?: graph.label.ifBlank { route.pattern.original.trim('/').ifBlank { this::class.simpleName ?: "Graph" } }
-
-private fun ContainerNode.shows(graph: Graph): Boolean = when (this) {
-    is SessionSlot<*> -> child.value == graph
-    is BottomNavigationContainer -> children[selected.value]?.graph == graph
-    is TabbedContainer -> children[selected.value]?.graph == graph
-    else -> activeGraph == graph
-}
+private fun Node.contractLabel(): String? =
+    (this as? ServiceNode)?.takeIf { it::class == ServiceNode::class }?.let { node -> node.service.contract.id.ifBlank { node.serviceLabel } }
 
 private fun Node.attributes(): Map<String, String> = when (this) {
     is ServiceNode -> buildMap {
         put("service", serviceLabel)
         service.baseUrl.takeIf { it.isNotBlank() }?.let { put("baseUrl", it) }
+        service.contract.id.takeIf { it.isNotBlank() }?.let {
+            put("contract", it)
+            put("version", service.contract.version.toString())
+        }
+        put("role", if (service.handlers.isNotEmpty() && service.handlers.all { it.phase == ServiceExecutionPhase.CLIENT }) "client" else "server")
     }
     else -> emptyMap()
 }

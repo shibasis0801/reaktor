@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.service
 
+import kotlin.js.JsExport
+
+@JsExport
 enum class ServiceExecutionPhase {
     CLIENT,
     SERVER,

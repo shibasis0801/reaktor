@@ -78,8 +78,15 @@ external object HonoModule {
     val HonoFactory: dynamic
 }
 
+@JsModule("hono/cors")
+external object HonoCorsModule {
+    fun cors(options: dynamic): dynamic
+}
+
 external interface Hono {
     fun on(method: String, path: String, handler: (HonoContext) -> dynamic): Hono
+    fun all(path: String, handler: (HonoContext) -> dynamic): Hono
+    fun use(path: String, middleware: dynamic): Hono
     fun route(path: String, app: Hono): Hono
     fun fetch(request: dynamic, env: CloudflareEnv = definedExternally, executionCtx: WorkerExecutionContext = definedExternally): dynamic
 }

@@ -11,9 +11,9 @@ import kotlin.test.*
 class AuthAdapterSessionTest {
     private fun client(login: suspend (LoginRequest) -> LoginResponse, logout: suspend (LogoutRequest) -> LogoutResponse = { LogoutResponse(success = true) }) =
         object : AuthServiceClient("https://unused.example.test") {
-            override val login = PostHandler("/fixture/login", requestSerializer = LoginRequest.serializer(),
+            override val login by PostHandler("/fixture/login", requestSerializer = LoginRequest.serializer(),
                 responseSerializer = LoginResponse.serializer(), handler = { login(it) })
-            override val sessionLogout = PostHandler("/fixture/logout", requestSerializer = LogoutRequest.serializer(),
+            override val sessionLogout by PostHandler("/fixture/logout", requestSerializer = LogoutRequest.serializer(),
                 responseSerializer = LogoutResponse.serializer(), handler = { logout(it) })
         }
     private fun DesktopAuthAdapter.provider(block: suspend () -> Result<GoogleUser>) {
@@ -23,6 +23,24 @@ class AuthAdapterSessionTest {
         })
     }
     private val user = GoogleUser("fixture-id-token", "Ada", "Lovelace", "ada@example.test", "")
+
+    @Test fun providerProofIsAvailableOnceAfterSuccessfulInteractiveLogin() = runBlocking {
+        val context = AuthContext(principal = PrincipalRef("fixture-user", PrincipalKind.USER), appId = "app", audience = "app", method = AuthMethod.ACCESS_TOKEN)
+        val response = LoginResponse.Success(context.toSnapshot(), JsonObject(emptyMap()), TokenSet("access", "refresh", expiresInSeconds = 60))
+        var stored: StoredAuthSession? = null
+        val store = object : AuthSessionStore {
+            override suspend fun read(environment: Environment) = stored
+            override suspend fun write(environment: Environment, session: StoredAuthSession) { stored = session }
+            override suspend fun clear(environment: Environment) { stored = null }
+        }
+        val adapter = DesktopAuthAdapter(client({ response }), store)
+        adapter.provider { Result.success(user) }
+        assertIs<LoginResponse.Success>(adapter.login("app", userProvider = UserProvider.GOOGLE))
+        assertEquals("fixture-id-token", adapter.takeProviderIdentityToken())
+        assertNull(adapter.takeProviderIdentityToken())
+        adapter.logout()
+        assertNull(adapter.takeProviderIdentityToken())
+    }
 
     @Test fun providerAndServerCancellationPropagateAndRestoreIdleState() = runBlocking<Unit> {
         val adapter = DesktopAuthAdapter(client({ throw CancellationException("server cancelled") }))

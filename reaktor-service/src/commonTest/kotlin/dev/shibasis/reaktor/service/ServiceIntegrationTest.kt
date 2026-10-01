@@ -111,7 +111,7 @@ private class RecordingInterceptor : ServiceInterceptor {
 private class PingService(
     interceptor: ServiceInterceptor,
 ) : Service() {
-    val ping = GetHandler<PingRequest, PingResponse>("/ping") { request ->
+    val ping by GetHandler<PingRequest, PingResponse>("/ping") { request ->
         PingResponse(message = request.message)
     }
 

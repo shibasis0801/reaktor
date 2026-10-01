@@ -19,3 +19,7 @@ export * from './scope/types';
 export * from './scope/projection';
 export { layoutScopeGraph, defaultScopeLayout } from './scope/layout';
 export type { ScopeLayoutOptions, ScopeLayoutResult } from './scope/layout';
+export { ScopeGraphCanvas } from './scope/ScopeGraphCanvas';
+export type { ScopeCanvasHandle, ScopeCanvasAppearance } from './scope/ScopeGraphCanvas';
+export { buildScopeCanvasScene, frameGraph, zoomGraph, graphBounds } from './scope/canvasScene';
+export type { GraphCamera, ScopeCanvasScene } from './scope/canvasScene';

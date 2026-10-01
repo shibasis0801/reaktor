@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.Flow
 
 class SessionSlot<K : Any>(
     parent: Graph,
@@ -25,6 +26,12 @@ class SessionSlot<K : Any>(
     private val shown = mutableSetOf<Graph>()
     private val retired = mutableSetOf<Graph>()
     val child: StateFlow<Graph?> = current.asStateFlow()
+
+    override val changes: List<Flow<*>> get() = listOf(activeGraphIndex, child)
+
+    override val dormant: GraphShape? get() = if (child.value == null) blueprint else null
+
+    override fun shows(graph: Graph): Boolean = child.value == graph
 
     var blueprint: GraphShape? = null
         private set

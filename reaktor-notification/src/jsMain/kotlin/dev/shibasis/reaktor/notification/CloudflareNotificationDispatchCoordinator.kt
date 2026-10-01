@@ -1,21 +1,27 @@
 package dev.shibasis.reaktor.notification
 
 import dev.shibasis.reaktor.cloudflare.CloudflareDurableObject
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.promise
+import dev.shibasis.reaktor.cloudflare.DurableObjectStorage
+import dev.shibasis.reaktor.cloudflare.Hono
+import dev.shibasis.reaktor.cloudflare.mount
+import dev.shibasis.reaktor.core.network.StatusCode
+import dev.shibasis.reaktor.graph.Reaktor
+import dev.shibasis.reaktor.graph.ServiceNode
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.IslandShape
+import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.service.GetHandler
+import dev.shibasis.reaktor.service.PostHandler
 import kotlin.js.JsExport
 
 @JsExport
 open class CloudflareNotificationDispatchCoordinator(
-    state: Any,
-    env: Any,
+    private val state: Any,
+    private val env: Any,
 ) : CloudflareDurableObject(state, env) {
-    @OptIn(DelicateCoroutinesApi::class)
-    fun fetch(request: Any): Any =
-        GlobalScope.promise {
-            handle(request)
-        }
+    private val app by lazy { Hono().mount(NotificationDispatcherService({ storage }, ::dispatchRemote), DispatcherIsland) }
+
+    open fun fetch(request: Any): Any = app.fetch(request, env.asDynamic(), state.asDynamic())
 
     @JsExport.Ignore
     protected open suspend fun dispatchRemote(payload: NotificationDispatchPayload): NotificationDispatchResult =
@@ -24,65 +30,37 @@ open class CloudflareNotificationDispatchCoordinator(
             dispatched = false,
             dryRun = false,
         )
+}
 
-    private suspend fun handle(request: Any): Any {
-        val incoming = incomingRequest(request)
-        val method = incoming.method.uppercase()
-        val path = incoming.path
-
-        if (method == "GET" && path == "/state") {
-            return json(
-                NotificationDispatchStateSnapshot(
-                    state = storage.getJson<NotificationDispatchState>(LAST_DISPATCH_KEY),
-                ),
-                headers = jsonHeaders,
-            )
-        }
-
-        if (method != "POST" || path != "/deliver") {
-            return text("Not Found", status = 404, headers = corsHeaders)
-        }
-
-        val payload = incoming.decode<NotificationDispatchPayload>()
+class NotificationDispatcherService(
+    private val storage: () -> DurableObjectStorage,
+    private val remote: suspend (NotificationDispatchPayload) -> NotificationDispatchResult,
+) : NotificationDispatcherApi() {
+    override val deliver by PostHandler<NotificationDispatchPayload, NotificationDispatchResult>("/deliver") { payload ->
         val result = if (payload.dryRun) {
-            payload.dispatchResult(
-                status = NotificationDeliveryStatuses.DryRunAccepted,
-                dispatched = false,
-                dryRun = true,
-            )
+            payload.dispatchResult(status = NotificationDeliveryStatuses.DryRunAccepted, dispatched = false, dryRun = true)
         } else {
-            dispatchRemote(payload)
+            remote(payload)
         }
-
-        storage.putJson(
-            LAST_DISPATCH_KEY,
-            result.toState(
-                payload = payload,
-                updatedAt = nowIso(),
-            ),
-        )
-
-        return json(
-            result,
-            status = if (result.dispatched || result.dryRun) 202 else 502,
-            headers = jsonHeaders,
-        )
+        storage().putJson(LastDispatchKey, result.toState(payload = payload, updatedAt = nowIso()))
+        result.copy(statusCode = if (result.dispatched || result.dryRun) StatusCode.ACCEPTED else StatusCode.BAD_GATEWAY)
     }
 
-    private companion object {
-        const val LAST_DISPATCH_KEY = "last-dispatch"
-
-        val corsHeaders =
-            mapOf(
-                "Access-Control-Allow-Origin" to "*",
-                "Access-Control-Allow-Methods" to "GET, POST, OPTIONS",
-                "Access-Control-Allow-Headers" to "Content-Type, Accept, Authorization",
-                "Access-Control-Max-Age" to "86400",
-            )
-
-        val jsonHeaders = corsHeaders + ("Content-Type" to "application/json; charset=utf-8")
+    override val state by GetHandler<NotificationDispatchStateRequest, NotificationDispatchStateSnapshot>("/state") {
+        NotificationDispatchStateSnapshot(storage().getJson<NotificationDispatchState>(LastDispatchKey))
     }
 }
+
+fun notificationDispatcherIsland(): IslandShape {
+    Reaktor.web()
+    val graph = Graph(label = DispatcherIsland)
+    graph.ServiceNode(NotificationDispatcherService({ error("A shape has no storage") }, { error("A shape does not dispatch") }))
+    return IslandShape(DispatcherIsland, "cloudflare-durable-object", graph.shape())
+}
+
+const val DispatcherIsland = "notification-dispatcher"
+
+private const val LastDispatchKey = "last-dispatch"
 
 private fun nowIso(): String =
     js("new Date().toISOString()") as String

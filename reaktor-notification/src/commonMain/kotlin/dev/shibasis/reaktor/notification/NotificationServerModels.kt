@@ -4,6 +4,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.js.JsExport
+import kotlinx.serialization.Transient
+import dev.shibasis.reaktor.core.network.StatusCode
+import dev.shibasis.reaktor.service.Response
+import dev.shibasis.reaktor.service.Request
 
 @JsExport
 @Serializable
@@ -98,7 +102,7 @@ data class NotificationDispatchPayload(
     val sender: NotificationPerson? = null,
     val conversation: NotificationConversation? = null,
     val capabilities: List<String> = emptyList(),
-)
+) : Request()
 
 @Serializable
 data class NotificationDispatchResult(
@@ -108,7 +112,8 @@ data class NotificationDispatchResult(
     val status: String,
     val dispatched: Boolean,
     val dryRun: Boolean,
-)
+    @Transient override val statusCode: StatusCode = StatusCode.OK,
+) : Response()
 
 @Serializable
 data class NotificationDispatchState(
@@ -126,7 +131,10 @@ data class NotificationDispatchState(
 @Serializable
 data class NotificationDispatchStateSnapshot(
     val state: NotificationDispatchState? = null,
-)
+) : Response()
+
+@Serializable
+class NotificationDispatchStateRequest : Request()
 
 fun NotificationDispatchPayload.envelope(): NotificationEnvelope =
     NotificationEnvelope(

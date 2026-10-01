@@ -26,6 +26,9 @@ export interface ScopeLayoutOptions {
     /** Size of a collapsed scope summary card. */
     summaryWidth: number;
     summaryHeight: number;
+    /** Compact packing for overview scopes without a geographic canvas. */
+    rootPlacement: 'anchored' | 'packed' | 'shelves';
+    childPlacement: 'spiral' | 'shelves';
 }
 
 export const defaultScopeLayout: ScopeLayoutOptions = {
@@ -36,6 +39,8 @@ export const defaultScopeLayout: ScopeLayoutOptions = {
     anchorScale: 2.1,
     summaryWidth: 208,
     summaryHeight: 88,
+    rootPlacement: 'anchored',
+    childPlacement: 'spiral',
 };
 
 export interface LaidOutBox {
@@ -101,6 +106,20 @@ interface ChildBox {
     weight: number;
     x?: number;
     y?: number;
+}
+
+function packShelves(children: ChildBox[], gap = 24): { width: number; height: number } {
+    const sorted = [...children].sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
+    const target = Math.max(1, ...sorted.map(child => child.width), Math.sqrt(sorted.reduce((sum, child) => sum + (child.width + gap) * (child.height + gap), 0)) * 1.3);
+    let x = 0, y = 0, rowHeight = 0, width = 0;
+    for (const child of sorted) {
+        if (x > 0 && x + child.width > target) { x = 0; y += rowHeight + gap; rowHeight = 0; }
+        child.x = x; child.y = y;
+        width = Math.max(width, x + child.width);
+        rowHeight = Math.max(rowHeight, child.height);
+        x += child.width + gap;
+    }
+    return { width: Math.max(width, 1), height: Math.max(y + rowHeight, 1) };
 }
 
 /** Pack boxes on a phyllotaxis spiral (deterministic, center-out by weight). */
@@ -201,7 +220,7 @@ export function layoutScopeGraph(
             children.push(box);
         }
 
-        const content = packSpiral(children, opts.spread);
+        const content = opts.childPlacement === 'shelves' ? packShelves(children) : packSpiral(children, opts.spread);
         const pad = opts.groupPadding;
         const headerH = 34;
 
@@ -246,7 +265,12 @@ export function layoutScopeGraph(
             },
         };
     });
-    separateRects(rootBoxes.map((entry) => entry.box));
+    if (opts.rootPlacement === 'packed' || opts.rootPlacement === 'shelves') {
+        const boxes: ChildBox[] = rootBoxes.map(({ id, box }) => ({ key: id, isScope: true, width: box.width, height: box.height, weight: 1 }));
+        if (opts.rootPlacement === 'shelves') packShelves(boxes, opts.groupPadding * 8); else packSpiral(boxes, opts.spread);
+        const byId = new Map(boxes.map(box => [box.key, box]));
+        for (const entry of rootBoxes) { const packed = byId.get(entry.id)!; entry.box.x = packed.x!; entry.box.y = packed.y!; }
+    } else separateRects(rootBoxes.map((entry) => entry.box));
     for (const { id, box } of rootBoxes) {
         scopeBoxes.set(id, { ...box, x: Math.round(box.x), y: Math.round(box.y) });
     }

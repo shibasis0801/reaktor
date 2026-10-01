@@ -13,6 +13,7 @@ kotlin {
             api(project(":reaktor-auth"))
             api(project(":reaktor-core"))
             api(project(":reaktor-service"))
+            api(project(":reaktor-graph-runtime"))
             api(project(":reaktor-io"))
             api(project(":reaktor-secrets"))
         }

@@ -142,7 +142,7 @@ Every module has a stability level indicating its maturity:
 | --- | --- | --- | --- |
 | [reaktor-cloudflare](/Users/ovd/dev/reaktor/reaktor-cloudflare/README.md) | **Experimental** | JS (Cloudflare Workers) | Workers, D1, R2, Durable Objects, PartyServer, Hono, service bindings |
 | [reaktor-google](/Users/ovd/dev/reaktor/reaktor-google/README.md) | **Experimental** | JVM, JS, Android, iOS | Google Cloud Pub/Sub adapters |
-| [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | background task orchestration with platform-native schedulers |
+| [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | Meeseeks scheduler facade; native persistence and effect recovery require qualification |
 
 ### Native Interop
 
@@ -318,7 +318,7 @@ Reaktor ships a unified native toolchain path:
 
 ### Background work
 
-`reaktor-work` abstracts platform-native task schedulers behind a unified API for sync, token refresh, analytics upload, media upload, maintenance, and related background jobs.
+`reaktor-work` currently provides a Meeseeks scheduling facade and thin platform context adapters. Its bundled worker bodies are placeholders; native guarantees and durable effect recovery require qualification. See the [Work documentation](https://reaktor.build/docs/reaktor-work) for the canonical roadmap.
 
 ### Telemetry
 

@@ -58,6 +58,8 @@ class NativeExecutionRequest private constructor(
                 is InfrastructureOperation.KubernetesRead -> listOf("JVM Kubernetes", operation.action, operation.namespace, operation.resourceName)
                 is InfrastructureOperation.DatabaseRead -> listOf("JVM ${operation.engine}", if (operation.queryFile == null) "inspect connection" else "sealed query", "limit=${operation.maxRows}")
                 is InfrastructureOperation.WorkerCall -> listOf("Worker", operation.endpoint, operation.operation)
+                is InfrastructureOperation.IslandShapesRead -> listOf("Island shapes", "${operation.hosts.size} hosts")
+                is InfrastructureOperation.SpanRead -> listOf("Service spans", operation.database, "${operation.windowMinutes} min", "limit=${operation.limit}")
                 is InfrastructureOperation.CloudInventoryRead -> listOfNotNull(
                     "Cloud inventory",
                     operation.cloudflareAccount?.let { "Cloudflare $it" },
@@ -121,6 +123,8 @@ class JvmInfrastructureExecutor {
                                 .inspect(op.namespace, op.action, op.resourceName, op.resourceKind, op.resourceUid)
                             is InfrastructureOperation.DatabaseRead -> DatabaseJvmClient(session).execute(op, request.environment, request.timeoutMillis)
                             is InfrastructureOperation.WorkerCall -> WorkerJvmClient(session).execute(op, request.environment)
+                            is InfrastructureOperation.IslandShapesRead -> IslandJvmClient(session).read(op, request.environment)
+                            is InfrastructureOperation.SpanRead -> SpanJvmClient(session).read(op, request.environment, request.timeoutMillis)
                             is InfrastructureOperation.CloudInventoryRead -> kotlinx.coroutines.runBlocking {
                                 dev.shibasis.reaktor.tooling.cloud.CloudInventoryReads.execute(op)
                             }

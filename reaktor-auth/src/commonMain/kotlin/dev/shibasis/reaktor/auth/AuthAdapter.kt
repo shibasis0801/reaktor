@@ -51,6 +51,11 @@ abstract class AuthAdapter<Controller>(
     private val _sessionEndedAt = MutableStateFlow(0L)
     val sessionEndedAt: StateFlow<Long> = _sessionEndedAt.asStateFlow()
 
+    /** Provider proof from the latest interactive login, kept only in memory until consumed. */
+    private var pendingProviderIdentityToken: String? = null
+
+    fun takeProviderIdentityToken(): String? = pendingProviderIdentityToken.also { pendingProviderIdentityToken = null }
+
     protected val providers = hashMapOf<UserProvider, AuthProvider<AuthAdapter<*>, out AuthProviderUser>>()
 
     fun register(provider: UserProvider, authProvider: AuthProvider<AuthAdapter<*>, out AuthProviderUser>) {
@@ -84,6 +89,7 @@ abstract class AuthAdapter<Controller>(
         contextHint: String?,
     ): LoginResponse {
         activeEnvironment = environment
+        pendingProviderIdentityToken = null
         transitionTo(AuthLoginState.LoadingProvider(userProvider, mode))
         val authProvider = providers[userProvider]
             ?: return failLogin(
@@ -153,6 +159,7 @@ abstract class AuthAdapter<Controller>(
                         LoginResponse.Failure.ServerError("Could not securely store the Reaktor session"))
                 }
                 transitionTo(AuthLoginState.Authenticated(context))
+                if (mode == AuthLoginMode.Interactive) pendingProviderIdentityToken = providerUser.idToken
             }
             is LoginResponse.Failure -> {
                 transitionTo(AuthLoginState.Failed(userProvider, mode, AuthLoginFailure.ReaktorRejected(response)))
@@ -311,6 +318,7 @@ abstract class AuthAdapter<Controller>(
     }
 
     protected fun resetLoginState() {
+        pendingProviderIdentityToken = null
         transitionTo(AuthLoginState.Idle)
     }
 

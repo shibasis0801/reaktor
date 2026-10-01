@@ -8,6 +8,8 @@ import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
+import dev.shibasis.reaktor.service.ServiceCall
+import dev.shibasis.reaktor.graph.ServiceNode
 import dev.shibasis.reaktor.io.serialization.TextSerializer
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -18,13 +20,13 @@ private val textSerializer = TextSerializer()
 
 fun Service.toHono(): Hono = Hono().mount(this)
 
-fun Hono.mount(service: Service): Hono {
+fun Hono.mount(service: Service, island: String? = null): Hono {
     service.handlers.forEach {
         @Suppress("UNCHECKED_CAST")
         val handler = it as RequestHandler<Request, Response>
 
         on(handler.method.name, handler.route.toHonoRoute()) { context ->
-            handler.asHonoHandler(context)
+            handler.asHonoHandler(context, island)
         }
     }
     return this
@@ -32,8 +34,33 @@ fun Hono.mount(service: Service): Hono {
 
 fun Hono.nest(path: String, service: Service): Hono = route(path, service.toHono())
 
+fun Hono.mount(nodes: List<ServiceNode>): Hono = apply { nodes.forEach { mount(it.service, it.graph.label.ifBlank { null }) } }
+
+@Suppress("UNCHECKED_CAST")
+fun Hono.fallback(handler: RequestHandler<out Request, out Response>): Hono =
+    on(handler.method.name, "/*") { context -> (handler as RequestHandler<Request, Response>).asHonoHandler(context, null) }
+
+fun Hono.otherwise(status: StatusCode): Hono =
+    all("/*") { failureResponse(status, status.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercase)) }
+
+data class CorsPolicy(
+    val methods: List<String>,
+    val headers: List<String>,
+    val maxAgeSeconds: Int,
+    val origin: String = "*",
+)
+
+fun Hono.cors(policy: CorsPolicy): Hono {
+    val options = js("({})")
+    options.origin = policy.origin
+    options.allowMethods = policy.methods.toTypedArray()
+    options.allowHeaders = policy.headers.toTypedArray()
+    options.maxAge = policy.maxAgeSeconds
+    return use("*", HonoCorsModule.cors(options))
+}
+
 @OptIn(DelicateCoroutinesApi::class)
-private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext) = GlobalScope.promise {
+private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext, island: String?) = GlobalScope.promise {
     val rawBody = runCatching { context.req.text().await() }.getOrNull().orEmpty().ifBlank { "{}" }
     val pathParams = toStringMap(context.req.param())
     val queryParams = toStringMap(context.req.query())
@@ -66,6 +93,8 @@ private fun RequestHandler<Request, Response>.asHonoHandler(context: HonoContext
     val cloudflareContext = CloudflareContext(context.env, context.executionCtx, context)
     (request as? CloudflareAwareRequest)?.cloudflareContext = cloudflareContext
     request.asDynamic().cloudflareContext = cloudflareContext
+    request.attributes[CloudflareContextAttribute] = cloudflareContext
+    island?.let { request.attributes[ServiceCall.IslandAttribute] = it }
 
     val response = try {
         invoke(request)

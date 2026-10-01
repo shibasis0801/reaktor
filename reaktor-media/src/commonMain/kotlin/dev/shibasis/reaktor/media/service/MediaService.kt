@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
+import dev.shibasis.reaktor.service.ServiceContract
 
 @Serializable
 sealed class MediaRequest : Request() {
@@ -66,13 +67,15 @@ sealed class MediaResponse(
 }
 
 abstract class MediaService(baseUrl: String = "") : Service(baseUrl) {
+    override val contract = ServiceContract("reaktor.media")
+
     abstract val downloadMedia: GetHandler<MediaRequest.Download, MediaResponse>
     abstract val uploadMedia: PostHandler<MediaRequest.Upload, MediaResponse>
 }
 
 open class MediaServiceClient(baseUrl: String) : MediaService(baseUrl) {
-    override val downloadMedia = GetHandler<MediaRequest.Download, MediaResponse>("/download")
-    override val uploadMedia = PostHandler<MediaRequest.Upload, MediaResponse>("/upload")
+    override val downloadMedia by GetHandler<MediaRequest.Download, MediaResponse>("/download")
+    override val uploadMedia by PostHandler<MediaRequest.Upload, MediaResponse>("/upload")
 
     suspend fun download(filePath: String): Result<MediaResponse.Download> = runCatching {
         when (val response = downloadMedia(MediaRequest.Download(filePath))) {
