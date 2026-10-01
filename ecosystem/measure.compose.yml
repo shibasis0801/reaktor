@@ -1,0 +1,30 @@
+services:
+  dashboard:
+    ports: !override ["127.0.0.1:47130:3000"]
+  api:
+    ports: !override ["127.0.0.1:47180:8080"]
+  ingest:
+    ports: !override ["127.0.0.1:47185:8085"]
+  agent:
+    ports: !reset []
+  cleanup:
+    ports: !reset []
+  alerts:
+    ports: !reset []
+  symboloader:
+    ports: !reset []
+  ingest-worker:
+    ports: !reset []
+  symbolicator:
+    ports: !reset []
+  minio:
+    ports: !override ["127.0.0.1:47190:9000"]
+  postgres:
+    ports: !reset []
+  clickhouse:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  iggy:
+    image: apache/iggy:0.8.0
+    ports: !reset []

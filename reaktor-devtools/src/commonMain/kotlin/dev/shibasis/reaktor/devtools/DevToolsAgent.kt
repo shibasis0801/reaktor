@@ -180,6 +180,7 @@ class DevToolsAgent(
         epochMillis = platform.epochMillis(),
         monotonicNanos = DevToolsClock.nanos(),
         writable = policy.writable,
+        measureSessionId = dev.shibasis.reaktor.performance.ReaktorMeasure.sessionId,
     )
 
     /**

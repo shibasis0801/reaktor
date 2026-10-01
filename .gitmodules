@@ -7,3 +7,6 @@
 [submodule "reaktor-security/cpp/external/googletest"]
 	path = reaktor-security/cpp/external/googletest
 	url = https://github.com/google/googletest.git
+[submodule "ecosystem/measure"]
+	path = ecosystem/measure
+	url = https://github.com/measure-sh/measure.git

@@ -96,3 +96,31 @@ node lighthouse-report.mjs --target my-app --url https://example.com/ --preset d
 ```sh
 ./gradlew :reaktor-performance:compileKotlinJs :reaktor-performance:compileKotlinJvm :reaktor-performance:allTests --no-daemon --console=plain --no-build-cache
 ```
+
+## Measure
+
+`MeasureService` is the authenticated Dashboard API client. Its typed Service
+handlers read health, sessions, error groups, root spans and recording details.
+`MeasureQuery` supplies paired UTC range bounds and version/build filters. Reads
+use bounded pages, and transport failures remain failures. The client targets
+the pinned self-hosted Measure release in `../ecosystem`; it supports its legacy
+version parameters and the span endpoint's expression filters.
+
+`MeasureMetrics.report()` omits `no_data` values. `MeasureTrace.report()` preserves
+span hierarchy, timing and recording identity in a `ReaktorPerformanceReport`.
+These reports use the existing budget and export machinery.
+
+`ReaktorMeasure` delegates screen views and scoped custom spans to the Measure
+KMP SDK on Android/iOS. JVM/JS hosts execute the same blocks without mobile
+capture. Initialize the native SDK in the mobile host first: Android can use
+`ReaktorMeasure.initialize(context)` with Measure manifest credentials; iOS links
+and initializes the native `Measure` SDK matching KMP 0.3.0 (iOS 0.14.1).
+`MeasureServiceInterceptor(scope)` instruments the client application stage and
+carries the service operation into each span. Install it on a Service with
+`use(...)`, or use `Service.installGlobal(...)` and retain its cleanup callback.
+No request bodies, tokens or user identities are added to span attributes.
+
+The JVM `MeasureLocalServer` locates the ecosystem launcher, starts it, checks
+readiness and obtains a renewable local dashboard connection. Reaktor Desktop
+uses this surface at startup and in its Measure pane. See
+[the ecosystem instructions](../ecosystem/README.md) for ports and debug capture.
