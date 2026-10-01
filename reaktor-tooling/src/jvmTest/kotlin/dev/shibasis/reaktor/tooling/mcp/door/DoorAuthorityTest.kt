@@ -69,6 +69,15 @@ class DoorAuthorityTest {
         assertEquals(0, ran)
     }
 
+    @Test fun aSeatAllowedLiveReadsStillAsksBeforeTouchingADevice() {
+        val seat = SeatPolicy(SafetyClass.LiveRead, SafetyClass.ProductionReversibleWrite)
+        assertEquals(DoorDecision.Allowed, DoorAuthority.decide(SafetyClass.LiveRead, seat))
+        assertEquals(DoorDecision.Allowed, DoorAuthority.decide(SafetyClass.LocalArtifactWrite, seat))
+        assertEquals(DoorDecision.Ask(SafetyClass.DeviceWrite), DoorAuthority.decide(SafetyClass.DeviceWrite, seat))
+        assertEquals(DoorDecision.Ask(SafetyClass.DeviceWrite), DoorAuthority.decide(SafetyClass.DeviceWrite, SeatPolicy(SafetyClass.LiveRead, SafetyClass.LocalArtifactWrite)))
+        assertEquals(DoorDecision.Allowed, DoorAuthority.decide(SafetyClass.DeviceWrite, SeatPolicy(SafetyClass.NonProductionWrite, SafetyClass.Destructive)))
+    }
+
     @Test fun anUnclassifiedProviderAsksEvenForAReadBecauseNobodySaidItsHintsAreToBeBelieved() {
         val door = door(SafetyClass.UnknownRemoteEffect, trustHints = false)
         assertEquals("approval_required", call(door, "db_list_tables")["structuredContent"]!!.jsonObject["status"]!!.jsonPrimitive.content)

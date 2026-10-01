@@ -73,8 +73,9 @@ class DevToolsAgent(
     val crashes = FactStream(AgentCapability.Crash, 16)
     val startup = FactStream(AgentCapability.StartupVitals, 4)
     val screen = FactStream(AgentCapability.Screen, 1, BufferPolicy.Conflate, recentCapacity = 0)
+    val graph = FactStream(AgentCapability.GraphShape, 1, BufferPolicy.Conflate, recentCapacity = 0)
 
-    private val streams = listOf(portEvents, traffic, logs, frames, memory, crashes, startup, screen)
+    private val streams = listOf(portEvents, traffic, logs, frames, memory, crashes, startup, screen, graph)
         .associateBy { it.capability }
 
     val log = LogSink(logs, policy.logLevel, platform::mirrorLog)
@@ -94,6 +95,12 @@ class DevToolsAgent(
     private var crashHook: Cancellable? = null
     private var vitals: VitalsRecorder? = null
 
+    val watches = PortWatches()
+
+    init {
+        commands += portWatchHandler()
+    }
+
     fun register(handler: CommandHandler): DevToolsAgent = apply { commands += handler }
 
     fun unregister(handler: CommandHandler) {
@@ -105,6 +112,8 @@ class DevToolsAgent(
     }
 
     fun epochMillis(): Long = platform.epochMillis()
+
+    fun publishGraph(shape: kotlinx.serialization.json.JsonElement) = graph.emit { sequence, nanos -> AgentFact.Graph(sequence, nanos, shape) }
 
     fun stream(capability: String): FactStream? = streams[capability]
 
@@ -234,6 +243,7 @@ class DevToolsAgent(
         )
         add(AgentCapability(AgentCapability.Logs, Fidelity.Stream))
         add(AgentCapability(AgentCapability.PortEvents, Fidelity.Attributed))
+        add(AgentCapability(AgentCapability.GraphShape, Fidelity.Stream))
         add(AgentCapability(AgentCapability.Traffic, Fidelity.Attributed))
         add(AgentCapability(AgentCapability.FrameVitals, platform.frameVitalsFidelity))
         add(AgentCapability(AgentCapability.MemoryVitals, platform.memoryVitalsFidelity))

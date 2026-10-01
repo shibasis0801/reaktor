@@ -105,8 +105,8 @@ object DoorAuthority {
     fun decide(effect: SafetyClass, seat: SeatPolicy): DoorDecision = when {
         // An effect nobody classified is never assumed harmless and never refused outright: a person decides.
         effect == SafetyClass.UnknownRemoteEffect -> DoorDecision.Ask(effect)
-        effect <= seat.allow -> DoorDecision.Allowed
-        effect <= seat.ask -> DoorDecision.Ask(effect)
+        effect <= seat.allow && (!effect.requiresApproval || seat.allow.requiresApproval) -> DoorDecision.Allowed
+        effect <= seat.ask || effect <= seat.allow -> DoorDecision.Ask(effect)
         else -> DoorDecision.Refused(effect, "this seat may not cause ${effect.name}")
     }
 

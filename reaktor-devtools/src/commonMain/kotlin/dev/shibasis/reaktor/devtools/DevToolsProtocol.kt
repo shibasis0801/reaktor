@@ -101,6 +101,8 @@ data class AgentCapability(
         const val Semantics = "semantics"
         const val Screenshot = "screenshot"
         const val Screen = "screen"
+        const val GraphShape = "graph.shape"
+        const val PortWatch = "port.watch"
         const val Logs = "logs"
         const val PortEvents = "port.events"
         const val Traffic = "traffic"
@@ -185,6 +187,7 @@ sealed interface AgentFact {
         /** Wall time the call took, for [PortEventKind.Invoked] and [PortEventKind.Failed]. */
         val durationNanos: Long? = null,
         val failure: String? = null,
+        val value: String? = null,
         override val perturbed: Boolean = false,
     ) : AgentFact
 
@@ -290,6 +293,15 @@ sealed interface AgentFact {
      * The agent cannot deliver this while it is dying, so it is persisted and sent at handshake.
      * That is the whole reason the agent writes to disk at all.
      */
+    @Serializable
+    @SerialName("graph")
+    data class Graph(
+        override val sequence: Long,
+        override val monotonicNanos: Long,
+        val shape: kotlinx.serialization.json.JsonElement,
+        override val perturbed: Boolean = false,
+    ) : AgentFact
+
     @Serializable
     @SerialName("crash")
     data class Crash(

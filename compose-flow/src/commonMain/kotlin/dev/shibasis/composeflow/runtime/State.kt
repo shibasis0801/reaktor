@@ -104,6 +104,10 @@ class ReactFlowState(
         viewport = next
     }
 
+    fun setCanvasSize(next: IntSize) {
+        canvasSize = next
+    }
+
     fun panBy(dx: Double, dy: Double) {
         viewport = viewport.copy(
             x = viewport.x + dx,

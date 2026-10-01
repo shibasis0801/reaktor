@@ -43,7 +43,7 @@ fun DevToolsAgent.instrumentAllServices(): () -> Unit = Service.installGlobal(tr
  * graph change shape. A graph can do either without the other, so neither implies the other.
  */
 fun DevToolsAgent.instrumentPorts(owner: PortCapability): () -> Unit =
-    installGraphTaps(owner, owner.ownedPorts(), portEvents)
+    installGraphTaps(owner, owner.ownedPorts(), portEvents, watches)
 
 /**
  * Installs the taps across a whole graph.

@@ -50,6 +50,7 @@ private fun render(stream: FactStream, fact: AgentFact): String = when (fact) {
     is AgentFact.Memory -> "memory ${fact.usedBytes / 1024 / 1024}MiB of ${fact.totalBytes / 1024 / 1024}MiB"
     is AgentFact.Crash -> "crash ${fact.kind}: ${fact.message}"
     is AgentFact.Screen -> "screen ${fact.widthPixels}x${fact.heightPixels}"
+    is AgentFact.Graph -> "graph shape"
     is AgentFact.Startup -> "startup ${fact.firstFrameMillis} ms"
     is AgentFact.Socket -> "socket ${fact.event} ${fact.url}"
 }

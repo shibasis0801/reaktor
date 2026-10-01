@@ -130,6 +130,7 @@ data class Edge(
     val deletable: Boolean = true,
     val reconnectable: Boolean = false,
     val interactionWidth: Double = 20.0,
+    val points: List<XYPosition> = emptyList(),
 )
 
 sealed interface NodeChange {

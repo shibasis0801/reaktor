@@ -41,7 +41,7 @@ object HeadApi
 open class ServiceNode(
         graph: Graph,
         val service: Service,
-        private val serviceLabel: String = service::class.simpleName ?: "ServiceNode",
+        val serviceLabel: String = service::class.simpleName ?: "ServiceNode",
 ) : BasicNode(graph) {
     init {
         service.handlers.forEach { handler ->

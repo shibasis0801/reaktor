@@ -48,7 +48,7 @@ private fun Graph.collectWiring(): List<WiringEntry> {
     return own + nested
 }
 
-private fun Graph.resolvesThroughDi(qualifier: String): Boolean = try {
+fun Graph.resolvesThroughDi(qualifier: String): Boolean = try {
     diScope.get(ProviderPort::class, qualifier) != null
 } catch (error: Throwable) {
     false

@@ -26,6 +26,50 @@ class AuthDirectoryQueriesTest {
         }
     }
 
+    @Test fun identitySearchFindsPeopleByProfileNameAndProviderEmail() {
+        AuthDbFixture.ensure()
+        val app = AuthDbFixture.seedApp()
+        val subject = "sub-${java.util.UUID.randomUUID().toString().take(8)}"
+        val person = AuthDbFixture.seedUser(appId = app, socialId = subject, profile = kotlinx.serialization.json.JsonObject(mapOf(
+            "givenName" to kotlinx.serialization.json.JsonPrimitive("Zoë"),
+            "familyName" to kotlinx.serialization.json.JsonPrimitive("Ødegaard"),
+        )))
+        DriverManager.getConnection("jdbc:h2:mem:reaktor_auth_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE").use { connection ->
+            fun found(term: String): List<String> = connection.createStatement().use { statement ->
+                statement.executeQuery(AuthDirectoryQueries.read(AuthDirectory.Identity, search = term).replace("heimdall.", "")).use { result ->
+                    buildList { while (result.next()) add(result.getString("principal_id")) }
+                }
+            }
+            assertTrue(person in found("Ødegaard"), "profile name")
+            assertTrue(person in found(subject.removePrefix("sub-")), "provider email")
+            assertFalse(person in found("nobody-by-this-name"))
+        }
+    }
+
+    @Test fun rolePermissionsComeFromTheRoleRatherThanFromWhoHoldsIt() {
+        AuthDbFixture.ensure()
+        val (app, principal) = AuthDbFixture.seedUser()
+        AuthDbFixture.grantPermissions(principal, app, listOf("chat.read", "chat.write"), roleName = "member")
+        DriverManager.getConnection("jdbc:h2:mem:reaktor_auth_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE").use { connection ->
+            val rows = connection.createStatement().use { statement ->
+                statement.executeQuery(AuthDirectoryQueries.read(AuthDirectory.RolePermissions, appId = app).replace("heimdall.", "")).use { result ->
+                    buildList { while (result.next()) add(Triple(result.getString("role"), result.getString("permission"), result.getLong("principals"))) }
+                }
+            }
+            assertEquals(setOf("chat.read", "chat.write"), rows.filter { it.first == "member" }.map { it.second }.toSet())
+            assertTrue(rows.filter { it.first == "member" }.all { it.third == 1L })
+        }
+        assertFalse(AuthDirectoryQueries.read(AuthDirectory.RolePermissions, search = "member").contains("ILIKE"))
+    }
+
+    @Test fun lastSeenCountsTokenRefreshesAndOnlySuccessfulAuditEvents() {
+        val identity = AuthDirectoryQueries.read(AuthDirectory.Identity)
+        assertTrue(identity.contains("AS last_seen_at"))
+        assertTrue(identity.contains("rt.used_at"))
+        assertTrue(identity.contains("e.outcome ILIKE 'succ%'"))
+        assertTrue(identity.contains("ORDER BY p.created_at DESC, p.id DESC"))
+    }
+
     @Test fun filtersCannotBecomeSqlAndPaginationIsBounded() {
         assertFails { AuthDirectoryQueries.read(AuthDirectory.Principals, appId = "x' OR 1=1 --") }
         assertFails { AuthDirectoryQueries.read(AuthDirectory.Sessions, page = -1) }
@@ -65,7 +109,7 @@ class AuthDirectoryQueriesTest {
 
     @Test fun searchReachesTheDatabaseForEveryDirectoryThatCanBeSearched() {
         val searchable = AuthDirectory.entries - setOf(
-            AuthDirectory.Composition, AuthDirectory.UnusedAccess, AuthDirectory.StaleRefresh,
+            AuthDirectory.Composition, AuthDirectory.UnusedAccess, AuthDirectory.StaleRefresh, AuthDirectory.RolePermissions,
         )
         searchable.forEach { directory ->
             val query = AuthDirectoryQueries.read(directory, search = "alice@example.com")
