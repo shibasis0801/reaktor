@@ -1,7 +1,7 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { RowHeight } from '../engine';
 import type { Card } from '../types';
-import { useScene } from './context';
+import { intersects, useRest, useSelection } from './context';
 import type { Look } from './looks';
 
 export interface BlueprintCardProps {
@@ -18,12 +18,13 @@ export interface BlueprintCardProps {
 }
 
 export function BlueprintCard({ card, look, tone, title, className, icon, subtitle, badges, folded, row }: BlueprintCardProps) {
-  const scene = useScene();
-  const selected = scene.selected === card.id;
-  const dim = scene.highlight.size > 0 && !scene.highlight.has(card.id);
+  const selected = useSelection(selection => selection.selected === card.id);
+  const dim = useSelection(selection => selection.highlight.size > 0 && !selection.highlight.has(card.id));
   const style = { '--bp-tone': tone } as CSSProperties;
   const classes = ['bp-card', `bp-card--${look}`, className].filter(Boolean).join(' ');
   const state = { 'data-selected': selected || undefined, 'data-dim': dim || undefined, 'data-look': look };
+  const near = useRest(rest => rest.look === 'chapter' && intersects(rest.window, card));
+  const rows = useMemo(() => (row && look === 'chapter' && (near || selected) ? Array.from({ length: card.rows }, (_, index) => row(index)) : null), [row, look, near, selected, card.rows]);
   if (look === 'domain') return <div className={classes} style={style} data-part="card" {...state}/>;
   if (look === 'resource') return <div className={classes} style={style} data-part="card" {...state}><div className="bp-card__far" data-part="title">{title}</div></div>;
   return <div className={classes} style={style} data-part="card" {...state}>
@@ -37,7 +38,7 @@ export function BlueprintCard({ card, look, tone, title, className, icon, subtit
       {folded && <span className="bp-card__folded" data-part="folded">{folded}</span>}
     </div>}
     {row && card.rows > 0 && <div className="bp-card__rows" data-part="rows" style={{ height: card.rows * RowHeight }}>
-      {Array.from({ length: card.rows }, (_, index) => row(index))}
+      {rows}
     </div>}
   </div>;
 }

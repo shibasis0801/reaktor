@@ -1,7 +1,7 @@
 import { useEffect, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { RowHeight } from '../engine';
 import type { Card, PinWiring } from '../types';
-import { useScene } from './context';
+import { useScene, useSelection } from './context';
 
 export interface PinTone {
   tone: string;
@@ -23,9 +23,9 @@ function Pin({ side, pin }: { side: 'in' | 'out'; pin: PinTone }) {
 
 export function BlueprintPinRow({ card, row, children, input, output, className }: BlueprintPinRowProps) {
   const scene = useScene();
-  const selected = scene.selected === card.id && scene.selectedRow === row;
+  const selected = useSelection(selection => selection.selected === card.id && selection.selectedRow === row);
   const enter = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'touch' || (!input && !output)) return;
+    if (event.pointerType === 'touch' || (!input && !output) || scene.rest.moving) return;
     scene.pins.set({ card: card.id, row, x: event.clientX, y: event.clientY, ready: false });
   };
   const leave = () => {
