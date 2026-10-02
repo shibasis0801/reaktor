@@ -1,7 +1,9 @@
-import { useMemo, type CSSProperties, type ReactNode } from 'react';
+import { memo, useDeferredValue, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
 import { isLit } from '../highlight';
 import type { BlueprintLayout, Card, Link, Point } from '../types';
+import type { Bounds } from './camera';
 import { intersects, useHoveredPin, useRest, useScene, useSelection, type WireStyle } from './context';
+import { cellsAround, DashCell, dashPieces, linkBox, type DashPiece } from './dashes';
 import { useLook } from './looks';
 import { linkMidpoint, linkPath } from './paths';
 
@@ -68,10 +70,101 @@ function tail(link: Link): { at: Point; angle: number } | null {
 }
 
 const nothing = new Set<string>();
+const PoolCrowd = 120;
 
 function useNearCards(cards: Card[]): Set<string> {
   const window = useRest(rest => (rest.look === 'chapter' ? rest.window : null));
   return useMemo(() => (window ? new Set(cards.filter(card => intersects(window, card)).map(card => card.id)) : nothing), [window, cards]);
+}
+
+type Rows = ReadonlyMap<number, DashPiece[]>;
+type Pieces = (link: Link, within: Bounds) => Rows;
+
+interface March {
+  link: Link;
+  style: WireStyle;
+  key: string;
+  top: number;
+  bottom: number;
+}
+
+const noRows: Rows = new Map();
+const noMarches: March[] = [];
+
+function byRow(pieces: DashPiece[]): Rows {
+  const rows = new Map<number, DashPiece[]>();
+  for (const piece of pieces) {
+    const row = rows.get(piece.row);
+    if (row) row.push(piece);
+    else rows.set(piece.row, [piece]);
+  }
+  return rows;
+}
+
+function useDashes(layout: BlueprintLayout): Pieces {
+  return useMemo(() => {
+    const known = new Map<string, { box: Bounds; rows: Rows | null }>();
+    return (link: Link, within: Bounds) => {
+      let entry = known.get(link.id);
+      if (!entry) { entry = { box: linkBox(link), rows: null }; known.set(link.id, entry); }
+      if (!intersects(within, entry.box)) return noRows;
+      return entry.rows ??= byRow(dashPieces(link));
+    };
+  }, [layout]);
+}
+
+function sameMarches(a: March[], b: March[]): boolean {
+  return a.length === b.length && a.every((item, index) => item.link === b[index].link && item.key === b[index].key && item.style.label === b[index].style.label && item.style.title === b[index].style.title);
+}
+
+const MarchSegment = memo(function MarchSegment({ row, left, right, marches, pieces, urgent }: { row: number; left: number; right: number; marches: March[]; pieces: Pieces; urgent: boolean }) {
+  const later = useDeferredValue(marches);
+  const used = urgent ? marches : later;
+  return useMemo(() => {
+    const groups = new Map<string, { style: WireStyle; parts: string[] }>();
+    const band = { x: left * DashCell - DashCell, y: row * DashCell - DashCell, width: (right - left + 3) * DashCell, height: 3 * DashCell };
+    for (const { link, style, key } of used) {
+      const list = pieces(link, band).get(row);
+      if (!list) continue;
+      for (const piece of list) {
+        if (piece.column < left || piece.column > right) continue;
+        const cell = `${key}|${piece.column}`;
+        let group = groups.get(cell);
+        if (!group) { group = { style, parts: [] }; groups.set(cell, group); }
+        group.parts.push(piece.d);
+      }
+    }
+    return <>{[...groups.entries()].map(([key, { style, parts }]) => <g key={key} className="bp-wire bp-wire--pooled" data-lit data-marching style={{ '--bp-wire': style.tone, '--bp-alpha': style.alpha ?? 1 } as CSSProperties}>
+      <path className="bp-wire__line" d={parts.join('')} style={{ strokeWidth: style.width ?? 1.5 }}/>
+    </g>)}</>;
+  }, [used, row, left, right, pieces]);
+});
+
+function marchSegments(cells: { left: number; top: number; right: number; bottom: number }, view: Bounds | null) {
+  const near = view ? {
+    left: Math.floor((view.x - view.width / 4) / DashCell), right: Math.floor((view.x + view.width * 1.25) / DashCell),
+    top: Math.floor((view.y - view.height / 4) / DashCell), bottom: Math.floor((view.y + view.height * 1.25) / DashCell),
+  } : cells;
+  const from = Math.min(Math.max(cells.left, near.left), cells.right + 1);
+  const to = Math.max(Math.min(cells.right, near.right), from - 1);
+  const segments: Array<{ key: string; row: number; left: number; right: number; urgent: boolean }> = [];
+  for (let row = cells.top; row <= cells.bottom; row += 1) {
+    const close = row >= near.top && row <= near.bottom;
+    segments.push({ key: `${row}<`, row, left: cells.left, right: from - 1, urgent: false });
+    segments.push({ key: `${row}=`, row, left: from, right: to, urgent: close });
+    segments.push({ key: `${row}>`, row, left: to + 1, right: cells.right, urgent: false });
+  }
+  return segments.filter(segment => segment.left <= segment.right);
+}
+
+function marchesByRow(marches: March[]): Map<number, March[]> {
+  const rows = new Map<number, March[]>();
+  for (const march of marches) for (let row = march.top; row <= march.bottom; row += 1) {
+    const list = rows.get(row);
+    if (list) list.push(march);
+    else rows.set(row, [march]);
+  }
+  return rows;
 }
 
 export function BlueprintWires() {
@@ -82,6 +175,11 @@ export function BlueprintWires() {
   const { layout } = scene;
   const cards = useMemo(() => Object.values(layout.cards), [layout]);
   const visible = useNearCards(cards);
+  const area = useRest(rest => (rest.look === 'chapter' ? rest.window : null));
+  const view = useRest(rest => (rest.look === 'chapter' ? rest.view : null));
+  const cells = useMemo(() => (area ? cellsAround(area) : null), [area]);
+  const dashes = useDashes(layout);
+  const inCells = (piece: DashPiece) => !!cells && piece.column >= cells.left && piece.column <= cells.right && piece.row >= cells.top && piece.row <= cells.bottom;
   const paths = useMemo(() => new Map(layout.links.map(link => [link.id, linkPath(link)])), [layout]);
   const corridors = useMemo(() => corridorsOf(layout, scene.frameOf), [layout, scene.frameOf]);
   const highlighting = selection.highlight.size > 0;
@@ -95,8 +193,27 @@ export function BlueprintWires() {
     return { link, route, lit: route || isLit(link, selection.highlight, selection.selected, selection.focus), hover: touchesHover(link) };
   });
   const crowd = states.reduce((count, state) => count + (state.lit ? 1 : 0), 0);
+  const pooling = !!cells && crowd > PoolCrowd;
+  const kept = useRef<March[]>(noMarches);
+  const marches = useMemo(() => {
+    if (!pooling) return kept.current = noMarches;
+    const list: March[] = [];
+    for (const link of layout.links) {
+      if (selection.litLinks.has(link.id) || !isLit(link, selection.highlight, selection.selected, selection.focus)) continue;
+      const nearby = visible.has(link.from) || visible.has(link.to);
+      const style = scene.wireStyle(link, { look, lit: true, route: false, hovered: false, nearby, crowd, highlighting, focus: selection.focus });
+      if (!style?.batch || !style.marching) continue;
+      const box = linkBox(link);
+      list.push({ link, style, key: `${style.tone}|${style.width ?? 1.5}|${style.alpha ?? 1}`, top: Math.floor(box.y / DashCell) - 1, bottom: Math.floor((box.y + box.height) / DashCell) + 1 });
+    }
+    return kept.current = sameMarches(kept.current, list) ? kept.current : list;
+  }, [pooling, layout, selection, visible, scene, look, crowd, highlighting]);
+  const marched = useMemo(() => new Set(marches.map(march => march.link.id)), [marches]);
+  const marchRows = useMemo(() => marchesByRow(marches), [marches]);
+  const pooledLabels = marches.filter(march => march.style.label);
   for (const { link, route, lit, hover } of states) {
     if (look === 'domain' && !lit && !hover) continue;
+    if (marched.has(link.id) && !hover) continue;
     const nearby = look === 'chapter' && (visible.has(link.from) || visible.has(link.to));
     const style = scene.wireStyle(link, { look, lit, route, hovered: hover, nearby, crowd, highlighting, focus: selection.focus });
     if (!style) continue;
@@ -115,7 +232,7 @@ export function BlueprintWires() {
     const [x, y] = corridorMid(corridor.points);
     labels.push(<span key={`corridor:${corridor.key}`} className="bp-pill bp-pill--corridor" data-part="corridor-label" style={{ left: x, top: y }}>×{corridor.count}</span>);
   }
-  for (const { link, style } of singles) {
+  for (const { link, style } of [...pooledLabels, ...singles]) {
     if (!style.label) continue;
     const [x, y] = linkMidpoint(link);
     labels.push(<span key={`label:${link.id}`} className="bp-pill" data-part="wire-label" style={{ left: x, top: y, '--bp-wire': style.tone } as CSSProperties}>{style.label}</span>);
@@ -131,13 +248,17 @@ export function BlueprintWires() {
           <path className="bp-wire__line" d={parts.join('')} style={{ strokeWidth: style.width ?? 1.5, strokeDasharray: style.marching ? undefined : style.dash }}/>
         </g>)}
       </g>
+      {cells && <g className="bp-wires__march">
+        {marchSegments(cells, view).map(segment => <MarchSegment key={segment.key} row={segment.row} left={segment.left} right={segment.right} marches={marchRows.get(segment.row) ?? noMarches} pieces={dashes} urgent={segment.urgent}/>)}
+      </g>}
       <g className="bp-wires__each">
         {singles.map(({ link, style, lit }) => {
           const d = paths.get(link.id) ?? '';
           const end = style.arrow ? tail(link) : null;
+          const pieces = area && style.marching ? [...dashes(link, area).values()].flat().filter(inCells) : null;
           return <g key={link.id} className="bp-wire" data-link={link.id} data-lit={lit || undefined} data-marching={style.marching || undefined} style={{ '--bp-wire': style.tone, '--bp-alpha': style.alpha ?? 1 } as CSSProperties}>
             {style.glow && <path className="bp-wire__glow" d={d} style={{ strokeWidth: (style.width ?? 1.5) * 2.8 }}/>}
-            <path className="bp-wire__line" d={d} style={{ strokeWidth: style.width ?? 1.5, strokeDasharray: style.marching ? undefined : style.dash }}/>
+            {pieces ? pieces.map((piece, index) => <path key={index} className="bp-wire__line" d={piece.d} style={{ strokeWidth: style.width ?? 1.5 }}/>) : <path className="bp-wire__line" d={d} style={{ strokeWidth: style.width ?? 1.5, strokeDasharray: style.marching ? undefined : style.dash }}/>}
             {end && <g transform={`translate(${round(end.at[0])} ${round(end.at[1])}) rotate(${round(end.angle)})`}><path className="bp-wire__arrow" d="M-10 -5L0 0L-10 5Z"/></g>}
             <path className="bp-wire__hit" d={d}>{style.title && <title>{style.title}</title>}</path>
           </g>;
