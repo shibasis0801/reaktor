@@ -33,7 +33,7 @@ object PressKernel : BehaviorKernel<PressProperties, PressState, PressInput, Pre
 
     override fun reduce(properties: PressProperties, state: PressState, input: PressInput): Reduction<PressState, Pressed> =
         when (input) {
-            is PressInput.Press -> Reduction(if (properties.enabled) state.copy(contacts = state.contacts + input.contact) else state)
+            is PressInput.Press -> Reduction(if (properties.enabled && !properties.busy) state.copy(contacts = state.contacts + input.contact) else state)
             is PressInput.Release -> Reduction(state.copy(contacts = state.contacts - input.contact))
             is PressInput.Cancel -> Reduction(state.copy(contacts = state.contacts - input.contact))
             is PressInput.Focus -> Reduction(state.copy(focused = input.focused, focusVisible = input.focused && input.visible))
@@ -43,7 +43,13 @@ object PressKernel : BehaviorKernel<PressProperties, PressState, PressInput, Pre
         }
 
     override fun reconcile(properties: PressProperties, state: PressState): Reduction<PressState, Pressed> =
-        Reduction(if (properties.enabled) state else state.copy(contacts = emptySet(), hovered = false))
+        Reduction(
+            when {
+                !properties.enabled -> state.copy(contacts = emptySet(), hovered = false)
+                properties.busy -> state.copy(contacts = emptySet())
+                else -> state
+            },
+        )
 
     private fun activate(properties: PressProperties, state: PressState, sequence: Long): Reduction<PressState, Pressed> =
         if (!properties.enabled || properties.busy || sequence <= state.lastActivation) Reduction(state)

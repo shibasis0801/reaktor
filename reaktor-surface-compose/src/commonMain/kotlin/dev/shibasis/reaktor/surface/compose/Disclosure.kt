@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -122,8 +121,7 @@ internal fun PressPart(
 ) {
     val properties = PressProperties(enabled)
     val press = rememberMachine(PressKernel, properties) {}
-    val source = remember { MutableInteractionSource() }
-    source.feed(press)
+    val source = rememberInteractions(press)
     Box(modifier.clickable(source, indication = null, enabled = enabled, role = Role.Button, onClick = onActivate), propagateMinConstraints = true) {
         val state = press.state
         appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ButtonSlots(content))

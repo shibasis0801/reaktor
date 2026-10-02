@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -48,8 +47,7 @@ fun Switch(
 ) {
     val properties = ToggleProperties(checked, enabled)
     val machine = rememberMachine(behavior, properties) { onCheckedChange(it.checked) }
-    val source = remember { MutableInteractionSource() }
-    source.feed(machine)
+    val source = rememberInteractions(machine)
     Box(
         modifier.toggleable(checked, source, indication = null, enabled = enabled, role = Role.Switch) {
             machine.send(PressInput.Activate(machine.nextSequence()))

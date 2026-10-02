@@ -32,6 +32,11 @@ kotlin {
             api(compose.desktop.currentOs)
         }
     }
+    sourceSets.named("jvmTest") {
+        dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:${dev.shibasis.dependeasy.Version.Coroutines}")
+        }
+    }
 }
 
 android {
