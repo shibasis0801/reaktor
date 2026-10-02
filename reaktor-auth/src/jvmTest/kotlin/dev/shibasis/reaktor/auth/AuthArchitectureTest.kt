@@ -105,6 +105,7 @@ class AuthArchitectureTest {
         assertTrue("authorize(\"/status\", permitAll)" in security)
         assertTrue("authorize(\"/auth/anonymous\", permitAll)" in security)
         assertTrue("authorize(\"/_graph/**\", permitAll)" in security)
+        assertTrue("authorize(\"/connect/*/callback\", permitAll)" in security)
         assertTrue("authorize(\"/actuator/health/**\", permitAll)" in security)
     }
 
