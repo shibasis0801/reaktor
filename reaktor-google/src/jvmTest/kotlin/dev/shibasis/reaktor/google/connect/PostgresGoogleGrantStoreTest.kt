@@ -33,9 +33,14 @@ class PostgresGoogleGrantStoreTest {
                     store.write(key, "v1.sealed-two")
                     assertEquals("v1.sealed-two", store.read(key))
                     val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-                    store.hold(HeldConsent("state-hash", key, "v1.consent", now), now.minusSeconds(600))
-                    assertEquals(HeldConsent("state-hash", key, "v1.consent", now), store.take("state-hash"))
-                    assertNull(store.take("state-hash"))
+                    store.holdConsent(Held("state-hash", key, "v1.consent", now), now.minusSeconds(600))
+                    assertEquals(Held("state-hash", key, "v1.consent", now), store.takeConsent("state-hash"))
+                    assertNull(store.takeConsent("state-hash"))
+                    store.holdPending(Held("handle-old", key, "v1.pending-old", now.minusSeconds(700)))
+                    store.holdPending(Held("handle-new", key, "v1.pending-new", now))
+                    assertEquals(listOf("handle-old"), store.pendingBefore(now.minusSeconds(600)).map { it.hash })
+                    assertEquals(Held("handle-new", key, "v1.pending-new", now), store.takePending("handle-new"))
+                    assertNull(store.takePending("handle-new"))
                 }
                 val roles = listOf("anon", "authenticated", "service_role", "authenticator").filter { role(connection, it) }
                 val schema = PostgresGoogleGrantStore.SCHEMA_NAME
@@ -48,21 +53,29 @@ class PostgresGoogleGrantStoreTest {
                         put("$role.grantsSelect", single(connection, "SELECT has_table_privilege('$role', '$schema.grants', 'SELECT')"))
                         put("$role.grantsWrite", single(connection, "SELECT has_table_privilege('$role', '$schema.grants', 'INSERT,UPDATE,DELETE')"))
                         put("$role.consentsSelect", single(connection, "SELECT has_table_privilege('$role', '$schema.consents', 'SELECT')"))
+                        put("$role.pendingSelect", single(connection, "SELECT has_table_privilege('$role', '$schema.pending_grants', 'SELECT')"))
                     }
-                    roles.filter { it == "anon" || it == "authenticated" }.forEach { role -> put("$role.readDenied", deniedAs(connection, role, "SELECT count(*) FROM $schema.grants")) }
+                    roles.filter { it == "anon" || it == "authenticated" }.forEach { role ->
+                        put("$role.readDenied", deniedAs(connection, role, "SELECT count(*) FROM $schema.grants"))
+                        put("$role.pendingDenied", deniedAs(connection, role, "SELECT count(*) FROM $schema.pending_grants"))
+                    }
                     put("postgrestSchemas", single(connection, "SELECT coalesce(string_agg(setting, ';'), 'unset') FROM pg_roles, unnest(rolconfig) AS setting WHERE rolname = 'authenticator' AND setting LIKE 'pgrst.db_schemas=%'"))
                 }
                 println("google-connect verification: ${report.entries.joinToString { "${it.key}=${it.value}" }}")
                 assertEquals("true", report["rowLevelSecurity"])
-                assertEquals("2", report["tables"])
+                assertEquals("3", report["tables"])
                 assertEquals("0", report["policies"])
                 roles.filter { it != "authenticator" }.forEach { role ->
                     assertEquals("false", report["$role.schemaUsage"], role)
                     assertEquals("false", report["$role.grantsSelect"], role)
                     assertEquals("false", report["$role.grantsWrite"], role)
                     assertEquals("false", report["$role.consentsSelect"], role)
+                    assertEquals("false", report["$role.pendingSelect"], role)
                 }
-                roles.filter { it == "anon" || it == "authenticated" }.forEach { role -> assertTrue(report["$role.readDenied"] in setOf("true", "notMember"), role) }
+                roles.filter { it == "anon" || it == "authenticated" }.forEach { role ->
+                    assertTrue(report["$role.readDenied"] in setOf("true", "notMember"), role)
+                    assertTrue(report["$role.pendingDenied"] in setOf("true", "notMember"), role)
+                }
                 assertFalse(report.getValue("postgrestSchemas").split(Regex("[=,; ]+")).contains(schema))
             } finally {
                 connection.rollback()

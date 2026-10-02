@@ -7,14 +7,17 @@ import java.util.Base64
 
 data class GrantKey(val service: String, val subject: String)
 
-data class HeldConsent(val stateHash: String, val key: GrantKey, val sealed: String, val createdAt: Instant)
+data class Held(val hash: String, val key: GrantKey, val sealed: String, val createdAt: Instant)
 
 interface GoogleGrantStore {
     suspend fun read(key: GrantKey): String?
     suspend fun write(key: GrantKey, sealed: String)
     suspend fun delete(key: GrantKey): Boolean
-    suspend fun hold(consent: HeldConsent, staleBefore: Instant)
-    suspend fun take(stateHash: String): HeldConsent?
+    suspend fun holdConsent(consent: Held, staleBefore: Instant)
+    suspend fun takeConsent(stateHash: String): Held?
+    suspend fun holdPending(pending: Held)
+    suspend fun takePending(handleHash: String): Held?
+    suspend fun pendingBefore(cutoff: Instant): List<Held>
 }
 
 class GrantSealer(secret: String) {

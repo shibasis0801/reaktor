@@ -30,7 +30,9 @@ class GoogleOperationsTest {
     private suspend fun connected() {
         val url = connector.begin(key, listOf(CALENDAR, FREEBUSY, DRIVE, YOUTUBE), "https://app.example.test/settings/connections", null)
         val (state, code) = google.consent(url)
-        assertEquals(GoogleOutcome.Connected, connector.complete(state, code, null).outcome)
+        val done = connector.complete(state, code, null)
+        assertEquals(GoogleOutcome.Pending, done.outcome)
+        assertEquals(GoogleOutcome.Connected, connector.settle(key, done.handle!!))
     }
 
     private fun run(name: String, params: String, response: MockResponse = FakeGoogle.json(200, "{}")): Pair<RecordedRequest, JsonObject> = runBlocking {

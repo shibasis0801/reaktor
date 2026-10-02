@@ -7,7 +7,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -32,7 +31,7 @@ class GoogleConnectorTest {
         google.server.shutdown()
     }
 
-    private suspend fun connect(
+    private suspend fun finish(
         scopes: List<String> = listOf(CALENDAR),
         person: FakeGoogle.Person = FakeGoogle.Person(),
         grantKey: GrantKey = key,
@@ -40,6 +39,16 @@ class GoogleConnectorTest {
         val url = connector.begin(grantKey, scopes, RETURN, null)
         val (state, code) = google.consent(url, person)
         return connector.complete(state, code, null)
+    }
+
+    private suspend fun connect(
+        scopes: List<String> = listOf(CALENDAR),
+        person: FakeGoogle.Person = FakeGoogle.Person(),
+        grantKey: GrantKey = key,
+    ): GoogleOutcome {
+        val done = finish(scopes, person, grantKey)
+        assertEquals(GoogleOutcome.Pending, done.outcome)
+        return connector.settle(grantKey, assertNotNull(done.handle))
     }
 
     private fun params(text: String): JsonObject = Json.parseToJsonElement(text).jsonObject
@@ -67,62 +76,74 @@ class GoogleConnectorTest {
     }
 
     @Test
-    fun `the code is exchanged with the verifier behind the challenge, and the state is held only as a hash`() = scenario {
+    fun `the callback exchanges the code with the verifier and parks the grant behind a handle until it is settled`() = scenario {
         val url = connector.begin(key, listOf(CALENDAR), RETURN, null)
         val state = FakeGoogle.query(URI(url).rawQuery).getValue("state")
-        val held = store.consents.values.single()
-        assertNotEquals(state, held.stateHash)
-        assertFalse(held.sealed.contains(state))
-        assertTrue(held.sealed.startsWith("v1."))
+        val consent = store.consents.values.single()
+        assertNotEquals(state, consent.hash)
+        assertFalse(consent.sealed.contains(state))
         val (_, code) = google.consent(url)
-        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Connected), connector.complete(state, code, null))
+        val done = connector.complete(state, code, null)
+        assertEquals(RETURN, done.returnUrl)
+        assertEquals(GoogleOutcome.Pending, done.outcome)
+        val handle = assertNotNull(done.handle)
+        assertTrue(Regex("^[A-Za-z0-9_-]{43}$").matches(handle))
+        assertNull(connector.grant(key))
+        val parked = store.pending.values.single()
+        assertNotEquals(handle, parked.hash)
+        assertTrue(parked.sealed.startsWith("v1."))
+        (google.issuedAccess + google.issuedRefresh + handle).forEach { assertFalse(parked.sealed.contains(it)) }
+        assertEquals(GoogleOutcome.Connected, connector.settle(key, handle))
         assertEquals(listOf("openid", "email", CALENDAR), connector.grant(key)?.scopes)
+        assertTrue(store.pending.isEmpty())
         val forged = connector.begin(key, listOf(CALENDAR), RETURN, null)
         val forgedState = FakeGoogle.query(URI(forged).rawQuery).getValue("state")
         val (_, other) = google.consent(forged.replace(Regex("code_challenge=[^&]+"), "code_challenge=${FakeGoogle.s256("another-verifier")}"))
-        assertEquals(GoogleOutcome.Failed, connector.complete(forgedState, other, null).outcome)
+        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Failed, null), connector.complete(forgedState, other, null))
+        assertTrue(store.pending.isEmpty())
     }
 
     @Test
     fun `a state is single use, lives ten minutes, and an unknown one is refused without a return address`() = scenario {
         val url = connector.begin(key, listOf(CALENDAR), RETURN, null)
         val (state, code) = google.consent(url)
-        assertEquals(GoogleOutcome.Connected, connector.complete(state, code, null).outcome)
-        assertEquals(GoogleCompletion(null, GoogleOutcome.Expired), connector.complete(state, code, null))
-        assertEquals(GoogleCompletion(null, GoogleOutcome.Expired), connector.complete("not-a-state", code, null))
-        assertEquals(GoogleCompletion(null, GoogleOutcome.Expired), connector.complete(null, code, null))
+        assertEquals(GoogleOutcome.Pending, connector.complete(state, code, null).outcome)
+        assertEquals(GoogleCompletion(null, GoogleOutcome.Expired, null), connector.complete(state, code, null))
+        assertEquals(GoogleCompletion(null, GoogleOutcome.Expired, null), connector.complete("not-a-state", code, null))
+        assertEquals(GoogleCompletion(null, GoogleOutcome.Expired, null), connector.complete(null, code, null))
         val late = connector.begin(key, listOf(CALENDAR), RETURN, null)
         val (lateState, lateCode) = google.consent(late)
         clock.advance(11 * 60)
-        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Expired), connector.complete(lateState, lateCode, null))
+        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Expired, null), connector.complete(lateState, lateCode, null))
         assertEquals(1, google.exchanges.get())
     }
 
     @Test
-    fun `a declined consent is denied, and any other Google error fails`() = scenario {
+    fun `a declined consent is denied, and any other Google error fails, both without a handle`() = scenario {
         val declined = FakeGoogle.query(URI(connector.begin(key, listOf(CALENDAR), RETURN, null)).rawQuery).getValue("state")
-        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Denied), connector.complete(declined, null, "access_denied"))
+        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Denied, null), connector.complete(declined, null, "access_denied"))
         val broken = FakeGoogle.query(URI(connector.begin(key, listOf(CALENDAR), RETURN, null)).rawQuery).getValue("state")
-        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Failed), connector.complete(broken, null, "invalid_scope"))
+        assertEquals(GoogleCompletion(RETURN, GoogleOutcome.Failed, null), connector.complete(broken, null, "invalid_scope"))
         assertNull(connector.grant(key))
+        assertTrue(store.pending.isEmpty())
         assertEquals(0, google.exchanges.get())
     }
 
     @Test
     fun `the id token must name this client as audience and Google as issuer`() = scenario {
-        assertEquals(GoogleOutcome.Failed, connect(person = FakeGoogle.Person(audience = "someone-else.apps.googleusercontent.com")).outcome)
-        assertEquals(GoogleOutcome.Failed, connect(person = FakeGoogle.Person(issuer = "https://evil.example")).outcome)
+        assertEquals(GoogleOutcome.Failed, finish(person = FakeGoogle.Person(audience = "someone-else.apps.googleusercontent.com")).outcome)
+        assertEquals(GoogleOutcome.Failed, finish(person = FakeGoogle.Person(issuer = "https://evil.example")).outcome)
         assertNull(connector.grant(key))
+        assertTrue(store.pending.isEmpty())
         assertEquals(2, google.revoked.size)
     }
 
     @Test
     fun `a partial grant keeps what Google granted, and a grant without offline access fails`() = scenario {
-        val partial = connect(listOf(CALENDAR, DRIVE), FakeGoogle.Person(grant = { scopes -> scopes - DRIVE }))
-        assertEquals(GoogleOutcome.Partial, partial.outcome)
+        assertEquals(GoogleOutcome.Partial, connect(listOf(CALENDAR, DRIVE), FakeGoogle.Person(grant = { scopes -> scopes - DRIVE })))
         assertEquals(listOf("openid", "email", CALENDAR), connector.grant(key)?.scopes)
         val stranger = GrantKey("service-a", "person-2")
-        assertEquals(GoogleOutcome.Failed, connect(grantKey = stranger, person = FakeGoogle.Person(sub = "google-sub-9", refresh = false)).outcome)
+        assertEquals(GoogleOutcome.Failed, connect(grantKey = stranger, person = FakeGoogle.Person(sub = "google-sub-9", refresh = false)))
         assertNull(connector.grant(stranger))
     }
 
@@ -131,10 +152,74 @@ class GoogleConnectorTest {
         connect()
         val first = google.issuedRefresh.single()
         assertEquals("google-sub-1", connector.grant(key)?.accountId)
-        assertEquals(GoogleOutcome.Connected, connect(person = FakeGoogle.Person(sub = "google-sub-2", email = "other@example.test")).outcome)
+        assertEquals(GoogleOutcome.Connected, connect(person = FakeGoogle.Person(sub = "google-sub-2", email = "other@example.test")))
         assertEquals(listOf(first), google.revoked)
         assertEquals("other@example.test", connector.grant(key)?.account)
         assertEquals("google-sub-2", connector.grant(key)?.accountId)
+    }
+
+    @Test
+    fun `a consent finished in another person's browser never attaches their Google account to the person who started it`() = scenario {
+        val done = finish(person = FakeGoogle.Person(sub = "google-sub-victim", email = "victim@example.test"))
+        val handle = assertNotNull(done.handle)
+        val victim = GrantKey("service-a", "person-2")
+        assertEquals(GoogleOutcome.Refused, connector.settle(victim, handle))
+        assertNull(connector.grant(key))
+        assertNull(connector.grant(victim))
+        assertEquals(google.issuedRefresh, google.revoked)
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, handle))
+        assertNull(connector.grant(key))
+        assertTrue(store.pending.isEmpty())
+    }
+
+    @Test
+    fun `a consent nobody settles is revoked and deleted by the next request after ten minutes`() = scenario {
+        val handle = assertNotNull(finish().handle)
+        clock.advance(9 * 60)
+        assertNull(connector.grant(GrantKey("service-a", "someone-else")))
+        assertEquals(1, store.pending.size)
+        assertTrue(google.revoked.isEmpty())
+        clock.advance(2 * 60)
+        assertNull(connector.grant(GrantKey("service-a", "someone-else")))
+        assertTrue(store.pending.isEmpty())
+        assertEquals(google.issuedRefresh, google.revoked)
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, handle))
+        assertNull(connector.grant(key))
+    }
+
+    @Test
+    fun `a replayed handle is refused and leaves the settled grant alone`() = scenario {
+        val handle = assertNotNull(finish().handle)
+        assertEquals(GoogleOutcome.Connected, connector.settle(key, handle))
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, handle))
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, "A".repeat(43)))
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, "not a handle"))
+        assertNotNull(connector.grant(key))
+        assertTrue(google.revoked.isEmpty())
+    }
+
+    @Test
+    fun `an expired handle is refused and its grant revoked`() = scenario {
+        val handle = assertNotNull(finish().handle)
+        clock.advance(9 * 60 + 45)
+        assertNull(connector.grant(GrantKey("service-a", "someone-else")))
+        assertEquals(1, store.pending.size)
+        clock.advance(30)
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, handle))
+        assertNull(connector.grant(key))
+        assertTrue(store.pending.isEmpty())
+        assertEquals(google.issuedRefresh, google.revoked)
+    }
+
+    @Test
+    fun `settling with the right subject but another service is refused`() = scenario {
+        val handle = assertNotNull(finish().handle)
+        val elsewhere = GrantKey("service-b", key.subject)
+        assertEquals(GoogleOutcome.Refused, connector.settle(elsewhere, handle))
+        assertNull(connector.grant(elsewhere))
+        assertEquals(GoogleOutcome.Refused, connector.settle(key, handle))
+        assertNull(connector.grant(key))
+        assertEquals(google.issuedRefresh, google.revoked)
     }
 
     @Test
@@ -193,7 +278,7 @@ class GoogleConnectorTest {
         assertIs<GoogleCall.Done>(connector.call(key, "calendar", "calendars.get", params("""{"calendarId":"cal-1"}""")))
         assertEquals(2, google.refreshCount.get())
         assertNotEquals(rotated, google.issuedRefresh.last())
-        assertTrue(google.issuedRefresh.size == 3)
+        assertEquals(3, google.issuedRefresh.size)
     }
 
     @Test

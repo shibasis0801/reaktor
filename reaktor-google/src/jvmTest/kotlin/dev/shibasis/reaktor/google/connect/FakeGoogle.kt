@@ -27,7 +27,8 @@ class TestClock(var now: Instant = Instant.now()) : Clock() {
 
 class MemoryGrantStore : GoogleGrantStore {
     val grants = ConcurrentHashMap<GrantKey, String>()
-    val consents = ConcurrentHashMap<String, HeldConsent>()
+    val consents = ConcurrentHashMap<String, Held>()
+    val pending = ConcurrentHashMap<String, Held>()
 
     override suspend fun read(key: GrantKey): String? = grants[key]
 
@@ -37,12 +38,20 @@ class MemoryGrantStore : GoogleGrantStore {
 
     override suspend fun delete(key: GrantKey): Boolean = grants.remove(key) != null
 
-    override suspend fun hold(consent: HeldConsent, staleBefore: Instant) {
+    override suspend fun holdConsent(consent: Held, staleBefore: Instant) {
         consents.values.removeIf { it.createdAt.isBefore(staleBefore) }
-        consents[consent.stateHash] = consent
+        consents[consent.hash] = consent
     }
 
-    override suspend fun take(stateHash: String): HeldConsent? = consents.remove(stateHash)
+    override suspend fun takeConsent(stateHash: String): Held? = consents.remove(stateHash)
+
+    override suspend fun holdPending(pending: Held) {
+        this.pending[pending.hash] = pending
+    }
+
+    override suspend fun takePending(handleHash: String): Held? = pending.remove(handleHash)
+
+    override suspend fun pendingBefore(cutoff: Instant): List<Held> = pending.values.filter { it.createdAt.isBefore(cutoff) }.sortedBy { it.createdAt }
 }
 
 class FakeGoogle : Dispatcher() {
