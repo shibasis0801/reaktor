@@ -19,7 +19,7 @@ import type { Focus } from '../highlight';
 import type { BlueprintLayout, Card, Frame, Link } from '../types';
 import { BlueprintWires } from './BlueprintWires';
 import { cameraMemory, centreOn, clamp, fitBounds, GestureZoom, place, ProgrammaticZoom, wheelFactor, zoomAround, type Bounds, type Insets, type Viewport } from './camera';
-import { CameraContext, FramePartContext, HoverStore, RestContext, RestStore, SceneContext, SelectionStore, useHoveredPin, useScene, type CameraControls, type CameraRest, type MapScene, type WireState, type WireStyle } from './context';
+import { CameraContext, CardGate, FramePartContext, HoverStore, RestContext, RestStore, SceneContext, SelectionStore, useCardLook, useHoveredPin, useScene, type CameraControls, type CameraRest, type MapScene, type WireState, type WireStyle } from './context';
 import { DefaultThresholds, nextLook, useLook, type Look, type LookThresholds } from './looks';
 
 export interface Reveal {
@@ -100,7 +100,7 @@ function writeRest(host: HTMLElement, rest: CameraRest) {
 
 function CardNode({ id }: NodeProps) {
   const scene = useScene();
-  const look = useLook();
+  const look = useCardLook(id);
   const card = scene.layout.cards[id];
   return card ? <>{scene.renderCard(card, look)}</> : null;
 }
@@ -186,6 +186,7 @@ function MapHost(props: BlueprintMapProps) {
     const state = store.getState();
     return new RestStore(restFor([start.x, start.y, start.zoom], state.width, state.height, null, thresholds));
   }, [store]);
+  const gate = useMemo(() => new CardGate(rest), [rest]);
   const settleRef = useRef<() => void>(() => undefined);
   const splitRef = useRef<() => void>(() => undefined);
   const immediate = useRef(false);
@@ -294,6 +295,7 @@ function MapHost(props: BlueprintMapProps) {
       rest.moving = false;
       writeRest(host, next);
       rest.set(next);
+      gate.update(latest.current.layout, rest.get());
       latest.current.onCamera?.({ x: next.x, y: next.y, zoom: next.zoom });
       announceAt(next);
     };
@@ -356,11 +358,12 @@ function MapHost(props: BlueprintMapProps) {
       settleRef.current = () => undefined;
       splitRef.current = () => undefined;
     };
-  }, [store, flow, memory, rest]);
+  }, [store, flow, memory, rest, gate]);
 
   useLayoutEffect(() => {
     splitRef.current();
-  }, [layout]);
+    gate.update(layout, rest.get());
+  }, [layout, gate, rest]);
 
   useLayoutEffect(() => {
     if (!layout || !ready || width <= 0 || height <= 0) return;
@@ -489,6 +492,7 @@ function MapHost(props: BlueprintMapProps) {
 
   const scene = useMemo<MapScene | null>(() => layout ? {
     layout,
+    cards: gate,
     thresholds,
     selection,
     corridors: props.corridors ?? true,
@@ -499,7 +503,7 @@ function MapHost(props: BlueprintMapProps) {
     wireStyle: props.wireStyle,
     pins,
     rest,
-  } : null, [layout, thresholds, selection, props.corridors, frameOf, rowOfPort, props.renderCard, props.renderFrame, props.wireStyle, pins, rest]);
+  } : null, [layout, gate, thresholds, selection, props.corridors, frameOf, rowOfPort, props.renderCard, props.renderFrame, props.wireStyle, pins, rest]);
 
   const controlsRef = useRef(controls);
   controlsRef.current = controls;

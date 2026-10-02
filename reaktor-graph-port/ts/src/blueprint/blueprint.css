@@ -225,7 +225,7 @@
 .bp-wire__arrow { fill: var(--bp-wire); fill-opacity: var(--bp-alpha, 1); transform: scale(var(--bp-inv)); }
 :where(.react-flow__pane:not(.dragging)) .bp-wire:hover { --bp-alpha: 1 !important; }
 :where(.react-flow__pane:not(.dragging)) .bp-wire:hover .bp-wire__line { stroke-width: 2.6px !important; }
-.bp-map[data-look='chapter'] .bp-wire[data-marching] .bp-wire__line { stroke-dasharray: 7 5; }
+.bp-map[data-look='chapter'] .bp-wire[data-marching] .bp-wire__line { stroke-dasharray: 7 5; stroke-dashoffset: 9.5; }
 .bp-corridor { stroke: var(--bp-corridor); stroke-opacity: 0.45; }
 .bp-wires__labels { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 .bp-pill {

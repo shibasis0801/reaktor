@@ -65,6 +65,7 @@ export class SelectionStore {
 
 export interface MapScene {
   layout: BlueprintLayout;
+  cards: CardGate;
   thresholds: LookThresholds;
   selection: SelectionStore;
   corridors: boolean;
@@ -142,6 +143,74 @@ export function intersects(a: Bounds, b: { x: number; y: number; width: number; 
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+const StepBudget = 72;
+
+export interface CardShown {
+  look: Look;
+  rows: boolean;
+}
+
+export class CardGate {
+  private shown = new Map<string, CardShown>();
+  private queue: Array<{ id: string; want: CardShown; cost: number }> = [];
+  private waiting = false;
+  private readonly listeners = new Set<() => void>();
+  constructor(private readonly rest: RestStore) {}
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  };
+  get = (id: string): CardShown | undefined => this.shown.get(id);
+  update(layout: BlueprintLayout | null, rest: CameraRest) {
+    if (!layout) { this.queue = []; return; }
+    const { view, look } = rest;
+    const close = { x: view.x - view.width / 2, y: view.y - view.height / 2, width: view.width * 2, height: view.height * 2 };
+    const centreX = view.x + view.width / 2;
+    const centreY = view.y + view.height / 2;
+    const next = new Map(this.shown);
+    const later: Array<{ id: string; want: CardShown; cost: number; distance: number }> = [];
+    let changed = false;
+    for (const card of Object.values(layout.cards)) {
+      const rows = look === 'chapter' && intersects(rest.window, card);
+      const now = this.shown.get(card.id);
+      if (now && now.look === look && now.rows === rows) continue;
+      const want = { look, rows };
+      if (intersects(close, card) || (!now && !rows)) { next.set(card.id, want); changed = true; continue; }
+      const shown = now ?? { look, rows: false };
+      if (!now) { next.set(card.id, shown); changed = true; }
+      later.push({ id: card.id, want, cost: (shown.look === look ? 0 : 4) + (rows ? Math.max(1, card.rows) : 1), distance: Math.hypot(card.x + card.width / 2 - centreX, card.y + card.height / 2 - centreY) });
+    }
+    for (const id of this.shown.keys()) if (!layout.cards[id]) { next.delete(id); changed = true; }
+    this.queue = later.sort((a, b) => a.distance - b.distance).map(({ id, want, cost }) => ({ id, want, cost }));
+    if (changed) { this.shown = next; this.emit(); }
+    this.later();
+  }
+  private later() {
+    if (this.waiting || this.queue.length === 0) return;
+    this.waiting = true;
+    requestAnimationFrame(() => setTimeout(() => {
+      this.waiting = false;
+      this.step();
+    }, 0));
+  }
+  private step() {
+    if (this.rest.moving || this.queue.length === 0) return;
+    const next = new Map(this.shown);
+    let budget = StepBudget;
+    while (this.queue.length > 0 && budget > 0) {
+      const item = this.queue.shift()!;
+      next.set(item.id, item.want);
+      budget -= item.cost;
+    }
+    this.shown = next;
+    this.emit();
+    this.later();
+  }
+  private emit() {
+    this.listeners.forEach(listener => listener());
+  }
+}
+
 export type FramePart = 'body' | 'banner';
 
 const silent = () => () => undefined;
@@ -170,6 +239,19 @@ export function useSelection<T>(select: (selection: Selection) => T): T {
 }
 
 const emptySelection: Selection = { selected: null, selectedRow: null, highlight: new Set(), focus: 'all', litLinks: new Set() };
+
+export function useCardLook(id: string): Look {
+  const scene = useContext(SceneContext);
+  const rest = useContext(RestContext);
+  const read = () => scene?.cards.get(id)?.look ?? rest?.get().look ?? 'chapter';
+  return useSyncExternalStore(scene ? scene.cards.subscribe : silent, read, read);
+}
+
+export function useRowsOpen(id: string): boolean {
+  const scene = useContext(SceneContext);
+  const read = () => scene?.cards.get(id)?.rows ?? false;
+  return useSyncExternalStore(scene ? scene.cards.subscribe : silent, read, read);
+}
 
 export function useHoveredPin(store: HoverStore): PinFocus | null {
   return useSyncExternalStore(store.subscribe, store.get, store.get);
