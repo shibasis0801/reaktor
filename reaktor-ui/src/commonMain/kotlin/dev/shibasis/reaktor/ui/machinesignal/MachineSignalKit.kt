@@ -156,7 +156,7 @@ fun JumpOutStrip(
     }
 }
 
-data class SignalAction(val label: String, val enabled: Boolean = true, val onInvoke: () -> Unit)
+data class SignalAction(val label: String, val enabled: Boolean = true, val id: String? = null, val onInvoke: () -> Unit)
 
 @Composable
 fun SignalContextMenu(
@@ -174,6 +174,7 @@ fun SignalContextMenu(
             DropdownMenuItem(
                 enabled = action.enabled,
                 onClick = { onDismiss(); action.onInvoke() },
+                modifier = Modifier.testTag(action.id ?: "signal-action-${action.label}"),
                 text = {
                     SignalText(
                         action.label,

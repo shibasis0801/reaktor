@@ -96,7 +96,9 @@ fun Graph.shape(): GraphShape {
             active = container?.shows(graph) ?: true,
             backStack = graph.backStack.entries.value.mapNotNull { (it.edge.end as? Node)?.id?.toString() },
         )
-        val members = graph.nodes.toList().let { attached -> (attached + attached.filterIsInstance<ContainerNode>().map { it.route }).distinct() }
+        val members = graph.nodes.toList()
+            .let { attached -> (attached + attached.filterIsInstance<ContainerNode>().map { it.route }).distinct() }
+            .sortedWith(compareBy({ it.shapeLabel() }, { it::class.simpleName }))
         val attachments = members.filterIsInstance<RouteNode<*, *>>()
             .flatMap { route -> route.attachedNodes().filterIsInstance<Node>().map { it to route } }
             .toMap()
@@ -105,7 +107,7 @@ fun Graph.shape(): GraphShape {
             nodes += NodeShape(
                 id = node.id.toString(),
                 scope = scope,
-                label = node.label.ifBlank { node.contractLabel() ?: node::class.simpleName ?: "Node" },
+                label = node.shapeLabel(),
                 type = node::class.simpleName ?: "Node",
                 kind = node.kind.let { if (route != null && it != NodeKind.Route && it != NodeKind.Container) NodeKind.Screen else it },
                 route = (node as? RouteNode<*, *>)?.pattern?.original ?: route?.pattern?.original,
@@ -150,6 +152,8 @@ fun Graph.shape(): GraphShape {
 }
 
 const val DormantLifecycle = "Dormant"
+
+private fun Node.shapeLabel(): String = label.ifBlank { contractLabel() ?: this::class.simpleName ?: "Node" }
 
 fun Graph.shapes(): Flow<GraphShape> = flow {
     while (true) {

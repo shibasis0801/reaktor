@@ -10,7 +10,7 @@ class KotlinSourceIndex private constructor(private val declarations: Map<String
     fun find(qualifiedName: String): List<SourceDeclaration> = declarations[qualifiedName].orEmpty()
 
     companion object {
-        private val excluded = setOf(".git", ".gradle", ".kotlin", "build", "node_modules", "Pods", "dist", "generated", "ts", "cpp")
+        private val excluded = setOf(".git", ".gradle", ".kotlin", ".claude", ".codex", ".gradle-codex", ".github_modules", ".dagger", ".idea", "build", "node_modules", "Pods", "dist", "generated", "ts", "cpp")
         private val declaration = Regex("^\\s*(?:(?:public|private|internal|protected|open|final|abstract|sealed|data|enum|annotation|value|inner|expect|actual|external)\\s+)*(?:class|object|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)")
 
         fun read(roots: List<File>): KotlinSourceIndex {
