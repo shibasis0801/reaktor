@@ -19,6 +19,7 @@ enum class RuntimeKind {
     Codex,
     Gemini,
     ChatGptGemini,
+    Gateway,
 
     /** Deterministic, no-subprocess runtime. Used by tests and by offline dry runs. */
     Echo,

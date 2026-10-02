@@ -59,6 +59,8 @@ class LocalMeasureTest(unittest.TestCase):
             self.assertEqual(0o600, (state / "connection.json").stat().st_mode & 0o777)
             self.assertTrue(all(req.headers["Authorization"].startswith("Bearer ") for req in calls))
             self.assertNotEqual(connection["access_token"], connection["apps"][0]["api_key"])
+            self.assertEqual(json.loads(identity)["team"], connection["team_id"])
+            self.assertEqual(server.DASHBOARD, connection["dashboard_url"])
 
     def test_invalid_operator_identity_cannot_reach_database(self):
         with tempfile.TemporaryDirectory() as directory:

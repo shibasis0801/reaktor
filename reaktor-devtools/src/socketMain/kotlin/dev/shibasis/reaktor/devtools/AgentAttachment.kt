@@ -4,6 +4,11 @@ import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.aSocket
 import dev.shibasis.reaktor.core.framework.Async
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,6 +46,11 @@ class AgentAttachment(
     private val connectedState = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = connectedState
 
+    private val farewellState = MutableStateFlow<String?>(null)
+    val farewell: StateFlow<String?> = farewellState
+
+    private val pongs = MutableSharedFlow<String>(extraBufferCapacity = 16)
+
     /** Facts the agent discarded before we read them. Surfaced, never hidden. */
     val dropped: StateFlow<Long> = droppedState
 
@@ -60,6 +70,8 @@ class AgentAttachment(
                     frame.facts.forEach { factFlow.emit(frame.capability to it) }
                 }
 
+                is CarrierFrame.Goodbye -> farewellState.value = frame.reason
+                is CarrierFrame.Ping -> pongs.tryEmit(frame.token)
                 else -> Unit
             }
         }
@@ -70,6 +82,20 @@ class AgentAttachment(
             .descriptor
             .also { descriptorState.value = it }
     }
+
+    suspend fun ping(timeoutMillis: Long): Boolean {
+        val token = Uuid.random().toString()
+        return withTimeoutOrNull(timeoutMillis) {
+            coroutineScope {
+                val reply = async(start = CoroutineStart.UNDISPATCHED) { pongs.first { it == token } }
+                requirePeer().emit(CarrierFrame.Ping(token))
+                reply.await()
+            }
+        } != null
+    }
+
+    suspend fun describe(): AgentDescriptor =
+        requirePeer().call(client.describe, DescribeRequest()).descriptor.also { descriptorState.value = it }
 
     suspend fun semantics(
         rootId: String = "",

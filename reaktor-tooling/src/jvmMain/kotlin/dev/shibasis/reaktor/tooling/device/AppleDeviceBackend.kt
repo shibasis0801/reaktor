@@ -60,10 +60,8 @@ class AppleDeviceBackend : DeviceBackend {
 
     override suspend fun list(): List<DevelopmentDevice> {
         val tool = devicectl ?: return emptyList()
-        val payload = runCatching {
-            CommandRunner.runJson(listOf(tool, "devicectl", "list", "devices"))
-        }.getOrNull().orEmpty()
-        if (payload.isBlank()) return emptyList()
+        val payload = CommandRunner.runJson(listOf(tool, "devicectl", "list", "devices"))
+        require(payload.isNotBlank()) { "devicectl did not list any devices this time" }
         return parse(payload)
     }
 
@@ -302,6 +300,21 @@ class AppleDeviceSession(
         return apps.mapNotNull { it.jsonObject["bundleIdentifier"]?.jsonPrimitive?.contentOrNull }.sorted()
     }
 
+    suspend fun bundlePath(applicationId: String): String? {
+        require(DeviceOperation.ListApps)
+        val payload = CommandRunner.runJson(
+            listOf(xcrun, "devicectl", "device", "info", "apps", "--device", device.id, "--bundle-id", applicationId),
+        )
+        return json.parseToJsonElement(payload).jsonObject["result"]?.jsonObject
+            ?.get("apps")?.jsonArray?.firstOrNull()
+            ?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull
+    }
+
+    suspend fun running(applicationId: String): Boolean? {
+        val path = bundlePath(applicationId) ?: return null
+        return listProcesses().any { it.name.startsWith(path) }
+    }
+
     override suspend fun listProcesses(): List<DeviceProcess> {
         require(DeviceOperation.ListProcesses)
         val payload = CommandRunner.runJson(
@@ -342,7 +355,12 @@ class AppleDeviceSession(
 
     override suspend fun terminate(applicationId: String) {
         require(DeviceOperation.Terminate)
-        idb().terminate(applicationId)
+        val path = bundlePath(applicationId) ?: return
+        listProcesses().filter { it.name.startsWith(path) }.forEach { process ->
+            CommandRunner.runJson(
+                listOf(xcrun, "devicectl", "device", "process", "terminate", "--device", device.id, "--pid", process.pid.toString()),
+            )
+        }
     }
 
     /**
@@ -410,6 +428,14 @@ class AppleDeviceSession(
     override suspend fun openUrl(url: String) {
         require(DeviceOperation.DeepLink)
         idb().openUrl(url)
+    }
+
+    suspend fun openUrl(applicationId: String, url: String) {
+        require(DeviceOperation.Launch)
+        CommandRunner.runJson(
+            listOf(xcrun, "devicectl", "device", "process", "launch", "--device", device.id, "--payload-url", url, applicationId),
+            timeoutSeconds = 120,
+        )
     }
 
     suspend fun setLocation(latitude: Double, longitude: Double) {

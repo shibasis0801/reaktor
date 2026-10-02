@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.conductor.gateway.GatewayRuntime
 import dev.shibasis.reaktor.conductor.AgentRuntime
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
@@ -25,6 +26,7 @@ object AgentRuntimes {
         RuntimeKind.Codex to CodexRuntime(executor),
         RuntimeKind.ClaudeCode to ClaudeCodeRuntime(executor),
         RuntimeKind.Gemini to AntigravityRuntime(executor),
+        RuntimeKind.Gateway to GatewayRuntime(),
     )
 
     /** Interactive turns with native continuation: Codex over its App Server, Claude over stream-json stdin. */
@@ -34,5 +36,6 @@ object AgentRuntimes {
         RuntimeKind.Codex to CodexAppServerRuntime(scope = scope),
         RuntimeKind.ClaudeCode to ClaudeCodeSessionRuntime(scope = scope),
         RuntimeKind.Gemini to AntigravityRuntime(SupervisedProcessExecutor(scope = scope)),
+        RuntimeKind.Gateway to GatewayRuntime(),
     )
 }

@@ -19,6 +19,10 @@ elseif(NOT ANDROID AND EXISTS "/usr/local/opt/openssl")
     set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE PATH "OpenSSL root" FORCE)
 endif()
 
+if(iOS AND OPENSSL_ROOT_DIR)
+    list(APPEND CMAKE_FIND_ROOT_PATH "${OPENSSL_ROOT_DIR}")
+endif()
+
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 set(JSON_Install OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/json EXCLUDE_FROM_ALL)

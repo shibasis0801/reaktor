@@ -11,16 +11,28 @@ import kotlinx.serialization.json.JsonObject
 data class MeasureMeta(val next: Boolean = false, val previous: Boolean = false)
 
 @Serializable
-data class MeasurePage<T>(@Serializable(with = MeasureResultsSerializer::class) val results: List<T> = emptyList(), val meta: MeasureMeta = MeasureMeta()) : Response()
+data class MeasurePage<T>(
+    @Serializable(with = MeasureResultsSerializer::class) val results: List<T> = emptyList(),
+    val meta: MeasureMeta = MeasureMeta(),
+    @SerialName("error") val failure: String? = null,
+) : Response()
 
 @Serializable
-data class MeasureSpanNames(@Serializable(with = MeasureResultsSerializer::class) val results: List<String> = emptyList()) : Response()
+data class MeasureSpanNames(
+    @Serializable(with = MeasureResultsSerializer::class) val results: List<String> = emptyList(),
+    @SerialName("error") val failure: String? = null,
+) : Response()
 
 @Serializable
-data class MeasureAppFilters(val versions: List<MeasureVersion>? = null) : Response()
+data class MeasureAppFilters(
+    val versions: List<MeasureVersion>? = null,
+    @SerialName("error") val failure: String? = null,
+) : Response()
 
 @Serializable
-data class MeasureVersion(val name: String, val code: String)
+data class MeasureVersion(val name: String, val code: String) {
+    val label: String get() = "$name ($code)"
+}
 
 @Serializable
 data class MeasureMetricValue(
@@ -28,7 +40,14 @@ data class MeasureMetricValue(
     val p95: Double? = null,
     @SerialName("crash_free_sessions") val crashFreeSessions: Double? = null,
     @SerialName("anr_free_sessions") val anrFreeSessions: Double? = null,
+    @SerialName("perceived_crash_free_sessions") val perceivedCrashFreeSessions: Double? = null,
+    @SerialName("perceived_anr_free_sessions") val perceivedAnrFreeSessions: Double? = null,
     @SerialName("selected_app_size") val appSize: Double? = null,
+    @SerialName("average_app_size") val averageAppSize: Double? = null,
+    val delta: Double? = null,
+    val adoption: Double? = null,
+    @SerialName("selected_version") val selectedVersionSessions: Long? = null,
+    @SerialName("all_versions") val allVersionSessions: Long? = null,
 )
 
 @Serializable
@@ -36,10 +55,14 @@ data class MeasureMetrics(
     @Transient val recordingsAvailable: Boolean = true,
     @SerialName("crash_free_sessions") val crashFree: MeasureMetricValue? = null,
     @SerialName("anr_free_sessions") val anrFree: MeasureMetricValue? = null,
+    @SerialName("perceived_crash_free_sessions") val perceivedCrashFree: MeasureMetricValue? = null,
+    @SerialName("perceived_anr_free_sessions") val perceivedAnrFree: MeasureMetricValue? = null,
     @SerialName("cold_launch") val coldLaunch: MeasureMetricValue? = null,
     @SerialName("warm_launch") val warmLaunch: MeasureMetricValue? = null,
     @SerialName("hot_launch") val hotLaunch: MeasureMetricValue? = null,
+    val adoption: MeasureMetricValue? = null,
     val sizes: MeasureMetricValue? = null,
+    @SerialName("error") val failure: String? = null,
 ) : Response()
 
 @Serializable
@@ -50,6 +73,7 @@ data class MeasureSession(
     @SerialName("first_event_time") val firstEventTime: String = "",
     @SerialName("last_event_time") val lastEventTime: String = "",
     val duration: Double = 0.0,
+    @SerialName("matched_free_text") val matchedText: String = "",
 )
 
 @Serializable
@@ -62,22 +86,36 @@ data class MeasureSessionDetail(
     @SerialName("memory_usage") val memoryUsage: List<JsonObject>? = null,
     @SerialName("memory_usage_absolute") val iosMemoryUsage: List<JsonObject>? = null,
     val threads: Map<String, List<JsonObject>> = emptyMap(),
+    val traces: List<JsonObject>? = null,
+    @SerialName("error") val failure: String? = null,
 ) : Response()
 
+enum class MeasureProblem(val label: String, val errorType: String, val severities: List<String>) {
+    Crashes("Crashes", "error", listOf("fatal")),
+    Anrs("ANRs", "anr", emptyList()),
+    Handled("Handled", "error", listOf("unhandled", "handled")),
+}
+
 @Serializable
-data class MeasureError(
+data class MeasureErrorGroup(
     val id: String,
+    @SerialName("app_id") val appId: String = "",
     val type: String = "",
     @SerialName("error_type") val errorType: String = "",
     val severity: String = "",
+    @SerialName("is_custom") val custom: Boolean = false,
     val message: String = "",
+    @SerialName("method_name") val methodName: String = "",
     @SerialName("file_name") val fileName: String = "",
     @SerialName("line_number") val lineNumber: Int = 0,
     val count: Long = 0,
-    val users: Long = 0,
-    val sessions: Long = 0,
-    @SerialName("last_seen") val lastSeen: String = "",
-)
+    @SerialName("percentage_contribution") val share: Double = 0.0,
+    @SerialName("updated_at") val updatedAt: String = "",
+) {
+    val key: String get() = "$errorType:$severity:$id"
+    val location: String get() = listOfNotNull(methodName.takeIf(String::isNotBlank),
+        fileName.takeIf(String::isNotBlank)?.let { if (lineNumber > 0) "$it:$lineNumber" else it }).joinToString(" · ")
+}
 
 @Serializable
 data class MeasureSpan(
@@ -105,4 +143,5 @@ data class MeasureTrace(
     val duration: Double = 0.0,
     @SerialName("app_version") val version: String = "",
     val spans: List<MeasureSpan> = emptyList(),
+    @SerialName("error") val failure: String? = null,
 ) : Response()

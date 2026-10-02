@@ -60,6 +60,8 @@ class NativeExecutionRequest private constructor(
                 is InfrastructureOperation.WorkerCall -> listOf("Worker", operation.endpoint, operation.operation)
                 is InfrastructureOperation.IslandShapesRead -> listOf("Island shapes", "${operation.hosts.size} hosts")
                 is InfrastructureOperation.SpanRead -> listOf("Service spans", operation.database, "${operation.windowMinutes} min", "limit=${operation.limit}")
+                is InfrastructureOperation.CloudflareAiCall -> listOfNotNull("Cloudflare AI", operation.action, operation.gateway, operation.model)
+                is InfrastructureOperation.CloudApiCall -> listOf("Cloud API", operation.operation, operation.arguments.take(200))
                 is InfrastructureOperation.CloudInventoryRead -> listOfNotNull(
                     "Cloud inventory",
                     operation.cloudflareAccount?.let { "Cloudflare $it" },
@@ -127,6 +129,12 @@ class JvmInfrastructureExecutor {
                             is InfrastructureOperation.SpanRead -> SpanJvmClient(session).read(op, request.environment, request.timeoutMillis)
                             is InfrastructureOperation.CloudInventoryRead -> kotlinx.coroutines.runBlocking {
                                 dev.shibasis.reaktor.tooling.cloud.CloudInventoryReads.execute(op)
+                            }
+                            is InfrastructureOperation.CloudflareAiCall -> kotlinx.coroutines.runBlocking {
+                                dev.shibasis.reaktor.tooling.cloud.CloudflareAiCalls.execute(op)
+                            }
+                            is InfrastructureOperation.CloudApiCall -> kotlinx.coroutines.runBlocking {
+                                dev.shibasis.reaktor.tooling.api.CloudApis.execute(op)
                             }
                             // Device work runs on the same virtual thread as every other native
                             // operation, so a hung adb call is cancelled by the same timeout.

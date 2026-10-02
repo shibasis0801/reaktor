@@ -387,6 +387,14 @@ sealed interface CarrierFrame {
     @Serializable
     @SerialName("ping")
     data class Ping(val token: String, val agentMonotonicNanos: Long = 0) : CarrierFrame
+
+    @Serializable
+    @SerialName("goodbye")
+    data class Goodbye(val reason: String) : CarrierFrame {
+        companion object {
+            const val Replaced = "replaced"
+        }
+    }
 }
 
 /**

@@ -78,6 +78,7 @@ class DevToolsHost(
 ) {
     private val service = DevToolsHostService(agent)
     private var connection: Job? = null
+    private var current: PeerChannel? = null
     private var listening: Job? = null
 
     fun start(): Job = scope.launch {
@@ -93,7 +94,12 @@ class DevToolsHost(
                 continue
             }
             failures = 0
+            current?.let { previous ->
+                emit(previous, CarrierFrame.Goodbye(CarrierFrame.Goodbye.Replaced))
+                delay(GoodbyeGraceMillis)
+            }
             connection?.cancelAndJoin()
+            current = channel
             connection = launch { serve(channel) }
         }
     }.also { listening = it }
@@ -130,6 +136,7 @@ class DevToolsHost(
             reader.join()
         } finally {
             subscriptions.values.forEach { it.cancel() }
+            if (current === channel) current = null
             channel.close()
         }
     }
@@ -171,4 +178,5 @@ class DevToolsHost(
 }
 
 private const val RelistenBackoffMillis = 250L
+private const val GoodbyeGraceMillis = 100L
 private const val MaxBackoffDoublings = 4

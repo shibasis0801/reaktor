@@ -146,8 +146,8 @@ def provision():
         name = f"Reaktor {platform}"
         if not any(app["name"] == name for app in apps):
             apps.append(request(path, {"name": name}))
-    connection = {"api_url": API, "ingest_url": INGEST, "access_token": access,
-                  "expires_at": int(time.time()) + 1800,
+    connection = {"api_url": API, "ingest_url": INGEST, "dashboard_url": DASHBOARD, "team_id": identity["team"],
+                  "access_token": access, "expires_at": int(time.time()) + 1800,
                   "apps": [{"id": app["id"], "name": app["name"], "api_key": app["api_key"]["key"]} for app in apps]}
     target = STATE / "connection.json"
     temporary = STATE / "connection.json.new"
