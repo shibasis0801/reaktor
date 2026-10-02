@@ -31,7 +31,7 @@ export function BlueprintCard({ card, look, tone, title, className, icon, subtit
     <div className="bp-card__header" data-part="header">
       {icon && <span className="bp-card__icon" data-part="icon" aria-hidden="true">{icon}</span>}
       <span className="bp-card__title" data-part="title">{title}</span>
-      {badges && <span className="bp-card__badges" data-part="badges">{badges}</span>}
+      {badges && (near || selected) && <span className="bp-card__badges" data-part="badges">{badges}</span>}
     </div>
     {(subtitle || folded) && <div className="bp-card__meta">
       <span className="bp-card__subtitle" data-part="subtitle">{subtitle}</span>
