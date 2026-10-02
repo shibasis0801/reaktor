@@ -17,6 +17,7 @@ kotlin {
             api(project(":reaktor-core"))
             api(project(":reaktor-code"))
             api(project(":reaktor-io"))
+            api(project(":reaktor-surface-compose"))
             api(compose.runtime)
             api(compose.foundation)
             api(compose.material3)
