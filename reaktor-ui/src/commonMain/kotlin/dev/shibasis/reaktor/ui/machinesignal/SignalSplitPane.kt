@@ -92,7 +92,7 @@ fun SignalResizeHandle(
             )
         }
         .onKeyEvent { event ->
-            if (event.type != KeyEventType.KeyDown) false else when (event.key) {
+            if (event.type != KeyEventType.KeyDown || event.isAltPressed || event.isMetaPressed || event.isCtrlPressed || event.isShiftPressed) false else when (event.key) {
                 Key.DirectionLeft -> if (horizontal) { resize(-step); true } else false
                 Key.DirectionRight -> if (horizontal) { resize(step); true } else false
                 Key.DirectionUp -> if (!horizontal) { resize(-step); true } else false

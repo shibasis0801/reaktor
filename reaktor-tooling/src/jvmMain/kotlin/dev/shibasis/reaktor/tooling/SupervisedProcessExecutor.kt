@@ -652,6 +652,7 @@ private fun sha256(value: ByteArray): String = java.security.MessageDigest.getIn
 
 private val DEFINITION_EXCLUDED_DIRECTORIES = setOf(
     ".git", ".gradle", ".idea", ".kotlin", "build", "node_modules", "screenshots", "tmp",
+    ".claude", ".codex", ".gradle-codex", ".github_modules", ".dagger", ".vscode",
 )
 private const val MAX_DEFINITION_FILES = 20_000
 private const val MAX_DEFINITION_BYTES = 256L * 1024L * 1024L
