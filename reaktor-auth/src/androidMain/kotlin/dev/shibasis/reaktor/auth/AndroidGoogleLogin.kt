@@ -24,8 +24,6 @@ class AndroidGoogleLogin(
 
     override suspend fun login(): Result<GoogleUser> = runCatching {
         adapter.suspended {
-            current?.let { return@suspended it }
-
             val result = adapter.credentialManager.getCredential(this, request)
             if (result.credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 throw NoCredentialException("No Google ID token credential returned")

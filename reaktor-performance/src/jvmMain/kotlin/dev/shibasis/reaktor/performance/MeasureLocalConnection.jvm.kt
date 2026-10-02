@@ -10,6 +10,8 @@ class MeasureLocalConnection(
     @SerialName("access_token") val accessToken: String,
     @SerialName("expires_at") val expiresAt: Long,
     val apps: List<MeasureLocalApp>,
+    @SerialName("dashboard_url") val dashboardUrl: String = MeasureLocalServer.DashboardUrl,
+    @SerialName("team_id") val teamId: String? = null,
 )
 
 @Serializable

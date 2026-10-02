@@ -129,6 +129,11 @@ object CliCapabilities {
             effortControl = Qualification(true, true, true),
             notes = listOf("Gemini through Antigravity headless. Native permissions apply; missing permissions fail the turn. Plan mode requests inspection; it is not an OS sandbox. No live steering or permission responses on this transport.",
                 if (runtime == RuntimeKind.ChatGptGemini) "One composite seat: ChatGPT plans and reviews each cycle around Gemini execution, looping until it says the work is done or the cycle cap stops it. The programmatic planner is Codex on its ChatGPT account and spends that pool; pausing it falls back to operator-transferred planning rather than to another provider." else "Antigravity uses the saved Google account and native credit policies; remaining capacity is unknown."))
+        RuntimeKind.Gateway -> ProviderCapability(RuntimeKind.Gateway, executable = null, version = "Cloudflare AI REST",
+            effort = EffortSupport(listOf("low", "medium", "high").map(::NativeEffort), source = "reasoning_effort on models that list it"),
+            effortControl = Qualification(true, true, true),
+            reasoning = ReasoningFidelity.Thinking,
+            notes = listOf("An open model on the workspace's Cloudflare account, reached through the REST inference API and an AI Gateway when one is named. It reads the workspace through confined read, search and list tools and never edits files."))
         RuntimeKind.Echo -> ProviderCapability(runtime = RuntimeKind.Echo, executable = null, version = "in-process")
     }
 
@@ -136,7 +141,7 @@ object CliCapabilities {
         RuntimeKind.ClaudeCode -> "claude"
         RuntimeKind.Codex -> "codex"
         RuntimeKind.Gemini, RuntimeKind.ChatGptGemini -> "agy"
-        RuntimeKind.Echo -> "echo"
+        RuntimeKind.Gateway, RuntimeKind.Echo -> "echo"
     }
 
     private fun capture(binary: String, flag: String): String? = runCatching {

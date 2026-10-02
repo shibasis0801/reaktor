@@ -54,6 +54,24 @@ sealed interface InfrastructureOperation {
     ) : InfrastructureOperation
 
     @Serializable
+    data class CloudApiCall(
+        val workspace: String,
+        val operation: String,
+        val arguments: String = "{}",
+    ) : InfrastructureOperation
+
+    @Serializable
+    data class CloudflareAiCall(
+        val workspace: String,
+        val account: String,
+        val action: String,
+        val gateway: String? = null,
+        val model: String? = null,
+        val system: String? = null,
+        val prompt: String? = null,
+    ) : InfrastructureOperation
+
+    @Serializable
     data class IslandShapesRead(
         val hosts: List<String>,
         val tokenEndpoint: String,

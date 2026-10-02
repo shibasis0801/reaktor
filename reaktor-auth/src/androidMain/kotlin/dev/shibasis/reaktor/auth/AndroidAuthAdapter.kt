@@ -17,6 +17,7 @@ class AndroidAuthAdapter(
     override suspend fun logout(): Result<Unit> = suspended {
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            providers.values.forEach { it.logout().getOrThrow() }
             resetLoginState()
             Result.success(Unit)
         } catch (e: Exception) {

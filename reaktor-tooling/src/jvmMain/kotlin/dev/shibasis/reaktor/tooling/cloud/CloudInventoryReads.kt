@@ -50,7 +50,7 @@ object CloudInventoryReads {
         }
     }
 
-    private suspend fun refreshWrangler(workspace: File) {
+    internal suspend fun refreshWrangler(workspace: File) {
         val local = File(workspace, "node_modules/.bin/wrangler").takeIf { it.canExecute() }?.absolutePath
         val command = local?.let { listOf(it, "whoami") } ?: listOf(tool("npx") ?: "npx", "--no-install", "wrangler", "whoami")
         val node = tool("node")?.let { File(it).parent }

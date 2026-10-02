@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -80,14 +81,19 @@ class PeerServiceHost(
     private val handlers by lazy { service.handlers.associateBy { it.endpoint.operation } }
 
     fun start(): Job = scope.launch {
-        channel.incoming.collect { message ->
-            val envelope = runCatching { json.decodeFromString<PeerEnvelope>(message) }.getOrNull()
-                ?: return@collect
-            when (envelope) {
-                is PeerEnvelope.Call -> respond(envelope)
-                is PeerEnvelope.Carrier -> onCarrierFrame(envelope.frame)
-                is PeerEnvelope.Reply -> Unit
+        try {
+            channel.incoming.collect { message ->
+                val envelope = runCatching { json.decodeFromString<PeerEnvelope>(message) }.getOrNull()
+                    ?: return@collect
+                when (envelope) {
+                    is PeerEnvelope.Call -> respond(envelope)
+                    is PeerEnvelope.Carrier -> onCarrierFrame(envelope.frame)
+                    is PeerEnvelope.Reply -> Unit
+                }
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Throwable) {
         }
     }
 

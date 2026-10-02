@@ -7,9 +7,10 @@ live beside it.
 
 ## Start
 
-Reaktor Desktop starts Measure in a background thread when its workspace can
-locate this folder. Set `REAKTOR_ECOSYSTEM_ROOT` to this folder for a workspace
-outside Reaktor's parent directory. Docker Desktop must already be running.
+Hangar starts Measure only when you press Start in DevTools → Measure; it never
+starts Docker or Measure on its own. It finds this folder from its workspace; set
+`REAKTOR_ECOSYSTEM_ROOT` for a workspace outside Reaktor's parent directory.
+Docker Desktop must already be running.
 The first launch downloads images and builds the services sequentially to limit
 memory pressure. Later launches reuse them.
 
@@ -53,8 +54,9 @@ its public build settings. The pane can use its own local operator immediately.
 `.state/` is ignored. It holds the persistent installation identity, randomized
 service passwords, dashboard connection and SDK ingestion keys. Environment and
 connection files are mode 0600; the directory is mode 0700. Do not commit them.
-The dashboard token and SDK key are distinct credentials. Startup diagnostics are
-in `.state/measure-server.log` and `.state/reaktor-startup.log`.
+The dashboard token and SDK key are distinct credentials. Compose output is in
+`.state/measure-server.log`; each command Hangar runs keeps its output in
+`.state/reaktor-<command>.log`, and the pane shows the last line when one fails.
 
 ## Record from apps
 

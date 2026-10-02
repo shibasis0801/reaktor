@@ -45,8 +45,10 @@ class MeasureIntegrationTest {
             assertEquals("50", request.url.parameters["offset"])
             assertEquals("1.2 debug", request.url.parameters["versions"])
             assertEquals("120", request.url.parameters["version_codes"])
-            assertEquals("(version_name:in:\"1.2 debug\" AND version_code:in:\"120\")", request.url.parameters["filter_expr"])
+            assertNull(request.url.parameters["filter_expr"])
             assertEquals("error login", request.url.parameters["free_text"])
+            service.spans("app-id", "Load feed", query)
+            assertEquals("(version_name:in:\"1.2 debug\" AND version_code:in:\"120\")", requests.last().url.parameters["filter_expr"])
             assertEquals(9, service.handlers.size)
         } finally { client.close() }
     }
@@ -86,10 +88,48 @@ class MeasureIntegrationTest {
     fun failedReadsDoNotDecodeIntoSuccessfulEmptyResults() = runBlocking {
         val client = HttpClient(MockEngine { respond("""{"error":"sensitive server detail"}""", HttpStatusCode.Unauthorized, headersOf("Content-Type", "application/json")) })
         try {
-            val failure = assertFailsWith<IllegalStateException> { MeasureService("http://localhost:47180", "secret-token", client).sessions("app") }
-            assertTrue(failure.message.orEmpty().contains("expired"))
+            val failure = assertFailsWith<MeasureRequestFailed> { MeasureService("http://localhost:47180", "secret-token", client).sessions("app") }
+            assertTrue(failure.unauthorized)
+            assertTrue(failure.message.orEmpty().contains("rejected the access token"))
             assertFalse(failure.message.orEmpty().contains("secret-token"))
             assertFalse(failure.message.orEmpty().contains("sensitive"))
+        } finally { client.close() }
+    }
+
+    @Test
+    fun aRejectedQuerySaysWhyInsteadOfOnlyItsStatus() = runBlocking {
+        val client = HttpClient(MockEngine { respond("""{"error":"`severity` must be any combination of: fatal, unhandled, handled"}""", HttpStatusCode.BadRequest, headersOf("Content-Type", "application/json")) })
+        try {
+            val failure = assertFailsWith<MeasureRequestFailed> { MeasureService("http://localhost:47180", "token", client).problems("app", MeasureProblem.Handled) }
+            assertEquals(400, failure.status)
+            assertTrue(failure.message.orEmpty().contains("`severity` must be"))
+        } finally { client.close() }
+    }
+
+    @Test
+    fun problemsAskForTheirKindAndKeepCrashedAndHandledTwinsApart() = runBlocking {
+        val requests = mutableListOf<io.ktor.client.request.HttpRequestData>()
+        val client = HttpClient(MockEngine { request ->
+            requests += request
+            respond("""{"results":[
+                {"app_id":"a","id":"g1","type":"java.lang.IllegalStateException","error_type":"error","severity":"fatal","is_custom":false,
+                 "message":"boom","method_name":"load","file_name":"Feed.kt","line_number":42,"count":7,"percentage_contribution":63.64,"updated_at":"2026-09-30T10:00:00Z"},
+                {"app_id":"a","id":"g1","type":"java.lang.IllegalStateException","error_type":"error","severity":"handled","message":"boom","count":4,"percentage_contribution":36.36}
+            ],"meta":{"next":false}}""", headers = headersOf("Content-Type", "application/json"))
+        })
+        try {
+            val service = MeasureService("http://localhost:47180", "token", client)
+            val page = service.problems("app", MeasureProblem.Crashes)
+            assertEquals("error", requests.last().url.parameters["type"])
+            assertEquals("fatal", requests.last().url.parameters["severity"])
+            service.problems("app", MeasureProblem.Anrs)
+            assertEquals("anr", requests.last().url.parameters["type"])
+            assertNull(requests.last().url.parameters["severity"])
+            service.problems("app", MeasureProblem.Handled)
+            assertEquals("unhandled,handled", requests.last().url.parameters["severity"])
+            assertEquals(2, page.results.map { it.key }.distinct().size)
+            assertEquals("load · Feed.kt:42", page.results.first().location)
+            assertEquals(63.64, page.results.first().share)
         } finally { client.close() }
     }
 

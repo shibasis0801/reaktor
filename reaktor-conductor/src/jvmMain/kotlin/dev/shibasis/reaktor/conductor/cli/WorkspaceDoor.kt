@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.mcp.ReaktorMcpServer
+import dev.shibasis.reaktor.tooling.api.CloudApis
+import dev.shibasis.reaktor.tooling.api.CloudApiTools
 import dev.shibasis.reaktor.conductor.workspace.AgentBackgroundService
 import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
 import dev.shibasis.reaktor.tooling.CallCaller
@@ -68,11 +71,19 @@ internal class WorkspaceDoor(private val root: File, private val seat: String?, 
             DoorMount(McpLinkProvider(DESKTOP, link, SafetyClass.LiveRead, entry?.hide.orEmpty().toSet()), entry?.mode ?: DoorMode.OnDemand,
                 entry?.prefix.orEmpty(), entry?.title ?: "Reaktor desktop", entry?.offlineHint ?: "Start the Reaktor desktop app.", selfGoverned = true)
         }
+        val cloud = configured[CLOUD].let { entry ->
+            val server = ReaktorMcpServer(CLOUD, "1", "The complete Cloudflare, Supabase and Google Cloud APIs, read from each provider's own API description. " +
+                "Find an operation with cloud_api_search, read its parameters with cloud_api_describe, then call it with the tool that matches what it does.",
+                CloudApiTools.tools(CloudApis(root)))
+            DoorMount(McpLinkProvider(CLOUD, FunctionMcpLink(CLOUD) { server.handle(it) }, SafetyClass.UnknownRemoteEffect, entry?.hide.orEmpty().toSet()),
+                entry?.mode ?: DoorMode.OnDemand, entry?.prefix.orEmpty(), entry?.title ?: "Cloud APIs", entry?.offlineHint, callClasses = CloudApiTools.classes)
+        }
         val mounts = listOf(
             builtIn(WORKSPACE, "Agent workspace", SafetyClass.UnknownRemoteEffect, "Run `workspace start --dir ${root.path}`.") { owner().exchange(it) },
             builtIn(KERNEL, "Reaktor kernel", SafetyClass.LiveRead, "Start the Reaktor desktop app, or run `reaktor mcp` in ${root.path}.") { graph.exchange(it) },
             // After the kernel: both answer the same reads, the kernel is bound to this workspace, and the desktop stands in when it is the one running.
             desktop,
+            cloud,
         ) + configured.values.filter { it.id !in BUILT_IN }.map { entry ->
             val link = when (val transport = entry.transport ?: error("${DoorConfig.PATH}: provider '${entry.id}' needs a transport")) {
                 is DoorTransport.Stdio -> StdioMcpLink(entry.id, ChildEnvironment.resolve(transport, root, seat),
@@ -135,7 +146,8 @@ internal class WorkspaceDoor(private val root: File, private val seat: String?, 
         const val WORKSPACE = "workspace"
         const val KERNEL = "kernel"
         const val DESKTOP = "desktop"
-        val BUILT_IN = setOf(WORKSPACE, KERNEL, DESKTOP)
+        const val CLOUD = "cloud"
+        val BUILT_IN = setOf(WORKSPACE, KERNEL, DESKTOP, CLOUD)
         const val RUN_ID = "REAKTOR_AGENT_RUN_ID"
     }
 }

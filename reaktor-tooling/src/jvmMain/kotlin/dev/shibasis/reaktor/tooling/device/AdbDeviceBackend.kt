@@ -281,7 +281,7 @@ class AdbDeviceSession(
             InputKind.Swipe ->
                 "input swipe ${event.x} ${event.y} ${event.endX} ${event.endY} ${event.durationMillis}"
 
-            InputKind.Text -> "input text ${event.text.replace(" ", "%s")}"
+            InputKind.Text -> "input text '${event.text.replace(" ", "%s").replace("'", "'\\''")}'"
             InputKind.Key -> "input keyevent ${event.keyCode}"
             InputKind.Home -> "input keyevent KEYCODE_HOME"
             InputKind.Back -> "input keyevent KEYCODE_BACK"

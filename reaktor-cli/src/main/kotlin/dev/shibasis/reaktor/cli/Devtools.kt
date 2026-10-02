@@ -16,6 +16,7 @@ import dev.shibasis.reaktor.devtools.AgentAttachment
 import dev.shibasis.reaktor.devtools.AgentCommandResult
 import dev.shibasis.reaktor.devtools.AgentDescriptor
 import dev.shibasis.reaktor.devtools.AgentFact
+import dev.shibasis.reaktor.devtools.CarrierFrame
 import dev.shibasis.reaktor.devtools.DevToolsProtocol
 import dev.shibasis.reaktor.tooling.DevelopmentDevice
 import dev.shibasis.reaktor.tooling.DeviceInspection
@@ -40,6 +41,8 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -194,8 +197,10 @@ class DevtoolsWatch : CliktCommand("watch") {
                     }
                 }
                 link.attachment.subscribe(capability)
-                delay(seconds * 1000L)
-                link.attachment.unsubscribe(capability)
+                withTimeoutOrNull(seconds * 1000L) { link.attachment.connected.first { !it } }
+                if (link.attachment.farewell.value == CarrierFrame.Goodbye.Replaced) {
+                    env.terminal.println("Another DevTools client took over the app; stopped following $capability.")
+                } else runCatching { link.attachment.unsubscribe(capability) }
                 printing.cancel()
             }
         }
@@ -297,7 +302,7 @@ class DeviceAgentLink(
 suspend fun DeviceSession.attachAgent(scope: CoroutineScope): DeviceAgentLink {
     val remote = if (this is AdbDeviceSession) RemoteSocket.LocalAbstract(DevToolsProtocol.AndroidSocketName)
     else RemoteSocket.Tcp(DevToolsProtocol.DefaultLoopbackPort)
-    val port = forward(0, remote)
+    val port = forward(if (this is AdbDeviceSession) java.net.ServerSocket(0).use { it.localPort } else 0, remote)
     val attachment = AgentAttachment("127.0.0.1", port, scope)
     val descriptor = runCatching { attachment.attach() }.getOrElse { failure ->
         attachment.detach()

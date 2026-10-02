@@ -120,9 +120,10 @@ carries the service operation into each span. Install it on a Service with
 `use(...)`, or use `Service.installGlobal(...)` and retain its cleanup callback.
 No request bodies, tokens or user identities are added to span attributes.
 
-The JVM `MeasureLocalServer` locates the ecosystem launcher, starts it, checks
-readiness and obtains a renewable local dashboard connection. Reaktor Desktop
-uses this surface at startup and in its Measure pane. See
+The JVM `MeasureLocalServer` locates the ecosystem launcher, runs it as a
+cancellable process tree, reports its status (running, partly up, stopped, or
+Docker not running) and obtains a renewable local dashboard connection. Hangar
+uses it only from its DevTools Measure pane, when you ask it to. See
 [the ecosystem instructions](../ecosystem/README.md) for ports and debug capture.
 
 ## Web sessions: React, DevTools and the Chrome DevTools Protocol
