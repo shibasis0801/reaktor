@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.runtime.Composable
@@ -45,15 +44,14 @@ fun Button(
             Held -> onHold?.invoke()
         }
     }
-    val source = remember { MutableInteractionSource() }
-    source.feed(machine)
+    val source = rememberInteractions(machine)
     Box(
         modifier
             .semantics { if (busy) stateDescription = "Busy" }
             .combinedClickable(
                 interactionSource = source,
                 indication = null,
-                enabled = enabled && !busy,
+                enabled = enabled,
                 role = Role.Button,
                 onLongClick = onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } },
             ) {

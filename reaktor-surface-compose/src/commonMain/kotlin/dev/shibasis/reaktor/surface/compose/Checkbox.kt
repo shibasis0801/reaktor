@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -40,8 +39,7 @@ fun Checkbox(
     content: @Composable () -> Unit = {},
 ) {
     val machine = rememberMachine(behavior, ToggleProperties(state == CheckState.Checked, enabled)) { onCheckedChange(it.checked) }
-    val source = remember { MutableInteractionSource() }
-    source.feed(machine)
+    val source = rememberInteractions(machine)
     Box(
         modifier.triStateToggleable(state.toggleable, source, indication = null, enabled = enabled, role = Role.Checkbox) {
             machine.send(PressInput.Activate(machine.nextSequence()))

@@ -1,11 +1,18 @@
 package dev.shibasis.reaktor.surface.compose
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.spring
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import dev.shibasis.reaktor.surface.ComponentRecipe
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -27,19 +34,58 @@ fun <P : Any, S : Any, V : Any, Slots : Any> composeAppearance(
 
 @Stable
 class ComposeFeedback internal constructor(
-    private val pressState: State<Float>,
-    private val focusState: State<Float>,
-    val reducedMotion: Boolean,
+    private val scope: CoroutineScope,
+    pressed: Boolean,
+    focusVisible: Boolean,
+    reducedMotion: Boolean,
 ) {
-    val press: Float get() = pressState.value
-    val focus: Float get() = focusState.value
+    private val pressTrack = FeedbackTrack(scope, if (pressed) 1f else 0f)
+    private val focusTrack = FeedbackTrack(scope, if (focusVisible) 1f else 0f)
+    var reducedMotion: Boolean by mutableStateOf(reducedMotion)
+        private set
+    val press: Float get() = pressTrack.value
+    val focus: Float get() = focusTrack.value
+
+    internal fun update(pressed: Boolean, focusVisible: Boolean, reducedMotion: Boolean) {
+        this.reducedMotion = reducedMotion
+        pressTrack.moveTo(if (pressed) 1f else 0f, reducedMotion)
+        focusTrack.moveTo(if (focusVisible) 1f else 0f, reducedMotion)
+    }
 }
+
+private class FeedbackTrack(private val scope: CoroutineScope, initial: Float) {
+    private var target = initial
+    private val resting = mutableFloatStateOf(initial)
+    private var moving by mutableStateOf<Animatable<Float, AnimationVector1D>?>(null)
+
+    val value: Float get() = moving?.value ?: resting.floatValue
+
+    fun moveTo(next: Float, reducedMotion: Boolean) {
+        if (next == target) return
+        target = next
+        if (reducedMotion) {
+            moving = null
+            resting.floatValue = next
+            return
+        }
+        val animatable = moving ?: Animatable(value).also { moving = it }
+        scope.launch {
+            animatable.animateTo(next, FeedbackSpring)
+            if (moving === animatable && target == next) {
+                resting.floatValue = next
+                moving = null
+            }
+        }
+    }
+}
+
+private val FeedbackSpring = spring<Float>(dampingRatio = 0.78f, stiffness = 520f)
 
 @Composable
 fun rememberFeedback(pressed: Boolean, focusVisible: Boolean): ComposeFeedback {
     val reducedMotion = LocalReducedMotion.current
-    val spec = if (reducedMotion) snap() else spring<Float>(dampingRatio = 0.78f, stiffness = 520f)
-    val press = animateFloatAsState(if (pressed) 1f else 0f, spec, label = "press")
-    val focus = animateFloatAsState(if (focusVisible) 1f else 0f, spec, label = "focus")
-    return remember(press, focus, reducedMotion) { ComposeFeedback(press, focus, reducedMotion) }
+    val scope = rememberCoroutineScope()
+    val feedback = remember(scope) { ComposeFeedback(scope, pressed, focusVisible, reducedMotion) }
+    SideEffect { feedback.update(pressed, focusVisible, reducedMotion) }
+    return feedback
 }

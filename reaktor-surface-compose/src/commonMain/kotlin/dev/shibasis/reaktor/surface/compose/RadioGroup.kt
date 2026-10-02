@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -85,8 +84,7 @@ class OneOfScope internal constructor(
     ) {
         val properties = ItemProperties(selected == key, enabled && this.enabled)
         val press = rememberMachine(PressKernel, PressProperties(properties.enabled)) {}
-        val source = remember { MutableInteractionSource() }
-        source.feed(press)
+        val source = rememberInteractions(press)
         Box(
             modifier
                 .part(group, PartKey(key))

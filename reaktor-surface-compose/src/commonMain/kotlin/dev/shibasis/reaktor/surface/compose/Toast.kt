@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
@@ -59,8 +58,7 @@ fun ToastHost(
 ) {
     val entry = queue.machine.state.shown ?: return
     val press = rememberMachine(PressKernel, PressProperties()) {}
-    val source = remember { MutableInteractionSource() }
-    source.feed(press)
+    val source = rememberInteractions(press)
     Box(
         modifier
             .semantics { liveRegion = LiveRegionMode.Polite }

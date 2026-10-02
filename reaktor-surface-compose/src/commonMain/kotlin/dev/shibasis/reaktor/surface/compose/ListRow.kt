@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,8 +50,7 @@ fun ListRow(
             Held -> onHold?.invoke()
         }
     }
-    val source = remember { MutableInteractionSource() }
-    source.feed(machine)
+    val source = rememberInteractions(machine)
     Box(
         modifier.combinedClickable(
             interactionSource = source,

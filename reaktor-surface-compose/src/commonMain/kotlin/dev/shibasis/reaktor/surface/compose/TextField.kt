@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -70,8 +69,7 @@ fun TextField(
 ) {
     val properties = FieldProperties(enabled, error, state.text.isEmpty())
     val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
-    val source = remember { MutableInteractionSource() }
-    source.feed(press)
+    val source = rememberInteractions(press)
     val theme = LocalThemeSnapshot.current
     val feedback = rememberFeedback(press.state.pressed, press.state.focused)
     val reveal = remember { BringIntoViewRequester() }

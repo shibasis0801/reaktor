@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -68,8 +67,7 @@ class ToggleGroupScope internal constructor(
     ) {
         val properties = ItemProperties(key in selected, enabled && this.enabled)
         val press = rememberMachine(PressKernel, PressProperties(properties.enabled)) {}
-        val source = remember { MutableInteractionSource() }
-        source.feed(press)
+        val source = rememberInteractions(press)
         Box(
             modifier
                 .part(group, PartKey(key))
