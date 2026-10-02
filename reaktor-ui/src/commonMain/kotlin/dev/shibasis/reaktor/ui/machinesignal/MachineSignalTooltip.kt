@@ -46,3 +46,20 @@ fun MachineSignalTooltip(
         content = content,
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MachineSignalTooltip(
+    tooltip: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+        state = rememberTooltipState(),
+        modifier = modifier,
+        focusable = false,
+        tooltip = { tooltip() },
+        content = content,
+    )
+}

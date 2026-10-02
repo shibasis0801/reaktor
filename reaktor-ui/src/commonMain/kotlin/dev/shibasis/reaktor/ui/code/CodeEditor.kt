@@ -296,6 +296,7 @@ fun CodeEditor(
 
         when (event.key) {
             Key.Escape -> {
+                if (shift || command || alt) return@handler false
                 if (state.findVisible) state.closeFind() else state.clearSelection()
                 return@handler true
             }
@@ -306,7 +307,7 @@ fun CodeEditor(
                 }
                 return@handler state.newline()
             }
-            Key.Tab -> return@handler state.indent(add = !shift)
+            Key.Tab -> return@handler !command && !alt && state.indent(add = !shift)
             Key.Backspace -> {
                 val handled = if (command || alt) state.deleteWord(forward = false) else state.backspace()
                 if (completionItems.isNotEmpty()) requestCompletions()
