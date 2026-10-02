@@ -15,23 +15,92 @@ object BareTheme : ThemeSnapshot {
     override val id = "bare"
 }
 
+class AppearanceKey<A : Any>(val name: String, val default: A) {
+    infix fun provides(appearance: A): AppearanceEntry<A> = AppearanceEntry(this, appearance)
+    override fun toString() = "AppearanceKey($name)"
+}
+
+class AppearanceEntry<A : Any> internal constructor(val key: AppearanceKey<A>, val appearance: A)
+
 @Immutable
-data class Appearances(
-    val button: ButtonAppearance = BareButton,
-    val switch: SwitchAppearance = BareSwitch,
-    val radio: ItemAppearance = BareRadio,
-    val tab: ItemAppearance = BareTab,
-    val chip: ItemAppearance = BareChip,
-    val menuPanel: PanelAppearance = BarePanel,
-    val menuItem: ButtonAppearance = BareButton,
-    val dialog: PanelAppearance = BarePanel,
-    val sheet: PanelAppearance = BarePanel,
-    val field: FieldAppearance = BareField,
-    val toast: ToastAppearance = BareToast,
-    val checkbox: CheckboxAppearance = BareCheckbox,
-    val progress: ProgressAppearance = BareProgress,
-    val listRow: ListRowAppearance = BareListRow,
+class Appearances internal constructor(private val entries: Map<AppearanceKey<*>, Any>) {
+    @Suppress("UNCHECKED_CAST")
+    operator fun <A : Any> get(key: AppearanceKey<A>): A = entries[key] as A? ?: key.default
+    operator fun plus(entry: AppearanceEntry<*>): Appearances = Appearances(entries + (entry.key to entry.appearance))
+    operator fun plus(other: Appearances): Appearances = Appearances(entries + other.entries)
+    operator fun contains(key: AppearanceKey<*>): Boolean = key in entries
+    override fun equals(other: Any?): Boolean = other is Appearances && other.entries == entries
+    override fun hashCode(): Int = entries.hashCode()
+}
+
+object Appearance {
+    val Button = AppearanceKey<ButtonAppearance>("button", BareButton)
+    val Switch = AppearanceKey<SwitchAppearance>("switch", BareSwitch)
+    val Radio = AppearanceKey<ItemAppearance>("radio", BareRadio)
+    val Tab = AppearanceKey<ItemAppearance>("tab", BareTab)
+    val Chip = AppearanceKey<ItemAppearance>("chip", BareChip)
+    val MenuPanel = AppearanceKey<PanelAppearance>("menuPanel", BarePanel)
+    val MenuItem = AppearanceKey<ButtonAppearance>("menuItem", BareButton)
+    val Dialog = AppearanceKey<PanelAppearance>("dialog", BarePanel)
+    val Sheet = AppearanceKey<PanelAppearance>("sheet", BarePanel)
+    val Field = AppearanceKey<FieldAppearance>("field", BareField)
+    val Toast = AppearanceKey<ToastAppearance>("toast", BareToast)
+    val Checkbox = AppearanceKey<CheckboxAppearance>("checkbox", BareCheckbox)
+    val Progress = AppearanceKey<ProgressAppearance>("progress", BareProgress)
+    val ListRow = AppearanceKey<ListRowAppearance>("listRow", BareListRow)
+}
+
+fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
+    Appearances(entries.associate { it.key to it.appearance })
+
+fun Appearances(
+    button: ButtonAppearance = BareButton,
+    switch: SwitchAppearance = BareSwitch,
+    radio: ItemAppearance = BareRadio,
+    tab: ItemAppearance = BareTab,
+    chip: ItemAppearance = BareChip,
+    menuPanel: PanelAppearance = BarePanel,
+    menuItem: ButtonAppearance = BareButton,
+    dialog: PanelAppearance = BarePanel,
+    sheet: PanelAppearance = BarePanel,
+    field: FieldAppearance = BareField,
+    toast: ToastAppearance = BareToast,
+    checkbox: CheckboxAppearance = BareCheckbox,
+    progress: ProgressAppearance = BareProgress,
+    listRow: ListRowAppearance = BareListRow,
+): Appearances = Appearances(
+    mapOf(
+        Appearance.Button to button,
+        Appearance.Switch to switch,
+        Appearance.Radio to radio,
+        Appearance.Tab to tab,
+        Appearance.Chip to chip,
+        Appearance.MenuPanel to menuPanel,
+        Appearance.MenuItem to menuItem,
+        Appearance.Dialog to dialog,
+        Appearance.Sheet to sheet,
+        Appearance.Field to field,
+        Appearance.Toast to toast,
+        Appearance.Checkbox to checkbox,
+        Appearance.Progress to progress,
+        Appearance.ListRow to listRow,
+    ),
 )
+
+val Appearances.button: ButtonAppearance get() = this[Appearance.Button]
+val Appearances.switch: SwitchAppearance get() = this[Appearance.Switch]
+val Appearances.radio: ItemAppearance get() = this[Appearance.Radio]
+val Appearances.tab: ItemAppearance get() = this[Appearance.Tab]
+val Appearances.chip: ItemAppearance get() = this[Appearance.Chip]
+val Appearances.menuPanel: PanelAppearance get() = this[Appearance.MenuPanel]
+val Appearances.menuItem: ButtonAppearance get() = this[Appearance.MenuItem]
+val Appearances.dialog: PanelAppearance get() = this[Appearance.Dialog]
+val Appearances.sheet: PanelAppearance get() = this[Appearance.Sheet]
+val Appearances.field: FieldAppearance get() = this[Appearance.Field]
+val Appearances.toast: ToastAppearance get() = this[Appearance.Toast]
+val Appearances.checkbox: CheckboxAppearance get() = this[Appearance.Checkbox]
+val Appearances.progress: ProgressAppearance get() = this[Appearance.Progress]
+val Appearances.listRow: ListRowAppearance get() = this[Appearance.ListRow]
 
 val LocalThemeSnapshot = staticCompositionLocalOf<ThemeSnapshot> { BareTheme }
 val LocalAppearances = staticCompositionLocalOf { Appearances() }

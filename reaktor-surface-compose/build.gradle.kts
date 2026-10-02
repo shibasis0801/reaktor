@@ -19,6 +19,10 @@ kotlin {
             api(compose.ui)
             api("org.jetbrains.compose.ui:ui-backhandler:${project.property("compose.version")}")
         }
+        testDependencies {
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            api(compose.uiTest)
+        }
     }
     droid {}
     darwin {}
