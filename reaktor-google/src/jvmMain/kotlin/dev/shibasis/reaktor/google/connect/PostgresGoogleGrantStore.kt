@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.sql.Connection
+import java.sql.ResultSet
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -54,13 +55,13 @@ class PostgresGoogleGrantStore(private val dataSource: DataSource) : GoogleGrant
         }
     }
 
-    override suspend fun hold(consent: HeldConsent, staleBefore: Instant) = sql { connection ->
+    override suspend fun holdConsent(consent: Held, staleBefore: Instant) = sql { connection ->
         connection.prepareStatement("DELETE FROM $CONSENTS WHERE created_at < ?").use { statement ->
             statement.setObject(1, staleBefore.utc())
             statement.executeUpdate()
         }
         connection.prepareStatement("INSERT INTO $CONSENTS (state_hash, service, subject, sealed, created_at) VALUES (?, ?, ?, ?, ?)").use { statement ->
-            statement.setString(1, consent.stateHash)
+            statement.setString(1, consent.hash)
             statement.setString(2, consent.key.service)
             statement.setString(3, consent.key.subject)
             statement.setString(4, consent.sealed)
@@ -70,20 +71,45 @@ class PostgresGoogleGrantStore(private val dataSource: DataSource) : GoogleGrant
         Unit
     }
 
-    override suspend fun take(stateHash: String): HeldConsent? = sql { connection ->
-        connection.prepareStatement("DELETE FROM $CONSENTS WHERE state_hash = ? RETURNING service, subject, sealed, created_at").use { statement ->
+    override suspend fun takeConsent(stateHash: String): Held? = sql { connection ->
+        connection.prepareStatement("DELETE FROM $CONSENTS WHERE state_hash = ? RETURNING state_hash AS hash, service, subject, sealed, created_at").use { statement ->
             statement.setString(1, stateHash)
-            statement.executeQuery().use { rows ->
-                if (!rows.next()) null
-                else HeldConsent(
-                    stateHash = stateHash,
-                    key = GrantKey(rows.getString("service"), rows.getString("subject")),
-                    sealed = rows.getString("sealed"),
-                    createdAt = rows.getObject("created_at", OffsetDateTime::class.java).toInstant(),
-                )
-            }
+            statement.executeQuery().use { rows -> if (rows.next()) rows.held() else null }
         }
     }
+
+    override suspend fun holdPending(pending: Held) = sql { connection ->
+        connection.prepareStatement("INSERT INTO $PENDING (handle_hash, service, subject, sealed, created_at) VALUES (?, ?, ?, ?, ?)").use { statement ->
+            statement.setString(1, pending.hash)
+            statement.setString(2, pending.key.service)
+            statement.setString(3, pending.key.subject)
+            statement.setString(4, pending.sealed)
+            statement.setObject(5, pending.createdAt.utc())
+            statement.executeUpdate()
+        }
+        Unit
+    }
+
+    override suspend fun takePending(handleHash: String): Held? = sql { connection ->
+        connection.prepareStatement("DELETE FROM $PENDING WHERE handle_hash = ? RETURNING handle_hash AS hash, service, subject, sealed, created_at").use { statement ->
+            statement.setString(1, handleHash)
+            statement.executeQuery().use { rows -> if (rows.next()) rows.held() else null }
+        }
+    }
+
+    override suspend fun pendingBefore(cutoff: Instant): List<Held> = sql { connection ->
+        connection.prepareStatement("SELECT handle_hash AS hash, service, subject, sealed, created_at FROM $PENDING WHERE created_at < ? ORDER BY created_at LIMIT $SWEEP_LIMIT").use { statement ->
+            statement.setObject(1, cutoff.utc())
+            statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.held()) } }
+        }
+    }
+
+    private fun ResultSet.held(): Held = Held(
+        hash = getString("hash"),
+        key = GrantKey(getString("service"), getString("subject")),
+        sealed = getString("sealed"),
+        createdAt = getObject("created_at", OffsetDateTime::class.java).toInstant(),
+    )
 
     private suspend fun <T> sql(block: (Connection) -> T): T {
         prepare()
@@ -108,6 +134,8 @@ class PostgresGoogleGrantStore(private val dataSource: DataSource) : GoogleGrant
         internal const val SCHEMA_NAME = "google_connect"
         private const val GRANTS = "$SCHEMA_NAME.grants"
         private const val CONSENTS = "$SCHEMA_NAME.consents"
+        private const val PENDING = "$SCHEMA_NAME.pending_grants"
+        private const val SWEEP_LIMIT = 50
 
         private val SCHEMA: List<String> = listOf(
             "CREATE SCHEMA IF NOT EXISTS $SCHEMA_NAME",
@@ -116,8 +144,12 @@ class PostgresGoogleGrantStore(private val dataSource: DataSource) : GoogleGrant
             "CREATE TABLE IF NOT EXISTS $CONSENTS (state_hash text PRIMARY KEY, service text NOT NULL, subject text NOT NULL, " +
                 "sealed text NOT NULL, created_at timestamptz NOT NULL)",
             "CREATE INDEX IF NOT EXISTS consents_created_at ON $CONSENTS (created_at)",
+            "CREATE TABLE IF NOT EXISTS $PENDING (handle_hash text PRIMARY KEY, service text NOT NULL, subject text NOT NULL, " +
+                "sealed text NOT NULL, created_at timestamptz NOT NULL)",
+            "CREATE INDEX IF NOT EXISTS pending_grants_created_at ON $PENDING (created_at)",
             "ALTER TABLE $GRANTS ENABLE ROW LEVEL SECURITY",
             "ALTER TABLE $CONSENTS ENABLE ROW LEVEL SECURITY",
+            "ALTER TABLE $PENDING ENABLE ROW LEVEL SECURITY",
             "REVOKE ALL ON SCHEMA $SCHEMA_NAME FROM PUBLIC",
             "REVOKE ALL ON ALL TABLES IN SCHEMA $SCHEMA_NAME FROM PUBLIC",
             """

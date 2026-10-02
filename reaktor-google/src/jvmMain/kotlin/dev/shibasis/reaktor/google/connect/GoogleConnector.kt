@@ -23,6 +23,7 @@ import kotlinx.serialization.json.JsonObject
 import java.io.IOException
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 
@@ -38,9 +39,9 @@ data class GoogleEndpoints(
 @Serializable
 data class GoogleGrantView(val account: String?, val accountId: String, val scopes: List<String>, val grantedAt: Long)
 
-enum class GoogleOutcome { Connected, Partial, Denied, Expired, Failed }
+enum class GoogleOutcome { Pending, Connected, Partial, Denied, Expired, Failed, Refused }
 
-data class GoogleCompletion(val returnUrl: String?, val outcome: GoogleOutcome)
+data class GoogleCompletion(val returnUrl: String?, val outcome: GoogleOutcome, val handle: String?)
 
 sealed interface GoogleCall {
     data class Done(val json: String) : GoogleCall
@@ -62,15 +63,19 @@ class GoogleConnector(
     private val transport: HttpTransport = NetHttpTransport()
     private val locks = ConcurrentHashMap<GrantKey, Mutex>()
 
+    @Volatile
+    private var sweptAt: Instant = Instant.EPOCH
+
     suspend fun begin(key: GrantKey, scopes: List<String>, returnUrl: String, loginHint: String?): String {
+        sweep()
         require(scopes.size <= MAX_SCOPES && scopes.all(SCOPE::matches)) { "Name Google scopes as openid, email, profile or https://www.googleapis.com/auth/…" }
         val wanted = (IDENTITY + scopes).distinct()
         val state = random(STATE_BYTES)
         val verifier = random(VERIFIER_BYTES)
-        val stateHash = crypto().sha256(state.encodeToByteArray()).toHex()
+        val stateHash = hash(state)
         val now = clock.instant()
         val sealed = sealer.seal(key, consentPurpose(stateHash), json.encodeToString(StoredConsent.serializer(), StoredConsent(verifier, returnUrl, wanted)))
-        store.hold(HeldConsent(stateHash, key, sealed, now), now.minus(CONSENT_LIFETIME))
+        store.holdConsent(Held(stateHash, key, sealed, now), now.minus(LIFETIME))
         val url = GoogleAuthorizationCodeRequestUrl(endpoints.consent, client.id, client.redirectUri, wanted)
             .setAccessType("offline")
             .set("include_granted_scopes", "true")
@@ -83,34 +88,55 @@ class GoogleConnector(
     }
 
     suspend fun complete(state: String?, code: String?, error: String?): GoogleCompletion {
-        if (state.isNullOrBlank() || state.length > MAX_STATE) return GoogleCompletion(null, GoogleOutcome.Expired)
-        val stateHash = crypto().sha256(state.encodeToByteArray()).toHex()
-        val held = store.take(stateHash) ?: return GoogleCompletion(null, GoogleOutcome.Expired)
+        sweep()
+        if (state.isNullOrBlank() || state.length > MAX_STATE) return GoogleCompletion(null, GoogleOutcome.Expired, null)
+        val stateHash = hash(state)
+        val held = store.takeConsent(stateHash) ?: return GoogleCompletion(null, GoogleOutcome.Expired, null)
         val consent = sealer.open(held.key, consentPurpose(stateHash), held.sealed)?.let { json.decodeFromString(StoredConsent.serializer(), it) }
-            ?: return GoogleCompletion(null, GoogleOutcome.Expired)
-        val outcome = when {
-            held.createdAt.isBefore(clock.instant().minus(CONSENT_LIFETIME)) -> GoogleOutcome.Expired
-            error == "access_denied" -> GoogleOutcome.Denied
-            error != null || code.isNullOrBlank() -> GoogleOutcome.Failed
+            ?: return GoogleCompletion(null, GoogleOutcome.Expired, null)
+        val ended = { outcome: GoogleOutcome -> GoogleCompletion(consent.returnUrl, outcome, null) }
+        return when {
+            held.createdAt.isBefore(clock.instant().minus(LIFETIME)) -> ended(GoogleOutcome.Expired)
+            error == "access_denied" -> ended(GoogleOutcome.Denied)
+            error != null || code.isNullOrBlank() -> ended(GoogleOutcome.Failed)
             else -> try {
-                connect(held.key, code, consent)
+                park(held.key, code, consent)?.let { GoogleCompletion(consent.returnUrl, GoogleOutcome.Pending, it) } ?: ended(GoogleOutcome.Failed)
             } catch (failure: IOException) {
-                GoogleOutcome.Failed
+                ended(GoogleOutcome.Failed)
             }
         }
-        return GoogleCompletion(consent.returnUrl, outcome)
     }
 
-    suspend fun grant(key: GrantKey): GoogleGrantView? = read(key)?.let { GoogleGrantView(it.account, it.accountId, it.scopes, it.grantedAt) }
+    suspend fun settle(key: GrantKey, handle: String): GoogleOutcome {
+        sweep()
+        if (!HANDLE.matches(handle)) return GoogleOutcome.Refused
+        val handleHash = hash(handle)
+        val held = store.takePending(handleHash) ?: return GoogleOutcome.Refused
+        val pending = unpark(held) ?: return GoogleOutcome.Refused
+        if (held.key != key || held.createdAt.isBefore(clock.instant().minus(LIFETIME))) {
+            revokeAtGoogle(pending.refreshToken ?: pending.accessToken)
+            return GoogleOutcome.Refused
+        }
+        return lock(key) { activate(key, pending) }
+    }
 
-    suspend fun revoke(key: GrantKey): Boolean? = lock(key) {
-        val current = read(key) ?: return@lock null
-        val revoked = revokeAtGoogle(current.refreshToken)
-        store.delete(key)
-        revoked
+    suspend fun grant(key: GrantKey): GoogleGrantView? {
+        sweep()
+        return read(key)?.let { GoogleGrantView(it.account, it.accountId, it.scopes, it.grantedAt) }
+    }
+
+    suspend fun revoke(key: GrantKey): Boolean? {
+        sweep()
+        return lock(key) {
+            val current = read(key) ?: return@lock null
+            val revoked = revokeAtGoogle(current.refreshToken)
+            store.delete(key)
+            revoked
+        }
     }
 
     suspend fun call(key: GrantKey, api: String, operation: String, params: JsonObject): GoogleCall {
+        sweep()
         val found = GoogleOperations["$api/$operation"] ?: return GoogleCall.UnknownOperation
         val current = read(key) ?: return GoogleCall.NoGrant
         if (found.scopes.none(current.scopes::contains)) return GoogleCall.ScopeMissing(found.scopes)
@@ -126,7 +152,7 @@ class GoogleConnector(
         }
     }
 
-    private suspend fun connect(key: GrantKey, code: String, consent: StoredConsent): GoogleOutcome {
+    private suspend fun park(key: GrantKey, code: String, consent: StoredConsent): String? {
         val tokens = io {
             GoogleAuthorizationCodeTokenRequest(transport, googleJson, endpoints.token, client.id, client.secret, code, client.redirectUri)
                 .set("code_verifier", consent.verifier)
@@ -135,17 +161,46 @@ class GoogleConnector(
         val identity = identity(tokens.idToken)
         if (identity == null) {
             (tokens.refreshToken ?: tokens.accessToken)?.let { revokeAtGoogle(it) }
+            return null
+        }
+        val pending = StoredPending(
+            refreshToken = tokens.refreshToken?.takeIf(String::isNotBlank),
+            accessToken = tokens.accessToken,
+            accessExpiresAt = expiry(tokens.expiresInSeconds),
+            scopes = scopesOf(tokens.scope) ?: consent.scopes,
+            requested = consent.scopes,
+            account = identity.account,
+            accountId = identity.accountId,
+        )
+        val handle = random(HANDLE_BYTES)
+        val handleHash = hash(handle)
+        store.holdPending(Held(handleHash, key, sealer.seal(key, pendingPurpose(handleHash), json.encodeToString(StoredPending.serializer(), pending)), clock.instant()))
+        return handle
+    }
+
+    private suspend fun unpark(held: Held): StoredPending? =
+        sealer.open(held.key, pendingPurpose(held.hash), held.sealed)?.let { json.decodeFromString(StoredPending.serializer(), it) }
+
+    private suspend fun activate(key: GrantKey, pending: StoredPending): GoogleOutcome {
+        val previous = read(key)
+        val otherAccount = previous != null && previous.accountId != pending.accountId
+        if (previous != null && otherAccount) revokeAtGoogle(previous.refreshToken)
+        val refreshToken = pending.refreshToken ?: previous?.takeUnless { otherAccount }?.refreshToken
+        if (refreshToken == null) {
+            revokeAtGoogle(pending.accessToken)
             return GoogleOutcome.Failed
         }
-        return lock(key) {
-            val previous = read(key)
-            val otherAccount = previous != null && previous.accountId != identity.accountId
-            if (previous != null && otherAccount) revokeAtGoogle(previous.refreshToken)
-            val refreshToken = tokens.refreshToken?.takeIf(String::isNotBlank) ?: previous?.takeUnless { otherAccount }?.refreshToken
-                ?: return@lock GoogleOutcome.Failed
-            val scopes = scopesOf(tokens.scope) ?: consent.scopes
-            write(key, StoredGrant(refreshToken, tokens.accessToken, expiry(tokens.expiresInSeconds), scopes, identity.account, identity.accountId, clock.millis()))
-            if (consent.scopes.filterNot(IDENTITY_SCOPES::contains).all(scopes::contains)) GoogleOutcome.Connected else GoogleOutcome.Partial
+        write(key, StoredGrant(refreshToken, pending.accessToken, pending.accessExpiresAt, pending.scopes, pending.account, pending.accountId, clock.millis()))
+        return if (pending.requested.filterNot(IDENTITY_SCOPES::contains).all(pending.scopes::contains)) GoogleOutcome.Connected else GoogleOutcome.Partial
+    }
+
+    private suspend fun sweep() {
+        val now = clock.instant()
+        if (Duration.between(sweptAt, now) < SWEEP_EVERY) return
+        sweptAt = now
+        for (held in store.pendingBefore(now.minus(LIFETIME))) {
+            unpark(held)?.let { revokeAtGoogle(it.refreshToken ?: it.accessToken) }
+            store.takePending(held.hash)
         }
     }
 
@@ -246,7 +301,11 @@ class GoogleConnector(
 
     private fun scopesOf(scope: String?): List<String>? = scope?.split(' ')?.filter(String::isNotBlank)?.takeIf(List<String>::isNotEmpty)
 
+    private suspend fun hash(value: String): String = crypto().sha256(value.encodeToByteArray()).toHex()
+
     private fun consentPurpose(stateHash: String) = "consent/$stateHash"
+
+    private fun pendingPurpose(handleHash: String) = "pending/$handleHash"
 
     private sealed interface Access {
         data class Token(val value: String) : Access
@@ -257,6 +316,17 @@ class GoogleConnector(
 
     @Serializable
     private data class StoredConsent(val verifier: String, val returnUrl: String, val scopes: List<String>)
+
+    @Serializable
+    private data class StoredPending(
+        val refreshToken: String?,
+        val accessToken: String,
+        val accessExpiresAt: Long,
+        val scopes: List<String>,
+        val requested: List<String>,
+        val account: String?,
+        val accountId: String,
+    )
 
     @Serializable
     private data class StoredGrant(
@@ -272,6 +342,7 @@ class GoogleConnector(
     private companion object {
         const val GRANT = "grant"
         const val STATE_BYTES = 32
+        const val HANDLE_BYTES = 32
         const val VERIFIER_BYTES = 48
         const val MAX_STATE = 200
         const val MAX_SCOPES = 30
@@ -283,7 +354,9 @@ class GoogleConnector(
         const val FRESH_MARGIN_MS = 60_000L
         const val DEFAULT_LIFETIME_SECONDS = 3600L
         const val MIN_LIFETIME_SECONDS = 60L
-        val CONSENT_LIFETIME: Duration = Duration.ofMinutes(10)
+        val LIFETIME: Duration = Duration.ofMinutes(10)
+        val SWEEP_EVERY: Duration = Duration.ofMinutes(1)
+        val HANDLE = Regex("^[A-Za-z0-9_-]{43}$")
         val IDENTITY = listOf("openid", "email")
         val IDENTITY_SCOPES = setOf("openid", "email", "profile", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile")
         val ISSUERS = listOf("https://accounts.google.com", "accounts.google.com")
