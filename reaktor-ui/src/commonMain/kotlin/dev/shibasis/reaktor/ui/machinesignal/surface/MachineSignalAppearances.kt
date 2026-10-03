@@ -26,4 +26,4 @@ fun MachineSignalAppearances(snapshot: MachineSignalSnapshot): Appearances = App
 ) + (Appearance.Separator provides RuleSeparator) + (Appearance.Tooltip provides SignalTooltip) + (Appearance.Popover provides RaisedPopover) +
     (Appearance.Command provides SignalCommand) + (Appearance.StateView provides SignalStateView) + (Appearance.Badge provides toneBadge { it.textMuted }) +
     (Appearance.Sparkline provides signalSparkline { it.accent }) + (Appearance.Bars provides signalBars { it.accent }) +
-    (Appearance.RangeBar provides signalRangeBar { it.accent })
+    (Appearance.RangeBar provides signalRangeBar { it.accent }) + (Appearance.Row provides SignalItemRow)

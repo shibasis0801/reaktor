@@ -110,6 +110,8 @@ data class MachineSignalMetrics(
     val label: TextUnit,
     val tabLabel: TextUnit,
     val focusRing: Dp,
+    val itemRow: Dp,
+    val indent: Dp,
 ) {
     companion object {
         val Comfortable = MachineSignalMetrics(
@@ -121,6 +123,8 @@ data class MachineSignalMetrics(
             label = MachineSignal.Type.control,
             tabLabel = MachineSignal.Type.label,
             focusRing = MachineSignal.Space.s1 / 4,
+            itemRow = MachineSignal.Metrics.treeRowHeight,
+            indent = MachineSignal.Space.s3,
         )
 
         val Compact = MachineSignalMetrics(
@@ -132,6 +136,8 @@ data class MachineSignalMetrics(
             label = MachineSignal.Editor.label,
             tabLabel = MachineSignal.Editor.label,
             focusRing = MachineSignal.Space.s1 / 4,
+            itemRow = MachineSignal.Editor.treeRowHeight,
+            indent = MachineSignal.Editor.treeIndent,
         )
     }
 }
