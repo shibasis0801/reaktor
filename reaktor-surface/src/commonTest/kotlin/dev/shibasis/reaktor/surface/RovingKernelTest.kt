@@ -16,9 +16,9 @@ class RovingKernelTest {
         RovingItem("cherry", enabled = false, text = "Cherry"),
         RovingItem("date", text = "Date"),
     )
-    private val row = RovingProperties(fruit, Axis.Horizontal)
-    private val column = RovingProperties(fruit, Axis.Vertical)
-    private val grid = RovingProperties(fruit, Axis.Both)
+    private val row = RovingProperties(RovingList(fruit), Axis.Horizontal)
+    private val column = RovingProperties(RovingList(fruit), Axis.Vertical)
+    private val grid = RovingProperties(RovingList(fruit), Axis.Both)
 
     private fun press(key: KeyName, character: Char? = null) = RovingInput.Stroke(KeyStroke(key, character = character))
 
@@ -71,7 +71,7 @@ class RovingKernelTest {
 
     @Test
     fun homeAndEndGoToTheFirstAndLastEnabledItems() {
-        val withDisabledEnds = row.copy(items = listOf(RovingItem("off", enabled = false)) + fruit + RovingItem("gone", enabled = false))
+        val withDisabledEnds = row.copy(items = RovingList(listOf(RovingItem("off", enabled = false)) + fruit + RovingItem("gone", enabled = false)))
         assertEquals("apple", kernel.reduce(withDisabledEnds, at("banana"), press(KeyName.Home)).active())
         assertEquals("date", kernel.reduce(withDisabledEnds, at("banana"), press(KeyName.End)).active())
     }
@@ -143,7 +143,7 @@ class RovingKernelTest {
         assertFalse(kernel.handles(row, KeyStroke(KeyName.B, meta = true, character = 'b')))
         assertFalse(kernel.handles(row, KeyStroke(KeyName.B, control = true)))
         assertFalse(kernel.handles(row, KeyStroke(KeyName.Space, character = ' ')))
-        assertFalse(kernel.handles(row.copy(items = fruit.map { it.copy(text = null) }), KeyStroke(KeyName.B, character = 'b')))
+        assertFalse(kernel.handles(row.copy(items = RovingList(fruit.map { it.copy(text = null) })), KeyStroke(KeyName.B, character = 'b')))
     }
 
     @Test
@@ -155,14 +155,14 @@ class RovingKernelTest {
 
     @Test
     fun reconcileMovesOffAnActiveKeyThatDisappears() {
-        val gone = row.copy(items = fruit.filter { it.key != "banana" })
+        val gone = row.copy(items = RovingList(fruit.filter { it.key != "banana" }))
         assertEquals("apple", kernel.reconcile(gone, at("banana")).active())
-        assertNull(kernel.reconcile(row.copy(items = emptyList()), at("banana")).active())
+        assertNull(kernel.reconcile(row.copy(items = RovingList(emptyList())), at("banana")).active())
     }
 
     @Test
     fun reconcileMovesOffADisabledActiveItemToTheNearestEnabledOne() {
-        val disabled = row.copy(items = fruit.map { if (it.key == "blueberry") it.copy(enabled = false) else it })
+        val disabled = row.copy(items = RovingList(fruit.map { if (it.key == "blueberry") it.copy(enabled = false) else it }))
         assertEquals("date", kernel.reconcile(disabled, at("cherry")).active())
         assertEquals("banana", kernel.reconcile(disabled, at("blueberry")).active())
         assertEquals("apple", kernel.reconcile(row, RovingState()).active())
@@ -188,8 +188,27 @@ class RovingKernelTest {
     }
 
     @Test
+    fun aLargeSourceIsReadByIndexWithoutWalkingEveryRow() {
+        val rows = Rows(10_000)
+        val table = RovingProperties(rows, Axis.Vertical, wrap = false)
+        assertEquals("row-4", kernel.reduce(table, at("row-2"), press(KeyName.Down)).active())
+        assertEquals("row-9999", kernel.reduce(table, at("row-2"), press(KeyName.End)).active())
+        assertEquals("row-9998", kernel.reconcile(table, at("row-9997")).active())
+        assertTrue(rows.reads < 20, "read ${rows.reads} rows")
+    }
+
+    private class Rows(override val size: Int) : RovingItems {
+        var reads = 0
+
+        override fun key(index: Int): String = "row-$index".also { reads++ }
+        override fun enabled(index: Int): Boolean = (index % 10 != 3 && index % 10 != 7).also { reads++ }
+        override fun text(index: Int): String = "Row $index".also { reads++ }
+        override fun indexOf(key: String): Int = key.removePrefix("row-").toIntOrNull()?.takeIf { it in 0 until size } ?: -1
+    }
+
+    @Test
     fun theFirstEnabledItemStartsActive() {
-        assertEquals("banana", kernel.initial(row.copy(items = listOf(RovingItem("off", enabled = false)) + fruit.drop(1))).active)
-        assertNull(kernel.initial(row.copy(items = emptyList())).active)
+        assertEquals("banana", kernel.initial(row.copy(items = RovingList(listOf(RovingItem("off", enabled = false)) + fruit.drop(1)))).active)
+        assertNull(kernel.initial(row.copy(items = RovingList(emptyList()))).active)
     }
 }

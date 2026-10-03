@@ -27,6 +27,7 @@ import dev.shibasis.reaktor.surface.PartKey
 import dev.shibasis.reaktor.surface.RovingInput
 import dev.shibasis.reaktor.surface.RovingItem
 import dev.shibasis.reaktor.surface.RovingKernel
+import dev.shibasis.reaktor.surface.RovingList
 import dev.shibasis.reaktor.surface.RovingProperties
 import kotlinx.coroutines.CoroutineScope
 
@@ -38,7 +39,7 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
     private var rightToLeft = false
     private var preferred: String? = null
     private var focused = false
-    private var properties = RovingProperties(emptyList(), axis)
+    private var properties = RovingProperties(RovingList(emptyList()), axis)
     val machine = Machine(kernel, properties, scope, { onActiveChange(it.key) }, {})
 
     fun arrange(axis: Axis, rightToLeft: Boolean) {
@@ -87,7 +88,7 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
     }
 
     private fun publish() {
-        val next = RovingProperties(ordered(), axis, rightToLeft = rightToLeft)
+        val next = RovingProperties(RovingList(ordered()), axis, rightToLeft = rightToLeft)
         if (next != properties) {
             properties = next
             machine.reconcile(next)
