@@ -35,7 +35,8 @@ fun place(anchor: IntRect, content: IntSize, canvas: IntSize, side: Side, align:
     val cross = if (vertical) Span(anchor.left, anchor.right, content.width, canvas.width) else Span(anchor.top, anchor.bottom, content.height, canvas.height)
     val toEnd = if (vertical && rightToLeft) align.mirrored() else align
     val along = main.beside(after, gap).takeIf(main::fits) ?: main.beside(!after, gap)
-    val across = cross.aligned(toEnd).takeIf(cross::fits) ?: cross.aligned(toEnd.mirrored()).takeIf(cross::fits) ?: cross.aligned(toEnd)
+    val preferred = cross.aligned(toEnd)
+    val across = preferred.takeIf(cross::fits) ?: cross.aligned(toEnd.fallback(preferred < 0)).takeIf(cross::fits) ?: preferred
     val x = (if (vertical) across else along).coerceIn(0, (canvas.width - content.width).coerceAtLeast(0))
     val y = (if (vertical) along else across).coerceIn(0, (canvas.height - content.height).coerceAtLeast(0))
     return IntOffset(x, y)
@@ -50,7 +51,7 @@ private class Span(val start: Int, val end: Int, val size: Int, val limit: Int) 
     fun beside(after: Boolean, gap: Int): Int = if (after) end + gap else start - gap - size
     fun aligned(align: Align): Int = when (align) {
         Align.Start -> start
-        Align.Center -> (start + end - size) / 2
+        Align.Center -> start + (end - start - size) / 2
         Align.End -> end - size
     }
     fun fits(position: Int): Boolean = position >= 0 && position + size <= limit
@@ -60,4 +61,9 @@ private fun Align.mirrored(): Align = when (this) {
     Align.Start -> Align.End
     Align.Center -> Align.Center
     Align.End -> Align.Start
+}
+
+private fun Align.fallback(overflowsStart: Boolean): Align = when (this) {
+    Align.Center -> if (overflowsStart) Align.Start else Align.End
+    else -> mirrored()
 }

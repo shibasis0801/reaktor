@@ -40,6 +40,14 @@ class PlacementTest {
     }
 
     @Test
+    fun aCentredTipThatOverflowsAlignsWithTheAnchorEdgeItWouldCross() {
+        val tip = IntSize(300, 40)
+        assertEquals(IntOffset(10, 134), at(IntRect(10, 100, 38, 130), Side.Below, Align.Center, gap = 4, content = tip))
+        assertEquals(IntOffset(690, 134), at(IntRect(962, 100, 990, 130), Side.Below, Align.Center, gap = 4, content = tip))
+        assertEquals(IntOffset(337, 134), at(IntRect(473, 100, 501, 130), Side.Below, Align.Center, gap = 4, content = IntSize(301, 40)))
+    }
+
+    @Test
     fun aMenuThatFitsNowhereIsClampedIntoTheCanvas() {
         val tall = IntSize(200, 900)
         assertEquals(IntOffset(280, 0), at(button, Side.Below, Align.End, content = tall))
