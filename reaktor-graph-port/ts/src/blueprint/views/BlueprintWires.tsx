@@ -240,6 +240,10 @@ export function BlueprintWires() {
     const [x, y] = linkMidpoint(link);
     labels.push(<span key={`label:${link.id}`} className="bp-pill" data-part="wire-label" style={{ left: x, top: y, '--bp-wire': style.tone } as CSSProperties}>{style.label}</span>);
   }
+  if (selection.beads) for (const [id, nonce] of selection.beads) {
+    const d = paths.get(id);
+    if (d) labels.push(<span key={`bead:${id}:${nonce}`} className="bp-bead" data-part="bead" data-link={id} style={{ offsetPath: `path("${d}")` } as CSSProperties}/>);
+  }
   return <div className="bp-wires" data-part="wires" style={{ width: layout.width, height: layout.height }}>
     <svg className="bp-wires__svg" width={Math.max(layout.width, 1)} height={Math.max(layout.height, 1)} aria-hidden="true">
       {showCorridors && <g className="bp-corridors">

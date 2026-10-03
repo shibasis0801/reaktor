@@ -43,6 +43,7 @@ export interface Selection {
   highlight: ReadonlySet<string>;
   focus: Focus;
   litLinks: ReadonlySet<string>;
+  beads?: ReadonlyMap<string, number>;
 }
 
 export function selectedCardOf(selection: Selection): string | null {
@@ -62,7 +63,7 @@ export class SelectionStore {
   };
   set(value: Selection) {
     const current = this.value;
-    if (current.selected === value.selected && (current.selectedCard ?? null) === (value.selectedCard ?? null) && current.selectedRow === value.selectedRow && current.highlight === value.highlight && current.focus === value.focus && current.litLinks === value.litLinks) return;
+    if (current.selected === value.selected && (current.selectedCard ?? null) === (value.selectedCard ?? null) && current.selectedRow === value.selectedRow && current.highlight === value.highlight && current.focus === value.focus && current.litLinks === value.litLinks && current.beads === value.beads) return;
     this.value = value;
     this.listeners.forEach(listener => listener());
   }

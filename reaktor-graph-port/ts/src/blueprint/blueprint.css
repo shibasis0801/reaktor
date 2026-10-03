@@ -278,6 +278,28 @@
   box-shadow: var(--bp-panel-shadow);
 }
 
+.bp-bead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(9px * var(--bp-inv));
+  height: calc(9px * var(--bp-inv));
+  border-radius: 50%;
+  background: var(--bp-bead, var(--bp-accent));
+  box-shadow: 0 0 calc(8px * var(--bp-inv)) var(--bp-bead, var(--bp-accent));
+  offset-rotate: 0deg;
+  offset-distance: 100%;
+  opacity: 0;
+  pointer-events: none;
+  animation: bp-bead 1.2s ease-in-out;
+}
+@keyframes bp-bead {
+  from { offset-distance: 0%; opacity: 1; }
+  85% { opacity: 1; }
+  to { offset-distance: 100%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bp-bead { display: none; } }
+
 .bp-legend {
   position: absolute;
   left: 8px;
