@@ -65,6 +65,7 @@ object Appearance {
     val TabClose = AppearanceKey<ButtonAppearance>("tabClose", BareTabClose)
     val TableRow = AppearanceKey<RowAppearance>("tableRow", BareRow)
     val TableHeader = AppearanceKey<TableHeaderAppearance>("tableHeader", BareTableHeader)
+    val Island = AppearanceKey<IslandAppearance>("island", BareIsland)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
