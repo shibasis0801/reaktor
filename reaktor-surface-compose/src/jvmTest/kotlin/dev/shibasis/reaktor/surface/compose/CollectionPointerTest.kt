@@ -41,6 +41,7 @@ import dev.shibasis.reaktor.surface.KeyName
 import dev.shibasis.reaktor.surface.SelectionMode
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.listSource
+import dev.shibasis.reaktor.surface.treeSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -201,6 +202,35 @@ class CollectionPointerTest {
         onNodeWithTag("files/row/row-3").performMouseInput { click(center) }
         onRoot().performKeyInput { withKeyDown(Key.CtrlLeft) { pressKey(Key.C) } }
         assertEquals(listOf("copy" to setOf("row-3")), invoked)
+    }
+
+    @Test
+    fun aTreeOpensBranchesWithTheArrowsAndItsRowMenuRunsOnTheSelection() = runComposeUiTest {
+        var selection by mutableStateOf(emptySet<String>())
+        var expanded by mutableStateOf(emptySet<String>())
+        val invoked = mutableListOf<Pair<String, Set<String>>>()
+        setContent {
+            AutomationScope("files") {
+                Tree(
+                    treeSource(listOf("src", "docs"), { it }, { if (it == "src") listOf("src-a", "src-b") else emptyList() }, expanded, text = { it }),
+                    selection,
+                    { selection = it },
+                    { key, open -> expanded = if (open) expanded + key else expanded - key },
+                    Modifier.height(400.dp),
+                    actions = RowActions({ CommandSet(listOf(Command(CommandId("copy"), "Copy"))) }, { id, chosen -> invoked += id.value to chosen }),
+                ) { key -> BasicText(key) }
+            }
+        }
+        onNodeWithTag("files/row/src").performMouseInput { click(center) }
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        assertEquals(setOf("src"), expanded)
+        onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        onNodeWithTag("files/row/src-a").assertIsFocused()
+        assertEquals(setOf("src-a"), selection)
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F10) } }
+        onNodeWithTag("files/menu/copy").performClick()
+        assertEquals(listOf("copy" to setOf("src-a")), invoked)
+        onNodeWithTag("files/row/src-a").assertIsFocused()
     }
 
     private fun ComposeUiTest.panelTop(): Float =

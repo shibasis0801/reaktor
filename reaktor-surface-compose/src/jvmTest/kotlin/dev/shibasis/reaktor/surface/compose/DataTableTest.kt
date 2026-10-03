@@ -33,8 +33,12 @@ import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Command
+import dev.shibasis.reaktor.surface.CommandId
+import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.ItemSource
 import dev.shibasis.reaktor.surface.Sort
 import dev.shibasis.reaktor.surface.listSource
@@ -61,6 +65,7 @@ class DataTableTest {
         busy: Boolean = false,
         selection: Set<String> = emptySet(),
         onSelectionChange: (Set<String>) -> Unit = {},
+        actions: RowActions = RowActions.None,
     ) = Column {
         Button({}, Modifier.testTag("before")) { BasicText("Before") }
         AutomationScope("files") {
@@ -70,6 +75,7 @@ class DataTableTest {
                 selection,
                 onSelectionChange,
                 Modifier.requiredSize(width.dp, 400.dp),
+                actions = actions,
                 state = state,
                 busy = busy,
                 empty = { BasicText("No files", Modifier.testTag("empty")) },
@@ -115,6 +121,28 @@ class DataTableTest {
         onNodeWithTag("files/header/kind").assertIsFocused()
         onRoot().performKeyInput { pressKey(Key.Tab) }
         onNodeWithTag("files/row/file-1").assertIsFocused()
+    }
+
+    @Test
+    fun theArrowsMoveThroughTheRowsAndTheRowMenuRunsOnTheSelection() = runComposeUiTest {
+        var selection by mutableStateOf(emptySet<String>())
+        val invoked = mutableListOf<Pair<String, Set<String>>>()
+        val actions = RowActions({ CommandSet(listOf(Command(CommandId("copy"), "Copy"))) }, { id, chosen -> invoked += id.value to chosen })
+        setContent { Table(TableState(), selection = selection, onSelectionChange = { selection = it }, actions = actions) }
+        onNodeWithTag("before").requestFocus()
+        onRoot().performKeyInput {
+            pressKey(Key.Tab)
+            pressKey(Key.Tab)
+            pressKey(Key.DirectionDown)
+            pressKey(Key.DirectionDown)
+        }
+        onNodeWithTag("files/row/file-3").assertIsFocused()
+        assertEquals(setOf("file-3"), selection)
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F10) } }
+        onNodeWithTag("files/menu/copy").performClick()
+        assertEquals(listOf("copy" to setOf("file-3")), invoked)
+        onNodeWithTag("files/menu/copy").assertDoesNotExist()
+        onNodeWithTag("files/row/file-3").assertIsFocused()
     }
 
     @Test
