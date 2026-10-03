@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.runtime.Composable
@@ -48,13 +50,7 @@ fun Button(
     Box(
         modifier
             .semantics { if (busy) stateDescription = "Busy" }
-            .combinedClickable(
-                interactionSource = source,
-                indication = null,
-                enabled = enabled,
-                role = Role.Button,
-                onLongClick = onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } },
-            ) {
+            .press(source, enabled, onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } }) {
                 machine.send(PressInput.Activate(machine.nextSequence()))
             },
         propagateMinConstraints = true,
@@ -63,6 +59,10 @@ fun Button(
         appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ButtonSlots(content))
     }
 }
+
+internal fun Modifier.press(source: MutableInteractionSource, enabled: Boolean, onHold: (() -> Unit)?, onActivate: () -> Unit): Modifier =
+    if (onHold == null) clickable(source, indication = null, enabled = enabled, role = Role.Button, onClick = onActivate)
+    else combinedClickable(source, indication = null, enabled = enabled, role = Role.Button, onLongClick = onHold, onClick = onActivate)
 
 val BareButton: ButtonAppearance = object : ButtonAppearance {
     @Composable

@@ -45,7 +45,7 @@ sealed interface RovingInput {
 
 data class ActiveChange(val key: String)
 
-class RovingKernel(val typeahead: Duration = 500.milliseconds) :
+data class RovingKernel(val typeahead: Duration = 500.milliseconds) :
     BehaviorKernel<RovingProperties, RovingState, RovingInput, ActiveChange> {
 
     override fun initial(properties: RovingProperties) = RovingState(active = properties.items.firstEnabled())

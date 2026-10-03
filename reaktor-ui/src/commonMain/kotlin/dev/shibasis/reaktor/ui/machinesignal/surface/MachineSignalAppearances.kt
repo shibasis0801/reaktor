@@ -23,4 +23,5 @@ fun MachineSignalAppearances(snapshot: MachineSignalSnapshot): Appearances = App
     checkbox = CheckRow,
     progress = LineProgress,
     listRow = SelectableRow,
-) + (Appearance.Separator provides RuleSeparator) + (Appearance.Tooltip provides SignalTooltip) + (Appearance.Popover provides RaisedPopover)
+) + (Appearance.Separator provides RuleSeparator) + (Appearance.Tooltip provides SignalTooltip) + (Appearance.Popover provides RaisedPopover) +
+    (Appearance.Command provides SignalCommand)

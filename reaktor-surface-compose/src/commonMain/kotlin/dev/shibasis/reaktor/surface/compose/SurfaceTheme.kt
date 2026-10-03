@@ -53,6 +53,7 @@ object Appearance {
     val Separator = AppearanceKey<SeparatorAppearance>("separator", BareSeparator)
     val Tooltip = AppearanceKey<TooltipAppearance>("tooltip", BareTooltip)
     val Popover = AppearanceKey<PanelAppearance>("popover", BarePanel)
+    val Command = AppearanceKey<CommandAppearance>("command", BareCommand)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =

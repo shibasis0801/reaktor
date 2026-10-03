@@ -3,8 +3,6 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun Select(
@@ -48,5 +46,5 @@ class SelectOptionsScope internal constructor(
         enabled: Boolean = true,
         appearance: ButtonAppearance = LocalAppearances.current.menuItem,
         content: @Composable () -> Unit,
-    ) = popup.Item(key, { onSelectedChange(key) }, modifier.semantics { this.selected = key == this@SelectOptionsScope.selected }, enabled, appearance, content)
+    ) = popup.RadioItem(key, key == selected, { onSelectedChange(key) }, modifier, enabled, appearance = appearance) { content() }
 }
