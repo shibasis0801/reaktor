@@ -270,7 +270,7 @@ private fun <T> HeaderCell(column: TableColumn<T>, state: TableState, roving: Ro
 val BareTableHeader: TableHeaderAppearance = object : TableHeaderAppearance {
     @Composable
     override fun Content(properties: HeaderProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: HeaderSlots) {
-        Row(Modifier.defaultMinSize(minHeight = 32.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.defaultMinSize(minHeight = 32.dp).focusFrame(state.focusVisible).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f, fill = false)) { slots.content() }
             properties.descending?.let { BasicText(if (it) " ▼" else " ▲") }
         }
