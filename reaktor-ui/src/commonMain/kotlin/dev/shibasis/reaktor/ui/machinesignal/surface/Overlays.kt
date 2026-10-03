@@ -56,8 +56,8 @@ val SignalTooltip: TooltipAppearance = object : TooltipAppearance {
         ) {
             val text = TextStyle(fontFamily = signal.fonts.ui, fontSize = size, lineHeight = size * MachineSignal.Editor.lineHeight)
             Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) {
-                ProvideLabel(colors.text, text, slots.tip)
-                properties.chord?.let { chord -> Text(chord, style = text.copy(fontSize = MachineSignal.Editor.meta), color = colors.textMuted) }
+                Box(Modifier.weight(1f, fill = false)) { ProvideLabel(colors.text, text, slots.tip) }
+                properties.chord?.let { chord -> Text(chord, style = text.copy(fontSize = MachineSignal.Editor.meta), color = colors.textMuted, maxLines = 1, softWrap = false) }
             }
             properties.reason?.let { reason -> Text(reason, style = text.copy(fontSize = MachineSignal.Editor.meta), color = colors.textMuted) }
         }
