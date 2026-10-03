@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -122,10 +123,12 @@ val LocalSurfaceEnvironment = staticCompositionLocalOf { SurfaceEnvironment() }
 @Composable
 fun SurfaceEnvironmentProvider(environment: SurfaceEnvironment, content: @Composable () -> Unit) {
     val density = LocalDensity.current
+    val commands = remember { CommandHost() }
     CompositionLocalProvider(
         LocalSurfaceEnvironment provides environment,
         LocalDensity provides Density(density.density, density.fontScale * environment.textScale),
         LocalLayoutDirection provides (environment.layoutDirection ?: LocalLayoutDirection.current),
+        LocalCommandHost provides commands,
     ) { OverlayHost(content) }
 }
 val LocalCuePlayer = staticCompositionLocalOf<(FeedbackCue) -> Unit> { {} }
