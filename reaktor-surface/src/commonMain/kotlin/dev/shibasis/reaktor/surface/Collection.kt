@@ -78,7 +78,7 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
                 }
             is CollectionInput.Focused -> rove(properties, state, RovingInput.Focused(input.key))
             is CollectionInput.Hover -> Reduction(state.copy(hovered = input.key?.takeIf { properties.items.indexOf(it) >= 0 }))
-            is CollectionInput.Expand -> if (properties.enabled) expand(properties, state, input.key) { input.expanded } else Reduction(state)
+            is CollectionInput.Expand -> if (properties.enabled) gather(properties, expand(properties, state, input.key) { input.expanded }, input) else Reduction(state)
             is CollectionInput.TypingElapsed -> rove(properties, state, RovingInput.TypingElapsed(input.ticket))
         }
         return reduced.copy(state = reduced.state.copy(activeIndex = properties.items.indexOf(reduced.state.active)))
@@ -150,6 +150,17 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
         val now = items.expanded(index)
         val expanded = wanted(now)
         return if (expanded == now) Reduction(state) else Reduction(state, listOf(CollectionEvent.ExpansionChange(items.key(index), expanded)))
+    }
+
+    private fun gather(
+        properties: CollectionProperties,
+        expanded: Reduction<CollectionState, CollectionEvent>,
+        input: CollectionInput.Expand,
+    ): Reduction<CollectionState, CollectionEvent> {
+        val items = properties.items as? TreeItems ?: return expanded
+        if (input.expanded || expanded.events.isEmpty() || !items.holds(items.indexOf(input.key), items.indexOf(expanded.state.active))) return expanded
+        val moved = roving.moveTo(expanded.state.roving, input.key)
+        return expanded.copy(state = expanded.state.copy(roving = moved.state), commands = moved.commands.map(::retarget))
     }
 
     private fun point(properties: CollectionProperties, state: CollectionState, key: String, pick: Pick) =
@@ -243,6 +254,15 @@ private fun CollectionItems.span(from: String, to: String): Set<String> {
     val end = indexOf(to)
     val start = indexOf(from).takeIf { it >= 0 } ?: end
     return keys(minOf(start, end)..maxOf(start, end))
+}
+
+private fun TreeItems.holds(branch: Int, index: Int): Boolean {
+    var at = if (index >= 0) parent(index) else -1
+    while (at >= 0) {
+        if (at == branch) return true
+        at = parent(at)
+    }
+    return false
 }
 
 private fun CollectionItems.page(target: Int): String? = if (size == 0) null else nearest(this, target.coerceIn(0, size - 1))

@@ -117,6 +117,21 @@ class TreeKernelTest {
     }
 
     @Test
+    fun collapsingTheBranchThatHoldsTheActiveRowMakesTheBranchActive() {
+        val collapsed = kernel.reduce(properties(), at("Main.kt"), CollectionInput.Expand("main", false))
+        assertEquals(expansion("main", false), collapsed.events)
+        assertEquals("main", collapsed.state.active)
+        assertEquals(1, collapsed.state.activeIndex)
+        assertEquals(movedTo("main"), collapsed.commands)
+        assertEquals("src", kernel.reduce(properties(), at("App.kt"), CollectionInput.Expand("src", false)).state.active)
+        val sibling = kernel.reduce(properties(), at("test"), CollectionInput.Expand("main", false))
+        assertEquals(expansion("main", false), sibling.events)
+        assertEquals(at("test"), sibling.state)
+        assertTrue(sibling.commands.isEmpty())
+        assertEquals(at("main"), kernel.reduce(properties(), at("main"), CollectionInput.Expand("main", false)).state)
+    }
+
+    @Test
     fun leftAndRightBelongToTreesAndTakeNoModifiers() {
         val list = properties().copy(items = listSource(listOf("a", "b"), { it }))
         assertFalse(kernel.handles(list, KeyStroke(KeyName.Left)))
