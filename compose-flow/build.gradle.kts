@@ -23,11 +23,8 @@ kotlin {
 
     web {
         dependencies {
-            kotlinWrappers()
-            react()
             webCoroutines()
         }
-        packageJson = file("ts/package.json")
     }
 
     droid {

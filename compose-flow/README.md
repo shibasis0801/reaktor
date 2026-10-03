@@ -13,7 +13,6 @@ This module owns:
 - generic node / edge / handle rendering abstractions
 - generic controls / minimap / background
 - generic interaction plumbing for pointer, wheel, trackpad, and platform bridges
-- JS bridge over React Flow via the local TS/Karakum wrapper
 - parity reporting against the React Flow feature surface
 
 This module must not depend on `reaktor-graph`.
@@ -25,7 +24,6 @@ The source is layered so interaction math, viewport state, and rendering can evo
 - `dev.shibasis.composeflow.model`
 - `dev.shibasis.composeflow.runtime`
 - `dev.shibasis.composeflow.compose`
-- `dev.shibasis.composeflow.react`
 - `dev.shibasis.composeflow.parity`
 
 Current source folders follow that split internally:
@@ -35,7 +33,6 @@ Current source folders follow that split internally:
 - `src/commonMain/.../compose/primitives`
 - `src/commonMain/.../compose/components`
 - `src/commonMain/.../compose/interaction`
-- `src/jsMain/.../react`
 - `src/jvmMain/.../compose/interaction`
 - `parity/`
 
@@ -128,26 +125,6 @@ The source of truth is:
 
 This is a maintained feature matrix, not an inferred report.
 
-## JS / React Flow bridge
+## Consumers
 
-The TS wrapper package lives in:
-- `ts/`
-
-Typical verification command:
-
-```sh
-cd compose-flow/ts
-npm run build
-```
-
-This generates/refreshes the Kotlin externals under:
-- `ts/import/compose/flow`
-
-## Out of scope in the current phase
-
-These are intentionally not migrated during the current split:
-- `reaktorWeb`
-- `Manna`
-- `reaktor-graph-port/ts`
-
-They can continue using raw React Flow until `compose-flow` and `reaktor-flow` are stable enough to consume cleanly.
+`reaktor-blueprint` builds on this module. Hangar, Manna and the BestBuds apps draw their graphs through it.
