@@ -11,21 +11,21 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Axis
 import dev.shibasis.reaktor.surface.BehaviorKernel
 import dev.shibasis.reaktor.surface.Choose
 import dev.shibasis.reaktor.surface.Chosen
 import dev.shibasis.reaktor.surface.OneOfKernel
 import dev.shibasis.reaktor.surface.OneOfProperties
 import dev.shibasis.reaktor.surface.OneOfState
-import dev.shibasis.reaktor.surface.PartKey
 import dev.shibasis.reaktor.surface.PressKernel
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
@@ -46,7 +46,7 @@ fun RadioGroup(
     enabled: Boolean = true,
     behavior: OneOfBehavior = OneOfKernel,
     content: @Composable OneOfScope.() -> Unit,
-) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.RadioButton, LocalAppearances.current.radio, content)
+) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.RadioButton, LocalAppearances.current.radio, Axis.Both, content)
 
 @Composable
 internal fun OneOf(
@@ -57,17 +57,21 @@ internal fun OneOf(
     behavior: OneOfBehavior,
     role: Role,
     appearance: ItemAppearance,
+    axis: Axis,
     content: @Composable OneOfScope.() -> Unit,
 ) {
     val group = rememberMachine(behavior, OneOfProperties(selected, enabled)) { onSelectedChange(it.key) }
-    Box(modifier.selectableGroup(), propagateMinConstraints = true) {
-        OneOfScope(group, selected, enabled, role, appearance).content()
+    val roving = rememberRoving(axis) { key -> group.send(Choose(key, group.nextSequence())) }
+    Box(modifier.selectableGroup().roving(roving), propagateMinConstraints = true) {
+        OneOfScope(group, roving, selected, enabled, role, appearance).content()
     }
+    SideEffect { roving.prefer(selected) }
 }
 
 @Stable
 class OneOfScope internal constructor(
     private val group: Machine<OneOfProperties, OneOfState, Choose, Chosen>,
+    private val roving: Roving,
     private val selected: String?,
     private val enabled: Boolean,
     private val role: Role,
@@ -78,6 +82,7 @@ class OneOfScope internal constructor(
         key: String,
         modifier: Modifier = Modifier,
         enabled: Boolean = true,
+        typeahead: String? = null,
         appearance: ItemAppearance = this.appearance,
         icon: (@Composable () -> Unit)? = null,
         content: @Composable () -> Unit,
@@ -87,9 +92,10 @@ class OneOfScope internal constructor(
         val source = rememberInteractions(press)
         Box(
             modifier
-                .part(group, PartKey(key))
+                .rovingItem(roving, key, properties.enabled, typeahead)
                 .selectable(properties.selected, source, indication = null, enabled = properties.enabled, role = role) {
                     group.send(Choose(key, group.nextSequence()))
+                    roving.point(key)
                 },
             propagateMinConstraints = true,
         ) {
