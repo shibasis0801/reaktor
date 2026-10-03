@@ -41,6 +41,14 @@ class SurfaceCostTest {
                     Switch(index % 2 == 0, {}, Modifier.testTag("switch-$index"))
                     Checkbox(CheckState.Unchecked, {}, Modifier.testTag("checkbox-$index"))
                     ListRow({}, Modifier.testTag("row-$index")) { BasicText("Row $index") }
+                    Menu(false, {}) {
+                        Trigger(Modifier.testTag("menu-$index")) { BasicText("Menu $index") }
+                        Popup { Item("copy", {}) { BasicText("Copy") } }
+                    }
+                    ContextMenu {
+                        Area { BasicText("Area $index") }
+                        Popup { Item("copy", {}) { BasicText("Copy") } }
+                    }
                 }
             }
         }

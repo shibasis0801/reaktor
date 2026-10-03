@@ -31,10 +31,48 @@ import dev.shibasis.reaktor.surface.RovingList
 import dev.shibasis.reaktor.surface.RovingProperties
 import kotlinx.coroutines.CoroutineScope
 
+internal class RovingEntries {
+    private val entries = LinkedHashMap<String, RovingEntry>()
+
+    fun put(key: String, enabled: Boolean, text: String?) {
+        val entry = entries.getOrPut(key) { RovingEntry() }
+        entry.enabled = enabled
+        entry.text = text
+    }
+
+    fun remove(key: String) {
+        entries.remove(key)
+    }
+
+    fun place(key: String, coordinates: LayoutCoordinates) {
+        entries[key]?.bounds = Rect(coordinates.positionInRoot(), coordinates.size.toSize())
+    }
+
+    fun list(rightToLeft: Boolean): RovingList {
+        val placed = entries.mapNotNull { (key, entry) -> entry.bounds?.let { Placed(key, entry, it) } }
+        val lines = mutableListOf<MutableList<Placed>>()
+        var lineBottom = Float.NEGATIVE_INFINITY
+        placed.sortedBy { it.bounds.top }.forEach { item ->
+            if (item.bounds.top >= lineBottom) {
+                lines += mutableListOf(item)
+                lineBottom = item.bounds.bottom
+            } else {
+                lines.last() += item
+                lineBottom = maxOf(lineBottom, item.bounds.bottom)
+            }
+        }
+        val reading = lines.flatMap { line -> line.sortedBy { if (rightToLeft) -it.bounds.right else it.bounds.left } }
+        val waiting = entries.filterValues { it.bounds == null }.map { (key, entry) -> Placed(key, entry, Rect.Zero) }
+        return RovingList((reading + waiting).map { RovingItem(it.key, it.entry.enabled, it.entry.text) })
+    }
+
+    private class Placed(val key: String, val entry: RovingEntry, val bounds: Rect)
+}
+
 @Stable
 internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
     private val kernel = RovingKernel()
-    private val entries = LinkedHashMap<String, RovingEntry>()
+    private val entries = RovingEntries()
     private var axis = Axis.Horizontal
     private var rightToLeft = false
     private var preferred: String? = null
@@ -54,9 +92,7 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
     }
 
     fun put(key: String, enabled: Boolean, text: String?) {
-        val entry = entries.getOrPut(key) { RovingEntry() }
-        entry.enabled = enabled
-        entry.text = text
+        entries.put(key, enabled, text)
         publish()
     }
 
@@ -66,7 +102,7 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
     }
 
     fun place(key: String, coordinates: LayoutCoordinates) {
-        entries[key]?.bounds = Rect(coordinates.positionInRoot(), coordinates.size.toSize())
+        entries.place(key, coordinates)
         publish()
     }
 
@@ -88,7 +124,7 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
     }
 
     private fun publish() {
-        val next = RovingProperties(RovingList(ordered()), axis, rightToLeft = rightToLeft)
+        val next = RovingProperties(entries.list(rightToLeft), axis, rightToLeft = rightToLeft)
         if (next != properties) {
             properties = next
             machine.reconcile(next)
@@ -100,26 +136,6 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
         val key = preferred ?: return
         if (!focused && key != machine.state.active) machine.send(RovingInput.Point(key, focus = false))
     }
-
-    private fun ordered(): List<RovingItem> {
-        val placed = entries.mapNotNull { (key, entry) -> entry.bounds?.let { Placed(key, entry, it) } }
-        val lines = mutableListOf<MutableList<Placed>>()
-        var lineBottom = Float.NEGATIVE_INFINITY
-        placed.sortedBy { it.bounds.top }.forEach { item ->
-            if (item.bounds.top >= lineBottom) {
-                lines += mutableListOf(item)
-                lineBottom = item.bounds.bottom
-            } else {
-                lines.last() += item
-                lineBottom = maxOf(lineBottom, item.bounds.bottom)
-            }
-        }
-        val reading = lines.flatMap { line -> line.sortedBy { if (rightToLeft) -it.bounds.right else it.bounds.left } }
-        val waiting = entries.filterValues { it.bounds == null }.map { (key, entry) -> Placed(key, entry, Rect.Zero) }
-        return (reading + waiting).map { RovingItem(it.key, it.entry.enabled, it.entry.text) }
-    }
-
-    private class Placed(val key: String, val entry: RovingEntry, val bounds: Rect)
 }
 
 private class RovingEntry(var enabled: Boolean = true, var text: String? = null, var bounds: Rect? = null)

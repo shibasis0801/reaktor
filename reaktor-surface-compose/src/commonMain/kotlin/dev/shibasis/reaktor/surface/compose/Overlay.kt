@@ -157,13 +157,6 @@ fun Overlay(modal: Boolean = true, content: @Composable () -> Unit) {
 @Composable
 internal fun OverlayBack(enabled: Boolean = true, onBack: () -> Unit) = BackHandler(enabled, onBack)
 
-internal fun anchoredOffset(anchor: IntRect, canvas: IntSize, content: IntSize, gap: Int, layoutDirection: LayoutDirection): IntOffset {
-    val below = anchor.bottom + gap
-    val y = if (below + content.height <= canvas.height) below else (anchor.top - gap - content.height).coerceAtLeast(0)
-    val start = if (layoutDirection == LayoutDirection.Ltr) anchor.right - content.width else anchor.left
-    return IntOffset(start.coerceIn(0, (canvas.width - content.width).coerceAtLeast(0)), y)
-}
-
 internal object WholeWindow : PopupPositionProvider {
     override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize) = IntOffset.Zero
 }

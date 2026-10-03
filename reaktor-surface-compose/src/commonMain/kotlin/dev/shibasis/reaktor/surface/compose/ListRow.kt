@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.surface.compose
 
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.Activated
 import dev.shibasis.reaktor.surface.Held
@@ -52,13 +50,7 @@ fun ListRow(
     }
     val source = rememberInteractions(machine)
     Box(
-        modifier.combinedClickable(
-            interactionSource = source,
-            indication = null,
-            enabled = enabled,
-            role = Role.Button,
-            onLongClick = onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } },
-        ) {
+        modifier.press(source, enabled, onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } }) {
             machine.send(PressInput.Activate(machine.nextSequence()))
         },
         propagateMinConstraints = true,

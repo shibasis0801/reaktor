@@ -53,7 +53,7 @@ class MachineSignalAppearancesTest {
         Appearance.Button, Appearance.Switch, Appearance.Radio, Appearance.Tab, Appearance.Chip,
         Appearance.MenuPanel, Appearance.MenuItem, Appearance.Dialog, Appearance.Sheet, Appearance.Field,
         Appearance.Toast, Appearance.Checkbox, Appearance.Progress, Appearance.ListRow,
-        Appearance.Separator, Appearance.Tooltip, Appearance.Popover,
+        Appearance.Separator, Appearance.Tooltip, Appearance.Popover, Appearance.Command,
     )
 
     @Test
