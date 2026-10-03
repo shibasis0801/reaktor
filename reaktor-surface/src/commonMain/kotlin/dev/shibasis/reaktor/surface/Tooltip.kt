@@ -11,6 +11,7 @@ data class TooltipState(
     val tipHovered: Boolean = false,
     val focusVisible: Boolean = false,
     val suppressed: Boolean = false,
+    val pressed: Boolean = false,
     val pending: Ticket? = null,
     val nextTicket: Long = 1,
 )
@@ -20,6 +21,7 @@ sealed interface TooltipInput {
     data class TipHover(val inside: Boolean) : TooltipInput
     data class Focus(val focused: Boolean, val visible: Boolean) : TooltipInput
     data object Press : TooltipInput
+    data object Release : TooltipInput
     data object Escape : TooltipInput
     data class Elapsed(val ticket: Ticket) : TooltipInput
 }
@@ -46,10 +48,15 @@ data class TooltipKernel(
                 if (visible == state.focusVisible) Reduction(state)
                 else settle(properties, state.copy(focusVisible = visible, suppressed = false), at = Duration.ZERO)
             }
-            TooltipInput.Press, TooltipInput.Escape -> settle(properties, state.copy(suppressed = true), at = Duration.ZERO)
+            TooltipInput.Press -> hold(settle(properties, state.copy(suppressed = true, pressed = true), at = Duration.ZERO))
+            TooltipInput.Release -> Reduction(state.copy(pressed = false))
+            TooltipInput.Escape -> settle(properties, state.copy(suppressed = true), at = Duration.ZERO)
             is TooltipInput.Elapsed ->
                 if (input.ticket != state.pending) Reduction(state)
-                else turn(state.copy(pending = null), properties.enabled && state.wanted)
+                else {
+                    val held = if (state.pressed) state.copy(suppressed = false, anchorHovered = true) else state
+                    turn(held.copy(pending = null), properties.enabled && held.wanted)
+                }
         }
 
     override fun reconcile(properties: TooltipProperties, state: TooltipState): Reduction<TooltipState, TooltipEvent> =
@@ -70,6 +77,15 @@ data class TooltipKernel(
                 )
             }
         }
+    }
+
+    private fun hold(pressed: Reduction<TooltipState, TooltipEvent>): Reduction<TooltipState, TooltipEvent> {
+        val ticket = Ticket(pressed.state.nextTicket)
+        return Reduction(
+            pressed.state.copy(pending = ticket, nextTicket = ticket.value + 1),
+            pressed.events,
+            commands = pressed.commands + LocalCommand.Schedule(ticket, delay, TooltipInput.Elapsed(ticket)),
+        )
     }
 
     private fun turn(state: TooltipState, shown: Boolean, commands: List<LocalCommand> = emptyList()): Reduction<TooltipState, TooltipEvent> =

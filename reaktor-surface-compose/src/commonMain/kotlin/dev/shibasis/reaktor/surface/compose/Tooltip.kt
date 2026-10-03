@@ -188,6 +188,7 @@ private class TooltipAnchorNode(var anchor: TooltipAnchor) :
             PointerEventType.Enter -> anchor.hover(true, uptime)
             PointerEventType.Exit -> anchor.hover(false, uptime)
             PointerEventType.Press -> anchor.send(TooltipInput.Press)
+            PointerEventType.Release -> anchor.send(TooltipInput.Release)
         }
     }
 

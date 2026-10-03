@@ -74,6 +74,18 @@ class TooltipKernelTest {
     }
 
     @Test
+    fun aPressHeldAsLongAsTheDelayShowsTheTipAndAShortOneDoesNot() {
+        val held = TooltipState().after(hovered, TooltipInput.Press)
+        assertEquals(350.milliseconds, held.timer().after)
+        val shown = held.elapse()
+        assertEquals(listOf<TooltipEvent>(TooltipEvent.Shown), shown.events)
+        assertTrue(shown.state.after(TooltipInput.Release).state.shown)
+        val clicked = TooltipState().after(hovered, TooltipInput.Press)
+        val released = clicked.state.after(TooltipInput.Release)
+        assertTrue(kernel.reduce(on, released.state, clicked.timer().input as TooltipInput).events.isEmpty())
+    }
+
+    @Test
     fun escapeHidesTheTip() {
         val shown = TooltipState().after(hovered).elapse().state
         val escaped = shown.after(TooltipInput.Escape)
