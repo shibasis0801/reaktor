@@ -15,6 +15,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsFocused
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -33,6 +35,7 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import dev.shibasis.reaktor.surface.Availability
@@ -44,6 +47,7 @@ import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.KeyConvention
 import dev.shibasis.reaktor.surface.KeyName
 import dev.shibasis.reaktor.surface.Mark
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -271,6 +275,31 @@ class MenuTest {
         onNodeWithTag("drop").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
         onNodeWithTag("copy").performClick()
         assertEquals(listOf("copy"), invoked)
+    }
+
+    @Test
+    fun aChordKeepsItsKeyOrderRightToLeft() = runComposeUiTest {
+        val run = Command(CommandId("run"), "Run", Chord.Of(KeyName.Enter, primary = true))
+        val chord = "\u2066⌘↩\u2069"
+        var direction by mutableStateOf(LayoutDirection.Ltr)
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment(layoutDirection = direction, keys = KeyConvention.Mac)) {
+                Menu(true, {}) { Popup { Commands(CommandSet(listOf(run)), listOf(CommandEntry.Item(run.id)), {}) } }
+            }
+        }
+        val ltr = onNodeWithText(chord, useUnmergedTree = true).captureToImage().toPixelMap()
+        direction = LayoutDirection.Rtl
+        waitForIdle()
+        val rtl = onNodeWithText(chord, useUnmergedTree = true).captureToImage().toPixelMap()
+        assertEquals(ltr.width to ltr.height, rtl.width to rtl.height)
+        val reversed = (0 until ltr.height).sumOf { y ->
+            (0 until ltr.width).count { x ->
+                val a = ltr[x, y]
+                val b = rtl[x, y]
+                maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha)) > 0.5f
+            }
+        }
+        assertEquals(0, reversed, "the chord reads ⌘↩ in both directions")
     }
 
     private fun androidx.compose.ui.test.ComposeUiTest.onAllText(text: String): Int =
