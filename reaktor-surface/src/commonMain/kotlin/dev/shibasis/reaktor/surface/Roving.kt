@@ -85,7 +85,7 @@ data class RovingKernel(val typeahead: Duration = 500.milliseconds) :
         return moveTo(next, match(properties.items, state.active, typed), timing)
     }
 
-    private fun moveTo(state: RovingState, key: String?, commands: List<LocalCommand> = emptyList()): Reduction<RovingState, ActiveChange> =
+    internal fun moveTo(state: RovingState, key: String?, commands: List<LocalCommand> = emptyList()): Reduction<RovingState, ActiveChange> =
         if (key == null || key == state.active) Reduction(state, commands = commands)
         else Reduction(
             state.copy(active = key),
@@ -151,17 +151,17 @@ private fun match(items: RovingItems, active: String?, typed: String): String? {
         ?.let(items::key)
 }
 
-private fun nearest(items: RovingItems, index: Int): String? {
+internal fun nearest(items: RovingItems, index: Int): String? {
     if (index < 0) return items.firstEnabled()
-    for (distance in 1..items.size) {
+    for (distance in 0..items.size) {
         (index + distance).takeIf { it < items.size && items.enabled(it) }?.let { return items.key(it) }
         (index - distance).takeIf { it >= 0 && items.enabled(it) }?.let { return items.key(it) }
     }
     return null
 }
 
-private fun RovingItems.indexOf(key: String?): Int = if (key == null) -1 else indexOf(key)
+internal fun RovingItems.indexOf(key: String?): Int = if (key == null) -1 else indexOf(key)
 
-private fun RovingItems.firstEnabled(): String? = (0 until size).firstOrNull(::enabled)?.let(::key)
+internal fun RovingItems.firstEnabled(): String? = (0 until size).firstOrNull(::enabled)?.let(::key)
 
 private fun RovingItems.lastEnabled(): String? = (size - 1 downTo 0).firstOrNull(::enabled)?.let(::key)
