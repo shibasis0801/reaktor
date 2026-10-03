@@ -1,5 +1,5 @@
 import { memo, useDeferredValue, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
-import { isLit } from '../highlight';
+import { isLit, type Directed } from '../highlight';
 import type { BlueprintLayout, Card, Link, Point } from '../types';
 import type { Bounds } from './camera';
 import { intersects, useHoveredPin, useRest, useScene, useSelection, type WireStyle } from './context';
@@ -182,6 +182,9 @@ export function BlueprintWires() {
   const inCells = (piece: DashPiece) => !!cells && piece.column >= cells.left && piece.column <= cells.right && piece.row >= cells.top && piece.row <= cells.bottom;
   const paths = useMemo(() => new Map(layout.links.map(link => [link.id, linkPath(link)])), [layout]);
   const corridors = useMemo(() => corridorsOf(layout, scene.frameOf), [layout, scene.frameOf]);
+  const owners = scene.owners;
+  const ends = useMemo(() => owners && owners.size > 0 ? new Map<string, Directed>(layout.links.map(link => [link.id, { from: owners.get(link.from) ?? link.from, to: owners.get(link.to) ?? link.to }])) : null, [layout, owners]);
+  const endsOf = (link: Link): Directed => ends?.get(link.id) ?? link;
   const highlighting = selection.highlight.size > 0;
   const batches = new Map<string, { style: WireStyle; parts: string[]; lit: boolean }>();
   const singles: Array<{ link: Link; style: WireStyle; lit: boolean }> = [];
@@ -190,7 +193,7 @@ export function BlueprintWires() {
     || (link.to === hovered.card && link.toPort !== undefined && scene.rowOfPort.get(`${link.to}<${link.toPort}`) === hovered.row));
   const states = layout.links.map(link => {
     const route = selection.litLinks.has(link.id);
-    return { link, route, lit: route || isLit(link, selection.highlight, selection.selected, selection.focus), hover: touchesHover(link) };
+    return { link, route, lit: route || isLit(endsOf(link), selection.highlight, selection.selected, selection.focus), hover: touchesHover(link) };
   });
   const crowd = states.reduce((count, state) => count + (state.lit ? 1 : 0), 0);
   const pooling = !!cells && crowd > PoolCrowd;
@@ -199,7 +202,7 @@ export function BlueprintWires() {
     if (!pooling) return kept.current = noMarches;
     const list: March[] = [];
     for (const link of layout.links) {
-      if (selection.litLinks.has(link.id) || !isLit(link, selection.highlight, selection.selected, selection.focus)) continue;
+      if (selection.litLinks.has(link.id) || !isLit(ends?.get(link.id) ?? link, selection.highlight, selection.selected, selection.focus)) continue;
       const nearby = visible.has(link.from) || visible.has(link.to);
       const style = scene.wireStyle(link, { look, lit: true, route: false, hovered: false, nearby, crowd, highlighting, focus: selection.focus });
       if (!style?.batch || !style.marching) continue;
@@ -207,7 +210,7 @@ export function BlueprintWires() {
       list.push({ link, style, key: `${style.tone}|${style.width ?? 1.5}|${style.alpha ?? 1}`, top: Math.floor(box.y / DashCell) - 1, bottom: Math.floor((box.y + box.height) / DashCell) + 1 });
     }
     return kept.current = sameMarches(kept.current, list) ? kept.current : list;
-  }, [pooling, layout, selection, visible, scene, look, crowd, highlighting]);
+  }, [pooling, layout, selection, visible, scene, look, crowd, highlighting, ends]);
   const marched = useMemo(() => new Set(marches.map(march => march.link.id)), [marches]);
   const marchRows = useMemo(() => marchesByRow(marches), [marches]);
   const pooledLabels = marches.filter(march => march.style.label);

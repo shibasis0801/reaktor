@@ -31,6 +31,7 @@ export interface Reveal {
 export interface SelectDetail {
   row: number | null;
   source: 'pointer' | 'keyboard' | 'wire';
+  card?: string | null;
 }
 
 export interface BlueprintMapProps {
@@ -41,6 +42,7 @@ export interface BlueprintMapProps {
   className?: string;
   insets?: Partial<Insets>;
   selected?: string | null;
+  selectedCard?: string | null;
   selectedRow?: number | null;
   highlight?: ReadonlySet<string>;
   focus?: Focus;
@@ -105,11 +107,23 @@ function CardNode({ id }: NodeProps) {
   return card ? <>{scene.renderCard(card, look)}</> : null;
 }
 
-function FrameNode({ id }: NodeProps) {
+function RootFrame({ frame }: { frame: Frame }) {
   const scene = useScene();
   const look = useLook();
-  const frame = scene.layout.frames.find(item => `frame:${item.key}` === id);
-  return frame ? <>{scene.renderFrame(frame, look)}</> : null;
+  return <>{scene.renderFrame(frame, look)}</>;
+}
+
+function NestedFrame({ id, frame }: { id: string; frame: Frame }) {
+  const scene = useScene();
+  const look = useCardLook(id);
+  return <>{scene.renderFrame(frame, look)}</>;
+}
+
+function FrameNode({ id }: NodeProps) {
+  const scene = useScene();
+  const frame = scene.frames?.get(id.slice(6)) ?? scene.layout.frames.find(item => `frame:${item.key}` === id);
+  if (!frame) return null;
+  return frame.parent === undefined ? <RootFrame frame={frame}/> : <NestedFrame id={id} frame={frame}/>;
 }
 
 function WiresNode() {
@@ -122,16 +136,67 @@ function LabelsNode() {
   if (look === 'chapter') return null;
   return <div className="bp-labels" data-part="frame-labels">
     <FramePartContext.Provider value="banner">
-      {scene.layout.frames.map(frame => <div key={frame.key} className="bp-labels__slot" style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}>{scene.renderFrame(frame, look)}</div>)}
+      {scene.layout.frames.filter(frame => frame.parent === undefined).map(frame => <div key={frame.key} className="bp-labels__slot" style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}>{scene.renderFrame(frame, look)}</div>)}
     </FramePartContext.Provider>
   </div>;
 }
 
 const nodeTypes: NodeTypes = { card: CardNode, frame: FrameNode, wires: WiresNode, labels: LabelsNode };
 
+type Placed = { kind: 'card'; card: Card } | { kind: 'frame'; frame: Frame };
+
 function readingOrder(layout: BlueprintLayout): Card[] {
-  return layout.frames.flatMap(frame => frame.nodes.map(id => layout.cards[id]).filter(Boolean)
-    .sort((a, b) => Math.round(a.x) - Math.round(b.x) || a.y - b.y));
+  const inside = new Map<string, Frame[]>();
+  for (const frame of layout.frames) if (frame.parent !== undefined) inside.set(frame.parent, [...(inside.get(frame.parent) ?? []), frame]);
+  const box = (item: Placed) => (item.kind === 'card' ? item.card : item.frame);
+  const read = (frame: Frame): Card[] => {
+    const items: Placed[] = [
+      ...frame.nodes.map(id => layout.cards[id]).filter(Boolean).map(card => ({ kind: 'card' as const, card })),
+      ...(inside.get(frame.key) ?? []).map(child => ({ kind: 'frame' as const, frame: child })),
+    ];
+    return items.sort((a, b) => Math.round(box(a).x) - Math.round(box(b).x) || box(a).y - box(b).y)
+      .flatMap(item => (item.kind === 'card' ? [item.card] : read(item.frame)));
+  };
+  return layout.frames.filter(frame => frame.parent === undefined).flatMap(read);
+}
+
+function rootsOf(layout: BlueprintLayout): Map<string, string> {
+  const parents = new Map(layout.frames.flatMap(frame => (frame.parent !== undefined ? [[frame.key, frame.parent] as const] : [])));
+  const root = (key: string) => {
+    let cursor = key;
+    for (let parent = parents.get(cursor); parent !== undefined; parent = parents.get(cursor)) cursor = parent;
+    return cursor;
+  };
+  const roots = new Map<string, string>();
+  for (const frame of layout.frames) {
+    const top = root(frame.key);
+    if (frame.parent !== undefined) roots.set(frame.key, top);
+    for (const id of frame.nodes) roots.set(id, top);
+  }
+  return roots;
+}
+
+function ownersOf(layout: BlueprintLayout): Map<string, string> {
+  const owners = new Map<string, string>();
+  for (const card of Object.values(layout.cards)) if (card.owner !== undefined) owners.set(card.id, card.owner);
+  for (const frame of layout.frames) if (frame.owner !== undefined) owners.set(frame.key, frame.owner);
+  return owners;
+}
+
+interface Target {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  card: boolean;
+}
+
+function targetOf(layout: BlueprintLayout | null, frames: Map<string, Frame>, id: string | null | undefined, owner?: string | null): Target | null {
+  if (!layout) return null;
+  const card = id ? layout.cards[id] : undefined;
+  if (card) return { ...card, card: true };
+  const frame = (id ? frames.get(id) : undefined) ?? (owner ? layout.frames.find(item => item.owner === owner) : undefined);
+  return frame ? { x: frame.x, y: frame.y, width: frame.width, height: frame.height, card: false } : null;
 }
 
 function isTyping(target: EventTarget | null): boolean {
@@ -161,7 +226,7 @@ function PinTooltip({ host, render }: { host: HTMLDivElement | null; render?: (c
 }
 
 function MapHost(props: BlueprintMapProps) {
-  const { layout, fitKey, memoryKey, selected = null, selectedRow = null, focus = 'all', reveal } = props;
+  const { layout, fitKey, memoryKey, selected = null, selectedCard = null, selectedRow = null, focus = 'all', reveal } = props;
   const ready = !!layout && (props.ready ?? true);
   const flow = useReactFlow();
   const store = useStoreApi();
@@ -191,7 +256,13 @@ function MapHost(props: BlueprintMapProps) {
   const splitRef = useRef<() => void>(() => undefined);
   const immediate = useRef(false);
 
-  const frameOf = useMemo(() => new Map(layout?.frames.flatMap(frame => frame.nodes.map(id => [id, frame.key] as const)) ?? []), [layout]);
+  const frameOf = useMemo(() => (layout ? rootsOf(layout) : new Map<string, string>()), [layout]);
+  const frameByKey = useMemo(() => new Map(layout?.frames.map(frame => [frame.key, frame] as const) ?? []), [layout]);
+  const owners = useMemo(() => (layout ? ownersOf(layout) : new Map<string, string>()), [layout]);
+  const frameByKeyRef = useRef(frameByKey);
+  frameByKeyRef.current = frameByKey;
+  const ownersRef = useRef(owners);
+  ownersRef.current = owners;
   const rowOfPort = useMemo(() => new Map(Object.values(layout?.cards ?? {}).flatMap(card => card.pins.map(pin => [`${card.id}${pin.provides ? '>' : '<'}${pin.key}`, pin.row] as const))), [layout]);
 
   const cache = useRef<{ layout: BlueprintLayout | null; nodes: Map<string, Node> }>({ layout: null, nodes: new Map() });
@@ -205,10 +276,12 @@ function MapHost(props: BlueprintMapProps) {
       const id = `frame:${frame.key}`;
       const existing = known.get(id);
       if (existing) return existing;
+      const nested = frame.parent !== undefined;
       const node: Node = {
         id, type: 'frame', position: { x: frame.x, y: frame.y }, width: frame.width, height: frame.height, zIndex: 1, data: {},
         draggable: false, selectable: false, connectable: false, deletable: false, focusable: false,
-        domAttributes: { 'data-testid': `map-frame-${frame.key}` } as Node['domAttributes'],
+        ...(nested ? { className: 'bp-node--nested' } : {}),
+        domAttributes: { 'data-testid': `map-frame-${frame.key}`, ...(nested ? { 'data-parent': frame.parent } : {}) } as Node['domAttributes'],
       };
       known.set(id, node);
       return node;
@@ -226,7 +299,7 @@ function MapHost(props: BlueprintMapProps) {
     };
     known.set(LabelsId, labels);
     const cards: Node[] = readingOrder(layout).map(card => {
-      const pressed = selected === card.id;
+      const pressed = (selectedCard ?? selected) === card.id;
       const label = cardLabel?.(card) ?? card.id;
       const existing = known.get(card.id);
       if (existing && existing.ariaLabel === label && (existing.domAttributes as Record<string, unknown>)['aria-pressed'] === pressed) return existing;
@@ -239,7 +312,7 @@ function MapHost(props: BlueprintMapProps) {
       return node;
     });
     return [...frames, wires, ...cards, labels];
-  }, [layout, selected, cardLabel]);
+  }, [layout, selected, selectedCard, cardLabel]);
 
   const measure = useCallback(() => {
     const flowElement = hostRef.current?.querySelector('.react-flow');
@@ -388,18 +461,20 @@ function MapHost(props: BlueprintMapProps) {
   useLayoutEffect(() => {
     if (!reveal || !layout || !ready || width <= 0 || height <= 0) return;
     if (reveal.nonce <= memory.revealed) return;
-    const card = layout.cards[reveal.id];
-    if (!card) return;
+    const target = targetOf(layout, frameByKey, reveal.id);
+    if (!target) return;
     remember();
     const size = measure();
     const current = flow.getViewport().zoom;
     const zoom = current >= 0.45 ? current : 0.9;
     const visible = size.height - insetsRef.current.top - insetsRef.current.bottom;
-    const y = reveal.row !== null && reveal.row !== undefined ? card.y + pinY(reveal.row) : card.y + Math.min(card.height / 2, Math.max(visible / 2 - 16, 0) / zoom);
-    apply(place(card.x + card.width / 2, y, zoom, size.width, size.height, insetsRef.current));
+    const span = size.width - insetsRef.current.start;
+    const y = reveal.row !== null && reveal.row !== undefined && target.card ? target.y + pinY(reveal.row) : target.y + Math.min(target.height / 2, Math.max(visible / 2 - 16, 0) / zoom);
+    const x = target.card ? target.x + target.width / 2 : target.x + Math.min(target.width / 2, Math.max(span / 2 - 16, 0) / zoom);
+    apply(place(x, y, zoom, size.width, size.height, insetsRef.current));
     memory.revealed = reveal.nonce;
     setRevealed(reveal.nonce);
-  }, [reveal, layout, ready, width, height, memory, flow, remember, apply, measure]);
+  }, [reveal, layout, frameByKey, ready, width, height, memory, flow, remember, apply, measure]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -433,17 +508,16 @@ function MapHost(props: BlueprintMapProps) {
     };
     return {
       ready,
-      canCentre: !!selected && !!layout?.cards[selected],
+      canCentre: !!selected && !!targetOf(layout, frameByKey, selectedCard ?? selected, selected),
       fit: (duration = 0) => { const current = latest.current.layout; if (current) frameBounds(layoutBounds(current), 1, duration); },
       centre: () => {
-        const current = latest.current.layout;
-        const id = latest.current.selected;
-        const card = id ? current?.cards[id] : undefined;
-        if (!card) return;
+        const owner = latest.current.selected ?? null;
+        const target = targetOf(latest.current.layout, frameByKeyRef.current, latest.current.selectedCard ?? owner, owner);
+        if (!owner || !target) return;
         const { width: w, height: h } = size();
         remember();
         const row = latest.current.selectedRow;
-        apply(centreOn(card.x + card.width / 2, row !== null && row !== undefined ? card.y + pinY(row) : card.y + card.height / 2, flow.getViewport().zoom, w, h, insetsRef.current));
+        apply(centreOn(target.x + target.width / 2, row !== null && row !== undefined && target.card ? target.y + pinY(row) : target.y + target.height / 2, flow.getViewport().zoom, w, h, insetsRef.current));
       },
       zoomTo: zoom => {
         const { width: w, height: h } = size();
@@ -474,7 +548,7 @@ function MapHost(props: BlueprintMapProps) {
       viewport: () => flow.getViewport(),
       setViewport: (viewport, keep = true, duration = 0) => { if (keep) remember(); apply(viewport, duration); },
     };
-  }, [ready, selected, layout, flow, memory, remember, apply, measure]);
+  }, [ready, selected, selectedCard, layout, frameByKey, flow, memory, remember, apply, measure]);
 
   const cameraRef = props.cameraRef;
   useEffect(() => {
@@ -483,12 +557,12 @@ function MapHost(props: BlueprintMapProps) {
     return () => { if (cameraRef.current === controls) cameraRef.current = null; };
   }, [cameraRef, controls]);
 
-  const selection = useMemo(() => new SelectionStore({ selected, selectedRow, highlight: props.highlight ?? empty, focus, litLinks: props.litLinks ?? empty }), []);
+  const selection = useMemo(() => new SelectionStore({ selected, selectedCard, selectedRow, highlight: props.highlight ?? empty, focus, litLinks: props.litLinks ?? empty }), []);
   const highlight = props.highlight ?? empty;
   const litLinks = props.litLinks ?? empty;
   useLayoutEffect(() => {
-    selection.set({ selected, selectedRow, highlight, focus, litLinks });
-  }, [selection, selected, selectedRow, highlight, focus, litLinks]);
+    selection.set({ selected, selectedCard, selectedRow, highlight, focus, litLinks });
+  }, [selection, selected, selectedCard, selectedRow, highlight, focus, litLinks]);
 
   const scene = useMemo<MapScene | null>(() => layout ? {
     layout,
@@ -497,13 +571,15 @@ function MapHost(props: BlueprintMapProps) {
     selection,
     corridors: props.corridors ?? true,
     frameOf,
+    owners,
+    frames: frameByKey,
     rowOfPort,
     renderCard: props.renderCard,
     renderFrame: props.renderFrame,
     wireStyle: props.wireStyle,
     pins,
     rest,
-  } : null, [layout, gate, thresholds, selection, props.corridors, frameOf, rowOfPort, props.renderCard, props.renderFrame, props.wireStyle, pins, rest]);
+  } : null, [layout, gate, thresholds, selection, props.corridors, frameOf, owners, frameByKey, rowOfPort, props.renderCard, props.renderFrame, props.wireStyle, pins, rest]);
 
   const controlsRef = useRef(controls);
   controlsRef.current = controls;
@@ -512,23 +588,32 @@ function MapHost(props: BlueprintMapProps) {
   const select = useCallback((id: string | null, detail: SelectDetail) => latest.current.onSelect?.(id, detail), []);
   const onNodeClick = useCallback((event: ReactMouseEvent, node: Node) => {
     const rowOfPort = rowOfPortRef.current;
+    const owner = (id: string) => ownersRef.current.get(id) ?? id;
     if (node.type === 'card') {
       const row = (event.target as HTMLElement).closest('[data-row]')?.getAttribute('data-row');
-      select(node.id, { row: row === null || row === undefined ? null : Number(row), source: 'pointer' });
+      select(owner(node.id), { row: row === null || row === undefined ? null : Number(row), source: 'pointer', card: node.id });
       return;
     }
-    if (node.type === 'wires') {
-      const id = (event.target as Element).closest('[data-link]')?.getAttribute('data-link');
-      const link = id ? latest.current.layout?.links.find(item => item.id === id) : undefined;
-      if (link) {
-        const consumer = latest.current.layout?.cards[link.to] ? link.to : link.from;
-        const port = consumer === link.to ? link.toPort : link.fromPort;
-        const row = port === undefined ? null : rowOfPort.get(`${consumer}${consumer === link.to ? '<' : '>'}${port}`) ?? null;
-        select(consumer, { row, source: 'wire' });
+    if (node.type === 'frame') {
+      const frame = frameByKeyRef.current.get(node.id.slice(6));
+      if (frame?.owner !== undefined) {
+        select(frame.owner, { row: null, source: 'pointer', card: null });
         return;
       }
     }
-    select(null, { row: null, source: 'pointer' });
+    if (node.type === 'wires') {
+      const id = (event.target as Element).closest('[data-link]')?.getAttribute('data-link');
+      const current = latest.current.layout;
+      const link = id ? current?.links.find(item => item.id === id) : undefined;
+      if (link && current) {
+        const consumer = current.cards[link.to] || frameByKeyRef.current.has(link.to) ? link.to : link.from;
+        const port = consumer === link.to ? link.toPort : link.fromPort;
+        const row = port === undefined ? null : rowOfPort.get(`${consumer}${consumer === link.to ? '<' : '>'}${port}`) ?? null;
+        select(owner(consumer), { row, source: 'wire', card: current.cards[consumer] ? consumer : null });
+        return;
+      }
+    }
+    select(null, { row: null, source: 'pointer', card: null });
   }, [select]);
   const onNodeDoubleClick = useCallback((_: ReactMouseEvent, node: Node) => {
     const current = latest.current.layout;
@@ -541,7 +626,7 @@ function MapHost(props: BlueprintMapProps) {
       if (frame) controlsRef.current.frameBounds(frame);
     }
   }, []);
-  const onPaneClick = useCallback(() => select(null, { row: null, source: 'pointer' }), [select]);
+  const onPaneClick = useCallback(() => select(null, { row: null, source: 'pointer', card: null }), [select]);
   const [initialViewport] = useState(() => memory.viewport ?? { x: 0, y: 0, zoom: 0.1 });
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     latest.current.onKeyDown?.(event);
@@ -562,7 +647,7 @@ function MapHost(props: BlueprintMapProps) {
     else if (key === 'Enter' || key === ' ') {
       const id = (event.target as HTMLElement).closest('.react-flow__node')?.getAttribute('data-id');
       if (!id || !latest.current.layout?.cards[id]) return;
-      select(id, { row: null, source: 'keyboard' });
+      select(ownersRef.current.get(id) ?? id, { row: null, source: 'keyboard', card: id });
     } else return;
     event.preventDefault();
   };
