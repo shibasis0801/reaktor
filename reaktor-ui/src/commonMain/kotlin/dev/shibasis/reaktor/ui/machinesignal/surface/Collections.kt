@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,12 +24,16 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.compose.ComposeFeedback
+import dev.shibasis.reaktor.surface.compose.HeaderProperties
+import dev.shibasis.reaktor.surface.compose.HeaderSlots
 import dev.shibasis.reaktor.surface.compose.RowAppearance
 import dev.shibasis.reaktor.surface.compose.RowProperties
 import dev.shibasis.reaktor.surface.compose.RowSlots
 import dev.shibasis.reaktor.surface.compose.RowState
+import dev.shibasis.reaktor.surface.compose.TableHeaderAppearance
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
@@ -72,6 +79,56 @@ val SignalItemRow: RowAppearance = object : RowAppearance {
     }
 }
 
+val SignalTableRow: RowAppearance = object : RowAppearance {
+    @Composable
+    override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {
+        val signal = theme.machineSignal
+        val colors = signal.colors
+        val hovered = state.hovered && properties.enabled
+        Box(
+            Modifier
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                .fillMaxWidth()
+                .height(signal.metrics.tableRow)
+                .background(
+                    when {
+                        properties.selected -> colors.controlAccent.copy(alpha = SelectedFill)
+                        hovered -> colors.raised
+                        properties.index % 2 == 1 -> colors.surface.copy(alpha = ZebraFill)
+                        else -> Color.Transparent
+                    },
+                )
+                .stateLayer(LocalContentColor.current, hovered, feedback),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, MachineSignal.Editor.meta), slots.content)
+        }
+    }
+}
+
+val SignalTableHeader: TableHeaderAppearance = object : TableHeaderAppearance {
+    @Composable
+    override fun Content(properties: HeaderProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: HeaderSlots) {
+        val signal = theme.machineSignal
+        val colors = signal.colors
+        Row(
+            Modifier
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                .fillMaxWidth()
+                .height(HeaderHeight)
+                .background(colors.surface)
+                .stateLayer(LocalContentColor.current, properties.sortable && state.hovered, feedback)
+                .padding(horizontal = MachineSignal.Space.s2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ProvideLabel(Label(if (properties.descending == null) colors.textMuted else colors.controlAccent, signal.fonts.ui, MachineSignal.Editor.meta)) {
+                Box(Modifier.weight(1f, fill = false)) { slots.content() }
+                properties.descending?.let { Text(if (it) Descending else Ascending, maxLines = 1) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun Chevron(expanded: Boolean, color: Color) = Canvas(Modifier.size(ChevronSize)) {
     val forward = layoutDirection == LayoutDirection.Ltr
@@ -93,4 +150,9 @@ private fun Chevron(expanded: Boolean, color: Color) = Canvas(Modifier.size(Chev
 }
 
 private val SelectedBar = 2.dp
+private val HeaderHeight = 24.dp
+private const val SelectedFill = .28f
+private const val ZebraFill = .45f
+private const val Ascending = " ▲"
+private const val Descending = " ▼"
 private val ChevronSize = 8.dp
