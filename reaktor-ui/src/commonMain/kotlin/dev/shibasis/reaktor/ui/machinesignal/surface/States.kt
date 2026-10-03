@@ -12,15 +12,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.ViewState
 import dev.shibasis.reaktor.surface.compose.ComposeFeedback
+import dev.shibasis.reaktor.surface.compose.IslandAppearance
+import dev.shibasis.reaktor.surface.compose.IslandSlots
+import dev.shibasis.reaktor.surface.compose.IslandState
 import dev.shibasis.reaktor.surface.compose.StateViewAppearance
 import dev.shibasis.reaktor.surface.compose.StateViewSlots
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
 import dev.shibasis.reaktor.ui.machinesignal.StatusDot
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
+
+val SignalIsland: IslandAppearance = object : IslandAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: IslandState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: IslandSlots) {
+        val signal = theme.machineSignal
+        Box(
+            Modifier.focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, RectangleShape)),
+            propagateMinConstraints = true,
+        ) { slots.content() }
+    }
+}
 
 val SignalStateView: StateViewAppearance = object : StateViewAppearance {
     @Composable
