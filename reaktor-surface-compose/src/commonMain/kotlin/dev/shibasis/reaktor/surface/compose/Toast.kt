@@ -3,14 +3,19 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -57,6 +62,22 @@ fun ToastHost(
     message: @Composable (ToastEntry) -> Unit,
 ) {
     val entry = queue.machine.state.shown ?: return
+    if (LocalOverlayHost.current == null) return Toast(queue, entry, modifier, appearance, message)
+    Overlay(modal = false) {
+        Box(Modifier.fillMaxSize().padding(ToastMargin), contentAlignment = Alignment.BottomEnd) {
+            Toast(queue, entry, modifier.focusProperties { canFocus = false }.holdsOnHover(queue), appearance, message)
+        }
+    }
+}
+
+@Composable
+private fun Toast(
+    queue: ToastQueue,
+    entry: ToastEntry,
+    modifier: Modifier,
+    appearance: ToastAppearance,
+    message: @Composable (ToastEntry) -> Unit,
+) {
     val press = rememberMachine(PressKernel, PressProperties()) {}
     val source = rememberInteractions(press)
     Box(
@@ -69,6 +90,19 @@ fun ToastHost(
         appearance.Content(entry, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ToastSlots { message(entry) })
     }
 }
+
+private fun Modifier.holdsOnHover(queue: ToastQueue): Modifier = pointerInput(queue) {
+    awaitPointerEventScope {
+        while (true) {
+            when (awaitPointerEvent().type) {
+                PointerEventType.Enter -> queue.machine.send(ToastInput.Hold(true))
+                PointerEventType.Exit -> queue.machine.send(ToastInput.Hold(false))
+            }
+        }
+    }
+}
+
+private val ToastMargin = 16.dp
 
 val BareToast: ToastAppearance = object : ToastAppearance {
     @Composable

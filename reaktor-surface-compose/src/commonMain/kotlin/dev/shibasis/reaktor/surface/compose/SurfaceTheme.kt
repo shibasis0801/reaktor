@@ -54,6 +54,11 @@ object Appearance {
     val Tooltip = AppearanceKey<TooltipAppearance>("tooltip", BareTooltip)
     val Popover = AppearanceKey<PanelAppearance>("popover", BarePanel)
     val Command = AppearanceKey<CommandAppearance>("command", BareCommand)
+    val StateView = AppearanceKey<StateViewAppearance>("stateView", BareStateView)
+    val Badge = AppearanceKey<BadgeAppearance>("badge", BareBadge)
+    val Sparkline = AppearanceKey<SparklineAppearance>("sparkline", BareSparkline)
+    val Bars = AppearanceKey<BarsAppearance>("bars", BareBars)
+    val RangeBar = AppearanceKey<RangeBarAppearance>("rangeBar", BareRangeBar)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
