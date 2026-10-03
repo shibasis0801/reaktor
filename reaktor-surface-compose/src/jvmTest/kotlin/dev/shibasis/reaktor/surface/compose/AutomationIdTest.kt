@@ -1,15 +1,22 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.listSource
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
@@ -54,6 +61,21 @@ class AutomationIdTest {
         onNodeWithTag("table/copy").assertExists()
         onNodeWithTag("table/paste").assertExists()
         onNodeWithTag("copy").assertDoesNotExist()
+    }
+
+    @Test
+    fun aRowTakesItsCollectionsScopeAndARowWithNoScopeHasNoId() = runComposeUiTest {
+        val rows = listSource(listOf("circles", "invites"), { it })
+        setContent {
+            Column {
+                AutomationScope("network") { ListBox(rows, emptySet(), {}, Modifier.height(100.dp)) { BasicText(it) } }
+                ListBox(rows, emptySet(), {}, Modifier.height(100.dp)) { BasicText(it) }
+            }
+        }
+        onNodeWithTag("network/row/circles").assertExists()
+        onNodeWithTag("network/row/invites").assertExists()
+        onAllNodesWithTag("circles").assertCountEquals(0)
+        onAllNodesWithTag("row/circles").assertCountEquals(0)
     }
 
     @Test
