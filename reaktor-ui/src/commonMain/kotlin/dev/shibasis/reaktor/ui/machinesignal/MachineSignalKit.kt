@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -40,7 +39,6 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -53,6 +51,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.truth.Fact
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.compose.Button
+import dev.shibasis.reaktor.ui.machinesignal.surface.subTab
+import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
 
 data class MachineSignalFonts(
     val ui: FontFamily = FontFamily.SansSerif,
@@ -250,53 +251,14 @@ fun SignalButton(
     tone: SignalTone = SignalTone.Secondary,
     enabled: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
-) {
-    val (interaction, hovered) = rememberHover()
-    val editor = LocalSignalWorkspaceStyle.current
-    Row(
-    modifier
-        .height(if (editor) MachineSignal.Editor.controlHeight else MachineSignal.Metrics.buttonHeight)
-        .hoverable(interaction)
-        .pointerHoverIcon(PointerIcon.Hand)
-        .background(
-            when {
-                !enabled -> Color.Transparent
-                hovered -> workspaceColor(tone.hover)
-                else -> workspaceColor(tone.fill)
-            },
-            MachineSignal.Shape.Control,
-        )
-        .border(1.dp, if (editor && tone == SignalTone.Ghost) Color.Transparent else workspaceColor(if (enabled) tone.line else MachineSignal.Line1), MachineSignal.Shape.Control)
-        .clickable(
-            interactionSource = interaction,
-            indication = null,
-            enabled = enabled,
-            role = Role.Button,
-            onClick = onClick,
-        )
-        .semantics { role = Role.Button; if (!enabled) disabled() }
-        .padding(
-            horizontal = if (editor) MachineSignal.Space.s2 else if (tone == SignalTone.Ghost) {
-                MachineSignal.Metrics.ghostPaddingX
-            } else {
-                MachineSignal.Metrics.buttonPaddingX
-            },
-        ),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.buttonGap),
-    verticalAlignment = Alignment.CenterVertically,
-) {
+) = Button(onClick, modifier.pointerHoverIcon(PointerIcon.Hand), enabled = enabled, appearance = toneButton(tone)) {
     leading?.invoke()
     SignalText(
         text = label,
         color = if (enabled) tone.text else MachineSignal.Text4,
-        size = if (editor) MachineSignal.Editor.label else MachineSignal.Type.control,
-        weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) {
-            FontWeight.SemiBold
-        } else {
-            FontWeight.Medium
-        },
+        size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.control,
+        weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
     )
-}
 }
 
 @Composable
@@ -421,10 +383,6 @@ fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier
     SignalText("Turns on with: $turnsOnWith", color = MachineSignal.Text4, size = MachineSignal.Type.caption, maxLines = 3)
 }
 
-/**
- * `SubTab / On` and `SubTab / Off` — an underline tab, not a filled pill. The design carries the
- * selection on a 2dp rule beneath the label, spanning the label rather than the padded box.
- */
 @Composable
 fun SubTab(
     label: String,
@@ -432,47 +390,16 @@ fun SubTab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     count: Int? = null,
-) = Column(
-    modifier
-        // Max, not Min: the underline spans the label, so the tab has to be as wide as the label
-        // wants on one line. Min intrinsic width of an ellipsizing single-line label is a word
-        // break, which is identical for one-word tabs and truncates every multi-word one —
-        // "Chain Builder" rendered as "Chai…" until this was Max.
-        .width(IntrinsicSize.Max)
-        // Fixed to the authored total so the underline lands on the authored baseline whatever the
-        // label's intrinsic height turns out to be — the prose ramp is a touch smaller than the file.
-        .height(if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.documentTabHeight else MachineSignal.Metrics.subTabHeight)
-        .background(if (LocalSignalWorkspaceStyle.current && selected) MachineSignal.Editor.AccentSoft else Color.Transparent)
-        .clickable(role = Role.Tab, onClick = onClick)
-        .semantics { this.selected = selected; this.role = Role.Tab }
-        .padding(
-            start = MachineSignal.Metrics.subTabPaddingX,
-            end = MachineSignal.Metrics.subTabPaddingX,
-            top = MachineSignal.Metrics.subTabPaddingTop,
-        ),
-    verticalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
-) {
-    Row(
-        Modifier.weight(1f),
-        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SignalText(
-            text = label,
-            color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-            size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.label,
-            weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-        )
-        if (count != null && count > 0) {
-            SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
-        }
-    }
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(MachineSignal.Metrics.subTabUnderlineHeight)
-            .background(if (selected) MachineSignal.Accent else Color.Transparent),
+) = Button(onClick, modifier.semantics { role = Role.Tab; this.selected = selected }, appearance = subTab(selected)) {
+    SignalText(
+        text = label,
+        color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
+        size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.label,
+        weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
     )
+    if (count != null && count > 0) {
+        SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+    }
 }
 
 @Composable

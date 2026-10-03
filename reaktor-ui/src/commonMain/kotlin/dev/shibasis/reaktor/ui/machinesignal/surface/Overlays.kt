@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.DisclosureProperties
@@ -54,12 +53,13 @@ val SignalTooltip: TooltipAppearance = object : TooltipAppearance {
                 .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         ) {
-            val text = TextStyle(fontFamily = signal.fonts.ui, fontSize = size, lineHeight = size * MachineSignal.Editor.lineHeight)
+            val tip = Label(colors.text, signal.fonts.ui, size, lineHeight = size * MachineSignal.Editor.lineHeight)
+            val aside = tip.copy(color = colors.textMuted, size = MachineSignal.Editor.meta, lineHeight = MachineSignal.Editor.meta * MachineSignal.Editor.lineHeight)
             Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f, fill = false)) { ProvideLabel(colors.text, text, slots.tip) }
-                properties.chord?.let { chord -> Text(chord, style = text.copy(fontSize = MachineSignal.Editor.meta), color = colors.textMuted, maxLines = 1, softWrap = false) }
+                Box(Modifier.weight(1f, fill = false)) { ProvideLabel(tip, slots.tip) }
+                properties.chord?.let { chord -> ProvideLabel(aside) { Text(chord, maxLines = 1, softWrap = false) } }
             }
-            properties.reason?.let { reason -> Text(reason, style = text.copy(fontSize = MachineSignal.Editor.meta), color = colors.textMuted) }
+            properties.reason?.let { reason -> ProvideLabel(aside) { Text(reason) } }
         }
     }
 }
@@ -76,7 +76,7 @@ val RaisedPopover: PanelAppearance = object : PanelAppearance {
                 .padding(MachineSignal.Space.s3),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
         ) {
-            ProvideLabel(signal.colors.text, TextStyle(fontFamily = signal.fonts.ui, fontSize = signal.metrics.label), slots.content)
+            ProvideLabel(Label(signal.colors.text, signal.fonts.ui, signal.metrics.label), slots.content)
         }
     }
 }
@@ -95,7 +95,7 @@ val PanelDialog: PanelAppearance = object : PanelAppearance {
                 .padding(MachineSignal.Space.s4),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3),
         ) {
-            ProvideLabel(signal.colors.text, TextStyle(fontFamily = signal.fonts.ui, fontSize = MachineSignal.Type.body), slots.content)
+            ProvideLabel(Label(signal.colors.text, signal.fonts.ui, MachineSignal.Type.body), slots.content)
         }
     }
 }
@@ -116,7 +116,7 @@ val PanelSheet: PanelAppearance = object : PanelAppearance {
         ) {
             Box(Modifier.size(32.dp, 3.dp).background(signal.colors.lineStrong, CircleShape))
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
-                ProvideLabel(signal.colors.text, TextStyle(fontFamily = signal.fonts.ui, fontSize = MachineSignal.Type.body), slots.content)
+                ProvideLabel(Label(signal.colors.text, signal.fonts.ui, MachineSignal.Type.body), slots.content)
             }
         }
     }
@@ -130,7 +130,7 @@ fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object 
         val shape = RoundedCornerShape(MachineSignal.Radius.statusPill)
         Row(
             Modifier
-                .focusRing(feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, shape))
+                .focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, shape))
                 .height(MachineSignal.Metrics.statusPillHeight)
                 .background(color.copy(alpha = 0.08f), shape)
                 .border(1.dp, color.copy(alpha = 0.32f), shape)
@@ -139,11 +139,7 @@ fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StatusDot(color)
-            ProvideLabel(
-                signal.colors.textStrong,
-                TextStyle(fontFamily = signal.fonts.mono, fontSize = MachineSignal.Type.data, fontWeight = FontWeight.SemiBold),
-                slots.message,
-            )
+            ProvideLabel(Label(signal.colors.textStrong, signal.fonts.mono, MachineSignal.Type.data, FontWeight.SemiBold), slots.message)
         }
     }
 }

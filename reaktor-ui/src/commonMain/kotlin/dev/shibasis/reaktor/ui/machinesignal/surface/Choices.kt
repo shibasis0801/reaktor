@@ -27,7 +27,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -56,9 +55,9 @@ internal data class TabLook(
     val height: Dp,
     val fill: Color,
     val underline: Color,
-    val label: Color,
-    val text: TextStyle,
+    val label: Label,
     val hovered: Boolean,
+    val focused: Boolean,
     val ring: FocusRing,
 )
 
@@ -69,17 +68,18 @@ private fun tabLook(selected: Boolean, enabled: Boolean, state: PressState, them
         height = signal.metrics.tabHeight,
         fill = if (selected && signal.variant == MachineSignalVariant.Editor) colors.controlAccentSoft else Color.Transparent,
         underline = if (selected) colors.accent else Color.Transparent,
-        label = when {
-            !enabled -> colors.textFaint
-            selected -> colors.textStrong
-            else -> colors.textMuted
-        },
-        text = TextStyle(
-            fontFamily = signal.fonts.ui,
-            fontSize = signal.metrics.tabLabel,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+        label = Label(
+            color = when {
+                !enabled -> colors.textFaint
+                selected -> colors.textStrong
+                else -> colors.textMuted
+            },
+            family = signal.fonts.ui,
+            size = signal.metrics.tabLabel,
+            weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
         ),
         hovered = enabled && state.hovered,
+        focused = state.focusVisible,
         ring = FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape),
     )
 }
@@ -88,7 +88,7 @@ private fun tabLook(selected: Boolean, enabled: Boolean, state: PressState, them
 private fun UnderlineFrame(look: TabLook, feedback: ComposeFeedback, icon: (@Composable () -> Unit)?, content: @Composable () -> Unit) {
     Column(
         Modifier
-            .focusRing(feedback, look.ring)
+            .focusRing(look.focused, feedback, look.ring)
             .width(IntrinsicSize.Max)
             .height(look.height)
             .background(look.fill)
@@ -105,7 +105,7 @@ private fun UnderlineFrame(look: TabLook, feedback: ComposeFeedback, icon: (@Com
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ProvideLabel(look.label, look.text) {
+            ProvideLabel(look.label) {
                 icon?.invoke()
                 content()
             }
@@ -139,9 +139,9 @@ private val PlainSubTab = subTabLook(selected = false)
 internal data class ChipLook(
     val fill: Color,
     val line: Color,
-    val label: Color,
-    val text: TextStyle,
+    val label: Label,
     val hovered: Boolean,
+    val focused: Boolean,
     val ring: FocusRing,
 )
 
@@ -159,20 +159,24 @@ val FilterChip: ItemAppearance = composeAppearance(
                 else -> Color.Transparent
             },
             line = if (properties.selected) colors.controlAccent.copy(alpha = 0.6f) else colors.line,
-            label = when {
-                !properties.enabled -> colors.textFaint
-                properties.selected -> colors.controlAccent
-                else -> colors.textMuted
-            },
-            text = TextStyle(fontFamily = signal.fonts.ui, fontSize = MachineSignal.Editor.meta),
+            label = Label(
+                color = when {
+                    !properties.enabled -> colors.textFaint
+                    properties.selected -> colors.controlAccent
+                    else -> colors.textMuted
+                },
+                family = signal.fonts.ui,
+                size = MachineSignal.Editor.meta,
+            ),
             hovered = hovered,
+            focused = state.focusVisible,
             ring = FocusRing(colors.accent, signal.metrics.focusRing, ChipShape),
         )
     },
 ) { look, feedback, slots ->
     Box(
         Modifier
-            .focusRing(feedback, look.ring)
+            .focusRing(look.focused, feedback, look.ring)
             .height(22.dp)
             .clip(ChipShape)
             .background(look.fill)
@@ -182,7 +186,7 @@ val FilterChip: ItemAppearance = composeAppearance(
         contentAlignment = Alignment.Center,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1), verticalAlignment = Alignment.CenterVertically) {
-            ProvideLabel(look.label, look.text) {
+            ProvideLabel(look.label) {
                 slots.icon?.invoke()
                 slots.content()
             }
@@ -194,13 +198,13 @@ internal data class MarkLook(
     val well: Color,
     val edge: Color,
     val mark: Color,
-    val label: Color,
-    val text: TextStyle,
+    val label: Label,
     val height: Dp,
+    val focused: Boolean,
     val ring: FocusRing,
 )
 
-private fun markLook(on: Boolean, enabled: Boolean, hovered: Boolean, theme: ThemeSnapshot): MarkLook {
+private fun markLook(on: Boolean, enabled: Boolean, state: PressState, theme: ThemeSnapshot): MarkLook {
     val signal = theme.machineSignal
     val colors = signal.colors
     return MarkLook(
@@ -212,13 +216,13 @@ private fun markLook(on: Boolean, enabled: Boolean, hovered: Boolean, theme: The
         edge = when {
             !enabled -> colors.lineSubtle
             on -> colors.accent
-            hovered -> colors.textMuted
+            state.hovered -> colors.textMuted
             else -> colors.lineStrong
         },
         mark = if (enabled) Color.White else colors.textFaint,
-        label = if (enabled) colors.text else colors.textFaint,
-        text = TextStyle(fontFamily = signal.fonts.ui, fontSize = signal.metrics.label),
+        label = Label(if (enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.metrics.label),
         height = signal.metrics.controlHeight,
+        focused = state.focusVisible,
         ring = FocusRing(colors.accent, signal.metrics.focusRing, MachineSignal.Shape.Control),
     )
 }
@@ -226,10 +230,10 @@ private fun markLook(on: Boolean, enabled: Boolean, hovered: Boolean, theme: The
 val RadioRow: ItemAppearance = object : ItemAppearance {
     @Composable
     override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) {
-        val look = markLook(properties.selected, properties.enabled, state.hovered, theme)
+        val look = markLook(properties.selected, properties.enabled, state, theme)
         Row(
             Modifier
-                .focusRing(feedback, look.ring)
+                .focusRing(look.focused, feedback, look.ring)
                 .heightIn(min = look.height)
                 .padding(horizontal = MachineSignal.Space.s1),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
@@ -241,7 +245,7 @@ val RadioRow: ItemAppearance = object : ItemAppearance {
             ) {
                 if (properties.selected) Box(Modifier.size(6.dp).background(look.well, CircleShape))
             }
-            ProvideLabel(look.label, look.text) {
+            ProvideLabel(look.label) {
                 slots.icon?.invoke()
                 slots.content()
             }
@@ -252,16 +256,16 @@ val RadioRow: ItemAppearance = object : ItemAppearance {
 val TrackSwitch: SwitchAppearance = object : SwitchAppearance {
     @Composable
     override fun Content(properties: ToggleProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SwitchSlots) {
-        val look = markLook(properties.checked, properties.enabled, state.hovered, theme)
+        val look = markLook(properties.checked, properties.enabled, state, theme)
         Row(
             Modifier
-                .focusRing(feedback, look.ring)
+                .focusRing(look.focused, feedback, look.ring)
                 .heightIn(min = look.height)
                 .padding(horizontal = MachineSignal.Space.s1),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.weight(1f)) { ProvideLabel(look.label, look.text, slots.content) }
+            Box(Modifier.weight(1f)) { ProvideLabel(look.label, slots.content) }
             Box(
                 Modifier
                     .size(TrackWidth, TrackHeight)
@@ -280,10 +284,10 @@ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
     @Composable
     override fun Content(properties: CheckProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SwitchSlots) {
         val on = properties.state != CheckState.Unchecked
-        val look = markLook(on, properties.enabled, state.hovered, theme)
+        val look = markLook(on, properties.enabled, state, theme)
         Row(
             Modifier
-                .focusRing(feedback, look.ring)
+                .focusRing(look.focused, feedback, look.ring)
                 .heightIn(min = look.height)
                 .padding(horizontal = MachineSignal.Space.s1),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
@@ -299,7 +303,7 @@ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
                     CheckState.Unchecked -> Unit
                 }
             }
-            ProvideLabel(look.label, look.text, slots.content)
+            ProvideLabel(look.label, slots.content)
         }
     }
 }

@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.TextStyle
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -35,7 +34,7 @@ private fun rowLook(selected: Boolean): ListRowAppearance = object : ListRowAppe
         val hovered = properties.enabled && state.hovered
         Row(
             Modifier
-                .focusRing(feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
                 .background(
                     when {
@@ -48,13 +47,12 @@ private fun rowLook(selected: Boolean): ListRowAppearance = object : ListRowAppe
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val text = TextStyle(fontFamily = signal.fonts.ui, fontSize = MachineSignal.Type.body)
             slots.leading?.invoke()
             Column(Modifier.weight(1f)) {
-                ProvideLabel(if (properties.enabled) colors.text else colors.textFaint, text, slots.headline)
-                slots.supporting?.let { ProvideLabel(colors.textFaint, text.copy(fontSize = MachineSignal.Type.label), it) }
+                ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, MachineSignal.Type.body), slots.headline)
+                slots.supporting?.let { ProvideLabel(Label(colors.textFaint, signal.fonts.ui, MachineSignal.Type.label), it) }
             }
-            slots.trailing?.let { ProvideLabel(colors.textMuted, text.copy(fontSize = MachineSignal.Type.label), it) }
+            slots.trailing?.let { ProvideLabel(Label(colors.textMuted, signal.fonts.ui, MachineSignal.Type.label), it) }
         }
     }
 }

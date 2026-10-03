@@ -68,6 +68,11 @@ kotlin {
             api(compose.desktop.currentOs)
         }
     }
+    sourceSets.named("jvmTest") {
+        dependencies {
+            implementation(project(":reaktor-performance"))
+        }
+    }
 }
 
 android {

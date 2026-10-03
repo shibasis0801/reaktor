@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.TextUnit
 import dev.shibasis.reaktor.surface.ThemeMismatch
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.compose.BareTheme
-import dev.shibasis.reaktor.surface.compose.LocalAppearances
 import dev.shibasis.reaktor.surface.compose.SurfaceTheme
+import dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalAppearances
 
 enum class MachineSignalVariant { Board, Editor }
 
@@ -181,7 +181,8 @@ fun MachineSignalSurface(
     content: @Composable () -> Unit,
 ) {
     val snapshot = remember(variant, density, fonts) { MachineSignalSnapshot.of(variant, density, fonts) }
-    SurfaceTheme(snapshot, LocalAppearances.current) {
+    val appearances = remember(snapshot) { MachineSignalAppearances(snapshot) }
+    SurfaceTheme(snapshot, appearances) {
         CompositionLocalProvider(
             LocalMachineSignalFonts provides fonts,
             LocalSignalWorkspaceStyle provides (variant == MachineSignalVariant.Editor),
