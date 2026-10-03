@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.DisclosureProperties
 import dev.shibasis.reaktor.surface.DisclosureState
@@ -69,7 +68,7 @@ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
         val colors = signal.colors
         Row(
             Modifier
-                .focusRing(feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .stateLayer(LocalContentColor.current, properties.enabled && state.hovered, feedback)
                 .fillMaxWidth()
                 .sizeIn(minWidth = PaneMenuMinWidth, maxWidth = PaneMenuMaxWidth, minHeight = PaneMenuRowHeight)
@@ -111,7 +110,7 @@ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
         val colors = signal.colors
         Row(
             Modifier
-                .focusRing(feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .stateLayer(LocalContentColor.current, properties.enabled && state.hovered, feedback)
                 .fillMaxWidth()
                 .heightIn(min = signal.metrics.controlHeight)
@@ -119,11 +118,7 @@ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ProvideLabel(
-                if (properties.enabled) colors.text else colors.textFaint,
-                TextStyle(fontFamily = signal.fonts.ui, fontSize = signal.metrics.label),
-                slots.content,
-            )
+            ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.metrics.label), slots.content)
         }
     }
 }

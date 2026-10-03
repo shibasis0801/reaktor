@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,9 +29,9 @@ internal data class ButtonLook(
     val gap: Dp,
     val fill: Color,
     val line: Color,
-    val label: Color,
-    val text: TextStyle,
+    val label: Label,
     val busy: Boolean,
+    val focused: Boolean,
     val ring: FocusRing,
 )
 
@@ -67,20 +66,21 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
                 properties.enabled -> colors.remap(tone.line)
                 else -> colors.lineSubtle
             },
-            label = if (properties.enabled) colors.remap(tone.text) else colors.textFaint,
-            text = TextStyle(
-                fontFamily = signal.fonts.ui,
-                fontSize = metrics.label,
-                fontWeight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
+            label = Label(
+                color = if (properties.enabled) colors.remap(tone.text) else colors.textFaint,
+                family = signal.fonts.ui,
+                size = metrics.label,
+                weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
             ),
             busy = properties.busy,
+            focused = state.focusVisible,
             ring = FocusRing(colors.accent, metrics.focusRing, MachineSignal.Shape.Control),
         )
     },
 ) { look, feedback, slots ->
     Row(
         Modifier
-            .focusRing(feedback, look.ring)
+            .focusRing(look.focused, feedback, look.ring)
             .then(if (look.busy) Modifier.alpha(BusyAlpha) else Modifier)
             .height(look.height)
             .background(look.fill, MachineSignal.Shape.Control)
@@ -89,7 +89,7 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
         horizontalArrangement = Arrangement.spacedBy(look.gap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ProvideLabel(look.label, look.text, slots.content)
+        ProvideLabel(look.label, slots.content)
     }
 }
 
