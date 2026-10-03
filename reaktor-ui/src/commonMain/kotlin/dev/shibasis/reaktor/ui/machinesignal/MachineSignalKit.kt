@@ -27,13 +27,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -175,8 +178,11 @@ fun SignalContextMenu(
     actions: List<SignalAction>,
     expanded: Boolean,
     onDismiss: () -> Unit,
+    trigger: FocusRequester? = null,
 ) {
     if (actions.isEmpty() || !expanded) return
+    val returnTo by rememberUpdatedState(trigger)
+    DisposableEffect(Unit) { onDispose { returnTo?.requestFocus() } }
     var parent by remember { mutableStateOf<Rect?>(null) }
     Menu(
         expanded = parent != null,
