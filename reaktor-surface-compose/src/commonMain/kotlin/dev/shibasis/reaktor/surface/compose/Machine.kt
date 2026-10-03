@@ -139,7 +139,7 @@ fun Modifier.part(machine: Machine<*, *, *, *>, key: PartKey): Modifier {
         machine.register(key, part)
         onDispose { machine.unregister(key, part) }
     }
-    return testId(key.value).focusRequester(focus).bringIntoViewRequester(reveal)
+    return testId(automationId(LocalAutomationScope.current, key.value)).focusRequester(focus).bringIntoViewRequester(reveal)
 }
 
 fun Modifier.testId(id: String): Modifier = tagsAsIds().testTag(id)
