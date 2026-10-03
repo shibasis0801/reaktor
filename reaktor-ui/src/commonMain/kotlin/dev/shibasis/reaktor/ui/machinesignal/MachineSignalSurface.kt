@@ -31,6 +31,8 @@ data class MachineSignalColors(
     val text: Color,
     val textMuted: Color,
     val textFaint: Color,
+    val controlAccent: Color,
+    val controlAccentSoft: Color,
     val accent: Color = MachineSignal.Accent,
     val accentHover: Color = MachineSignal.Accent2,
     val accentSoft: Color = MachineSignal.AccentSoft,
@@ -40,6 +42,10 @@ data class MachineSignalColors(
     val ok: Color = MachineSignal.Status.Ok,
     val warn: Color = MachineSignal.Status.Warn,
     val error: Color = MachineSignal.Status.Error,
+    val menu: Color = MachineSignal.Bg2,
+    val onMenu: Color = MachineSignal.Text1,
+    val rowHover: Color = MachineSignal.Bg2,
+    val rowSelected: Color = MachineSignal.SelectedSoft,
 ) {
     fun remap(authored: Color): Color = when (authored) {
         MachineSignal.Bg0 -> canvas
@@ -71,6 +77,8 @@ data class MachineSignalColors(
             text = MachineSignal.Text2,
             textMuted = MachineSignal.Text3,
             textFaint = MachineSignal.Text4,
+            controlAccent = MachineSignal.Accent,
+            controlAccentSoft = MachineSignal.AccentSoft,
         )
 
         val Editor = MachineSignalColors(
@@ -86,6 +94,8 @@ data class MachineSignalColors(
             text = MachineSignal.Editor.Text,
             textMuted = MachineSignal.Editor.Muted,
             textFaint = MachineSignal.Editor.Unknown,
+            controlAccent = MachineSignal.Editor.Accent,
+            controlAccentSoft = MachineSignal.Editor.AccentSoft,
         )
     }
 }
@@ -99,6 +109,7 @@ data class MachineSignalMetrics(
     val tabHeight: Dp,
     val label: TextUnit,
     val tabLabel: TextUnit,
+    val focusRing: Dp,
 ) {
     companion object {
         val Comfortable = MachineSignalMetrics(
@@ -109,6 +120,7 @@ data class MachineSignalMetrics(
             tabHeight = MachineSignal.Metrics.subTabHeight,
             label = MachineSignal.Type.control,
             tabLabel = MachineSignal.Type.label,
+            focusRing = MachineSignal.Space.s1 / 4,
         )
 
         val Compact = MachineSignalMetrics(
@@ -119,6 +131,7 @@ data class MachineSignalMetrics(
             tabHeight = MachineSignal.Editor.documentTabHeight,
             label = MachineSignal.Editor.label,
             tabLabel = MachineSignal.Editor.label,
+            focusRing = MachineSignal.Space.s1 / 4,
         )
     }
 }
