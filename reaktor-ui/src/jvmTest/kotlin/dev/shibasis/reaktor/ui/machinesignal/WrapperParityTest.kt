@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,23 +15,31 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.surface.compose.SurfaceEnvironment
 import dev.shibasis.reaktor.surface.compose.SurfaceEnvironmentProvider
@@ -107,6 +117,83 @@ class WrapperParityTest {
             }
         }
     }
+
+    @Test
+    fun signalContextMenuOpensWhereTheLegacyMenuDidAndLooksTheSame() = everyScene("context-menu") { variant, density ->
+        val actions = listOf(
+            SignalAction("Copy value") {},
+            SignalAction("Filter by this value", id = "data-filter") {},
+            SignalAction("Delete row", enabled = false) {},
+        )
+        val tags = actions.map { it.id ?: "signal-action-${it.label}" }
+        listOf("start" to 40.dp, "end" to 975.dp).forEach { (edge, x) ->
+            val place = "menu/${name(variant)}/x$density/$edge"
+            val legacy = openedMenu(density, variant, x, tags) { open -> LegacySignalContextMenu(actions, open, {}) }
+            val wrapper = openedMenu(density, variant, x, tags) { open -> SignalContextMenu(actions, open, {}) }
+            tags.forEach { tag ->
+                if (legacy.bounds[tag] != wrapper.bounds[tag]) failures += "$place/$tag: legacy at ${legacy.bounds[tag]}, wrapper at ${wrapper.bounds[tag]}"
+                if (legacy.meanings[tag] != wrapper.meanings[tag]) failures += "$place/$tag: legacy semantics ${legacy.meanings[tag]}, wrapper semantics ${wrapper.meanings[tag]}"
+            }
+            results += "$place roles legacy=${legacy.roles} wrapper=${wrapper.roles}"
+            same("$place/rest", legacy.rest, wrapper.rest)
+            same("$place/hovered", legacy.hovered, wrapper.hovered)
+        }
+    }
+
+    private class OpenedMenu(
+        val bounds: Map<String, IntRect>,
+        val meanings: Map<String, List<Any?>>,
+        val roles: List<Role?>,
+        val rest: PixelMap,
+        val hovered: PixelMap,
+    )
+
+    private fun openedMenu(density: Float, variant: MachineSignalVariant?, x: Dp, tags: List<String>, menu: @Composable (Boolean) -> Unit): OpenedMenu {
+        var opened: OpenedMenu? = null
+        val open = mutableStateOf(false)
+        scene(density, variant, {
+            Box(Modifier.absoluteOffset(x, 80.dp).requiredSize(120.dp, 24.dp)) { menu(open.value) }
+        }) {
+            onRoot().performMouseInput { click(Offset(4f, 4f)) }
+            waitForIdle()
+            open.value = true
+            waitForIdle()
+            mainClock.advanceTimeBy(2_000)
+            waitForIdle()
+            val nodes = tags.associateWith { tag -> onNode(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNode() }
+            val bounds = nodes.mapValues { it.value.boundsInWindow.roundToIntRect() }
+            val padding = (8 * density).roundToInt()
+            val margin = (16 * density).roundToInt()
+            val whole = captureToImage()
+            val region = IntRect(
+                (bounds.values.minOf { it.left } - margin).coerceAtLeast(0),
+                (bounds.values.minOf { it.top } - padding - margin).coerceAtLeast(0),
+                (bounds.values.maxOf { it.right } + margin).coerceAtMost(whole.width),
+                (bounds.values.maxOf { it.bottom } + padding + margin).coerceAtMost(whole.height),
+            )
+            val rest = whole.toPixelMap(region.left, region.top, region.width, region.height)
+            onNode(hasTestTag(tags.first()), useUnmergedTree = true).performMouseInput { moveTo(center) }
+            waitForIdle()
+            mainClock.advanceTimeBy(500)
+            waitForIdle()
+            val hovered = captureToImage().toPixelMap(region.left, region.top, region.width, region.height)
+            opened = OpenedMenu(
+                bounds,
+                nodes.mapValues { menuMeaning(it.value) },
+                nodes.values.map { it.config.getOrNull(SemanticsProperties.Role) },
+                rest,
+                hovered,
+            )
+        }
+        return requireNotNull(opened)
+    }
+
+    private fun menuMeaning(node: SemanticsNode): List<Any?> = listOf(
+        SemanticsProperties.Disabled in node.config,
+        node.config.getOrNull(SemanticsProperties.Text)?.joinToString(),
+        node.config.getOrNull(SemanticsProperties.TestTag),
+        node.config.contains(androidx.compose.ui.semantics.SemanticsActions.OnClick),
+    )
 
     @Composable
     private fun Hangar(variant: MachineSignalVariant?, content: @Composable () -> Unit) {

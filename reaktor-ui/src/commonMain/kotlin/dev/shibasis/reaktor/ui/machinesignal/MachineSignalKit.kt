@@ -24,19 +24,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -49,9 +52,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import dev.shibasis.reaktor.core.truth.Fact
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.compose.Align
 import dev.shibasis.reaktor.surface.compose.Button
+import dev.shibasis.reaktor.surface.compose.Menu
+import dev.shibasis.reaktor.surface.compose.OverlayAnchor
+import dev.shibasis.reaktor.surface.compose.Placement
+import dev.shibasis.reaktor.surface.compose.Side
+import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuItem
+import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuPanel
 import dev.shibasis.reaktor.ui.machinesignal.surface.subTab
 import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
 
@@ -165,28 +176,39 @@ fun SignalContextMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
 ) {
-    if (actions.isEmpty()) return
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss,
-        modifier = Modifier.background(MachineSignal.Bg2),
+    if (actions.isEmpty() || !expanded) return
+    var parent by remember { mutableStateOf<Rect?>(null) }
+    Menu(
+        expanded = parent != null,
+        onExpandedChange = { if (!it) onDismiss() },
+        modifier = Modifier.onPlaced { placed -> placed.parentCoordinates?.let { parent = Rect(it.positionInWindow(), it.size.toSize()) } },
+        anchor = parent?.let(OverlayAnchor::Bounds),
+        placement = ContextMenuPlacement,
     ) {
-        actions.forEach { action ->
-            DropdownMenuItem(
-                enabled = action.enabled,
-                onClick = { onDismiss(); action.onInvoke() },
-                modifier = Modifier.testTag(action.id ?: "signal-action-${action.label}"),
-                text = {
+        Popup(ContextMenuPanel) {
+            val tags = actions.map { it.id ?: "signal-action-${it.label}" }
+            actions.forEachIndexed { index, action ->
+                val tag = tags[index]
+                Item(
+                    if (tags.indexOf(tag) == index) tag else "$tag/$index",
+                    action.onInvoke,
+                    Modifier.testTag(tag),
+                    enabled = action.enabled,
+                    typeahead = action.label,
+                    appearance = ContextMenuItem,
+                ) {
                     SignalText(
                         action.label,
                         color = if (action.enabled) MachineSignal.Text2 else MachineSignal.Text4,
                         size = MachineSignal.Type.caption,
                     )
-                },
-            )
+                }
+            }
         }
     }
 }
+
+private val ContextMenuPlacement = Placement(Side.Below, Align.Start, 0.dp)
 
 @Composable
 fun VerticalDivider(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
