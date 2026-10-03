@@ -61,6 +61,8 @@ object Appearance {
     val RangeBar = AppearanceKey<RangeBarAppearance>("rangeBar", BareRangeBar)
     val Row = AppearanceKey<RowAppearance>("row", BareRow)
     val Splitter = AppearanceKey<SplitterAppearance>("splitter", BareSplitter)
+    val DocumentTab = AppearanceKey<ItemAppearance>("documentTab", BareTab)
+    val TabClose = AppearanceKey<ButtonAppearance>("tabClose", BareTabClose)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
