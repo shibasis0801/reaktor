@@ -76,6 +76,7 @@ class PopoverScope internal constructor(
     ) {
         if (!disclosure.properties.expanded) return
         val gap = with(LocalDensity.current) { placement.gap.roundToPx() }
+        val margin = with(LocalDensity.current) { placement.margin.roundToPx() }
         val dismiss = { disclosure.machine.send(DisclosureInput.Dismiss) }
         val host = LocalOverlayHost.current
         DisposableEffect(host) {
@@ -101,7 +102,7 @@ class PopoverScope internal constructor(
                 val scrim = measurables.first().measure(Constraints.fixed(canvas.width, canvas.height))
                 val panel = measurables.last().measure(constraints.copy(minWidth = 0, minHeight = 0))
                 val target = anchor().translate(-origin.x.roundToInt(), -origin.y.roundToInt())
-                val position = place(target, IntSize(panel.width, panel.height), canvas, placement.side, placement.align, gap, layoutDirection)
+                val position = place(target, IntSize(panel.width, panel.height), canvas, placement.side, placement.align, gap, layoutDirection, margin)
                 layout(canvas.width, canvas.height) {
                     scrim.place(0, 0)
                     panel.place(position)

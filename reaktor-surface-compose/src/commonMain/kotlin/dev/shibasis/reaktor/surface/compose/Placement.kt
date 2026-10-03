@@ -20,9 +20,9 @@ enum class Side { Below, Above, End, Start }
 
 enum class Align { Start, Center, End }
 
-data class Placement(val side: Side = Side.Below, val align: Align = Align.End, val gap: Dp = 6.dp)
+data class Placement(val side: Side = Side.Below, val align: Align = Align.End, val gap: Dp = 6.dp, val margin: Dp = 0.dp)
 
-fun place(anchor: IntRect, content: IntSize, canvas: IntSize, side: Side, align: Align, gap: Int, direction: LayoutDirection): IntOffset {
+fun place(anchor: IntRect, content: IntSize, canvas: IntSize, side: Side, align: Align, gap: Int, direction: LayoutDirection, margin: Int = 0): IntOffset {
     val rightToLeft = direction == LayoutDirection.Rtl
     val vertical = side == Side.Below || side == Side.Above
     val after = when (side) {
@@ -34,7 +34,9 @@ fun place(anchor: IntRect, content: IntSize, canvas: IntSize, side: Side, align:
     val main = if (vertical) Span(anchor.top, anchor.bottom, content.height, canvas.height) else Span(anchor.left, anchor.right, content.width, canvas.width)
     val cross = if (vertical) Span(anchor.left, anchor.right, content.width, canvas.width) else Span(anchor.top, anchor.bottom, content.height, canvas.height)
     val toEnd = if (vertical && rightToLeft) align.mirrored() else align
-    val along = main.beside(after, gap).takeIf(main::fits) ?: main.beside(!after, gap)
+    val leading = if (vertical || !rightToLeft) main.start else main.end
+    val along = listOf(main.beside(after, gap), main.beside(!after, gap), main.centredOn(leading))
+        .firstOrNull { main.fits(it, margin) } ?: main.edgeNearest(margin)
     val preferred = cross.aligned(toEnd)
     val across = preferred.takeIf(cross::fits) ?: cross.aligned(toEnd.fallback(preferred < 0)).takeIf(cross::fits) ?: preferred
     val x = (if (vertical) across else along).coerceIn(0, (canvas.width - content.width).coerceAtLeast(0))
@@ -54,7 +56,13 @@ private class Span(val start: Int, val end: Int, val size: Int, val limit: Int) 
         Align.Center -> start + (end - start - size) / 2
         Align.End -> end - size
     }
-    fun fits(position: Int): Boolean = position >= 0 && position + size <= limit
+    fun centredOn(edge: Int): Int = edge - (size + 1) / 2
+    fun fits(position: Int, margin: Int = 0): Boolean = position >= margin && position + size <= limit - margin
+    fun edgeNearest(margin: Int): Int = when {
+        size >= limit - 2 * margin -> (limit - size + 1) / 2
+        start + (end - start) / 2 < limit / 2 -> margin
+        else -> limit - margin - size
+    }
 }
 
 private fun Align.mirrored(): Align = when (this) {
