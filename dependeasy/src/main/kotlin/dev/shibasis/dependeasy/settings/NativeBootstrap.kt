@@ -34,7 +34,7 @@ internal class NativeBootstrap(
                 runCommand(buildDirectory, cmakeExecutable(), "--build", ".")
             } else {
                 runCommand(buildDirectory, cmakeExecutable(), "-G", "Unix Makefiles")
-                runCommand(buildDirectory, "make", "-j")
+                runCommand(buildDirectory, "make", "-j${Runtime.getRuntime().availableProcessors()}")
             }
         }
 
@@ -103,7 +103,8 @@ internal class NativeBootstrap(
         if (!importHostCompilers.exists()) {
             return true
         }
-        return !importHostCompilers.readText().contains(hermesCompiler.absolutePath)
+        val imported = importHostCompilers.readText()
+        return !imported.contains(hermesCompiler.absolutePath) && !imported.contains(hermesCompiler.canonicalPath)
     }
 
     private fun runCommand(
