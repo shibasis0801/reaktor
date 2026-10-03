@@ -38,10 +38,15 @@ export interface PinFocus {
 
 export interface Selection {
   selected: string | null;
+  selectedCard?: string | null;
   selectedRow: number | null;
   highlight: ReadonlySet<string>;
   focus: Focus;
   litLinks: ReadonlySet<string>;
+}
+
+export function selectedCardOf(selection: Selection): string | null {
+  return selection.selectedCard ?? selection.selected;
 }
 
 export class SelectionStore {
@@ -57,7 +62,7 @@ export class SelectionStore {
   };
   set(value: Selection) {
     const current = this.value;
-    if (current.selected === value.selected && current.selectedRow === value.selectedRow && current.highlight === value.highlight && current.focus === value.focus && current.litLinks === value.litLinks) return;
+    if (current.selected === value.selected && (current.selectedCard ?? null) === (value.selectedCard ?? null) && current.selectedRow === value.selectedRow && current.highlight === value.highlight && current.focus === value.focus && current.litLinks === value.litLinks) return;
     this.value = value;
     this.listeners.forEach(listener => listener());
   }
@@ -70,6 +75,8 @@ export interface MapScene {
   selection: SelectionStore;
   corridors: boolean;
   frameOf: Map<string, string>;
+  owners?: Map<string, string>;
+  frames?: Map<string, Frame>;
   rowOfPort: Map<string, number>;
   renderCard: (card: Card, look: Look) => ReactNode;
   renderFrame: (frame: Frame, look: Look) => ReactNode;
@@ -150,10 +157,20 @@ export interface CardShown {
   rows: boolean;
 }
 
+interface Gated {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rows: number;
+}
+
 export class CardGate {
   private shown = new Map<string, CardShown>();
   private queue: Array<{ id: string; want: CardShown; cost: number }> = [];
   private waiting = false;
+  private gated: { layout: BlueprintLayout | null; items: Gated[]; ids: Set<string> } = { layout: null, items: [], ids: new Set() };
   private readonly listeners = new Set<() => void>();
   constructor(private readonly rest: RestStore) {}
   subscribe = (listener: () => void) => {
@@ -161,16 +178,26 @@ export class CardGate {
     return () => { this.listeners.delete(listener); };
   };
   get = (id: string): CardShown | undefined => this.shown.get(id);
+  private itemsOf(layout: BlueprintLayout): Gated[] {
+    if (this.gated.layout !== layout) {
+      const items: Gated[] = [
+        ...Object.values(layout.cards),
+        ...layout.frames.filter(frame => frame.parent !== undefined).map(frame => ({ id: `frame:${frame.key}`, x: frame.x, y: frame.y, width: frame.width, height: frame.height, rows: 0 })),
+      ];
+      this.gated = { layout, items, ids: new Set(items.map(item => item.id)) };
+    }
+    return this.gated.items;
+  }
   update(layout: BlueprintLayout | null, rest: CameraRest) {
     if (!layout) { this.queue = []; return; }
     const { view, look } = rest;
-    const close = { x: view.x - view.width / 2, y: view.y - view.height / 2, width: view.width * 2, height: view.height * 2 };
+    const close = view;
     const centreX = view.x + view.width / 2;
     const centreY = view.y + view.height / 2;
     const next = new Map(this.shown);
     const later: Array<{ id: string; want: CardShown; cost: number; distance: number }> = [];
     let changed = false;
-    for (const card of Object.values(layout.cards)) {
+    for (const card of this.itemsOf(layout)) {
       const rows = look === 'chapter' && intersects(rest.window, card);
       const now = this.shown.get(card.id);
       if (now && now.look === look && now.rows === rows) continue;
@@ -180,7 +207,7 @@ export class CardGate {
       if (!now) { next.set(card.id, shown); changed = true; }
       later.push({ id: card.id, want, cost: (shown.look === look ? 0 : 4) + (rows ? Math.max(1, card.rows) : 1), distance: Math.hypot(card.x + card.width / 2 - centreX, card.y + card.height / 2 - centreY) });
     }
-    for (const id of this.shown.keys()) if (!layout.cards[id]) { next.delete(id); changed = true; }
+    for (const id of this.shown.keys()) if (!this.gated.ids.has(id)) { next.delete(id); changed = true; }
     this.queue = later.sort((a, b) => a.distance - b.distance).map(({ id, want, cost }) => ({ id, want, cost }));
     if (changed) { this.shown = next; this.emit(); }
     this.later();
@@ -238,7 +265,8 @@ export function useSelection<T>(select: (selection: Selection) => T): T {
   return useSyncExternalStore(scene ? scene.selection.subscribe : silent, read, read);
 }
 
-const emptySelection: Selection = { selected: null, selectedRow: null, highlight: new Set(), focus: 'all', litLinks: new Set() };
+const emptySelection: Selection = { selected: null, selectedCard: null, selectedRow: null, highlight: new Set(), focus: 'all', litLinks: new Set() };
+
 
 export function useCardLook(id: string): Look {
   const scene = useContext(SceneContext);

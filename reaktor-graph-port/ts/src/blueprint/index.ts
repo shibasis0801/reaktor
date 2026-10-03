@@ -7,7 +7,7 @@ export * from './elkClient';
 export * from './views/looks';
 export * from './views/camera';
 export * from './views/paths';
-export { CameraContext, HoverStore, SceneContext, useCameraControls, useScene, type CameraControls, type MapScene, type PinFocus, type WireState, type WireStyle } from './views/context';
+export { CameraContext, HoverStore, SceneContext, selectedCardOf, useCameraControls, useScene, type CameraControls, type MapScene, type PinFocus, type WireState, type WireStyle } from './views/context';
 export { BlueprintMap, type BlueprintMapProps, type Reveal, type SelectDetail } from './views/BlueprintMap';
 export { BlueprintCard, type BlueprintCardProps } from './views/BlueprintCard';
 export { BlueprintFrame, type BlueprintFrameProps } from './views/BlueprintFrame';

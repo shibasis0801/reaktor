@@ -1,7 +1,7 @@
 import { useEffect, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { RowHeight } from '../engine';
 import type { Card, PinWiring } from '../types';
-import { useScene, useSelection } from './context';
+import { selectedCardOf, useScene, useSelection } from './context';
 
 export interface PinTone {
   tone: string;
@@ -23,7 +23,7 @@ function Pin({ side, pin }: { side: 'in' | 'out'; pin: PinTone }) {
 
 export function BlueprintPinRow({ card, row, children, input, output, className }: BlueprintPinRowProps) {
   const scene = useScene();
-  const selected = useSelection(selection => selection.selected === card.id && selection.selectedRow === row);
+  const selected = useSelection(selection => selectedCardOf(selection) === card.id && selection.selectedRow === row);
   const enter = (event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch' || (!input && !output) || scene.rest.moving) return;
     scene.pins.set({ card: card.id, row, x: event.clientX, y: event.clientY, ready: false });
@@ -45,8 +45,8 @@ export function BlueprintPinRow({ card, row, children, input, output, className 
     onPointerEnter={enter}
     onPointerLeave={leave}
   >
-    {input ? <Pin side="in" pin={input}/> : <span className="bp-pin bp-pin--empty" aria-hidden="true"/>}
+    {input && <Pin side="in" pin={input}/>}
     <span className="bp-row__label" data-part="row-label">{children}</span>
-    {output ? <Pin side="out" pin={output}/> : <span className="bp-pin bp-pin--empty" aria-hidden="true"/>}
+    {output && <Pin side="out" pin={output}/>}
   </div>;
 }
