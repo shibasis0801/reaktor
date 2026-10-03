@@ -54,7 +54,7 @@ class MachineSignalAppearancesTest {
         Appearance.MenuPanel, Appearance.MenuItem, Appearance.Dialog, Appearance.Sheet, Appearance.Field,
         Appearance.Toast, Appearance.Checkbox, Appearance.Progress, Appearance.ListRow,
         Appearance.Separator, Appearance.Tooltip, Appearance.Popover, Appearance.Command,
-        Appearance.StateView, Appearance.Badge, Appearance.Sparkline, Appearance.Bars, Appearance.RangeBar, Appearance.Row, Appearance.Splitter,
+        Appearance.StateView, Appearance.Badge, Appearance.Sparkline, Appearance.Bars, Appearance.RangeBar, Appearance.Row, Appearance.Splitter, Appearance.DocumentTab, Appearance.TabClose,
     )
 
     @Test
