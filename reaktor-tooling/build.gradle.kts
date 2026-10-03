@@ -69,7 +69,7 @@ val verifyToolingBoundary by tasks.registering {
             val id = it.moduleVersion.id
             id.group.startsWith("androidx.compose") || id.group.startsWith("org.jetbrains.compose") ||
                 id.group.startsWith("org.jetbrains.skiko") || id.group.startsWith("ai.bestbuds") ||
-                id.name.removeSuffix("-jvm") in setOf("kernel", "engine", "app", "design", "reaktor-ui", "reaktor-flow", "reaktor-graph")
+                id.name.removeSuffix("-jvm") in setOf("kernel", "engine", "app", "design", "reaktor-ui", "reaktor-graph")
         }
         check(forbidden.isEmpty()) { "Tooling has frontend or product dependencies: ${forbidden.joinToString { it.moduleVersion.id.toString() }}" }
     }

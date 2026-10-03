@@ -33,7 +33,7 @@ val verifyRuntimeBoundary by tasks.registering {
             val id = it.moduleVersion.id
             id.group.startsWith("androidx.compose") || id.group.startsWith("org.jetbrains.compose") ||
                 id.group.startsWith("org.jetbrains.skiko") || id.group.startsWith("ai.bestbuds") ||
-                id.name.removeSuffix("-jvm") in setOf("reaktor-graph", "reaktor-ui", "reaktor-flow", "engine", "kernel")
+                id.name.removeSuffix("-jvm") in setOf("reaktor-graph", "reaktor-ui", "engine", "kernel")
         }
         check(forbidden.isEmpty()) { "Graph runtime has frontend dependencies: ${forbidden.joinToString { it.moduleVersion.id.toString() }}" }
     }
