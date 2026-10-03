@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import dev.shibasis.reaktor.surface.FeedbackCue
+import dev.shibasis.reaktor.surface.KeyConvention
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 
 object BareTheme : ThemeSnapshot {
@@ -113,6 +114,7 @@ data class SurfaceEnvironment(
     val textScale: Float = 1f,
     val layoutDirection: LayoutDirection? = null,
     val reducedMotion: Boolean = false,
+    val keys: KeyConvention = platformKeyConvention(),
 )
 
 val LocalSurfaceEnvironment = staticCompositionLocalOf { SurfaceEnvironment() }

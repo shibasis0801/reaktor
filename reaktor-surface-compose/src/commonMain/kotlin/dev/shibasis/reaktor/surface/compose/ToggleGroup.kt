@@ -8,19 +8,18 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Axis
 import dev.shibasis.reaktor.surface.BehaviorKernel
 import dev.shibasis.reaktor.surface.Choose
 import dev.shibasis.reaktor.surface.ManyOfEvent
 import dev.shibasis.reaktor.surface.ManyOfKernel
 import dev.shibasis.reaktor.surface.ManyOfProperties
 import dev.shibasis.reaktor.surface.ManyOfState
-import dev.shibasis.reaktor.surface.PartKey
 import dev.shibasis.reaktor.surface.PressKernel
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
@@ -45,14 +44,16 @@ fun ToggleGroup(
             is ManyOfEvent.Refused -> onRefused(event.key)
         }
     }
-    Box(modifier, propagateMinConstraints = true) {
-        ToggleGroupScope(group, selected, enabled).content()
+    val roving = rememberRoving(Axis.Horizontal) {}
+    Box(modifier.roving(roving), propagateMinConstraints = true) {
+        ToggleGroupScope(group, roving, selected, enabled).content()
     }
 }
 
 @Stable
 class ToggleGroupScope internal constructor(
     private val group: Machine<ManyOfProperties, ManyOfState, Choose, ManyOfEvent>,
+    private val roving: Roving,
     private val selected: Set<String>,
     private val enabled: Boolean,
 ) {
@@ -61,6 +62,7 @@ class ToggleGroupScope internal constructor(
         key: String,
         modifier: Modifier = Modifier,
         enabled: Boolean = true,
+        typeahead: String? = null,
         appearance: ItemAppearance = LocalAppearances.current.chip,
         icon: (@Composable () -> Unit)? = null,
         content: @Composable () -> Unit,
@@ -70,9 +72,10 @@ class ToggleGroupScope internal constructor(
         val source = rememberInteractions(press)
         Box(
             modifier
-                .part(group, PartKey(key))
+                .rovingItem(roving, key, properties.enabled, typeahead)
                 .toggleable(properties.selected, source, indication = null, enabled = properties.enabled, role = Role.Checkbox) {
                     group.send(Choose(key, group.nextSequence()))
+                    roving.point(key)
                 },
             propagateMinConstraints = true,
         ) {

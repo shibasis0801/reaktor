@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Axis
 import dev.shibasis.reaktor.surface.OneOfKernel
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -24,7 +25,7 @@ fun Tabs(
     enabled: Boolean = true,
     behavior: OneOfBehavior = OneOfKernel,
     content: @Composable OneOfScope.() -> Unit,
-) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.Tab, LocalAppearances.current.tab, content)
+) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.Tab, LocalAppearances.current.tab, Axis.Horizontal, content)
 
 val BareTab: ItemAppearance = object : ItemAppearance {
     @Composable

@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -13,11 +14,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -30,11 +37,41 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Stable
-class OverlayHost internal constructor() {
+class OverlayHost internal constructor(private val scope: CoroutineScope) {
     internal val layers = mutableStateListOf<OverlayLayer>()
     internal var origin by mutableStateOf(Offset.Zero)
+    internal val content = FocusRequester()
+    private var contentFocused = false
+    private var returning = false
+
+    internal fun admits(layer: OverlayLayer?): Boolean {
+        val above = if (layer == null) 0 else layers.indexOf(layer) + 1
+        return (layer == null || above > 0) && (above until layers.size).none { layers[it].modal }
+    }
+
+    internal fun contentFocusChanged(hasFocus: Boolean) {
+        contentFocused = hasFocus
+        if (hasFocus) returning = false
+    }
+
+    internal fun contentLeft() {
+        returning = content.saveFocusedChild()
+    }
+
+    internal fun close(layer: OverlayLayer) {
+        layers -= layer
+        if (layer.focused) scope.launch {
+            withFrameNanos {}
+            if (returning && !contentFocused && layers.none { it.focused }) {
+                returning = false
+                content.restoreFocusedChild()
+            }
+        }
+    }
 }
 
 @Stable
@@ -42,6 +79,7 @@ internal class OverlayLayer(locals: CompositionLocalContext, modal: Boolean, con
     var locals by mutableStateOf(locals)
     var modal by mutableStateOf(modal)
     var content by mutableStateOf(content)
+    var focused = false
 }
 
 val LocalOverlayHost = staticCompositionLocalOf<OverlayHost?> { null }
@@ -50,11 +88,24 @@ internal val LocalOverlayOrigin = staticCompositionLocalOf { Offset.Zero }
 
 @Composable
 fun OverlayHost(content: @Composable () -> Unit) {
-    val host = remember { OverlayHost() }
+    val scope = rememberCoroutineScope()
+    val host = remember { OverlayHost(scope) }
     CompositionLocalProvider(LocalOverlayHost provides host) {
         Box(Modifier.fillMaxSize().onGloballyPositioned { host.origin = it.positionInWindow() }, propagateMinConstraints = true) {
             val covered = host.layers.any { it.modal }
-            Box(Modifier.fillMaxSize().then(if (covered) Modifier.clearAndSetSemantics {} else Modifier), propagateMinConstraints = true) { content() }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .then(if (covered) Modifier.clearAndSetSemantics {} else Modifier)
+                    .onFocusChanged { host.contentFocusChanged(it.hasFocus) }
+                    .focusRequester(host.content)
+                    .focusProperties {
+                        onEnter = { if (!host.admits(null)) cancelFocusChange() }
+                        onExit = { host.contentLeft() }
+                    }
+                    .focusGroup(),
+                propagateMinConstraints = true,
+            ) { content() }
             if (host.layers.isNotEmpty()) Layers(host)
         }
     }
@@ -66,7 +117,15 @@ private fun Layers(host: OverlayHost) {
         val placeables = host.layers.toList().flatMap { layer ->
             subcompose(layer) {
                 CompositionLocalProvider(layer.locals) {
-                    CompositionLocalProvider(LocalOverlayOrigin provides host.origin) { layer.content() }
+                    CompositionLocalProvider(LocalOverlayOrigin provides host.origin) {
+                        Box(
+                            Modifier
+                                .onFocusChanged { layer.focused = it.hasFocus }
+                                .focusProperties { onEnter = { if (!host.admits(layer)) cancelFocusChange() } }
+                                .focusGroup(),
+                            propagateMinConstraints = true,
+                        ) { layer.content() }
+                    }
                 }
             }.map { it.measure(constraints) }
         }
@@ -90,7 +149,7 @@ fun Overlay(modal: Boolean = true, content: @Composable () -> Unit) {
     }
     DisposableEffect(host, layer) {
         host.layers += layer
-        onDispose { host.layers -= layer }
+        onDispose { host.close(layer) }
     }
 }
 

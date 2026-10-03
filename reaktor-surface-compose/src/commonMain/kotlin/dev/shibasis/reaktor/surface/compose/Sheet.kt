@@ -111,6 +111,7 @@ private fun BottomSheetFrame(scrim: Color, onDismiss: () -> Unit, exiting: Boole
     Box(
         Modifier
             .fillMaxSize()
+            .onEscape(onDismiss)
             .background(scrim)
             .then(if (exiting) Modifier.clearAndSetSemantics {} else Modifier.pointerInput(Unit) { detectTapGestures { onDismiss() } }),
     ) {

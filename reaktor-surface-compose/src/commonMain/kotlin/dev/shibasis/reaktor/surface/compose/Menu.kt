@@ -76,7 +76,7 @@ class MenuScope internal constructor(private val disclosure: Disclosure, private
                         }
                     }
                 },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().onEscape(dismiss),
             ) { measurables, constraints ->
                 val canvas = IntSize(constraints.maxWidth, constraints.maxHeight)
                 val scrim = measurables[0].measure(constraints.copy(minWidth = canvas.width, minHeight = canvas.height))

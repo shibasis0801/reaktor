@@ -60,7 +60,7 @@ class DialogScope internal constructor(private val disclosure: Disclosure, priva
         val dismiss = { disclosure.machine.send(DisclosureInput.Dismiss) }
         Overlay {
             OverlayBack(onBack = dismiss)
-            Box(Modifier.fillMaxSize().background(scrim).pointerInput(dismissOutside) { detectTapGestures { if (dismissOutside) dismiss() } }) {
+            Box(Modifier.fillMaxSize().onEscape(dismiss).background(scrim).pointerInput(dismissOutside) { detectTapGestures { if (dismissOutside) dismiss() } }) {
                 Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.Center) {
                     Box(Modifier.pointerInput(Unit) { detectTapGestures { } }) {
                         disclosure.Panel(appearance, disclosure::initialFocus) {
