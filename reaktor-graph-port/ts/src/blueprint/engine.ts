@@ -31,6 +31,8 @@ export const GroupGap = 64;
 export const WrapAt = 12;
 export const ColumnGap = 40;
 export const RowGap = 18;
+export const LayerGap = 72;
+export const NodeGap = 18;
 export const KitVersion = 'blueprint-kit-1';
 export const ElkVersion = '0.12.0';
 
@@ -55,6 +57,12 @@ export interface BlueprintPlan {
   joined: Joined[];
   inside: Map<string, Joined[]>;
   requests: FrameRequest[];
+  frames: Map<string, BlueprintGroup>;
+  parentOf: Map<string, string>;
+  rootOf: Map<string, string>;
+  hinted: Map<string, Joined[]>;
+  stages: string[][];
+  options: LayoutOptions;
 }
 
 export function rowsOf(node: BlueprintNode): number {
@@ -77,6 +85,57 @@ export function pinsOf(node: BlueprintNode): Pin[] {
     return { key: spec.key, type: spec.type, provides, row, y: pinY(row), wiring: spec.wiring };
   });
   return [...side(node.inputs, false), ...side(node.outputs, true)];
+}
+
+export function isNested(node: BlueprintNode): boolean {
+  return !!node.group && node.group.nodes.length > 0;
+}
+
+export function nestedNode(group: BlueprintGroup, lane = 0): BlueprintNode {
+  return { id: group.key, lane, group };
+}
+
+function columnsWithin(tall: readonly number[], limit: number): number[] {
+  const lanes: number[] = [];
+  let lane = 0;
+  let filled = 0;
+  for (const height of tall) {
+    if (filled > 0 && filled + height > limit) {
+      lane += 1;
+      filled = 0;
+    }
+    filled += height;
+    lanes.push(lane);
+  }
+  return lanes;
+}
+
+export function balancedLanes(heights: readonly number[], aspect = 1.4): number[] {
+  if (heights.length === 0) return [];
+  const tall = heights.map(height => Math.ceil(height) + NodeGap);
+  const total = tall.reduce((sum, height) => sum + height, 0);
+  let best = heights.map(() => 0);
+  let score = Infinity;
+  for (let columns = 1; columns <= tall.length; columns += 1) {
+    let low = Math.max(...tall);
+    let high = total;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (columnsWithin(tall, middle).at(-1)! < columns) high = middle; else low = middle + 1;
+    }
+    const lanes = columnsWithin(tall, low);
+    const filled = Array.from({ length: lanes.at(-1)! + 1 }, () => ({ height: 0, count: 0 }));
+    lanes.forEach((lane, index) => { filled[lane].height += tall[index]; filled[lane].count += 1; });
+    if (filled.some(column => column.count > WrapAt) && columns < tall.length) continue;
+    const width = filled.length * CardWidth + (filled.length - 1) * LayerGap;
+    const height = Math.max(...filled.map(column => column.height)) - NodeGap;
+    const next = Math.abs(Math.log(width / Math.max(height, 1) / aspect));
+    if (next < score - 1e-9) {
+      score = next;
+      best = lanes;
+    }
+  }
+  return best;
 }
 
 export function join(edges: BlueprintEdge[], pins: Map<string, Pin[]>): Joined[] {
@@ -109,8 +168,8 @@ export function elkOptions(group: BlueprintGroup): Record<string, string> {
     'elk.algorithm': 'layered',
     'elk.direction': 'RIGHT',
     'elk.edgeRouting': 'ORTHOGONAL',
-    'elk.spacing.nodeNode': '18',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '72',
+    'elk.spacing.nodeNode': String(NodeGap),
+    'elk.layered.spacing.nodeNodeBetweenLayers': String(LayerGap),
     'elk.layered.spacing.edgeNodeBetweenLayers': '16',
     'elk.layered.spacing.edgeEdgeBetweenLayers': '7',
     'elk.spacing.edgeEdge': '7',
@@ -145,15 +204,20 @@ function hintPairs(curved: Joined[], routed: Joined[], minimum: number): Array<[
   return hints;
 }
 
-function frameRequest(group: BlueprintGroup, pins: Map<string, Pin[]>, joined: Joined[], options: LayoutOptions): FrameRequest {
+function outerSize(flat: FlatFrame | undefined): { width: number; height: number } {
+  return { width: (flat?.width ?? 0) + 2 * FrameSide, height: (flat?.height ?? 0) + FrameTop + FrameSide };
+}
+
+function frameRequest(blueprint: BlueprintPlan, group: BlueprintGroup, flats: ReadonlyMap<string, FlatFrame>): FrameRequest {
   const lanes = group.lanes ?? !group.loose;
-  const routed = joined.filter(edge => !edge.curved);
-  const hints = hintPairs(joined.filter(edge => edge.curved), routed, options.hintMinimum ?? 1);
+  const inside = blueprint.inside.get(group.key) ?? [];
+  const routed = inside.filter(edge => !edge.curved);
+  const hints = hintPairs(blueprint.hinted.get(group.key) ?? [], routed, blueprint.options.hintMinimum ?? 1);
   const indexOf = new Map(group.nodes.map((node, index) => [node.id, index]));
   const used = group.nodes.map(() => new Set<string>());
   const portId = (id: string, port: string | undefined, provides: boolean): string => {
     const index = indexOf.get(id)!;
-    const list = pins.get(id) ?? [];
+    const list = blueprint.pins.get(id) ?? [];
     const pinIndex = port === undefined ? -1 : list.findIndex(pin => pin.provides === provides && pin.key === port);
     const name = `n${index}${provides ? 'e' : 'w'}${pinIndex >= 0 ? pinIndex : ''}`;
     used[index].add(name);
@@ -165,42 +229,107 @@ function frameRequest(group: BlueprintGroup, pins: Map<string, Pin[]>, joined: J
   ];
   const children: ElkChild[] = group.nodes.map((node, index) => {
     const ports: ElkPort[] = [];
-    (pins.get(node.id) ?? []).forEach((pin, pinIndex) => {
+    const nested = isNested(node);
+    const size = nested ? outerSize(flats.get(node.id)) : { width: CardWidth, height: cardHeight(rowsOf(node)) };
+    const middle = nested ? FrameTop / 2 : HeaderHeight / 2;
+    (blueprint.pins.get(node.id) ?? []).forEach((pin, pinIndex) => {
       const name = `n${index}${pin.provides ? 'e' : 'w'}${pinIndex}`;
-      if (used[index].has(name)) ports.push({ id: name, x: pin.provides ? CardWidth : -1, y: pin.y, width: 1, height: 1, layoutOptions: { 'elk.port.side': pin.provides ? 'EAST' : 'WEST' } });
+      if (used[index].has(name)) ports.push({ id: name, x: pin.provides ? size.width : -1, y: pin.y, width: 1, height: 1, layoutOptions: { 'elk.port.side': pin.provides ? 'EAST' : 'WEST' } });
     });
-    if (used[index].has(`n${index}w`)) ports.push({ id: `n${index}w`, x: -1, y: HeaderHeight / 2, width: 1, height: 1, layoutOptions: { 'elk.port.side': 'WEST' } });
-    if (used[index].has(`n${index}e`)) ports.push({ id: `n${index}e`, x: CardWidth, y: HeaderHeight / 2, width: 1, height: 1, layoutOptions: { 'elk.port.side': 'EAST' } });
+    if (used[index].has(`n${index}w`)) ports.push({ id: `n${index}w`, x: -1, y: middle, width: 1, height: 1, layoutOptions: { 'elk.port.side': 'WEST' } });
+    if (used[index].has(`n${index}e`)) ports.push({ id: `n${index}e`, x: size.width, y: middle, width: 1, height: 1, layoutOptions: { 'elk.port.side': 'EAST' } });
     const layoutOptions: Record<string, string> = { 'elk.portConstraints': 'FIXED_POS' };
     if (lanes) layoutOptions['elk.partitioning.partition'] = String(node.lane);
-    return { id: `n${index}`, width: CardWidth, height: cardHeight(rowsOf(node)), ports, layoutOptions };
+    return { id: `n${index}`, width: size.width, height: size.height, ports, layoutOptions };
   });
-  const graph: ElkGraphInput = { id: 'frame', layoutOptions: elkOptions(group), children, edges };
+  const layoutOptions = elkOptions(group);
+  if (blueprint.parentOf.has(group.key)) layoutOptions['elk.separateConnectedComponents'] = 'false';
+  const graph: ElkGraphInput = { id: 'frame', layoutOptions, children, edges };
   return { key: group.key, hash: hashValue([KitVersion, ElkVersion, graph]), graph, members: group.nodes.map(node => node.id), routed: routed.map(edge => edge.id) };
+}
+
+export function requestFor(blueprint: BlueprintPlan, key: string, flats: ReadonlyMap<string, FlatFrame>): FrameRequest {
+  return frameRequest(blueprint, blueprint.frames.get(key)!, flats);
 }
 
 export function plan(key: string, groups: BlueprintGroup[], edges: BlueprintEdge[], options: LayoutOptions = {}): BlueprintPlan {
   const pins = new Map<string, Pin[]>();
   const groupOf = new Map<string, string>();
-  for (const group of groups) for (const node of group.nodes) {
-    groupOf.set(node.id, group.key);
-    pins.set(node.id, pinsOf(node));
-  }
-  const joined = join(edges, pins);
+  const rootOf = new Map<string, string>();
+  const parentOf = new Map<string, string>();
+  const frames = new Map<string, BlueprintGroup>();
+  const depth = new Map<string, number>();
+  const nested = new Set<string>();
+  const walk = (group: BlueprintGroup, root: string): number => {
+    frames.set(group.key, group);
+    let deepest = -1;
+    for (const node of group.nodes) {
+      groupOf.set(node.id, group.key);
+      rootOf.set(node.id, root);
+      if (isNested(node)) {
+        parentOf.set(node.id, group.key);
+        nested.add(node.id);
+        deepest = Math.max(deepest, walk(node.group!, root));
+        continue;
+      }
+      pins.set(node.id, pinsOf(node));
+    }
+    depth.set(group.key, deepest + 1);
+    return deepest + 1;
+  };
+  for (const group of groups) walk(group, group.key);
+  const ends = new Map(pins);
+  nested.forEach(id => ends.set(id, []));
+  const joined = join(edges, ends);
+  const memberIn = (group: string, id: string): string | undefined => {
+    let cursor: string | undefined = id;
+    while (cursor !== undefined) {
+      const holder = groupOf.get(cursor);
+      if (holder === group) return cursor;
+      cursor = holder !== undefined && parentOf.has(holder) ? holder : undefined;
+    }
+    return undefined;
+  };
+  const chain = (id: string): string[] => {
+    const list: string[] = [];
+    for (let group = groupOf.get(id); group !== undefined; group = parentOf.get(group)) list.push(group);
+    return list;
+  };
   const inside = new Map<string, Joined[]>();
+  const hinted = new Map<string, Joined[]>();
+  const add = (map: Map<string, Joined[]>, group: string, edge: Joined) => { const list = map.get(group); if (list) list.push(edge); else map.set(group, [edge]); };
   for (const edge of joined) {
-    const group = groupOf.get(edge.from)!;
-    if (group !== groupOf.get(edge.to)) continue;
-    inside.set(group, [...(inside.get(group) ?? []), edge]);
+    const above = new Set(chain(edge.to));
+    const common = chain(edge.from).find(group => above.has(group));
+    if (common === undefined) continue;
+    if (groupOf.get(edge.from) === common && groupOf.get(edge.to) === common) {
+      add(inside, common, edge);
+      if (edge.curved) add(hinted, common, edge);
+      continue;
+    }
+    const from = memberIn(common, edge.from);
+    const to = memberIn(common, edge.to);
+    if (from !== undefined && to !== undefined && from !== to) add(hinted, common, { ...edge, from, to, curved: true });
   }
-  const requests = groups.filter(group => group.nodes.length > 0).map(group => frameRequest(group, pins, inside.get(group.key) ?? [], options));
-  return { key, groups, pins, groupOf, joined, inside, requests };
+  const laid = [...frames.values()].filter(group => group.nodes.length > 0);
+  const top = laid.reduce((most, group) => Math.max(most, depth.get(group.key) ?? 0), 0);
+  const stages = Array.from({ length: top + 1 }, (_, stage) => laid.filter(group => depth.get(group.key) === stage).map(group => group.key)).filter(stage => stage.length > 0);
+  const blueprint: BlueprintPlan = { key, groups, pins, groupOf, joined, inside, requests: [], frames, parentOf, rootOf, hinted, stages, options };
+  blueprint.requests = (stages[0] ?? []).map(groupKey => requestFor(blueprint, groupKey, new Map()));
+  return blueprint;
 }
 
-function anchorIn(card: Card | undefined, port: string | undefined, provides: boolean): Point {
-  if (!card) return [0, 0];
-  const pin = port === undefined ? undefined : card.pins.find(item => item.provides === provides && item.key === port);
-  return [provides ? card.x + card.width : card.x, card.y + (pin?.y ?? HeaderHeight / 2)];
+interface Anchored {
+  x: number;
+  y: number;
+  width: number;
+  pins?: Pin[];
+}
+
+function anchorIn(box: Anchored | undefined, port: string | undefined, provides: boolean, middle = HeaderHeight / 2): Point {
+  if (!box) return [0, 0];
+  const pin = port === undefined ? undefined : box.pins?.find(item => item.provides === provides && item.key === port);
+  return [provides ? box.x + box.width : box.x, box.y + (pin?.y ?? middle)];
 }
 
 export function bezier(from: Point, to: Point): Point[] {
@@ -223,7 +352,7 @@ export function curve(from: Point, to: Point): Point[] {
   });
 }
 
-export function wrapTallLayers(flat: FlatFrame): FlatFrame {
+function wrapLayers(flat: FlatFrame, framed: ReadonlySet<string>): FlatFrame {
   const layers = new Map<number, Card[]>();
   for (const card of flat.cards) {
     const key = Math.trunc(card.x);
@@ -236,7 +365,8 @@ export function wrapTallLayers(flat: FlatFrame): FlatFrame {
   const shifts: Array<[number, number]> = [];
   let shifted = 0;
   for (const layer of ordered) {
-    const right = layer[0].x + CardWidth;
+    const span = layer.reduce((most, card) => Math.max(most, card.width), 0);
+    const right = layer[0].x + span;
     if (shifted !== 0) for (const card of layer) cards.set(card.id, { ...card, x: card.x + shifted });
     if (layer.length <= WrapAt) continue;
     const stacked = [...layer].sort((a, b) => a.y - b.y);
@@ -246,18 +376,19 @@ export function wrapTallLayers(flat: FlatFrame): FlatFrame {
     for (let column = 0; column < columns; column += 1) {
       let y = top;
       for (const card of stacked.slice(column * rows, column * rows + rows)) {
-        cards.set(card.id, { ...card, x: card.x + shifted + column * (CardWidth + ColumnGap), y });
+        cards.set(card.id, { ...card, x: card.x + shifted + column * (span + ColumnGap), y });
         moved.add(card.id);
         y += card.height + RowGap;
       }
     }
-    const widened = (columns - 1) * (CardWidth + ColumnGap);
+    const widened = (columns - 1) * (span + ColumnGap);
     shifts.push([right, widened]);
     shifted += widened;
   }
   const shift = (x: number) => x + shifts.filter(([from]) => x >= from).reduce((sum, [, by]) => sum + by, 0);
+  const anchor = (id: string, port: string | undefined, provides: boolean) => anchorIn(cards.get(id), port, provides, framed.has(id) ? FrameTop / 2 : HeaderHeight / 2);
   const links = flat.links.map(link => (moved.has(link.from) || moved.has(link.to))
-    ? { ...link, shape: 'curve' as const, points: bezier(anchorIn(cards.get(link.from), link.fromPort, true), anchorIn(cards.get(link.to), link.toPort, false)) }
+    ? { ...link, shape: 'curve' as const, points: bezier(anchor(link.from, link.fromPort, true), anchor(link.to, link.toPort, false)) }
     : { ...link, points: link.points.map(([x, y]) => [shift(x), y] as Point) });
   const laid = flat.cards.map(card => cards.get(card.id)!);
   const right = flat.width - Math.max(...flat.cards.map(card => card.x + card.width));
@@ -270,20 +401,41 @@ export function wrapTallLayers(flat: FlatFrame): FlatFrame {
   };
 }
 
-export function readFrame(blueprint: BlueprintPlan, request: FrameRequest, result: ElkFrameResult): FlatFrame {
-  const group = blueprint.groups.find(item => item.key === request.key)!;
+export function wrapTallLayers(flat: FlatFrame): FlatFrame {
+  return wrapLayers(flat, new Set());
+}
+
+function frameOf(group: BlueprintGroup, parent: string, x: number, y: number, width: number, height: number): Frame {
+  return {
+    key: group.key, label: group.label, x, y, width, height,
+    nodes: group.nodes.filter(node => !isNested(node)).map(node => node.id), detail: group.detail ?? [], muted: !!group.muted, loose: !!group.loose,
+    parent, ...(group.owner !== undefined ? { owner: group.owner } : {}),
+  };
+}
+
+export function readFrame(blueprint: BlueprintPlan, request: FrameRequest, result: ElkFrameResult, flats: ReadonlyMap<string, FlatFrame> = new Map()): FlatFrame {
+  const group = blueprint.frames.get(request.key)!;
   const routed = (blueprint.inside.get(request.key) ?? []).filter(edge => !edge.curved);
-  const cards: Card[] = group.nodes.map((node, index) => {
+  const framed = new Set<string>();
+  const items: Card[] = group.nodes.map((node, index) => {
+    const x = result.nodes[index * 2] ?? 0;
+    const y = result.nodes[index * 2 + 1] ?? 0;
+    if (isNested(node)) {
+      framed.add(node.id);
+      const size = outerSize(flats.get(node.id));
+      return { id: node.id, x, y, width: size.width, height: size.height, rows: 0, pins: [], folded: 0 };
+    }
     const rows = rowsOf(node);
     return {
       id: node.id,
-      x: result.nodes[index * 2] ?? 0,
-      y: result.nodes[index * 2 + 1] ?? 0,
+      x,
+      y,
       width: CardWidth,
       height: cardHeight(rows),
       rows,
       pins: blueprint.pins.get(node.id) ?? [],
       folded: node.folded ?? 0,
+      ...(node.owner !== undefined ? { owner: node.owner } : {}),
     };
   });
   const links: Link[] = routed.map((edge, index) => {
@@ -295,7 +447,31 @@ export function readFrame(blueprint: BlueprintPlan, request: FrameRequest, resul
       members: edge.members, shape: 'routed', points, cross: false, reversed: edge.reversed,
     };
   });
-  return wrapTallLayers({ cards, links, width: result.width, height: result.height });
+  const wrapped = wrapLayers({ cards: items, links, width: result.width, height: result.height }, framed);
+  if (framed.size === 0) return wrapped;
+  const owner = (id: string) => {
+    for (let cursor: string | undefined = id; cursor !== undefined; cursor = blueprint.parentOf.get(cursor)) {
+      const found = blueprint.frames.get(cursor)?.owner;
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  };
+  const cards: Card[] = [];
+  const nested: Frame[] = [];
+  const inner: Link[] = [];
+  for (const item of wrapped.cards) {
+    if (!framed.has(item.id)) { cards.push(item); continue; }
+    const flat = flats.get(item.id);
+    const child = blueprint.frames.get(item.id)!;
+    const ox = item.x + FrameSide;
+    const oy = item.y + FrameTop;
+    const fallback = owner(item.id);
+    nested.push(frameOf(child, group.key, item.x, item.y, item.width, item.height));
+    for (const card of flat?.cards ?? []) cards.push({ ...card, x: card.x + ox, y: card.y + oy, ...(card.owner === undefined && fallback !== undefined ? { owner: fallback } : {}) });
+    for (const link of flat?.links ?? []) inner.push({ ...link, points: link.points.map(([px, py]) => [px + ox, py + oy] as Point) });
+    for (const frame of flat?.frames ?? []) nested.push({ ...frame, x: frame.x + ox, y: frame.y + oy });
+  }
+  return { cards, links: [...wrapped.links, ...inner], width: wrapped.width, height: wrapped.height, frames: nested };
 }
 
 interface Block {
@@ -352,31 +528,38 @@ export function assemble(blueprint: BlueprintPlan, flats: Map<string, FlatFrame>
   const cards: Record<string, Card> = {};
   const links: Link[] = [];
   const frames: Frame[] = [];
+  const nested: Frame[] = [];
   for (const [block, [x, y]] of pack(blocks, aspect)) {
     const ox = x + FrameSide;
     const oy = y + FrameTop;
     for (const card of block.flat.cards) cards[card.id] = { ...card, x: card.x + ox, y: card.y + oy };
     for (const link of block.flat.links) links.push({ ...link, points: link.points.map(([px, py]) => [px + ox, py + oy] as Point) });
+    for (const frame of block.flat.frames ?? []) nested.push({ ...frame, x: frame.x + ox, y: frame.y + oy });
     frames.push({
       key: block.group.key, label: block.group.label, x, y, width: block.width, height: block.height,
-      nodes: block.flat.cards.map(card => card.id), detail: block.group.detail ?? [], muted: !!block.group.muted, loose: !!block.group.loose,
+      nodes: block.group.nodes.filter(node => !isNested(node) && cards[node.id]).map(node => node.id), detail: block.group.detail ?? [], muted: !!block.group.muted, loose: !!block.group.loose,
+      ...(block.group.owner !== undefined ? { owner: block.group.owner } : {}),
     });
   }
+  const boxes = new Map<string, Anchored>(nested.map(frame => [frame.key, frame]));
+  const routed = new Set([...blueprint.inside.values()].flatMap(list => list.filter(edge => !edge.curved).map(edge => edge.id)));
   for (const edge of blueprint.joined) {
-    const from = cards[edge.from];
-    const to = cards[edge.to];
+    if (routed.has(edge.id)) continue;
+    const from = cards[edge.from] ?? boxes.get(edge.from);
+    const to = cards[edge.to] ?? boxes.get(edge.to);
     if (!from || !to) continue;
-    const cross = blueprint.groupOf.get(edge.from) !== blueprint.groupOf.get(edge.to);
-    if (!cross && !edge.curved) continue;
+    const cross = blueprint.rootOf.get(edge.from) !== blueprint.rootOf.get(edge.to);
+    const fromMiddle = cards[edge.from] ? HeaderHeight / 2 : FrameTop / 2;
+    const toMiddle = cards[edge.to] ? HeaderHeight / 2 : FrameTop / 2;
     links.push({
       id: edge.id, from: edge.from, to: edge.to, fromPort: edge.fromPort, toPort: edge.toPort, kind: edge.kind, family: edge.family,
-      members: edge.members, shape: 'curve', points: bezier(anchorIn(from, edge.fromPort, true), anchorIn(to, edge.toPort, false)), cross, reversed: edge.reversed,
+      members: edge.members, shape: 'curve', points: bezier(anchorIn(from, edge.fromPort, true, fromMiddle), anchorIn(to, edge.toPort, false, toMiddle)), cross, reversed: edge.reversed,
     });
   }
   return {
     key: blueprint.key,
     cards,
-    frames,
+    frames: [...frames, ...nested],
     links,
     width: frames.reduce((most, frame) => Math.max(most, frame.x + frame.width), 0),
     height: frames.reduce((most, frame) => Math.max(most, frame.y + frame.height), 0),
@@ -412,7 +595,11 @@ export function compactElkResult(graph: ElkLaidGraph): ElkFrameResult {
 
 export function layoutWith(key: string, groups: BlueprintGroup[], edges: BlueprintEdge[], aspect: number, layouter: (graph: ElkGraphInput) => ElkFrameResult, options: LayoutOptions = {}): BlueprintLayout {
   const blueprint = plan(key, groups, edges, options);
-  const flats = new Map(blueprint.requests.map(request => [request.key, readFrame(blueprint, request, layouter(request.graph))]));
+  const flats = new Map<string, FlatFrame>();
+  blueprint.stages.forEach((stage, index) => {
+    const requests = index === 0 ? blueprint.requests : stage.map(groupKey => requestFor(blueprint, groupKey, flats));
+    for (const request of requests) flats.set(request.key, readFrame(blueprint, request, layouter(request.graph), flats));
+  });
   return assemble(blueprint, flats, aspect);
 }
 

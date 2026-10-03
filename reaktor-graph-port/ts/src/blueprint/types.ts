@@ -14,6 +14,8 @@ export interface BlueprintNode {
   outputs?: PinSpec[];
   rows?: number;
   folded?: number;
+  owner?: string;
+  group?: BlueprintGroup;
 }
 
 export interface BlueprintGroup {
@@ -24,6 +26,7 @@ export interface BlueprintGroup {
   muted?: boolean;
   loose?: boolean;
   lanes?: boolean;
+  owner?: string;
 }
 
 export type LinkKind = 'wire' | 'route';
@@ -62,6 +65,7 @@ export interface Card {
   rows: number;
   pins: Pin[];
   folded: number;
+  owner?: string;
 }
 
 export interface Frame {
@@ -75,6 +79,8 @@ export interface Frame {
   detail: string[];
   muted: boolean;
   loose: boolean;
+  parent?: string;
+  owner?: string;
 }
 
 export interface Link {
@@ -151,6 +157,7 @@ export interface FlatFrame {
   links: Link[];
   width: number;
   height: number;
+  frames?: Frame[];
 }
 
 export interface LayoutOptions {

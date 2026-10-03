@@ -1,5 +1,5 @@
-import { assemble, plan, readFrame, type BlueprintPlan } from './engine';
-import type { BlueprintEdge, BlueprintGroup, BlueprintLayout, ElkFrameResult, ElkGraphInput, FlatFrame, LayoutOptions } from './types';
+import { assemble, plan, readFrame, requestFor, type BlueprintPlan } from './engine';
+import type { BlueprintEdge, BlueprintGroup, BlueprintLayout, ElkFrameResult, ElkGraphInput, FlatFrame, FrameRequest, LayoutOptions } from './types';
 
 export interface LayoutCache {
   get(hash: string): Promise<ElkFrameResult | undefined>;
@@ -19,6 +19,7 @@ export interface FrameSet {
   flats: Map<string, FlatFrame>;
   timings: FrameTiming[];
   elapsed: number;
+  requests: FrameRequest[];
 }
 
 interface Pending {
@@ -134,12 +135,21 @@ export async function layoutFrames(client: ElkClient, key: string, groups: Bluep
   const started = performance.now();
   const blueprint = plan(key, groups, edges, options);
   const timings: FrameTiming[] = [];
-  const results = await Promise.all(blueprint.requests.map(async request => {
-    const { result, source, ms } = await client.frame(request.hash, request.graph);
-    timings.push({ key: request.key, source, ms });
-    return [request.key, readFrame(blueprint, request, result)] as const;
-  }));
-  return { plan: blueprint, flats: new Map(results), timings, elapsed: performance.now() - started };
+  const flats = new Map<string, FlatFrame>();
+  const requests: FrameRequest[] = [];
+  for (const [index, stage] of blueprint.stages.entries()) {
+    const batch = index === 0 ? blueprint.requests : stage.map(groupKey => requestFor(blueprint, groupKey, flats));
+    const laid = await Promise.all(batch.map(async request => {
+      const { result, source, ms } = await client.frame(request.hash, request.graph);
+      timings.push({ key: request.key, source, ms });
+      return [request, result] as const;
+    }));
+    for (const [request, result] of laid) {
+      flats.set(request.key, readFrame(blueprint, request, result, flats));
+      requests.push(request);
+    }
+  }
+  return { plan: blueprint, flats, timings, elapsed: performance.now() - started, requests };
 }
 
 export function layoutFromFrames(frames: FrameSet, aspect: number): BlueprintLayout {
