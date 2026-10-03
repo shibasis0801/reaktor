@@ -60,6 +60,7 @@ object Appearance {
     val Bars = AppearanceKey<BarsAppearance>("bars", BareBars)
     val RangeBar = AppearanceKey<RangeBarAppearance>("rangeBar", BareRangeBar)
     val Row = AppearanceKey<RowAppearance>("row", BareRow)
+    val Splitter = AppearanceKey<SplitterAppearance>("splitter", BareSplitter)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
