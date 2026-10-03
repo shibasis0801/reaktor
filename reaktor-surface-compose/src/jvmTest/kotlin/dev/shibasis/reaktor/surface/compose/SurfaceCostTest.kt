@@ -49,6 +49,7 @@ class SurfaceCostTest {
                         Area { BasicText("Area $index") }
                         Popup { Item("copy", {}) { BasicText("Copy") } }
                     }
+                    Tooltip(tip = { BasicText("Tip $index") }) { BasicText("Anchor $index") }
                 }
             }
         }
