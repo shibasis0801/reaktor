@@ -59,6 +59,7 @@ object Appearance {
     val Sparkline = AppearanceKey<SparklineAppearance>("sparkline", BareSparkline)
     val Bars = AppearanceKey<BarsAppearance>("bars", BareBars)
     val RangeBar = AppearanceKey<RangeBarAppearance>("rangeBar", BareRangeBar)
+    val Row = AppearanceKey<RowAppearance>("row", BareRow)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =

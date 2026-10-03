@@ -35,6 +35,7 @@ class Machine<P : Any, S : Any, I : Any, E : Any> internal constructor(
     private val scope: CoroutineScope,
     private val onEvent: (E) -> Unit,
     private val onCue: (FeedbackCue) -> Unit,
+    private val executor: (LocalCommand) -> Boolean = { false },
 ) {
     var state: S by mutableStateOf(kernel.initial(properties))
         private set
@@ -93,6 +94,7 @@ class Machine<P : Any, S : Any, I : Any, E : Any> internal constructor(
     @OptIn(ExperimentalFoundationApi::class)
     @Suppress("UNCHECKED_CAST")
     private fun execute(command: LocalCommand) {
+        if (executor(command)) return
         when (command) {
             is LocalCommand.Focus -> parts[command.part]?.focus?.requestFocus()
             is LocalCommand.Reveal -> parts[command.part]?.let { part -> scope.launch { part.reveal.bringIntoView() } }
@@ -119,11 +121,19 @@ fun <P : Any, S : Any, I : Any, E : Any> rememberMachine(
     kernel: BehaviorKernel<P, S, I, E>,
     properties: P,
     onEvent: (E) -> Unit,
+): Machine<P, S, I, E> = rememberMachine(kernel, properties, { false }, onEvent)
+
+@Composable
+internal fun <P : Any, S : Any, I : Any, E : Any> rememberMachine(
+    kernel: BehaviorKernel<P, S, I, E>,
+    properties: P,
+    executor: (LocalCommand) -> Boolean,
+    onEvent: (E) -> Unit,
 ): Machine<P, S, I, E> {
     val scope = rememberCoroutineScope()
     val event by rememberUpdatedState(onEvent)
     val cue by rememberUpdatedState(LocalCuePlayer.current)
-    val machine = remember(kernel) { Machine(kernel, properties, scope, { event(it) }, { cue(it) }) }
+    val machine = remember(kernel) { Machine(kernel, properties, scope, { event(it) }, { cue(it) }, executor) }
     SideEffect { machine.reconcile(properties) }
     DisposableEffect(machine) { onDispose(machine::retire) }
     return machine
