@@ -5,12 +5,14 @@ import dev.shibasis.reaktor.service.PostHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
 
 /**
@@ -135,6 +137,7 @@ class DevToolsHost(
         try {
             reader.join()
         } finally {
+            withContext(NonCancellable) { reader.cancelAndJoin() }
             subscriptions.values.forEach { it.cancel() }
             if (current === channel) current = null
             channel.close()
