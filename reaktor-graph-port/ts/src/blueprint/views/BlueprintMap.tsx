@@ -40,6 +40,8 @@ export interface BlueprintMapProps {
   fitKey: string;
   memoryKey: string;
   className?: string;
+  testId?: string;
+  label?: string;
   insets?: Partial<Insets>;
   selected?: string | null;
   selectedCard?: string | null;
@@ -47,6 +49,7 @@ export interface BlueprintMapProps {
   highlight?: ReadonlySet<string>;
   focus?: Focus;
   litLinks?: ReadonlySet<string>;
+  beads?: ReadonlyMap<string, number>;
   thresholds?: LookThresholds;
   corridors?: boolean;
   reveal?: Reveal | null;
@@ -557,12 +560,13 @@ function MapHost(props: BlueprintMapProps) {
     return () => { if (cameraRef.current === controls) cameraRef.current = null; };
   }, [cameraRef, controls]);
 
-  const selection = useMemo(() => new SelectionStore({ selected, selectedCard, selectedRow, highlight: props.highlight ?? empty, focus, litLinks: props.litLinks ?? empty }), []);
+  const selection = useMemo(() => new SelectionStore({ selected, selectedCard, selectedRow, highlight: props.highlight ?? empty, focus, litLinks: props.litLinks ?? empty, beads: props.beads }), []);
   const highlight = props.highlight ?? empty;
   const litLinks = props.litLinks ?? empty;
+  const beads = props.beads;
   useLayoutEffect(() => {
-    selection.set({ selected, selectedCard, selectedRow, highlight, focus, litLinks });
-  }, [selection, selected, selectedCard, selectedRow, highlight, focus, litLinks]);
+    selection.set({ selected, selectedCard, selectedRow, highlight, focus, litLinks, beads });
+  }, [selection, selected, selectedCard, selectedRow, highlight, focus, litLinks, beads]);
 
   const scene = useMemo<MapScene | null>(() => layout ? {
     layout,
@@ -660,7 +664,7 @@ function MapHost(props: BlueprintMapProps) {
   return <div
     ref={hostRef}
     className={['bp-map', props.className].filter(Boolean).join(' ')}
-    data-testid="blueprint-map"
+    data-testid={props.testId ?? 'blueprint-map'}
     data-ready={ready || undefined}
     data-camera={placed ? 'placed' : undefined}
     data-layout-key={layout?.key}
@@ -669,7 +673,7 @@ function MapHost(props: BlueprintMapProps) {
     tabIndex={-1}
     role="region"
     aria-roledescription="map"
-    aria-label="Knowledge map"
+    aria-label={props.label ?? 'Knowledge map'}
     onKeyDown={onKeyDown}
     onPointerDown={focusHost}
     style={{ touchAction: 'none' }}
