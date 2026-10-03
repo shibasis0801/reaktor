@@ -58,7 +58,9 @@ private val KeyNames: Map<Key, KeyName> = mapOf(
     Key.DirectionRight to KeyName.Right, Key.MoveHome to KeyName.Home, Key.MoveEnd to KeyName.End,
     Key.PageUp to KeyName.PageUp, Key.PageDown to KeyName.PageDown,
     Key.LeftBracket to KeyName.LeftBracket, Key.RightBracket to KeyName.RightBracket,
-    Key.Equals to KeyName.Equals, Key.NumPadEquals to KeyName.Equals, Key.Minus to KeyName.Minus, Key.NumPadSubtract to KeyName.Minus,
+    Key.Equals to KeyName.Equals, Key.Minus to KeyName.Minus, Key.NumPadSubtract to KeyName.Minus,
     Key.Comma to KeyName.Comma, Key.Period to KeyName.Period, Key.Slash to KeyName.Slash,
     ContextMenuKey to KeyName.ContextMenu,
 )
+
+internal val ComposeKeys: Map<KeyName, Key> = KeyNames.entries.groupBy({ it.value }, { it.key }).mapValues { it.value.first() }
