@@ -267,11 +267,15 @@ fun MenuPopupScope.Commands(
 @Composable
 private fun MenuPopupScope.CommandItem(command: Command, line: CommandLine.Item, onInvoke: (CommandId) -> Unit, appearance: CommandAppearance) {
     val content: @Composable MenuItemScope.() -> Unit = { CommandLook(appearance, line) }
-    when (val mark = command.mark) {
-        is Mark.Check -> CheckItem(command.id.value, mark.on, { onInvoke(command.id) }, enabled = line.enabled, typeahead = command.label, content = content)
-        is Mark.Choice -> RadioItem(command.id.value, mark.on, { onInvoke(command.id) }, enabled = line.enabled, typeahead = command.label, content = content)
-        null -> Item(command.id.value, { onInvoke(command.id) }, enabled = line.enabled, typeahead = command.label, content = content)
+    val item: @Composable () -> Unit = {
+        when (val mark = command.mark) {
+            is Mark.Check -> CheckItem(command.id.value, mark.on, { onInvoke(command.id) }, enabled = line.enabled, typeahead = command.label, content = content)
+            is Mark.Choice -> RadioItem(command.id.value, mark.on, { onInvoke(command.id) }, enabled = line.enabled, typeahead = command.label, content = content)
+            null -> Item(command.id.value, { onInvoke(command.id) }, enabled = line.enabled, typeahead = command.label, content = content)
+        }
     }
+    val reason = (command.availability as? Availability.Unavailable)?.reason
+    if (reason == null) item() else Tooltip(tip = { CommandLook(appearance, CommandLine.Caption(reason)) }, content = item)
 }
 
 @Composable

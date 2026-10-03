@@ -44,6 +44,7 @@ import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.ToastEntry
+import dev.shibasis.reaktor.surface.TooltipState
 import dev.shibasis.reaktor.surface.compose.Button
 import dev.shibasis.reaktor.surface.compose.ComposeFeedback
 import dev.shibasis.reaktor.surface.compose.ListRowSlots
@@ -220,7 +221,7 @@ class MachineSignalLookParityTest {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Box(Modifier.testTag("legacy-tip")) { LegacyTooltipFrame(tip) }
                     Box(Modifier.testTag("surface-tip")) {
-                        Look { theme, feedback -> SignalTooltip.Content(TipContent(), Unit, theme, feedback, TooltipSlots { Text(tip) }) }
+                        Look { theme, feedback -> SignalTooltip.Content(TipContent(), TooltipState(), theme, feedback, TooltipSlots { Text(tip) }) }
                     }
                 }
                 listOf(false, true).forEach { selected ->

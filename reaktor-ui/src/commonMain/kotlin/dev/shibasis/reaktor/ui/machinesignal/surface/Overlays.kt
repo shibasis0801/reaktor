@@ -26,6 +26,7 @@ import dev.shibasis.reaktor.surface.DisclosureState
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.ToastEntry
+import dev.shibasis.reaktor.surface.TooltipState
 import dev.shibasis.reaktor.surface.compose.ComposeFeedback
 import dev.shibasis.reaktor.surface.compose.PanelAppearance
 import dev.shibasis.reaktor.surface.compose.PanelSlots
@@ -41,7 +42,7 @@ import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
 val SignalTooltip: TooltipAppearance = object : TooltipAppearance {
     @Composable
-    override fun Content(properties: TipContent, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) {
+    override fun Content(properties: TipContent, state: TooltipState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) {
         val signal = theme.machineSignal
         val colors = signal.colors
         val size = signal.metrics.label

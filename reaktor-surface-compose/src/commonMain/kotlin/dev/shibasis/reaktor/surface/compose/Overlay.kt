@@ -26,6 +26,10 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -37,6 +41,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import dev.shibasis.reaktor.surface.KeyName
+import dev.shibasis.reaktor.surface.KeyStroke
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -45,8 +51,22 @@ class OverlayHost internal constructor(private val scope: CoroutineScope) {
     internal val layers = mutableStateListOf<OverlayLayer>()
     internal var origin by mutableStateOf(Offset.Zero)
     internal val content = FocusRequester()
+    internal val tips = mutableSetOf<TooltipAnchor>()
+    internal val contentFocus = mutableListOf<() -> Unit>()
     private var contentFocused = false
     private var returning = false
+    private var warmUntil = Long.MIN_VALUE
+
+    internal fun warm(uptime: Long): Boolean = uptime < warmUntil
+
+    internal fun cool(uptime: Long) {
+        warmUntil = uptime + WarmMillis
+    }
+
+    internal fun escape(event: KeyEvent): Boolean {
+        if (tips.isEmpty() || event.type != KeyEventType.KeyDown || event.stroke() != KeyStroke(KeyName.Escape)) return false
+        return tips.toList().map { it.escape() }.any { it }
+    }
 
     internal fun admits(layer: OverlayLayer?): Boolean {
         val above = if (layer == null) 0 else layers.indexOf(layer) + 1
@@ -55,7 +75,10 @@ class OverlayHost internal constructor(private val scope: CoroutineScope) {
 
     internal fun contentFocusChanged(hasFocus: Boolean) {
         contentFocused = hasFocus
-        if (hasFocus) returning = false
+        if (hasFocus) {
+            returning = false
+            contentFocus.toList().forEach { it() }
+        }
     }
 
     internal fun contentLeft() {
@@ -91,7 +114,7 @@ fun OverlayHost(content: @Composable () -> Unit) {
     val scope = rememberCoroutineScope()
     val host = remember { OverlayHost(scope) }
     CompositionLocalProvider(LocalOverlayHost provides host) {
-        Box(Modifier.fillMaxSize().onGloballyPositioned { host.origin = it.positionInWindow() }, propagateMinConstraints = true) {
+        Box(Modifier.fillMaxSize().onGloballyPositioned { host.origin = it.positionInWindow() }.onPreviewKeyEvent(host::escape), propagateMinConstraints = true) {
             val covered = host.layers.any { it.modal }
             Box(
                 Modifier
@@ -156,6 +179,8 @@ fun Overlay(modal: Boolean = true, content: @Composable () -> Unit) {
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun OverlayBack(enabled: Boolean = true, onBack: () -> Unit) = BackHandler(enabled, onBack)
+
+private const val WarmMillis = 300L
 
 internal object WholeWindow : PopupPositionProvider {
     override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize) = IntOffset.Zero
