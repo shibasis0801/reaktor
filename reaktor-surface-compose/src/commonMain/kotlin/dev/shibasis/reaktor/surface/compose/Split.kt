@@ -174,7 +174,7 @@ internal fun SplitterHandle(
 private fun SplitterProperties.physical(growth: Float): Float =
     if ((axis != Axis.Vertical && rightToLeft) != reversed) -growth else growth
 
-private data class HandlePointerElement(val onHover: (Boolean) -> Unit, val onDoubleClick: () -> Unit) : ModifierNodeElement<HandlePointerNode>() {
+internal data class HandlePointerElement(val onHover: (Boolean) -> Unit, val onDoubleClick: () -> Unit) : ModifierNodeElement<HandlePointerNode>() {
     override fun create() = HandlePointerNode(onHover, onDoubleClick)
 
     override fun update(node: HandlePointerNode) {
@@ -183,7 +183,7 @@ private data class HandlePointerElement(val onHover: (Boolean) -> Unit, val onDo
     }
 }
 
-private class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleClick: () -> Unit) :
+internal class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleClick: () -> Unit) :
     Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode {
     private var lastTime = Long.MIN_VALUE
     private var lastPosition = Offset.Zero
@@ -200,6 +200,7 @@ private class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleClic
                     (change.position - lastPosition).getDistance() <= configuration.touchSlop
                 lastTime = if (again) Long.MIN_VALUE else change.uptimeMillis
                 lastPosition = change.position
+                change.consume()
                 if (again) onDoubleClick()
             }
         }

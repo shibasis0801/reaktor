@@ -121,6 +121,44 @@ class CollectionCostTest {
         assertTrue(counts.values.all { it == 1 })
     }
 
+    @Test
+    fun aTableHoldsTheSameCoroutinesAtAnyHeightAndHoverLeavesItsCellsAlone() {
+        val cells = mutableMapOf<String, Int>()
+        val columns = listOf(
+            TableColumn<String>("name", ColumnWidth.Share(1f), sortable = true, header = { BasicText("Name") }) { item ->
+                SideEffect { cells[item] = (cells[item] ?: 0) + 1 }
+                BasicText(item)
+            },
+            TableColumn<String>("size", ColumnWidth.Fixed(80.dp), header = { BasicText("Size") }) { BasicText("${it.length} B") },
+        )
+        val held = listOf(100, 800).map { height ->
+            var counts = 0 to 0
+            runComposeUiTest {
+                var shown by mutableStateOf(false)
+                var selection by mutableStateOf(emptySet<String>())
+                setContent {
+                    if (shown) AutomationScope("files") { DataTable(rows, columns, selection, { selection = it }, Modifier.size(300.dp, height.dp)) }
+                }
+                waitForIdle()
+                val before = liveCoroutines()
+                shown = true
+                settle()
+                val atRest = liveCoroutines() - before
+                cells.clear()
+                onNodeWithTag("files/row/row-1").performMouseInput {
+                    moveTo(center)
+                    click(center)
+                    moveBy(center.copy(x = 0f, y = 30f))
+                }
+                settle()
+                assertEquals(emptyMap(), cells, "hover and selection recomposed cells")
+                counts = atRest to liveCoroutines() - before
+            }
+            counts
+        }
+        assertEquals(held[0], held[1], "eight times the rows must hold no more coroutines")
+    }
+
     private fun counting(counts: MutableMap<Int, Int>): RowAppearance = object : RowAppearance {
         @Composable
         override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {

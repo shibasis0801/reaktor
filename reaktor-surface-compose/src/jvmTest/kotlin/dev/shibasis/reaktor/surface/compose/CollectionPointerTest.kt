@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -8,20 +9,35 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performMultiModalInput
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Chord
+import dev.shibasis.reaktor.surface.Command
+import dev.shibasis.reaktor.surface.CommandId
+import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.KeyConvention
+import dev.shibasis.reaktor.surface.KeyName
 import dev.shibasis.reaktor.surface.SelectionMode
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.listSource
@@ -131,6 +147,91 @@ class CollectionPointerTest {
         waitForIdle()
         assertFalse(seen.getValue(5).hovered)
         assertTrue(seen.getValue(6).hovered)
+    }
+
+    @Test
+    fun aRightClickSelectsTheRowThenOpensItsMenuAtThePointer() = runComposeUiTest {
+        var selection by mutableStateOf(setOf("row-1"))
+        val invoked = mutableListOf<Pair<String, Set<String>>>()
+        setContent { Menus(selection, { selection = it }, invoked) }
+        val row = onNodeWithTag("files/row/row-4").fetchSemanticsNode().boundsInRoot
+        onNodeWithTag("files/row/row-4").performMouseInput { rightClick(center) }
+        assertEquals(setOf("row-4"), selection)
+        assertEquals(row.center.y, panelTop())
+        onNodeWithTag("files/menu/copy").performClick()
+        assertEquals(listOf("copy" to setOf("row-4")), invoked)
+        onNodeWithTag("files/menu/copy").assertDoesNotExist()
+        onNodeWithTag("files/row/row-4").assertIsFocused()
+    }
+
+    @Test
+    fun shiftF10OpensTheMenuUnderTheActiveRowAndEscapeGivesTheRowFocusBack() = runComposeUiTest {
+        var selection by mutableStateOf(setOf("row-2"))
+        setContent { Menus(selection, { selection = it }, mutableListOf()) }
+        onNodeWithTag("files/row/row-2").performMouseInput { click(center) }
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F10) } }
+        assertEquals(onNodeWithTag("files/row/row-2").fetchSemanticsNode().boundsInRoot.bottom, panelTop())
+        onRoot().performKeyInput { pressKey(Key.Escape) }
+        onNodeWithTag("files/menu/copy").assertDoesNotExist()
+        onNodeWithTag("files/row/row-2").assertIsFocused()
+        assertEquals(setOf("row-2"), selection)
+    }
+
+    @Test
+    fun theMenuTriggerSelectsItsRowAndOpensTheMenuAtItself() = runComposeUiTest {
+        var selection by mutableStateOf(emptySet<String>())
+        setContent { Menus(selection, { selection = it }, mutableListOf(), trigger = true) }
+        onNodeWithTag("more-row-6", useUnmergedTree = true).performClick()
+        assertEquals(setOf("row-6"), selection)
+        assertEquals(onNodeWithTag("more-row-6", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.bottom, panelTop())
+        onRoot().performKeyInput { pressKey(Key.Escape) }
+        onNodeWithTag("files/menu/copy").assertDoesNotExist()
+        onNodeWithTag("more-row-7")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(setOf("row-7"), selection)
+        onNodeWithTag("files/menu/copy").assertExists()
+    }
+
+    @Test
+    fun aRowChordRunsItsCommandOnTheSelection() = runComposeUiTest {
+        var selection by mutableStateOf(setOf("row-3"))
+        val invoked = mutableListOf<Pair<String, Set<String>>>()
+        setContent { Menus(selection, { selection = it }, invoked, keys = KeyConvention.Pc) }
+        onNodeWithTag("files/row/row-3").performMouseInput { click(center) }
+        onRoot().performKeyInput { withKeyDown(Key.CtrlLeft) { pressKey(Key.C) } }
+        assertEquals(listOf("copy" to setOf("row-3")), invoked)
+    }
+
+    private fun ComposeUiTest.panelTop(): Float =
+        onNodeWithTag("files/menu/copy").fetchSemanticsNode().boundsInRoot.top - with(density) { 8.dp.toPx() }
+
+    @Composable
+    private fun Menus(
+        selection: Set<String>,
+        onSelectionChange: (Set<String>) -> Unit,
+        invoked: MutableList<Pair<String, Set<String>>>,
+        trigger: Boolean = false,
+        keys: KeyConvention = KeyConvention.Mac,
+    ) = SurfaceEnvironmentProvider(SurfaceEnvironment(keys = keys)) {
+        AutomationScope("files") {
+            ListBox(
+                rows,
+                selection,
+                onSelectionChange,
+                Modifier.height(400.dp),
+                mode = SelectionMode.Multiple,
+                actions = RowActions(
+                    { CommandSet(listOf(Command(CommandId("copy"), "Copy", Chord.Of(KeyName.C, primary = true)), Command(CommandId("open"), "Open"))) },
+                    { id, chosen -> invoked += id.value to chosen },
+                ),
+            ) { key ->
+                Row {
+                    BasicText(key)
+                    if (trigger) MenuTrigger(Modifier.testTag("more-$key")) { BasicText("⋯") }
+                }
+            }
+        }
     }
 
     private fun androidx.compose.ui.test.SemanticsNodeInteraction.clickHolding(key: Key) = performMultiModalInput {

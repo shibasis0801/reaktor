@@ -126,4 +126,4 @@ private val ShiftF10 = KeyStroke(KeyName.F10, shift = true)
 
 private val MenuKey = KeyStroke(KeyName.ContextMenu)
 
-private val ContextPlacement = Placement(Side.Below, Align.Start, 0.dp)
+internal val ContextPlacement = Placement(Side.Below, Align.Start, 0.dp)

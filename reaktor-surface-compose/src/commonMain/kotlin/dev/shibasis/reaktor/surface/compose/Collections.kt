@@ -52,9 +52,13 @@ import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
+import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -62,6 +66,8 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.collapse
 import androidx.compose.ui.semantics.collectionInfo
@@ -70,21 +76,31 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selectableGroup
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.roundToIntRect
 import dev.shibasis.reaktor.surface.BehaviorKernel
 import dev.shibasis.reaktor.surface.CollectionEvent
 import dev.shibasis.reaktor.surface.CollectionInput
 import dev.shibasis.reaktor.surface.CollectionKernel
 import dev.shibasis.reaktor.surface.CollectionProperties
 import dev.shibasis.reaktor.surface.CollectionState
+import dev.shibasis.reaktor.surface.CommandEntry
+import dev.shibasis.reaktor.surface.CommandId
+import dev.shibasis.reaktor.surface.CommandSet
+import dev.shibasis.reaktor.surface.Edge
 import dev.shibasis.reaktor.surface.ItemSource
 import dev.shibasis.reaktor.surface.KeyConvention
 import dev.shibasis.reaktor.surface.LocalCommand
+import dev.shibasis.reaktor.surface.MenuInput
+import dev.shibasis.reaktor.surface.MenuKernel
 import dev.shibasis.reaktor.surface.SelectionMode
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.TreeItems
@@ -108,9 +124,22 @@ class RowSlots(val content: @Composable () -> Unit, val toggle: Modifier?)
 typealias RowAppearance = ComposeAppearance<RowProperties, RowState, RowSlots>
 
 @Stable
-class ItemScope internal constructor(val key: String, val index: Int, private val flags: RowFlags) {
+class ItemScope internal constructor(val key: String, val index: Int, private val flags: RowFlags, private val host: CollectionHost) {
     val selected: Boolean get() = flags.selected
     val active: Boolean get() = flags.active
+
+    @Composable
+    fun MenuTrigger(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+        Box(modifier.then(MenuTriggerElement(host, key)), propagateMinConstraints = true) { content() }
+}
+
+class RowActions(
+    val commands: (Set<String>) -> CommandSet,
+    val onInvoke: (CommandId, Set<String>) -> Unit,
+) {
+    companion object {
+        val None = RowActions({ NoCommands }, { _, _ -> })
+    }
 }
 
 @Composable
@@ -121,11 +150,12 @@ fun <T> ListBox(
     modifier: Modifier = Modifier,
     mode: SelectionMode = SelectionMode.Single,
     onActivate: (String) -> Unit = {},
+    actions: RowActions = RowActions.None,
     state: LazyListState = rememberLazyListState(),
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, state, behavior, appearance, row)
+) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, actions, state, behavior, appearance, true, row)
 
 @Composable
 fun <T> Tree(
@@ -136,14 +166,15 @@ fun <T> Tree(
     modifier: Modifier = Modifier,
     mode: SelectionMode = SelectionMode.Single,
     onActivate: (String) -> Unit = {},
+    actions: RowActions = RowActions.None,
     state: LazyListState = rememberLazyListState(),
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, state, behavior, appearance, row)
+) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, actions, state, behavior, appearance, true, row)
 
 @Composable
-private fun <T> Collection(
+internal fun <T> Collection(
     source: ItemSource<T>,
     selection: Set<String>,
     onSelectionChange: (Set<String>) -> Unit,
@@ -151,9 +182,11 @@ private fun <T> Collection(
     modifier: Modifier,
     mode: SelectionMode,
     onActivate: (String) -> Unit,
+    actions: RowActions,
     state: LazyListState,
     behavior: CollectionBehavior,
     appearance: RowAppearance,
+    scrollbar: Boolean,
     row: @Composable ItemScope.(T) -> Unit,
 ) {
     val properties = CollectionProperties(source, selection, LocalSurfaceEnvironment.current.keys, mode, LocalLayoutDirection.current == LayoutDirection.Rtl)
@@ -167,18 +200,23 @@ private fun <T> Collection(
             is CollectionEvent.SelectionChange -> changed(event.selection)
             is CollectionEvent.Activate -> activated(event.key)
             is CollectionEvent.ExpansionChange -> expanded(event.key, event.expanded)
-            is CollectionEvent.MenuRequest -> Unit
+            is CollectionEvent.MenuRequest -> host.menu(event)
         }
     }
     host.list = state
     val inputModes = LocalInputModeManager.current
     SideEffect { host.update(properties, behavior, inputModes) }
+    val menus = actions !== RowActions.None
+    val commands = if (menus) actions.commands(selection) else NoCommands
+    val invoke: (CommandId) -> Unit = { id -> actions.onInvoke(id, selected.value) }
+    if (menus) RowMenu(host, commands, invoke)
     Box(
         modifier
             .semantics {
                 collectionInfo = CollectionInfo(source.size, 1)
                 selectableGroup()
             }
+            .then(if (menus) Modifier.commands(commands, invoke) else Modifier)
             .onPreviewKeyEvent(host::onKey)
             .onFocusChanged(host::onFocus)
             .focusProperties { canFocus = host.waiting() }
@@ -187,7 +225,30 @@ private fun <T> Collection(
         LazyColumn(Modifier.fillMaxSize().then(CollectionPointerElement(host)), state = state) {
             items(source.size, key = source::key, contentType = { RowContent }) { index -> CollectionRow(host, source, index, appearance, row) }
         }
-        CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+        if (scrollbar) CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+    }
+}
+
+@Composable
+private fun RowMenu(host: CollectionHost, commands: CommandSet, invoke: (CommandId) -> Unit) {
+    val open = remember { mutableStateOf(false) }
+    val level = rememberMenuLevel(open.value, true, RowMenuKernel, null) { expanded ->
+        open.value = expanded
+        if (!expanded) host.returnFocus()
+    }
+    DisposableEffect(host, level) {
+        host.openMenu = { anchor ->
+            host.menuAnchor = anchor
+            level.machine.send(MenuInput.Open(level.machine.nextSequence(), Edge.First))
+        }
+        onDispose { host.openMenu = null }
+    }
+    val empty = commands.commands.isEmpty()
+    SideEffect { if (open.value && empty) level.machine.send(MenuInput.Dismiss) }
+    val entries = commands.menus.firstOrNull()?.entries ?: commands.commands.map { CommandEntry.Item(it.id) }
+    val scope = LocalAutomationScope.current
+    level.Popup(open.value && !empty, { host.menuAnchor }, ContextPlacement, LocalAppearances.current.menuPanel) {
+        if (scope == null) Commands(commands, entries, invoke) else AutomationScope(MenuPart) { Commands(commands, entries, invoke) }
     }
 }
 
@@ -206,7 +267,7 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
     val expanded = tree?.expanded(index) == true
     val selected = flags.selected
     val state = RowState(flags.active, flags.hovered, flags.focusVisible)
-    val scope = remember(flags, index) { ItemScope(key, index, flags) }
+    val scope = remember(flags, index) { ItemScope(key, index, flags, host) }
     val item = source[index]
     val automation = LocalAutomationScope.current
     Box(
@@ -268,6 +329,12 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     private val rows = HashMap<String, FocusRequester>()
     private var pending: String? = null
     private var pointing = false
+
+    var openMenu: ((IntRect) -> Unit)? = null
+    var menuAnchor = IntRect.Zero
+    var coordinates: LayoutCoordinates? = null
+    private var pointerAnchor = IntRect.Zero
+    private var nextAnchor: IntRect? = null
 
     var focused by mutableStateOf<String?>(null)
         private set
@@ -350,7 +417,33 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         machine.send(CollectionInput.Press(key, extend = modifiers.isShiftPressed, toggle = primary, clicks = clicks))
     }
 
-    fun secondary(key: String) = pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+    fun secondary(key: String, at: Offset) {
+        pointerAnchor = coordinates?.takeIf { it.isAttached }?.let { IntRect(it.localToWindow(at).round(), IntSize.Zero) } ?: IntRect.Zero
+        pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+    }
+
+    fun menuFrom(key: String, anchor: IntRect) {
+        nextAnchor = anchor
+        pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+        nextAnchor = null
+    }
+
+    fun menu(request: CollectionEvent.MenuRequest) {
+        val anchor = nextAnchor ?: if (request.atPointer) pointerAnchor else rowAnchor(request.key)
+        nextAnchor = null
+        openMenu?.invoke(anchor)
+    }
+
+    fun returnFocus() {
+        machine.state.active?.let(::focus)
+    }
+
+    private fun rowAnchor(key: String): IntRect {
+        val layout = coordinates?.takeIf { it.isAttached } ?: return IntRect.Zero
+        val item = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key } ?: return IntRect(layout.localToWindow(Offset.Zero).round(), IntSize.Zero)
+        val origin = layout.localToWindow(Offset(0f, item.offset.toFloat())).round()
+        return IntRect(origin, IntSize(layout.size.width, item.size))
+    }
 
     fun select(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 1))
 
@@ -412,7 +505,8 @@ private data class CollectionPointerElement(val host: CollectionHost) : Modifier
     }
 }
 
-private class CollectionPointerNode(var host: CollectionHost) : Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode {
+private class CollectionPointerNode(var host: CollectionHost) :
+    Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode, LayoutAwareModifierNode {
     private var last: String? = null
     private var lastTime = 0L
     private var lastPosition = Offset.Zero
@@ -431,7 +525,7 @@ private class CollectionPointerNode(var host: CollectionHost) : Modifier.Node(),
     private fun press(event: PointerEvent, change: PointerInputChange) {
         val key = host.keyAt(change.position) ?: return
         if (event.buttons.isSecondaryPressed) {
-            host.secondary(key)
+            host.secondary(key, change.position)
         } else {
             val configuration = currentValueOf(LocalViewConfiguration)
             val again = key == last && change.uptimeMillis - lastTime <= configuration.doubleTapTimeoutMillis &&
@@ -446,6 +540,10 @@ private class CollectionPointerNode(var host: CollectionHost) : Modifier.Node(),
     }
 
     override fun onCancelPointerInput() = Unit
+
+    override fun onPlaced(coordinates: LayoutCoordinates) {
+        host.coordinates = coordinates
+    }
 }
 
 private data class ToggleElement(val host: CollectionHost, val key: String, val expanded: Boolean) : ModifierNodeElement<ToggleNode>() {
@@ -467,6 +565,45 @@ private class ToggleNode(var host: CollectionHost, var key: String, var expanded
     }
 
     override fun onCancelPointerInput() = Unit
+}
+
+private data class MenuTriggerElement(val host: CollectionHost, val key: String) : ModifierNodeElement<MenuTriggerNode>() {
+    override fun create() = MenuTriggerNode(host, key)
+
+    override fun update(node: MenuTriggerNode) {
+        node.host = host
+        node.key = key
+    }
+}
+
+private class MenuTriggerNode(var host: CollectionHost, var key: String) :
+    Modifier.Node(), PointerInputModifierNode, LayoutAwareModifierNode, SemanticsModifierNode {
+    private var placed: LayoutCoordinates? = null
+
+    override val shouldMergeDescendantSemantics: Boolean get() = true
+
+    override fun onPlaced(coordinates: LayoutCoordinates) {
+        placed = coordinates
+    }
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (pass != PointerEventPass.Main || pointerEvent.type != PointerEventType.Press || pointerEvent.buttons.isSecondaryPressed) return
+        val change = pointerEvent.changes.firstOrNull()?.takeUnless { it.isConsumed } ?: return
+        change.consume()
+        open()
+    }
+
+    override fun onCancelPointerInput() = Unit
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        onClick {
+            open()
+            true
+        }
+    }
+
+    private fun open() = host.menuFrom(key, placed?.takeIf { it.isAttached }?.boundsInWindow()?.roundToIntRect() ?: IntRect.Zero)
 }
 
 val BareRow: RowAppearance = object : RowAppearance {
@@ -494,6 +631,12 @@ val BareRow: RowAppearance = object : RowAppearance {
 }
 
 private val DefaultKernel = CollectionKernel()
+
+private val RowMenuKernel = MenuKernel()
+
+private val NoCommands = CommandSet(emptyList())
+
+private const val MenuPart = "menu"
 
 private object RowContent
 
