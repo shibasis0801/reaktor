@@ -51,6 +51,15 @@ class AppearancesTest {
     }
 
     @Test
+    fun theOverlayKeysStartBare() {
+        val bare = Appearances()
+        assertSame(BareSeparator, bare[Appearance.Separator])
+        assertSame(BareTooltip, bare[Appearance.Tooltip])
+        assertSame(BarePanel, bare[Appearance.Popover])
+        assertFalse(Appearance.Popover in Appearances(dialog = BarePanel))
+    }
+
+    @Test
     fun aMismatchNamesBothThemes() {
         val mismatch = ThemeMismatch("Machine Signal", "human-signal-light")
         assertEquals("A Machine Signal appearance was drawn under the theme 'human-signal-light'", mismatch.message)

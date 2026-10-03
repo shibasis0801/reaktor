@@ -48,6 +48,9 @@ object Appearance {
     val Checkbox = AppearanceKey<CheckboxAppearance>("checkbox", BareCheckbox)
     val Progress = AppearanceKey<ProgressAppearance>("progress", BareProgress)
     val ListRow = AppearanceKey<ListRowAppearance>("listRow", BareListRow)
+    val Separator = AppearanceKey<SeparatorAppearance>("separator", BareSeparator)
+    val Tooltip = AppearanceKey<TooltipAppearance>("tooltip", BareTooltip)
+    val Popover = AppearanceKey<PanelAppearance>("popover", BarePanel)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
