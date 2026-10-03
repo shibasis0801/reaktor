@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusProperties
@@ -613,10 +614,8 @@ val BareRow: RowAppearance = object : RowAppearance {
             Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = 32.dp)
-                .drawBehind {
-                    if (properties.selected) drawRect(Color.LightGray)
-                    if (state.focusVisible) drawRect(Color.Gray, style = Stroke(1.dp.toPx()))
-                }
+                .drawBehind { if (properties.selected) drawRect(Color.LightGray) }
+                .focusFrame(state.focusVisible)
                 .padding(start = 16.dp * properties.depth),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -628,6 +627,11 @@ val BareRow: RowAppearance = object : RowAppearance {
             Box(Modifier.weight(1f)) { slots.content() }
         }
     }
+}
+
+internal fun Modifier.focusFrame(shown: Boolean): Modifier = drawWithContent {
+    drawContent()
+    if (shown) drawRect(Color.Gray, style = Stroke(1.dp.toPx()))
 }
 
 private val DefaultKernel = CollectionKernel()

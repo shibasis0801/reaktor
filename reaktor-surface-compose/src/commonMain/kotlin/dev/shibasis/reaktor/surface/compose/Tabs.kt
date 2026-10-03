@@ -31,7 +31,7 @@ val BareTab: ItemAppearance = object : ItemAppearance {
     @Composable
     override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) {
         Column(
-            Modifier.defaultMinSize(minHeight = 48.dp),
+            Modifier.defaultMinSize(minHeight = 48.dp).focusFrame(state.focusVisible),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         ) {
