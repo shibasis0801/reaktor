@@ -1,12 +1,14 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +33,7 @@ import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.runSkikoComposeUiTest
@@ -138,6 +141,54 @@ class WrapperParityTest {
             same("$place/rest", legacy.rest, wrapper.rest)
             same("$place/hovered", legacy.hovered, wrapper.hovered)
         }
+    }
+
+    @Test
+    fun machineSignalTooltipKeepsItsAnchorAndShowsTheLegacyFrameWhereMaterialDid() = everyScene("tooltip") { variant, density ->
+        val place = "tooltip/${name(variant)}/x$density"
+        val tip = "Stop selected operation; unavailable in this context"
+        scene(density, variant, {
+            Row(Modifier.padding(40.dp), horizontalArrangement = Arrangement.spacedBy(200.dp)) {
+                Box(Modifier.testTag("legacy-anchor")) { LegacyMachineSignalTooltip(tip) { Swatch() } }
+                Box(Modifier.testTag("wrapper-anchor")) { MachineSignalTooltip(tip) { Swatch() } }
+            }
+        }) {
+            if (node("legacy-anchor").size != node("wrapper-anchor").size) failures += "$place: anchor bounds changed"
+            same("$place/anchor", capture("legacy-anchor"), capture("wrapper-anchor"))
+        }
+        val legacy = shownTip(density, variant, tip) { LegacyMachineSignalTooltip(tip) { Swatch() } }
+        val wrapper = shownTip(density, variant, tip) { MachineSignalTooltip(tip) { Swatch() } }
+        if (variant == MachineSignalVariant.Editor) {
+            if (legacy.first != wrapper.first) failures += "$place: legacy tip text at ${legacy.first}, wrapper at ${wrapper.first}"
+            same("$place/shown", legacy.second, wrapper.second)
+        } else {
+            results += "$place/shown legacy draws Editor colours and sizes under any theme; the wrapper follows the theme (text ${legacy.first} vs ${wrapper.first})"
+        }
+    }
+
+    @Composable
+    private fun Swatch() = Box(Modifier.size(28.dp).background(MachineSignal.Editor.Accent).clickable(enabled = false) {})
+
+    private fun shownTip(density: Float, variant: MachineSignalVariant?, tip: String, anchor: @Composable () -> Unit): Pair<IntRect, PixelMap> {
+        var shown: Pair<IntRect, PixelMap>? = null
+        scene(density, variant, { Box(Modifier.padding(start = 300.dp, top = 120.dp).testTag("anchor")) { anchor() } }) {
+            onRoot().performMouseInput { moveTo(Offset(2f, 2f)) }
+            onNode(hasTestTag("anchor"), useUnmergedTree = true).performMouseInput { moveTo(center) }
+            waitForIdle()
+            mainClock.advanceTimeBy(1_000)
+            waitForIdle()
+            val text = onNode(hasText(tip), useUnmergedTree = true).fetchSemanticsNode().boundsInWindow.roundToIntRect()
+            val whole = captureToImage()
+            val margin = (24 * density).roundToInt()
+            val region = IntRect(
+                (text.left - margin).coerceAtLeast(0),
+                (text.top - margin).coerceAtLeast(0),
+                (text.right + margin).coerceAtMost(whole.width),
+                (text.bottom + margin).coerceAtMost(whole.height),
+            )
+            shown = text to whole.toPixelMap(region.left, region.top, region.width, region.height)
+        }
+        return requireNotNull(shown)
     }
 
     private class OpenedMenu(
