@@ -379,6 +379,7 @@ internal fun MenuLevel.Popup(
 ) {
     if (!expanded) return
     val gap = with(LocalDensity.current) { placement.gap.roundToPx() }
+    val margin = with(LocalDensity.current) { placement.margin.roundToPx() }
     val root = parent == null
     val dismiss = { machine.send(MenuInput.Dismiss) }
     Overlay(modal = false) {
@@ -397,7 +398,7 @@ internal fun MenuLevel.Popup(
             val scrim = if (root) measurables.first().measure(Constraints.fixed(canvas.width, canvas.height)) else null
             val panel = measurables.last().measure(constraints.copy(minWidth = 0, minHeight = 0))
             val target = anchor().translate(-origin.x.roundToInt(), -origin.y.roundToInt())
-            val position = place(target, IntSize(panel.width, panel.height), canvas, placement.side, placement.align, gap, layoutDirection)
+            val position = place(target, IntSize(panel.width, panel.height), canvas, placement.side, placement.align, gap, layoutDirection, margin)
             layout(canvas.width, canvas.height) {
                 scrim?.place(0, 0)
                 panel.place(position)

@@ -111,9 +111,10 @@ private fun tipContent(command: CommandId?): TipContent {
 @Composable
 private fun Tip(anchor: TooltipAnchor, host: OverlayHost?, placement: Placement, frame: @Composable () -> Unit) {
     val gap = with(LocalDensity.current) { placement.gap.roundToPx() }
+    val margin = with(LocalDensity.current) { placement.margin.roundToPx() }
     val hoverable: @Composable () -> Unit = { Box(Modifier.then(TipHoverElement(anchor)), propagateMinConstraints = true) { frame() } }
     if (host == null) {
-        Popup(TipPosition(placement, gap), properties = PopupProperties(focusable = false), content = hoverable)
+        Popup(TipPosition(placement, gap, margin), properties = PopupProperties(focusable = false), content = hoverable)
         return
     }
     Overlay(modal = false) {
@@ -122,7 +123,7 @@ private fun Tip(anchor: TooltipAnchor, host: OverlayHost?, placement: Placement,
             val canvas = IntSize(constraints.maxWidth, constraints.maxHeight)
             val tip = measurables.single().measure(constraints.copy(minWidth = 0, minHeight = 0))
             val target = anchor.bounds.translate(-origin.x.roundToInt(), -origin.y.roundToInt())
-            val position = place(target, IntSize(tip.width, tip.height), canvas, placement.side, placement.align, gap, layoutDirection)
+            val position = place(target, IntSize(tip.width, tip.height), canvas, placement.side, placement.align, gap, layoutDirection, margin)
             layout(canvas.width, canvas.height) { tip.place(position) }
         }
     }
@@ -239,7 +240,7 @@ private class TipHoverElement(val anchor: TooltipAnchor) : ModifierNodeElement<T
     override fun hashCode(): Int = anchor.hashCode()
 }
 
-private class TipPosition(private val placement: Placement, private val gap: Int) : PopupPositionProvider {
+private class TipPosition(private val placement: Placement, private val gap: Int, private val margin: Int) : PopupPositionProvider {
     override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset =
-        place(anchorBounds, popupContentSize, windowSize, placement.side, placement.align, gap, layoutDirection)
+        place(anchorBounds, popupContentSize, windowSize, placement.side, placement.align, gap, layoutDirection, margin)
 }

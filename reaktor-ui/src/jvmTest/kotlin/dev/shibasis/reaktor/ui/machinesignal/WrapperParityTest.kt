@@ -129,10 +129,16 @@ class WrapperParityTest {
             SignalAction("Delete row", enabled = false) {},
         )
         val tags = actions.map { it.id ?: "signal-action-${it.label}" }
-        listOf("start" to 40.dp, "end" to 975.dp).forEach { (edge, x) ->
-            val place = "menu/${name(variant)}/x$density/$edge"
-            val legacy = openedMenu(density, variant, x, tags) { open -> LegacySignalContextMenu(actions, open, {}) }
-            val wrapper = openedMenu(density, variant, x, tags) { open -> SignalContextMenu(actions, open, {}) }
+        listOf(
+            MenuAnchor("start", 40.dp, 80.dp),
+            MenuAnchor("end", 975.dp, 80.dp),
+            MenuAnchor("table", 40.dp, 172.dp, 600.dp, 568.dp),
+            MenuAnchor("table-top", 40.dp, 100.dp, 600.dp, 500.dp),
+            MenuAnchor("table-bottom", 40.dp, 100.dp, 600.dp, 640.dp),
+        ).forEach { anchor ->
+            val place = "menu/${name(variant)}/x$density/${anchor.name}"
+            val legacy = openedMenu(density, variant, anchor, tags) { open -> LegacySignalContextMenu(actions, open, {}) }
+            val wrapper = openedMenu(density, variant, anchor, tags) { open -> SignalContextMenu(actions, open, {}) }
             tags.forEach { tag ->
                 if (legacy.bounds[tag] != wrapper.bounds[tag]) failures += "$place/$tag: legacy at ${legacy.bounds[tag]}, wrapper at ${wrapper.bounds[tag]}"
                 if (legacy.meanings[tag] != wrapper.meanings[tag]) failures += "$place/$tag: legacy semantics ${legacy.meanings[tag]}, wrapper semantics ${wrapper.meanings[tag]}"
@@ -199,11 +205,13 @@ class WrapperParityTest {
         val hovered: PixelMap,
     )
 
-    private fun openedMenu(density: Float, variant: MachineSignalVariant?, x: Dp, tags: List<String>, menu: @Composable (Boolean) -> Unit): OpenedMenu {
+    private class MenuAnchor(val name: String, val x: Dp, val y: Dp, val width: Dp = 120.dp, val height: Dp = 24.dp)
+
+    private fun openedMenu(density: Float, variant: MachineSignalVariant?, anchor: MenuAnchor, tags: List<String>, menu: @Composable (Boolean) -> Unit): OpenedMenu {
         var opened: OpenedMenu? = null
         val open = mutableStateOf(false)
         scene(density, variant, {
-            Box(Modifier.absoluteOffset(x, 80.dp).requiredSize(120.dp, 24.dp)) { menu(open.value) }
+            Box(Modifier.absoluteOffset(anchor.x, anchor.y).requiredSize(anchor.width, anchor.height)) { menu(open.value) }
         }) {
             onRoot().performMouseInput { click(Offset(4f, 4f)) }
             waitForIdle()

@@ -14,8 +14,8 @@ class PlacementTest {
     private val menu = IntSize(200, 300)
     private val button = IntRect(400, 100, 480, 130)
 
-    private fun at(anchor: IntRect, side: Side, align: Align, gap: Int = 6, content: IntSize = menu, direction: LayoutDirection = LayoutDirection.Ltr) =
-        place(anchor, content, canvas, side, align, gap, direction)
+    private fun at(anchor: IntRect, side: Side, align: Align, gap: Int = 6, content: IntSize = menu, direction: LayoutDirection = LayoutDirection.Ltr, margin: Int = 0) =
+        place(anchor, content, canvas, side, align, gap, direction, margin)
 
     @Test
     fun theDefaultsOpenBelowAndEndAligned() {
@@ -53,6 +53,35 @@ class PlacementTest {
         assertEquals(IntOffset(280, 0), at(button, Side.Below, Align.End, content = tall))
         val wide = IntSize(1200, 300)
         assertEquals(0, at(button, Side.Below, Align.Start, content = wide).x)
+    }
+
+    @Test
+    fun aMenuThatFitsOnNeitherSideCentresOnTheAnchorTopEdge() {
+        val table = IntRect(100, 200, 700, 780)
+        assertEquals(IntOffset(100, 50), at(table, Side.Below, Align.Start, gap = 0))
+        assertEquals(IntOffset(100, 49), at(table, Side.Below, Align.Start, gap = 0, content = IntSize(200, 301)))
+    }
+
+    @Test
+    fun aMarginTurnsDownASideThatWouldComeTooCloseToTheCanvasEdge() {
+        val table = IntRect(100, 330, 700, 780)
+        assertEquals(IntOffset(100, 30), at(table, Side.Below, Align.Start, gap = 0))
+        assertEquals(IntOffset(100, 180), at(table, Side.Below, Align.Start, gap = 0, margin = 48))
+        assertEquals(IntOffset(400, 130), at(button, Side.Below, Align.Start, gap = 0, margin = 48))
+    }
+
+    @Test
+    fun whenNothingFitsTheMenuKeepsToTheCanvasEdgeOnTheAnchorsHalf() {
+        assertEquals(IntOffset(100, 48), at(IntRect(100, 100, 700, 600), Side.Below, Align.Start, gap = 0, margin = 48))
+        assertEquals(IntOffset(100, 452), at(IntRect(100, 100, 700, 780), Side.Below, Align.Start, gap = 0, margin = 48))
+        assertEquals(IntOffset(100, 40), at(IntRect(100, 100, 700, 780), Side.Below, Align.Start, gap = 0, margin = 48, content = IntSize(200, 720)))
+    }
+
+    @Test
+    fun aSubmenuWithNoRoomOnEitherSideCentresOnItsItemStartEdge() {
+        val wide = IntRect(150, 200, 900, 240)
+        assertEquals(IntOffset(50, 200), at(wide, Side.End, Align.Start, gap = 0))
+        assertEquals(IntOffset(800, 200), at(wide, Side.End, Align.Start, gap = 0, direction = LayoutDirection.Rtl))
     }
 
     @Test

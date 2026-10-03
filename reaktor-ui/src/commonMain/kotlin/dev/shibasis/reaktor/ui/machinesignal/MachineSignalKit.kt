@@ -208,7 +208,7 @@ fun SignalContextMenu(
     }
 }
 
-private val ContextMenuPlacement = Placement(Side.Below, Align.Start, 0.dp)
+private val ContextMenuPlacement = Placement(Side.Below, Align.Start, gap = 0.dp, margin = 48.dp)
 
 @Composable
 fun VerticalDivider(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
