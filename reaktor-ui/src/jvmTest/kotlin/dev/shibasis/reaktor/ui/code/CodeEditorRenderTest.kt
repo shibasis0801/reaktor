@@ -21,8 +21,12 @@ import dev.shibasis.reaktor.code.CodeSpan
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class CodeEditorRenderTest {
@@ -35,6 +39,18 @@ class CodeEditorRenderTest {
         onNodeWithTag("code-editor-status").assertExists()
         onNodeWithTag("code-editor-caret").assertTextEquals("Ln 1, Col 1")
         onNode(hasText("println", substring = true)).assertExists()
+    }
+
+    @Test fun codeStaysLeftToRightInARightToLeftLayout() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin)
+        setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CodeEditor(state, Modifier.size(700.dp, 320.dp))
+            }
+        }
+        val line = onNode(hasText("println", substring = true)).fetchSemanticsNode().boundsInRoot
+        val editor = onNodeWithTag("code-editor").fetchSemanticsNode().boundsInRoot
+        assertTrue(line.left - editor.left < editor.width / 4, "the line starts at ${line.left} in an editor from ${editor.left} to ${editor.right}")
     }
 
     @Test fun aHarnessCanSetTheWholeBufferThroughSemantics() = runComposeUiTest {

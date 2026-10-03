@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +67,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -77,6 +79,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -151,6 +154,21 @@ fun CodeEditor(
     onRun: (() -> Unit)? = null,
     onOpenExternally: (() -> Unit)? = null,
     tag: String = "code-editor",
+) = CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+    EditorSurface(state, modifier, intelligence, showGutter, showStatusBar, fontSize, onRun, onOpenExternally, tag)
+}
+
+@Composable
+private fun EditorSurface(
+    state: CodeEditorState,
+    modifier: Modifier,
+    intelligence: CodeIntelligence,
+    showGutter: Boolean,
+    showStatusBar: Boolean,
+    fontSize: TextUnit,
+    onRun: (() -> Unit)?,
+    onOpenExternally: (() -> Unit)?,
+    tag: String,
 ) {
     val fonts = LocalMachineSignalFonts.current
     val density = LocalDensity.current
