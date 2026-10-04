@@ -234,7 +234,6 @@ object AuthTenancyQueries {
         val app = uuidOrNull(appId)
         val tenant = uuidOrNull(tenantId)
         val kindCode = filterCode(kind)?.uppercase()
-        val text = searchTerm(search)
         return """
             SELECT p.id AS principal_id, p.identity_id, p.kind, p.status, $DisplayName AS name,
                 COALESCE(i.primary_email, (SELECT MIN(pa.email) FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id)) AS primary_email,
@@ -263,16 +262,28 @@ object AuthTenancyQueries {
             (app?.let { " AND EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND m.app_id = '$it')" } ?: "") +
             (tenant?.let { " AND EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND m.tenant_id = '$it')" } ?: "") +
             (kindCode?.let { " AND p.kind = '$it'" } ?: "") +
-            (text?.let { value ->
-                fun match(column: String) = "$column ILIKE '%$value%' ESCAPE '\\'"
-                listOf(
-                    match("CAST(p.id AS VARCHAR)"), match("CAST(p.identity_id AS VARCHAR)"), match("i.primary_email"), match("p.kind"), match("p.status"),
-                    "EXISTS (SELECT 1 FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id AND (${match("pa.email")} OR ${match("pa.provider")}))",
-                    "EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND ${match("CAST(m.profile AS VARCHAR)")})",
-                    "EXISTS (SELECT 1 FROM heimdall.service_account sa WHERE sa.principal_id = p.id AND (${match("sa.name")} OR ${match("sa.client_id")}))",
-                    "EXISTS (SELECT 1 FROM heimdall.principal_role g JOIN heimdall.role r ON r.id = g.role_id WHERE g.principal_id = p.id AND ${match("r.name")})",
-                ).joinToString(" OR ", prefix = " AND (", postfix = ")")
-            } ?: "") +
+            searchConditions(search, listOf("CAST(p.id AS VARCHAR)", "CAST(p.identity_id AS VARCHAR)", "i.primary_email", "p.kind", "p.status")) { key, value, regex ->
+                fun provider(column: String) = "EXISTS (SELECT 1 FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id AND ${searchMatch(value, regex, column)})"
+                fun membership(column: String) = "EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND ${searchMatch(value, regex, column)})"
+                fun service(column: String) = "EXISTS (SELECT 1 FROM heimdall.service_account sa WHERE sa.principal_id = p.id AND ${searchMatch(value, regex, column)})"
+                val role = "EXISTS (SELECT 1 FROM heimdall.principal_role g JOIN heimdall.role r ON r.id = g.role_id WHERE g.principal_id = p.id AND ${searchMatch(value, regex, "r.name")})"
+                when (key) {
+                    "name" -> searchMatch(value, regex, DisplayName)
+                    "email" -> "${searchMatch(value, regex, "i.primary_email")} OR ${provider("pa.email")}"
+                    "provider" -> provider("pa.provider")
+                    "kind" -> searchMatch(value, regex, "p.kind")
+                    "role" -> role
+                    "user", "principal" -> searchMatch(value, regex, "CAST(p.id AS VARCHAR)")
+                    "age" -> searchAge(value, "p.created_at")
+                    "is" -> when (value.lowercase()) {
+                        "active" -> "p.status = 'ACTIVE'"
+                        "user", "service", "agent" -> "p.kind = '${value.uppercase()}'"
+                        else -> null
+                    }
+                    else -> if (key.isNotBlank()) null else listOf(searchMatch(value, regex, "CAST(p.id AS VARCHAR)", "CAST(p.identity_id AS VARCHAR)", "i.primary_email", "p.kind", "p.status"),
+                        provider("pa.email"), provider("pa.provider"), membership("CAST(m.profile AS VARCHAR)"), service("sa.name"), service("sa.client_id"), role).joinToString(" OR ")
+                }
+            } +
             " ORDER BY last_seen_at DESC NULLS LAST, p.created_at DESC, p.id LIMIT $PageSize OFFSET ${page * PageSize}"
     }
 
