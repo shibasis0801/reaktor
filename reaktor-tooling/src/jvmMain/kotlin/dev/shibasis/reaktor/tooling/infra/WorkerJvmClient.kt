@@ -5,6 +5,7 @@ import kotlinx.serialization.json.*
 import java.io.File
 import java.net.URI
 import java.util.UUID
+import java.security.MessageDigest
 import dev.shibasis.reaktor.tooling.database.*
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -16,7 +17,23 @@ class WorkerJvmClient(private val session: InfrastructureSession) {
 
     fun execute(op: InfrastructureOperation.WorkerCall, environment: Map<String, String>): String {
         require(op.operation.matches(Regex("[a-z0-9.-]{1,100}")))
-        require((op.queryFile == null) == (op.resultFile == null))
+        require(op.inputFile == null || op.queryFile == null && op.store == null)
+        require(op.inputFile != null || (op.queryFile == null) == (op.resultFile == null))
+        val input = op.inputFile?.let { path ->
+            val file = File(path)
+            checkPrivateFile(file, false)
+            require(file.length() in 1..8_388_608)
+            val bytes = Files.newByteChannel(file.toPath(), setOf(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)).use { channel ->
+                val buffer = java.nio.ByteBuffer.allocate(8_388_609)
+                while (channel.read(buffer) > 0) { require(buffer.hasRemaining()) { "Worker input exceeds the bound" } }
+                buffer.flip()
+                ByteArray(buffer.remaining()).also { buffer.get(it) }
+            }
+            val digest = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+            check(digest == op.inputDigest) { "Worker input changed after review" }
+            bytes.toString(Charsets.UTF_8)
+        }
+        require(op.expectedEffect == WorkerEffect.Read || input != null)
         val storeRead = op.store?.let { store ->
             op.queryFile?.let { path ->
                 val file = File(path)
@@ -33,11 +50,11 @@ class WorkerJvmClient(private val session: InfrastructureSession) {
         val token = ServiceTokenClient(session).token(op.tokenSource(), environment)
         val headers = mapOf("Authorization" to "Bearer $token", "Accept" to "application/json", "Content-Type" to "application/json")
         val catalog = json.decodeFromString<WorkerOperationCatalog>(http.request(URI("${op.endpoint.trimEnd('/')}/_reaktor/operations"), headers = headers, maxBytes = 65_536))
-        catalog.requireRead(requireNotNull(environment["REAKTOR_ENVIRONMENT"]), op.operation)
+        catalog.requireOperation(requireNotNull(environment["REAKTOR_ENVIRONMENT"]), op.operation, op.expectedEffect)
         val requestId = UUID.randomUUID().toString()
         val result = json.decodeFromString<WorkerOperationResult>(http.request(
             URI("${op.endpoint.trimEnd('/')}/_reaktor/operations/${op.operation}?requestId=$requestId"),
-            body = storeRead?.let { Json.encodeToString(it) }, headers = headers, maxBytes = if (storeRead == null) 1_048_576 else 8_388_608))
+            body = input ?: storeRead?.let { Json.encodeToString(it) }, headers = headers, maxBytes = 8_388_608))
         result.requireMatches(catalog, requestId, op.operation)
         if (storeRead != null) {
             val receipt = json.decodeFromJsonElement<QueryReceipt>(result.result)

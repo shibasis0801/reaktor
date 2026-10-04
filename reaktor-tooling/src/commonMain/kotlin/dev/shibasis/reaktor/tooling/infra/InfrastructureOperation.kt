@@ -108,6 +108,9 @@ sealed interface InfrastructureOperation {
         val maxRows: Int = 100,
         val explain: Boolean = false,
         val catalog: WorkerStoreCatalog? = null,
+        val expectedEffect: WorkerEffect = WorkerEffect.Read,
+        val inputFile: String? = null,
+        val inputDigest: String? = null,
     ) : InfrastructureOperation
 }
 
