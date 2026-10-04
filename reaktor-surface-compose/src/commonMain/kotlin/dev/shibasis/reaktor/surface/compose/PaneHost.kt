@@ -52,15 +52,19 @@ fun PaneHost(
     modifier: Modifier = Modifier,
     behavior: SplitterBehavior = SplitterKernel(),
     appearance: SplitterAppearance = LocalAppearances.current[Appearance.Splitter],
+    focus: PaneHostFocus = remember { PaneHostFocus() },
     main: @Composable PaneScope.() -> Unit,
     region: @Composable PaneScope.(Region) -> Unit,
 ) {
     val latest by rememberUpdatedState(preferences)
     val changed by rememberUpdatedState(onPreferencesChange)
-    val groups = remember { PaneGroups() }
+    val groups = focus
     val scale = LocalDensity.current.fontScale
     val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
-    BoxWithConstraints(modifier.onPreviewKeyEvent { event -> event.type == KeyEventType.KeyDown && groups.cycle(event.stroke()) }) {
+    BoxWithConstraints(modifier.onPreviewKeyEvent { event ->
+        val stroke = event.stroke()
+        event.type == KeyEventType.KeyDown && stroke != null && stroke.key == KeyName.F6 && !stroke.meta && !stroke.control && !stroke.alt && groups.cycle(stroke.shift)
+    }) {
         val plan = spec.plan(maxWidth.value, maxHeight.value, scale, preferences)
         val shown = spec.regions.filter { it.id in plan.sizes }
         val starts = shown.filter { it.edge == RegionEdge.Start }
@@ -68,11 +72,12 @@ fun PaneHost(
         val bottoms = shown.filter { it.edge == RegionEdge.Bottom }
         val roomAcross = plan.mainWidth - spec.mainMinWidth * scale
         val roomDown = plan.mainHeight - spec.mainMinHeight * scale
-        val mainWidth = (plan.mainWidth.dp - HandleSize * (starts.size + ends.size)).coerceAtLeast(0.dp)
-        val mainHeight = (plan.mainHeight.dp - HandleSize * bottoms.size).coerceAtLeast(0.dp)
+        val mainWidth = (plan.mainWidth.dp - HandleSize * (starts + ends).count { it.min < it.max }).coerceAtLeast(0.dp)
+        val mainHeight = (plan.mainHeight.dp - HandleSize * bottoms.count { it.min < it.max }).coerceAtLeast(0.dp)
         val order = starts + listOf(null) + bottoms + ends
         val fullHeight = maxHeight
         val handle = @Composable { item: Region ->
+            if (item.min < item.max) {
             val size = plan.sizes.getValue(item.id)
             val bottom = item.edge == RegionEdge.Bottom
             SplitterHandle(
@@ -81,6 +86,7 @@ fun PaneHost(
                     min = item.min * scale,
                     max = minOf(item.max, size + if (bottom) roomDown else roomAcross),
                     initial = item.preferred,
+                    collapsible = item.collapsible,
                     reversed = item.edge != RegionEdge.Start,
                     axis = if (bottom) Axis.Vertical else Axis.Horizontal,
                     rightToLeft = rightToLeft,
@@ -89,7 +95,12 @@ fun PaneHost(
                 behavior,
                 appearance,
                 "$SplitterPart/${item.id}",
-            ) { change -> changed(latest.copy(sizes = latest.sizes + (item.id to change.size))) }
+                item.label,
+            ) { change ->
+                changed(if (change.collapsed) latest.copy(hidden = latest.hidden + item.id)
+                    else latest.copy(sizes = latest.sizes + (item.id to change.size), hidden = latest.hidden - item.id))
+            }
+            }
         }
         val pane = @Composable { item: Region?, width: Dp, height: Dp, content: @Composable PaneScope.() -> Unit ->
             val scope = PaneScope(width, height, plan.collapsed)
@@ -129,12 +140,12 @@ fun PaneHost(
 }
 
 @Stable
-private class PaneGroups {
+class PaneHostFocus {
     private val requesters = mutableListOf<FocusRequester>()
     private var focused = -1
-    var size = 0
+    internal var size = 0
 
-    fun group(index: Int): Modifier {
+    internal fun group(index: Int): Modifier {
         while (requesters.size <= index) requesters += FocusRequester()
         return Modifier
             .focusRequester(requesters[index])
@@ -143,9 +154,9 @@ private class PaneGroups {
             .focusGroup()
     }
 
-    fun cycle(stroke: KeyStroke?): Boolean {
-        if (stroke == null || stroke.key != KeyName.F6 || stroke.meta || stroke.control || stroke.alt || size == 0) return false
-        val step = if (stroke.shift) -1 else 1
+    fun cycle(backward: Boolean = false): Boolean {
+        if (size == 0) return false
+        val step = if (backward) -1 else 1
         val start = if (focused < 0) (if (step > 0) -1 else 0) else focused
         for (offset in 1..size) {
             val next = (start + step * offset).mod(size)

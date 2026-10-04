@@ -87,10 +87,11 @@ fun TabSet(
     onClose: (String) -> Unit = {},
     behavior: TabSetBehavior = TabSetKernel(),
     appearance: ItemAppearance = LocalAppearances.current[Appearance.DocumentTab],
+    text: (String) -> String = { it },
     tab: @Composable TabScope.(String) -> Unit,
 ) {
     val closable = remember { mutableStateMapOf<String, Unit>() }
-    val items = remember(tabs) { listSource(tabs, { it }, text = { it }) }
+    val items = remember(tabs, text) { listSource(tabs, { it }, text = text) }
     val properties = TabSetProperties(items, selected, closable.keys.toSet(), LocalLayoutDirection.current == LayoutDirection.Rtl)
     val chosen by rememberUpdatedState(onSelect)
     val closed by rememberUpdatedState(onClose)

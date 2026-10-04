@@ -9,6 +9,8 @@ data class Region(
     val min: Float,
     val max: Float = Float.POSITIVE_INFINITY,
     val collapse: Int,
+    val label: String = id,
+    val collapsible: Boolean = false,
 )
 
 data class PaneSpec(val regions: List<Region>, val mainMinWidth: Float, val mainMinHeight: Float)
