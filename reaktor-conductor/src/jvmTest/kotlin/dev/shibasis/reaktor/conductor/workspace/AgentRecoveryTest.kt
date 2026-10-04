@@ -114,4 +114,34 @@ class AgentRecoveryTest {
             }
         } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
     }
+
+    @Test fun closingAfterAProviderResultKeepsTheTerminalReceipt() = runBlocking {
+        for (background in listOf(false, true)) {
+            val root = Files.createTempDirectory("finishing-owner-root").toFile()
+            val data = Files.createTempDirectory("finishing-owner-data")
+            val finished = CompletableDeferred<Unit>()
+            val runtime = object : AgentRuntime {
+                override val kind = RuntimeKind.Echo
+                override fun run(request: AgentRequest) = flow {
+                    emit(AgentEvent.Started(request.agent.id, null))
+                    emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "saved answer", true)))
+                    finished.complete(Unit)
+                    delay(250)
+                }
+            }
+            try {
+                val owner = AgentWorkspace(root, data, mapOf(runtime.kind to runtime), background = background)
+                val run = owner.submit(AgentSubmission("finishing", runtime.kind, "work"))
+                withTimeout(10000) { finished.await() }
+                if (background) owner.suspendAndClose() else owner.close()
+                AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("A finished result must not run again") }), background = background).use { reopened ->
+                    reopened.recoverInBackground()
+                    assertEquals(AgentRunStatus.Completed, reopened.get(run.id).status)
+                    assertEquals(AgentRecovery.None, reopened.get(run.id).recovery)
+                    assertEquals("saved answer", reopened.get(run.id).output)
+                    assertEquals(1, reopened.transcript(run.threadId).events.count { it.kind == EventKind.Proposal })
+                }
+            } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        }
+    }
 }
