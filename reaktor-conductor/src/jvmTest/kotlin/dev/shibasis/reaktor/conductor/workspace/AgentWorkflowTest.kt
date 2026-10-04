@@ -120,12 +120,16 @@ class AgentWorkflowTest {
             val review = store.review(isolated.id)
             assertTrue(review.conflicts.isEmpty())
             assertTrue(review.changedFiles.single().endsWith("agent.txt"))
-            assertFailsWith<IllegalArgumentException> { store.apply(isolated.id, "bad", review.sourceRevision) }
-            store.apply(isolated.id, review.patchDigest, review.sourceRevision)
+            assertFailsWith<IllegalArgumentException> { store.apply(isolated.id, "bad", review.sourceRevision, "fixture-operator") }
+            assertFailsWith<IllegalArgumentException> { store.apply(isolated.id, review.patchDigest, review.sourceRevision, "") }
+            assertFalse(File(root, "agent.txt").exists())
+            val applied = store.apply(isolated.id, review.patchDigest, review.sourceRevision, "fixture-operator")
+            assertEquals("fixture-operator", applied.worktree.appliedBy)
+            assertEquals(review.patchDigest, applied.worktree.appliedPatch)
             assertEquals("agent addition\n", File(root, "agent.txt").readText())
             assertEquals("user change\n", File(root, "source.txt").readText())
             assertEquals(index, git(root, "diff", "--cached"))
-            store.apply(isolated.id, review.patchDigest, review.sourceRevision) // idempotent receipt
+            store.apply(isolated.id, review.patchDigest, review.sourceRevision, "fixture-operator")
         } finally { data.toFile().deleteRecursively(); root.deleteRecursively() }
     }
     private fun git(root: File, vararg args: String): String {

@@ -56,8 +56,8 @@ internal fun agentWorkflowTools(workspace: AgentWorkspace): List<McpTool> {
             AgentWorkspaceJson.encodeToJsonElement(AgentWorktreeReview.serializer(), workspace.worktrees.review(it.text("worktreeId")))
         },
         McpTool("agent_worktree_apply", "Apply the exact reviewed patch to source. Requires no active workspace runs, matching patch/source digests and no conflicts. Preserves the Git index; multi-root partial outcomes require reconciliation.",
-            schema("worktreeId", "patchDigest", "sourceRevision"), false, true, true, false) {
-            AgentWorkspaceJson.encodeToJsonElement(AgentWorktreeReview.serializer(), workspace.applyWorktree(it.text("worktreeId"), it.text("patchDigest"), it.text("sourceRevision")))
+            schema("worktreeId", "patchDigest", "sourceRevision", "approvedBy"), false, true, true, false) {
+            AgentWorkspaceJson.encodeToJsonElement(AgentWorktreeReview.serializer(), workspace.applyWorktree(it.text("worktreeId"), it.text("patchDigest"), it.text("sourceRevision"), it.text("approvedBy")))
         },
         McpTool("agent_evaluations", "Read recent workflow outcomes with exact definition fingerprint, source, duration, attempts and reported usage. Different source/model configurations are not controlled comparisons.", emptyObjectSchema(), true, true) {
             buildJsonObject { putJsonArray("runs") { workspace.list(50).filter { it.workflow != null }.forEach { run -> add(buildJsonObject {

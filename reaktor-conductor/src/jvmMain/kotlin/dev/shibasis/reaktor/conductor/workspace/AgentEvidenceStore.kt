@@ -26,7 +26,7 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
     }
     @Synchronized fun requireChecks(taskId: String, checks: List<String>): AgentTaskEvidence {
         require(checks.size <= 30 && checks.all { it.isNotBlank() && it.length <= 200 })
-        return save(get(taskId).copy(requiredChecks = checks.distinct(), acceptedCandidate = null))
+        return save(get(taskId).copy(requiredChecks = checks.distinct(), acceptedCandidate = null, acceptedBy = null))
     }
     @Synchronized fun finding(taskId: String, finding: AgentFinding): AgentTaskEvidence {
         val task = get(taskId)
@@ -43,7 +43,7 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
         require(finding.line == null || finding.line > 0)
         val existing = task.findings.firstOrNull { it.id == finding.id }
         require(existing == null || existing == finding) { "Finding id already has different content" }
-        return if (existing != null) task else save(task.copy(findings = task.findings + finding, acceptedCandidate = null))
+        return if (existing != null) task else save(task.copy(findings = task.findings + finding, acceptedCandidate = null, acceptedBy = null))
     }
     @Synchronized fun resolve(taskId: String, findingId: String, candidateId: String, reason: String): AgentTaskEvidence {
         val task = get(taskId)
@@ -52,15 +52,16 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
         require(task.findings.any { it.id == findingId })
         return save(task.copy(findings = task.findings.map {
             if (it.id == findingId) it.copy(resolvedByCandidate = candidateId, resolution = reason) else it
-        }, acceptedCandidate = null))
+        }, acceptedCandidate = null, acceptedBy = null))
     }
     @Synchronized fun check(taskId: String, check: AgentCandidateCheck): AgentTaskEvidence {
         val task = get(taskId)
         require(task.candidates.any { it.id == check.candidateId })
         require(check.result.revision == check.candidateId) { "Check does not identify this candidate" }
-        return save(task.copy(checks = task.checks.filterNot { it.id == check.id && it.candidateId == check.candidateId } + check, acceptedCandidate = null))
+        return save(task.copy(checks = task.checks.filterNot { it.id == check.id && it.candidateId == check.candidateId } + check, acceptedCandidate = null, acceptedBy = null))
     }
-    @Synchronized fun accept(taskId: String, candidateId: String): AgentTaskEvidence {
+    @Synchronized fun accept(taskId: String, candidateId: String, approvedBy: String? = null): AgentTaskEvidence {
+        require(!approvedBy.isNullOrBlank() && approvedBy.length <= 200) { "An operator must approve this exact candidate" }
         val task = get(taskId)
         val candidate = task.candidates.single { it.id == candidateId }
         val now = candidates.capture(candidate.subjects)
@@ -70,7 +71,7 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
             it.id == id && it.candidateId == candidateId && it.result.outcome == CheckOutcome.Passed && it.source == "kernel"
         } }) { "Required kernel checks have not passed for this candidate" }
         require(task.findings.none { it.resolvedByCandidate != candidateId && it.severity in listOf("blocker", "high") }) { "Blocking findings need resolution evidence on this candidate" }
-        return save(task.copy(acceptedCandidate = candidateId))
+        return save(task.copy(acceptedCandidate = candidateId, acceptedBy = approvedBy))
     }
     fun graph(taskId: String): AgentEvidenceGraph {
         val task = get(taskId)
