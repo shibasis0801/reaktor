@@ -462,7 +462,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     fun toggle(key: String, expandable: Boolean, expanded: Boolean): Modifier =
-        Modifier.clearAndSetSemantics {}.then(if (expandable) ToggleElement(this, key, expanded) else Modifier)
+        if (expandable) Modifier.then(ToggleElement(this, key, expanded)) else Modifier.clearAndSetSemantics {}
 
     private inline fun pointed(send: () -> Unit) {
         keyboard = false
@@ -557,7 +557,14 @@ private data class ToggleElement(val host: CollectionHost, val key: String, val 
     }
 }
 
-private class ToggleNode(var host: CollectionHost, var key: String, var expanded: Boolean) : Modifier.Node(), PointerInputModifierNode {
+private class ToggleNode(var host: CollectionHost, var key: String, var expanded: Boolean) : Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode {
+    override val shouldMergeDescendantSemantics: Boolean get() = true
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        onClick(label = if (expanded) "Collapse" else "Expand") { host.expand(key, !expanded); true }
+    }
+
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
         if (pass != PointerEventPass.Main || pointerEvent.type != PointerEventType.Press || pointerEvent.buttons.isSecondaryPressed) return
         val change = pointerEvent.changes.firstOrNull()?.takeUnless { it.isConsumed } ?: return
