@@ -50,6 +50,22 @@ class AntigravityGrantsTest {
         workspace.deleteRecursively()
     }
 
+    @Test fun anAllowListThatNeverFinishesRespectsItsDeadline() {
+        val fake = fakeAgy(listOf("command(git status)"))
+        fake.appendText("sleep 15\n")
+        val start = System.nanoTime()
+        assertNull(AntigravityGrants.allowed(fake.absolutePath, timeoutSeconds = 1))
+        assertTrue((System.nanoTime() - start) / 1e9 < 6, "The reader waited for output beyond its process deadline")
+    }
+
+    @Test fun aSlowPermissionAdvisoryDoesNotHoldUpTheHandoff() {
+        val fake = fakeAgy(listOf("command(git status)"))
+        fake.appendText("sleep 15\n")
+        val start = System.nanoTime()
+        assertNull(AntigravityGrants.advisory(File("/tmp"), writes = true, binary = fake.absolutePath))
+        assertTrue((System.nanoTime() - start) / 1e9 < 6, "The optional permission advisory held up the handoff")
+    }
+
     /** Answers `--print=/permissions` with the tab-separated shape the real CLI prints. */
     private fun fakeAgy(rules: List<String>): File {
         val script = Files.createTempFile("fake-agy", ".sh").toFile()
