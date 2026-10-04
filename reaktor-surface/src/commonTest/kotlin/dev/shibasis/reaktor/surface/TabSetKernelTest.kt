@@ -45,6 +45,10 @@ class TabSetKernelTest {
         assertEquals(listOf<TabSetEvent>(TabSetEvent.Select("testing")), clicked.events)
         assertEquals("testing", clicked.state.active)
         assertEquals(3, clicked.state.activeIndex)
+        assertEquals(listOf<LocalCommand>(LocalCommand.Focus(PartKey("testing")), LocalCommand.Reveal(PartKey("testing"))), clicked.commands)
+        val same = kernel.reduce(properties(), at("data"), TabSetInput.Point("data"))
+        assertTrue(same.events.isEmpty())
+        assertEquals(listOf<LocalCommand>(LocalCommand.Focus(PartKey("data")), LocalCommand.Reveal(PartKey("data"))), same.commands)
         assertTrue(kernel.reduce(properties(), at("data"), TabSetInput.Point("gone")).events.isEmpty())
     }
 

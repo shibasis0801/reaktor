@@ -77,6 +77,11 @@ class TabSetTest {
         onNodeWithTag("docs/data").assertIsSelected()
         onNodeWithTag("label-testing", useUnmergedTree = true).performClick()
         assertEquals("testing", selected)
+        onNodeWithTag("docs/testing").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        onNodeWithTag("docs/cloud").assertIsFocused().assertIsNotSelected()
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        assertEquals("cloud", selected)
     }
 
     @Test
@@ -126,6 +131,24 @@ class TabSetTest {
         selected = "doc-30"
         waitForIdle()
         onNodeWithTag("label-doc-30", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun typeaheadUsesDisplayedTextWhileKeepingStableKeys() = runComposeUiTest {
+        var selected by mutableStateOf("pane-1")
+        val labels = mapOf("pane-1" to "Graph", "pane-2" to "Data", "pane-3" to "Cloud")
+        setContent {
+            AutomationScope("docs") {
+                TabSet(labels.keys.toList(), selected, { selected = it }, text = labels::getValue) { key -> BasicText(labels.getValue(key)) }
+            }
+        }
+        onNodeWithTag("docs/pane-1").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.C) }
+        onNodeWithTag("docs/pane-3").assertIsFocused().assertIsNotSelected()
+        assertEquals("pane-1", selected)
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        assertEquals("pane-3", selected)
+        onNodeWithTag("docs/pane-3").assertIsSelected()
     }
 
     private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotExistOrIsOffscreen() {

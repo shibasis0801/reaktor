@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -36,7 +37,8 @@ class PaneHostTest {
         listOf(
             Region("outline", RegionEdge.Start, preferred = 272f, min = 200f, max = 460f, collapse = 0),
             Region("inspector", RegionEdge.End, preferred = 360f, min = 280f, max = 720f, collapse = 1),
-            Region("trace", RegionEdge.Bottom, preferred = 170f, min = 90f, max = 480f, collapse = 0),
+            Region("trace", RegionEdge.Bottom, preferred = 170f, min = 90f, max = 480f, collapse = 0,
+                label = "Resize execution tool window", collapsible = true),
         ),
         mainMinWidth = 16f,
         mainMinHeight = 40f,
@@ -114,6 +116,36 @@ class PaneHostTest {
         onNodeWithTag("main-second").assertIsFocused()
         onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F6) } }
         onNodeWithTag("outline-button").assertIsFocused()
+    }
+
+    @Test
+    fun enterHidesACollapsibleRegionWithoutLosingItsExpandedSize() = runComposeUiTest {
+        var preferences by mutableStateOf(PanePreferences(sizes = mapOf("trace" to 240f)))
+        setContent { Graph(1512, preferences) { preferences = it } }
+        onNodeWithTag("graph/splitter/trace").assertContentDescriptionEquals("Resize execution tool window").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        onNodeWithTag("trace").assertDoesNotExist()
+        assertEquals(setOf("trace"), preferences.hidden)
+        assertEquals(240f, preferences.sizes.getValue("trace"))
+        preferences = preferences.copy(hidden = emptySet())
+        onNodeWithTag("trace-size").assertTextEquals("864x240")
+    }
+
+    @Test
+    fun aFixedRailUsesNoResizeHandleOrHandleSpace() = runComposeUiTest {
+        val spec = PaneSpec(listOf(Region("rail", RegionEdge.Start, 40f, 40f, 40f, 0)), 200f, 40f)
+        setContent {
+            Box(Modifier.requiredSize(500.dp, 400.dp)) {
+                AutomationScope("shell") {
+                    PaneHost(spec, PanePreferences(), {}, main = { BasicText("${width.value.toInt()}", Modifier.testTag("width")) }) {
+                        BasicText("Rail", Modifier.testTag("rail"))
+                    }
+                }
+            }
+        }
+        onNodeWithTag("rail").assertExists()
+        onNodeWithTag("shell/splitter/rail").assertDoesNotExist()
+        onNodeWithTag("width").assertTextEquals("460")
     }
 
     private fun androidx.compose.ui.test.ComposeUiTest.f6() = onRoot().performKeyInput { pressKey(Key.F6) }
