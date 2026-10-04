@@ -127,13 +127,27 @@ class AuthConsoleQueriesTest {
     }
 
     @Test fun filtersRefuseAnythingThatCouldLeaveTheirLiteral() {
+        seed()
         assertFails { AuthConsoleQueries.events(AuditFilter(reason = "x' OR '1'='1")) }
         assertFails { AuthConsoleQueries.events(AuditFilter(eventType = "TOKEN_MINT;")) }
-        assertFails { AuthConsoleQueries.sessions(search = "a%") }
+        assertTrue(rows(AuthConsoleQueries.sessions(search = "a%")).isEmpty())
         assertFails { AuthConsoleQueries.sessions(appId = "not-a-uuid") }
         assertFails { AuthConsoleQueries.activity(days = 0) }
         assertTrue(AuthConsoleQueries.events(AuditFilter(search = "TOKEN_MINT")).contains("""ILIKE '%TOKEN\_MINT%' ESCAPE '\'"""))
         assertTrue(AuthConsoleQueries.sessions(page = 2).endsWith("LIMIT 200 OFFSET 400"))
+    }
+
+    @Test fun sharedSearchFiltersSessionsAndEventsBeforePaging() {
+        val seeded = seed()
+        assertEquals(listOf(seeded.active), rows(AuthConsoleQueries.sessions(principalId = seeded.user,
+            search = "device:~iOS is:active -is:fixture age:1d")).map { it["session_id"] })
+        assertTrue(rows(AuthConsoleQueries.sessions(principalId = seeded.user, search = "device:Android")).isEmpty())
+        val events = rows(AuthConsoleQueries.events(AuditFilter(principalId = seeded.user,
+            search = "reason:invalid_refresh_token is:failed -device:Android age:1d")))
+        assertEquals(2, events.size)
+        assertTrue(events.all { it["outcome"] == "FAILURE" })
+        assertTrue(rows(AuthConsoleQueries.events(AuditFilter(principalId = seeded.user,
+            search = "reason:x'OR'1'='1"))).isEmpty())
     }
 
     @Test fun exposureReadsTheCatalogForTheTwoSchemasThatMatter() {

@@ -146,6 +146,16 @@ class AuthTenancyQueriesTest {
         assertFalse("secret_hash" in service.keys)
     }
 
+    @Test fun sharedSearchCombinesPeopleFieldsNegationAndRegex() {
+        val seeded = seed()
+        val people = rows(AuthTenancyQueries.people(seeded.app,
+            search = "email:~^person- kind:user role:auditor -email:stranger age:1d"))
+        assertEquals(listOf(seeded.person), people.map { it["principal_id"] })
+        assertTrue(rows(AuthTenancyQueries.people(seeded.app, search = "role:auditor -role:writer")).isEmpty())
+        assertTrue(rows(AuthTenancyQueries.people(seeded.app, search = "email:%")).isEmpty())
+        assertTrue(rows(AuthTenancyQueries.people(seeded.app, search = "email:x'OR'1'='1")).isEmpty())
+    }
+
     @Test fun scopesRefuseAnythingThatIsNotAnIdentifier() {
         assertFails { AuthTenancyQueries.tenants("x' OR 1=1 --") }
         assertFails { AuthTenancyQueries.effectivePermissions(UUID.randomUUID().toString(), UUID.randomUUID().toString(), GrantScope("nope")) }
