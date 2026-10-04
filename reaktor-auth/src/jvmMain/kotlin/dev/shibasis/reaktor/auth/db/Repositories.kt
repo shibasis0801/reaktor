@@ -29,6 +29,11 @@ import dev.shibasis.reaktor.db.service.CrudRepository
 import dev.shibasis.reaktor.db.service.ExposedAdapter
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.neq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -143,8 +148,8 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
             app = app,
             principal = principal,
             membership = membership,
-            roles = getPrincipalRoles(principal.id.uuid(), app.id.uuid()),
-            permissions = getPrincipalPermissions(principal.id.uuid(), app.id.uuid()),
+            roles = getPrincipalRoles(principal.id.uuid(), app.id.uuid(), membership.tenantId, membership.contextId),
+            permissions = getPrincipalPermissions(principal.id.uuid(), app.id.uuid(), membership.tenantId, membership.contextId),
         )
     }
 
@@ -175,6 +180,16 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
                 contextId = contextId,
             )
         } else {
+            // The account was matched by verified provider issuer + subject, never by email.
+            // Refresh evidence from this login; a changed/unverified email cannot inherit the
+            // previous address's verification or relink the established identity.
+            val refreshedAccount = providerAccount.copy(email = email?.normalizedEmail(),
+                emailVerified = emailVerified && !email.isNullOrBlank(), updatedAt = Clock.System.now())
+            ProviderAccounts.update({ ProviderAccounts.id eq providerAccount.id.uuid() }) {
+                it[ProviderAccounts.email] = refreshedAccount.email
+                it[ProviderAccounts.emailVerified] = refreshedAccount.emailVerified
+                it[ProviderAccounts.updatedAt] = refreshedAccount.updatedAt
+            }
             val resolvedIdentity = requireNotNull(findIdentity(providerAccount.identityId.uuid())) {
                 "Provider account ${providerAccount.id} points at a missing identity"
             }
@@ -201,11 +216,11 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
             ResolvedAuthPrincipal(
                 app = app,
                 identity = identity,
-                providerAccount = providerAccount,
+                providerAccount = refreshedAccount,
                 principal = principal,
                 membership = membership,
-                roles = getPrincipalRoles(principal.id.uuid(), appId),
-                permissions = getPrincipalPermissions(principal.id.uuid(), appId),
+                roles = getPrincipalRoles(principal.id.uuid(), appId, membership.tenantId, membership.contextId),
+                permissions = getPrincipalPermissions(principal.id.uuid(), appId, membership.tenantId, membership.contextId),
             )
         }
         resolved
@@ -215,16 +230,20 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
         request: Request,
         principalId: UUID,
         appId: UUID,
+        tenantId: String? = null,
+        contextId: String? = null,
     ) = request.sql {
-        getPrincipalPermissions(principalId, appId)
+        getPrincipalPermissions(principalId, appId, tenantId, contextId)
     }
 
     suspend fun getPrincipalRoles(
         request: Request,
         principalId: UUID,
         appId: UUID,
+        tenantId: String? = null,
+        contextId: String? = null,
     ) = request.sql {
-        getPrincipalRoles(principalId, appId)
+        getPrincipalRoles(principalId, appId, tenantId, contextId)
     }
 
     suspend fun getPrincipal(
@@ -327,8 +346,8 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
                 providerAccount = providerAccount,
                 principal = principal,
                 membership = membership,
-                roles = getPrincipalRoles(principal.id.uuid(), app.id.uuid()),
-                permissions = getPrincipalPermissions(principal.id.uuid(), app.id.uuid()),
+                roles = getPrincipalRoles(principal.id.uuid(), app.id.uuid(), membership.tenantId, membership.contextId),
+                permissions = getPrincipalPermissions(principal.id.uuid(), app.id.uuid(), membership.tenantId, membership.contextId),
             )
         }
 
@@ -511,8 +530,8 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
                 var predicate = (AuthPrincipals.identityId eq identityId) and
                     (AuthPrincipals.kind eq PrincipalKind.USER) and
                     (Memberships.appId eq appId)
-                if (tenantId != null) predicate = predicate and (Memberships.tenantId eq tenantId.uuid())
-                if (contextId != null) predicate = predicate and (Memberships.contextId eq contextId.uuid())
+                predicate = predicate and (tenantId?.let { Memberships.tenantId eq it.uuid() } ?: Memberships.tenantId.isNull())
+                predicate = predicate and (contextId?.let { Memberships.contextId eq it.uuid() } ?: Memberships.contextId.isNull())
                 predicate
             }
             .map { AuthPrincipals.toDto(it) }
@@ -527,8 +546,8 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
         Memberships.selectAll()
             .where {
                 var predicate = (Memberships.principalId eq principalId) and (Memberships.appId eq appId)
-                if (tenantId != null) predicate = predicate and (Memberships.tenantId eq tenantId.uuid())
-                if (contextId != null) predicate = predicate and (Memberships.contextId eq contextId.uuid())
+                predicate = predicate and (tenantId?.let { Memberships.tenantId eq it.uuid() } ?: Memberships.tenantId.isNull())
+                predicate = predicate and (contextId?.let { Memberships.contextId eq it.uuid() } ?: Memberships.contextId.isNull())
                 predicate
             }
             .map { Memberships.toDto(it) }
@@ -537,12 +556,14 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     private fun getPrincipalRoles(
         principalId: UUID,
         appId: UUID,
+        tenantId: String? = null,
+        contextId: String? = null,
     ): List<String> =
         (PrincipalRoles innerJoin Roles)
             .selectAll()
             .where {
                 (PrincipalRoles.principalId eq principalId) and
-                    (Roles.appId eq appId)
+                    (Roles.appId eq appId) and roleScope(tenantId, contextId)
             }
             .map { it[Roles.name] }
             .distinct()
@@ -550,12 +571,14 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
     private fun getPrincipalPermissions(
         principalId: UUID,
         appId: UUID,
+        tenantId: String? = null,
+        contextId: String? = null,
     ): List<String> =
         (PrincipalRoles innerJoin Roles innerJoin dev.shibasis.reaktor.auth.RolePermissions innerJoin Permissions)
             .selectAll()
             .where {
                 (PrincipalRoles.principalId eq principalId) and
-                    (Roles.appId eq appId) and
+                    (Roles.appId eq appId) and roleScope(tenantId, contextId) and
                     (Permissions.appId eq appId)
             }
             .map { it[Permissions.name] }
@@ -564,3 +587,13 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
 
 private fun String.normalizedEmail(): String =
     trim().lowercase()
+
+internal fun roleScope(tenantId: String?, contextId: String?): Op<Boolean> {
+    val tenant = tenantId?.let { (PrincipalRoles.tenantId eq UUID.fromString(it)) or PrincipalRoles.tenantId.isNull() }
+        ?: PrincipalRoles.tenantId.isNull()
+    val context = contextId?.let { (PrincipalRoles.contextId eq UUID.fromString(it)) or PrincipalRoles.contextId.isNull() }
+        ?: PrincipalRoles.contextId.isNull()
+    val explicitSuperadmin = (Roles.name neq "superadmin") or
+        (tenantId?.let { PrincipalRoles.tenantId eq UUID.fromString(it) } ?: Op.FALSE)
+    return tenant and context and explicitSuperadmin
+}

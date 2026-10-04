@@ -10,12 +10,12 @@ actual fun BackHandlerContainer(
     modifier: Modifier,
     intercept: Boolean,
     onBack: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable (backProgress: () -> Float) -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
 //        BackHandler(enabled = navigator.stack.size > 1) {
 //            navigator.pop()
 //        }
-        content()
+        content { 0f }
     }
 }

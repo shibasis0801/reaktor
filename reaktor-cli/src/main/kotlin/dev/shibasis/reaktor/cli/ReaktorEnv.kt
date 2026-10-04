@@ -2,6 +2,9 @@ package dev.shibasis.reaktor.cli
 
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.mordant.terminal.Terminal
+import dev.shibasis.reaktor.tooling.DiscoveredJvmWorkspace
+import dev.shibasis.reaktor.tooling.JvmProjectDiscovery
+import java.io.File
 
 /**
  * The context shared down the Clikt command tree: the discovered project, the executor,
@@ -11,6 +14,7 @@ class ReaktorEnv private constructor(
     val terminal: Terminal,
     val runner: ProcessRunner,
     val project: ReaktorProject?,
+    val toolingWorkspace: DiscoveredJvmWorkspace?,
 ) {
     fun requireProject(): ReaktorProject =
         project ?: throw CliktError(
@@ -21,7 +25,11 @@ class ReaktorEnv private constructor(
     companion object {
         fun create(): ReaktorEnv {
             val terminal = Terminal()
-            return ReaktorEnv(terminal, ProcessRunner(terminal), ReaktorProject.discover())
+            val toolingWorkspace = JvmProjectDiscovery().discoverWorkspace()
+            val project = toolingWorkspace?.catalog?.workspace?.root
+                ?.let(::File)
+                ?.let(ReaktorProject::discover)
+            return ReaktorEnv(terminal, ProcessRunner(terminal), project, toolingWorkspace)
         }
     }
 }

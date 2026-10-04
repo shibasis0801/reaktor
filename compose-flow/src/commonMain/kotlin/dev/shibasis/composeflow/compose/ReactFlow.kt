@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -56,7 +57,7 @@ import dev.shibasis.composeflow.compose.interaction.flowViewportPointerTracking
 import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
 import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
 import dev.shibasis.composeflow.compose.interaction.zoomAroundCanvasCenter
-import dev.shibasis.composeflow.compose.primitives.EdgeHitAreaOverlay
+import dev.shibasis.composeflow.compose.primitives.findClosestEdge
 import dev.shibasis.composeflow.compose.primitives.EdgePathStyle
 import dev.shibasis.composeflow.compose.primitives.EdgeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.FlowAnchor
@@ -64,6 +65,7 @@ import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeTypes
 import dev.shibasis.composeflow.compose.primitives.anchorFor
+import dev.shibasis.composeflow.compose.primitives.routedEdgePath
 import dev.shibasis.composeflow.compose.primitives.drawConnectionLine
 import dev.shibasis.composeflow.compose.primitives.drawFlowEdge
 import dev.shibasis.composeflow.model.BackgroundVariant
@@ -134,6 +136,7 @@ fun ReactFlow(
     onPaneClick: (() -> Unit)? = null,
     overlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
     viewportOverlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
+    canvasBackground: androidx.compose.ui.graphics.Color = FlowCanvasBackground,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     val interactionState = rememberFlowViewportInteractionState()
@@ -175,13 +178,15 @@ fun ReactFlow(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxSize()
-                .background(FlowCanvasBackground)
+                .background(canvasBackground)
                 .onSizeChanged {
                     canvasSize = it
-                    state.canvasSize = it
+                    state.setCanvasSize(it)
                 }
                 .onGloballyPositioned { coordinates ->
-                    interactionState.updateCanvasOriginInWindow(coordinates.positionInWindow())
+                    interactionState.updateCanvasGeometry(
+                        coordinates.positionInWindow(), coordinates.boundsInWindow(), density.density,
+                    )
                 }
                 .flowViewportPointerTracking(interactionState)
                 .flowWheelAndTrackpadViewportGestures(
@@ -219,6 +224,17 @@ fun ReactFlow(
                             state = state,
                             interactionState = interactionState,
                             config = gestureConfig,
+                            onPaneTap = onEdgeClick?.let { clickEdge ->
+                                { point ->
+                                    val position = state.screenToFlowPosition(point.x.toDouble(), point.y.toDouble())
+                                    val hit = findClosestEdge(
+                                        androidx.compose.ui.geometry.Offset(position.x.toFloat(), position.y.toFloat()),
+                                        edges, nodeById, defaultWidthPx, defaultHeightPx, edgePathStyle,
+                                    )
+                                    if (hit != null) clickEdge(hit)
+                                    hit != null
+                                }
+                            },
                             onPaneClick = {
                                 onNodesChange?.invoke(
                                     nodes.filter { it.selected }.map { NodeSelectionChange(it.id, false) },
@@ -252,20 +268,19 @@ fun ReactFlow(
                         .sortedBy { it.zIndex }
                         .map { it to edgeRenderStyle(it) }
                     val anyFlowAnimated = edgeStyles.any { (_, style) -> style.flowAnimated }
-                    val flowTransition = rememberInfiniteTransition(label = "edgeFlow")
-                    val flowPhase by flowTransition.animateFloat(
-                        initialValue = 0f,
-                        targetValue = FlowSizing.edgeFlowDashPeriodPx,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
-                            repeatMode = RepeatMode.Restart,
-                        ),
-                        label = "edgeFlowPhase",
-                    )
+                    val flowPhase = if (anyFlowAnimated) {
+                        rememberInfiniteTransition(label = "edgeFlow").animateFloat(
+                            initialValue = 0f,
+                            targetValue = FlowSizing.edgeFlowDashPeriodPx,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart,
+                            ),
+                            label = "edgeFlowPhase",
+                        )
+                    } else null
                     Canvas(Modifier.fillMaxSize()) {
-                        // Only read the animated phase when a wire actually flows — otherwise the
-                        // canvas would invalidate every frame for a static graph.
-                        val dashPhase = if (anyFlowAnimated) flowPhase else 0f
+                        val dashPhase = flowPhase?.value ?: 0f
                         edgeStyles.forEach { (edge, style) ->
                             val source = nodeById[edge.source] ?: return@forEach
                             val target = nodeById[edge.target] ?: return@forEach
@@ -314,21 +329,6 @@ fun ReactFlow(
                         }
                     }
 
-                    EdgeHitAreaOverlay(
-                        edges = edges,
-                        nodeById = nodeById,
-                        defaultNodeWidth = defaultWidthPx,
-                        defaultNodeHeight = defaultHeightPx,
-                        onEdgeClick = onEdgeClick,
-                    )
-
-                    FlowEdgeLabels(
-                        edgeStyles = edgeStyles,
-                        nodeById = nodeById,
-                        defaultNodeWidth = defaultWidthPx,
-                        defaultNodeHeight = defaultHeightPx,
-                    )
-
                     nodes.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { node ->
                         FlowNodeBox(
                             node = node,
@@ -351,6 +351,16 @@ fun ReactFlow(
                             onConnectEnd = onConnectEnd,
                         )
                     }
+
+                    // Above the node layer: a label eclipsed by a card answers nothing. Labels
+                    // still show on demand (attention or broad visibility), so the canvas stays
+                    // quiet until a wire matters.
+                    FlowEdgeLabels(
+                        edgeStyles = edgeStyles,
+                        nodeById = nodeById,
+                        defaultNodeWidth = defaultWidthPx,
+                        defaultNodeHeight = defaultHeightPx,
+                    )
 
                     viewportOverlay(state)
                 }
@@ -399,7 +409,7 @@ fun ReactFlow(
 }
 
 /**
- * Mid-wire label pills, rendered in editor space under the node layer. A label shows only while
+ * Mid-wire label pills, rendered in editor space above the node layer. A label shows only while
  * its edge holds attention (flowing or selected) or is broadly visible — faded edges stay quiet,
  * matching the "label on demand" behavior of the web graph views.
  */
@@ -416,10 +426,16 @@ private fun FlowEdgeLabels(
         if (!visible) return@forEach
         val source = nodeById[edge.source] ?: return@forEach
         val target = nodeById[edge.target] ?: return@forEach
-        val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
-        val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
-        val midX = (start.point.x + end.point.x) / 2f
-        val midY = (start.point.y + end.point.y) / 2f
+        val (midX, midY) = if (edge.points.size >= 2) {
+            val measure = androidx.compose.ui.graphics.PathMeasure().apply {
+                setPath(routedEdgePath(edge.points.map { androidx.compose.ui.geometry.Offset(it.x.toFloat(), it.y.toFloat()) }).path, false)
+            }
+            measure.getPosition(measure.length / 2f).let { it.x to it.y }
+        } else {
+            val start = anchorFor(source, edge.sourceHandle, HandleType.Source, defaultNodeWidth, defaultNodeHeight)
+            val end = anchorFor(target, edge.targetHandle, HandleType.Target, defaultNodeWidth, defaultNodeHeight)
+            (start.point.x + end.point.x) / 2f to (start.point.y + end.point.y) / 2f
+        }
         Box(
             modifier = Modifier
                 .layout { measurable, constraints ->

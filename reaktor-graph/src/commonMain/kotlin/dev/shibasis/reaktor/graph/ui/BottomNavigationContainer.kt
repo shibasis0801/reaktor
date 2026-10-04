@@ -20,11 +20,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 
 interface Navigable {
     val key: String
@@ -58,6 +58,14 @@ open class BottomNavigationContainer(
 ), ComposeContainer {
     val selected = MutableStateFlow(initialSelection)
 
+    override val changes: List<Flow<*>> get() = listOf(activeGraphIndex, selected)
+
+    override fun shows(graph: Graph): Boolean = children[selected.value]?.graph == graph
+
+    override fun labelOf(graph: Graph): String =
+        children.entries.firstOrNull { it.value.graph == graph }?.let { (key, child) -> child.label.ifBlank { key } }
+            ?: super.labelOf(graph)
+
     var topBar: (@Composable (selectedKey: String, isAtRoot: Boolean) -> Unit)? = null
 
     /**
@@ -75,8 +83,8 @@ open class BottomNavigationContainer(
         override val selected = this@BottomNavigationContainer.selected
     })
 
-    override fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
-        val activated = super.activateGraphForRoute(route)
+    override fun activate(graph: Graph): Boolean {
+        val activated = super.activate(graph)
         if (activated) {
             val index = activeGraphIndex.value
             val key = children.keys.elementAtOrNull(index)

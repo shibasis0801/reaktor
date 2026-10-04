@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 object Version {
     object SDK {
         const val minSdk = 26
-        const val compileSdk = 36
+        const val compileSdk = 37
         const val targetSdk = 36
         const val ndkVersion = "25.0.8775105"
         const val CMake = "3.22.1"
@@ -49,6 +49,10 @@ object Version {
     const val Koin = "4.1.0"
     const val KoinAnnotations = "2.0.0"
 
+    // Graph layout
+    const val Elk = "0.12.0"
+    const val XbaseLib = "2.44.0"
+
     // Cloud
     const val Firebase = "32.0.0"
 
@@ -63,6 +67,8 @@ object Version {
 
     // DevTools
     const val LeakCanary = "2.8.1"
+    const val MeasureKmp = "0.3.0"
+    const val MeasureIos = "0.14.1"
     const val SoLoader = "0.10.1"
 
     val architectures = listOf(

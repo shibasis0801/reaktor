@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.notification
 
 import android.Manifest
-import android.app.AlarmManager
 import android.app.Notification
 import android.app.Notification.Action
 import android.app.NotificationChannel
@@ -14,40 +13,38 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.core.framework.json
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import java.util.Calendar
 import kotlin.math.absoluteValue
 
 internal const val DEFAULT_CHANNEL_ID = "system"
-private const val ACTION_NOTIFICATION_ALARM = "dev.shibasis.reaktor.notification.ALARM"
-private const val ACTION_NOTIFICATION_RESPONSE = "dev.shibasis.reaktor.notification.RESPONSE"
-private const val ACTION_NOTIFICATION_DISMISS = "dev.shibasis.reaktor.notification.DISMISS"
+internal const val ACTION_NOTIFICATION_ALARM = "dev.shibasis.reaktor.notification.ALARM"
+internal const val ACTION_NOTIFICATION_RESPONSE = "dev.shibasis.reaktor.notification.RESPONSE"
+internal const val ACTION_NOTIFICATION_DISMISS = "dev.shibasis.reaktor.notification.DISMISS"
 internal const val EXTRA_NOTIFICATION_ID = "reaktor_notification_id"
 internal const val EXTRA_CATEGORY_ID = "reaktor_category_id"
-private const val EXTRA_ROUTE_TYPE = "reaktor_route_type"
-private const val EXTRA_ROUTE = "reaktor_route"
-private const val EXTRA_ROUTE_PAYLOAD = "reaktor_route_payload"
-private const val EXTRA_ACTION_ID = "reaktor_action_id"
+internal const val EXTRA_ROUTE_TYPE = "reaktor_route_type"
+internal const val EXTRA_ROUTE = "reaktor_route"
+internal const val EXTRA_ROUTE_PAYLOAD = "reaktor_route_payload"
+internal const val EXTRA_ACTION_ID = "reaktor_action_id"
 internal const val EXTRA_DISMISSES_NOTIFICATION = "reaktor_dismisses_notification"
 // Distinct from any notification's own request code, which is derived from its id.
-private const val SHOW_ALARM_REQUEST_CODE = 0x5245414B
-private const val ALARM_LOG_TAG = "ReaktorNotifications"
-private const val EXTRA_REQUEST_JSON = "reaktor_request_json"
-private const val EXTRA_ENVELOPE_JSON = "reaktor_envelope_json"
-private const val ALARM_STORE_NAME = "reaktor_scheduled_alarms"
+internal const val SHOW_ALARM_REQUEST_CODE = 0x5245414B
+internal const val ALARM_LOG_TAG = "ReaktorNotifications"
+internal const val EXTRA_REQUEST_JSON = "reaktor_request_json"
+internal const val EXTRA_ENVELOPE_JSON = "reaktor_envelope_json"
+internal const val ALARM_STORE_NAME = "reaktor_scheduled_alarms"
 
 /**
  * How far past "now" a repeating calendar trigger is resolved from when re-arming. Comfortably
  * longer than the second-level granularity a calendar spec can match, so a trigger that just fired
  * cannot match itself again.
  */
-private const val REARM_SETTLE_MILLIS = 60_000L
+internal const val REARM_SETTLE_MILLIS = 60_000L
 
 class AndroidNotificationChannelRegistry(
     private val context: Context,
@@ -100,11 +97,16 @@ class AndroidNotificationChannelRegistry(
 }
 
 class AndroidNotificationRenderer(
-    private val context: Context,
-    private val channelRegistry: AndroidNotificationChannelRegistry,
-    private val config: AndroidNotificationsConfig,
+    internal val context: Context,
+    internal val channelRegistry: AndroidNotificationChannelRegistry,
+    internal val config: AndroidNotificationsConfig,
 ) {
-    fun show(request: LocalNotificationRequest): LocalNotificationId {
+    internal val avatars = NotificationAvatars(context)
+
+    suspend fun show(request: LocalNotificationRequest): LocalNotificationId {
+        val sender = request.content.sender
+        val conversation = request.content.conversation
+        if (sender != null && conversation != null) return showConversation(request, sender, conversation)
         val channelId = request.android?.channelId ?: request.categoryId
         channelRegistry.ensure(channelId)
         if (!canPost()) return LocalNotificationId(request.id)
@@ -163,11 +165,11 @@ class AndroidNotificationRenderer(
         return LocalNotificationId(request.id)
     }
 
-    private fun canPost(): Boolean =
+    internal fun canPost(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    private fun tapPendingIntent(envelope: NotificationEnvelope): PendingIntent {
+    internal fun tapPendingIntent(envelope: NotificationEnvelope): PendingIntent {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?: Intent()
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -180,7 +182,7 @@ class AndroidNotificationRenderer(
         )
     }
 
-    private fun responsePendingIntent(
+    internal fun responsePendingIntent(
         envelope: NotificationEnvelope,
         actionId: String,
         dismissed: Boolean = false,
@@ -221,7 +223,7 @@ class AndroidNotificationRenderer(
         return builder.build()
     }
 
-    private fun resolveSmallIcon(request: LocalNotificationRequest): Int {
+    internal fun resolveSmallIcon(request: LocalNotificationRequest): Int {
         request.android?.smallIconName?.let { name ->
             val id = context.resources.getIdentifier(name, "drawable", context.packageName)
             if (id != 0) return id
@@ -231,176 +233,6 @@ class AndroidNotificationRenderer(
             if (id != 0) return id
         }
         return config.smallIconResId ?: android.R.drawable.ic_dialog_info
-    }
-}
-
-/** A pending alarm as persisted on disk, so it can survive process death and reboots. */
-@Serializable
-internal data class ScheduledAlarm(
-    val request: LocalNotificationRequest,
-    val targetAtMillis: Long,
-)
-
-class AndroidNotificationScheduler(
-    private val context: Context,
-) {
-    private val alarmManager = context.getSystemService(AlarmManager::class.java)
-    private val store = context.getSharedPreferences(ALARM_STORE_NAME, Context.MODE_PRIVATE)
-
-    fun schedule(request: LocalNotificationRequest, fromMillis: Long = System.currentTimeMillis()) {
-        scheduleAt(request, fromMillis + request.triggerDelayMillis(fromMillis))
-    }
-
-    /**
-     * Re-arms a repeating request once it has fired. Calendar recurrences are resolved from a
-     * moment just after now, so a trigger that only this instant elapsed advances to its next
-     * occurrence instead of matching the current minute again and firing in a loop.
-     */
-    fun rearm(request: LocalNotificationRequest) {
-        val settle = if (request.trigger is NotificationTrigger.Calendar) REARM_SETTLE_MILLIS else 0L
-        schedule(request, System.currentTimeMillis() + settle)
-    }
-
-    fun cancel(id: String) {
-        forget(id)
-        alarmManager.cancel(alarmIntent(id))
-    }
-
-    /** Drops the persisted copy without touching the alarm — used once a one-shot has delivered. */
-    fun forget(id: String) {
-        store.edit().remove(id).apply()
-    }
-
-    /**
-     * The OS clears alarms across a reboot, so every pending request is re-armed from disk.
-     * Alarms still in the future keep their original firing time; repeating ones that elapsed
-     * while the device was off roll to their next occurrence, and missed one-shots are dropped.
-     */
-    fun restoreAll() {
-        val now = System.currentTimeMillis()
-        store.all.keys.toList().forEach { id ->
-            val alarm = read(id)
-            if (alarm == null) {
-                forget(id)
-                return@forEach
-            }
-            when {
-                alarm.targetAtMillis > now -> scheduleAt(alarm.request, alarm.targetAtMillis)
-                alarm.request.trigger.isRepeating -> schedule(alarm.request)
-                else -> forget(id)
-            }
-        }
-    }
-
-    /**
-     * Arms the OS alarm, as close to the requested moment as the app is allowed to get.
-     *
-     * `AlarmManager.set` has been inexact since API 19 and currently batches to a window of about
-     * an hour, which is fine for a digest and useless for a reminder somebody set a clock face to.
-     * An exact request therefore tries `setExactAndAllowWhileIdle`, then falls back.
-     *
-     * Every exact path on Android needs `SCHEDULE_EXACT_ALARM` or `USE_EXACT_ALARM` from API 31 --
-     * `setAlarmClock` included, despite its history of being the permission-free way to do this.
-     * Verified the hard way: it throws the same SecurityException as the rest. Which permission to
-     * declare, and how to justify it to the store, is the *host app's* decision, so this module
-     * declares neither and reads what it was given.
-     *
-     * The fallback matters more than the precision. A notification that arrives late is a poor
-     * outcome; one that never arrives because it could not arrive *precisely* is a much worse one,
-     * and that is what an unguarded exact call produces on any device where the right is missing.
-     */
-    private fun scheduleAt(request: LocalNotificationRequest, triggerAtMillis: Long) {
-        store.edit()
-            .putString(request.id, json.encodeToString(ScheduledAlarm(request, triggerAtMillis)))
-            .apply()
-
-        val intent = alarmIntent(request.id, request)
-        if (request.precision == NotificationPrecision.Approximate) {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
-            return
-        }
-
-        // Both exact paths can be refused at runtime — the right can be revoked between the check
-        // and the call, and OEM builds have their own rules about which of them an app may use. A
-        // notification that arrives late is a poor outcome; one that never arrives because it
-        // could not arrive *precisely* is a far worse one, so this degrades rather than gives up.
-        val armed = runCatching {
-            if (canScheduleExact()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
-            } else {
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(triggerAtMillis, showAlarmIntent()),
-                    intent,
-                )
-            }
-        }.onFailure {
-            Log.w(ALARM_LOG_TAG, "Exact alarm refused for ${request.id}, falling back", it)
-        }.isSuccess
-
-        if (!armed) alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, intent)
-    }
-
-    /**
-     * Whether the exact-alarm right is held. Always true below API 31, where it did not exist.
-     *
-     * Re-read on every arm rather than cached, because the user can revoke it in Settings at any
-     * moment and a cached yes would silently downgrade every later alarm to a broken promise.
-     */
-    internal fun canScheduleExact(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
-
-    /**
-     * What the lock screen opens when the alarm entry is tapped. The launcher activity, looked up
-     * rather than named, since a framework cannot know the host app's entry point.
-     */
-    private fun showAlarmIntent(): PendingIntent? {
-        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?: return null
-        return PendingIntent.getActivity(
-            context,
-            SHOW_ALARM_REQUEST_CODE,
-            launch,
-            pendingIntentFlags(immutable = true),
-        )
-    }
-
-    private fun read(id: String): ScheduledAlarm? {
-        val stored = store.getString(id, null) ?: return null
-        return runCatching { json.decodeFromString<ScheduledAlarm>(stored) }.getOrNull()
-    }
-
-    // Extras are not part of PendingIntent equality, so the request is only attached when arming.
-    private fun alarmIntent(id: String, request: LocalNotificationRequest? = null): PendingIntent {
-        val intent = Intent(context, ReaktorNotificationAlarmReceiver::class.java)
-            .setAction(ACTION_NOTIFICATION_ALARM)
-        request?.let { intent.putExtra(EXTRA_REQUEST_JSON, json.encodeToString(it)) }
-        return PendingIntent.getBroadcast(
-            context,
-            id.notificationRequestCode(),
-            intent,
-            pendingIntentFlags(immutable = true),
-        )
-    }
-}
-
-class ReaktorNotificationAlarmReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        val requestJson = intent.getStringExtra(EXTRA_REQUEST_JSON) ?: return
-        val request = runCatching { json.decodeFromString<LocalNotificationRequest>(requestJson) }.getOrNull() ?: return
-        Dispatch.Default.launch {
-            AndroidNotificationsRuntime.ensure(context).deliverScheduled(request)
-        }
-    }
-}
-
-/** Restores pending alarms after a reboot or an app update, both of which clear them. */
-class ReaktorNotificationBootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
-                runCatching { AndroidNotificationScheduler(context.applicationContext).restoreAll() }
-            }
-        }
     }
 }
 
@@ -450,6 +282,10 @@ class AndroidNotificationDevHarness(
             ),
             route = NotificationRoute.GraphAction("reaktor.notification.open", "{}"),
         )
+        return inject(envelope)
+    }
+
+    override suspend fun inject(envelope: NotificationEnvelope): NotificationDevState {
         lastEnvelope = envelope
         return client.injectRemoteEnvelope(envelope)
     }
@@ -484,23 +320,23 @@ object AndroidNotificationsRuntime {
 
     fun current(): AndroidNotificationsClient? = client ?: Feature.Notifications as? AndroidNotificationsClient
 
-    fun ensure(context: Context): AndroidNotificationsClient {
+    fun ensure(context: Context, config: AndroidNotificationsConfig = AndroidNotificationsConfig()): AndroidNotificationsClient {
         val existing = current()
         if (existing != null) return existing
-        return AndroidNotificationsClient(context.applicationContext).also {
+        return AndroidNotificationsClient(context.applicationContext, config).also {
             Feature.Notifications = it
         }
     }
 }
 
-private fun NotificationImportance?.toAndroidImportance(): Int = when (this ?: NotificationImportance.Default) {
+internal fun NotificationImportance?.toAndroidImportance(): Int = when (this ?: NotificationImportance.Default) {
     NotificationImportance.Min -> NotificationManager.IMPORTANCE_MIN
     NotificationImportance.Low -> NotificationManager.IMPORTANCE_LOW
     NotificationImportance.Default -> NotificationManager.IMPORTANCE_DEFAULT
     NotificationImportance.High -> NotificationManager.IMPORTANCE_HIGH
 }
 
-private fun NotificationPriority.toAndroidPriority(): Int = when (this) {
+internal fun NotificationPriority.toAndroidPriority(): Int = when (this) {
     NotificationPriority.Min -> Notification.PRIORITY_MIN
     NotificationPriority.Low -> Notification.PRIORITY_LOW
     NotificationPriority.Default -> Notification.PRIORITY_DEFAULT
@@ -508,20 +344,20 @@ private fun NotificationPriority.toAndroidPriority(): Int = when (this) {
     NotificationPriority.Max -> Notification.PRIORITY_MAX
 }
 
-private fun NotificationVisibility?.toAndroidVisibility(): Int = when (this ?: NotificationVisibility.Private) {
+internal fun NotificationVisibility?.toAndroidVisibility(): Int = when (this ?: NotificationVisibility.Private) {
     NotificationVisibility.Public -> Notification.VISIBILITY_PUBLIC
     NotificationVisibility.Private -> Notification.VISIBILITY_PRIVATE
     NotificationVisibility.Secret -> Notification.VISIBILITY_SECRET
 }
 
-private fun Notification.Builder.setSilentCompat(silent: Boolean): Notification.Builder {
+internal fun Notification.Builder.setSilentCompat(silent: Boolean): Notification.Builder {
     if (!silent) return this
     @Suppress("DEPRECATION")
     setSound(null)
     return this
 }
 
-private fun putRoute(intent: Intent, route: NotificationRoute) {
+internal fun putRoute(intent: Intent, route: NotificationRoute) {
     when (route) {
         is NotificationRoute.OpenPath -> {
             intent.putExtra(EXTRA_ROUTE_TYPE, "open_path")
@@ -547,7 +383,7 @@ internal fun routeFromIntent(intent: Intent): NotificationRoute = when (intent.g
     else -> NotificationRoute.None
 }
 
-private fun putEnvelopeExtras(intent: Intent, envelope: NotificationEnvelope) {
+internal fun putEnvelopeExtras(intent: Intent, envelope: NotificationEnvelope) {
     intent.putExtra(EXTRA_NOTIFICATION_ID, envelope.id)
     intent.putExtra(EXTRA_CATEGORY_ID, envelope.categoryId)
     intent.putExtra(EXTRA_ENVELOPE_JSON, json.encodeToString(envelope))
@@ -584,7 +420,7 @@ internal fun responseEventFromIntent(intent: Intent): NotificationResponseEvent 
     )
 }
 
-private fun LocalNotificationRequest.toEnvelope(): NotificationEnvelope =
+internal fun LocalNotificationRequest.toEnvelope(): NotificationEnvelope =
     NotificationEnvelope(
         id = id,
         type = "local",
@@ -599,7 +435,7 @@ internal fun LocalNotificationRequest.shouldScheduleLater(): Boolean =
         trigger !is NotificationTrigger.Immediate ||
         notBeforeMillis != null
 
-private fun LocalNotificationRequest.triggerDelayMillis(
+internal fun LocalNotificationRequest.triggerDelayMillis(
     nowMillis: Long = System.currentTimeMillis(),
 ): Long {
     // Resolving the trigger from the floor instead of from now is what skips an occurrence: a
@@ -614,7 +450,7 @@ private fun LocalNotificationRequest.triggerDelayMillis(
     }
 }
 
-private fun NotificationTrigger.Calendar.nextDelayMillis(nowMillis: Long = System.currentTimeMillis()): Long {
+internal fun NotificationTrigger.Calendar.nextDelayMillis(nowMillis: Long = System.currentTimeMillis()): Long {
     val calendar = Calendar.getInstance().apply {
         timeInMillis = nowMillis
         set(Calendar.MILLISECOND, 0)
@@ -631,7 +467,7 @@ private fun NotificationTrigger.Calendar.nextDelayMillis(nowMillis: Long = Syste
     return (calendar.timeInMillis - nowMillis).coerceAtLeast(1)
 }
 
-private fun pendingIntentFlags(immutable: Boolean): Int {
+internal fun pendingIntentFlags(immutable: Boolean): Int {
     val mutability = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         if (immutable) PendingIntent.FLAG_IMMUTABLE else PendingIntent.FLAG_MUTABLE
     } else {

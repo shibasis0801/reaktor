@@ -18,10 +18,35 @@ import kotlin.js.JsExport
 @JsExport
 class WebNavigationBridge(private val graph: Graph) {
     private val routeIndex = mutableMapOf<RoutePattern, RouteNode<*, *>>()
-    private var handlingPopState = false
     private var programmaticBack = false
+    private var suppressStackSize: Int? = null
     private var lastStackSize = graph.backStack.entries.value.size
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val popStateHandler: (Event) -> Unit = {
+        val path = window.location.pathname
+        val current = graph.backStack.top.value?.edge?.end
+        if (programmaticBack && current?.pattern?.original == path) {
+            programmaticBack = false
+            lastStackSize = graph.backStack.entries.value.size
+        } else {
+            programmaticBack = false
+            val match = matchRoute(path)
+            if (match != null && current != match.first) {
+                val (target, params) = match
+                val previous = graph.backStack.entries.value.dropLast(1).lastOrNull()?.edge?.end
+                val command = if (previous == target) {
+                    Pop
+                } else {
+                    @Suppress("UNCHECKED_CAST")
+                    val edge = graph.sentinel.edge(target) as NavigationEdge<Payload>
+                    Replace(edge, Payload(HashMap(params)))
+                }
+                graph.dispatch(command)
+                suppressStackSize = graph.backStack.entries.value.size
+            }
+            lastStackSize = graph.backStack.entries.value.size
+        }
+    }
 
     init {
         buildRouteIndex(graph)
@@ -46,13 +71,20 @@ class WebNavigationBridge(private val graph: Graph) {
         var initialized = false
         scope.launch {
             graph.backStack.entries.collectLatest { entries ->
-                if (handlingPopState) return@collectLatest
                 if (!initialized) {
                     initialized = true
                     return@collectLatest
                 }
 
                 val size = entries.size
+                if (suppressStackSize != null) {
+                    val expected = suppressStackSize
+                    suppressStackSize = null
+                    if (size == expected) {
+                        lastStackSize = size
+                        return@collectLatest
+                    }
+                }
                 val topEntry = entries.lastOrNull() ?: return@collectLatest
                 val url = entryToUrl(topEntry)
 
@@ -69,18 +101,6 @@ class WebNavigationBridge(private val graph: Graph) {
         }
     }
 
-    private val popStateHandler: (Event) -> Unit = {
-        if (programmaticBack) {
-            programmaticBack = false
-            lastStackSize = graph.backStack.entries.value.size
-        } else {
-            handlingPopState = true
-            graph.dispatch(Pop)
-            lastStackSize = graph.backStack.entries.value.size
-            handlingPopState = false
-        }
-    }
-
     private fun listenToPopState() {
         window.addEventListener("popstate", popStateHandler)
     }
@@ -94,6 +114,8 @@ class WebNavigationBridge(private val graph: Graph) {
         @Suppress("UNCHECKED_CAST")
         val edge = graph.sentinel.edge(routeNode) as NavigationEdge<Payload>
         graph.dispatch(Push(edge, payload))
+        lastStackSize = graph.backStack.entries.value.size
+        suppressStackSize = lastStackSize
         return true
     }
 

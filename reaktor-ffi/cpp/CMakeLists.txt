@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
-project(ReaktorFFI)
 
 if(iOS)
     setup_ios()
 endif()
+
+project(ReaktorFFI)
 
 init()
 configure_hermes()

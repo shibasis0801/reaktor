@@ -15,7 +15,9 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-core"))
+            api(project(":reaktor-code"))
             api(project(":reaktor-io"))
+            api(project(":reaktor-surface-compose"))
             api(compose.runtime)
             api(compose.foundation)
             api(compose.material3)
@@ -64,6 +66,11 @@ kotlin {
     server {
         dependencies {
             api(compose.desktop.currentOs)
+        }
+    }
+    sourceSets.named("jvmTest") {
+        dependencies {
+            implementation(project(":reaktor-performance"))
         }
     }
 }

@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.22.1)
 include("../../root.cmake")
 
-project(ReaktorSecurity LANGUAGES CXX)
-
 if(iOS)
     setup_ios()
 endif()
+
+project(ReaktorSecurity LANGUAGES CXX)
 
 init()
 
@@ -17,6 +17,10 @@ if(NOT ANDROID AND EXISTS "/opt/homebrew/opt/openssl")
 elseif(NOT ANDROID AND EXISTS "/usr/local/opt/openssl")
     list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/openssl")
     set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE PATH "OpenSSL root" FORCE)
+endif()
+
+if(iOS AND OPENSSL_ROOT_DIR)
+    list(APPEND CMAKE_FIND_ROOT_PATH "${OPENSSL_ROOT_DIR}")
 endif()
 
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
