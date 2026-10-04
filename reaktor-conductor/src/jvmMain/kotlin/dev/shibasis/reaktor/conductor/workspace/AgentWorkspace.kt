@@ -728,8 +728,20 @@ class AgentWorkspace(
     private fun persist(record: AgentRunRecord) = atomicWrite(runPath(record.id), ConductorJson.encodeToString(AgentRunRecord.serializer(), record))
 
     override fun close() {
-        val jobs = synchronized(lock) { closed = true; active.values.toList() }
-        runBlocking { jobs.forEach { it.cancel() }; jobs.joinAll() }
+        val (jobs, finishing) = synchronized(lock) {
+            closed = true
+            active.values.toList() to active.filter { (id, _) ->
+                val record = records.getValue(id)
+                record.workflow == null && record.collaboration != AgentCollaboration.Council &&
+                    record.provider != RuntimeKind.ChatGptGemini && record.participants.isNotEmpty() &&
+                    record.participants.values.all { it.status == AgentRunStatus.Completed || it.status == AgentRunStatus.Failed }
+            }.values.toList()
+        }
+        runBlocking {
+            withTimeoutOrNull(2000) { finishing.joinAll() }
+            jobs.forEach { it.cancel() }
+            jobs.joinAll()
+        }
         scope.cancel()
     }
 
