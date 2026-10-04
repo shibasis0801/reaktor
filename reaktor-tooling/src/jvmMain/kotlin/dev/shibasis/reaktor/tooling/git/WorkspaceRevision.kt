@@ -13,10 +13,32 @@ fun readWorkspaceRevision(root: File): WorkspaceRevision? {
         ?: return WorkspaceRevision(branch = "detached", shortSha = head.take(SHORT_SHA))
 
     val branch = ref.removePrefix("refs/heads/")
+    val common = commonGitDirectory(gitDir)
     val sha = runCatching { File(gitDir, ref).readText().trim() }.getOrNull()
-        ?: packedRefSha(gitDir, ref)
+        ?: runCatching { File(common, ref).readText().trim() }.getOrNull()
+        ?: packedRefSha(common, ref)
     return WorkspaceRevision(branch = branch, shortSha = sha?.take(SHORT_SHA))
 }
+
+fun readWorkspaceRemotes(root: File): List<String> {
+    val gitDir = gitDirectoryOf(root) ?: return emptyList()
+    return runCatching {
+        var remote = false
+        File(commonGitDirectory(gitDir), "config").readLines().mapNotNull { line ->
+            val entry = line.trim()
+            if (entry.startsWith("[")) remote = entry.startsWith("[remote ")
+            if (remote && entry.startsWith("url") && entry.substringAfter("url").trimStart().startsWith("="))
+                entry.substringAfter('=').trim().removeSurrounding("\"").takeIf(String::isNotBlank)
+            else null
+        }
+    }.getOrDefault(emptyList())
+}
+
+private fun commonGitDirectory(gitDir: File): File = runCatching {
+    val pointer = File(gitDir, "commondir").takeIf(File::isFile)?.readText()?.trim()
+        ?: return@runCatching gitDir
+    File(pointer).let { if (it.isAbsolute) it else File(gitDir, pointer) }
+}.getOrDefault(gitDir)
 
 /** Walks up from the workspace to the checkout, so a module directory still reports its branch. */
 private fun gitDirectoryOf(root: File): File? {
