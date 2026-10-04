@@ -58,8 +58,8 @@ internal fun agentEvidenceTools(workspace: AgentWorkspace): List<McpTool> {
             result(workspace.evidence.requireChecks(it.task(), it.getValue("checks").jsonArray.map { v -> v.jsonPrimitive.content }))
         },
         McpTool("agent_candidate_accept", "Accept a current candidate only after all required kernel checks pass and blocking findings are resolved. Does not commit, merge or deploy.",
-            objectSchema(mapOf("taskId" to stringSchema("Task id"), "candidateId" to stringSchema("Exact current candidate id")), listOf("taskId", "candidateId")), false, true) {
-            result(workspace.evidence.accept(it.task(), it.text("candidateId")))
+            objectSchema(mapOf("taskId" to stringSchema("Task id"), "candidateId" to stringSchema("Exact current candidate id"), "approvedBy" to stringSchema("Operator approving this exact candidate")), listOf("taskId", "candidateId", "approvedBy")), false, true) {
+            result(workspace.evidence.accept(it.task(), it.text("candidateId"), it.text("approvedBy")))
         },
     )
 }

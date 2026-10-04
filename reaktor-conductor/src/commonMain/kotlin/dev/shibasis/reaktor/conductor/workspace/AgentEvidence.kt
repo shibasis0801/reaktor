@@ -56,6 +56,7 @@ data class AgentTaskEvidence(
     val checks: List<AgentCandidateCheck> = emptyList(),
     val requiredChecks: List<String> = emptyList(),
     val acceptedCandidate: String? = null,
+    val acceptedBy: String? = null,
 )
 
 @Serializable

@@ -122,9 +122,9 @@ class AgentWorkspace(
     fun drain(enabled: Boolean): Int = synchronized(lock) { draining = enabled; active.size + if (externalBusy()) 1 else 0 }
     fun acceptsWork(): Boolean = synchronized(lock) { !closed && !draining }
     fun <T> admitOperation(action: () -> T): T = synchronized(lock) { check(acceptsWork()) { "Workspace is draining" }; action() }
-    fun applyWorktree(id: String, patch: String, revision: String): AgentWorktreeReview = synchronized(lock) {
+    fun applyWorktree(id: String, patch: String, revision: String, approvedBy: String? = null): AgentWorktreeReview = synchronized(lock) {
         require(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
-        worktrees.apply(id, patch, revision)
+        worktrees.apply(id, patch, revision, approvedBy)
     }
     fun compactActivity(olderThanDays: Int = 30): Long = synchronized(lock) {
         require(olderThanDays in 1..3650)
