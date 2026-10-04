@@ -24,8 +24,9 @@ fun Tabs(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     behavior: OneOfBehavior = OneOfKernel,
+    axis: Axis = Axis.Horizontal,
     content: @Composable OneOfScope.() -> Unit,
-) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.Tab, LocalAppearances.current.tab, Axis.Horizontal, content)
+) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.Tab, LocalAppearances.current.tab, axis, content)
 
 val BareTab: ItemAppearance = object : ItemAppearance {
     @Composable

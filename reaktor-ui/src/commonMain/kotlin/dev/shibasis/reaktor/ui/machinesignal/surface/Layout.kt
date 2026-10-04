@@ -86,4 +86,28 @@ val SignalTabClose: ButtonAppearance = object : ButtonAppearance {
     }
 }
 
+val SignalChromeButton: ButtonAppearance = object : ButtonAppearance {
+    @Composable
+    override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) {
+        val signal = theme.machineSignal
+        Box(
+            Modifier.focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, RectangleShape)),
+            contentAlignment = Alignment.Center,
+            propagateMinConstraints = true,
+        ) { slots.content() }
+    }
+}
+
+val SignalChromeItem: ItemAppearance = object : ItemAppearance {
+    @Composable
+    override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) {
+        val signal = theme.machineSignal
+        Box(
+            Modifier.focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, RectangleShape)),
+            contentAlignment = Alignment.Center,
+            propagateMinConstraints = true,
+        ) { slots.content() }
+    }
+}
+
 private val SelectedLine = 2.dp

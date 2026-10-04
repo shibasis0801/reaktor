@@ -26,12 +26,31 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.LayoutDirection
+import dev.shibasis.reaktor.surface.Axis
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class RovingTest {
     private val views = listOf("rows" to "Rows", "chart" to "Chart", "plan" to "Plan")
+
+    @Test
+    fun verticalTabsFollowUpAndDownAndIgnoreHorizontalArrows() = runComposeUiTest {
+        var selected by mutableStateOf("chart")
+        setContent {
+            Tabs(selected, { selected = it }, axis = Axis.Vertical) {
+                Column { views.forEach { (key, label) -> Item(key, typeahead = label) { BasicText(label) } } }
+            }
+        }
+        onNodeWithTag("chart").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        onNodeWithTag("plan").assertIsFocused().assertIsSelected()
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        onNodeWithTag("plan").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.DirectionUp) }
+        onNodeWithTag("chart").assertIsFocused().assertIsSelected()
+        assertEquals("chart", selected)
+    }
 
     @Composable
     private fun ViewTabs(selected: String, onSelect: (String) -> Unit) {
