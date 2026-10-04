@@ -7,6 +7,9 @@ import kotlinx.serialization.json.JsonNull
 const val WORKER_OPERATION_PROTOCOL = "reaktor.worker.operations.v1"
 
 @Serializable
+enum class WorkerEffect { Read, Write }
+
+@Serializable
 data class WorkerOperationDescriptor(
     val id: String,
     val provider: String,
@@ -36,14 +39,18 @@ data class WorkerOperationResult(
 )
 
 fun WorkerOperationCatalog.requireRead(environment: String, operation: String): WorkerOperationDescriptor {
+    return requireOperation(environment, operation, WorkerEffect.Read)
+}
+
+fun WorkerOperationCatalog.requireOperation(environment: String, operation: String, expectedEffect: WorkerEffect): WorkerOperationDescriptor {
     check(protocol == WORKER_OPERATION_PROTOCOL && this.environment == environment && worker.isNotBlank()) {
         "Worker protocol or environment does not match the selected execution target"
     }
     val capability = requireNotNull(operations.singleOrNull { it.id == operation }) {
         "Worker does not advertise the requested operation"
     }
-    check(capability.effect == "read" && capability.timeoutMillis in 1..30_000) {
-        "This execution path accepts bounded Worker reads only"
+    check(capability.effect == expectedEffect.name.lowercase() && capability.timeoutMillis in 1..30_000) {
+        "Worker effect or execution bound does not match the planned operation"
     }
     return capability
 }
@@ -53,5 +60,5 @@ fun WorkerOperationResult.requireMatches(catalog: WorkerOperationCatalog, reques
         environment == catalog.environment && this.requestId == requestId && this.operation == operation && durationMillis >= 0) {
         "Worker receipt does not match the request"
     }
-    check(ok && error == null) { "Worker operation failed" }
+    check(ok && error == null) { error?.take(250) ?: "Worker operation failed" }
 }

@@ -32,6 +32,23 @@ class NativeInfrastructureTest {
         }
     }
 
+    @Test fun workerWritesCannotBeExecutedUnderAReadApprovalPolicy() {
+        val write=WorkerOperationDescriptor("formation.commit","circle-formation","write",30_000)
+        val catalog=WorkerOperationCatalog(worker="circle-formation",environment="dev",operations=listOf(write))
+        catalog.requireOperation("dev",write.id,WorkerEffect.Write)
+        assertFails { catalog.requireRead("dev",write.id) }
+        val root=Files.createTempDirectory("worker-write-plan").toFile()
+        try {
+            val input=root.resolve("input.json").apply { writeText("{}") }
+            val operation=InfrastructureOperation.WorkerCall("https://fixture.example",write.id,"https://auth.example/token","app","DEV",
+                expectedEffect=WorkerEffect.Write,inputFile=input.path,inputDigest="reviewed")
+            assertFails { NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.LiveRead),emptyMap(),1000) }
+            val preview=NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.NonProductionWrite),emptyMap(),1000)
+            assertFails { preview.verify() }
+            assertFails { NativeExecutionRequest.create(operation.copy(inputFile=null),root,TaskId("write"),SafetyPolicy(SafetyClass.NonProductionWrite),emptyMap(),1000) }
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun closingSessionCancelsAnInFlightHttpRequest() = runBlocking {
         val started = CountDownLatch(1)
         val release = CountDownLatch(1)
