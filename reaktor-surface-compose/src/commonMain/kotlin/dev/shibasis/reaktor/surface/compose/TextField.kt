@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -91,6 +93,39 @@ fun TextField(
         cursorBrush = appearance.cursor(properties, theme),
         decorator = TextFieldDecorator { editor ->
             appearance.Content(properties, press.state, theme, feedback, FieldSlots(editor, placeholder, leading, trailing))
+        },
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SecureTextField(
+    state: TextFieldState,
+    modifier: Modifier = Modifier,
+    label: String,
+) {
+    val appearance = LocalAppearances.current.field
+    val properties = FieldProperties(true, false, state.text.isEmpty())
+    val press = rememberMachine(PressKernel, PressProperties(true)) {}
+    val source = rememberInteractions(press)
+    val theme = LocalThemeSnapshot.current
+    val feedback = rememberFeedback(press.state.pressed, press.state.focused)
+    val reveal = remember { BringIntoViewRequester() }
+    LaunchedEffect(press.state.focused, LocalWindowInfo.current.containerSize) {
+        if (press.state.focused) {
+            withFrameNanos { }
+            reveal.bringIntoView()
+        }
+    }
+    BasicSecureTextField(
+        state = state,
+        modifier = modifier.semantics { contentDescription = label }.bringIntoViewRequester(reveal),
+        textStyle = appearance.textStyle(properties, theme),
+        interactionSource = source,
+        cursorBrush = appearance.cursor(properties, theme),
+        textObfuscationMode = TextObfuscationMode.Hidden,
+        decorator = TextFieldDecorator { editor ->
+            appearance.Content(properties, press.state, theme, feedback, FieldSlots(editor, null, null, null))
         },
     )
 }
