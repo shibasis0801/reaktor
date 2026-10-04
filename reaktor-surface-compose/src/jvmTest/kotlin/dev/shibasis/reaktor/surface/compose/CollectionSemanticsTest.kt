@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +30,7 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.listSource
 import dev.shibasis.reaktor.surface.treeSource
 import kotlin.test.Test
@@ -98,6 +100,29 @@ class CollectionSemanticsTest {
         assertFalse(SemanticsActions.Collapse in leaf)
         onNodeWithTag("files/row/main").performSemanticsAction(SemanticsActions.Collapse)
         assertEquals(setOf("src"), open)
+    }
+
+    @Test
+    fun theVisibleTreeToggleUsesItsOwnSemanticActionWithoutSelectingTheRow() = runComposeUiTest {
+        var open by mutableStateOf(setOf("src"))
+        var selection by mutableStateOf(emptySet<String>())
+        val look = object : RowAppearance {
+            @Composable
+            override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {
+                BareRow.Content(properties, state, theme, feedback, RowSlots(slots.content,
+                    slots.toggle?.let { Modifier.testTag("toggle-${properties.index}").then(it) }))
+            }
+        }
+        setContent {
+            Tree(treeSource(Files, { it.key }, { it.children }, open), selection, { selection = it },
+                { key, expanded -> open = if (expanded) open + key else open - key }, Modifier.height(400.dp), appearance = look) { BasicText(it.key) }
+        }
+        onNodeWithTag("toggle-0", useUnmergedTree = true).performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(emptySet(), open)
+        assertEquals(emptySet(), selection)
+        onNodeWithTag("toggle-0", useUnmergedTree = true).performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(setOf("src"), open)
+        assertEquals(emptySet(), selection)
     }
 
     @Test
