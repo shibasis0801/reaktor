@@ -148,6 +148,35 @@ class PaneHostTest {
         onNodeWithTag("width").assertTextEquals("460")
     }
 
+    @Test
+    fun nestedHostsShareOneF6OrderAndRestoreTheirLastControl() = runComposeUiTest {
+        val outer = PaneSpec(listOf(Region("rail", RegionEdge.Start, 40f, 40f, 40f, 0), Region("drawer", RegionEdge.Bottom, 100f, 80f, 200f, 0)), 200f, 100f)
+        val inner = PaneSpec(listOf(Region("detail", RegionEdge.End, 300f, 280f, 400f, 0)), 200f, 100f)
+        setContent {
+            Box(Modifier.requiredSize(1000.dp, 700.dp)) {
+                PaneHost(outer, PanePreferences(), {}, main = {
+                    PaneHost(inner, PanePreferences(), {}, main = {
+                        Column {
+                            Button({}, Modifier.testTag("body-first")) { BasicText("First") }
+                            Button({}, Modifier.testTag("body-second")) { BasicText("Second") }
+                        }
+                    }) { Button({}, Modifier.testTag("detail-button")) { BasicText("Detail") } }
+                }) { region -> Button({}, Modifier.testTag("${region.id}-button")) { BasicText(region.id) } }
+            }
+        }
+        onNodeWithTag("body-second").requestFocus()
+        f6()
+        onNodeWithTag("detail-button").assertIsFocused()
+        f6()
+        onNodeWithTag("drawer-button").assertIsFocused()
+        f6()
+        onNodeWithTag("rail-button").assertIsFocused()
+        f6()
+        onNodeWithTag("body-second").assertIsFocused()
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F6) } }
+        onNodeWithTag("rail-button").assertIsFocused()
+    }
+
     private fun androidx.compose.ui.test.ComposeUiTest.f6() = onRoot().performKeyInput { pressKey(Key.F6) }
 
     private fun SemanticsNodeInteraction.width(): Float = fetchSemanticsNode().size.width.toFloat()
