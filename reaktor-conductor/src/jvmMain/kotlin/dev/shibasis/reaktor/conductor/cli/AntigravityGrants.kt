@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.conductor.appserver.stopNativeProcess
 import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
 /**
@@ -24,18 +26,26 @@ object AntigravityGrants {
      * than whichever settings file this code happens to know about.
      */
     fun allowed(binary: String = "agy", timeoutSeconds: Long = 30): List<Grant>? = runCatching {
-        val process = ProcessBuilder(listOf(binary, "--print=/permissions", "--output-format", "text"))
-            .redirectErrorStream(false).start()
-        val text = process.inputStream.bufferedReader().use { it.readText() }
-        if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) { process.destroyForcibly(); return@runCatching null }
-        text.lineSequence().mapNotNull { line ->
-            // scope <tab> allow <tab> command(git status)
-            val parts = line.split('\t')
-            if (parts.size < 3 || parts[1].trim() != "allow") return@mapNotNull null
-            val rule = parts[2].trim()
-            if (!rule.startsWith("command(") || !rule.endsWith(")")) return@mapNotNull null
-            Grant(parts[0].trim(), rule.removePrefix("command(").removeSuffix(")"))
-        }.toList()
+        val output = Files.createTempFile("antigravity-grants-", ".txt")
+        var process: Process? = null
+        try {
+            process = ProcessBuilder(listOf(binary, "--print=/permissions", "--output-format", "text"))
+                .redirectOutput(output.toFile()).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+            process.outputStream.close()
+            if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS) || process.exitValue() != 0 || Files.size(output) > 1048576)
+                return@runCatching null
+            Files.readString(output).lineSequence().mapNotNull { line ->
+                // scope <tab> allow <tab> command(git status)
+                val parts = line.split('\t')
+                if (parts.size < 3 || parts[1].trim() != "allow") return@mapNotNull null
+                val rule = parts[2].trim()
+                if (!rule.startsWith("command(") || !rule.endsWith(")")) return@mapNotNull null
+                Grant(parts[0].trim(), rule.removePrefix("command(").removeSuffix(")"))
+            }.toList()
+        } finally {
+            process?.takeIf { it.isAlive }?.let(::stopNativeProcess)
+            Files.deleteIfExists(output)
+        }
     }.getOrNull()
 
     /**
@@ -46,7 +56,11 @@ object AntigravityGrants {
      * null when the allow list could not be read at all, which is not the same as nothing missing.
      */
     fun missing(needed: List<String>, binary: String = "agy"): List<String>? {
-        val grants = allowed(binary)?.map { it.command } ?: return null
+        return missing(needed, allowed(binary) ?: return null)
+    }
+
+    private fun missing(needed: List<String>, allowed: List<Grant>): List<String> {
+        val grants = allowed.map { it.command }
         return needed.filterNot { need ->
             grants.any { grant -> need == grant || need.startsWith("$grant ") }
         }
@@ -69,7 +83,7 @@ object AntigravityGrants {
 
     /** A line an operator can act on, or null when nothing is missing or nothing could be read. */
     fun advisory(workspace: File, writes: Boolean, binary: String = "agy"): String? {
-        val absent = missing(expectedFor(workspace, writes), binary) ?: return null
+        val absent = missing(expectedFor(workspace, writes), allowed(binary, timeoutSeconds = 2) ?: return null)
         if (absent.isEmpty()) return null
         return "Antigravity has no rule for: " + absent.joinToString(", ") + ". A headless turn cannot " +
             "answer a permission prompt, so these are refused rather than asked about. Add them to " +
