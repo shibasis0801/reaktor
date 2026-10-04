@@ -10,8 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -58,7 +63,10 @@ fun PaneHost(
 ) {
     val latest by rememberUpdatedState(preferences)
     val changed by rememberUpdatedState(onPreferencesChange)
-    val groups = focus
+    val parent = LocalPaneFocusGroup.current
+    val groups = parent?.owner ?: focus
+    val host = remember { Any() }
+    DisposableEffect(groups, host) { onDispose { groups.remove(host) } }
     val scale = LocalDensity.current.fontScale
     val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
     BoxWithConstraints(modifier.onPreviewKeyEvent { event ->
@@ -75,6 +83,7 @@ fun PaneHost(
         val mainWidth = (plan.mainWidth.dp - HandleSize * (starts + ends).count { it.min < it.max }).coerceAtLeast(0.dp)
         val mainHeight = (plan.mainHeight.dp - HandleSize * bottoms.count { it.min < it.max }).coerceAtLeast(0.dp)
         val order = starts + listOf(null) + bottoms + ends
+        val focusGroups = groups.register(host, parent, order.map { it?.id })
         val fullHeight = maxHeight
         val handle = @Composable { item: Region ->
             if (item.min < item.max) {
@@ -104,7 +113,10 @@ fun PaneHost(
         }
         val pane = @Composable { item: Region?, width: Dp, height: Dp, content: @Composable PaneScope.() -> Unit ->
             val scope = PaneScope(width, height, plan.collapsed)
-            Box(groups.group(order.indexOf(item)), propagateMinConstraints = true) { scope.content() }
+            val group = focusGroups[order.indexOf(item)]
+            CompositionLocalProvider(LocalPaneFocusGroup provides group) {
+                Box(group.modifier(), propagateMinConstraints = true) { scope.content() }
+            }
         }
         Row(Modifier.fillMaxSize()) {
             starts.forEach { item ->
@@ -135,32 +147,54 @@ fun PaneHost(
                 }
             }
         }
-        groups.size = order.size
     }
+}
+
+private val LocalPaneFocusGroup = staticCompositionLocalOf<PaneFocusGroup?> { null }
+
+internal class PaneFocusGroup(val owner: PaneHostFocus) {
+    private val requester = FocusRequester()
+    private var focused = false
+    var children by mutableStateOf<List<PaneFocusGroup>>(emptyList())
+
+    fun modifier(): Modifier = Modifier.focusRequester(requester)
+        .onFocusChanged { focused = it.hasFocus }
+        .then(if (children.isEmpty()) Modifier.focusRestorer() else Modifier).focusGroup()
+
+    fun leaves(): List<PaneFocusGroup> = if (children.isEmpty()) listOf(this) else children.flatMap { it.leaves() }
+    fun hasFocus(): Boolean = focused
+    fun request(): Boolean = requester.requestFocus()
 }
 
 @Stable
 class PaneHostFocus {
-    private val requesters = mutableListOf<FocusRequester>()
-    private var focused = -1
-    internal var size = 0
+    private class Host(val parent: PaneFocusGroup?, val groups: MutableMap<String?, PaneFocusGroup> = linkedMapOf()) {
+        var order: List<String?> = emptyList()
+        fun entries() = order.mapNotNull(groups::get)
+    }
+    private val hosts = linkedMapOf<Any, Host>()
 
-    internal fun group(index: Int): Modifier {
-        while (requesters.size <= index) requesters += FocusRequester()
-        return Modifier
-            .focusRequester(requesters[index])
-            .onFocusChanged { if (it.hasFocus) focused = index else if (focused == index) focused = -1 }
-            .focusRestorer()
-            .focusGroup()
+    internal fun register(key: Any, parent: PaneFocusGroup?, order: List<String?>): List<PaneFocusGroup> {
+        val host = hosts.getOrPut(key) { Host(parent) }
+        host.order = order
+        order.forEach { host.groups.getOrPut(it) { PaneFocusGroup(this) } }
+        parent?.children = hosts.values.filter { it.parent === parent }.flatMap { it.entries() }
+        return host.entries()
+    }
+
+    internal fun remove(key: Any) {
+        val host = hosts.remove(key) ?: return
+        host.parent?.let { parent -> parent.children = hosts.values.filter { it.parent === parent }.flatMap { it.entries() } }
     }
 
     fun cycle(backward: Boolean = false): Boolean {
-        if (size == 0) return false
+        val groups = hosts.values.filter { it.parent == null }.flatMap { it.entries() }.flatMap { it.leaves() }
+        if (groups.isEmpty()) return false
         val step = if (backward) -1 else 1
+        val focused = groups.indexOfFirst { it.hasFocus() }
         val start = if (focused < 0) (if (step > 0) -1 else 0) else focused
-        for (offset in 1..size) {
-            val next = (start + step * offset).mod(size)
-            if (requesters[next].requestFocus()) return true
+        for (offset in 1..groups.size) {
+            if (groups[(start + step * offset).mod(groups.size)].request()) return true
         }
         return true
     }
