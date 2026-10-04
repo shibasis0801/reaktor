@@ -44,7 +44,8 @@ class SelectOptionsScope internal constructor(
         key: String,
         modifier: Modifier = Modifier,
         enabled: Boolean = true,
+        typeahead: String? = null,
         appearance: ButtonAppearance = LocalAppearances.current.menuItem,
         content: @Composable () -> Unit,
-    ) = popup.RadioItem(key, key == selected, { onSelectedChange(key) }, modifier, enabled, appearance = appearance) { content() }
+    ) = popup.RadioItem(key, key == selected, { onSelectedChange(key) }, modifier, enabled, typeahead, appearance) { content() }
 }
