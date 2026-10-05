@@ -103,10 +103,11 @@ fun SecureTextField(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     label: String,
+    enabled: Boolean = true,
+    appearance: FieldAppearance = LocalAppearances.current.field,
 ) {
-    val appearance = LocalAppearances.current.field
-    val properties = FieldProperties(true, false, state.text.isEmpty())
-    val press = rememberMachine(PressKernel, PressProperties(true)) {}
+    val properties = FieldProperties(enabled, false, state.text.isEmpty())
+    val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
     val source = rememberInteractions(press)
     val theme = LocalThemeSnapshot.current
     val feedback = rememberFeedback(press.state.pressed, press.state.focused)
@@ -119,6 +120,7 @@ fun SecureTextField(
     }
     BasicSecureTextField(
         state = state,
+        enabled = enabled,
         modifier = modifier.semantics { contentDescription = label }.bringIntoViewRequester(reveal),
         textStyle = appearance.textStyle(properties, theme),
         interactionSource = source,
