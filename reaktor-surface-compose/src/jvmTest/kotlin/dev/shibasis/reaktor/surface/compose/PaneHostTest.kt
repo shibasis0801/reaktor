@@ -119,6 +119,19 @@ class PaneHostTest {
     }
 
     @Test
+    fun anExplicitChildRequestWinsOverThePreviouslyFocusedChild() = runComposeUiTest {
+        setContent { Graph(1512, PanePreferences()) }
+        onNodeWithTag("main-first").requestFocus()
+        onNodeWithTag("inspector-button").requestFocus()
+        onNodeWithTag("main-second").requestFocus()
+        onNodeWithTag("main-second").assertIsFocused()
+        f6()
+        onNodeWithTag("trace-button").assertIsFocused()
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F6) } }
+        onNodeWithTag("main-second").assertIsFocused()
+    }
+
+    @Test
     fun enterHidesACollapsibleRegionWithoutLosingItsExpandedSize() = runComposeUiTest {
         var preferences by mutableStateOf(PanePreferences(sizes = mapOf("trace" to 240f)))
         setContent { Graph(1512, preferences) { preferences = it } }
