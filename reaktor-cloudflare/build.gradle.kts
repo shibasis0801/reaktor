@@ -32,3 +32,25 @@ kotlin {
 android {
     defaults("dev.shibasis.reaktor.cloudflare")
 }
+
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().configureEach {
+    doFirst {
+        val skiko = configurations.getByName("jsTestCompileClasspath").files.single {
+            it.name.startsWith("skiko-js-") && it.extension == "klib"
+        }
+        val version = skiko.name.removePrefix("skiko-js-").removeSuffix(".klib")
+        val runtime = configurations.detachedConfiguration(
+            dependencies.create("org.jetbrains.skiko:skiko-js-wasm-runtime:$version")
+        ).singleFile
+        copy {
+            from(zipTree(runtime))
+            include("skiko.mjs", "skiko.wasm", "skikod8.mjs", "js-reexport-symbols.mjs")
+            into(rootProject.layout.buildDirectory.dir("js/packages/${rootProject.name}-${project.name}-test/kotlin"))
+        }
+        copy {
+            from(zipTree(runtime))
+            include("skiko.mjs", "skiko.wasm", "skikod8.mjs", "js-reexport-symbols.mjs")
+            into(rootProject.layout.buildDirectory.dir("js/packages/${rootProject.name}-${project.name}-test/kotlin/skiko-kjs/org/jetbrains/skia/impl"))
+        }
+    }
+}

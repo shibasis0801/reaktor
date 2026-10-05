@@ -53,6 +53,14 @@ class GraphGateway internal constructor(
         return send("/query-id", body.toString(), headers(JSON_BODY))
     }
 
+    suspend fun writeId(id: String, params: JsonObject = EMPTY_PARAMS): JsonElement {
+        val body = buildJsonObject {
+            put("id", id)
+            put("params", params)
+        }
+        return send("/write-id", body.toString(), headers(JSON_BODY))
+    }
+
     private suspend fun sendCypher(
         path: String,
         cypher: String,
