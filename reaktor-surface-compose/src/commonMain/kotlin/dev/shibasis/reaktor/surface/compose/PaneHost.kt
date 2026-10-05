@@ -81,11 +81,8 @@ fun PaneHost(
         val bottoms = shown.filter { it.edge == RegionEdge.Bottom }
         val roomAcross = plan.mainWidth - spec.mainMinWidth * scale
         val roomDown = plan.mainHeight - spec.mainMinHeight * scale
-        val mainWidth = (plan.mainWidth.dp - HandleSize * (starts + ends).count { it.min < it.max }).coerceAtLeast(0.dp)
-        val mainHeight = (plan.mainHeight.dp - HandleSize * bottoms.count { it.min < it.max }).coerceAtLeast(0.dp)
         val order = starts + listOf(null) + bottoms + ends
         val focusGroups = groups.register(host, parent, order.map { it?.id })
-        val fullHeight = maxHeight
         val handle = @Composable { item: Region ->
             if (item.min < item.max) {
             val size = plan.sizes.getValue(item.id)
@@ -113,29 +110,28 @@ fun PaneHost(
             }
             }
         }
-        val pane = @Composable { item: Region?, width: Dp, height: Dp, content: @Composable PaneScope.() -> Unit ->
-            val scope = PaneScope(width, height, plan.collapsed)
+        val pane = @Composable { item: Region?, content: @Composable PaneScope.() -> Unit ->
             val group = focusGroups[order.indexOf(item)]
             CompositionLocalProvider(LocalPaneFocusGroup provides group) {
-                Box(group.modifier(), propagateMinConstraints = true) { scope.content() }
+                BoxWithConstraints(group.modifier(), propagateMinConstraints = true) { PaneScope(maxWidth, maxHeight, plan.collapsed).content() }
             }
         }
         Row(Modifier.fillMaxSize()) {
             starts.forEach { item ->
                 key(item.id) {
                     Box(Modifier.width(plan.sizes.getValue(item.id).dp).fillMaxHeight(), propagateMinConstraints = true) {
-                        pane(item, plan.sizes.getValue(item.id).dp, fullHeight) { region(item) }
+                        pane(item) { region(item) }
                     }
                     handle(item)
                 }
             }
             Column(Modifier.weight(1f).fillMaxHeight()) {
-                Box(Modifier.weight(1f).fillMaxWidth(), propagateMinConstraints = true) { pane(null, mainWidth, mainHeight, main) }
+                Box(Modifier.weight(1f).fillMaxWidth(), propagateMinConstraints = true) { pane(null, main) }
                 bottoms.forEach { item ->
                     key(item.id) {
                         handle(item)
                         Box(Modifier.height(plan.sizes.getValue(item.id).dp).fillMaxWidth(), propagateMinConstraints = true) {
-                            pane(item, mainWidth, plan.sizes.getValue(item.id).dp) { region(item) }
+                            pane(item) { region(item) }
                         }
                     }
                 }
@@ -144,7 +140,7 @@ fun PaneHost(
                 key(item.id) {
                     handle(item)
                     Box(Modifier.width(plan.sizes.getValue(item.id).dp).fillMaxHeight(), propagateMinConstraints = true) {
-                        pane(item, plan.sizes.getValue(item.id).dp, fullHeight) { region(item) }
+                        pane(item) { region(item) }
                     }
                 }
             }
