@@ -28,5 +28,5 @@ fun MachineSignalAppearances(snapshot: MachineSignalSnapshot): Appearances = App
     (Appearance.Sparkline provides signalSparkline { it.accent }) + (Appearance.Bars provides signalBars { it.accent }) +
     (Appearance.RangeBar provides signalRangeBar { it.accent }) + (Appearance.Row provides SignalItemRow) +
     (Appearance.Splitter provides SignalSplitter) + (Appearance.DocumentTab provides SignalDocumentTab) + (Appearance.TabClose provides SignalTabClose) +
-    (Appearance.TableRow provides SignalTableRow) + (Appearance.TableHeader provides SignalTableHeader) +
+    (Appearance.TableRow provides SignalTableRow) + (Appearance.TableHeader provides SignalTableHeader) + (Appearance.Scrollbar provides SignalScrollbar) +
     (Appearance.Island provides SignalIsland)
