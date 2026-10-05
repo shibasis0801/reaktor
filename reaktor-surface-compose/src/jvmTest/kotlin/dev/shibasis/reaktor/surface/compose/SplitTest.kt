@@ -16,9 +16,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performSemanticsAction
@@ -94,6 +96,29 @@ class SplitTest {
         mainClock.advanceTimeBy(1_000)
         onNodeWithTag("data/splitter").performMouseInput { click(corner) }
         assertEquals(.5f, fraction)
+    }
+
+    @Test
+    fun draggingTheSplitterLeavesKeyboardFocusWhereItWas() = runComposeUiTest {
+        var fraction by mutableStateOf(.5f)
+        setContent {
+            Box(Modifier.size((extent + 8).dp, 200.dp)) {
+                AutomationScope("data") {
+                    Split(fraction, { fraction = it }, 100.dp, 120.dp, Modifier.fillMaxSize(),
+                        first = { Button({}, Modifier.testTag("query")) { BasicText("Query") } }, second = { BasicText("Rows") })
+                }
+            }
+        }
+        onNodeWithTag("query").requestFocus()
+        onNodeWithTag("data/splitter").performMouseInput {
+            moveTo(center)
+            press()
+            moveBy(Offset(20f, 0f))
+            release()
+        }
+        onNodeWithTag("query").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        assertEquals(220f, fraction * extent, 1f)
     }
 
     @Test
