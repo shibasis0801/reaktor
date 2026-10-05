@@ -59,11 +59,11 @@ class SplitTest {
         onNodeWithTag("data/splitter").performMouseInput {
             moveTo(center)
             press()
-            moveBy(center.copy(x = 40f, y = 0f))
-            moveBy(center.copy(x = 20f, y = 0f))
+            moveBy(Offset(40f, 0f))
+            moveBy(Offset(20f, 0f), delayMillis = 0)
             release()
         }
-        assertTrue(fraction * extent > 200f && fraction * extent <= 260f, "dragged to ${fraction * extent}")
+        assertEquals(260f, fraction * extent, 1f)
         val dragged = fraction
         mainClock.advanceTimeBy(1_000)
         onNodeWithTag("data/splitter").performMouseInput { click() }

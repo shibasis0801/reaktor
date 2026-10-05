@@ -13,7 +13,7 @@ data class SplitterProperties(
     val rightToLeft: Boolean = false,
 )
 
-data class SplitterState(val restore: Float? = null) {
+data class SplitterState(val restore: Float? = null, val live: Float? = null) {
     val collapsed: Boolean get() = restore != null
 }
 
@@ -43,24 +43,28 @@ data class SplitterKernel(val step: Float = 16f) : SplitterBehavior {
             }
         }
 
+    override fun reconcile(properties: SplitterProperties, state: SplitterState): Reduction<SplitterState, SizeChange> = Reduction(state.copy(live = null))
+
     fun handles(properties: SplitterProperties, stroke: KeyStroke): Boolean = gesture(properties, stroke) != null
 
     private fun move(properties: SplitterProperties, state: SplitterState, delta: Float): Reduction<SplitterState, SizeChange> {
         val mirrored = properties.axis != Axis.Vertical && properties.rightToLeft
         val growth = if (mirrored != properties.reversed) -delta else delta
-        return resize(properties, state, (if (state.collapsed) 0f else properties.size) + growth)
+        return resize(properties, state, state.size(properties) + growth)
     }
 
     private fun resize(properties: SplitterProperties, state: SplitterState, size: Float): Reduction<SplitterState, SizeChange> {
         val fitted = fitSize(size, properties.min, properties.max)
-        val unchanged = !state.collapsed && fitted == properties.size
-        return Reduction(SplitterState(), if (unchanged) emptyList() else listOf(SizeChange(fitted, collapsed = false)))
+        val unchanged = !state.collapsed && fitted == state.size(properties)
+        return Reduction(SplitterState(live = fitted), if (unchanged) emptyList() else listOf(SizeChange(fitted, collapsed = false)))
     }
 
     private fun collapse(properties: SplitterProperties, state: SplitterState): Reduction<SplitterState, SizeChange> {
-        val restore = state.restore ?: return Reduction(SplitterState(restore = properties.size), listOf(SizeChange(0f, collapsed = true)))
-        return Reduction(SplitterState(), listOf(SizeChange(fitSize(restore, properties.min, properties.max), collapsed = false)))
+        val restore = state.restore ?: return Reduction(SplitterState(restore = state.size(properties)), listOf(SizeChange(0f, collapsed = true)))
+        return resize(properties, state, restore)
     }
+
+    private fun SplitterState.size(properties: SplitterProperties): Float = if (collapsed) 0f else live ?: properties.size
 
     private fun gesture(properties: SplitterProperties, stroke: KeyStroke): Gesture? {
         if (stroke.meta || stroke.control || stroke.alt || stroke.shift) return null
