@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import dev.shibasis.reaktor.ui.machinesignal.SignalTone
+import androidx.compose.material3.Text as SurfaceText
+import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,7 +48,6 @@ import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -166,7 +168,7 @@ fun JumpOutStrip(
     ) {
         Eyebrow("Consoles")
         links.forEach { (label, url) ->
-            SignalButton(label, onClick = { onOpen(url) }, tone = SignalTone.Ghost)
+            SurfaceButton(onActivate = { onOpen(url) }, appearance = toneButton(SignalTone.Ghost)) { SurfaceText(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
@@ -233,7 +235,7 @@ fun SignalPanel(
     contentPadding: Dp = MachineSignal.Space.s3,
     content: @Composable ColumnScope.() -> Unit,
 ) = Column(modifier.background(workspaceColor(background)).then(
-    if (LocalSignalWorkspaceStyle.current) Modifier.border(1.dp, MachineSignal.Editor.Code.GutterLine) else Modifier
+    if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Modifier.border(1.dp, MachineSignal.Editor.Code.GutterLine) else Modifier
 )) {
     if (title != null || trailing != null) {
         Row(
@@ -269,24 +271,6 @@ enum class SignalTone(val fill: Color, val text: Color, val line: Color, val hov
     Secondary(MachineSignal.Bg3, MachineSignal.Text1, MachineSignal.Line2, MachineSignal.Bg4),
     Ghost(Color.Transparent, MachineSignal.Text2, MachineSignal.Line1, MachineSignal.Bg2),
     Danger(Color(0x14FF666B), MachineSignal.Status.Error, Color(0x52FF666B), Color(0x30FF666B)),
-}
-
-@Composable
-fun SignalButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    tone: SignalTone = SignalTone.Secondary,
-    enabled: Boolean = true,
-    leading: (@Composable () -> Unit)? = null,
-) = Button(onClick, modifier.pointerHoverIcon(PointerIcon.Hand), enabled = enabled, appearance = toneButton(tone)) {
-    leading?.invoke()
-    SignalText(
-        text = label,
-        color = if (enabled) tone.text else MachineSignal.Text4,
-        size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.control,
-        weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
-    )
 }
 
 @Composable
@@ -375,18 +359,18 @@ fun KeyValueRow(
     modifier: Modifier = Modifier,
     keyWidth: Dp = 132.dp,
 ) = Row(
-    modifier.fillMaxWidth().then(if (LocalSignalWorkspaceStyle.current) Modifier.heightIn(min = MachineSignal.Editor.treeRowHeight).padding(vertical = MachineSignal.Space.s1) else Modifier.height(MachineSignal.Metrics.kvRowHeight)),
+    modifier.fillMaxWidth().then(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Modifier.heightIn(min = MachineSignal.Editor.treeRowHeight).padding(vertical = MachineSignal.Space.s1) else Modifier.height(MachineSignal.Metrics.kvRowHeight)),
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    SignalText(key, if (LocalSignalWorkspaceStyle.current) Modifier.weight(.38f) else Modifier.width(keyWidth), color = MachineSignal.Text4, size = MachineSignal.Editor.label, maxLines = if (LocalSignalWorkspaceStyle.current) Int.MAX_VALUE else 1)
+    SignalText(key, if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Modifier.weight(.38f) else Modifier.width(keyWidth), color = MachineSignal.Text4, size = MachineSignal.Editor.label, maxLines = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Int.MAX_VALUE else 1)
     SignalText(
         text = fact.value,
-        modifier = Modifier.weight(if (LocalSignalWorkspaceStyle.current) .62f else 1f),
+        modifier = Modifier.weight(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) .62f else 1f),
         color = if (fact.provesHealth) MachineSignal.Text2 else MachineSignal.Text4,
         size = MachineSignal.Type.caption,
-        mono = !LocalSignalWorkspaceStyle.current,
-        maxLines = if (LocalSignalWorkspaceStyle.current) Int.MAX_VALUE else 1,
+        mono = !((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor),
+        maxLines = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Int.MAX_VALUE else 1,
     )
     if (fact.truth != TruthClass.Live) ProvenanceBadge(fact.truth)
 }
@@ -422,7 +406,7 @@ fun SubTab(
     SignalText(
         text = label,
         color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-        size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.label,
+        size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.label,
         weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
     )
     if (count != null && count > 0) {
@@ -452,7 +436,7 @@ fun ContextBar(
     modifier: Modifier = Modifier,
     truth: TruthClass? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
-) = Column(modifier.fillMaxWidth().height(if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.menuHeight else MachineSignal.Metrics.contextBarHeight)) {
+) = Column(modifier.fillMaxWidth().height(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.menuHeight else MachineSignal.Metrics.contextBarHeight)) {
     Row(
         Modifier
             .fillMaxWidth()

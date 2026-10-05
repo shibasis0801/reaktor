@@ -1,5 +1,10 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import androidx.compose.ui.text.style.TextOverflow
+import dev.shibasis.reaktor.ui.machinesignal.SignalTone
+import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
+import androidx.compose.material3.Text as SurfaceText
+import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -65,11 +70,18 @@ fun <T> SignalInspectorLayout(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1)) {
                         SignalText(title, Modifier.weight(1f), color = MachineSignal.Editor.Text, weight = FontWeight.Medium)
-                        if (allowPin) SignalButton(if (state.isPinned) "Unpin" else "Pin", {
-                            if (state.isPinned) state.followSelection() else state.pin(selection)
-                        }, enabled = state.isPinned || selection != null, tone = SignalTone.Ghost,
-                            modifier = Modifier.semantics { stateDescription = if (state.isPinned) "Pinned" else "Follows selection" })
-                        SignalButton("Hide", { state.collapsed = true }, tone = SignalTone.Ghost)
+                        if (allowPin) SurfaceButton(
+                            onActivate = {
+                                if (state.isPinned) state.followSelection() else state.pin(selection)
+                            },
+                            modifier = Modifier.semantics { stateDescription = if (state.isPinned) "Pinned" else "Follows selection" },
+                            enabled = state.isPinned || selection != null,
+                            appearance = toneButton(SignalTone.Ghost),
+                        ) { SurfaceText(if (state.isPinned) "Unpin" else "Pin", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                        SurfaceButton(
+                            onActivate = { state.collapsed = true },
+                            appearance = toneButton(SignalTone.Ghost),
+                        ) { SurfaceText("Hide", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
                     DividerLine(color = MachineSignal.Editor.Line)
                     Box(Modifier.weight(1f).fillMaxWidth()) { inspector(state.subject(selection)) }

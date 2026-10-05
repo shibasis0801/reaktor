@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -80,6 +82,7 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
 ) { look, feedback, slots ->
     Row(
         Modifier
+            .pointerHoverIcon(PointerIcon.Hand)
             .focusRing(look.focused, feedback, look.ring)
             .then(if (look.busy) Modifier.alpha(BusyAlpha) else Modifier)
             .height(look.height)

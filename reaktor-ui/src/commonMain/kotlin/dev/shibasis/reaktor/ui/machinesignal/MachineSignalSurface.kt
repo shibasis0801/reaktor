@@ -194,7 +194,6 @@ fun MachineSignalSurface(
     SurfaceTheme(snapshot, appearances) {
         CompositionLocalProvider(
             LocalMachineSignalFonts provides fonts,
-            LocalSignalWorkspaceStyle provides (variant == MachineSignalVariant.Editor),
             content = content,
         )
     }

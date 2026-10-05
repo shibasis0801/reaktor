@@ -80,7 +80,7 @@ class MachineSignalThemeTest {
         setContent {
             MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact, fonts) {
                 snapshot = LocalThemeSnapshot.current
-                editorFlag = LocalSignalWorkspaceStyle.current
+                editorFlag = ((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)
                 providedFonts = LocalMachineSignalFonts.current
             }
         }

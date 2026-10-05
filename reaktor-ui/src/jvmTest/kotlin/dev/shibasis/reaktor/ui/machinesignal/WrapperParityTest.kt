@@ -1,5 +1,10 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import androidx.compose.ui.text.style.TextOverflow
+import dev.shibasis.reaktor.ui.machinesignal.SignalTone
+import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
+import androidx.compose.material3.Text as SurfaceText
+import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -73,17 +78,30 @@ class WrapperParityTest {
                     listOf(true, false).forEach { enabled ->
                         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                             LegacySignalButton("Deploy target", {}, Modifier.testTag("legacy-$tone-$enabled"), tone = tone, enabled = enabled)
-                            SignalButton("Deploy target", {}, Modifier.testTag("wrapper-$tone-$enabled"), tone = tone, enabled = enabled)
+                            SurfaceButton(
+                                onActivate = {},
+                                modifier = Modifier.testTag("wrapper-$tone-$enabled"),
+                                enabled = enabled,
+                                appearance = toneButton(tone),
+                            ) { SurfaceText("Deploy target", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
                     }
                 }
                 Row(Modifier.width(420.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     LegacySignalButton("Weighted", {}, Modifier.weight(1f).testTag("legacy-weighted"), tone = SignalTone.Primary)
-                    SignalButton("Weighted", {}, Modifier.weight(1f).testTag("wrapper-weighted"), tone = SignalTone.Primary)
+                    SurfaceButton(
+                        onActivate = {},
+                        modifier = Modifier.weight(1f).testTag("wrapper-weighted"),
+                        appearance = toneButton(SignalTone.Primary),
+                    ) { SurfaceText("Weighted", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
                 Row(Modifier.width(420.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Box(Modifier.width(180.dp)) { LegacySignalButton("Filled", {}, Modifier.fillMaxWidth().height(24.dp).testTag("legacy-sized")) }
-                    Box(Modifier.width(180.dp)) { SignalButton("Filled", {}, Modifier.fillMaxWidth().height(24.dp).testTag("wrapper-sized")) }
+                    Box(Modifier.width(180.dp)) { SurfaceButton(
+                        onActivate = {},
+                        modifier = Modifier.fillMaxWidth().height(24.dp).testTag("wrapper-sized"),
+                        appearance = toneButton(SignalTone.Secondary),
+                    ) { SurfaceText("Filled", maxLines = 1, overflow = TextOverflow.Ellipsis) } }
                 }
             }
         }) {
