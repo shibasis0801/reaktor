@@ -7,7 +7,7 @@ data class TabSetProperties(
     val rightToLeft: Boolean = false,
 )
 
-data class TabSetState(val roving: RovingState = RovingState(), val activeIndex: Int = -1, val shown: String? = null) {
+data class TabSetState(val roving: RovingState = RovingState(), val activeIndex: Int = -1, val shown: String? = null, val within: Boolean = false) {
     val active: String? get() = roving.active
 }
 
@@ -16,6 +16,7 @@ sealed interface TabSetInput {
     data class Point(val key: String) : TabSetInput
     data class Close(val key: String) : TabSetInput
     data class Focused(val key: String) : TabSetInput
+    data object Blurred : TabSetInput
     data class TypingElapsed(val ticket: Ticket) : TabSetInput
 }
 
@@ -40,7 +41,8 @@ data class TabSetKernel(val roving: RovingKernel = RovingKernel()) : TabSetBehav
                 else Reduction(state.copy(roving = state.roving.copy(active = input.key)), properties.select(input.key),
                     commands = listOf(LocalCommand.Focus(PartKey(input.key)), LocalCommand.Reveal(PartKey(input.key))))
             is TabSetInput.Close -> close(properties, state, input.key)
-            is TabSetInput.Focused -> rove(properties, state, RovingInput.Focused(input.key))
+            is TabSetInput.Focused -> rove(properties, state.copy(within = true), RovingInput.Focused(input.key))
+            TabSetInput.Blurred -> reconcile(properties, state.copy(within = false))
             is TabSetInput.TypingElapsed -> rove(properties, state, RovingInput.TypingElapsed(input.ticket))
         }
         return reduced.copy(state = reduced.state.copy(activeIndex = properties.tabs.indexOf(reduced.state.active)))
@@ -49,13 +51,14 @@ data class TabSetKernel(val roving: RovingKernel = RovingKernel()) : TabSetBehav
     override fun reconcile(properties: TabSetProperties, state: TabSetState): Reduction<TabSetState, TabSetEvent> {
         val tabs = properties.tabs
         val active = when {
+            !state.within && properties.selected?.let(properties::choosable) == true -> properties.selected
             state.active != null && tabs.indexOf(state.active).let { it >= 0 && tabs.enabled(it) } -> state.active
             state.active == null -> initial(properties).active
             else -> nearest(tabs, state.activeIndex.coerceAtMost(tabs.size - 1))
         }
         val reveal = properties.selected?.takeIf { it != state.shown && tabs.indexOf(it) >= 0 }
         return Reduction(
-            TabSetState(state.roving.copy(active = active), tabs.indexOf(active), properties.selected),
+            TabSetState(state.roving.copy(active = active), tabs.indexOf(active), properties.selected, state.within),
             commands = listOfNotNull(reveal?.let { LocalCommand.Reveal(PartKey(it)) }),
         )
     }

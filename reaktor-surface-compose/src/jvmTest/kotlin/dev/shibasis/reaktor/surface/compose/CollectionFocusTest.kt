@@ -16,6 +16,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -58,6 +59,37 @@ class CollectionFocusTest {
         onNodeWithTag("files/row/row-3").assertIsFocused()
         onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.Tab) } }
         onNodeWithTag("before").assertIsFocused()
+    }
+
+    @Test
+    fun tabEntersOnASelectionTheOwnerMadeWhileFocusWasElsewhere() = runComposeUiTest {
+        var selection by mutableStateOf(setOf("row-3"))
+        val chosen = mutableListOf<Set<String>>()
+        setContent {
+            Column {
+                Button({}, Modifier.testTag("before")) { BasicText("Before") }
+                AutomationScope("files") {
+                    ListBox(rows, selection, { chosen += it; selection = it }, Modifier.height(200.dp)) { BasicText(it) }
+                }
+                Button({}, Modifier.testTag("after")) { BasicText("After") }
+            }
+        }
+        onNodeWithTag("before").requestFocus()
+        selection = setOf("row-5")
+        waitForIdle()
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("files/row/row-5").assertIsFocused()
+        selection = setOf("row-1")
+        waitForIdle()
+        onNodeWithTag("files/row/row-5").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("after").assertIsFocused()
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.Tab) } }
+        onNodeWithTag("files/row/row-1").assertIsFocused()
+        onNodeWithTag("after").requestFocus()
+        onNodeWithTag("files/row/row-4").performMouseInput { click(center) }
+        assertEquals(listOf(setOf("row-4")), chosen)
+        onNodeWithTag("files/row/row-4").assertIsFocused()
     }
 
     @Test

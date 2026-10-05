@@ -232,7 +232,7 @@ internal fun <T> Collection(
 
 @Composable
 private fun RowMenu(host: CollectionHost, commands: CommandSet, invoke: (CommandId) -> Unit) {
-    val open = remember { mutableStateOf(false) }
+    val open = host.menuOpen
     val level = rememberMenuLevel(open.value, true, RowMenuKernel, null) { expanded ->
         open.value = expanded
         if (!expanded) host.returnFocus()
@@ -332,6 +332,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     private var pointing = false
 
     var openMenu: ((IntRect) -> Unit)? = null
+    val menuOpen = mutableStateOf(false)
     var menuAnchor = IntRect.Zero
     var coordinates: LayoutCoordinates? = null
     private var pointerAnchor = IntRect.Zero
@@ -386,6 +387,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     fun waiting(): Boolean = machine.state.active?.let { it !in rows } ?: false
 
     fun onFocus(state: FocusState) {
+        if (!state.hasFocus && !menuOpen.value) machine.send(CollectionInput.Blurred)
         if (!state.isFocused) return
         val active = machine.state.active ?: return
         if (inputModes?.inputMode == InputMode.Keyboard) keyboard = true

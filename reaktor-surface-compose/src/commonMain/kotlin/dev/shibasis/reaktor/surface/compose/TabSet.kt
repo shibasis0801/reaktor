@@ -105,6 +105,7 @@ fun TabSet(
         modifier
             .horizontalScroll(rememberScrollState())
             .selectableGroup()
+            .onFocusChanged { if (!it.hasFocus) machine.send(TabSetInput.Blurred) }
             .onKeyEvent { event ->
                 val stroke = event.stroke()
                 val handled = event.type == KeyEventType.KeyDown && stroke != null && (behavior as? TabSetKernel ?: DefaultTabSet).handles(properties, stroke)
