@@ -107,6 +107,65 @@ class SplitTest {
         assertEquals(184f / extent, fraction, 1e-4f)
     }
 
+    @Test
+    fun remountingARetainedFractionStillResetsToItsAuthoredValue() = runComposeUiTest {
+        var shown by mutableStateOf(true)
+        var fraction by mutableStateOf(.7f)
+        setContent {
+            if (shown) Box(Modifier.size(408.dp, 200.dp)) {
+                AutomationScope("retained") {
+                    Split(fraction, { fraction = it }, 100.dp, 120.dp, Modifier.fillMaxSize(),
+                        initialFraction = .42f, label = "Resize query and results",
+                        first = { BasicText("Query") }, second = { BasicText("Results") })
+                }
+            }
+        }
+        shown = false
+        waitForIdle()
+        shown = true
+        waitForIdle()
+        val handle = onNodeWithTag("retained/splitter")
+        assertEquals(listOf("Resize query and results"), handle.fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+        val reset = handle.fetchSemanticsNode().config[SemanticsActions.CustomActions].single()
+        runOnIdle { reset.action() }
+        assertEquals(.42f, fraction, 1e-4f)
+    }
+
+    @Test
+    fun compactAndInvalidRequestsKeepBothPanesInsideTheirContainer() = runComposeUiTest {
+        var width by mutableStateOf(8)
+        var fraction by mutableStateOf(.42f)
+        setContent {
+            Box(Modifier.size(width.dp, 200.dp)) {
+                Split(fraction, {}, 280.dp, 320.dp, Modifier.fillMaxSize(),
+                    first = { Box(Modifier.fillMaxSize().testTag("first")) },
+                    second = { Box(Modifier.fillMaxSize().testTag("second")) })
+            }
+        }
+        for (extent in listOf(0, 1, 64, 390, 900, 3200)) {
+            width = extent + 8
+            for (request in listOf(-1f, 0f, .42f, 1f, 5f, Float.NaN)) {
+                fraction = request
+                waitForIdle()
+                val first = onNodeWithTag("first").fetchSemanticsNode().boundsInRoot
+                val second = onNodeWithTag("second").fetchSemanticsNode().boundsInRoot
+                assertTrue(first.width >= 0 && second.width >= 0)
+                assertTrue(first.right <= width && second.right <= width)
+                if (extent >= 600) {
+                    assertTrue(first.width >= 279 && second.width >= 319)
+                }
+            }
+        }
+        fraction = .65f
+        width = 398
+        waitForIdle()
+        width = 2408
+        waitForIdle()
+        val first = onNodeWithTag("first").fetchSemanticsNode().boundsInRoot
+        val second = onNodeWithTag("second").fetchSemanticsNode().boundsInRoot
+        assertEquals((first.width + second.width) * .65f, first.width, 1f)
+    }
+
     @androidx.compose.runtime.Composable
     private fun Pair(fraction: Float, onFractionChange: (Float) -> Unit) =
         Box(Modifier.size((extent + 8).dp, 200.dp)) {

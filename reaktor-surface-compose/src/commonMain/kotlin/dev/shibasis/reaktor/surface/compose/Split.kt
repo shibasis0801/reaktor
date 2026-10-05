@@ -81,10 +81,12 @@ fun Split(
     axis: SplitAxis = SplitAxis.Horizontal,
     behavior: SplitterBehavior = SplitterKernel(),
     appearance: SplitterAppearance = LocalAppearances.current[Appearance.Splitter],
+    initialFraction: Float = fraction,
+    label: String? = null,
     first: @Composable () -> Unit,
     second: @Composable () -> Unit,
 ) {
-    val initial = remember { fraction }
+    val initial = remember { initialFraction.takeIf { it.isFinite() } ?: .5f }
     val changed by rememberUpdatedState(onFractionChange)
     BoxWithConstraints(modifier) {
         val horizontal = axis == SplitAxis.Horizontal
@@ -92,7 +94,7 @@ fun Split(
         val shared = (firstMin + secondMin).value
         val least = if (shared > extent && shared > 0f) extent * firstMin.value / shared else firstMin.value
         val most = if (shared > extent && shared > 0f) least else extent - secondMin.value
-        val size = fitSize(fraction * extent, least, most)
+        val size = fitSize((fraction.takeIf { it.isFinite() } ?: .5f) * extent, least, most)
         val properties = SplitterProperties(
             size = size,
             min = least,
@@ -101,7 +103,7 @@ fun Split(
             axis = if (horizontal) Axis.Horizontal else Axis.Vertical,
             rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl,
         )
-        val handle = @Composable { SplitterHandle(properties, axis, behavior, appearance, SplitterPart) { if (extent > 0f) changed(it.size / extent) } }
+        val handle = @Composable { SplitterHandle(properties, axis, behavior, appearance, SplitterPart, label) { if (extent > 0f) changed(it.size / extent) } }
         if (horizontal) {
             Row(Modifier.fillMaxSize()) {
                 Box(Modifier.width(size.dp).fillMaxHeight(), propagateMinConstraints = true) { first() }
@@ -126,6 +128,7 @@ internal fun SplitterHandle(
     appearance: SplitterAppearance,
     part: String,
     label: String? = null,
+    modifier: Modifier = Modifier,
     onSizeChange: (SizeChange) -> Unit,
 ) {
     val changed by rememberUpdatedState(onSizeChange)
@@ -140,7 +143,7 @@ internal fun SplitterHandle(
     val horizontal = axis == SplitAxis.Horizontal
     val drag = rememberDraggableState { delta -> machine.send(SplitterInput.Drag(with(density) { delta.toDp().value })) }
     Box(
-        Modifier
+        modifier
             .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, part)))
             .then(if (horizontal) Modifier.width(HandleSize).fillMaxHeight() else Modifier.height(HandleSize).fillMaxWidth())
             .pointerHoverIcon(PointerIcon.Hand)
