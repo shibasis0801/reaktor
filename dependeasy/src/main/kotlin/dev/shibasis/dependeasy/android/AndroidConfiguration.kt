@@ -99,13 +99,9 @@ fun KotlinMultiplatformExtension.droid(
             }
         }
 
-//        val androidUnitTest by getting {
-//            dependencies {
-//                implementation(kotlin("test-junit"))
-//                implementation("junit:junit:4.13.2")
-//                configure.testDependencies(this)
-//            }
-//        }
+        findByName("androidUnitTest")?.dependencies {
+            implementation(kotlin("test"))
+        }
         val androidInstrumentedTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
