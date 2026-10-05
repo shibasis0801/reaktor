@@ -59,6 +59,18 @@ class SplitterKernelTest {
     }
 
     @Test
+    fun movesAddUpBeforeTheOwnerAnswersAndTheOwnersSizeLeadsAfterward() {
+        val first = kernel.reduce(side, SplitterState(), SplitterInput.Drag(10f))
+        assertEquals(resized(310f), first.events)
+        val second = kernel.reduce(side, first.state, SplitterInput.Drag(10f))
+        assertEquals(resized(320f), second.events)
+        assertEquals(resized(304f), sizes(side, press(KeyName.Left), second.state))
+        assertEquals(resized(300f), sizes(side, SplitterInput.Drag(-10f), first.state))
+        val answered = kernel.reconcile(side.copy(size = 250f), second.state).state
+        assertEquals(resized(266f), sizes(side.copy(size = 250f), press(KeyName.Right), answered))
+    }
+
+    @Test
     fun enterCollapsesACollapsibleRegionAndRestoresItsSize() {
         val collapsible = side.copy(collapsible = true)
         val collapsed = kernel.reduce(collapsible, SplitterState(), press(KeyName.Enter))
