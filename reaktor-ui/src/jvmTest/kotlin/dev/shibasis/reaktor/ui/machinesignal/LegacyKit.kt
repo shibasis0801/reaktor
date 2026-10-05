@@ -311,3 +311,16 @@ internal fun FixtureSurfaceTab(
         SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
     }
 }
+
+fun rowSurface(selected: Boolean, hovered: Boolean): Color = when {
+    selected -> MachineSignal.SelectedSoft
+    hovered -> MachineSignal.Bg2
+    else -> Color.Transparent
+}
+
+@Composable
+fun rememberHover(): Pair<MutableInteractionSource, Boolean> {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    return interaction to hovered
+}

@@ -5,14 +5,6 @@ import androidx.compose.material3.Text as SurfaceText
 import dev.shibasis.reaktor.surface.compose.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,9 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -41,7 +30,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -59,15 +47,14 @@ import dev.shibasis.reaktor.blueprint.canvas.LinkArrow
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.SignalText
-import kotlin.math.roundToInt
 
 object Blueprint {
-    val Body = Color(0xF2191B20)
+    val Body = MachineSignal.Editor.Canvas.copy(alpha = .95f)
     val Grid = CanvasGrid(minor = Color.White.copy(alpha = .028f), major = Color.White.copy(alpha = .07f))
     val Container = MachineSignal.Editor.Source
-    val Live = Color(0xFF35C978)
-    val Hop = Color(0xFF8DA7FF)
-    val Rule = Color(0xFFFF5CA8)
+    val Live = MachineSignal.Status.Ok
+    val Hop = MachineSignal.Editor.Source
+    val Rule = MachineSignal.Entity.Auth
     const val FarZoom = 0.42
 
     fun header(tone: Color): Brush = Brush.horizontalGradient(listOf(lerp(tone, Color.Black, .3f), lerp(tone, Color.Black, .78f)))
@@ -311,7 +298,7 @@ private fun PinDot(color: Color, filled: Boolean) {
 @Composable
 fun BlueprintTag(text: String, tone: Color) {
     Box(Modifier.clip(RoundedCornerShape(3.dp)).background(tone).padding(horizontal = 4.dp, vertical = 1.dp)) {
-        SignalText(text.uppercase(), color = Color(0xFF111217), size = 8.5.sp, weight = FontWeight.Bold)
+        SignalText(text.uppercase(), color = MachineSignal.Editor.Canvas, size = 8.5.sp, weight = FontWeight.Bold)
     }
 }
 
@@ -346,49 +333,10 @@ fun BlueprintLegend(entries: List<LegendEntry>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun BlueprintCamera(
-    canvas: GraphCanvasState,
-    tag: String,
-    onFit: () -> Unit,
-    onCentre: () -> Unit,
-    modifier: Modifier = Modifier,
-    ready: Boolean = true,
-    centreEnabled: Boolean = false,
-) {
-    Row(
-        modifier.background(MachineSignal.Editor.Surface.copy(alpha = .94f), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SignalText("${(canvas.zoom * 100).roundToInt()}%", Modifier.clickable { canvas.zoomTo(1.0) }
-            .padding(horizontal = 6.dp, vertical = 4.dp).testTag("$tag-zoom-reset"), color = MachineSignal.Editor.Muted, size = MachineSignal.Editor.meta, mono = true)
-        CameraButton(Icons.Filled.CenterFocusStrong, "Frame everything", onFit, enabled = ready, modifier = Modifier.testTag("$tag-fit"))
-        CameraButton(Icons.Filled.FilterCenterFocus, "Centre the selection", onCentre, enabled = ready && centreEnabled, modifier = Modifier.testTag("$tag-frame-selection"))
-    }
-}
-
-@Composable
 fun BlueprintWatermark(title: String, line: String, lineColor: Color, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.End) {
         SignalText(title.uppercase(), color = Color.White.copy(alpha = .07f), size = 38.sp, weight = FontWeight.Bold, maxLines = 1)
         SignalText(line, color = lineColor, size = 12.sp, weight = FontWeight.SemiBold, maxLines = 1)
-    }
-}
-
-@Composable
-private fun CameraButton(icon: ImageVector, label: String, onClick: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
-    val interaction = remember { MutableInteractionSource() }
-    val hovered by interaction.collectIsHoveredAsState()
-    SurfaceTooltip(tip = { SurfaceText(label) }) {
-        Box(
-            modifier.size(24.dp).clip(RoundedCornerShape(MachineSignal.Editor.controlRadius))
-                .background(if (hovered && enabled) MachineSignal.Editor.Raised else Color.Transparent)
-                .hoverable(interaction, enabled)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                .semantics { contentDescription = label },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, null, Modifier.size(15.dp), tint = if (enabled) MachineSignal.Editor.Muted else MachineSignal.Editor.Unknown)
-        }
     }
 }
 
