@@ -58,6 +58,7 @@ fun PaneHost(
     behavior: SplitterBehavior = SplitterKernel(),
     appearance: SplitterAppearance = LocalAppearances.current[Appearance.Splitter],
     focus: PaneHostFocus = remember { PaneHostFocus() },
+    splitterModifier: (Region) -> Modifier = { Modifier },
     main: @Composable PaneScope.() -> Unit,
     region: @Composable PaneScope.(Region) -> Unit,
 ) {
@@ -105,6 +106,7 @@ fun PaneHost(
                 appearance,
                 "$SplitterPart/${item.id}",
                 item.label,
+                splitterModifier(item),
             ) { change ->
                 changed(if (change.collapsed) latest.copy(hidden = latest.hidden + item.id)
                     else latest.copy(sizes = latest.sizes + (item.id to change.size), hidden = latest.hidden - item.id))
