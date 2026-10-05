@@ -28,6 +28,8 @@ fun KotlinMultiplatformExtension.server(
                 configure.dependencies(this)
             }
         }
-
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
