@@ -268,7 +268,7 @@ class MachineSignalLookParityTest {
     private fun ToneLabel(label: String, tone: SignalTone, enabled: Boolean) = SignalText(
         text = label,
         color = if (enabled) tone.text else MachineSignal.Text4,
-        size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.control,
+        size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.control,
         weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
     )
 
@@ -277,7 +277,7 @@ class MachineSignalLookParityTest {
         SignalText(
             text = label,
             color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-            size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.label,
+            size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.label,
             weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
         )
         if (count != null && count > 0) SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)

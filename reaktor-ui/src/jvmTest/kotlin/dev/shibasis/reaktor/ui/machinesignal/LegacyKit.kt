@@ -47,7 +47,7 @@ fun LegacySignalButton(
     leading: (@Composable () -> Unit)? = null,
 ) {
     val (interaction, hovered) = rememberHover()
-    val editor = LocalSignalWorkspaceStyle.current
+    val editor = ((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)
     Row(
         modifier
             .height(if (editor) MachineSignal.Editor.controlHeight else MachineSignal.Metrics.buttonHeight)
@@ -104,8 +104,8 @@ fun LegacySubTab(
 ) = Column(
     modifier
         .width(IntrinsicSize.Max)
-        .height(if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.documentTabHeight else MachineSignal.Metrics.subTabHeight)
-        .background(if (LocalSignalWorkspaceStyle.current && selected) MachineSignal.Editor.AccentSoft else Color.Transparent)
+        .height(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.documentTabHeight else MachineSignal.Metrics.subTabHeight)
+        .background(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor) && selected) MachineSignal.Editor.AccentSoft else Color.Transparent)
         .clickable(role = Role.Tab, onClick = onClick)
         .semantics { this.selected = selected; this.role = Role.Tab }
         .padding(
@@ -123,7 +123,7 @@ fun LegacySubTab(
         SignalText(
             text = label,
             color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-            size = if (LocalSignalWorkspaceStyle.current) MachineSignal.Editor.label else MachineSignal.Type.label,
+            size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.label,
             weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
         )
         if (count != null && count > 0) {

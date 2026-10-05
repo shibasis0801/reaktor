@@ -1,5 +1,10 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import androidx.compose.ui.text.style.TextOverflow
+import dev.shibasis.reaktor.ui.machinesignal.SignalTone
+import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
+import androidx.compose.material3.Text as SurfaceText
+import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,10 +56,18 @@ class SignalContextMenuTest {
             MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
                 SurfaceEnvironmentProvider(SurfaceEnvironment()) {
                     Column {
-                        SignalButton("Search", {}, Modifier.testTag("search"))
+                        SurfaceButton(
+                            onActivate = {},
+                            modifier = Modifier.testTag("search"),
+                            appearance = toneButton(SignalTone.Secondary),
+                        ) { SurfaceText("Search", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         Row {
                             Box {
-                                SignalButton("Columns", { onOpen(true) }, Modifier.testTag("columns"))
+                                SurfaceButton(
+                                    onActivate = { onOpen(true) },
+                                    modifier = Modifier.testTag("columns"),
+                                    appearance = toneButton(SignalTone.Secondary),
+                                ) { SurfaceText("Columns", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                 SignalContextMenu(actions, open(), { dismissed++; onOpen(false) })
                             }
                         }
