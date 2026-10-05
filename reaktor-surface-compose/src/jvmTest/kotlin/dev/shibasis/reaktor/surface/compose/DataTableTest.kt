@@ -1,15 +1,20 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -41,6 +46,7 @@ import dev.shibasis.reaktor.surface.CommandId
 import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.ItemSource
 import dev.shibasis.reaktor.surface.Sort
+import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.listSource
 import kotlin.math.roundToInt
 import kotlin.test.Test
@@ -256,6 +262,22 @@ class DataTableTest {
         onNode(SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate)).assertIsDisplayed()
         onNodeWithTag("files/row/file-3").performMouseInput { click(center) }
         assertEquals(setOf("file-3"), selection)
+    }
+
+    @Test
+    fun theScrollbarIsDrawnByItsLookBesideTheRows() = runComposeUiTest {
+        val scrollable = mutableListOf<Boolean>()
+        val look = object : ScrollbarAppearance {
+            @Composable
+            override fun Content(properties: ScrollbarProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ScrollbarSlots) {
+                SideEffect { scrollable += properties.scrollable }
+                Box(Modifier.fillMaxHeight().testTag("scrollbar")) { slots.thumb(ScrollbarThumb(4.dp, Color.Gray, Color.Black, RectangleShape)) }
+            }
+        }
+        setContent { CompositionLocalProvider(LocalAppearances provides Appearances(Appearance.Scrollbar provides look)) { Table(TableState()) } }
+        val header = onNodeWithTag("files/header/name").fetchSemanticsNode().boundsInRoot
+        assertEquals(header.top + 400f, onNodeWithTag("scrollbar").fetchSemanticsNode().boundsInRoot.bottom)
+        assertTrue(scrollable.last())
     }
 
     @Test

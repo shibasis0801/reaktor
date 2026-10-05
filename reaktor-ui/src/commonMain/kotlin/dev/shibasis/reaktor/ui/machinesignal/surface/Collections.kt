@@ -5,11 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +35,10 @@ import dev.shibasis.reaktor.surface.compose.RowAppearance
 import dev.shibasis.reaktor.surface.compose.RowProperties
 import dev.shibasis.reaktor.surface.compose.RowSlots
 import dev.shibasis.reaktor.surface.compose.RowState
+import dev.shibasis.reaktor.surface.compose.ScrollbarAppearance
+import dev.shibasis.reaktor.surface.compose.ScrollbarProperties
+import dev.shibasis.reaktor.surface.compose.ScrollbarSlots
+import dev.shibasis.reaktor.surface.compose.ScrollbarThumb
 import dev.shibasis.reaktor.surface.compose.TableHeaderAppearance
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
@@ -129,6 +135,16 @@ val SignalTableHeader: TableHeaderAppearance = object : TableHeaderAppearance {
     }
 }
 
+val SignalScrollbar: ScrollbarAppearance = object : ScrollbarAppearance {
+    @Composable
+    override fun Content(properties: ScrollbarProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ScrollbarSlots) {
+        val colors = theme.machineSignal.colors
+        Box(Modifier.fillMaxHeight().background(if (properties.scrollable) colors.line else Color.Transparent, ScrollbarShape)) {
+            slots.thumb(ScrollbarThumb(ScrollbarThickness, colors.textMuted.copy(alpha = IdleThumb), colors.textMuted, ScrollbarShape))
+        }
+    }
+}
+
 @Composable
 private fun Chevron(expanded: Boolean, color: Color) = Canvas(Modifier.size(ChevronSize)) {
     val forward = layoutDirection == LayoutDirection.Ltr
@@ -156,3 +172,6 @@ private const val ZebraFill = .45f
 private const val Ascending = " ▲"
 private const val Descending = " ▼"
 private val ChevronSize = 8.dp
+private val ScrollbarThickness = MachineSignal.Space.s1
+private val ScrollbarShape = RoundedCornerShape(MachineSignal.Space.s1 / 2)
+private const val IdleThumb = .5f
