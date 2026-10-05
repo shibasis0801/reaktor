@@ -1,11 +1,32 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.toSize
+import dev.shibasis.reaktor.surface.compose.Align
+import dev.shibasis.reaktor.surface.compose.Placement
+import dev.shibasis.reaktor.surface.compose.Side
+import dev.shibasis.reaktor.surface.compose.Menu
+import dev.shibasis.reaktor.surface.compose.OverlayAnchor
+import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuPanel
+import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -199,3 +220,75 @@ fun LegacyTooltipFrame(text: String) = Box(
         lineHeight = MachineSignal.Editor.label * MachineSignal.Editor.lineHeight,
     )
 }
+
+
+@Composable
+fun LegacySignalRow(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: Color? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .hoverable(interaction)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .background(rowSurface(selected, hovered))
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
+            .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (accent != null) StatusDot(accent)
+        content()
+    }
+}
+
+data class SignalAction(val label: String, val enabled: Boolean = true, val id: String? = null, val onInvoke: () -> Unit)
+
+@Composable
+fun FixtureSurfaceMenu(
+    actions: List<SignalAction>,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    trigger: FocusRequester? = null,
+) {
+    if (actions.isEmpty() || !expanded) return
+    val returnTo by rememberUpdatedState(trigger)
+    DisposableEffect(Unit) { onDispose { returnTo?.requestFocus() } }
+    var parent by remember { mutableStateOf<Rect?>(null) }
+    Menu(
+        expanded = parent != null,
+        onExpandedChange = { if (!it) onDismiss() },
+        modifier = Modifier.onPlaced { placed -> placed.parentCoordinates?.let { parent = Rect(it.positionInWindow(), it.size.toSize()) } },
+        anchor = parent?.let(OverlayAnchor::Bounds),
+        placement = ContextMenuPlacement,
+    ) {
+        Popup(ContextMenuPanel) {
+            val tags = actions.map { it.id ?: "signal-action-${it.label}" }
+            actions.forEachIndexed { index, action ->
+                val tag = tags[index]
+                Item(
+                    if (tags.indexOf(tag) == index) tag else "$tag/$index",
+                    action.onInvoke,
+                    Modifier.testTag(tag),
+                    enabled = action.enabled,
+                    typeahead = action.label,
+                    appearance = ContextMenuItem,
+                ) {
+                    SignalText(
+                        action.label,
+                        color = if (action.enabled) MachineSignal.Text2 else MachineSignal.Text4,
+                        size = MachineSignal.Type.caption,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private val ContextMenuPlacement = Placement(Side.Below, Align.Start, gap = 0.dp, margin = 48.dp)

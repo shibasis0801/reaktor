@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import dev.shibasis.reaktor.surface.compose.Tooltip as SurfaceTooltip
 import androidx.compose.ui.text.style.TextOverflow
 import dev.shibasis.reaktor.ui.machinesignal.SignalTone
 import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
@@ -53,7 +54,7 @@ fun <T> SignalInspectorLayout(
             Box(Modifier.weight(1f).fillMaxHeight()) { content() }
             if (state.collapsed) {
                 VerticalDivider(color = MachineSignal.Editor.Line)
-                MachineSignalTooltip("Show $title") {
+                SurfaceTooltip(tip = { SurfaceText("Show $title") }) {
                     Box(Modifier.width(MachineSignal.Editor.controlHeight).fillMaxHeight()
                         .background(MachineSignal.Editor.Surface)
                         .semantics { contentDescription = "Show $title" }

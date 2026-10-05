@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.blueprint
 
+import dev.shibasis.reaktor.surface.compose.Tooltip as SurfaceTooltip
+import androidx.compose.material3.Text as SurfaceText
+import dev.shibasis.reaktor.surface.compose.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,7 +58,6 @@ import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import dev.shibasis.reaktor.blueprint.canvas.LinkArrow
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
-import dev.shibasis.reaktor.ui.machinesignal.MachineSignalTooltip
 import dev.shibasis.reaktor.ui.machinesignal.SignalText
 import kotlin.math.roundToInt
 
@@ -294,7 +296,7 @@ fun BlueprintPin(
             if (pin.provides) PinDot(color, filled)
         }
     }
-    if (tooltip == null) row() else MachineSignalTooltip(tooltip = tooltip) { row() }
+    if (tooltip == null) row() else SurfaceTooltip(appearance = UnframedBlueprintTip, tip = tooltip) { row() }
 }
 
 @Composable
@@ -376,7 +378,7 @@ fun BlueprintWatermark(title: String, line: String, lineColor: Color, modifier: 
 private fun CameraButton(icon: ImageVector, label: String, onClick: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
-    MachineSignalTooltip(label) {
+    SurfaceTooltip(tip = { SurfaceText(label) }) {
         Box(
             modifier.size(24.dp).clip(RoundedCornerShape(MachineSignal.Editor.controlRadius))
                 .background(if (hovered && enabled) MachineSignal.Editor.Raised else Color.Transparent)
@@ -388,4 +390,10 @@ private fun CameraButton(icon: ImageVector, label: String, onClick: () -> Unit, 
             Icon(icon, null, Modifier.size(15.dp), tint = if (enabled) MachineSignal.Editor.Muted else MachineSignal.Editor.Unknown)
         }
     }
+}
+
+private val UnframedBlueprintTip: TooltipAppearance = object : TooltipAppearance {
+    @Composable
+    override fun Content(properties: TipContent, state: dev.shibasis.reaktor.surface.TooltipState,
+        theme: dev.shibasis.reaktor.surface.ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) = slots.tip()
 }

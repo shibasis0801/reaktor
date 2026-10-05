@@ -1,12 +1,8 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
 import dev.shibasis.reaktor.ui.machinesignal.SignalTone
-import androidx.compose.material3.Text as SurfaceText
-import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.horizontalScroll
@@ -16,9 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,22 +24,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -57,19 +42,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
 import dev.shibasis.reaktor.core.truth.Fact
 import dev.shibasis.reaktor.core.truth.TruthClass
-import dev.shibasis.reaktor.surface.compose.Align
 import dev.shibasis.reaktor.surface.compose.Button
-import dev.shibasis.reaktor.surface.compose.Menu
-import dev.shibasis.reaktor.surface.compose.OverlayAnchor
-import dev.shibasis.reaktor.surface.compose.Placement
-import dev.shibasis.reaktor.surface.compose.Side
-import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuItem
-import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuPanel
 import dev.shibasis.reaktor.ui.machinesignal.surface.subTab
-import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
 
 data class MachineSignalFonts(
     val ui: FontFamily = FontFamily.SansSerif,
@@ -114,109 +90,6 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = MachineS
     maxLines = 1,
     overflow = TextOverflow.Ellipsis,
 )
-
-@Composable
-fun PaneToolbar(
-    title: String,
-    modifier: Modifier = Modifier,
-    counts: List<Pair<String, Int>> = emptyList(),
-    actions: (@Composable RowScope.() -> Unit)? = null,
-) = Row(
-    modifier
-        .fillMaxWidth()
-        .height(40.dp)
-        .background(workspaceColor(MachineSignal.Bg1))
-        .padding(horizontal = MachineSignal.Space.s3),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3),
-    verticalAlignment = Alignment.CenterVertically,
-) {
-    SignalText(title, color = MachineSignal.Text1, size = MachineSignal.Type.title, weight = FontWeight.SemiBold)
-    counts.forEach { (label, value) ->
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SignalText(value.toString(), color = MachineSignal.Text2, size = MachineSignal.Type.caption, mono = true)
-            SignalText(label, color = MachineSignal.Text4, size = MachineSignal.Type.caption)
-        }
-    }
-    Spacer(Modifier.weight(1f))
-    if (actions != null) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
-            verticalAlignment = Alignment.CenterVertically,
-            content = actions,
-        )
-    }
-}
-
-@Composable
-fun JumpOutStrip(
-    links: List<Pair<String, String>>,
-    onOpen: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (links.isEmpty()) return
-    Row(
-        modifier
-            .fillMaxWidth()
-            .background(workspaceColor(MachineSignal.Bg1))
-            .testTag("jump-out")
-            .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
-        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Eyebrow("Consoles")
-        links.forEach { (label, url) ->
-            SurfaceButton(onActivate = { onOpen(url) }, appearance = toneButton(SignalTone.Ghost)) { SurfaceText(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-        }
-    }
-}
-
-data class SignalAction(val label: String, val enabled: Boolean = true, val id: String? = null, val onInvoke: () -> Unit)
-
-@Composable
-fun SignalContextMenu(
-    actions: List<SignalAction>,
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-    trigger: FocusRequester? = null,
-) {
-    if (actions.isEmpty() || !expanded) return
-    val returnTo by rememberUpdatedState(trigger)
-    DisposableEffect(Unit) { onDispose { returnTo?.requestFocus() } }
-    var parent by remember { mutableStateOf<Rect?>(null) }
-    Menu(
-        expanded = parent != null,
-        onExpandedChange = { if (!it) onDismiss() },
-        modifier = Modifier.onPlaced { placed -> placed.parentCoordinates?.let { parent = Rect(it.positionInWindow(), it.size.toSize()) } },
-        anchor = parent?.let(OverlayAnchor::Bounds),
-        placement = ContextMenuPlacement,
-    ) {
-        Popup(ContextMenuPanel) {
-            val tags = actions.map { it.id ?: "signal-action-${it.label}" }
-            actions.forEachIndexed { index, action ->
-                val tag = tags[index]
-                Item(
-                    if (tags.indexOf(tag) == index) tag else "$tag/$index",
-                    action.onInvoke,
-                    Modifier.testTag(tag),
-                    enabled = action.enabled,
-                    typeahead = action.label,
-                    appearance = ContextMenuItem,
-                ) {
-                    SignalText(
-                        action.label,
-                        color = if (action.enabled) MachineSignal.Text2 else MachineSignal.Text4,
-                        size = MachineSignal.Type.caption,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private val ContextMenuPlacement = Placement(Side.Below, Align.Start, gap = 0.dp, margin = 48.dp)
 
 @Composable
 fun VerticalDivider(modifier: Modifier = Modifier, color: Color = MachineSignal.Line1) =
@@ -467,32 +340,6 @@ fun ContextBar(
     DividerLine()
 }
 
-@Composable
-fun SignalRow(
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    accent: Color? = null,
-    content: @Composable RowScope.() -> Unit,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val hovered by interaction.collectIsHoveredAsState()
-    Row(
-        modifier
-            .fillMaxWidth()
-            .hoverable(interaction)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .background(rowSurface(selected, hovered))
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
-            .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
-        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (accent != null) StatusDot(accent)
-        content()
-    }
-}
-
 fun rowSurface(selected: Boolean, hovered: Boolean): Color = when {
     selected -> MachineSignal.SelectedSoft
     hovered -> MachineSignal.Bg2
@@ -581,25 +428,6 @@ fun KindBadge(kind: String, modifier: Modifier = Modifier, color: Color = Machin
 
 /** `Chip / Entity` — a reference to something in the graph. */
 @Composable
-fun EntityChip(
-    label: String,
-    modifier: Modifier = Modifier,
-    color: Color = MachineSignal.AccentText,
-    onClick: (() -> Unit)? = null,
-) = Box(
-    modifier
-        .height(MachineSignal.Metrics.entityChipHeight)
-        .background(MachineSignal.Bg3, MachineSignal.Shape.Tight)
-        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Tight)
-        .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-        .padding(horizontal = MachineSignal.Metrics.entityChipPaddingX),
-    contentAlignment = Alignment.Center,
-) {
-    SignalText(label, color = color, size = MachineSignal.Type.data, weight = FontWeight.Medium, mono = true)
-}
-
-/** `Pill / Status` — a dot and a reading, in the status colour. */
-@Composable
 fun StatusPill(
     label: String,
     color: Color,
@@ -618,235 +446,6 @@ fun StatusPill(
 }
 
 /** `Pill / Branch` — the branch and revision the workbench is looking at. */
-@Composable
-fun BranchPill(
-    branch: String,
-    revision: String? = null,
-    modifier: Modifier = Modifier,
-    leading: (@Composable () -> Unit)? = null,
-) = Row(
-    modifier
-        .height(MachineSignal.Metrics.branchPillHeight)
-        .background(MachineSignal.Bg2, MachineSignal.Shape.Control)
-        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Control)
-        .padding(horizontal = MachineSignal.Metrics.branchPillPaddingX),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.branchPillGap),
-    verticalAlignment = Alignment.CenterVertically,
-) {
-    leading?.invoke()
-    SignalText(branch, color = MachineSignal.Text2, size = MachineSignal.Type.dataStrong, mono = true)
-    if (revision != null) {
-        SignalText(revision, color = MachineSignal.Text4, size = MachineSignal.Type.dataStrong, mono = true)
-    }
-}
-
-/** `Row / Tree` — one line of a navigator. */
-@Composable
-fun TreeRow(
-    name: String,
-    modifier: Modifier = Modifier,
-    meta: String? = null,
-    selected: Boolean = false,
-    depth: Int = 0,
-    accent: Color? = null,
-    onClick: () -> Unit = {},
-) {
-    val (interaction, hovered) = rememberHover()
-    Row(
-        modifier
-            .fillMaxWidth()
-            .height(MachineSignal.Metrics.treeRowHeight)
-            .background(rowSurface(selected, hovered), MachineSignal.Shape.Tight)
-            .hoverable(interaction)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
-            .padding(
-                start = MachineSignal.Metrics.treeRowPaddingX + (MachineSignal.Space.s3 * depth),
-                end = MachineSignal.Metrics.treeRowPaddingX,
-            ),
-        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.treeRowGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (accent != null) StatusDot(accent)
-        SignalText(
-            text = name,
-            modifier = Modifier.weight(1f, fill = false),
-            color = if (selected) MachineSignal.Text1 else MachineSignal.Text2,
-            size = MachineSignal.Type.dataStrong,
-            weight = FontWeight.Medium,
-            mono = true,
-        )
-        if (meta != null) {
-            SignalText(meta, color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
-        }
-    }
-}
-
-/** `Row / Command` — one graph command in the change set. */
-@Composable
-fun CommandRow(
-    id: String,
-    summary: String,
-    status: String,
-    modifier: Modifier = Modifier,
-    statusColor: Color = MachineSignal.statusColor(status),
-    trailing: (@Composable RowScope.() -> Unit)? = null,
-) = Row(
-    modifier
-        .fillMaxWidth()
-        .height(MachineSignal.Metrics.commandRowHeight)
-        .background(MachineSignal.Bg2, MachineSignal.Shape.Control)
-        .border(1.dp, MachineSignal.Line1, MachineSignal.Shape.Control)
-        .padding(horizontal = MachineSignal.Metrics.commandRowPaddingX),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.commandRowGap),
-    verticalAlignment = Alignment.CenterVertically,
-) {
-    SignalText(id, color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
-    SignalText(
-        text = summary,
-        modifier = Modifier.weight(1f),
-        color = MachineSignal.Text2,
-        size = MachineSignal.Type.data,
-        mono = true,
-    )
-    SignalText(
-        text = status,
-        color = statusColor,
-        size = MachineSignal.Type.dataMicro,
-        weight = FontWeight.SemiBold,
-        mono = true,
-    )
-    if (trailing != null) trailing()
-}
-
-/** `Tab / Mode` — top-level workbench mode. */
-@Composable
-fun ModeTab(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    shortcut: String? = null,
-    leading: (@Composable () -> Unit)? = null,
-    /** The authored `TKbdW` slot after the label — empty on the boards, used by hosts that bind a chord. */
-    trailing: (@Composable () -> Unit)? = null,
-) {
-    val (interaction, hovered) = rememberHover()
-    Row(
-    modifier
-        .height(MachineSignal.Metrics.modeTabHeight)
-        .hoverable(interaction)
-        .pointerHoverIcon(PointerIcon.Hand)
-        .background(
-            when {
-                selected -> MachineSignal.SelectedSoft
-                hovered -> MachineSignal.Bg2
-                else -> Color.Transparent
-            },
-            MachineSignal.Shape.Control,
-        )
-        .border(
-            1.dp,
-            if (selected) MachineSignal.AccentLine else Color.Transparent,
-            MachineSignal.Shape.Control,
-        )
-        .clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClick = onClick)
-        .semantics { this.selected = selected; this.role = Role.Tab }
-        .padding(horizontal = MachineSignal.Metrics.modeTabPaddingX),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.modeTabGap),
-    verticalAlignment = Alignment.CenterVertically,
-) {
-    leading?.invoke()
-    SignalText(
-        text = label,
-        color = if (selected) MachineSignal.AccentText else MachineSignal.Text3,
-        size = MachineSignal.Type.label,
-        weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-    )
-    if (shortcut != null) {
-        SignalText(shortcut, color = if (selected) MachineSignal.AccentText else MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
-    }
-    trailing?.invoke()
-}
-}
-
-/** `Segmented / Env` — mutually exclusive environment choice. */
-@Composable
-fun EnvSegmented(
-    options: List<String>,
-    selected: String,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    /** Label to show for an option; the underlying value is what [onSelect] reports. */
-    label: (String) -> String = { it },
-    /** Lets a host address individual segments from an end-to-end driver. */
-    optionTag: ((String) -> String)? = null,
-) = Row(
-    modifier
-        .height(MachineSignal.Metrics.envSegmentedHeight)
-        .background(MachineSignal.Bg2, MachineSignal.Shape.Control)
-        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Control)
-        .padding(MachineSignal.Metrics.envSegmentedPadding),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.envSegmentedGap),
-    verticalAlignment = Alignment.CenterVertically,
-) {
-    options.forEach { option ->
-        val isSelected = option == selected
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .then(optionTag?.let { Modifier.testTag(it(option)) } ?: Modifier)
-                .background(
-                    if (isSelected) MachineSignal.SelectedSoft else Color.Transparent,
-                    MachineSignal.Shape.Tight,
-                )
-                .clickable(role = Role.Tab, onClick = { onSelect(option) })
-                .semantics { this.selected = isSelected; this.role = Role.Tab }
-                .padding(horizontal = MachineSignal.Space.s3),
-            contentAlignment = Alignment.Center,
-        ) {
-            SignalText(
-                text = label(option),
-                color = if (isSelected) MachineSignal.AccentText else MachineSignal.Text3,
-                size = MachineSignal.Type.label,
-                weight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-            )
-        }
-    }
-}
-
-/** `Field / Search` — the workbench search affordance. */
-@Composable
-fun SearchField(
-    placeholder: String,
-    modifier: Modifier = Modifier,
-    shortcut: String? = null,
-    leading: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit = {},
-) = Row(
-    // The authored field is a fixed 280 wide; the top bar overrides it when it needs to stretch.
-    Modifier
-        .width(MachineSignal.Metrics.searchFieldWidth)
-        .then(modifier)
-        .height(MachineSignal.Metrics.searchFieldHeight)
-        .background(MachineSignal.Bg1, MachineSignal.Shape.Control)
-        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Control)
-        .clickable(role = Role.Button, onClick = onClick)
-        .padding(horizontal = MachineSignal.Metrics.searchPaddingX),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.searchFieldGap),
-    verticalAlignment = Alignment.CenterVertically,
-) {
-    leading?.invoke()
-    SignalText(
-        text = placeholder,
-        modifier = Modifier.weight(1f),
-        color = MachineSignal.Text3,
-        size = MachineSignal.Type.label,
-    )
-    if (shortcut != null) Kbd(shortcut)
-}
-
-/** `Avatar` — an actor, human or agent. */
 @Composable
 fun Avatar(
     initials: String,
