@@ -4,6 +4,8 @@ import dev.shibasis.reaktor.auth.db.roleScope
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import dev.shibasis.reaktor.tooling.auth.AuthTenancyQueries
 import dev.shibasis.reaktor.tooling.auth.GrantScope
+import dev.shibasis.reaktor.tooling.database.BoundQuery
+import dev.shibasis.reaktor.tooling.database.JdbcQueryParameters
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -53,9 +55,12 @@ class AuthTenancyQueriesTest {
         return Tenancy(app, home, away, context, person, stranger)
     }
 
-    private fun rows(sql: String): List<Map<String, String?>> = DriverManager.getConnection(url).use { connection ->
-        connection.createStatement().use { statement ->
-            statement.executeQuery(sql.replace("heimdall.", "")).use { result ->
+    private fun rows(sql: String) = rows(BoundQuery(sql, emptyList()))
+
+    private fun rows(query: BoundQuery): List<Map<String, String?>> = DriverManager.getConnection(url).use { connection ->
+        connection.prepareStatement(query.statement.replace("heimdall.", "")).use { statement ->
+            JdbcQueryParameters.bind(statement, query.parameters)
+            statement.executeQuery().use { result ->
                 val names = (1..result.metaData.columnCount).map { result.metaData.getColumnLabel(it).lowercase() }
                 buildList { while (result.next()) add(names.associateWith { result.getString(it) }) }
             }

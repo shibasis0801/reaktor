@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.tooling.auth
 
+import dev.shibasis.reaktor.tooling.database.BoundQuery
+import dev.shibasis.reaktor.tooling.database.BoundQueryParameter
+import dev.shibasis.reaktor.tooling.database.QueryParameterType
 import java.util.UUID
 
 data class AuditFilter(
@@ -147,7 +150,7 @@ object AuthConsoleQueries {
         search: String = "",
         page: Int = 0,
         fixtures: Boolean? = null,
-    ): String {
+    ): BoundQuery {
         require(page in 0..10_000) { "Page is out of range" }
         val app = uuidOrNull(appId)
         val principal = uuidOrNull(principalId)
@@ -155,7 +158,28 @@ object AuthConsoleQueries {
             CASE WHEN rt.revoked > 0 AND rt.live = 0 THEN 'revoked'
                  WHEN s.expires_at <= CURRENT_TIMESTAMP THEN 'expired' ELSE 'active' END
         """.trimIndent()
-        return """
+        val (terms, parameters) = searchConditions(search, listOf("CAST(s.id AS VARCHAR)", "CAST(s.principal_id AS VARCHAR)", "i.primary_email", "a.name", "ev.user_agent")) { key ->
+            when (key) {
+                "name", "email" -> match("i.primary_email")
+                "app" -> match("a.name")
+                "kind" -> match("p.kind")
+                "device" -> match("ev.user_agent")
+                "ip" -> match("ev.ip_address")
+                "session" -> match("CAST(s.id AS VARCHAR)")
+                "user", "principal" -> match("CAST(s.principal_id AS VARCHAR)")
+                "age" -> age("s.created_at")
+                "is" -> when (value.lowercase()) {
+                    "active" -> "s.expires_at > CURRENT_TIMESTAMP AND NOT (COALESCE(rt.revoked, 0) > 0 AND COALESCE(rt.live, 0) = 0)"
+                    "expired" -> "s.expires_at <= CURRENT_TIMESTAMP"
+                    "revoked" -> "COALESCE(rt.revoked, 0) > 0 AND COALESCE(rt.live, 0) = 0"
+                    "fixture" -> Fixture
+                    "failed" -> "COALESCE(ev.failures, 0) > 0"
+                    else -> null
+                }
+                else -> null
+            }
+        }
+        return BoundQuery("""
             SELECT s.id AS session_id, s.principal_id, p.kind, a.name AS app, s.app_id,
                 COALESCE(i.primary_email, (SELECT MIN(sa.name) FROM heimdall.service_account sa WHERE sa.principal_id = s.principal_id)) AS name,
                 s.created_at, s.expires_at, $status AS status, CASE WHEN $Fixture THEN 'fixture' ELSE 'real' END AS origin,
@@ -192,28 +216,8 @@ object AuthConsoleQueries {
                 SessionState.Expired -> " AND s.expires_at <= CURRENT_TIMESTAMP"
                 SessionState.Revoked -> " AND COALESCE(rt.revoked, 0) > 0 AND COALESCE(rt.live, 0) = 0"
             } +
-            searchConditions(search, listOf("CAST(s.id AS VARCHAR)", "CAST(s.principal_id AS VARCHAR)", "i.primary_email", "a.name", "ev.user_agent")) { key, value, regex ->
-                when (key) {
-                    "name", "email" -> searchMatch(value, regex, "i.primary_email")
-                    "app" -> searchMatch(value, regex, "a.name")
-                    "kind" -> searchMatch(value, regex, "p.kind")
-                    "device" -> searchMatch(value, regex, "ev.user_agent")
-                    "ip" -> searchMatch(value, regex, "ev.ip_address")
-                    "session" -> searchMatch(value, regex, "CAST(s.id AS VARCHAR)")
-                    "user", "principal" -> searchMatch(value, regex, "CAST(s.principal_id AS VARCHAR)")
-                    "age" -> searchAge(value, "s.created_at")
-                    "is" -> when (value.lowercase()) {
-                        "active" -> "s.expires_at > CURRENT_TIMESTAMP AND NOT (COALESCE(rt.revoked, 0) > 0 AND COALESCE(rt.live, 0) = 0)"
-                        "expired" -> "s.expires_at <= CURRENT_TIMESTAMP"
-                        "revoked" -> "COALESCE(rt.revoked, 0) > 0 AND COALESCE(rt.live, 0) = 0"
-                        "fixture" -> Fixture
-                        "failed" -> "COALESCE(ev.failures, 0) > 0"
-                        else -> null
-                    }
-                    else -> null
-                }
-            } +
-            " ORDER BY s.created_at DESC, s.id LIMIT $PageSize OFFSET ${page * PageSize}"
+            terms +
+            " ORDER BY s.created_at DESC, s.id LIMIT $PageSize OFFSET ${page * PageSize}", parameters)
     }
 
     fun refreshChain(sessionId: String): String {
@@ -229,7 +233,7 @@ object AuthConsoleQueries {
         """.trimIndent()
     }
 
-    fun events(filter: AuditFilter, page: Int = 0): String {
+    fun events(filter: AuditFilter, page: Int = 0): BoundQuery {
         require(page in 0..10_000) { "Page is out of range" }
         val app = uuidOrNull(filter.appId)
         val principal = uuidOrNull(filter.principalId)
@@ -237,7 +241,28 @@ object AuthConsoleQueries {
         val eventType = filterCode(filter.eventType)
         val outcome = filterCode(filter.outcome)
         val reason = filterCode(filter.reason)
-        return """
+        val (terms, parameters) = searchConditions(filter.search, listOf("e.event_type", "e.outcome", "e.reason", "e.request_id", "e.audience", "e.credential_type", "e.grant_type",
+            "e.user_agent", "e.ip_address", "CAST(e.actor_principal_id AS VARCHAR)", "CAST(e.subject_principal_id AS VARCHAR)", "CAST(e.session_id AS VARCHAR)", "a.name")) { key ->
+            when (key) {
+                "reason" -> match("e.reason")
+                "request" -> match("e.request_id")
+                "audience" -> match("e.audience")
+                "device" -> match("e.user_agent")
+                "ip" -> match("e.ip_address")
+                "app" -> match("a.name")
+                "type" -> match("e.event_type")
+                "session" -> match("CAST(e.session_id AS VARCHAR)")
+                "user", "principal" -> match("CAST(e.actor_principal_id AS VARCHAR)", "CAST(e.subject_principal_id AS VARCHAR)")
+                "age" -> age("e.created_at")
+                "is" -> when (value.lowercase()) {
+                    "failed", "failure", "error" -> "e.outcome NOT ILIKE 'succ%'"
+                    "succeeded", "success" -> "e.outcome ILIKE 'succ%'"
+                    else -> null
+                }
+                else -> null
+            }
+        }
+        return BoundQuery("""
             SELECT e.id, e.created_at, e.event_type, e.outcome, e.reason, e.credential_type, e.grant_type,
                 e.actor_principal_id, e.subject_principal_id, a.name AS app, e.app_id, e.tenant_id, e.session_id,
                 e.token_id, e.audience, e.request_id, e.ip_address, e.user_agent
@@ -255,28 +280,8 @@ object AuthConsoleQueries {
                 else -> " AND e.outcome = '$outcome'"
             } +
             (reason?.let { " AND e.reason = '$it'" } ?: "") +
-            searchConditions(filter.search, listOf("e.event_type", "e.outcome", "e.reason", "e.request_id", "e.audience", "e.credential_type", "e.grant_type",
-                "e.user_agent", "e.ip_address", "CAST(e.actor_principal_id AS VARCHAR)", "CAST(e.subject_principal_id AS VARCHAR)", "CAST(e.session_id AS VARCHAR)", "a.name")) { key, value, regex ->
-                when (key) {
-                    "reason" -> searchMatch(value, regex, "e.reason")
-                    "request" -> searchMatch(value, regex, "e.request_id")
-                    "audience" -> searchMatch(value, regex, "e.audience")
-                    "device" -> searchMatch(value, regex, "e.user_agent")
-                    "ip" -> searchMatch(value, regex, "e.ip_address")
-                    "app" -> searchMatch(value, regex, "a.name")
-                    "type" -> searchMatch(value, regex, "e.event_type")
-                    "session" -> searchMatch(value, regex, "CAST(e.session_id AS VARCHAR)")
-                    "user", "principal" -> searchMatch(value, regex, "CAST(e.actor_principal_id AS VARCHAR)", "CAST(e.subject_principal_id AS VARCHAR)")
-                    "age" -> searchAge(value, "e.created_at")
-                    "is" -> when (value.lowercase()) {
-                        "failed", "failure", "error" -> "e.outcome NOT ILIKE 'succ%'"
-                        "succeeded", "success" -> "e.outcome ILIKE 'succ%'"
-                        else -> null
-                    }
-                    else -> null
-                }
-            } +
-            " ORDER BY e.created_at DESC, e.id LIMIT $PageSize OFFSET ${page * PageSize}"
+            terms +
+            " ORDER BY e.created_at DESC, e.id LIMIT $PageSize OFFSET ${page * PageSize}", parameters)
     }
 
     fun exposure(): String = """
@@ -314,25 +319,40 @@ internal fun filterCode(value: String): String? = value.trim().takeIf(String::is
     require(Code.matches(it)) { "Filters accept letters, digits, spaces and _ : . - only." }
 }
 
-internal fun searchConditions(raw: String, columns: List<String>, keyed: (String, String, Regex?) -> String?): String {
-    require(raw.length <= 120 && raw.none { it == '\u0000' }) { "Search accepts at most 120 characters." }
-    return dev.shibasis.reaktor.tooling.query.SearchQuery(raw).mapTerms { key, value, negated, regex ->
-        val match = keyed(key.orEmpty(), value, regex) ?: searchMatch(if (key == null) value else "$key:$value", regex.takeIf { key == null }, *columns.toTypedArray())
-        " AND ${if (negated) "NOT " else ""}($match)"
-    }.joinToString("")
-}
+internal class SearchTerm(val value: String, private val pattern: String?) {
+    private var matched = false
+    val parameters = mutableListOf<BoundQueryParameter>()
 
-internal fun searchMatch(value: String, pattern: Regex?, vararg columns: String): String = columns.joinToString(" OR ") { column ->
-    if (pattern != null) "COALESCE($column, '') ~* '${value.replace("'", "''")}'"
-    else {
-        val literal = value.replace("'", "''").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        "COALESCE($column, '') ILIKE '%$literal%' ESCAPE '\\'"
+    fun match(vararg columns: String): String {
+        if (!matched) parameters.add(0, BoundQueryParameter(value = pattern ?: "%" + value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"))
+        matched = true
+        return columns.joinToString(" OR ") { "COALESCE($it, '') " + if (pattern == null) "ILIKE needle.term ESCAPE '\\'" else "~* needle.term" }
+    }
+
+    fun where(condition: String, negated: Boolean): String {
+        val test = "${if (negated) "NOT " else ""}($condition)"
+        if (!matched) return test
+        val compileFirst = if (pattern == null) "" else "('' ~* needle.term) IS NOT NULL AND "
+        return "EXISTS (SELECT 1 FROM (SELECT CAST(? AS VARCHAR) AS term) needle WHERE $compileFirst$test)"
+    }
+
+    fun age(column: String): String? {
+        val duration = Regex("""(\d+(?:\.\d+)?)(ms|s|min|m|h|d)""").matchEntire(value.lowercase()) ?: return null
+        val factor = when (duration.groupValues[2]) { "ms" -> .001; "s" -> 1.0; "min", "m" -> 60.0; "h" -> 3600.0; else -> 86400.0 }
+        val seconds = duration.groupValues[1].toDoubleOrNull()?.times(factor)?.takeIf { it.isFinite() && it in 0.0..31_622_400.0 } ?: return null
+        parameters += BoundQueryParameter(QueryParameterType.Decimal, seconds.toBigDecimal().toPlainString())
+        return "$column >= CURRENT_TIMESTAMP - INTERVAL '1' SECOND * CAST(? AS DOUBLE PRECISION)"
     }
 }
 
-internal fun searchAge(value: String, column: String): String? {
-    val duration = Regex("""(\d+(?:\.\d+)?)(ms|s|min|m|h|d)""").matchEntire(value.lowercase()) ?: return null
-    val factor = when (duration.groupValues[2]) { "ms" -> .001; "s" -> 1.0; "min", "m" -> 60.0; "h" -> 3600.0; else -> 86400.0 }
-    val seconds = duration.groupValues[1].toDoubleOrNull()?.times(factor)?.takeIf { it.isFinite() && it in 0.0..31_622_400.0 } ?: return null
-    return "$column >= CURRENT_TIMESTAMP - INTERVAL '$seconds' SECOND"
+internal fun searchConditions(raw: String, columns: List<String>, keyed: SearchTerm.(String) -> String?): Pair<String, List<BoundQueryParameter>> {
+    require(raw.length <= 120 && raw.none { it == '\u0000' }) { "Search accepts at most 120 characters." }
+    val terms = dev.shibasis.reaktor.tooling.query.SearchQuery(raw).mapTerms { key, value, negated, regex ->
+        val pattern = regex?.pattern ?: value.takeIf { it.length > 1 && it.startsWith('~') }?.drop(1)
+        val keyedTerm = SearchTerm(value, pattern)
+        val (term, condition) = keyedTerm.keyed(key.orEmpty())?.let { keyedTerm to it }
+            ?: SearchTerm(if (key == null) value else "$key:$value", pattern.takeIf { key == null }).let { it to it.match(*columns.toTypedArray()) }
+        term.parameters to " AND ${term.where(condition, negated)}"
+    }
+    return terms.joinToString("") { it.second } to terms.flatMap { it.first }
 }

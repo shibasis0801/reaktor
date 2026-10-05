@@ -4,6 +4,8 @@ import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import dev.shibasis.reaktor.tooling.auth.AuditFilter
 import dev.shibasis.reaktor.tooling.auth.AuthConsoleQueries
 import dev.shibasis.reaktor.tooling.auth.SessionState
+import dev.shibasis.reaktor.tooling.database.BoundQuery
+import dev.shibasis.reaktor.tooling.database.JdbcQueryParameters
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -56,9 +58,12 @@ class AuthConsoleQueriesTest {
         return Seeded(app, user, active, ended, fixture, chain)
     }
 
-    private fun rows(sql: String): List<Map<String, String?>> = DriverManager.getConnection(url).use { connection ->
-        connection.createStatement().use { statement ->
-            statement.executeQuery(sql.replace("heimdall.", "")).use { result ->
+    private fun rows(sql: String) = rows(BoundQuery(sql, emptyList()))
+
+    private fun rows(query: BoundQuery): List<Map<String, String?>> = DriverManager.getConnection(url).use { connection ->
+        connection.prepareStatement(query.statement.replace("heimdall.", "")).use { statement ->
+            JdbcQueryParameters.bind(statement, query.parameters)
+            statement.executeQuery().use { result ->
                 val names = (1..result.metaData.columnCount).map { result.metaData.getColumnLabel(it).lowercase() }
                 buildList { while (result.next()) add(names.associateWith { result.getString(it) }) }
             }
@@ -71,12 +76,13 @@ class AuthConsoleQueriesTest {
             AuthConsoleQueries.pulse(), AuthConsoleQueries.pulse(seeded.app),
             AuthConsoleQueries.activity(), AuthConsoleQueries.activity(seeded.app, seeded.user),
             AuthConsoleQueries.failureReasons(), AuthConsoleQueries.providers(), AuthConsoleQueries.linkedAccounts(seeded.user),
-            AuthConsoleQueries.sessions(), AuthConsoleQueries.sessions(state = SessionState.Revoked, search = "iOS"),
             AuthConsoleQueries.refreshChain(seeded.active),
+        ).map { BoundQuery(it, emptyList()) } + listOf(
+            AuthConsoleQueries.sessions(), AuthConsoleQueries.sessions(state = SessionState.Revoked, search = "iOS"),
             AuthConsoleQueries.events(AuditFilter()), AuthConsoleQueries.events(AuditFilter(outcome = "FAILURE", reason = "invalid_refresh_token")),
-        ).forEach { sql ->
-            val names = rows(sql).firstOrNull()?.keys.orEmpty()
-            assertFalse(names.any { it in setOf("token_hash", "secret_hash", "private_key_ref", "data", "profile", "public_jwks", "client_secret_ref") }, sql.take(80))
+        ).forEach { query ->
+            val names = rows(query).firstOrNull()?.keys.orEmpty()
+            assertFalse(names.any { it in setOf("token_hash", "secret_hash", "private_key_ref", "data", "profile", "public_jwks", "client_secret_ref") }, query.statement.take(80))
         }
     }
 
@@ -127,14 +133,19 @@ class AuthConsoleQueriesTest {
     }
 
     @Test fun filtersRefuseAnythingThatCouldLeaveTheirLiteral() {
-        seed()
         assertFails { AuthConsoleQueries.events(AuditFilter(reason = "x' OR '1'='1")) }
         assertFails { AuthConsoleQueries.events(AuditFilter(eventType = "TOKEN_MINT;")) }
-        assertTrue(rows(AuthConsoleQueries.sessions(search = "a%")).isEmpty())
         assertFails { AuthConsoleQueries.sessions(appId = "not-a-uuid") }
         assertFails { AuthConsoleQueries.activity(days = 0) }
-        assertTrue(AuthConsoleQueries.events(AuditFilter(search = "TOKEN_MINT")).contains("""ILIKE '%TOKEN\_MINT%' ESCAPE '\'"""))
-        assertTrue(AuthConsoleQueries.sessions(page = 2).endsWith("LIMIT 200 OFFSET 400"))
+        assertTrue(AuthConsoleQueries.sessions(page = 2).statement.endsWith("LIMIT 200 OFFSET 400"))
+    }
+
+    @Test fun searchTextMatchesAsWrittenWhateverCharactersItHolds() {
+        val seeded = seed()
+        assertEquals(listOf(seeded.active), rows(AuthConsoleQueries.sessions(principalId = seeded.user, search = "1.0")).map { it["session_id"] })
+        assertTrue(rows(AuthConsoleQueries.sessions(principalId = seeded.user, search = "1_0")).isEmpty())
+        assertTrue(rows(AuthConsoleQueries.sessions(principalId = seeded.user, search = "a%")).isEmpty())
+        assertEquals("%TOKEN\\_MINT%", AuthConsoleQueries.events(AuditFilter(search = "TOKEN_MINT")).parameters.single().value)
     }
 
     @Test fun sharedSearchFiltersSessionsAndEventsBeforePaging() {
