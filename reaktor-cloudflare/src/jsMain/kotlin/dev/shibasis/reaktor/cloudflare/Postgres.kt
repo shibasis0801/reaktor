@@ -1,6 +1,11 @@
 package dev.shibasis.reaktor.cloudflare
 
 import kotlinx.coroutines.await
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.promise
 import dev.shibasis.reaktor.service.Request
 import kotlin.js.Promise
 import kotlin.js.jsTypeOf
@@ -33,7 +38,20 @@ internal class HyperdriveConfig internal constructor(
 
 class PostgresDatabase internal constructor(
     private val client: dynamic,
+    private val transactional: Boolean = false,
 ) {
+    suspend fun <T> transaction(block: suspend PostgresDatabase.() -> T): T = supervisorScope {
+        check(!transactional) { "Nested Postgres transactions are not supported" }
+        val pending = client.begin { connection: dynamic ->
+            promise { PostgresDatabase(connection, transactional = true).block() }
+        }.unsafeCast<Promise<T>>()
+        try { pending.await() }
+        catch (cancelled: CancellationException) {
+            withContext(NonCancellable) { runCatching { pending.await() } }
+            throw cancelled
+        }
+    }
+
     suspend fun rawRows(statement: SqlStatement): List<SqlRow> =
         client.unsafe(statement.query, statement.params)
             .unsafeCast<Promise<Array<dynamic>>>()
@@ -124,6 +142,7 @@ class PostgresDatabase internal constructor(
     ): String? = string(postgresQuery(build), columnName)
 
     suspend fun close() {
+        check(!transactional) { "The transaction owns its connection" }
         val result = client.end()
         if (result != null && isPromiseLike(result)) {
             result.unsafeCast<Promise<Any?>>().await()
