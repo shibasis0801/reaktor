@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -77,6 +78,28 @@ class PaneHostTest {
         onNodeWithTag("main-size").assertTextEquals("864x622 collapsed []")
         assertEquals(272f, onNodeWithTag("outline").width(), 1f)
         assertEquals(864f, onNodeWithTag("main").width(), 1f)
+    }
+
+    @Test
+    fun aCustomHandleReportsTheMeasuredMainSize() = runComposeUiTest {
+        val spec = PaneSpec(listOf(Region("details", RegionEdge.Bottom, 170f, 90f, 480f, 0)), 16f, 40f)
+        setContent {
+            Box(Modifier.requiredSize(600.dp, 800.dp)) {
+                AutomationScope("preview") {
+                    PaneHost(spec, PanePreferences(), {}, splitterModifier = { Modifier.height(22.dp) }, main = {
+                        Column(Modifier.testTag("main")) {
+                            BasicText("${width.value.toInt()}x${height.value.toInt()}", Modifier.testTag("main-size"))
+                        }
+                    }) {
+                        BasicText("${width.value.toInt()}x${height.value.toInt()}", Modifier.testTag("details-size"))
+                    }
+                }
+            }
+        }
+        onNodeWithTag("main-size").assertTextEquals("600x608")
+        onNodeWithTag("details-size").assertTextEquals("600x170")
+        assertEquals(608f, onNodeWithTag("main").fetchSemanticsNode().size.height.toFloat(), 1f)
+        assertEquals(22f, onNodeWithTag("preview/splitter/details").fetchSemanticsNode().size.height.toFloat(), 1f)
     }
 
     @Test
