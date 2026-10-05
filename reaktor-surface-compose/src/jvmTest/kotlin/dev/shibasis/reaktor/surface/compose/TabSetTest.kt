@@ -63,7 +63,27 @@ class TabSetTest {
         onRoot().performKeyInput { pressKey(Key.Tab) }
         onNodeWithTag("after").assertIsFocused()
         onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.Tab) } }
+        onNodeWithTag("docs/data").assertIsFocused()
+    }
+
+    @Test
+    fun tabEntersOnASelectionTheOwnerMadeWhileFocusWasElsewhere() = runComposeUiTest {
+        var selected by mutableStateOf("data")
+        val chosen = mutableListOf<String>()
+        setContent { Strip(documents, selected, { chosen += it; selected = it }) }
+        onNodeWithTag("after").requestFocus()
+        selected = "testing"
+        waitForIdle()
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.Tab) } }
+        onNodeWithTag("docs/testing").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        selected = "graph"
+        waitForIdle()
         onNodeWithTag("docs/cloud").assertIsFocused()
+        onNodeWithTag("after").requestFocus()
+        onNodeWithTag("label-data", useUnmergedTree = true).performClick()
+        assertEquals(listOf("data"), chosen)
+        onNodeWithTag("docs/data").assertIsFocused().assertIsSelected()
     }
 
     @Test

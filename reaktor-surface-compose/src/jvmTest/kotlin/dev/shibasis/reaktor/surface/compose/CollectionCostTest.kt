@@ -97,7 +97,7 @@ class CollectionCostTest {
         rowCounts.clear()
         selection = setOf("row-8")
         settle()
-        assertEquals(mapOf(3 to 1, 8 to 1), rowCounts)
+        assertEquals(mapOf(3 to 2, 8 to 2), rowCounts)
         assertEquals(emptyMap(), ContentCounts)
     }
 

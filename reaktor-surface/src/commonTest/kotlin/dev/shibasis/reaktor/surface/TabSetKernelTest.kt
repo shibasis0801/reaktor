@@ -13,7 +13,7 @@ class TabSetKernelTest {
     private fun properties(selected: String? = "data", closable: Set<String> = setOf("data", "cloud", "testing"), rightToLeft: Boolean = false, keys: List<String> = documents) =
         TabSetProperties(tabs(keys), selected, closable, rightToLeft)
 
-    private fun at(active: String, keys: List<String> = documents) = TabSetState(RovingState(active = active), keys.indexOf(active))
+    private fun at(active: String, keys: List<String> = documents) = TabSetState(RovingState(active = active), keys.indexOf(active), within = true)
 
     private fun press(key: KeyName, character: Char? = null) = TabSetInput.Stroke(KeyStroke(key, character = character))
 
@@ -89,9 +89,22 @@ class TabSetKernelTest {
         val shown = kernel.initial(properties())
         val moved = kernel.reconcile(properties(selected = "testing"), shown)
         assertEquals(listOf<LocalCommand>(LocalCommand.Reveal(PartKey("testing"))), moved.commands)
-        assertEquals("data", moved.state.active)
         assertTrue(kernel.reconcile(properties(selected = "testing"), moved.state).commands.isEmpty())
         assertTrue(kernel.reconcile(properties(selected = "gone"), moved.state).commands.isEmpty())
+    }
+
+    @Test
+    fun whileFocusIsOutsideTheStripTheTabStopIsTheSelectedTab() {
+        val left = kernel.reduce(properties(), at("cloud").copy(shown = "data"), TabSetInput.Blurred)
+        assertEquals("data", left.state.active)
+        assertEquals(1, left.state.activeIndex)
+        assertTrue(left.events.isEmpty() && left.commands.isEmpty())
+        assertEquals("testing", kernel.reconcile(properties(selected = "testing"), left.state).state.active)
+        assertEquals("graph", kernel.reconcile(properties(selected = "graph"), kernel.initial(properties())).state.active)
+        assertEquals("cloud", kernel.reconcile(properties(selected = "testing"), at("cloud")).state.active)
+        assertEquals("cloud", kernel.reduce(properties(selected = null), at("cloud"), TabSetInput.Blurred).state.active)
+        val back = kernel.reduce(properties(), left.state, TabSetInput.Focused("data"))
+        assertEquals("data", kernel.reconcile(properties(selected = "testing"), back.state).state.active)
     }
 
     @Test

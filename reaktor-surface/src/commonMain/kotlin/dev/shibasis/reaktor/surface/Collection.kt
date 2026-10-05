@@ -29,6 +29,7 @@ data class CollectionState(
     val activeIndex: Int = -1,
     val anchor: String? = null,
     val hovered: String? = null,
+    val within: Boolean = false,
 ) {
     val active: String? get() = roving.active
 }
@@ -38,6 +39,7 @@ sealed interface CollectionInput {
     data class Press(val key: String, val extend: Boolean, val toggle: Boolean, val clicks: Int) : CollectionInput
     data class Secondary(val key: String, val atPointer: Boolean) : CollectionInput
     data class Focused(val key: String) : CollectionInput
+    data object Blurred : CollectionInput
     data class Hover(val key: String?) : CollectionInput
     data class Expand(val key: String, val expanded: Boolean) : CollectionInput
     data class TypingElapsed(val ticket: Ticket) : CollectionInput
@@ -76,7 +78,8 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
                         else point(properties, state, input.key, Pick.Only)
                     pointed.copy(events = pointed.events + CollectionEvent.MenuRequest(input.key, input.atPointer))
                 }
-            is CollectionInput.Focused -> rove(properties, state, RovingInput.Focused(input.key))
+            is CollectionInput.Focused -> rove(properties, state.copy(within = true), RovingInput.Focused(input.key))
+            CollectionInput.Blurred -> reconcile(properties, state.copy(within = false))
             is CollectionInput.Hover -> Reduction(state.copy(hovered = input.key?.takeIf { properties.items.indexOf(it) >= 0 }))
             is CollectionInput.Expand -> if (properties.enabled) gather(properties, expand(properties, state, input.key) { input.expanded }, input) else Reduction(state)
             is CollectionInput.TypingElapsed -> rove(properties, state, RovingInput.TypingElapsed(input.ticket))
@@ -87,8 +90,9 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
     override fun reconcile(properties: CollectionProperties, state: CollectionState): Reduction<CollectionState, CollectionEvent> {
         val items = properties.items
         val index = items.indexOf(state.active)
-        val active =
-            if (state.active == null) properties.firstSelected() ?: items.firstEnabled()
+        val followed = if (state.within && state.active != null) null else properties.firstSelected()
+        val active = followed
+            ?: if (state.active == null) items.firstEnabled()
             else nearest(items, if (index >= 0) index else state.activeIndex.coerceAtMost(items.size - 1))
         return Reduction(
             state.copy(

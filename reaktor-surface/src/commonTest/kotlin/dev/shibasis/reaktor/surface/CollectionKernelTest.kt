@@ -29,7 +29,7 @@ class CollectionKernelTest {
     private fun properties(mode: SelectionMode, selection: Set<String> = emptySet(), keys: KeyConvention = KeyConvention.Mac) =
         CollectionProperties(source, selection, keys, mode)
 
-    private fun at(active: String, anchor: String = active) = CollectionState(RovingState(active = active), source.indexOf(active), anchor)
+    private fun at(active: String, anchor: String = active) = CollectionState(RovingState(active = active), source.indexOf(active), anchor, within = true)
 
     private fun stroke(key: KeyName, shift: Boolean = false, meta: Boolean = false, control: Boolean = false, character: Char? = null, page: Int = 3) =
         CollectionInput.Stroke(KeyStroke(key, meta = meta, control = control, shift = shift, character = character), page)
@@ -414,6 +414,21 @@ class CollectionKernelTest {
         assertEquals("date", kernel.reduce(single, at("apple"), CollectionInput.Hover("date")).state.hovered)
         assertNull(kernel.reduce(single, at("apple").copy(hovered = "date"), CollectionInput.Hover(null)).state.hovered)
         assertNull(kernel.reduce(single, at("apple"), CollectionInput.Hover("gone")).state.hovered)
+    }
+
+    @Test
+    fun whileFocusIsOutsideTheActiveRowIsTheFirstSelectedRow() {
+        val multiple = properties(SelectionMode.Multiple, setOf("fig", "date"))
+        val left = kernel.reduce(multiple, at("banana"), CollectionInput.Blurred)
+        assertEquals("date", left.state.active)
+        assertEquals(4, left.state.activeIndex)
+        assertTrue(left.events.isEmpty() && left.commands.isEmpty())
+        val single = properties(SelectionMode.Single, setOf("apple"))
+        assertEquals("apple", kernel.reconcile(single, left.state).state.active)
+        assertEquals("banana", kernel.reconcile(single, at("banana")).state.active)
+        assertEquals("banana", kernel.reduce(properties(SelectionMode.Single), at("banana"), CollectionInput.Blurred).state.active)
+        val back = kernel.reduce(multiple, left.state, CollectionInput.Focused("fig"))
+        assertEquals("fig", kernel.reconcile(single, back.state).state.active)
     }
 
     @Test
