@@ -269,41 +269,6 @@ fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier
 }
 
 @Composable
-fun SubTab(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    count: Int? = null,
-) = Button(onClick, modifier.semantics { role = Role.Tab; this.selected = selected }, appearance = subTab(selected)) {
-    SignalText(
-        text = label,
-        color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-        size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.label,
-        weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-    )
-    if (count != null && count > 0) {
-        SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
-    }
-}
-
-@Composable
-fun SubTabRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) =
-    Column(modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(workspaceColor(MachineSignal.Bg1))
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
-            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
-        DividerLine()
-    }
-
-@Composable
 fun ContextBar(
     breadcrumb: List<String>,
     modifier: Modifier = Modifier,

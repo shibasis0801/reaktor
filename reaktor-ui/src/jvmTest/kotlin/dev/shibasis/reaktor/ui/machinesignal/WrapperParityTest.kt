@@ -118,7 +118,7 @@ class WrapperParityTest {
     }
 
     @Test
-    fun subTabIsTheLegacySubTabSelectedOrNotWithAndWithoutACount() = everyScene("sub-tab") { variant, density ->
+    fun theSubTabAppearanceMatchesTheLegacyTabSelectedOrNotWithAndWithoutACount() = everyScene("sub-tab") { variant, density ->
         val place = "${name(variant)}/x$density"
         val cases = listOf(true to null, false to null, true to 12, false to 3)
         scene(density, variant, {
@@ -126,7 +126,7 @@ class WrapperParityTest {
                 cases.forEach { (selected, count) ->
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         LegacySubTab("Query receipts", selected, {}, Modifier.testTag("legacy-$selected-$count"), count = count)
-                        SubTab("Query receipts", selected, {}, Modifier.testTag("wrapper-$selected-$count"), count = count)
+                        FixtureSurfaceTab("Query receipts", selected, {}, Modifier.testTag("wrapper-$selected-$count"), count = count)
                     }
                 }
             }
