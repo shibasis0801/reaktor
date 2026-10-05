@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.auth
 
+import dev.shibasis.reaktor.tooling.database.BoundQuery
+
 data class GrantScope(val tenantId: String? = null, val contextId: String? = null)
 
 object AuthTenancyQueries {
@@ -229,12 +231,34 @@ object AuthTenancyQueries {
         """.trimIndent()
     }
 
-    fun people(appId: String = "", tenantId: String = "", kind: String = "", search: String = "", page: Int = 0): String {
+    fun people(appId: String = "", tenantId: String = "", kind: String = "", search: String = "", page: Int = 0): BoundQuery {
         require(page in 0..10_000) { "Page is out of range" }
         val app = uuidOrNull(appId)
         val tenant = uuidOrNull(tenantId)
         val kindCode = filterCode(kind)?.uppercase()
-        return """
+        val (terms, parameters) = searchConditions(search, listOf("CAST(p.id AS VARCHAR)", "CAST(p.identity_id AS VARCHAR)", "i.primary_email", "p.kind", "p.status")) { key ->
+            fun provider(column: String) = "EXISTS (SELECT 1 FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id AND ${match(column)})"
+            fun membership(column: String) = "EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND ${match(column)})"
+            fun service(column: String) = "EXISTS (SELECT 1 FROM heimdall.service_account sa WHERE sa.principal_id = p.id AND ${match(column)})"
+            fun role() = "EXISTS (SELECT 1 FROM heimdall.principal_role g JOIN heimdall.role r ON r.id = g.role_id WHERE g.principal_id = p.id AND ${match("r.name")})"
+            when (key) {
+                "name" -> match(DisplayName)
+                "email" -> "${match("i.primary_email")} OR ${provider("pa.email")}"
+                "provider" -> provider("pa.provider")
+                "kind" -> match("p.kind")
+                "role" -> role()
+                "user", "principal" -> match("CAST(p.id AS VARCHAR)")
+                "age" -> age("p.created_at")
+                "is" -> when (value.lowercase()) {
+                    "active" -> "p.status = 'ACTIVE'"
+                    "user", "service", "agent" -> "p.kind = '${value.uppercase()}'"
+                    else -> null
+                }
+                else -> if (key.isNotBlank()) null else listOf(match("CAST(p.id AS VARCHAR)", "CAST(p.identity_id AS VARCHAR)", "i.primary_email", "p.kind", "p.status"),
+                    provider("pa.email"), provider("pa.provider"), membership("CAST(m.profile AS VARCHAR)"), service("sa.name"), service("sa.client_id"), role()).joinToString(" OR ")
+            }
+        }
+        return BoundQuery("""
             SELECT p.id AS principal_id, p.identity_id, p.kind, p.status, $DisplayName AS name,
                 COALESCE(i.primary_email, (SELECT MIN(pa.email) FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id)) AS primary_email,
                 (SELECT STRING_AGG(DISTINCT pa.provider, ', ') FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id) AS providers,
@@ -262,29 +286,8 @@ object AuthTenancyQueries {
             (app?.let { " AND EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND m.app_id = '$it')" } ?: "") +
             (tenant?.let { " AND EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND m.tenant_id = '$it')" } ?: "") +
             (kindCode?.let { " AND p.kind = '$it'" } ?: "") +
-            searchConditions(search, listOf("CAST(p.id AS VARCHAR)", "CAST(p.identity_id AS VARCHAR)", "i.primary_email", "p.kind", "p.status")) { key, value, regex ->
-                fun provider(column: String) = "EXISTS (SELECT 1 FROM heimdall.provider_account pa WHERE pa.identity_id = p.identity_id AND ${searchMatch(value, regex, column)})"
-                fun membership(column: String) = "EXISTS (SELECT 1 FROM heimdall.membership m WHERE m.principal_id = p.id AND ${searchMatch(value, regex, column)})"
-                fun service(column: String) = "EXISTS (SELECT 1 FROM heimdall.service_account sa WHERE sa.principal_id = p.id AND ${searchMatch(value, regex, column)})"
-                val role = "EXISTS (SELECT 1 FROM heimdall.principal_role g JOIN heimdall.role r ON r.id = g.role_id WHERE g.principal_id = p.id AND ${searchMatch(value, regex, "r.name")})"
-                when (key) {
-                    "name" -> searchMatch(value, regex, DisplayName)
-                    "email" -> "${searchMatch(value, regex, "i.primary_email")} OR ${provider("pa.email")}"
-                    "provider" -> provider("pa.provider")
-                    "kind" -> searchMatch(value, regex, "p.kind")
-                    "role" -> role
-                    "user", "principal" -> searchMatch(value, regex, "CAST(p.id AS VARCHAR)")
-                    "age" -> searchAge(value, "p.created_at")
-                    "is" -> when (value.lowercase()) {
-                        "active" -> "p.status = 'ACTIVE'"
-                        "user", "service", "agent" -> "p.kind = '${value.uppercase()}'"
-                        else -> null
-                    }
-                    else -> if (key.isNotBlank()) null else listOf(searchMatch(value, regex, "CAST(p.id AS VARCHAR)", "CAST(p.identity_id AS VARCHAR)", "i.primary_email", "p.kind", "p.status"),
-                        provider("pa.email"), provider("pa.provider"), membership("CAST(m.profile AS VARCHAR)"), service("sa.name"), service("sa.client_id"), role).joinToString(" OR ")
-                }
-            } +
-            " ORDER BY last_seen_at DESC NULLS LAST, p.created_at DESC, p.id LIMIT $PageSize OFFSET ${page * PageSize}"
+            terms +
+            " ORDER BY last_seen_at DESC NULLS LAST, p.created_at DESC, p.id LIMIT $PageSize OFFSET ${page * PageSize}", parameters)
     }
 
     private fun applies(grant: String, role: String, tenant: String, context: String): String =
