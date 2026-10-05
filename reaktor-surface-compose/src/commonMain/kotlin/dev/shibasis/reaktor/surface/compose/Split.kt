@@ -196,7 +196,7 @@ internal data class HandlePointerElement(val onHover: (Boolean) -> Unit, val onD
 
 internal class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleClick: () -> Unit, var onPress: () -> Unit) :
     Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode {
-    private var lastTime = Long.MIN_VALUE
+    private var lastTime: Long? = null
     private var lastPosition = Offset.Zero
 
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
@@ -208,9 +208,9 @@ internal class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleCli
             PointerEventType.Press -> if (!pointerEvent.buttons.isSecondaryPressed) {
                 onPress()
                 val configuration = currentValueOf(LocalViewConfiguration)
-                val again = change.uptimeMillis - lastTime <= configuration.doubleTapTimeoutMillis &&
+                val again = lastTime?.let { change.uptimeMillis - it <= configuration.doubleTapTimeoutMillis } == true &&
                     (change.position - lastPosition).getDistance() <= configuration.touchSlop
-                lastTime = if (again) Long.MIN_VALUE else change.uptimeMillis
+                lastTime = if (again) null else change.uptimeMillis
                 lastPosition = change.position
                 change.consume()
                 if (again) onDoubleClick()

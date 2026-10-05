@@ -9,12 +9,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performKeyInput
@@ -62,9 +64,36 @@ class SplitTest {
             release()
         }
         assertTrue(fraction * extent > 200f && fraction * extent <= 260f, "dragged to ${fraction * extent}")
+        val dragged = fraction
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("data/splitter").performMouseInput { click() }
+        assertEquals(dragged, fraction)
         mainClock.advanceTimeBy(1_000)
         onNodeWithTag("data/splitter").performMouseInput { doubleClick() }
         assertEquals(.5f, fraction, 1e-4f)
+    }
+
+    @Test
+    fun aPressResetsTheSplitterOnlyAsTheSecondOfADoubleClick() = runComposeUiTest {
+        var fraction by mutableStateOf(.5f)
+        setContent {
+            Box(Modifier.size((extent + 8).dp, 200.dp)) {
+                AutomationScope("data") {
+                    Split(fraction, { fraction = it }, 100.dp, 120.dp, Modifier.fillMaxSize(), initialFraction = .3f,
+                        first = { BasicText("Schema") }, second = { BasicText("Rows") })
+                }
+            }
+        }
+        val corner = Offset(1f, 1f)
+        onNodeWithTag("data/splitter").performMouseInput { click(corner) }
+        assertEquals(.5f, fraction)
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("data/splitter").performMouseInput { doubleClick(corner) }
+        assertEquals(.3f, fraction, 1e-4f)
+        fraction = .5f
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("data/splitter").performMouseInput { click(corner) }
+        assertEquals(.5f, fraction)
     }
 
     @Test

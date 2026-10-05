@@ -171,10 +171,33 @@ class DataTableTest {
         onNodeWithTag("files/header/kind").act("Reset width")
         assertNull(state.layout.widths["kind"])
         val resized = onNodeWithTag("files/header/size").fetchSemanticsNode().boundsInRoot
-        onNodeWithTag("files/header/size").performMouseInput { doubleClick(Offset(resized.width - 3f, resized.height / 2)) }
+        val edge = Offset(resized.width - 3f, resized.height / 2)
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("files/header/size").performMouseInput { click(edge) }
+        assertEquals(dragged - 16f, state.layout.widths["size"])
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("files/header/size").performMouseInput { doubleClick(edge) }
         assertNull(state.layout.widths["size"])
         assertNull(state.layout.sort)
         assertEquals(120f, onNodeWithTag("files/header/size").fetchSemanticsNode().boundsInRoot.width)
+    }
+
+    @Test
+    fun aPressOnAColumnEdgeResetsOnlyAsTheSecondOfADoubleClick() = runComposeUiTest {
+        val state = TableState()
+        setContent { Table(state) }
+        val header = onNodeWithTag("files/header/size")
+        header.act("Wider")
+        val wider = header.fetchSemanticsNode().boundsInRoot
+        header.performMouseInput { click(Offset(wider.width - 5f, 1f)) }
+        assertEquals(136f, state.layout.widths["size"])
+        mainClock.advanceTimeBy(1_000)
+        header.performMouseInput { doubleClick(Offset(wider.width - 3f, wider.height / 2)) }
+        assertNull(state.layout.widths["size"])
+        header.act("Wider")
+        mainClock.advanceTimeBy(1_000)
+        header.performMouseInput { click(Offset(wider.width - 3f, wider.height / 2)) }
+        assertEquals(136f, state.layout.widths["size"])
     }
 
     @Test
