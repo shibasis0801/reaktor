@@ -1,10 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
-import dev.shibasis.reaktor.ui.machinesignal.SignalTone
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -24,17 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -44,8 +36,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.truth.Fact
 import dev.shibasis.reaktor.core.truth.TruthClass
-import dev.shibasis.reaktor.surface.compose.Button
-import dev.shibasis.reaktor.ui.machinesignal.surface.subTab
 
 data class MachineSignalFonts(
     val ui: FontFamily = FontFamily.SansSerif,
@@ -71,7 +61,7 @@ fun SignalText(
     text = text,
     modifier = modifier,
     color = workspaceColor(color),
-    fontFamily = if (mono) LocalMachineSignalFonts.current.mono else LocalMachineSignalFonts.current.ui,
+    fontFamily = if (mono) signalFonts().mono else signalFonts().ui,
     fontSize = size,
     fontWeight = weight,
     maxLines = maxLines,
@@ -83,7 +73,7 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = MachineS
     text = text.uppercase(),
     modifier = modifier,
     color = workspaceColor(color),
-    fontFamily = LocalMachineSignalFonts.current.ui,
+    fontFamily = signalFonts().ui,
     fontSize = MachineSignal.Type.eyebrow,
     fontWeight = FontWeight.SemiBold,
     letterSpacing = MachineSignal.Type.eyebrowTracking,
@@ -143,7 +133,7 @@ enum class SignalTone(val fill: Color, val text: Color, val line: Color, val hov
     Primary(MachineSignal.Accent, Color.White, MachineSignal.AccentLine, MachineSignal.Accent2),
     Secondary(MachineSignal.Bg3, MachineSignal.Text1, MachineSignal.Line2, MachineSignal.Bg4),
     Ghost(Color.Transparent, MachineSignal.Text2, MachineSignal.Line1, MachineSignal.Bg2),
-    Danger(Color(0x14FF666B), MachineSignal.Status.Error, Color(0x52FF666B), Color(0x30FF666B)),
+    Danger(MachineSignal.Status.Error.copy(alpha = 20f / 255f), MachineSignal.Status.Error, MachineSignal.Status.Error.copy(alpha = 82f / 255f), MachineSignal.Status.Error.copy(alpha = 48f / 255f)),
 }
 
 @Composable
@@ -156,8 +146,8 @@ fun SignalPill(
     mono: Boolean = false,
 ) = Box(
     modifier
-        .background(fill, MachineSignal.Shape.Tight)
-        .border(1.dp, line, MachineSignal.Shape.Tight)
+        .background(workspaceColor(fill), MachineSignal.Shape.Tight)
+        .border(1.dp, workspaceColor(line), MachineSignal.Shape.Tight)
         .padding(
             horizontal = MachineSignal.Metrics.chipPaddingX,
             vertical = MachineSignal.Metrics.chipPaddingY,
@@ -319,8 +309,8 @@ fun ContextBar(
 fun Kbd(keys: String, modifier: Modifier = Modifier) = Box(
     modifier
         .height(MachineSignal.Metrics.kbdHeight)
-        .background(MachineSignal.Bg3, MachineSignal.Shape.Tight)
-        .border(1.dp, MachineSignal.Line2, MachineSignal.Shape.Tight)
+        .background(workspaceColor(MachineSignal.Bg3), MachineSignal.Shape.Tight)
+        .border(1.dp, workspaceColor(MachineSignal.Line2), MachineSignal.Shape.Tight)
         .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),
     contentAlignment = Alignment.Center,
 ) {
@@ -337,7 +327,7 @@ fun Kbd(keys: String, modifier: Modifier = Modifier) = Box(
 @Composable
 fun CountBadge(count: Int, modifier: Modifier = Modifier) = Box(
     modifier
-        .background(MachineSignal.Bg4, RoundedCornerShape(MachineSignal.Radius.countBadge))
+        .background(workspaceColor(MachineSignal.Bg4), RoundedCornerShape(MachineSignal.Radius.countBadge))
         .padding(
             horizontal = MachineSignal.Metrics.countBadgePaddingX,
             vertical = MachineSignal.Metrics.countBadgePaddingY,
@@ -369,7 +359,7 @@ fun KindBadge(kind: String, modifier: Modifier = Modifier, color: Color = Machin
     Text(
         text = kind.uppercase(),
         color = workspaceColor(color),
-        fontFamily = LocalMachineSignalFonts.current.mono,
+        fontFamily = signalFonts().mono,
         fontSize = MachineSignal.Type.dataMicro,
         fontWeight = FontWeight.Bold,
         letterSpacing = MachineSignal.Type.kindTracking,
@@ -416,3 +406,7 @@ fun Avatar(
         weight = FontWeight.Bold,
     )
 }
+
+@Composable
+private fun signalFonts(): MachineSignalFonts =
+    (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts ?: LocalMachineSignalFonts.current

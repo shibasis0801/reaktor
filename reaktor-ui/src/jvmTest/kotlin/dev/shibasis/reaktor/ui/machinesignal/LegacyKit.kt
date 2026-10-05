@@ -39,6 +39,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -324,3 +325,22 @@ fun rememberHover(): Pair<MutableInteractionSource, Boolean> {
     val hovered by interaction.collectIsHoveredAsState()
     return interaction to hovered
 }
+
+val machineSignalColorScheme = darkColorScheme(
+    primary = MachineSignal.Accent,
+    onPrimary = MachineSignal.Text1,
+    primaryContainer = MachineSignal.Bg3,
+    onPrimaryContainer = MachineSignal.AccentText,
+    secondary = MachineSignal.Signal,
+    onSecondary = MachineSignal.Bg0,
+    background = MachineSignal.Bg0,
+    onBackground = MachineSignal.Text1,
+    surface = MachineSignal.Bg1,
+    onSurface = MachineSignal.Text1,
+    surfaceVariant = MachineSignal.Bg2,
+    onSurfaceVariant = MachineSignal.Text2,
+    error = MachineSignal.Status.Error,
+    onError = MachineSignal.Text1,
+    outline = MachineSignal.Line2,
+    outlineVariant = MachineSignal.Line1,
+)

@@ -5,17 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,8 +59,6 @@ val ToolbarSearchField: FieldAppearance = object : FieldAppearance {
                 .padding(horizontal = MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(13.dp))
-            Spacer(Modifier.width(MachineSignal.Space.s1))
             slots.leading?.invoke()
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (properties.empty) slots.placeholder?.let { ProvideLabel(Label(colors.line, signal.fonts.ui, signal.metrics.label), it) }

@@ -1,6 +1,11 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,8 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -49,11 +52,10 @@ val ContextMenuPanel: PanelAppearance = object : PanelAppearance {
     @Composable
     override fun Content(properties: DisclosureProperties, state: DisclosureState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: PanelSlots) {
         val colors = theme.machineSignal.colors
-        val shape = MenuDefaults.shape
+        val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
         Column(
             Modifier
-                .shadow(MenuDefaults.ShadowElevation, shape, clip = false)
-                .background(MenuDefaults.containerColor, shape)
+                .shadow(3.dp, shape, clip = false)
                 .clip(shape)
                 .background(colors.menu)
                 .padding(vertical = PaneMenuPadding)
@@ -81,7 +83,10 @@ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
         ) {
             ProvideLabel(
                 if (properties.enabled) colors.onMenu else colors.onMenu.copy(alpha = DisabledContent),
-                MaterialTheme.typography.labelLarge,
+                TextStyle(fontFamily = signal.fonts.ui, fontWeight = FontWeight.Medium,
+                    fontSize = if (signal.variant == MachineSignalVariant.Editor) MachineSignal.Type.data else 14.sp,
+                    lineHeight = if (signal.variant == MachineSignalVariant.Editor) 13.sp else 20.sp,
+                    letterSpacing = if (signal.variant == MachineSignalVariant.Editor) 0.sp else 0.1.sp),
             ) {
                 Box(Modifier.weight(1f)) { slots.content() }
             }
