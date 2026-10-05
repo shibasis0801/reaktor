@@ -24,7 +24,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -159,11 +159,11 @@ internal class PaneFocusGroup(val owner: PaneHostFocus) {
 
     fun modifier(): Modifier = Modifier.focusRequester(requester)
         .onFocusChanged { focused = it.hasFocus }
-        .then(if (children.isEmpty()) Modifier.focusRestorer() else Modifier).focusGroup()
+        .focusProperties { onExit = { requester.saveFocusedChild() } }.focusGroup()
 
     fun leaves(): List<PaneFocusGroup> = if (children.isEmpty()) listOf(this) else children.flatMap { it.leaves() }
     fun hasFocus(): Boolean = focused
-    fun request(): Boolean = requester.requestFocus()
+    fun request(): Boolean = requester.restoreFocusedChild() || requester.requestFocus()
 }
 
 @Stable
