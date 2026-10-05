@@ -292,3 +292,22 @@ fun FixtureSurfaceMenu(
 }
 
 private val ContextMenuPlacement = Placement(Side.Below, Align.Start, gap = 0.dp, margin = 48.dp)
+
+@Composable
+internal fun FixtureSurfaceTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    count: Int? = null,
+) = dev.shibasis.reaktor.surface.compose.Button(onClick, modifier.semantics { role = Role.Tab; this.selected = selected }, appearance = dev.shibasis.reaktor.ui.machinesignal.surface.subTab(selected)) {
+    SignalText(
+        text = label,
+        color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
+        size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.label,
+        weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+    )
+    if (count != null && count > 0) {
+        SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+    }
+}
