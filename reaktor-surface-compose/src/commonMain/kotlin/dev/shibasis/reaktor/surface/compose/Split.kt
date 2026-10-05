@@ -23,8 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.InputMode
@@ -136,7 +134,6 @@ internal fun SplitterHandle(
     val machine = rememberMachine(behavior, properties) { changed(it) }
     val density = LocalDensity.current
     val inputModes = LocalInputModeManager.current
-    val handleFocus = remember { FocusRequester() }
     var hovered by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf(false) }
     var focusVisible by remember { mutableStateOf(false) }
@@ -147,7 +144,6 @@ internal fun SplitterHandle(
             .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, part)))
             .then(if (horizontal) Modifier.width(HandleSize).fillMaxHeight() else Modifier.height(HandleSize).fillMaxWidth())
             .pointerHoverIcon(PointerIcon.Hand)
-            .focusRequester(handleFocus)
             .onFocusChanged { focusVisible = it.isFocused && inputModes.inputMode == InputMode.Keyboard }
             .onKeyEvent { event ->
                 val stroke = event.stroke()
@@ -168,7 +164,7 @@ internal fun SplitterHandle(
                 customActions = listOf(CustomAccessibilityAction(ResetLabel) { machine.send(SplitterInput.Reset); true })
             }
             .focusable()
-            .then(HandlePointerElement({ hovered = it }, { machine.send(SplitterInput.Reset) }, { handleFocus.requestFocus() }))
+            .then(HandlePointerElement({ hovered = it }, { machine.send(SplitterInput.Reset) }))
             .draggable(
                 drag,
                 if (horizontal) Orientation.Horizontal else Orientation.Vertical,
@@ -184,17 +180,16 @@ internal fun SplitterHandle(
 private fun SplitterProperties.physical(growth: Float): Float =
     if ((axis != Axis.Vertical && rightToLeft) != reversed) -growth else growth
 
-internal data class HandlePointerElement(val onHover: (Boolean) -> Unit, val onDoubleClick: () -> Unit, val onPress: () -> Unit = {}) : ModifierNodeElement<HandlePointerNode>() {
-    override fun create() = HandlePointerNode(onHover, onDoubleClick, onPress)
+internal data class HandlePointerElement(val onHover: (Boolean) -> Unit, val onDoubleClick: () -> Unit) : ModifierNodeElement<HandlePointerNode>() {
+    override fun create() = HandlePointerNode(onHover, onDoubleClick)
 
     override fun update(node: HandlePointerNode) {
         node.onHover = onHover
         node.onDoubleClick = onDoubleClick
-        node.onPress = onPress
     }
 }
 
-internal class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleClick: () -> Unit, var onPress: () -> Unit) :
+internal class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleClick: () -> Unit) :
     Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode {
     private var lastTime: Long? = null
     private var lastPosition = Offset.Zero
@@ -206,7 +201,6 @@ internal class HandlePointerNode(var onHover: (Boolean) -> Unit, var onDoubleCli
             PointerEventType.Enter -> onHover(true)
             PointerEventType.Exit -> onHover(false)
             PointerEventType.Press -> if (!pointerEvent.buttons.isSecondaryPressed) {
-                onPress()
                 val configuration = currentValueOf(LocalViewConfiguration)
                 val again = lastTime?.let { change.uptimeMillis - it <= configuration.doubleTapTimeoutMillis } == true &&
                     (change.position - lastPosition).getDistance() <= configuration.touchSlop
