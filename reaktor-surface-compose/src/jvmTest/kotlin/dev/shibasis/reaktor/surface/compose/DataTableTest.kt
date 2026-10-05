@@ -265,7 +265,7 @@ class DataTableTest {
     }
 
     @Test
-    fun theScrollbarIsDrawnByItsLookBesideTheRows() = runComposeUiTest {
+    fun theScrollbarRunsBesideTheRowsFromBelowTheHeader() = runComposeUiTest {
         val scrollable = mutableListOf<Boolean>()
         val look = object : ScrollbarAppearance {
             @Composable
@@ -274,10 +274,16 @@ class DataTableTest {
                 Box(Modifier.fillMaxHeight().testTag("scrollbar")) { slots.thumb(ScrollbarThumb(4.dp, Color.Gray, Color.Black, RectangleShape)) }
             }
         }
-        setContent { CompositionLocalProvider(LocalAppearances provides Appearances(Appearance.Scrollbar provides look)) { Table(TableState()) } }
+        var busy by mutableStateOf(false)
+        setContent { CompositionLocalProvider(LocalAppearances provides Appearances(Appearance.Scrollbar provides look)) { Table(TableState(), busy = busy) } }
         val header = onNodeWithTag("files/header/name").fetchSemanticsNode().boundsInRoot
-        assertEquals(header.top + 400f, onNodeWithTag("scrollbar").fetchSemanticsNode().boundsInRoot.bottom)
+        val bar = onNodeWithTag("scrollbar").fetchSemanticsNode().boundsInRoot
+        assertEquals(header.bottom, bar.top)
+        assertEquals(header.top + 400f, bar.bottom)
         assertTrue(scrollable.last())
+        busy = true
+        waitForIdle()
+        assertEquals(onNodeWithTag("files/row/file-1").fetchSemanticsNode().boundsInRoot.top, onNodeWithTag("scrollbar").fetchSemanticsNode().boundsInRoot.top)
     }
 
     @Test

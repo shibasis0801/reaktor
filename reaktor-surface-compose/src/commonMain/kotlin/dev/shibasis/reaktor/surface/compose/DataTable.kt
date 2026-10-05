@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,7 +38,9 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.MultiContentMeasurePolicy
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -120,10 +123,11 @@ fun <T> DataTable(
     BoxWithConstraints(modifier.busy(busy).onKeyEvent { state.scrollColumns(it, if (mirrored) -step else step) }) {
         val widths = state.layout.widths
         val tableWidth = maxOf(maxWidth, columns.narrowest(widths))
+        var rowsTop by remember { mutableIntStateOf(0) }
         Column(Modifier.fillMaxSize().horizontalScroll(state.horizontal)) {
             HeaderRow(columns, state, Modifier.width(tableWidth), header)
             if (busy) Progress(null, Modifier.width(tableWidth))
-            val body = Modifier.width(tableWidth).weight(1f)
+            val body = Modifier.width(tableWidth).weight(1f).onPlaced { rowsTop = it.positionInParent().y.roundToInt() }
             if (source.size == 0) {
                 Box(body) { empty() }
             } else {
@@ -134,7 +138,7 @@ fun <T> DataTable(
                 }
             }
         }
-        CollectionScrollbar(state.list, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+        CollectionScrollbar(state.list, Modifier.align(Alignment.TopEnd).padding(top = with(LocalDensity.current) { rowsTop.toDp() }).fillMaxHeight())
     }
 }
 
