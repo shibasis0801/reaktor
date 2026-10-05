@@ -9,7 +9,7 @@ data class Region(
     val min: Float,
     val max: Float = Float.POSITIVE_INFINITY,
     val collapse: Int,
-    val label: String = id,
+    val label: String? = null,
     val collapsible: Boolean = false,
 )
 

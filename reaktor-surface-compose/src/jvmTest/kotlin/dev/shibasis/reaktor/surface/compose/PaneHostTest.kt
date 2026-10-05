@@ -12,6 +12,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsFocused
@@ -31,6 +33,7 @@ import dev.shibasis.reaktor.surface.Region
 import dev.shibasis.reaktor.surface.RegionEdge
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalTestApi::class)
 class PaneHostTest {
@@ -165,6 +168,13 @@ class PaneHostTest {
         assertEquals(240f, preferences.sizes.getValue("trace"))
         preferences = preferences.copy(hidden = emptySet())
         onNodeWithTag("trace-size").assertTextEquals("864x240")
+    }
+
+    @Test
+    fun anUnlabelledRegionGivesItsSplitterNoNameRatherThanItsId() = runComposeUiTest {
+        setContent { Graph(1512, PanePreferences()) }
+        assertNull(onNodeWithTag("graph/splitter/inspector").fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription))
+        onNodeWithTag("graph/splitter/trace").assertContentDescriptionEquals("Resize execution tool window")
     }
 
     @Test
