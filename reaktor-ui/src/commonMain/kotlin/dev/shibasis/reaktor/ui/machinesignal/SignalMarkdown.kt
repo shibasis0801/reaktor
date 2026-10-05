@@ -14,7 +14,7 @@ import dev.shibasis.reaktor.ui.code.CodeViewer
 @Composable
 fun SignalMarkdown(text: String, modifier: Modifier = Modifier) {
     val blocks = remember(text) { markdownBlocks(text) }
-    val fonts = LocalMachineSignalFonts.current
+    val fonts = (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts ?: LocalMachineSignalFonts.current
     SelectionContainer(modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
             blocks.forEachIndexed { index, block ->

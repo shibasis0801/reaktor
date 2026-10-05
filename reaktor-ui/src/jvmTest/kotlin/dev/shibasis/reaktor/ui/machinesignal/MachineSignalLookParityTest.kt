@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -294,7 +295,9 @@ class MachineSignalLookParityTest {
                 }
             }
         }
-        MaterialTheme(colorScheme = machineSignalColorScheme) {
+        MaterialTheme(colorScheme = machineSignalColorScheme, typography = if (variant == MachineSignalVariant.Editor) Typography(
+            labelLarge = hangarBody.copy(fontSize = 10.5.sp, lineHeight = 13.sp, fontWeight = FontWeight.Medium),
+        ) else Typography()) {
             if (variant == null) {
                 scoped()
             } else {

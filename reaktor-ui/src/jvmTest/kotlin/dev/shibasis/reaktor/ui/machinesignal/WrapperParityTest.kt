@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
@@ -284,7 +286,9 @@ class WrapperParityTest {
                 }
             }
         }
-        MaterialTheme(colorScheme = machineSignalColorScheme) {
+        MaterialTheme(colorScheme = machineSignalColorScheme, typography = if (variant == MachineSignalVariant.Editor) Typography(
+            labelLarge = hangarBody.copy(fontSize = 10.5.sp, lineHeight = 13.sp, fontWeight = FontWeight.Medium),
+        ) else Typography()) {
             if (variant == null) {
                 scoped()
             } else {
