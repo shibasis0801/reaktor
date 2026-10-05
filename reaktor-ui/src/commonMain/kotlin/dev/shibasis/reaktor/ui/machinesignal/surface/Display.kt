@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -44,7 +45,7 @@ private fun signalBadge(filled: Boolean, tone: (MachineSignalColors) -> Color): 
         val signal = theme.machineSignal
         val color = tone(signal.colors)
         Box(
-            Modifier.height(16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
+            Modifier.heightIn(min = 16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
             contentAlignment = Alignment.Center,
         ) {
             ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta)) { slots.content() }
@@ -74,7 +75,7 @@ fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
         val color = MachineSignal.entityColor(kind)
         Box(
             Modifier
-                .height(MachineSignal.Metrics.kindBadgeHeight)
+                .heightIn(min = MachineSignal.Metrics.kindBadgeHeight)
                 .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
                 .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
                 .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
