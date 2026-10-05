@@ -227,7 +227,7 @@ class MachineSignalLookParityTest {
                 listOf(false, true).forEach { selected ->
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         Box(Modifier.width(260.dp).testTag("legacy-row-$selected")) {
-                            SignalRow(selected, {}, accent = MachineSignal.Status.Warn) { SignalText("orders_by_customer", mono = true) }
+                            LegacySignalRow(selected, {}, accent = MachineSignal.Status.Warn) { SignalText("orders_by_customer", mono = true) }
                         }
                         Box(Modifier.width(260.dp).testTag("surface-row-$selected")) {
                             Look { theme, feedback ->

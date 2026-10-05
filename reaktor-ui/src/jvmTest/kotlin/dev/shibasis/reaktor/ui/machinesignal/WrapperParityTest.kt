@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import dev.shibasis.reaktor.surface.compose.Tooltip as SurfaceTooltip
 import androidx.compose.ui.text.style.TextOverflow
 import dev.shibasis.reaktor.ui.machinesignal.SignalTone
 import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
@@ -156,7 +157,7 @@ class WrapperParityTest {
         ).forEach { anchor ->
             val place = "menu/${name(variant)}/x$density/${anchor.name}"
             val legacy = openedMenu(density, variant, anchor, tags) { open -> LegacySignalContextMenu(actions, open, {}) }
-            val wrapper = openedMenu(density, variant, anchor, tags) { open -> SignalContextMenu(actions, open, {}) }
+            val wrapper = openedMenu(density, variant, anchor, tags) { open -> FixtureSurfaceMenu(actions, open, {}) }
             tags.forEach { tag ->
                 if (legacy.bounds[tag] != wrapper.bounds[tag]) failures += "$place/$tag: legacy at ${legacy.bounds[tag]}, wrapper at ${wrapper.bounds[tag]}"
                 if (legacy.meanings[tag] != wrapper.meanings[tag]) failures += "$place/$tag: legacy semantics ${legacy.meanings[tag]}, wrapper semantics ${wrapper.meanings[tag]}"
@@ -174,14 +175,14 @@ class WrapperParityTest {
         scene(density, variant, {
             Row(Modifier.padding(40.dp), horizontalArrangement = Arrangement.spacedBy(200.dp)) {
                 Box(Modifier.testTag("legacy-anchor")) { LegacyMachineSignalTooltip(tip) { Swatch() } }
-                Box(Modifier.testTag("wrapper-anchor")) { MachineSignalTooltip(tip) { Swatch() } }
+                Box(Modifier.testTag("wrapper-anchor")) { SurfaceTooltip(tip = { SurfaceText(tip) }) { Swatch() } }
             }
         }) {
             if (node("legacy-anchor").size != node("wrapper-anchor").size) failures += "$place: anchor bounds changed"
             same("$place/anchor", capture("legacy-anchor"), capture("wrapper-anchor"))
         }
         val legacy = shownTip(density, variant, tip) { LegacyMachineSignalTooltip(tip) { Swatch() } }
-        val wrapper = shownTip(density, variant, tip) { MachineSignalTooltip(tip) { Swatch() } }
+        val wrapper = shownTip(density, variant, tip) { SurfaceTooltip(tip = { SurfaceText(tip) }) { Swatch() } }
         if (variant == MachineSignalVariant.Editor) {
             if (legacy.first != wrapper.first) failures += "$place: legacy tip text at ${legacy.first}, wrapper at ${wrapper.first}"
             same("$place/shown", legacy.second, wrapper.second)

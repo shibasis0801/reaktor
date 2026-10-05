@@ -68,7 +68,7 @@ class SignalContextMenuTest {
                                     modifier = Modifier.testTag("columns"),
                                     appearance = toneButton(SignalTone.Secondary),
                                 ) { SurfaceText("Columns", maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                                SignalContextMenu(actions, open(), { dismissed++; onOpen(false) })
+                                FixtureSurfaceMenu(actions, open(), { dismissed++; onOpen(false) })
                             }
                         }
                     }
@@ -124,7 +124,7 @@ class SignalContextMenuTest {
                     SurfaceEnvironmentProvider(SurfaceEnvironment()) {
                         Column(Modifier.testTag("workspace").focusable()) {
                             Box(Modifier.testTag("row").focusRequester(row).focusable()) {
-                                SignalContextMenu(actions, open, { dismissed++; open = false }, trigger = row)
+                                FixtureSurfaceMenu(actions, open, { dismissed++; open = false }, trigger = row)
                             }
                         }
                     }
@@ -160,8 +160,8 @@ class SignalContextMenuTest {
         setContent {
             Row(Modifier.testTag("row"), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(1.dp))
-                SignalContextMenu(actions, expanded = false, onDismiss = {})
-                SignalContextMenu(emptyList(), expanded = true, onDismiss = {})
+                FixtureSurfaceMenu(actions, expanded = false, onDismiss = {})
+                FixtureSurfaceMenu(emptyList(), expanded = true, onDismiss = {})
             }
         }
         assertEquals(with(density) { 1.dp.roundToPx() }, onNodeWithTag("row").fetchSemanticsNode().size.width)
