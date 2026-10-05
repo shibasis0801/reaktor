@@ -305,19 +305,6 @@ fun ContextBar(
     DividerLine()
 }
 
-fun rowSurface(selected: Boolean, hovered: Boolean): Color = when {
-    selected -> MachineSignal.SelectedSoft
-    hovered -> MachineSignal.Bg2
-    else -> Color.Transparent
-}
-
-@Composable
-fun rememberHover(): Pair<MutableInteractionSource, Boolean> {
-    val interaction = remember { MutableInteractionSource() }
-    val hovered by interaction.collectIsHoveredAsState()
-    return interaction to hovered
-}
-
 // ---------------------------------------------------------------------------
 // Data primitives
 //
