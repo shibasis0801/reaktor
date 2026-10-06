@@ -83,6 +83,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selectableGroup
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -164,12 +166,13 @@ fun <T> ListBox(
     modifier: Modifier = Modifier,
     mode: SelectionMode = SelectionMode.Single,
     onActivate: (String) -> Unit = {},
+    onCheckedChange: (String, Boolean) -> Unit = { _, _ -> },
     actions: RowActions = RowActions.None,
     state: LazyListState = rememberLazyListState(),
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, actions, state, behavior, appearance, true, row)
+) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, row)
 
 @Composable
 fun <T> Tree(
@@ -180,12 +183,13 @@ fun <T> Tree(
     modifier: Modifier = Modifier,
     mode: SelectionMode = SelectionMode.Single,
     onActivate: (String) -> Unit = {},
+    onCheckedChange: (String, Boolean) -> Unit = { _, _ -> },
     actions: RowActions = RowActions.None,
     state: LazyListState = rememberLazyListState(),
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, actions, state, behavior, appearance, true, row)
+) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, row)
 
 @Composable
 internal fun <T> Collection(
@@ -196,6 +200,7 @@ internal fun <T> Collection(
     modifier: Modifier,
     mode: SelectionMode,
     onActivate: (String) -> Unit,
+    onCheckedChange: (String, Boolean) -> Unit,
     actions: RowActions,
     state: LazyListState,
     behavior: CollectionBehavior,
@@ -209,12 +214,14 @@ internal fun <T> Collection(
     val changed by rememberUpdatedState(onSelectionChange)
     val expanded by rememberUpdatedState(onExpandedChange)
     val activated by rememberUpdatedState(onActivate)
+    val checked by rememberUpdatedState(onCheckedChange)
     host.machine = rememberMachine(behavior, properties, host::execute) { event ->
         when (event) {
             is CollectionEvent.SelectionChange -> changed(event.selection)
             is CollectionEvent.Activate -> activated(event.key)
             is CollectionEvent.ExpansionChange -> expanded(event.key, event.expanded)
             is CollectionEvent.MenuRequest -> host.menu(event)
+            is CollectionEvent.CheckChange -> checked(event.key, event.checked)
         }
     }
     host.list = state
@@ -280,6 +287,7 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
     val enabled = source.enabled(index)
     val expandable = tree?.expandable(index) == true
     val expanded = tree?.expanded(index) == true
+    val checked = source.checked(index)
     val selected = flags.selected
     val state = RowState(flags.active, flags.hovered, flags.focusVisible)
     val scope = remember(flags, index) { ItemScope(key, index, flags, host) }
@@ -294,6 +302,7 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
             .focusable()
             .semantics(mergeDescendants = true) {
                 this.selected = selected
+                checked?.let { toggleableState = ToggleableState(it) }
                 collectionItemInfo = CollectionItemInfo(index, 1, 0, 1)
                 if (enabled) {
                     onClick { host.select(key); true }
@@ -423,7 +432,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         if (event.type != KeyEventType.KeyDown) return false
         val stroke = event.stroke() ?: return false
         val properties = properties ?: return false
-        if (!(behavior as? CollectionKernel ?: DefaultKernel).handles(properties, stroke)) return false
+        if (!(behavior as? CollectionKernel ?: DefaultKernel).handles(properties, stroke, machine.state.active)) return false
         keyboard = true
         machine.send(CollectionInput.Stroke(stroke, page()))
         return true
