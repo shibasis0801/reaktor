@@ -420,6 +420,10 @@ object MachineSignal {
         val maxHeight = 240.dp
     }
 
+    object AiInspector {
+        val usesMaxHeight = 240.dp
+    }
+
     object AnalyticsChart {
         val height = 90.dp
     }
@@ -559,6 +563,11 @@ object MachineSignal {
 
     object GatewayTraffic {
         val emptyHeight = 150.dp
+    }
+
+    object GatewayTable {
+        val headerHeight = 28.dp
+        val rowHeight = 22.dp
     }
 
     object Gauge {
