@@ -56,7 +56,7 @@ object HarnessSessions {
     fun read(workspace: File, home: File = File(System.getProperty("user.home")), now: Long = System.currentTimeMillis()): List<HarnessSession> {
         val root = workspace.canonicalPath
         val since = now - WindowMillis
-        return (claude(home, since, root) + codex(home, since, now, root)).sortedByDescending { it.lastActiveAt }
+        return (claude(home, since, root) + codex(home, since, now, root)).sortedByDescending { it.lastActiveAt }.distinctBy { it.runtime to it.id }
     }
 
     private fun claude(home: File, since: Long, root: String): List<HarnessSession> =
@@ -79,7 +79,7 @@ object HarnessSessions {
         }.takeLast(StepsKept)
         return HarnessSession(
             runtime = RuntimeKind.ClaudeCode,
-            id = meta.string("sessionId") ?: file.nameWithoutExtension,
+            id = tail.asReversed().firstNotNullOfOrNull { it.string("sessionId") } ?: file.nameWithoutExtension,
             title = title.oneLine(),
             directory = directory,
             startedAt = instant(meta.string("timestamp")),
