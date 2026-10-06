@@ -5,6 +5,7 @@ interface CollectionItems : RovingItems {
     override fun enabled(index: Int): Boolean = true
     override fun text(index: Int): String? = null
     fun selectable(index: Int): Boolean = true
+    fun checked(index: Int): Boolean? = null
 }
 
 interface TreeItems : CollectionItems {
@@ -51,6 +52,7 @@ sealed interface CollectionEvent {
     data class Activate(val key: String) : CollectionEvent
     data class ExpansionChange(val key: String, val expanded: Boolean) : CollectionEvent
     data class MenuRequest(val key: String, val atPointer: Boolean) : CollectionEvent
+    data class CheckChange(val key: String, val checked: Boolean) : CollectionEvent
 }
 
 data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
@@ -107,11 +109,11 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
         )
     }
 
-    fun handles(properties: CollectionProperties, stroke: KeyStroke): Boolean = action(properties, stroke) != null
+    fun handles(properties: CollectionProperties, stroke: KeyStroke, active: String? = null): Boolean = action(properties, stroke, active) != null
 
     private fun stroke(properties: CollectionProperties, state: CollectionState, input: CollectionInput.Stroke): Reduction<CollectionState, CollectionEvent> {
         val active = state.active
-        return when (val action = action(properties, input.stroke)) {
+        return when (val action = action(properties, input.stroke, active)) {
             null -> Reduction(state)
             is Action.Move -> move(properties, state, input, action.pick)
             is Action.Branch -> branch(properties, state, action.open)
@@ -120,6 +122,7 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
             Action.Clear -> Reduction(state, properties.request(emptySet()))
             Action.All -> Reduction(state, properties.request(properties.items.keys(0 until properties.items.size)))
             Action.Toggle -> when {
+                active != null && properties.checkable(active) -> Reduction(state, listOf(CollectionEvent.CheckChange(active, properties.checked(active) != true)))
                 properties.mode != SelectionMode.Multiple || active == null || !properties.selectable(active) -> expand(properties, state, active) { !it }
                 else -> land(properties, state, active, roving.moveTo(state.roving, active), Pick.Toggle)
             }
@@ -207,7 +210,7 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
         return Reduction(state.copy(roving = roved.state), commands = roved.commands.map(::retarget))
     }
 
-    private fun action(properties: CollectionProperties, stroke: KeyStroke): Action? {
+    private fun action(properties: CollectionProperties, stroke: KeyStroke, active: String?): Action? {
         val mac = properties.keys == KeyConvention.Mac
         val primary = if (mac) stroke.meta else stroke.control
         val foreign = stroke.alt || (if (mac) stroke.control else stroke.meta)
@@ -221,7 +224,7 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
             KeyName.Left, KeyName.Right -> if (tree && plain) Action.Branch((stroke.key == KeyName.Right) != properties.rightToLeft) else null
             KeyName.Enter -> if (plain) Action.Open else null
             KeyName.Escape -> if (plain && mode != SelectionMode.None && properties.selection.isNotEmpty()) Action.Clear else null
-            KeyName.Space -> if (plain && (mode == SelectionMode.Multiple || tree && mode == SelectionMode.Single)) Action.Toggle else null
+            KeyName.Space -> if (plain && (mode == SelectionMode.Multiple || tree && mode == SelectionMode.Single || active != null && properties.checkable(active))) Action.Toggle else null
             KeyName.F10 -> if (stroke.shift) Action.Menu else null
             KeyName.ContextMenu -> if (plain) Action.Menu else null
             KeyName.A -> if (primary && mode == SelectionMode.Multiple) Action.All else typed(properties, stroke)
@@ -250,6 +253,10 @@ private fun CollectionProperties.roving() = RovingProperties(items, Axis.Vertica
 private fun CollectionProperties.reachable(key: String): Boolean = enabled && items.indexOf(key).let { it >= 0 && items.enabled(it) }
 
 private fun CollectionProperties.selectable(key: String): Boolean = reachable(key) && items.selectable(items.indexOf(key))
+
+private fun CollectionProperties.checked(key: String): Boolean? = items.checked(items.indexOf(key))
+
+private fun CollectionProperties.checkable(key: String): Boolean = reachable(key) && checked(key) != null
 
 private fun CollectionProperties.request(next: Set<String>): List<CollectionEvent> =
     if (next == selection) emptyList() else listOf(CollectionEvent.SelectionChange(next))

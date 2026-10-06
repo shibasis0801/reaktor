@@ -12,7 +12,8 @@ fun <T> listSource(
     text: (T) -> String? = { null },
     enabled: (T) -> Boolean = { true },
     selectable: (T) -> Boolean = { true },
-): ItemSource<T> = ListSource(items, key, text, enabled, selectable)
+    checked: (T) -> Boolean? = { null },
+): ItemSource<T> = ListSource(items, key, text, enabled, selectable, checked)
 
 fun <T> treeSource(
     roots: List<T>,
@@ -43,6 +44,7 @@ private class ListSource<T>(
     private val textOf: (T) -> String?,
     private val enabledOf: (T) -> Boolean,
     private val selectableOf: (T) -> Boolean,
+    private val checkedOf: (T) -> Boolean?,
 ) : ItemSource<T> {
     private val positions by lazy { items.indices.associateBy { keyOf(items[it]) } }
 
@@ -53,6 +55,7 @@ private class ListSource<T>(
     override fun enabled(index: Int): Boolean = enabledOf(items[index])
     override fun text(index: Int): String? = textOf(items[index])
     override fun selectable(index: Int): Boolean = selectableOf(items[index])
+    override fun checked(index: Int): Boolean? = checkedOf(items[index])
 }
 
 private class TreeRows<T>(

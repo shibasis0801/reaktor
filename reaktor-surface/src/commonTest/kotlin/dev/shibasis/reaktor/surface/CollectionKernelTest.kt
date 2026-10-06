@@ -217,6 +217,26 @@ class CollectionKernelTest {
     }
 
     @Test
+    fun spaceChecksTheActiveCheckableRowInEveryModeWithoutTouchingTheSelection() {
+        val space = KeyStroke(KeyName.Space, character = ' ')
+        val checks = listSource(fruit, { it.key }, { it.name }, { it.enabled }, checked = { mapOf("banana" to false, "date" to true, "cherry" to false)[it.key] })
+        fun checkable(mode: SelectionMode, enabled: Boolean = true) = CollectionProperties(checks, setOf("apple"), KeyConvention.Mac, mode, enabled = enabled)
+        SelectionMode.entries.forEach { mode ->
+            assertTrue(kernel.handles(checkable(mode), space, "banana"))
+            assertEquals(listOf<CollectionEvent>(CollectionEvent.CheckChange("banana", true)), kernel.reduce(checkable(mode), at("banana"), CollectionInput.Stroke(space, 3)).events)
+            assertEquals(listOf<CollectionEvent>(CollectionEvent.CheckChange("date", false)), kernel.reduce(checkable(mode), at("date"), CollectionInput.Stroke(space, 3)).events)
+            assertFalse(kernel.handles(checkable(mode, enabled = false), space, "banana"))
+        }
+        listOf(SelectionMode.None, SelectionMode.Single).forEach { mode ->
+            assertFalse(kernel.handles(checkable(mode), space, "cherry"))
+            assertFalse(kernel.handles(checkable(mode), space, "apple"))
+            assertFalse(kernel.handles(checkable(mode), space))
+        }
+        assertEquals(Reduction(at("apple")), kernel.reduce(checkable(SelectionMode.Single), at("apple"), CollectionInput.Stroke(space, 3)))
+        assertEquals(setOf("apple", "fig"), kernel.reduce(checkable(SelectionMode.Multiple), at("fig"), CollectionInput.Stroke(space, 3)).selected())
+    }
+
+    @Test
     fun primaryASelectsEveryEnabledRowOnlyInMultiple() {
         val conventions = listOf(
             KeyConvention.Mac to KeyStroke(KeyName.A, meta = true, character = 'a'),
