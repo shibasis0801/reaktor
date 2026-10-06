@@ -36,6 +36,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Availability
 import dev.shibasis.reaktor.surface.Chord
 import dev.shibasis.reaktor.surface.Command
 import dev.shibasis.reaktor.surface.CommandId
@@ -246,6 +247,41 @@ class CollectionPointerTest {
             .performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(setOf("row-7"), selection)
         onNodeWithTag("files/menu/copy").assertExists()
+    }
+
+    @Test
+    fun aRowCommandButtonRunsItsOwnRowsCommandWithoutSelectingItOrTakingATabStop() = runComposeUiTest {
+        var selection by mutableStateOf(emptySet<String>())
+        val invoked = mutableListOf<Pair<String, Set<String>>>()
+        setContent {
+            AutomationScope("files") {
+                ListBox(
+                    rows,
+                    selection,
+                    { selection = it },
+                    Modifier.height(400.dp),
+                    actions = RowActions(
+                        { keys -> CommandSet(listOf(Command(CommandId("run"), "Run",
+                            availability = if (keys.firstOrNull() == "row-3") Availability.Unavailable("Blocked") else Availability.Available))) },
+                        { id, chosen -> invoked += id.value to chosen },
+                    ),
+                ) { key ->
+                    Row {
+                        BasicText(key)
+                        CommandButton(CommandId("run"), Modifier.testTag("run-$key")) { BasicText("Run") }
+                    }
+                }
+            }
+        }
+        onNodeWithTag("run-row-2").performMouseInput { click(center) }
+        onNodeWithTag("run-row-4").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)).performSemanticsAction(SemanticsActions.OnClick)
+        onNodeWithTag("run-row-3").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled)).performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(listOf("run" to setOf("row-2"), "run" to setOf("row-4")), invoked)
+        assertEquals(emptySet(), selection)
+        onNodeWithTag("run-row-2").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Focused))
+        onNodeWithTag("run-row-3").performMouseInput { click(center) }
+        assertEquals(setOf("row-3"), selection)
+        assertEquals(2, invoked.size)
     }
 
     @Test
