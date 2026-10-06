@@ -7,6 +7,8 @@ import dev.shibasis.reaktor.db.core.ObjectStoreConfig
 import dev.shibasis.reaktor.db.core.ObjectStore
 import dev.shibasis.reaktor.io.serialization.ObjectSerializer
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -33,6 +35,16 @@ data class RawObject(
     val payload: String,
     val createdAt: Long,
     val updatedAt: Long,
+)
+
+/** A committed storage change. Sequence is monotonic within this database authority. */
+@Serializable
+data class ObjectChange(
+    val sequence: Long,
+    val storeName: String,
+    val key: String,
+    val payload: String?,
+    val atMillis: Long,
 )
 
 data class ObjectAddress(
@@ -141,6 +153,26 @@ abstract class ObjectDatabase(
         return stored
     }
 
+    suspend fun <T : Any> compareAndSet(
+        storeName: String,
+        key: String,
+        expected: T?,
+        value: T,
+        serializer: KSerializer<T>,
+    ): Boolean = withContext(NonCancellable) {
+        val changed = compareAndSetRaw(storeName, key, expected, value, serializer)
+        if (changed) invalidate(storeName, key, Origin.Local)
+        changed
+    }
+
+    protected open suspend fun <T : Any> compareAndSetRaw(
+        storeName: String,
+        key: String,
+        expected: T?,
+        value: T,
+        serializer: KSerializer<T>,
+    ): Boolean = throw UnsupportedOperationException("This database does not support conditional writes")
+
     suspend fun <T : Any> getAll(
         storeName: String,
         type: KClass<T>,
@@ -192,6 +224,10 @@ abstract class ObjectDatabase(
         throw UnsupportedOperationException(
             "${this::class.simpleName} does not support raw export.",
         )
+
+    /** Retained changes, in commit order. Unsupported backends must reject, never return a live Flow. */
+    open suspend fun readChanges(storeName: String, afterSequence: Long, limit: Int): List<ObjectChange> =
+        throw UnsupportedOperationException("This database does not expose a retained change journal")
 
     /**
      * Writes [items] back verbatim, replacing whatever sits at those keys.

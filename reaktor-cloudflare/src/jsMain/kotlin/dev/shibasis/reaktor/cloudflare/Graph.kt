@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.cloudflare
 
-import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders.AUTHORIZATION as AUTHORIZATION_HEADER
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.service.Request
 import kotlinx.serialization.json.JsonElement

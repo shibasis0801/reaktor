@@ -16,6 +16,7 @@ kotlin {
     common {
         dependencies {
             api(project(":reaktor-auth"))
+            api(project(":reaktor-work"))
         }
     }
     droid {

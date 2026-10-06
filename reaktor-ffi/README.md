@@ -1,63 +1,61 @@
 # reaktor-ffi
 
-> **Stability: Experimental** - Production-tested in BestBuds native verification flows.
+> **Stability: Experimental prototype** — native hello paths are verified; a
+> versioned production typed frame/stream transport is not implemented.
 
-`reaktor-ffi` is Reaktor's native bridge layer, enabling Kotlin to call C++ and vice versa. It integrates Facebook's Hermes JavaScript engine for native code execution on Android and iOS.
+`reaktor-ffi` contains Kotlin/C++ bridge scaffolding, Android FBJNI and Darwin
+cinterop integration, and Hermes proof paths. Source status was refreshed on
+4 October 2026 against the [canonical FFI guide](https://reaktor.build/docs/reaktor-ffi).
 
-## What it does today
+## What exists today
 
-- Kotlin-facing native bridge surface (`Invokable` interface) for sync and async calls
-- Android JNI bridge via FBJNI with `JAVA_DESCRIPTOR(...)` macro
-- Darwin native bridge via cinterop
-- Hermes JS engine integration for native code execution
-- FlexBuffer-based payload marshaling with `reaktor-flexbuffer`
+| Surface | Current state |
+| --- | --- |
+| Android JNI / Hermes | Native integration and hello/dev verification paths; not a production typed RPC protocol |
+| Darwin cinterop / Hermes | Native integration and hello/dev verification paths |
+| JVM / JavaScript | Stub bridge actuals |
+| `Invokable` | Sync ByteArray → Long and async ByteArray → Flow<Long> interfaces |
+| `FlexPayload` | FlexBuffer vector alias and module/function/sequence accessors; typed `argument<T>` is TODO |
+| `ByteBufferTransport` | All transport methods TODO |
+| Frame v1, HELLO/fingerprints, typed results, stream credits | Proposed in the guide; unimplemented |
 
-## Platforms
+The BestBuds `/dev` native verification and Maestro hello checks demonstrate native
+startup and C++ bytes decoded in Kotlin. They do not qualify arbitrary payload
+marshaling, stream cancellation/backpressure, cross-language buffer lifetime or
+production RPC stability.
 
-| Platform | Status |
-|---|---|
-| Android | Full JNI + Hermes integration |
-| iOS/Darwin | Native bridge via cinterop |
-| JVM | Stub |
-| JavaScript | Stub |
+## Legacy payload sketch
 
-## Key types
+The current vector accessors interpret field 0 as module name, field 1 as function
+name, field 2 as sequence number (`-1` for sync), and arguments from field 3 onward.
+The typed argument helper is TODO. This sketch is not the proposed versioned frame
+contract and must not be adopted as a persistent or independently deployed ABI.
 
-| Type | Purpose |
-|---|---|
-| `Invokable` | Interface for sync/async native invocation |
-| `SyncInvokable` | Synchronous invocation (fun interface) |
-| `AsyncInvokable` | Asynchronous invocation returning `Flow` |
-| `FlexPayload` | Type alias for FlexBuffer `Vector` |
+## Performance and ownership
 
-## FFI protocol
+The [October codec review](https://reaktor.build/docs/flexbuffer-performance-review)
+measures host/browser/physical-mobile codec operations and reproduces four unresolved
+FlexBuffer correctness defects. It does not measure FFI hop latency or show superiority
+to MethodChannel/JSI. Fix codec semantics, validation, layout checks and lifetime
+contracts before typed trunk rollout. Borrowed builders expire on reuse; asynchronous
+consumers need explicit ownership transfer or copying.
 
-Arguments are encoded as a FlexBuffer vector:
+The [complete mutable-memory book](https://reaktor.build/docs/flatbuffers-flexbuffers-mutable-memory)
+is design input for handles, slabs, cells and immutable snapshots. LiveFlex and the
+guide's refcounted frames/batch arenas are proposals, not existing module features.
 
-| Field | Content |
-|---|---|
-| 0 | Module name |
-| 1 | Function name |
-| 2 | Sequence number (-1 for sync, >= 0 for async flow) |
-| 3+ | Actual function arguments |
+## Important source
 
-## Important files
+- `cpp/droid/AndroidInvokable.*`: Android bridge scaffolding.
+- `cpp/darwin/DarwinInvokable.h`: Darwin bridge surface.
+- Common/platform `NativeBridge` files: native entry points and JVM/JS stubs.
+- `src/commonMain/.../payload/FlexPayload.kt`: legacy vector accessors and typed-argument TODO.
+- `src/commonMain/.../transport/Transport.kt`: transport skeleton.
 
-- `cpp/droid/AndroidInvokable.*` - Android JNI bridge
-- `cpp/darwin/DarwinInvokable.h` - iOS native bridge
-- `src/commonMain/.../NativeBridge.kt` - Common bridge interface
-- Platform `NativeBridge.*.kt` actual implementations
+## Dependencies and next gates
 
-## Current verified path
-
-Intentionally simple and production-tested:
-- Hermes-backed native execution on Android and iOS
-- Native FlexBuffer creation in C++ and decoding in Kotlin
-- Used by the BestBuds `/dev` native verification flows
-- Maestro verifies the result on both platforms
-
-## Dependencies
-
-- `reaktor-core`, `reaktor-flexbuffer`
-- Facebook Hermes Android (0.81.4) - Android native
-- FBJNI - JNI helpers for Android
+`reaktor-core`, `reaktor-flexbuffer`, FBJNI and Hermes Android 0.81.4; Darwin links
+Hermes/JSI through its native build. Follow the canonical guide for proposed service
+codegen, frame protocol, C ABI, graph integration and acceptance gates. Measure actual
+end-to-end cold/warm and tail latency, copies, allocations and release behavior per
+trunk after a concrete implementation exists.

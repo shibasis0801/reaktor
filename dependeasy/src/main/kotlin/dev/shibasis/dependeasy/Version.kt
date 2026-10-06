@@ -40,12 +40,23 @@ object Version {
     // Web
     const val KotlinJSWrappers = "2025.10.4"
     const val JsJodaTimezone = "2.23.0"
+    const val SQLiteWasm = "3.53.4-build2"
+    object WebView {
+        const val AndroidTestRunner = "1.7.0"
+        const val AndroidTestJUnit = "1.3.0"
+        const val WindowsSDK = "1.0.3537.50"
+        const val AndroidX = "1.14.0"
+        const val TypeScript = "5.9.3"
+        const val commit = "cbbdee44afff22867de9fd88a9fc8350d9bdd399"
+        const val archiveSha256 = "10e972a2327b5681474f4aa4499e505eaa4ff659aa995380386f08fd6fc1b763"
+    }
 
     // Data
     const val SQLDelight = "2.0.0"
     const val Exposed = "1.0.0-beta-2"
     const val OkHttp = "4.12.0"
     const val WorkManager = "2.9.0"
+    const val Quartz = "2.5.1"
     const val Ktor = "3.1.0"
     const val Koin = "4.1.0"
     const val KoinAnnotations = "2.0.0"
@@ -56,6 +67,7 @@ object Version {
 
     // Cloud
     const val Firebase = "32.0.0"
+    const val FirebaseDarwin = "11.0"
 
     // Android Camera
     const val CameraX = "1.5.2"

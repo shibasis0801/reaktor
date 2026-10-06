@@ -1,6 +1,6 @@
 # reaktor-flexbuffer
 
-> **Stability: Experimental** — the exact-layout generated tier is performance- and correctness-tested, but schema fingerprinting, complete upstream reader parity, and a versioned production FFI protocol remain open.
+> **Stability: Experimental** — the October review reproduces four open correctness defects (map hashing, empty-map validation, null/default semantics, required-field/layout rejection). Schema fingerprinting, complete upstream reader parity and a production FFI protocol remain open.
 
 `reaktor-flexbuffer` is a Kotlin Multiplatform implementation of Google's FlexBuffers format, engineered for low-latency generated coders, direct memory access, compile-time encode geometry, and C++-compatible sign-extended minimal-width integers.
 
@@ -89,22 +89,31 @@ cleared or reused.
 
 ## Performance
 
-See [PERFORMANCE_AUDIT.md](PERFORMANCE_AUDIT.md) for the 2026-07-11 source,
-compatibility, use-case, harness, and measured optimization audit.
+The current ledger is [PERFORMANCE_REVIEW_2026-10-03.md](PERFORMANCE_REVIEW_2026-10-03.md):
+two-fork JVM JMH on M4 Pro, actual Chrome, physical S23 Ultra and physical iPhone
+14 Pro, JSON/kotlinx ProtoBuf/packed Google Java Protobuf, allocations, wire sizes,
+partial reads, validation and reproduced stability failures.
 
-The audit contains the current JVM, production Node/V8, Android/ART emulator,
-release Kotlin/Native, Kotlin-vs-C++, and FlatBuffers-vs-FlexBuffers matrices.
-The older reaktorWeb page is historical until it is regenerated from that audit.
-Headline characteristics:
+- Generated JVM encode/decode costs are 0.487/0.276 µs (UserProfile), 3.476/1.715 µs
+  (ApiResponse) and 0.376/0.165 µs (TimeSeries). Full decode still allocates models.
+- Browser object encode often loses to JSON; generated decode is not a universal win.
+- Caller-owned buffers avoid the result copy; they do not always reduce runtime and
+  the view expires on builder clear/reuse.
+- Physical Android public-ByteBuffer A/B shows large vector opportunities. All current
+  Android primitive bulk actuals return false: the kernels are not shipped.
+- Fix the four repros and lifetime/schema/cache issues before broad production use.
+  Codec results do not measure FFI hop latency or a mutable-memory engine.
 
-- No intermediate navigation-container allocation on generated positional decode; returned bytes, result objects, strings, and materialized collections still allocate.
-- Sign-extended minimal-width integers and shared key vectors shrink wire size below the C++ default builder output for repeated-map payloads.
-- Generated JVM round trips beat raw Flex, JSON, and ProtoBuf on all measured headline and 26-corpus cases; caller-owned buffers reduce copying further.
-- Kotlin is within 1.0-1.1x of optimized C++ Flex on the large numeric and wide-map access paths and beats the C++ builder on the tested unique-string encode cases; C++ remains faster on tiny and string-heavy reads.
-- On Node/V8, generated decode wins every measured case; native JSON encode remains faster for string/object-heavy payloads, while generated Flex wins numeric TimeSeries encode.
-- On the API 36 ART steady-state matrix, generated roundtrip beats raw Flex and
-  JSON in all four cases; physical-device release and Android primitive-kernel
-  policy still require a dedicated device A/B.
+[PERFORMANCE_AUDIT.md](PERFORMANCE_AUDIT.md) and
+[PERFORMANCE_VERIFICATION_2026-07-13.md](PERFORMANCE_VERIFICATION_2026-07-13.md)
+retain the historical July campaigns. Their schedules and fixtures differ from
+October; they are not a paired comparison.
+
+The published [implementation guide](https://reaktor.build/docs/flexbuffer-implementation),
+[current review](https://reaktor.build/docs/flexbuffer-performance-review) and
+[complete From Bytes to Mutable Memory book](https://reaktor.build/docs/flatbuffers-flexbuffers-mutable-memory)
+are grouped under **FlexBuffers and FFI → FlexBuffers**. The book's mutable engine
+is a proposed separate runtime, not implemented Reaktor behavior.
 
 ## Compatibility note (2026-06)
 

@@ -17,6 +17,7 @@ kotlin {
             api(project(":reaktor-core"))
             api(project(":reaktor-code"))
             api(project(":reaktor-io"))
+            api(project(":reaktor-web"))
             api(project(":reaktor-surface-compose"))
             api(compose.runtime)
             api(compose.foundation)
@@ -77,4 +78,15 @@ kotlin {
 
 android {
     defaults("dev.shibasis.reaktor.ui")
+}
+
+tasks.register("jvmComposeWebViewProbeClasspath") {
+    dependsOn("jvmTestClasses")
+    val target = kotlin.targets.getByName("jvm") as org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+    val compilation = target.compilations.getByName("test")
+    val classpath = files(compilation.output.allOutputs, compilation.runtimeDependencyFiles)
+    val output = layout.buildDirectory.file("reports/webview/compose-probe-classpath.txt")
+    inputs.files(classpath)
+    outputs.file(output)
+    doLast { output.get().asFile.apply { parentFile.mkdirs(); writeText(classpath.files.joinToString("\n") { it.absolutePath }) } }
 }

@@ -26,13 +26,8 @@ kotlin {
     web {
         dependencies {
             api("app.cash.sqldelight:web-worker-driver:$sqldelightVersion")
+            api(npm("@sqlite.org/sqlite-wasm", Version.SQLiteWasm))
             implementation(devNpm("copy-webpack-plugin", "9.1.0"))
-        }
-    }
-
-    sourceSets {
-        jsTest.dependencies {
-            implementation(npm("fake-indexeddb", "6.2.5"))
         }
     }
 
@@ -78,4 +73,15 @@ tasks.withType<Test> {
 
 android {
     defaults("dev.shibasis.reaktor.db")
+}
+
+// The React facade consumes the compiler's ES module, alongside the shipped worker resource.
+tasks.named("jsBrowserProductionLibraryDistribution") {
+    doLast {
+        copy {
+            from(layout.buildDirectory.dir("compileSync/js/main/productionLibrary/kotlin"))
+            into(layout.projectDirectory.dir("ts/export"))
+            include("reaktor-reaktor-db.*")
+        }
+    }
 }

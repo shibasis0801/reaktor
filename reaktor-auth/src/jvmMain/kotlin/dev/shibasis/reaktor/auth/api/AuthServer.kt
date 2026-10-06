@@ -14,7 +14,7 @@ class AuthServer(
     override val sessionLogoutAll = graphService.sessionLogoutAll
     override val accountDeactivate = graphService.accountDeactivate
     override val authorityGrants = graphService.authorityGrants
-    override val authorityResolve = graphService.authorityResolve
+    override val authorityResolve = graphService.authorityResolve4
 
     init {
         handlers += listOf(
