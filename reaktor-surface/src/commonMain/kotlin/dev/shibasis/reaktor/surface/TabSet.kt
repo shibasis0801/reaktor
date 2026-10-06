@@ -40,7 +40,7 @@ data class TabSetKernel(val roving: RovingKernel = RovingKernel()) : TabSetBehav
                 if (!properties.choosable(input.key)) Reduction(state)
                 else Reduction(state.copy(roving = state.roving.copy(active = input.key)), properties.select(input.key),
                     commands = listOf(LocalCommand.Focus(PartKey(input.key)), LocalCommand.Reveal(PartKey(input.key))))
-            is TabSetInput.Close -> close(properties, state, input.key)
+            is TabSetInput.Close -> close(properties, state, input.key).let { if (it.events.isEmpty()) it else it.copy(cues = listOf(FeedbackCue.Impact)) }
             is TabSetInput.Focused -> rove(properties, state.copy(within = true), RovingInput.Focused(input.key))
             TabSetInput.Blurred -> reconcile(properties, state.copy(within = false))
             is TabSetInput.TypingElapsed -> rove(properties, state, RovingInput.TypingElapsed(input.ticket))

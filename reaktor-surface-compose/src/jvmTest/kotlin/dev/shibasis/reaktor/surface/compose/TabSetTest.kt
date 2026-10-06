@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -10,11 +11,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotSelected
@@ -23,11 +30,15 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.PressProperties
+import dev.shibasis.reaktor.surface.PressState
+import dev.shibasis.reaktor.surface.ThemeSnapshot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -170,6 +181,56 @@ class TabSetTest {
         assertEquals("pane-3", selected)
         onNodeWithTag("docs/pane-3").assertIsSelected()
     }
+
+    @Test
+    fun eachTabAndClosePartShowsItsOwnHoverPressAndFocus() = runComposeUiTest {
+        val tabLook = object : ItemAppearance {
+            @Composable
+            override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) =
+                Box(Modifier.semantics { stateDescription = state.described() }) { slots.content() }
+        }
+        val closeLook = object : ButtonAppearance {
+            @Composable
+            override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) =
+                Box(Modifier.semantics { stateDescription = state.described() }) { slots.content() }
+        }
+        setContent {
+            Column {
+                Button({}, Modifier.testTag("before")) { BasicText("Before") }
+                AutomationScope("docs") {
+                    TabSet(documents, "data", {}, appearance = tabLook) { key ->
+                        BasicText(key)
+                        if (key != "graph") Close(Modifier.testTag("close-$key"), appearance = closeLook) { BasicText("×") }
+                    }
+                }
+            }
+        }
+        onNodeWithTag("docs/cloud").performMouseInput { moveTo(center) }
+        onNodeWithTag("docs/cloud").assertState("hovered")
+        onNodeWithTag("docs/data").assertState("")
+        onNodeWithTag("close-cloud").performMouseInput {
+            moveTo(center)
+            press()
+        }
+        onNodeWithTag("close-cloud").assertState("hovered pressed")
+        onNodeWithTag("docs/cloud").assertState("hovered")
+        onNodeWithTag("close-cloud").performMouseInput { release() }
+        onNodeWithTag("close-cloud").assertState("hovered")
+        onNodeWithTag("docs/cloud").performMouseInput { moveTo(Offset(-100f, -100f)) }
+        onNodeWithTag("docs/cloud").assertState("")
+        onNodeWithTag("close-cloud").assertState("")
+        onNodeWithTag("before").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("docs/data").assertIsFocused().assertState("focused visible")
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        onNodeWithTag("docs/cloud").assertIsFocused().assertState("focused visible")
+        onNodeWithTag("docs/data").assertState("")
+    }
+
+    private fun PressState.described() = listOfNotNull("hovered".takeIf { hovered }, "pressed".takeIf { pressed }, "focused".takeIf { focused }, "visible".takeIf { focusVisible }).joinToString(" ")
+
+    private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertState(described: String) =
+        assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, described))
 
     private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotExistOrIsOffscreen() {
         val nodes = fetchSemanticsNodes()

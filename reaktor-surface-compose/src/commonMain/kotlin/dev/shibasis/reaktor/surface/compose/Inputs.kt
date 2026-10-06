@@ -14,13 +14,16 @@ import dev.shibasis.reaktor.surface.PressInput
 import kotlinx.coroutines.flow.Flow
 
 @Composable
-fun rememberInteractions(machine: Machine<*, *, PressInput, *>): MutableInteractionSource {
+fun rememberInteractions(machine: Machine<*, *, PressInput, *>): MutableInteractionSource = rememberInteractions(machine) { machine.send(it) }
+
+@Composable
+internal fun rememberInteractions(vararg owners: Any, send: (PressInput) -> Unit): MutableInteractionSource {
     val inputModes = rememberUpdatedState(LocalInputModeManager.current)
-    return remember(machine) { MachineInteractions(machine) { inputModes.value.inputMode == InputMode.Keyboard } }
+    return remember(*owners) { PressInteractions(send) { inputModes.value.inputMode == InputMode.Keyboard } }
 }
 
-private class MachineInteractions(
-    private val machine: Machine<*, *, PressInput, *>,
+private class PressInteractions(
+    private val send: (PressInput) -> Unit,
     private val keyboard: () -> Boolean,
 ) : MutableInteractionSource {
     private val delegate = MutableInteractionSource()
@@ -44,14 +47,14 @@ private class MachineInteractions(
             is PressInteraction.Press -> {
                 val contact = ++next
                 contacts[interaction] = contact
-                machine.send(PressInput.Press(contact))
+                send(PressInput.Press(contact))
             }
-            is PressInteraction.Release -> contacts.remove(interaction.press)?.let { machine.send(PressInput.Release(it)) }
-            is PressInteraction.Cancel -> contacts.remove(interaction.press)?.let { machine.send(PressInput.Cancel(it)) }
-            is FocusInteraction.Focus -> machine.send(PressInput.Focus(true, keyboard()))
-            is FocusInteraction.Unfocus -> machine.send(PressInput.Focus(false, false))
-            is HoverInteraction.Enter -> machine.send(PressInput.Hover(true))
-            is HoverInteraction.Exit -> machine.send(PressInput.Hover(false))
+            is PressInteraction.Release -> contacts.remove(interaction.press)?.let { send(PressInput.Release(it)) }
+            is PressInteraction.Cancel -> contacts.remove(interaction.press)?.let { send(PressInput.Cancel(it)) }
+            is FocusInteraction.Focus -> send(PressInput.Focus(true, keyboard()))
+            is FocusInteraction.Unfocus -> send(PressInput.Focus(false, false))
+            is HoverInteraction.Enter -> send(PressInput.Hover(true))
+            is HoverInteraction.Exit -> send(PressInput.Hover(false))
         }
     }
 }
