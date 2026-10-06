@@ -412,8 +412,21 @@ object MachineSignal {
         val height = 64.dp
     }
 
+    object AgentContext {
+        val nextMaxHeight = 360.dp
+    }
+
     object AgentInspector {
         val stepToolWidth = 130.dp
+    }
+
+    object AgentReview {
+        val checksMaxHeight = 480.dp
+        val resultsMaxHeight = 360.dp
+    }
+
+    object AgentWorkflow {
+        val runbooksMaxHeight = 240.dp
     }
 
     object AiFindings {
