@@ -554,12 +554,15 @@ object MachineSignal {
     }
 
     object Glance {
+        val authLabelWidth = 72.dp
         val barHeight = 6.dp
         val canvasInset = 376.dp
+        val cloudLabelWidth = 84.dp
         val dataFindingsMaxHeight = 300.dp
         val dataLabelWidth = 70.dp
         val findingsMaxHeight = 340.dp
         val graphCanvasInset = 364.dp
+        val graphLabelWidth = 76.dp
         val graphWidth = 348.dp
         val loadLabelWidth = 52.dp
         val pipelineWidth = 320.dp
