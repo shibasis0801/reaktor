@@ -43,6 +43,9 @@ internal class ServiceTokenClient(session: InfrastructureSession) {
                 key to value
             }.toMap()
         }.orEmpty()
-        return fromFile + environment.filterKeys { it in keys }.filterValues(String::isNotBlank)
+        val combined = fromFile + environment.filterKeys { it in keys }.filterValues(String::isNotBlank)
+        val missing = keys.filterTo(linkedSetOf()) { combined[it].isNullOrBlank() }
+        if (missing.isNotEmpty()) throw MissingCredential(path, missing)
+        return combined
     }
 }
