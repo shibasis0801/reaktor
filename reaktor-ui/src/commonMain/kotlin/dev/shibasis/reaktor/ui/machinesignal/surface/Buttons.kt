@@ -21,6 +21,7 @@ import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.compose.ButtonAppearance
 import dev.shibasis.reaktor.surface.compose.composeAppearance
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 import dev.shibasis.reaktor.ui.machinesignal.SignalTone
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
@@ -60,16 +61,16 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
             gap = metrics.controlGap,
             fill = when {
                 !properties.enabled -> Color.Transparent
-                state.hovered -> colors.remap(tone.hover)
-                else -> colors.remap(tone.fill)
+                state.hovered -> colors.hover(tone)
+                else -> colors.fill(tone)
             },
             line = when {
                 tone == SignalTone.Ghost && signal.variant == MachineSignalVariant.Editor -> Color.Transparent
-                properties.enabled -> colors.remap(tone.line)
+                properties.enabled -> colors.line(tone)
                 else -> colors.lineSubtle
             },
             label = Label(
-                color = if (properties.enabled) colors.remap(tone.text) else colors.textFaint,
+                color = if (properties.enabled) colors.label(tone) else colors.textFaint,
                 family = signal.fonts.ui,
                 size = metrics.label,
                 weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
@@ -96,4 +97,35 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
     }
 }
 
+private fun MachineSignalColors.fill(tone: SignalTone): Color = when (tone) {
+    SignalTone.Primary -> accent
+    SignalTone.Secondary -> raised
+    SignalTone.Ghost -> Color.Transparent
+    SignalTone.Danger -> error.copy(alpha = DangerFill)
+}
+
+private fun MachineSignalColors.hover(tone: SignalTone): Color = when (tone) {
+    SignalTone.Primary -> accentHover
+    SignalTone.Secondary -> raisedAlt
+    SignalTone.Ghost -> surfaceAlt
+    SignalTone.Danger -> error.copy(alpha = DangerHover)
+}
+
+private fun MachineSignalColors.line(tone: SignalTone): Color = when (tone) {
+    SignalTone.Primary -> accentLine
+    SignalTone.Secondary -> line
+    SignalTone.Ghost -> lineSubtle
+    SignalTone.Danger -> error.copy(alpha = DangerLine)
+}
+
+private fun MachineSignalColors.label(tone: SignalTone): Color = when (tone) {
+    SignalTone.Primary -> onAccent
+    SignalTone.Secondary -> textStrong
+    SignalTone.Ghost -> text
+    SignalTone.Danger -> error
+}
+
 private const val BusyAlpha = 0.45f
+private const val DangerFill = 20f / 255f
+private const val DangerHover = 48f / 255f
+private const val DangerLine = 82f / 255f

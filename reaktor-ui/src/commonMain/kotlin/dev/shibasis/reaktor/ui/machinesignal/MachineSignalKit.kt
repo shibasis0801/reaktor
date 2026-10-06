@@ -205,8 +205,8 @@ fun MetricTile(
     Modifier
         .width(MachineSignal.Metrics.metricTileWidth)
         .then(modifier)
-        .background(workspaceColor(MachineSignal.Bg1), MachineSignal.Shape.Panel)
-        .border(1.dp, workspaceColor(MachineSignal.Line1), MachineSignal.Shape.Panel)
+        .background(signalColors().surface, MachineSignal.Shape.Panel)
+        .border(1.dp, signalColors().lineSubtle, MachineSignal.Shape.Panel)
         .padding(MachineSignal.Metrics.metricTilePadding),
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.metricTileGap),
 ) {
@@ -258,8 +258,8 @@ fun KeyValueRow(
 fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier) = Column(
     modifier
         .fillMaxWidth()
-        .background(workspaceColor(MachineSignal.Bg1), MachineSignal.Shape.Panel)
-        .border(1.dp, workspaceColor(MachineSignal.Line1), MachineSignal.Shape.Panel)
+        .background(signalColors().surface, MachineSignal.Shape.Panel)
+        .border(1.dp, signalColors().lineSubtle, MachineSignal.Shape.Panel)
         .padding(MachineSignal.Space.s4)
         .testTag("not-wired-yet"),
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
@@ -285,7 +285,7 @@ fun ContextBar(
         Modifier
             .fillMaxWidth()
             .weight(1f)
-            .background(workspaceColor(MachineSignal.Bg1))
+            .background(signalColors().surface)
             .padding(horizontal = MachineSignal.Metrics.shellPaddingX),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -325,8 +325,8 @@ fun ContextBar(
 fun Kbd(keys: String, modifier: Modifier = Modifier) = Box(
     modifier
         .height(MachineSignal.Metrics.kbdHeight)
-        .background(workspaceColor(MachineSignal.Bg3), MachineSignal.Shape.Tight)
-        .border(1.dp, workspaceColor(MachineSignal.Line2), MachineSignal.Shape.Tight)
+        .background(signalColors().raised, MachineSignal.Shape.Tight)
+        .border(1.dp, signalColors().line, MachineSignal.Shape.Tight)
         .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),
     contentAlignment = Alignment.Center,
 ) {
@@ -343,7 +343,7 @@ fun Kbd(keys: String, modifier: Modifier = Modifier) = Box(
 @Composable
 fun CountBadge(count: Int, modifier: Modifier = Modifier) = Box(
     modifier
-        .background(workspaceColor(MachineSignal.Bg4), RoundedCornerShape(MachineSignal.Radius.countBadge))
+        .background(signalColors().raisedAlt, RoundedCornerShape(MachineSignal.Radius.countBadge))
         .padding(
             horizontal = MachineSignal.Metrics.countBadgePaddingX,
             vertical = MachineSignal.Metrics.countBadgePaddingY,
@@ -420,6 +420,9 @@ fun Avatar(
         weight = FontWeight.Bold,
     )
 }
+
+@Composable
+private fun signalColors(): MachineSignalColors = (LocalThemeSnapshot.current as? MachineSignalSnapshot)?.colors ?: MachineSignalColors.Board
 
 @Composable
 private fun signalFonts(): MachineSignalFonts = (LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts ?: LocalMachineSignalFonts.current
