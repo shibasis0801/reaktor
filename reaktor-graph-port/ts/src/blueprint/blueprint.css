@@ -247,6 +247,9 @@
 .bp-pin[data-wiring='problem'] { --bp-pin: var(--bp-attention, #ff666b); }
 .bp-pin[data-wiring='muted'] { --bp-pin-alpha: 60%; }
 .bp-pin--empty { visibility: hidden; }
+.bp-pin--action { padding: 0; border: 0; background: transparent; cursor: crosshair; }
+.bp-pin--action::before { content: ''; position: absolute; inset: -6px; }
+.bp-pin--action:focus-visible, .bp-pin--action[aria-pressed='true'] { outline: 2px solid var(--bp-focus); outline-offset: 2px; }
 
 .bp-wires { position: absolute; left: 0; top: 0; pointer-events: none; }
 .bp-wires__svg { position: absolute; left: 0; top: 0; overflow: visible; }

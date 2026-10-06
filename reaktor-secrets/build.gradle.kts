@@ -11,7 +11,7 @@ plugins {
 kotlin {
     common {
         dependencies {
-            api(project(":reaktor-auth"))
+            api(project(":reaktor-auth-core"))
             api(project(":reaktor-core"))
             commonCoroutines()
             commonSerialization(protobuf = false)

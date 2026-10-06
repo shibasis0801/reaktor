@@ -74,6 +74,7 @@ class AppleDeviceBackend : DeviceBackend {
             val properties = device["deviceProperties"]?.jsonObject
             val hardware = device["hardwareProperties"]?.jsonObject
             val connection = device["connectionProperties"]?.jsonObject
+            if (hardware?.get("platform")?.jsonPrimitive?.contentOrNull == "macOS") return@mapNotNull null
             DevelopmentDevice(
                 id = identifier,
                 name = properties?.get("name")?.jsonPrimitive?.contentOrNull

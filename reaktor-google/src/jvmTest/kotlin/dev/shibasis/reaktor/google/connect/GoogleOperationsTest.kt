@@ -56,6 +56,22 @@ class GoogleOperationsTest {
     private fun RecordedRequest.json(): JsonObject = Json.parseToJsonElement(text()).jsonObject
 
     @Test
+    fun `documents read all tabs and preserve revision guarded writes`() {
+        val (get, doc) = run("docs/documents.get", """{"documentId":"doc-1"}""", FakeGoogle.json(200, """{"documentId":"doc-1","revisionId":"r1","tabs":[]}"""))
+        assertEquals("/v1/documents/doc-1", get.requestUrl!!.encodedPath)
+        assertEquals("true", get.query()["includeTabsContent"])
+        assertEquals("COMMENTS_VIEW_MODE_INCLUDED", get.query()["commentsViewMode"])
+        assertEquals("SUGGESTIONS_INLINE", get.query()["suggestionsViewMode"])
+        assertEquals("r1", doc["revisionId"]!!.jsonPrimitive.content)
+        val (write, _) = run("docs/documents.batchUpdate", """{"documentId":"doc-1","body":{"requests":[{"insertText":{"location":{"index":1},"text":"hello"}}],"writeControl":{"requiredRevisionId":"r1"}}}""")
+        assertEquals("POST", write.method)
+        assertEquals("/v1/documents/doc-1:batchUpdate", write.requestUrl!!.encodedPath)
+        assertEquals("r1", write.json()["writeControl"]!!.jsonObject["requiredRevisionId"]!!.jsonPrimitive.content)
+        val refusal = runBlocking { connector.call(key, "docs", "documents.batchUpdate", Json.parseToJsonElement("""{"documentId":"doc-1","body":{"requests":[]}}""").jsonObject) }
+        assertIs<GoogleCall.Invalid>(refusal)
+    }
+
+    @Test
     fun `calendars insert and get`() {
         val (insert, created) = run("calendar/calendars.insert", """{"subject":"x","body":{"summary":"Plans","description":"Blocks","timeZone":"Asia/Kolkata"}}""", FakeGoogle.json(200, """{"kind":"calendar#calendar","id":"cal-1@group.calendar.google.com","summary":"Plans"}"""))
         assertEquals("POST", insert.method)
@@ -202,6 +218,7 @@ class GoogleOperationsTest {
 
     @Test
     fun `every allow-listed operation is exercised here`() {
+        `documents read all tabs and preserve revision guarded writes`()
         `calendars insert and get`()
         `events insert with a conference request, patch and delete`()
         `events list incrementally with a sync token`()
