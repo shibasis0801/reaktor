@@ -796,7 +796,7 @@ private class TaskCatalogBuilder(
         private val LOCAL_EPHEMERAL_WORDS = listOf(" dev", "serve", "watch", "vite", "localhost", "node -e")
         private val LOCAL_ARTIFACT_WORDS = listOf("build", "compile", "assemble", "bundle", "package", "generate", "tsc", "gradlew", "vitest", "jest")
         private val FASTLANE_PUBLISH_WORDS = listOf(
-            " distribute", " firebase", "play_internal", "play_production", "testflight_", "appstore_",
+            " distribute", " firebase", "play_internal", "play_production", "testflight_", "appstore_", " release_",
         )
         private val ROOT_DEPENDENCY_FILES = listOf(
             "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock",
