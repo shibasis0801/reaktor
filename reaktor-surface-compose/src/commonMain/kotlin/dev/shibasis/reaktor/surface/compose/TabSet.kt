@@ -80,6 +80,7 @@ fun TabSet(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     onClose: (String) -> Unit = {},
+    onReselect: (String) -> Unit = {},
     behavior: TabSetBehavior = TabSetKernel(),
     appearance: ItemAppearance = LocalAppearances.current[Appearance.DocumentTab],
     text: (String) -> String = { it },
@@ -90,9 +91,11 @@ fun TabSet(
     val properties = TabSetProperties(items, selected, strip.closable.keys.toSet(), LocalLayoutDirection.current == LayoutDirection.Rtl)
     val chosen by rememberUpdatedState(onSelect)
     val closed by rememberUpdatedState(onClose)
+    val reselected by rememberUpdatedState(onReselect)
     val machine = rememberMachine(behavior, properties) { event ->
         when (event) {
             is TabSetEvent.Select -> chosen(event.key)
+            is TabSetEvent.Reselect -> reselected(event.key)
             is TabSetEvent.CloseRequest -> closed(event.key)
         }
     }
