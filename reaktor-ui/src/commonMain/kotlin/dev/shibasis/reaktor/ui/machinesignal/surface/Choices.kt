@@ -31,12 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.ComponentRecipe
-import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.ToggleProperties
-import dev.shibasis.reaktor.surface.compose.ButtonAppearance
-import dev.shibasis.reaktor.surface.compose.ButtonSlots
 import dev.shibasis.reaktor.surface.compose.CheckProperties
 import dev.shibasis.reaktor.surface.compose.CheckState
 import dev.shibasis.reaktor.surface.compose.CheckboxAppearance
@@ -124,17 +121,6 @@ val UnderlineTab: ItemAppearance = object : ItemAppearance {
     override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) =
         UnderlineFrame(tabLook(properties.selected, properties.enabled, state, theme), feedback, slots.icon, slots.content)
 }
-
-fun subTab(selected: Boolean): ButtonAppearance = if (selected) SelectedSubTab else PlainSubTab
-
-private fun subTabLook(selected: Boolean): ButtonAppearance = object : ButtonAppearance {
-    @Composable
-    override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) =
-        UnderlineFrame(tabLook(selected, properties.enabled, state, theme), feedback, null, slots.content)
-}
-
-private val SelectedSubTab = subTabLook(selected = true)
-private val PlainSubTab = subTabLook(selected = false)
 
 internal data class ChipLook(
     val fill: Color,

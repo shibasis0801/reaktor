@@ -1,21 +1,5 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.unit.toSize
-import dev.shibasis.reaktor.surface.compose.Align
-import dev.shibasis.reaktor.surface.compose.Placement
-import dev.shibasis.reaktor.surface.compose.Side
-import dev.shibasis.reaktor.surface.compose.Menu
-import dev.shibasis.reaktor.surface.compose.OverlayAnchor
-import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuPanel
-import dev.shibasis.reaktor.ui.machinesignal.surface.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -250,68 +234,6 @@ fun LegacySignalRow(
 }
 
 data class SignalAction(val label: String, val enabled: Boolean = true, val id: String? = null, val onInvoke: () -> Unit)
-
-@Composable
-fun FixtureSurfaceMenu(
-    actions: List<SignalAction>,
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-    trigger: FocusRequester? = null,
-) {
-    if (actions.isEmpty() || !expanded) return
-    val returnTo by rememberUpdatedState(trigger)
-    DisposableEffect(Unit) { onDispose { returnTo?.requestFocus() } }
-    var parent by remember { mutableStateOf<Rect?>(null) }
-    Menu(
-        expanded = parent != null,
-        onExpandedChange = { if (!it) onDismiss() },
-        modifier = Modifier.onPlaced { placed -> placed.parentCoordinates?.let { parent = Rect(it.positionInWindow(), it.size.toSize()) } },
-        anchor = parent?.let(OverlayAnchor::Bounds),
-        placement = ContextMenuPlacement,
-    ) {
-        Popup(ContextMenuPanel) {
-            val tags = actions.map { it.id ?: "signal-action-${it.label}" }
-            actions.forEachIndexed { index, action ->
-                val tag = tags[index]
-                Item(
-                    if (tags.indexOf(tag) == index) tag else "$tag/$index",
-                    action.onInvoke,
-                    Modifier.testTag(tag),
-                    enabled = action.enabled,
-                    typeahead = action.label,
-                    appearance = ContextMenuItem,
-                ) {
-                    SignalText(
-                        action.label,
-                        color = if (action.enabled) MachineSignal.Text2 else MachineSignal.Text4,
-                        size = MachineSignal.Type.caption,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private val ContextMenuPlacement = Placement(Side.Below, Align.Start, gap = 0.dp, margin = 48.dp)
-
-@Composable
-internal fun FixtureSurfaceTab(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    count: Int? = null,
-) = dev.shibasis.reaktor.surface.compose.Button(onClick, modifier.semantics { role = Role.Tab; this.selected = selected }, appearance = dev.shibasis.reaktor.ui.machinesignal.surface.subTab(selected)) {
-    SignalText(
-        text = label,
-        color = if (selected) MachineSignal.Text1 else MachineSignal.Text3,
-        size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.label,
-        weight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-    )
-    if (count != null && count > 0) {
-        SignalText(count.toString(), color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
-    }
-}
 
 fun rowSurface(selected: Boolean, hovered: Boolean): Color = when {
     selected -> MachineSignal.SelectedSoft
