@@ -175,7 +175,7 @@ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : 
             properties.forEachIndexed { index, value ->
                 val height = if (value == 0f) 1.dp.toPx() else size.height * value
                 drawRect(
-                    color = if (value == 0f) Color.White.copy(alpha = .08f) else color.copy(alpha = .35f + .5f * (index + 1) / properties.size),
+                    color = if (value == 0f) MachineSignal.Chart.empty else color.copy(alpha = .35f + .5f * (index + 1) / properties.size),
                     topLeft = Offset(index * (width + gap), size.height - height),
                     size = Size(width, height),
                 )

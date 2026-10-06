@@ -80,6 +80,11 @@ class SignalTypographyTest {
         EdgeInk.Data to MachineSignal.Edge.Data, EdgeInk.Attachment to MachineSignal.Edge.Attachment,
         EdgeInk.Containment to MachineSignal.Edge.Containment, EdgeInk.PortOff to MachineSignal.Edge.PortOff,
         ProvenanceInk(TruthClass.Imported) to MachineSignal.provenance(TruthClass.Imported).base,
+        BoardInk.Text1 to MachineSignal.Text1, BoardInk.Text2 to MachineSignal.Text2, BoardInk.Text3 to MachineSignal.Text3,
+        BoardInk.Text4 to MachineSignal.Text4, BoardInk.AccentText to MachineSignal.AccentText,
+        SignalInk.Soft to MachineSignal.Editor.Text.copy(alpha = .9f), SignalInk.Dim to MachineSignal.Editor.Muted.copy(alpha = .6f),
+        SignalInk.ScreenReadout to Color.White.copy(alpha = .9f), SignalInk.ScreenAction to Color.White.copy(alpha = .8f),
+        SignalInk.ScreenNote to Color.White.copy(alpha = .78f),
     )
 
     @Test

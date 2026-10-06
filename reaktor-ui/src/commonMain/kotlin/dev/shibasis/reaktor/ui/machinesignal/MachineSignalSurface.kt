@@ -115,6 +115,10 @@ enum class EdgeInk : InkRole { Exec, Navigation, Data, Attachment, Containment, 
 
 data class ProvenanceInk(val truth: TruthClass) : InkRole
 
+enum class BoardInk : InkRole { Text1, Text2, Text3, Text4, AccentText }
+
+enum class SignalInk : InkRole { Soft, Dim, ScreenReadout, ScreenAction, ScreenNote }
+
 @Immutable
 data class MachineSignalEntities(
     val route: Color = MachineSignal.Entity.Route,
@@ -268,6 +272,16 @@ data class MachineSignalSnapshot(
         is EntityInk -> colors.entities[ink]
         is EdgeInk -> colors.entities[ink]
         is ProvenanceInk -> MachineSignal.provenance(ink.truth).base
+        BoardInk.Text1 -> MachineSignal.Text1
+        BoardInk.Text2 -> MachineSignal.Text2
+        BoardInk.Text3 -> MachineSignal.Text3
+        BoardInk.Text4 -> MachineSignal.Text4
+        BoardInk.AccentText -> MachineSignal.AccentText
+        SignalInk.Soft -> colors.text.copy(alpha = .9f)
+        SignalInk.Dim -> colors.textMuted.copy(alpha = .6f)
+        SignalInk.ScreenReadout -> colors.onAccent.copy(alpha = .9f)
+        SignalInk.ScreenAction -> colors.onAccent.copy(alpha = .8f)
+        SignalInk.ScreenNote -> colors.onAccent.copy(alpha = .78f)
         else -> throw ThemeMismatch("$ink ink", id)
     }
 
