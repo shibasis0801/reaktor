@@ -46,7 +46,6 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
@@ -117,23 +116,6 @@ fun Split(
         }
     }
 }
-
-@Deprecated("Name the handle through its modifier", ReplaceWith("Split(fraction, onFractionChange, firstMin, secondMin, modifier, axis, behavior, appearance, initialFraction, Modifier.semantics { contentDescription = label }, first, second)"))
-@Composable
-fun Split(
-    fraction: Float,
-    onFractionChange: (Float) -> Unit,
-    firstMin: Dp,
-    secondMin: Dp,
-    modifier: Modifier = Modifier,
-    axis: SplitAxis = SplitAxis.Horizontal,
-    behavior: SplitterBehavior = SplitterKernel(),
-    appearance: SplitterAppearance = LocalAppearances.current[Appearance.Splitter],
-    initialFraction: Float = fraction,
-    label: String,
-    first: @Composable () -> Unit,
-    second: @Composable () -> Unit,
-) = Split(fraction, onFractionChange, firstMin, secondMin, modifier, axis, behavior, appearance, initialFraction, Modifier.semantics { contentDescription = label }, first, second)
 
 @Composable
 internal fun SplitterHandle(
