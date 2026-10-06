@@ -701,6 +701,7 @@ object MachineSignal {
     object Matrix {
         val cellHeight = 22.dp
         val emptyCellMark = 3.dp
+        val grantMark = 9.dp
         val headerHeight = 118.dp
         val holdersColumn = 150.dp
         val permissionColumn = 300.dp
