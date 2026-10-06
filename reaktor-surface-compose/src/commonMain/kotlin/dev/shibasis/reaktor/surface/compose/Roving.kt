@@ -112,7 +112,7 @@ internal class Roving(scope: CoroutineScope, onActiveChange: (String) -> Unit) {
         follow()
     }
 
-    fun point(key: String) = machine.send(RovingInput.Point(key, focused))
+    fun point(key: String, focus: Boolean = false) = machine.send(RovingInput.Point(key, focused || focus))
 
     fun isActive(key: String): Boolean = machine.state.active == key
 
