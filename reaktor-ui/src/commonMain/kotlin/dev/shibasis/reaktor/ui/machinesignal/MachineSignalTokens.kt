@@ -504,7 +504,9 @@ object MachineSignal {
     }
 
     object DataInspector {
+        val columnsMaxHeight = 420.dp
         val keyMarkWidth = 10.dp
+        val referencesMaxHeight = 300.dp
     }
 
     object DataSystemBar {

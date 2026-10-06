@@ -141,6 +141,22 @@ private data class AccentChip(val ink: InkRole) : ItemAppearance {
     }
 }
 
+fun tintChip(ink: InkRole): ItemAppearance = TintChip(ink)
+
+private data class TintChip(val ink: InkRole) : ItemAppearance {
+    @Composable
+    override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) {
+        val signal = theme.machineSignal
+        val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
+        Box(
+            Modifier.clip(shape).background(signal.ink(ink).copy(alpha = if (properties.selected) .3f else .12f))
+                .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, signal.colors.accent.copy(alpha = feedback.focus), shape) else Modifier)
+                .padding(horizontal = MachineSignal.Space.s1_5, vertical = MachineSignal.Space.s0_5),
+            propagateMinConstraints = true,
+        ) { slots.content() }
+    }
+}
+
 fun toolButton(active: Boolean): ButtonAppearance = if (active) ActiveToolButton else IdleToolButton
 
 private val IdleToolButton: ButtonAppearance = ToolButtonLook(active = false)
