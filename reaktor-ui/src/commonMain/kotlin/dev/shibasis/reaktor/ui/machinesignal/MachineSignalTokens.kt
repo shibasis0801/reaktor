@@ -610,6 +610,10 @@ object MachineSignal {
         val sourceDockHeight = 150.dp
     }
 
+    object InspectorList {
+        val heightCap = 4000.dp
+    }
+
     object Inventory {
         val rowHeight = 38.dp
     }

@@ -118,7 +118,7 @@ data class ProvenanceInk(val truth: TruthClass) : InkRole
 
 enum class BoardInk : InkRole { Text1, Text2, Text3, Text4, AccentText }
 
-enum class SignalInk : InkRole { Soft, Dim, ScreenReadout, ScreenAction, ScreenNote }
+enum class SignalInk : InkRole { Soft, Dim, ScreenReadout, ScreenAction, ScreenNote, Code }
 
 @Immutable
 data class MachineSignalEntities(
@@ -283,6 +283,7 @@ data class MachineSignalSnapshot(
         SignalInk.ScreenReadout -> colors.onAccent.copy(alpha = .9f)
         SignalInk.ScreenAction -> colors.onAccent.copy(alpha = .8f)
         SignalInk.ScreenNote -> colors.onAccent.copy(alpha = .78f)
+        SignalInk.Code -> MachineSignal.Editor.Code.Text
         else -> throw ThemeMismatch("$ink ink", id)
     }
 

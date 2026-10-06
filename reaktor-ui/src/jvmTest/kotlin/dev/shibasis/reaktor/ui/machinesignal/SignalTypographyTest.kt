@@ -84,7 +84,7 @@ class SignalTypographyTest {
         BoardInk.Text4 to MachineSignal.Text4, BoardInk.AccentText to MachineSignal.AccentText,
         SignalInk.Soft to MachineSignal.Editor.Text.copy(alpha = .9f), SignalInk.Dim to MachineSignal.Editor.Muted.copy(alpha = .6f),
         SignalInk.ScreenReadout to Color.White.copy(alpha = .9f), SignalInk.ScreenAction to Color.White.copy(alpha = .8f),
-        SignalInk.ScreenNote to Color.White.copy(alpha = .78f),
+        SignalInk.ScreenNote to Color.White.copy(alpha = .78f), SignalInk.Code to MachineSignal.Editor.Code.Text,
     )
 
     @Test
