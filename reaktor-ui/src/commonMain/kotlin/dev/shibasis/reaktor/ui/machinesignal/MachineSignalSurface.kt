@@ -16,6 +16,7 @@ import dev.shibasis.reaktor.surface.ThemeMismatch
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.TypeScale
 import dev.shibasis.reaktor.surface.compose.BareTheme
+import dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot
 import dev.shibasis.reaktor.surface.compose.SurfaceTheme
 import dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalAppearances
 
@@ -304,6 +305,9 @@ data class MachineSignalSnapshot(
         }
     }
 }
+
+val InkRole.color: Color
+    @Composable get() = LocalThemeSnapshot.current.machineSignal.ink(this)
 
 val ThemeSnapshot.machineSignal: MachineSignalSnapshot
     get() = when (this) {
