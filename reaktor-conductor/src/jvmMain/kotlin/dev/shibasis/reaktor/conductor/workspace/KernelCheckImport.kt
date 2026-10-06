@@ -1,14 +1,13 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
-import dev.shibasis.reaktor.conductor.cli.AgentBundle
 import dev.shibasis.reaktor.conductor.cli.WorkspaceGraphBridge
 import kotlinx.serialization.json.*
 import java.io.File
 
 internal suspend fun AgentWorkspace.collectKernelCheck(taskId: String, runId: String): AgentTaskEvidence {
     taskEvidence(taskId)
-    return WorkspaceGraphBridge(File(info().workspaceRoot), AgentBundle.DEFAULT_GRAPH_URL).use { bridge ->
+    return WorkspaceGraphBridge(File(info().workspaceRoot)).use { bridge ->
         suspend fun read(name: String, offset: Long? = null): JsonElement {
             val response = bridge.exchange(buildJsonObject {
                 put("jsonrpc", "2.0"); put("id", "check-import"); put("method", "tools/call")
