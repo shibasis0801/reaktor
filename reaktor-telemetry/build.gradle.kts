@@ -17,7 +17,6 @@ kotlin {
             api(project(":reaktor-core"))
             commonNetworking()
             api(project(":reaktor-graph"))
-            api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion")
             api("io.opentelemetry.kotlin:api:$otelKotlinVersion")
             api("io.opentelemetry.kotlin:noop:$otelKotlinVersion")
             implementation("io.opentelemetry.kotlin:implementation:$otelKotlinVersion")
@@ -46,6 +45,15 @@ kotlin {
     }
     web {}
     server {}
+    applyDefaultHierarchyTemplate()
+    sourceSets {
+        val mobileMain by creating {
+            dependsOn(commonMain.get())
+            dependencies { api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion") }
+        }
+        androidMain.get().dependsOn(mobileMain)
+        iosMain.get().dependsOn(mobileMain)
+    }
 
     sourceSets.commonTest.dependencies {
         implementation(kotlin("test"))
