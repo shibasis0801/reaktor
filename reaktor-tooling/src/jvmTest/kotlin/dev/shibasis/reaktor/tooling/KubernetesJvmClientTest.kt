@@ -18,6 +18,18 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.*
 
 class KubernetesJvmClientTest {
+    @Test fun missingConfigurationNamesOnlyItsPath() {
+        val root = Files.createTempDirectory("missing-kube-").toFile()
+        val config = root.resolve("absent-config")
+        try {
+            InfrastructureSession().use { session ->
+                val failure = assertFailsWith<dev.shibasis.reaktor.tooling.infra.MissingKubeconfig> { KubernetesJvmClient(config, session) }
+                assertEquals(config.path, failure.path)
+                assertContains(requireNotNull(failure.message), config.path)
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun eventsRetainKindAndUidAndLogsRejectAReplacedPod() = fixture { server, client, _ ->
         server.enqueue(json("""{"kind":"EventList","items":[]}"""))
         client.inspect("test", "Events", "api", "Deployment", "uid-1")

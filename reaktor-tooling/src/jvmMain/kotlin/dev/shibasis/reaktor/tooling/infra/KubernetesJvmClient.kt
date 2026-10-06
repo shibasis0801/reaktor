@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class KubernetesJvmClient(kubeconfig: File, private val session: InfrastructureSession) {
     private val client = run {
-        require(kubeconfig.isFile && kubeconfig.length() in 1..1_048_576) { "Kubernetes configuration is unavailable" }
+        if (!kubeconfig.isFile || !kubeconfig.canRead()) throw MissingKubeconfig(kubeconfig.path)
+        require(kubeconfig.length() in 1..1_048_576) { "Kubernetes configuration is unavailable" }
         val content = kubeconfig.readText()
         val yaml = Yaml(SafeConstructor(LoaderOptions())).load<Map<String, Any?>>(content)
         val users = yaml["users"] as? List<*> ?: emptyList<Any>()
