@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.HybridCheck
 import java.io.File
 import java.nio.file.Files
@@ -27,7 +29,7 @@ class HybridChecksTest {
         assertEquals(listOf(0, 3), runs.map { it.exitCode })
         assertTrue(runs[0].output.contains("ALL GOOD"), runs[0].output)
         assertTrue(runs[1].output.contains("BROKEN"), runs[1].output)
-        workspace.deleteRecursively()
+        workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun acommandTheOperatorDidNotPermitIsRefusedRatherThanRun() {
@@ -41,7 +43,7 @@ class HybridChecksTest {
         assertNull(runs.single().exitCode, "a refusal never produced an exit code and must not look like one")
         assertTrue(runs.single().output.startsWith("Refused"), runs.single().output)
         assertFalse(witness.exists(), "the refused command must not have executed")
-        workspace.deleteRecursively()
+        workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun anEmptyAllowListPermitsNothing() {
@@ -49,7 +51,7 @@ class HybridChecksTest {
         val runs = HybridChecks.run(workspace, listOf(HybridCheck("any", "echo hi")), allowed = emptyList())
         assertFalse(runs.single().ok)
         assertTrue(runs.single().output.contains("no check commands"), runs.single().output)
-        workspace.deleteRecursively()
+        workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun aprefixRuleCoversItsArgumentsButNotAnotherBinary() {
@@ -59,7 +61,7 @@ class HybridChecksTest {
         assertTrue(HybridChecks.run(workspace, listOf(HybridCheck("build", "./gradlew :engine:compile")), allowed).single().ok)
         assertTrue(HybridChecks.run(workspace, listOf(HybridCheck("other", "./gradlewx")), allowed).single()
             .output.startsWith("Refused"), "a longer binary name is not the permitted one")
-        workspace.deleteRecursively()
+        workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun quotingCannotSmuggleASecondCommand() {

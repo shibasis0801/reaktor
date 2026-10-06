@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.gateway
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.sun.net.httpserver.HttpServer
 import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.AgentId
@@ -43,7 +45,7 @@ class GatewayRuntimeTest {
 
     @AfterTest fun stop() {
         server.stop(0)
-        root.deleteRecursively()
+        root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     private fun runtime(gateway: String?) = GatewayRuntime(

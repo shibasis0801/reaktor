@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.database
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.nio.file.Files
 import kotlin.test.*
 import kotlinx.serialization.json.*
@@ -26,6 +28,6 @@ class QueryResultExportTest {
             if (Files.getFileStore(root).supportsFileAttributeView("posix")) assertEquals("rw-------",
                 java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(file)))
             assertTrue(Files.list(root).use { stream -> stream.noneMatch { it.fileName.toString().endsWith(".partial") } })
-        } finally { root.toFile().deleteRecursively() }
+        } finally { root.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

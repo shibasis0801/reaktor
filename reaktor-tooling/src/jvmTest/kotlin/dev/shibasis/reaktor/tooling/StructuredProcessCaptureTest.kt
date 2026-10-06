@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.toList
@@ -17,7 +19,7 @@ class StructuredProcessCaptureTest {
             val handle = executor.start(plan)
             val events = handle.events.toList()
             handle.await() to events.filterIsInstance<RunEvent.Output>()
-        } finally { executor.close(); directory.deleteRecursively() }
+        } finally { executor.close(); directory.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun capturePreservesMoreThanOneThousandLinesAndLongSingleLineDocuments() {

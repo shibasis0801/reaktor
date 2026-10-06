@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.settings
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.dependeasy.utils.gitDependency
 import dev.shibasis.dependeasy.utils.includeWithPath
 import org.gradle.api.GradleException
@@ -57,7 +59,7 @@ internal class NativeBootstrap(
         require(jsiHeader.exists()) { "${jsiHeader.absolutePath} does not exist." }
 
         if (shouldRebuildHermes(buildDirectory, hermesCompiler)) {
-            buildDirectory.deleteRecursively()
+            buildDirectory.deleteTreeSafely(within = githubDir)
             buildDirectory.mkdirs()
             if (isWindows()) {
                 runCommand(

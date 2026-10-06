@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.blueprint.graph
 
+import dev.shibasis.reaktor.blueprint.DefaultFrameLayouter
+import dev.shibasis.reaktor.blueprint.FrameLayouter
 import dev.shibasis.reaktor.blueprint.BlueprintEdge
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.BlueprintGroup
@@ -22,7 +24,7 @@ data class LayoutRequest(
 typealias GraphLayout = BlueprintLayout<LayoutRequest>
 
 object AppGraphLayout {
-    fun layout(graph: AppGraph, request: LayoutRequest): GraphLayout {
+    fun layout(graph: AppGraph, request: LayoutRequest, layouter: FrameLayouter = DefaultFrameLayouter): GraphLayout {
         val groups = AppGraphFeatures.of(graph).map { feature ->
             val members = feature.members.filter { it.id !in request.hidden }.sortedWith(compareBy({ it.label }, { it.type }, { it.id }))
             BlueprintGroup(
@@ -38,7 +40,7 @@ object AppGraphLayout {
             .map { BlueprintEdge(it.id, it.provider, it.consumer, it.providerPort, it.consumerPort) }
         val hops = graph.hops.sortedWith(compareBy({ graph[it.from]?.label }, { graph[it.to]?.label }))
             .map { BlueprintEdge(it.id, it.from, it.to, kind = LinkKind.Route) }
-        return BlueprintEngine.layout(request, groups, wires + hops, request.aspect)
+        return BlueprintEngine.layout(request, groups, wires + hops, request.aspect, layouter)
     }
 
     private fun node(graph: AppGraph, node: NodeShape, detail: Detail): BlueprintNode {

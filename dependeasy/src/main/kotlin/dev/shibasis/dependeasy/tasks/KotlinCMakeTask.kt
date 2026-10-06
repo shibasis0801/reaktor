@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -49,7 +51,7 @@ abstract class KotlinCMakeTask : DefaultTask() {
         val configured = buildDir.resolve("configure-arguments.txt")
         if (!configured.isFile || configured.readLines() != configuration) {
             buildDir.resolve("CMakeCache.txt").delete()
-            buildDir.resolve("CMakeFiles").deleteRecursively()
+            buildDir.resolve("CMakeFiles").deleteTreeSafely(within = buildDir)
         }
         buildDir.mkdirs()
 

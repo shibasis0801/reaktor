@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.UsageError
@@ -61,7 +63,7 @@ class Uninstall : CliktCommand() {
     private val env by requireObject<ReaktorEnv>()
     override fun run() {
         val home = System.getProperty("user.home")
-        File(home, ".reaktor").takeIf { it.exists() }?.deleteRecursively()
+        File(home, ".reaktor").deleteTreeSafely(within = File(home))
         val rc = File(home, ".zshrc")
         if (rc.exists()) {
             val kept = rc.readLines().filterNot { it.contains("# reaktor-cli") }

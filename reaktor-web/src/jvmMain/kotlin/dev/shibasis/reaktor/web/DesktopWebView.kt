@@ -200,6 +200,7 @@ private class DesktopController(
                 }
                 handle = NativeWebView.create(canvas, options.debug, jawt, profile, NativeWebView.directory, callbacks)
                 check(handle != 0L) { "Native WebView creation failed" }
+                NativeWebView.handles += handle
                 if (closed) release() else EventQueue.invokeLater(onAttached)
             } catch (error: Throwable) { fail(error) }
         }
@@ -263,7 +264,7 @@ private class DesktopController(
         EventQueue.invokeLater { onFailure(error) }
     }
     private fun release() {
-        if (handle != 0L) { NativeWebView.destroy(handle); handle = 0L }
+        if (handle != 0L) { NativeWebView.destroy(handle); NativeWebView.handles -= handle; handle = 0L }
     }
     override fun close() {
         closed = true
@@ -327,7 +328,13 @@ internal object NativeWebView {
         System.load(library.absolutePath)
         check(abiVersion() == 2) { "Unsupported Reaktor WebView native ABI" }
         loaded = true
+        Runtime.getRuntime().addShutdownHook(Thread({
+            runCatching {
+                commands.submit { handles.toList().forEach { destroy(it) } }.get(10, java.util.concurrent.TimeUnit.SECONDS)
+            }
+        }, "reaktor-webview-shutdown"))
     }
+    val handles = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
     external fun abiVersion(): Int
     external fun features(): Int
     external fun create(canvas: Canvas, debug: Boolean, jawtPath: String, profile: String, nativeDirectory: String, callbacks: NativeWebCallbacks): Long

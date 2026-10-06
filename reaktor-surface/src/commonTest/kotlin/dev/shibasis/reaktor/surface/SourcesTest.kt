@@ -6,6 +6,31 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SourcesTest {
+    @Test
+    fun repeatedKeysAreUniqueCollisionSafeAndReportedOnce() {
+        val reports = mutableListOf<Set<String>>()
+        val source = listSource(listOf("port", "port", "port#2", "port", ""), { it },
+            diagnostics = SurfaceDiagnostics { reports += it })
+        assertEquals(listOf("port", "port#3", "port#2", "port#4", ""), (0 until source.size).map(source::key))
+        assertEquals(0, source.indexOf("port"))
+        assertEquals("port", source.originalKey(1))
+        repeat(5) { source.key(1); source.indexOf("port") }
+        assertEquals(listOf(setOf("port")), reports)
+    }
+
+    @Test
+    fun repeatedTreeKeysKeepTheirDepthParentsAndExpansion() {
+        val reports = mutableListOf<Set<String>>()
+        val roots = listOf(Node("a", listOf(Node("child"))), Node("a", listOf(Node("child"))))
+        val source = treeSource(roots, { it.key }, { it.children }, setOf("a"),
+            diagnostics = SurfaceDiagnostics { reports += it })
+        assertEquals(listOf("a", "child", "a#2", "child#2"), (0 until source.size).map(source::key))
+        assertEquals(listOf(-1, 0, -1, 2), (0 until source.size).map(source::parent))
+        assertEquals(listOf(true, false, true, false), (0 until source.size).map(source::expanded))
+        assertEquals(0, source.indexOf("a"))
+        assertEquals(listOf(setOf("a", "child")), reports)
+    }
+
     private class Node(val key: String, val children: List<Node> = emptyList())
 
     private val tree = listOf(
@@ -21,12 +46,12 @@ class SourcesTest {
         assertEquals(1000, source.size)
         assertEquals(42, source[42])
         assertEquals("item-7", source.key(7))
-        assertEquals(1, keyed)
+        assertEquals(1000, keyed)
         assertEquals(500, source.indexOf("item-500"))
-        assertEquals(1001, keyed)
+        assertEquals(1000, keyed)
         assertEquals(3, source.indexOf("item-3"))
         assertEquals(-1, source.indexOf("missing"))
-        assertEquals(1001, keyed)
+        assertEquals(1000, keyed)
         assertTrue(source.enabled(0))
         assertNull(source.text(0))
     }

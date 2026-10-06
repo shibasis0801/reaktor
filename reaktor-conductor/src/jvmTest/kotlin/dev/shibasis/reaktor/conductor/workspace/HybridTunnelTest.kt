@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.*
@@ -61,7 +63,7 @@ class HybridTunnelTest {
                 }
             }
         }
-        root.deleteRecursively(); directory.toFile().deleteRecursively()
+        root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     private fun retry(attempts: Int = 10, block: () -> HttpResponse<String>): HttpResponse<String> {

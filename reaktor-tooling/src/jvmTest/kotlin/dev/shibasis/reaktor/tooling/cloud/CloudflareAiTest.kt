@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
@@ -92,7 +94,7 @@ class CloudflareAiTest {
             File(root, "node_modules/x/wrangler.json").apply { parentFile.mkdirs() }.writeText("""{"account_id": "${"c".repeat(32)}"}""")
             if (System.getenv("CLOUDFLARE_ACCOUNT_ID").isNullOrBlank()) assertEquals("a".repeat(32), CloudflareAccounts.of(root))
         } finally {
-            root.deleteRecursively()
+            root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }
     }
 }

@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.core.capabilities
 
+import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -32,11 +35,13 @@ class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
     override val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default
 ): ConcurrencyCapability {
-    val supervisorJob = SupervisorJob()
+    val supervisorJob = SupervisorJob(context?.get(Job))
 
-    //todo add CEH -> CoroutineExceptionHandler later
     override val coroutineScope: CoroutineScope = CoroutineScope(
         (context ?: EmptyCoroutineContext) +
+                (context?.get(CoroutineExceptionHandler) ?: CoroutineExceptionHandler { _, error ->
+                    Logger.e(error) { "Unhandled Reaktor node coroutine failure" }
+                }) +
                 coroutineDispatcher +
                 supervisorJob
     )

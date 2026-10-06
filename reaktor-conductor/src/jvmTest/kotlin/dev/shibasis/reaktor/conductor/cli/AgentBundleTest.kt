@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import kotlinx.serialization.json.*
 import java.nio.file.Files
 import kotlin.test.*
@@ -53,7 +55,7 @@ class AgentBundleTest {
             AgentBundle.uninstall(targets)
             assertEquals(original, codex.readText(), "Uninstall has to give the file back byte for byte")
             assertFalse(AgentBundle.status(targets).codex)
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aClaudeProjectFileKeepsItsOtherServersAndLosesOnlyOurs() {
@@ -73,7 +75,7 @@ class AgentBundleTest {
             AgentBundle.uninstall(targets)
             val after = Json.parseToJsonElement(mcp.readText()).jsonObject.getValue("mcpServers").jsonObject
             assertEquals(setOf("pencil"), after.keys, "Someone else's server is not ours to remove")
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aFileThisBundleCreatedIsRemovedRatherThanLeftEmpty() {
@@ -85,7 +87,7 @@ class AgentBundleTest {
             assertTrue(java.io.File(root, ".mcp.json").isFile)
             AgentBundle.uninstall(targets)
             assertFalse(java.io.File(root, ".mcp.json").exists(), "An empty file we created is litter")
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun installingTwiceDoesNotDuplicateTheEntry() {
@@ -101,7 +103,7 @@ class AgentBundleTest {
             // Two servers across two harnesses: every one of them reports itself already there
             // rather than appending a second copy.
             assertEquals(second.size, second.count { it.contains("already installed") })
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun installationCreatesOnlyProjectConfiguration() {
@@ -113,7 +115,7 @@ class AgentBundleTest {
             AgentBundle.install(targets, command)
             assertTrue(targets.codexConfig.exists())
             assertFalse(java.io.File(home, ".codex/config.toml").exists())
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun twoProjectsRemainBoundAndUnownedEntriesSurvive() {
         val home = Files.createTempDirectory("bundle-home").toFile()
@@ -138,7 +140,7 @@ class AgentBundleTest {
             assertEquals(original, tb.codexConfig.readText())
             assertEquals("operator-owned", Json.parseToJsonElement(tb.claudeProjectConfig.readText()).jsonObject
                 .getValue("mcpServers").jsonObject.getValue("reaktor").jsonObject.getValue("command").jsonPrimitive.content)
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun malformedClaudeConfigDoesNotGetReplacedOrPartiallyInstallCodex() {
@@ -149,7 +151,7 @@ class AgentBundleTest {
             assertFails { AgentBundle.install(targets, command) }
             assertEquals("{invalid", targets.claudeProjectConfig.readText())
             assertFalse(targets.codexConfig.exists())
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun modifiedOwnedEntrySurvivesUninstall() {
@@ -161,7 +163,7 @@ class AgentBundleTest {
             AgentBundle.uninstall(targets)
             assertTrue(targets.codexConfig.readText().contains("USER_SETTING"))
             assertTrue(targets.codexConfig.readText().contains("[mcp_servers.reaktor]"))
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun antigravityIsRegisteredWhereAgyReadsItAndFollowsTheWorkspaceItIsStartedIn() {
@@ -196,7 +198,7 @@ class AgentBundleTest {
             assertEquals(setOf("pencil"), after.keys, "Someone else's server is not ours to remove")
             assertEquals("{}", after.getValue("pencil").jsonObject.getValue("env").toString(), "Their entry is returned as it was")
             assertFalse(AgentBundle.status(targets).antigravity)
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aSharedAntigravityFileWeDidNotCreateSurvivesUninstall() {
@@ -214,7 +216,7 @@ class AgentBundleTest {
             AgentBundle.install(targets, command)
             AgentBundle.uninstall(targets)
             assertTrue(targets.antigravityConfig.isFile, "A user-owned file is emptied of our entries, never deleted")
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun anEarlierTwoServerInstallIsRetiredToOneAndAGraphEntrySomeoneEditedIsLeftAlone() {
@@ -239,7 +241,7 @@ class AgentBundleTest {
                 .getValue("reaktor-graph").jsonObject.getValue("command").jsonPrimitive.content, "an entry its owner changed is not ours to remove")
             assertTrue(messages.any { it.startsWith("antigravity/reaktor-graph: modified") }, messages.toString())
             assertFalse(Json.parseToJsonElement(targets.manifest.readText()).jsonObject.getValue("entries").jsonObject.keys.any { it.endsWith("reaktor-graph") })
-        } finally { home.deleteRecursively(); root.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aLongClasspathMovesIntoAnArgumentFileAndAShortCommandIsLeftAsItIs() {
@@ -252,6 +254,6 @@ class AgentBundleTest {
             assertEquals("-cp\n\"$classpath\"\ndev.Main\n", argfile.readText(), "quoted, because an app bundle's path has spaces")
             val short = listOf("reaktor", "workspace", "mcp", "--dir", "/tmp/ws")
             assertEquals(short, AgentBundle.compact(short, argfile))
-        } finally { directory.deleteRecursively() }
+        } finally { directory.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import java.nio.file.Files
 import kotlin.test.*
@@ -21,7 +23,7 @@ class AgentActivityStoreTest {
             assertEquals("ok", reopened.page(id, 2).records.single().item.output)
             assertTrue(reopened.unresolved(id, 1).isEmpty())
             assertFailsWith<IllegalArgumentException> { reopened.page("../outside") }
-        } finally { data.toFile().deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun outputAndPagesRemainBounded() {
@@ -34,6 +36,6 @@ class AgentActivityStoreTest {
             assertTrue(page.hasMore)
             assertTrue(page.records.all { it.item.detailTruncated })
             assertTrue(ConductorJson.encodeToString(AgentActivityPage.serializer(), page).toByteArray().size < 600000)
-        } finally { data.toFile().deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

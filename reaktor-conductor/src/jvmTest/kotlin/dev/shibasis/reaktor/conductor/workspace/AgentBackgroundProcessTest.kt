@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -44,7 +46,7 @@ class AgentBackgroundProcessTest {
         } finally {
             runCatching { AgentBackgroundService.stop(root) }
             Files.deleteIfExists(java.nio.file.Path.of(System.getProperty("user.home"), "Library", "LaunchAgents", "${AgentBackgroundService.label(root)}.plist"))
-            root.deleteRecursively(); data.toFile().deleteRecursively()
+            root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }
     }
 }

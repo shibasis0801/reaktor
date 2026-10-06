@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.workspace.*
 import kotlinx.coroutines.*
@@ -38,6 +40,6 @@ class NativeActivityLiveTest {
                 assertTrue(started.isNotEmpty(), "No native tool start reached the journal")
                 assertTrue(tools.any { it.item.status == ActivityStatus.Completed && it.item.id in started }, "No matching native tool completion reached the journal")
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.*
@@ -47,7 +49,7 @@ class AntigravityGrantsTest {
         val complete = fakeAgy(listOf("command(git status)", "command(git diff)", "command(git log)",
             "command(git add)", "command(./gradlew)"))
         assertNull(AntigravityGrants.advisory(workspace, writes = true, binary = complete.absolutePath))
-        workspace.deleteRecursively()
+        workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun anAllowListThatNeverFinishesRespectsItsDeadline() {

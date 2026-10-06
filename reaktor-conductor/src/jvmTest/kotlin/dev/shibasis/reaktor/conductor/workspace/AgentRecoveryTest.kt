@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -67,7 +69,7 @@ class AgentRecoveryTest {
                 assertEquals(2, reopened.get(run.id).attempt)
                 assertEquals(2, calls)
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun crashAfterStageCheckpointRecoversWithoutCallingTheHarnessAgain() = runBlocking {
@@ -89,7 +91,7 @@ class AgentRecoveryTest {
                 assertEquals(1, owner.transcript(completed.threadId).events.count { it.kind == EventKind.Prompt })
                 assertEquals(AgentRunStatus.Completed, owner.cancel(completed.id).status, "A late stop must not overwrite a terminal receipt")
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun stoppingATaskPreventsRestartRecovery() = runBlocking {
@@ -112,7 +114,7 @@ class AgentRecoveryTest {
                 assertEquals(AgentRunStatus.Interrupted, owner.get(runId).status)
                 assertEquals(AgentRecovery.None, owner.get(runId).recovery)
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun closingAfterAProviderResultKeepsTheTerminalReceipt() = runBlocking {
@@ -141,7 +143,7 @@ class AgentRecoveryTest {
                     assertEquals("saved answer", reopened.get(run.id).output)
                     assertEquals(1, reopened.transcript(run.threadId).events.count { it.kind == EventKind.Proposal })
                 }
-            } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+            } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         }
     }
 }

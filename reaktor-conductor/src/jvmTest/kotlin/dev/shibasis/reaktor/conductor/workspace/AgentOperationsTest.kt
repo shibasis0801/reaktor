@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import java.io.File
 import java.nio.file.Files
@@ -19,7 +21,7 @@ class AgentOperationsTest {
             assertEquals(original.drop(4), reopened.page(id, after = 4, limit = 4).records)
             reopened.archive(id)
             assertEquals(9, AgentActivityStore(data).page(id, limit = 100).records.size)
-        } finally { data.toFile().deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun supervisorConfigurationsAndRemoteArgvPreserveLiteralArguments() {
         val data = Files.createTempDirectory("supervisor-config")
@@ -34,7 +36,7 @@ class AgentOperationsTest {
             assertEquals("dev-host", remote.command()[remote.command().lastIndex - 1])
             assertTrue(remote.command().last().contains("'\"'\"'"))
             assertFailsWith<IllegalArgumentException> { AgentRemoteWorkspace(AgentRemoteProfile("-oProxyCommand=bad", "/work", "/tool")) }
-        } finally { data.toFile().deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun localContextCannotReadAnExportFromAnotherScope() {
         val data = Files.createTempDirectory("context-scope")
@@ -45,6 +47,6 @@ class AgentOperationsTest {
                 AgentLocalContextConfig(data.toString(), "tenant", "workspace", "operator", "/bin/echo", export.toString(), data.toString())))
             val local = AgentLocalContext(data.toFile(), data)
             assertFailsWith<IllegalArgumentException> { local.search("query", false) }
-        } finally { data.toFile().deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

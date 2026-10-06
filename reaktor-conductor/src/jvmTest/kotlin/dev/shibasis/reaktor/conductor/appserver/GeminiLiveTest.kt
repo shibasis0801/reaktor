@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.AntigravityRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
@@ -24,7 +26,7 @@ class GeminiLiveTest {
             assertTrue(outcome.text.contains(File(root, "marker.txt").readText()))
             assertTrue(events.filterIsInstance<AgentEvent.Activity>().any { it.item.kind == ActivityKind.Tool && it.item.status == ActivityStatus.Completed })
             println("Gemini via Antigravity qualified: session=${outcome.session?.sessionId}; usage=${outcome.usage}; completed tool events=${events.filterIsInstance<AgentEvent.Activity>().size}")
-        } finally { scope.cancel(); root.deleteRecursively() }
+        } finally { scope.cancel(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 
@@ -58,7 +60,7 @@ class GeminiLiveTest {
                 assertFalse(inspected.ok, "A refused effect is reported as incomplete, not as success")
                 println("Antigravity modes qualified: edit wrote the file; inspect was refused with ${inspected.failure?.take(200)}")
             }
-        } finally { scope.cancel(); root.deleteRecursively() }
+        } finally { scope.cancel(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 }

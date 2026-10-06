@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.git
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
@@ -16,7 +18,7 @@ class WorkspaceRevisionTest {
             val module = File(root, "modules/app").apply { mkdirs() }
             assertEquals(WorkspaceRevision("topic", "0123456"), readWorkspaceRevision(module))
             assertEquals(listOf("git@github.com:example/project.git"), readWorkspaceRemotes(module))
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun linkedWorktreesReadTheirBranchFromSharedLooseRefs() {
@@ -25,7 +27,7 @@ class WorkspaceRevisionTest {
             val (worktree, _) = linked(root)
             assertEquals(WorkspaceRevision("topic", "0123456"), readWorkspaceRevision(worktree))
             assertEquals(listOf("git@github.com:example/project.git"), readWorkspaceRemotes(worktree))
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun linkedWorktreesReadSharedPackedRefsAndDetachedHeads() {
@@ -37,7 +39,7 @@ class WorkspaceRevisionTest {
             assertEquals(WorkspaceRevision("topic", "0123456"), readWorkspaceRevision(worktree))
             File(common, "worktrees/linked/HEAD").writeText("$sha\n")
             assertEquals(WorkspaceRevision("detached", "0123456"), readWorkspaceRevision(worktree))
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     private fun linked(root: File): Pair<File, File> {

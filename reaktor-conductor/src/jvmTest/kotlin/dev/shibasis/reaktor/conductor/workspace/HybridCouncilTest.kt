@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -50,7 +52,7 @@ class HybridCouncilTest {
             assertEquals(AgentRunStatus.Completed, workspace.get(run.id).status)
             assertEquals(1, calls[RuntimeKind.Codex]); assertNull(calls[RuntimeKind.ClaudeCode]); assertEquals(1, calls[RuntimeKind.Gemini])
             assertEquals(prior.threadId, workspace.get(run.id).threadId)
-        } finally { workspace.close(); root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { workspace.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
     @Test fun aLargeBinaryIsCoveredByLengthWithoutSpendingTheSnapshotsBudget() = runBlocking {
@@ -83,7 +85,7 @@ class HybridCouncilTest {
             assertEquals(AgentRunStatus.Failed, workspace.get(run.id).status)
             assertTrue(workspace.get(run.id).failure.orEmpty().contains("Source changed"), workspace.get(run.id).failure)
         }
-        root.deleteRecursively(); directory.toFile().deleteRecursively()
+        root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -140,7 +142,7 @@ class HybridCouncilTest {
             assertEquals(3, events.single { it.kind == EventKind.Synthesis }.parents.size)
             assertTrue(events.filter { it.author == Author.Agent(AgentId("chatgptgemini")) }.all { it.attributes["chatgptUsage"] == "unknown" })
             assertEquals(77L, workspace.get(run.id).turnUsage?.input?.reported)
-        } finally { workspace.close(); root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { workspace.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 
@@ -165,7 +167,7 @@ class HybridCouncilTest {
             assertEquals(AgentRunStatus.Failed, workspace.get(run.id).status)
             assertTrue(workspace.get(run.id).failure.orEmpty().contains("Compiler failed"), workspace.get(run.id).failure)
         }
-        root.deleteRecursively(); directory.toFile().deleteRecursively()
+        root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 }

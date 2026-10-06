@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.github.ajalt.mordant.input.KeyboardEvent
 import kotlin.io.path.createTempDirectory
 
@@ -45,7 +47,7 @@ private fun deployPickerListsDeployTargetsAndScriptAliases() {
         val config = options.first { it.label == "config" }
         expect(config.detail.contains("npm run deployConfig"), "config option should show its backing deploy script")
     } finally {
-        root.deleteRecursively()
+        root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 }
 

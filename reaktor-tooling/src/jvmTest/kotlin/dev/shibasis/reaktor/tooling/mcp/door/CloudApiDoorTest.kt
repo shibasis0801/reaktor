@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.mcp.door
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.sun.net.httpserver.HttpServer
 import dev.shibasis.reaktor.mcp.ReaktorMcpServer
 import dev.shibasis.reaktor.tooling.CallCaller
@@ -73,7 +75,7 @@ class CloudApiDoorTest {
     @AfterTest fun stop() {
         server.stop(0)
         scope.cancel()
-        directory.toFile().deleteRecursively()
+        directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun anAgentFindsAnyOperationReadsFreelyAndWaitsForAPersonToChangeAnything() {

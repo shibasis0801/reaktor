@@ -2,9 +2,18 @@ package dev.shibasis.reaktor.surface
 
 interface ItemSource<out T> : CollectionItems {
     operator fun get(index: Int): T
+    fun originalKey(index: Int): String = key(index)
 }
 
 interface TreeSource<out T> : ItemSource<T>, TreeItems
+
+fun interface SurfaceDiagnostics {
+    fun duplicateKeys(keys: Set<String>)
+
+    companion object {
+        val None = SurfaceDiagnostics {}
+    }
+}
 
 fun <T> listSource(
     items: List<T>,
@@ -13,7 +22,8 @@ fun <T> listSource(
     enabled: (T) -> Boolean = { true },
     selectable: (T) -> Boolean = { true },
     checked: (T) -> Boolean? = { null },
-): ItemSource<T> = ListSource(items, key, text, enabled, selectable, checked)
+    diagnostics: SurfaceDiagnostics = SurfaceDiagnostics.None,
+): ItemSource<T> = ListSource(items, key, text, enabled, selectable, checked, diagnostics)
 
 fun <T> treeSource(
     roots: List<T>,
@@ -23,6 +33,7 @@ fun <T> treeSource(
     text: (T) -> String? = { null },
     enabled: (T) -> Boolean = { true },
     selectable: (T) -> Boolean = { true },
+    diagnostics: SurfaceDiagnostics = SurfaceDiagnostics.None,
 ): TreeSource<T> {
     val items = mutableListOf<T>()
     val depths = mutableListOf<Int>()
@@ -35,7 +46,7 @@ fun <T> treeSource(
         if (key(item) in expanded) children(item).forEach { visit(it, depth + 1, index) }
     }
     roots.forEach { visit(it, 0, -1) }
-    return TreeRows(listSource(items, key, text, enabled, selectable), depths, parents, children, expanded)
+    return TreeRows(listSource(items, key, text, enabled, selectable, diagnostics = diagnostics), depths, parents, children, expanded)
 }
 
 private class ListSource<T>(
@@ -45,12 +56,33 @@ private class ListSource<T>(
     private val enabledOf: (T) -> Boolean,
     private val selectableOf: (T) -> Boolean,
     private val checkedOf: (T) -> Boolean?,
+    private val diagnostics: SurfaceDiagnostics,
 ) : ItemSource<T> {
-    private val positions by lazy { items.indices.associateBy { keyOf(items[it]) } }
+    private val originals by lazy { items.map(keyOf) }
+    private val keys by lazy {
+        val occupied = originals.toMutableSet()
+        val occurrences = mutableMapOf<String, Int>()
+        val repeated = mutableSetOf<String>()
+        val unique = originals.map { key ->
+            val occurrence = occurrences.getOrElse(key) { 0 } + 1
+            occurrences[key] = occurrence
+            if (occurrence == 1) key else {
+                repeated += key
+                var suffix = occurrence
+                var candidate = "$key#$suffix"
+                while (!occupied.add(candidate)) candidate = "$key#${++suffix}"
+                candidate
+            }
+        }
+        if (repeated.isNotEmpty()) diagnostics.duplicateKeys(repeated)
+        unique
+    }
+    private val positions by lazy { keys.withIndex().associate { it.value to it.index } }
 
     override val size: Int get() = items.size
     override fun get(index: Int): T = items[index]
-    override fun key(index: Int): String = keyOf(items[index])
+    override fun key(index: Int): String = keys[index]
+    override fun originalKey(index: Int): String = originals[index]
     override fun indexOf(key: String): Int = positions[key] ?: -1
     override fun enabled(index: Int): Boolean = enabledOf(items[index])
     override fun text(index: Int): String? = textOf(items[index])
@@ -68,5 +100,5 @@ private class TreeRows<T>(
     override fun depth(index: Int): Int = depths[index]
     override fun parent(index: Int): Int = parents[index]
     override fun expandable(index: Int): Boolean = children(get(index)).isNotEmpty()
-    override fun expanded(index: Int): Boolean = key(index) in open
+    override fun expanded(index: Int): Boolean = originalKey(index) in open
 }

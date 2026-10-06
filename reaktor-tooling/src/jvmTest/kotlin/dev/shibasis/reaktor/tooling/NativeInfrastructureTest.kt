@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.sun.net.httpserver.HttpServer
 import dev.shibasis.reaktor.tooling.infra.*
 import kotlinx.coroutines.*
@@ -46,7 +48,7 @@ class NativeInfrastructureTest {
             val preview=NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.NonProductionWrite),emptyMap(),1000)
             assertFails { preview.verify() }
             assertFails { NativeExecutionRequest.create(operation.copy(inputFile=null),root,TaskId("write"),SafetyPolicy(SafetyClass.NonProductionWrite),emptyMap(),1000) }
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun closingSessionCancelsAnInFlightHttpRequest() = runBlocking {
@@ -92,7 +94,7 @@ class NativeInfrastructureTest {
             first.verify()
             config.writeText("changed")
             assertFailsWith<IllegalStateException> { first.verify() }
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun kubernetesEventsUseTheApiAndRejectExecutableCredentialPlugins() {
@@ -133,7 +135,7 @@ class NativeInfrastructureTest {
             }
             config.appendText("\n    exec:\n      command: forbidden-external-program\n")
             InfrastructureSession().use { session -> assertFailsWith<IllegalArgumentException> { KubernetesJvmClient(config, session) } }
-        } finally { root.deleteRecursively(); server.stop(0) }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); server.stop(0) }
     }
 
     @Test fun sessionClosureReleasesCurrentAndLateResources() {

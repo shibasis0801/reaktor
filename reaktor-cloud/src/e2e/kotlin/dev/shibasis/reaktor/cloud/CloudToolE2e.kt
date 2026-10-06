@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import dev.shibasis.reaktor.tooling.ToolingWorkspace
@@ -46,7 +48,7 @@ fun main() = runBlocking {
 
         println("cloud tool E2E passed")
     } finally {
-        check(fixture.deleteRecursively()) { "could not remove fixture ${fixture.absolutePath}" }
+        check(fixture.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))) { "could not remove fixture ${fixture.absolutePath}" }
     }
 }
 

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.*
@@ -14,6 +16,6 @@ class AgentServicePathTest {
             assertEquals("/custom/bin", path.first())
             assertTrue(bin.path in path)
             assertEquals(path.distinct(), path)
-        } finally { home.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }
