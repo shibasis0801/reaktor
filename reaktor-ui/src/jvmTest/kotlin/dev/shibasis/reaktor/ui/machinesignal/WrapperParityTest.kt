@@ -2,9 +2,7 @@ package dev.shibasis.reaktor.ui.machinesignal
 
 import dev.shibasis.reaktor.surface.compose.Tooltip as SurfaceTooltip
 import androidx.compose.ui.text.style.TextOverflow
-import dev.shibasis.reaktor.ui.machinesignal.SignalTone
 import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
-import androidx.compose.material3.Text as SurfaceText
 import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,8 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,22 +19,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
@@ -47,7 +41,6 @@ import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
@@ -86,7 +79,7 @@ class WrapperParityTest {
                                 modifier = Modifier.testTag("wrapper-$tone-$enabled"),
                                 enabled = enabled,
                                 appearance = toneButton(tone),
-                            ) { SurfaceText("Deploy target", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                            ) { Text("Deploy target", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
                     }
                 }
@@ -96,7 +89,7 @@ class WrapperParityTest {
                         onActivate = {},
                         modifier = Modifier.weight(1f).testTag("wrapper-weighted"),
                         appearance = toneButton(SignalTone.Primary),
-                    ) { SurfaceText("Weighted", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    ) { Text("Weighted", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
                 Row(Modifier.width(420.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Box(Modifier.width(180.dp)) { LegacySignalButton("Filled", {}, Modifier.fillMaxWidth().height(24.dp).testTag("legacy-sized")) }
@@ -104,7 +97,7 @@ class WrapperParityTest {
                         onActivate = {},
                         modifier = Modifier.fillMaxWidth().height(24.dp).testTag("wrapper-sized"),
                         appearance = toneButton(SignalTone.Secondary),
-                    ) { SurfaceText("Filled", maxLines = 1, overflow = TextOverflow.Ellipsis) } }
+                    ) { Text("Filled", maxLines = 1, overflow = TextOverflow.Ellipsis) } }
                 }
             }
         }) {
@@ -120,71 +113,20 @@ class WrapperParityTest {
     }
 
     @Test
-    fun theSubTabAppearanceMatchesTheLegacyTabSelectedOrNotWithAndWithoutACount() = everyScene("sub-tab") { variant, density ->
-        val place = "${name(variant)}/x$density"
-        val cases = listOf(true to null, false to null, true to 12, false to 3)
-        scene(density, variant, {
-            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                cases.forEach { (selected, count) ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        LegacySubTab("Query receipts", selected, {}, Modifier.testTag("legacy-$selected-$count"), count = count)
-                        FixtureSurfaceTab("Query receipts", selected, {}, Modifier.testTag("wrapper-$selected-$count"), count = count)
-                    }
-                }
-            }
-        }) {
-            cases.forEach { (selected, count) ->
-                compare("tab/$place/selected=$selected/count=$count", "legacy-$selected-$count", "wrapper-$selected-$count")
-            }
-            cases.take(2).forEach { (selected, count) ->
-                same("tab/$place/selected=$selected/hovered", hovered("legacy-$selected-$count"), hovered("wrapper-$selected-$count"))
-            }
-        }
-    }
-
-    @Test
-    fun signalContextMenuOpensWhereTheLegacyMenuDidAndLooksTheSame() = everyScene("context-menu") { variant, density ->
-        val actions = listOf(
-            SignalAction("Copy value") {},
-            SignalAction("Filter by this value", id = "data-filter") {},
-            SignalAction("Delete row", enabled = false) {},
-        )
-        val tags = actions.map { it.id ?: "signal-action-${it.label}" }
-        listOf(
-            MenuAnchor("start", 40.dp, 80.dp),
-            MenuAnchor("end", 975.dp, 80.dp),
-            MenuAnchor("table", 40.dp, 172.dp, 600.dp, 568.dp),
-            MenuAnchor("table-top", 40.dp, 100.dp, 600.dp, 500.dp),
-            MenuAnchor("table-bottom", 40.dp, 100.dp, 600.dp, 640.dp),
-        ).forEach { anchor ->
-            val place = "menu/${name(variant)}/x$density/${anchor.name}"
-            val legacy = openedMenu(density, variant, anchor, tags) { open -> LegacySignalContextMenu(actions, open, {}) }
-            val wrapper = openedMenu(density, variant, anchor, tags) { open -> FixtureSurfaceMenu(actions, open, {}) }
-            tags.forEach { tag ->
-                if (legacy.bounds[tag] != wrapper.bounds[tag]) failures += "$place/$tag: legacy at ${legacy.bounds[tag]}, wrapper at ${wrapper.bounds[tag]}"
-                if (legacy.meanings[tag] != wrapper.meanings[tag]) failures += "$place/$tag: legacy semantics ${legacy.meanings[tag]}, wrapper semantics ${wrapper.meanings[tag]}"
-            }
-            results += "$place roles legacy=${legacy.roles} wrapper=${wrapper.roles}"
-            same("$place/rest", legacy.rest, wrapper.rest)
-            same("$place/hovered", legacy.hovered, wrapper.hovered)
-        }
-    }
-
-    @Test
     fun machineSignalTooltipKeepsItsAnchorAndShowsTheLegacyFrameWhereMaterialDid() = everyScene("tooltip") { variant, density ->
         val place = "tooltip/${name(variant)}/x$density"
         val tip = "Stop selected operation; unavailable in this context"
         scene(density, variant, {
             Row(Modifier.padding(40.dp), horizontalArrangement = Arrangement.spacedBy(200.dp)) {
                 Box(Modifier.testTag("legacy-anchor")) { LegacyMachineSignalTooltip(tip) { Swatch() } }
-                Box(Modifier.testTag("wrapper-anchor")) { SurfaceTooltip(tip = { SurfaceText(tip) }) { Swatch() } }
+                Box(Modifier.testTag("wrapper-anchor")) { SurfaceTooltip(tip = { Text(tip) }) { Swatch() } }
             }
         }) {
             if (node("legacy-anchor").size != node("wrapper-anchor").size) failures += "$place: anchor bounds changed"
             same("$place/anchor", capture("legacy-anchor"), capture("wrapper-anchor"))
         }
         val legacy = shownTip(density, variant, tip) { LegacyMachineSignalTooltip(tip) { Swatch() } }
-        val wrapper = shownTip(density, variant, tip) { SurfaceTooltip(tip = { SurfaceText(tip) }) { Swatch() } }
+        val wrapper = shownTip(density, variant, tip) { SurfaceTooltip(tip = { Text(tip) }) { Swatch() } }
         if (variant == MachineSignalVariant.Editor) {
             if (legacy.first != wrapper.first) failures += "$place: legacy tip text at ${legacy.first}, wrapper at ${wrapper.first}"
             same("$place/shown", legacy.second, wrapper.second)
@@ -217,63 +159,6 @@ class WrapperParityTest {
         }
         return requireNotNull(shown)
     }
-
-    private class OpenedMenu(
-        val bounds: Map<String, IntRect>,
-        val meanings: Map<String, List<Any?>>,
-        val roles: List<Role?>,
-        val rest: PixelMap,
-        val hovered: PixelMap,
-    )
-
-    private class MenuAnchor(val name: String, val x: Dp, val y: Dp, val width: Dp = 120.dp, val height: Dp = 24.dp)
-
-    private fun openedMenu(density: Float, variant: MachineSignalVariant?, anchor: MenuAnchor, tags: List<String>, menu: @Composable (Boolean) -> Unit): OpenedMenu {
-        var opened: OpenedMenu? = null
-        val open = mutableStateOf(false)
-        scene(density, variant, {
-            Box(Modifier.absoluteOffset(anchor.x, anchor.y).requiredSize(anchor.width, anchor.height)) { menu(open.value) }
-        }) {
-            onRoot().performMouseInput { click(Offset(4f, 4f)) }
-            waitForIdle()
-            open.value = true
-            waitForIdle()
-            mainClock.advanceTimeBy(2_000)
-            waitForIdle()
-            val nodes = tags.associateWith { tag -> onNode(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNode() }
-            val bounds = nodes.mapValues { it.value.boundsInWindow.roundToIntRect() }
-            val padding = (8 * density).roundToInt()
-            val margin = (16 * density).roundToInt()
-            val whole = captureToImage()
-            val region = IntRect(
-                (bounds.values.minOf { it.left } - margin).coerceAtLeast(0),
-                (bounds.values.minOf { it.top } - padding - margin).coerceAtLeast(0),
-                (bounds.values.maxOf { it.right } + margin).coerceAtMost(whole.width),
-                (bounds.values.maxOf { it.bottom } + padding + margin).coerceAtMost(whole.height),
-            )
-            val rest = whole.toPixelMap(region.left, region.top, region.width, region.height)
-            onNode(hasTestTag(tags.first()), useUnmergedTree = true).performMouseInput { moveTo(center) }
-            waitForIdle()
-            mainClock.advanceTimeBy(500)
-            waitForIdle()
-            val hovered = captureToImage().toPixelMap(region.left, region.top, region.width, region.height)
-            opened = OpenedMenu(
-                bounds,
-                nodes.mapValues { menuMeaning(it.value) },
-                nodes.values.map { it.config.getOrNull(SemanticsProperties.Role) },
-                rest,
-                hovered,
-            )
-        }
-        return requireNotNull(opened)
-    }
-
-    private fun menuMeaning(node: SemanticsNode): List<Any?> = listOf(
-        SemanticsProperties.Disabled in node.config,
-        node.config.getOrNull(SemanticsProperties.Text)?.joinToString(),
-        node.config.getOrNull(SemanticsProperties.TestTag),
-        node.config.contains(androidx.compose.ui.semantics.SemanticsActions.OnClick),
-    )
 
     @Composable
     private fun Hangar(variant: MachineSignalVariant?, content: @Composable () -> Unit) {

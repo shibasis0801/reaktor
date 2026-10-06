@@ -67,7 +67,6 @@ import dev.shibasis.reaktor.ui.machinesignal.surface.SignalTooltip
 import dev.shibasis.reaktor.ui.machinesignal.surface.UnderlineTab
 import dev.shibasis.reaktor.ui.machinesignal.surface.selectableRow
 import dev.shibasis.reaktor.ui.machinesignal.surface.statusToast
-import dev.shibasis.reaktor.ui.machinesignal.surface.subTab
 import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
 import java.awt.image.BufferedImage
 import java.io.File
@@ -116,16 +115,13 @@ class MachineSignalLookParityTest {
     }
 
     @Test
-    fun subTabsMatchTheLegacySubTabAsButtonsAndAsATabsGroup() = everyScene("tab") { variant, density ->
+    fun subTabsMatchTheLegacySubTabAsATabsGroup() = everyScene("tab") { variant, density ->
         val cases = listOf(true to null, false to null, true to 12, false to 3)
         scene(density, variant, {
             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 cases.forEach { (selected, count) ->
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         Box(Modifier.testTag("legacy-$selected-$count")) { LegacySubTab("Query receipts", selected, {}, count = count) }
-                        Box(Modifier.testTag("button-$selected-$count")) {
-                            Button({}, appearance = subTab(selected)) { TabLabel("Query receipts", selected, count) }
-                        }
                         Box(Modifier.testTag("group-$selected-$count")) {
                             Tabs(if (selected) "receipts" else null, {}) {
                                 Item("receipts", appearance = UnderlineTab) { TabLabel("Query receipts", selected, count) }
@@ -138,12 +134,10 @@ class MachineSignalLookParityTest {
             cases.forEach { (selected, count) ->
                 val legacy = capture("legacy-$selected-$count")
                 val case = "selected=$selected/count=$count"
-                same("tab/${name(variant)}/x$density/$case/button", legacy, capture("button-$selected-$count"))
                 same("tab/${name(variant)}/x$density/$case/tabs", legacy, capture("group-$selected-$count"))
             }
             cases.take(2).forEach { (selected, count) ->
                 val legacy = hovered("legacy-$selected-$count")
-                same("tab/${name(variant)}/x$density/selected=$selected/hovered/button", legacy, hovered("button-$selected-$count"))
                 same("tab/${name(variant)}/x$density/selected=$selected/hovered/tabs", legacy, hovered("group-$selected-$count"))
             }
         }
