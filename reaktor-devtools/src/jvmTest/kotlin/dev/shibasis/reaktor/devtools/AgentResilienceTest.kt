@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.devtools
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -119,6 +120,41 @@ class AgentResilienceTest {
             host.stop()
             agent.stop()
         }
+    }
+
+    @Test
+    fun aClientSeesTheAppStopAndReachesItsNextRunOnTheSamePort() = runBlocking {
+        val port = 47_939
+        val desktop = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        repeat(5) { run ->
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            val agent = DevToolsAgent(
+                applicationId = "ai.bestbuds.restarted",
+                displayName = "Restarted",
+                revision = AgentRevision("test", "debug", "run-$run", "digest-1"),
+            )
+            agent.start()
+            val host = DevToolsHost(agent, TcpAgentTransport(port), scope)
+            host.start()
+            val attachment = reach(port, desktop)
+            assertEquals("run-$run", attachment.descriptor.value?.revision?.activation)
+            host.stop()
+            agent.stop()
+            scope.cancel()
+            withTimeout(1_000) { attachment.connected.first { !it } }
+            attachment.detach()
+        }
+        desktop.cancel()
+    }
+
+    private suspend fun reach(port: Int, scope: CoroutineScope): AgentAttachment {
+        repeat(100) {
+            val attachment = AgentAttachment("127.0.0.1", port, scope)
+            if (runCatching { attachment.attach() }.isSuccess) return attachment
+            attachment.detach()
+            delay(50)
+        }
+        error("Nothing answered on port $port")
     }
 
     @Test
