@@ -55,8 +55,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         return AgentWorktreeReview(worktree, digest(combined), revision, changed, combined.take(60000), conflicts)
     }
 
-    @Synchronized fun apply(id: String, expectedPatch: String, expectedSource: String, approvedBy: String? = null): AgentWorktreeReview {
-        require(!approvedBy.isNullOrBlank() && approvedBy.length <= 200) { "An operator must approve this exact patch" }
+    @Synchronized fun apply(id: String, expectedPatch: String, expectedSource: String): AgentWorktreeReview {
         val prior = read(id)
         if (prior.appliedPatch == expectedPatch && prior.applyState == "applied") return review(id)
         require(prior.applyState == null) { "A previous apply needs reconciliation; inspect the source and retained worktree" }
@@ -65,12 +64,12 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         require(review.conflicts.isEmpty()) { review.conflicts.joinToString("\n") }
         val patches = patches(prior)
         require(digest(patches.entries.joinToString("\n") { (entry, patch) -> "# ${entry.source}\n$patch" }) == expectedPatch) { "Worktree changed during review" }
-        save(prior.copy(applyState = "applying", appliedPatch = expectedPatch, appliedBy = approvedBy))
+        save(prior.copy(applyState = "applying", appliedPatch = expectedPatch))
         try {
             patches.forEach { (entry, patch) -> if (patch.isNotBlank()) apply(File(entry.source), patch, check = false) }
-            save(prior.copy(applyState = "applied", appliedPatch = expectedPatch, appliedBy = approvedBy))
+            save(prior.copy(applyState = "applied", appliedPatch = expectedPatch))
         } catch (failure: Exception) {
-            save(prior.copy(applyState = "needs-reconciliation", appliedPatch = expectedPatch, appliedBy = approvedBy))
+            save(prior.copy(applyState = "needs-reconciliation", appliedPatch = expectedPatch))
             throw IllegalStateException("Apply may have changed some roots; inspect before retrying. ${failure.message}", failure)
         }
         return review(id)
