@@ -1,5 +1,15 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.heightIn
+import dev.shibasis.reaktor.surface.compose.Align
+import dev.shibasis.reaktor.surface.compose.Placement
+import dev.shibasis.reaktor.surface.compose.RowAppearance
+import dev.shibasis.reaktor.surface.compose.RowProperties
+import dev.shibasis.reaktor.surface.compose.RowSlots
+import dev.shibasis.reaktor.surface.compose.RowState
+import dev.shibasis.reaktor.surface.compose.Side
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -71,6 +81,7 @@ private val AuthFindingMarkWidth = 78.dp
 private val AuthFindingFixWidth = 220.dp
 private val CloudFindingTitle = 12.5.sp
 private val VerdictLarge = 20.sp
+private val DropdownMargin = 48.dp
 
 val SignalIcon: IconAppearance = object : IconAppearance {
     @Composable
@@ -162,6 +173,60 @@ private data class ToolButtonLook(val active: Boolean) : ButtonAppearance {
         }
     }
 }
+
+val NavigationRow: RowAppearance = object : RowAppearance {
+    @Composable
+    override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) =
+        NavigationFrame(theme.machineSignal, properties.selected, state.hovered, state.focusVisible, feedback, slots.content)
+}
+
+fun navigationButton(selected: Boolean): ButtonAppearance = if (selected) SelectedNavigationButton else IdleNavigationButton
+
+private val IdleNavigationButton: ButtonAppearance = NavigationButton(selected = false)
+
+private val SelectedNavigationButton: ButtonAppearance = NavigationButton(selected = true)
+
+private data class NavigationButton(val selected: Boolean) : ButtonAppearance {
+    @Composable
+    override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) =
+        NavigationFrame(theme.machineSignal, selected, state.hovered, state.focusVisible, feedback, slots.content)
+}
+
+@Composable
+private fun NavigationFrame(signal: MachineSignalSnapshot, selected: Boolean, hovered: Boolean, focused: Boolean, feedback: ComposeFeedback, content: @Composable () -> Unit) {
+    val colors = signal.colors
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = MachineSignal.Editor.layerRowHeight)
+            .background(when { selected -> colors.controlAccentSoft; hovered -> colors.raised; else -> Color.Transparent })
+            .then(if (focused) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus)) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(MachineSignal.Stroke.bar).height(MachineSignal.Editor.layerRowHeight).background(if (selected) colors.controlAccent else Color.Transparent))
+        Box(Modifier.weight(1f).padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2)) {
+            ProvideLabel(signal.label(colors.text, MachineSignal.Type.body, if (selected) FontWeight.SemiBold else FontWeight.Normal), content)
+        }
+    }
+}
+
+fun tabStrip(scroll: ScrollState): BarAppearance = TabStrip(scroll)
+
+private data class TabStrip(val scroll: ScrollState) : BarAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BarSlots) {
+        val colors = theme.machineSignal.colors
+        Column(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().background(colors.surface).horizontalScroll(scroll).padding(horizontal = MachineSignal.Metrics.shellPaddingX),
+                horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
+                verticalAlignment = Alignment.CenterVertically,
+                content = slots.content,
+            )
+            Box(Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline).background(colors.lineSubtle))
+        }
+    }
+}
+
+val DropdownPlacement = Placement(Side.Below, Align.Start, gap = MachineSignal.Space.none, margin = DropdownMargin)
 
 fun pinTip(ink: InkRole): TooltipAppearance = PinTip(ink)
 

@@ -64,7 +64,7 @@ private fun SignalBadge(signal: MachineSignalSnapshot, color: Color, filled: Boo
     Modifier.heightIn(min = 16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
     contentAlignment = Alignment.Center,
 ) {
-    ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta)) { slots.content() }
+    ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta, FontWeight.Normal)) { slots.content() }
 }
 
 private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
