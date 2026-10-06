@@ -78,6 +78,9 @@ fun KotlinMultiplatformExtension.web(
             testTask {
                 enabled = false
             }
+            project.tasks.named { it == "checkComposeUiTestConfigurationForJs" }.configureEach {
+                enabled = false
+            }
 
             distribution {
                 outputDirectory.set(project.projectDir.resolve("ts/export"))
