@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -67,6 +68,7 @@ object Appearance {
     val TableHeader = AppearanceKey<TableHeaderAppearance>("tableHeader", BareTableHeader)
     val Scrollbar = AppearanceKey<ScrollbarAppearance>("scrollbar", BareScrollbar)
     val Island = AppearanceKey<IslandAppearance>("island", BareIsland)
+    val Text = AppearanceKey<TextAppearance>("text", BareText)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
@@ -157,5 +159,6 @@ fun SurfaceTheme(
     LocalThemeSnapshot provides snapshot,
     LocalAppearances provides appearances,
     LocalReducedMotion provides reducedMotion,
+    LocalTextSelectionColors provides (appearances[Appearance.Text].selection(snapshot) ?: LocalTextSelectionColors.current),
     content = content,
 )

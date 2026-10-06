@@ -169,12 +169,70 @@ object MachineSignal {
     }
 
     object Space {
+        val none = 0.dp
+        val s0_25 = 1.dp
+        val s0_5 = 2.dp
+        val s0_75 = 3.dp
         val s1 = 4.dp
+        val s1_25 = 5.dp
+        val s1_5 = 6.dp
+        val s1_75 = 7.dp
         val s2 = 8.dp
+        val s2_25 = 9.dp
+        val s2_5 = 10.dp
         val s3 = 12.dp
+        val s3_5 = 14.dp
         val s4 = 16.dp
+        val s4_5 = 18.dp
         val s5 = 24.dp
         val s6 = 32.dp
+    }
+
+    object Stroke {
+        val hairline = 1.dp
+        val bar = 2.dp
+    }
+
+    object Dot {
+        val small = 6.dp
+        val regular = 7.dp
+        val large = 8.dp
+    }
+
+    object Column {
+        val w22 = 22.dp
+        val w34 = 34.dp
+        val w36 = 36.dp
+        val w50 = 50.dp
+        val w56 = 56.dp
+        val w60 = 60.dp
+        val w64 = 64.dp
+        val w70 = 70.dp
+        val w72 = 72.dp
+        val w76 = 76.dp
+        val w78 = 78.dp
+        val w80 = 80.dp
+        val w82 = 82.dp
+        val w84 = 84.dp
+        val w86 = 86.dp
+        val w88 = 88.dp
+        val w90 = 90.dp
+        val w92 = 92.dp
+        val w96 = 96.dp
+        val w98 = 98.dp
+        val w100 = 100.dp
+        val w104 = 104.dp
+        val w108 = 108.dp
+        val w110 = 110.dp
+        val w112 = 112.dp
+        val w116 = 116.dp
+        val w120 = 120.dp
+        val w128 = 128.dp
+        val w130 = 130.dp
+        val w132 = 132.dp
+        val w150 = 150.dp
+        val w180 = 180.dp
+        val w190 = 190.dp
     }
 
     object Shape {
@@ -308,11 +366,14 @@ object MachineSignal {
     }
 
     object Radius {
+        val mark = 2.dp
         val tight = 3.dp
         val control = 5.dp
         val panel = 6.dp
         val node = 7.dp
+        val card = 8.dp
         val countBadge = 9.dp
+        val pill = 10.dp
         val statusPill = 12.dp
     }
 
@@ -323,6 +384,11 @@ object MachineSignal {
         val body = 13.sp
         val title = 17.sp
         val display = 24.sp
+        val title2 = 16.sp
+        val title3 = 15.sp
+        val title4 = 14.sp
+        val body2 = 11.5.sp
+        val fine = 10.sp
 
         val micro = label
         val eyebrow = label

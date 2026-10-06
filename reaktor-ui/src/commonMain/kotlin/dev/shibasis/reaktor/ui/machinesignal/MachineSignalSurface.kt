@@ -7,8 +7,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
+import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.Ink
+import dev.shibasis.reaktor.surface.InkRole
 import dev.shibasis.reaktor.surface.ThemeMismatch
 import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.TypeScale
 import dev.shibasis.reaktor.surface.compose.BareTheme
 import dev.shibasis.reaktor.surface.compose.SurfaceTheme
 import dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalAppearances
@@ -46,6 +51,9 @@ data class MachineSignalColors(
     val onMenu: Color = MachineSignal.Text1,
     val rowHover: Color = MachineSignal.Bg2,
     val rowSelected: Color = MachineSignal.SelectedSoft,
+    val source: Color = MachineSignal.Editor.Source,
+    val onAccent: Color = Color.White,
+    val entities: MachineSignalEntities = MachineSignalEntities(),
 ) {
     fun remap(authored: Color): Color = when (authored) {
         MachineSignal.Bg0 -> canvas
@@ -97,6 +105,93 @@ data class MachineSignalColors(
             controlAccent = MachineSignal.Editor.Accent,
             controlAccentSoft = MachineSignal.Editor.AccentSoft,
         )
+    }
+}
+
+enum class EntityInk : InkRole { Route, Screen, Container, Service, Cloud, Actor, Auth, Infra, Agent, Topic, Repo, Interactor }
+
+enum class EdgeInk : InkRole { Exec, Navigation, Data, Attachment, Containment, PortOff }
+
+data class ProvenanceInk(val truth: TruthClass) : InkRole
+
+@Immutable
+data class MachineSignalEntities(
+    val route: Color = MachineSignal.Entity.Route,
+    val screen: Color = MachineSignal.Entity.Screen,
+    val container: Color = MachineSignal.Entity.Container,
+    val service: Color = MachineSignal.Entity.Service,
+    val cloud: Color = MachineSignal.Entity.Cloud,
+    val actor: Color = MachineSignal.Entity.Actor,
+    val auth: Color = MachineSignal.Entity.Auth,
+    val infra: Color = MachineSignal.Entity.Infra,
+    val agent: Color = MachineSignal.Entity.Agent,
+    val topic: Color = MachineSignal.Entity.Topic,
+    val repo: Color = MachineSignal.Entity.Repo,
+    val interactor: Color = MachineSignal.Entity.Interactor,
+    val exec: Color = MachineSignal.Edge.Exec,
+    val navigation: Color = MachineSignal.Edge.Navigation,
+    val data: Color = MachineSignal.Edge.Data,
+    val attachment: Color = MachineSignal.Edge.Attachment,
+    val containment: Color = MachineSignal.Edge.Containment,
+    val portOff: Color = MachineSignal.Edge.PortOff,
+) {
+    operator fun get(ink: EntityInk): Color = when (ink) {
+        EntityInk.Route -> route
+        EntityInk.Screen -> screen
+        EntityInk.Container -> container
+        EntityInk.Service -> service
+        EntityInk.Cloud -> cloud
+        EntityInk.Actor -> actor
+        EntityInk.Auth -> auth
+        EntityInk.Infra -> infra
+        EntityInk.Agent -> agent
+        EntityInk.Topic -> topic
+        EntityInk.Repo -> repo
+        EntityInk.Interactor -> interactor
+    }
+
+    operator fun get(ink: EdgeInk): Color = when (ink) {
+        EdgeInk.Exec -> exec
+        EdgeInk.Navigation -> navigation
+        EdgeInk.Data -> data
+        EdgeInk.Attachment -> attachment
+        EdgeInk.Containment -> containment
+        EdgeInk.PortOff -> portOff
+    }
+}
+
+@Immutable
+data class MachineSignalType(
+    val display: TextUnit = MachineSignal.Type.display,
+    val title: TextUnit = MachineSignal.Type.title,
+    val title2: TextUnit = MachineSignal.Type.title2,
+    val title3: TextUnit = MachineSignal.Type.title3,
+    val title4: TextUnit = MachineSignal.Type.title4,
+    val body: TextUnit = MachineSignal.Type.body,
+    val label: TextUnit = MachineSignal.Editor.label,
+    val body2: TextUnit = MachineSignal.Type.body2,
+    val meta: TextUnit = MachineSignal.Editor.meta,
+    val data: TextUnit = MachineSignal.Type.data,
+    val caption: TextUnit = MachineSignal.Type.fine,
+    val micro: TextUnit = MachineSignal.Type.dataMicro,
+    val eyebrow: TextUnit = MachineSignal.Type.eyebrow,
+    val eyebrowTracking: TextUnit = MachineSignal.Type.eyebrowTracking,
+    val chromeLine: TextUnit = MachineSignal.Editor.lineHeight.em,
+) {
+    fun size(scale: TypeScale): TextUnit = when (scale) {
+        TypeScale.Display -> display
+        TypeScale.Title -> title
+        TypeScale.Title2 -> title2
+        TypeScale.Title3 -> title3
+        TypeScale.Title4 -> title4
+        TypeScale.Body -> body
+        TypeScale.Label -> label
+        TypeScale.Body2 -> body2
+        TypeScale.Meta -> meta
+        TypeScale.Data -> data
+        TypeScale.Caption -> caption
+        TypeScale.Micro -> micro
+        TypeScale.Eyebrow -> eyebrow
     }
 }
 
@@ -152,8 +247,28 @@ data class MachineSignalSnapshot(
     val colors: MachineSignalColors,
     val metrics: MachineSignalMetrics,
     val fonts: MachineSignalFonts,
+    val type: MachineSignalType = MachineSignalType(),
 ) : ThemeSnapshot {
     override val id: String = "machine-signal/${variant.name.lowercase()}/${density.name.lowercase()}"
+
+    fun ink(ink: InkRole): Color = when (ink) {
+        Ink.Strong -> colors.textStrong
+        Ink.Text -> colors.text
+        Ink.Muted -> colors.textMuted
+        Ink.Unknown -> colors.textFaint
+        Ink.Accent -> colors.controlAccent
+        Ink.Source -> colors.source
+        Ink.Busy -> colors.accent
+        Ink.Ok -> colors.ok
+        Ink.Warn -> colors.warn
+        Ink.Danger -> colors.error
+        Ink.Inverse -> colors.canvas
+        Ink.OnAccent -> colors.onAccent
+        is EntityInk -> colors.entities[ink]
+        is EdgeInk -> colors.entities[ink]
+        is ProvenanceInk -> MachineSignal.provenance(ink.truth).base
+        else -> throw ThemeMismatch("$ink ink", id)
+    }
 
     companion object {
         val Board = of(MachineSignalVariant.Board, MachineSignalDensity.Comfortable)
