@@ -13,6 +13,14 @@ import dev.shibasis.reaktor.surface.ThemeSnapshot
 
 typealias SeparatorAppearance = ComposeAppearance<Unit, Unit, Unit>
 
+@Composable
+fun Separator(
+    modifier: Modifier = Modifier,
+    appearance: SeparatorAppearance = LocalAppearances.current[Appearance.Separator],
+) = Box(modifier, propagateMinConstraints = true) {
+    appearance.Content(Unit, Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), Unit)
+}
+
 val BareSeparator: SeparatorAppearance = object : SeparatorAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -50,7 +52,7 @@ import dev.shibasis.reaktor.surface.compose.Tooltip
 import dev.shibasis.reaktor.surface.compose.TooltipAppearance
 import dev.shibasis.reaktor.surface.compose.TooltipSlots
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
-import dev.shibasis.reaktor.ui.machinesignal.SignalText
+import dev.shibasis.reaktor.ui.machinesignal.LocalMachineSignalFonts
 
 object Blueprint {
     val Body = MachineSignal.Editor.Canvas.copy(alpha = .95f)
@@ -186,9 +188,9 @@ fun BlueprintFrame(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(icon, null, Modifier.size((14 * (1.0 / zoom.coerceIn(0.35, 1.0)).coerceAtMost(1.8)).dp), tint = tint)
-            SignalText(frame.label, color = MachineSignal.Editor.Text, size = Blueprint.scaled(13.0, zoom), weight = FontWeight.SemiBold)
-            SignalText(count, color = MachineSignal.Editor.Muted, size = Blueprint.scaled(11.0, zoom))
-            SignalText(frame.detail.joinToString(" · "), color = MachineSignal.Editor.Muted, size = Blueprint.scaled(11.0, zoom), mono = true, maxLines = 1)
+            CanvasText(frame.label, color = MachineSignal.Editor.Text, size = Blueprint.scaled(13.0, zoom), weight = FontWeight.SemiBold)
+            CanvasText(count, color = MachineSignal.Editor.Muted, size = Blueprint.scaled(11.0, zoom))
+            CanvasText(frame.detail.joinToString(" · "), color = MachineSignal.Editor.Muted, size = Blueprint.scaled(11.0, zoom), mono = true, maxLines = 1)
             badges()
         }
     }
@@ -231,7 +233,7 @@ fun BlueprintCard(
             .then(modifier),
     ) {
         if (far) {
-            SignalText(title, Modifier.padding(start = 10.dp, end = 8.dp, top = 6.dp), color = MachineSignal.Editor.Text,
+            CanvasText(title, Modifier.padding(start = 10.dp, end = 8.dp, top = 6.dp), color = MachineSignal.Editor.Text,
                 size = Blueprint.fitted(title, card.width - 18, 13.0, zoom), weight = FontWeight.SemiBold, mono = true, maxLines = 1)
             return@Box
         }
@@ -242,10 +244,10 @@ fun BlueprintCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(icon, null, Modifier.size(14.dp), tint = Color.White.copy(alpha = .92f))
-                SignalText(title, Modifier.weight(1f), color = Color.White, size = 12.5.sp, weight = FontWeight.SemiBold, mono = true, maxLines = 1)
+                CanvasText(title, Modifier.weight(1f), color = Color.White, size = 12.5.sp, weight = FontWeight.SemiBold, mono = true, maxLines = 1)
                 badges()
             }
-            SignalText(subtitle, Modifier.padding(start = 10.dp, end = 8.dp, top = 3.dp), color = MachineSignal.Editor.Muted,
+            CanvasText(subtitle, Modifier.padding(start = 10.dp, end = 8.dp, top = 3.dp), color = MachineSignal.Editor.Muted,
                 size = 10.5.sp, mono = subtitleMono, maxLines = 1)
         }
         val oneSided = card.pins.all { it.provides } || card.pins.none { it.provides }
@@ -259,7 +261,7 @@ fun BlueprintCard(
             }
         }
         folded?.let {
-            SignalText(it, Modifier.align(Alignment.TopEnd).padding(top = 30.dp, end = 8.dp), color = MachineSignal.Editor.Muted, size = 9.5.sp)
+            CanvasText(it, Modifier.align(Alignment.TopEnd).padding(top = 30.dp, end = 8.dp), color = MachineSignal.Editor.Muted, size = 9.5.sp)
         }
     }
 }
@@ -283,9 +285,9 @@ fun BlueprintPin(
         ) {
             if (!pin.provides) PinDot(color, filled)
             if (!pin.provides) Spacer(Modifier.width(6.dp))
-            if (chip) SignalText(text, Modifier.clip(RoundedCornerShape(3.dp)).background(color.copy(alpha = .2f)).padding(horizontal = 4.dp),
+            if (chip) CanvasText(text, Modifier.clip(RoundedCornerShape(3.dp)).background(color.copy(alpha = .2f)).padding(horizontal = 4.dp),
                 color = Color.White, size = 10.sp, mono = true, maxLines = 1)
-            else SignalText(text, color = textColor, size = 10.5.sp, mono = true, maxLines = 1)
+            else CanvasText(text, color = textColor, size = 10.5.sp, mono = true, maxLines = 1)
             if (pin.provides) Spacer(Modifier.width(6.dp))
             if (pin.provides) PinDot(color, filled)
         }
@@ -305,7 +307,7 @@ private fun PinDot(color: Color, filled: Boolean) {
 @Composable
 fun BlueprintTag(text: String, tone: Color) {
     Box(Modifier.clip(RoundedCornerShape(3.dp)).background(tone).padding(horizontal = 4.dp, vertical = 1.dp)) {
-        SignalText(text.uppercase(), color = MachineSignal.Editor.Canvas, size = 8.5.sp, weight = FontWeight.Bold)
+        CanvasText(text.uppercase(), color = MachineSignal.Editor.Canvas, size = 8.5.sp, weight = FontWeight.Bold)
     }
 }
 
@@ -327,13 +329,13 @@ fun BlueprintLegend(entries: List<LegendEntry>, modifier: Modifier = Modifier) {
             when (entry) {
                 is LegendEntry.Dot -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(entry.color))
-                    SignalText(entry.label, color = MachineSignal.Editor.Muted, size = 10.5.sp)
+                    CanvasText(entry.label, color = MachineSignal.Editor.Muted, size = 10.5.sp)
                 }
                 is LegendEntry.Line -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Box(Modifier.width(14.dp).height(2.dp).background(entry.color))
-                    SignalText(entry.label, color = MachineSignal.Editor.Muted, size = 10.5.sp)
+                    CanvasText(entry.label, color = MachineSignal.Editor.Muted, size = 10.5.sp)
                 }
-                is LegendEntry.Note -> SignalText(entry.label, color = MachineSignal.Editor.Muted, size = 10.5.sp)
+                is LegendEntry.Note -> CanvasText(entry.label, color = MachineSignal.Editor.Muted, size = 10.5.sp)
             }
         }
     }
@@ -342,12 +344,26 @@ fun BlueprintLegend(entries: List<LegendEntry>, modifier: Modifier = Modifier) {
 @Composable
 fun BlueprintWatermark(title: String, line: String, lineColor: Color, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.End) {
-        SignalText(title.uppercase(), color = Color.White.copy(alpha = .07f), size = 38.sp, weight = FontWeight.Bold, maxLines = 1)
-        SignalText(line, color = lineColor, size = 12.sp, weight = FontWeight.SemiBold, maxLines = 1)
+        CanvasText(title.uppercase(), color = Color.White.copy(alpha = .07f), size = 38.sp, weight = FontWeight.Bold, maxLines = 1)
+        CanvasText(line, color = lineColor, size = 12.sp, weight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
 private val UnframedBlueprintTip: TooltipAppearance = object : TooltipAppearance {
     @Composable
     override fun Content(properties: TipContent, state: TooltipState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) = slots.tip()
+}
+
+@Composable
+private fun CanvasText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color,
+    size: TextUnit,
+    weight: FontWeight = FontWeight.Normal,
+    mono: Boolean = false,
+    maxLines: Int = 1,
+) {
+    val fonts = LocalMachineSignalFonts.current
+    Text(text, modifier, color = color, fontFamily = if (mono) fonts.mono else fonts.ui, fontSize = size, fontWeight = weight, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 }

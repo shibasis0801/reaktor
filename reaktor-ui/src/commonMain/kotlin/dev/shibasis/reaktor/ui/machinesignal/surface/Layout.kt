@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.Axis
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -29,10 +30,12 @@ import dev.shibasis.reaktor.surface.compose.HandleState
 import dev.shibasis.reaktor.surface.compose.ItemAppearance
 import dev.shibasis.reaktor.surface.compose.ItemProperties
 import dev.shibasis.reaktor.surface.compose.ItemSlots
+import dev.shibasis.reaktor.surface.compose.SeparatorAppearance
 import dev.shibasis.reaktor.surface.compose.SplitAxis
 import dev.shibasis.reaktor.surface.compose.SplitterAppearance
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
+import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
 
 val SignalSplitter: SplitterAppearance = object : SplitterAppearance {
     @Composable
@@ -46,6 +49,17 @@ val SignalSplitter: SplitterAppearance = object : SplitterAppearance {
             val line = if (properties == SplitAxis.Horizontal) Modifier.width(hairline).fillMaxHeight() else Modifier.height(hairline).fillMaxWidth()
             Box(line.background(signal.colors.line))
         }
+    }
+}
+
+fun divider(axis: Axis = Axis.Horizontal, strong: Boolean = false): SeparatorAppearance = Divider(axis, strong)
+
+private data class Divider(val axis: Axis, val strong: Boolean) : SeparatorAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
+        val colors = theme.signalOrBoard.colors
+        val line = if (axis == Axis.Horizontal) Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline) else Modifier.fillMaxHeight().width(MachineSignal.Stroke.hairline)
+        Box(line.background(if (strong) colors.line else colors.lineSubtle))
     }
 }
 

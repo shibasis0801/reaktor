@@ -22,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.Ink
 import dev.shibasis.reaktor.surface.InkRole
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.compose.BadgeAppearance
@@ -36,6 +37,7 @@ import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
+import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
 
 fun toneBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBadge(filled = false, tone)
 
@@ -92,32 +94,79 @@ fun provenanceBadge(truth: TruthClass): BadgeAppearance = object : BadgeAppearan
                 .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
             contentAlignment = Alignment.Center,
         ) {
-            ProvideLabel(Label(colors.base, theme.machineSignal.fonts.ui, MachineSignal.Type.micro, FontWeight.SemiBold)) { slots.content() }
+            val signal = theme.signalOrBoard
+            ProvideLabel(Label(if (truth == TruthClass.Unknown) signal.colors.textFaint else colors.base, signal.fonts.ui, MachineSignal.Type.micro, FontWeight.SemiBold)) { slots.content() }
         }
     }
 }
 
 fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
     @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) =
+        KindFrame(theme.signalOrBoard, MachineSignal.entityColor(kind), slots)
+}
+
+fun kindBadge(ink: InkRole): BadgeAppearance = InkKindBadge(ink)
+
+private data class InkKindBadge(val ink: InkRole) : BadgeAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) =
+        theme.signalOrBoard.let { signal -> KindFrame(signal, signal.ink(ink), slots) }
+}
+
+@Composable
+private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeSlots) = Box(
+    Modifier
+        .heightIn(min = MachineSignal.Metrics.kindBadgeHeight)
+        .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
+        .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
+        .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
+    contentAlignment = Alignment.Center,
+) {
+    ProvideLabel(
+        color,
+        TextStyle(
+            fontFamily = signal.fonts.mono,
+            fontSize = MachineSignal.Type.dataMicro,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = MachineSignal.Type.kindTracking,
+        ),
+    ) { slots.content() }
+}
+
+fun pillBadge(ink: InkRole = Ink.Muted, code: Boolean = false): BadgeAppearance = PillBadge(ink, code, edged = false)
+
+fun chipBadge(ink: InkRole): BadgeAppearance = PillBadge(ink, code = true, edged = true)
+
+private data class PillBadge(val ink: InkRole, val code: Boolean, val edged: Boolean) : BadgeAppearance {
+    @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) {
-        val color = MachineSignal.entityColor(kind)
+        val signal = theme.signalOrBoard
+        val color = signal.ink(ink)
         Box(
             Modifier
-                .heightIn(min = MachineSignal.Metrics.kindBadgeHeight)
-                .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
-                .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
-                .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
+                .background(signal.colors.surfaceAlt, MachineSignal.Shape.Tight)
+                .border(MachineSignal.Stroke.hairline, if (edged) color.copy(alpha = .45f) else signal.colors.lineSubtle, MachineSignal.Shape.Tight)
+                .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
+        ) {
+            ProvideLabel(Label(color, if (code) signal.fonts.mono else signal.fonts.ui, MachineSignal.Type.micro, FontWeight.Medium)) { slots.content() }
+        }
+    }
+}
+
+val KeyBadge: BadgeAppearance = object : BadgeAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) {
+        val signal = theme.signalOrBoard
+        Box(
+            Modifier
+                .height(MachineSignal.Metrics.kbdHeight)
+                .background(signal.colors.raised, MachineSignal.Shape.Tight)
+                .border(MachineSignal.Stroke.hairline, signal.colors.line, MachineSignal.Shape.Tight)
+                .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),
             contentAlignment = Alignment.Center,
         ) {
-            ProvideLabel(
-                color,
-                TextStyle(
-                    fontFamily = theme.machineSignal.fonts.mono,
-                    fontSize = MachineSignal.Type.dataMicro,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = MachineSignal.Type.kindTracking,
-                ),
-            ) { slots.content() }
+            ProvideLabel(Label(signal.colors.textMuted, signal.fonts.mono, MachineSignal.Type.data, FontWeight.SemiBold)) { slots.content() }
         }
     }
 }
@@ -125,7 +174,7 @@ fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
 val NumberBadge: BadgeAppearance = object : BadgeAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) {
-        val signal = theme.machineSignal
+        val signal = theme.signalOrBoard
         Box(
             Modifier
                 .background(signal.colors.raisedAlt, RoundedCornerShape(MachineSignal.Radius.countBadge))

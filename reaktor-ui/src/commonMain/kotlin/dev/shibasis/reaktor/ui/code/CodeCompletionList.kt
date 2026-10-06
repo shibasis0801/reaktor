@@ -27,7 +27,9 @@ import androidx.compose.ui.window.Popup
 import dev.shibasis.reaktor.code.CodeCompletion
 import dev.shibasis.reaktor.code.CodeCompletionKind
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
-import dev.shibasis.reaktor.ui.machinesignal.SignalText
+import dev.shibasis.reaktor.surface.Ink
+import dev.shibasis.reaktor.surface.Type
+import dev.shibasis.reaktor.surface.compose.Text
 
 /** [fromServer] survives the merge so server-ranked items keep their place above the buffer's own words. */
 data class CodeCompletionItem(val completion: CodeCompletion, val fromServer: Boolean)
@@ -109,22 +111,12 @@ private fun CodeCompletionRow(item: CodeCompletionItem, active: Boolean, tag: St
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
 ) {
     Box(Modifier.width(18.dp), contentAlignment = Alignment.Center) {
-        SignalText(
-            text = item.completion.kind.sigil,
-            color = if (item.fromServer) MachineSignal.Editor.Source else MachineSignal.Text4,
-            size = MachineSignal.Type.dataMicro,
-            mono = true,
-        )
+        Text(item.completion.kind.sigil, role = Type.Micro.code, ink = if (item.fromServer) Ink.Source else Ink.Unknown)
     }
-    SignalText(
-        text = item.completion.label,
-        color = if (active) MachineSignal.Editor.Text else MachineSignal.Editor.Muted,
-        size = MachineSignal.Type.dataStrong,
-        mono = true,
-    )
+    Text(item.completion.label, role = Type.Meta.code, ink = if (active) Ink.Text else Ink.Muted)
     Spacer(Modifier.weight(1f))
     item.completion.detail?.let {
-        SignalText(it, color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true)
+        Text(it, role = Type.Micro.code, ink = Ink.Unknown)
     }
 }
 

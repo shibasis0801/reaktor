@@ -57,22 +57,6 @@ data class MachineSignalColors(
     val onAccent: Color = Color.White,
     val entities: MachineSignalEntities = MachineSignalEntities(),
 ) {
-    fun remap(authored: Color): Color = when (authored) {
-        MachineSignal.Bg0 -> canvas
-        MachineSignal.Bg1 -> surface
-        MachineSignal.Bg2 -> surfaceAlt
-        MachineSignal.Bg3 -> raised
-        MachineSignal.Bg4 -> raisedAlt
-        MachineSignal.Line1 -> lineSubtle
-        MachineSignal.Line2 -> line
-        MachineSignal.Line3 -> lineStrong
-        MachineSignal.Text1 -> textStrong
-        MachineSignal.Text2 -> text
-        MachineSignal.Text3 -> textMuted
-        MachineSignal.Text4 -> textFaint
-        else -> authored
-    }
-
     companion object {
         val Board = MachineSignalColors(
             canvas = MachineSignal.Bg0,
@@ -318,6 +302,10 @@ val ThemeSnapshot.machineSignal: MachineSignalSnapshot
         BareTheme -> MachineSignalSnapshot.Board
         else -> throw ThemeMismatch("Machine Signal", id)
     }
+
+internal val ThemeSnapshot.signalOrBoard: MachineSignalSnapshot
+    @Composable get() = this as? MachineSignalSnapshot
+        ?: MachineSignalSnapshot.of(MachineSignalVariant.Board, MachineSignalDensity.Comfortable, LocalMachineSignalFonts.current)
 
 @Composable
 fun MachineSignalSurface(
