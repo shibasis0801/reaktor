@@ -90,6 +90,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
+import dev.shibasis.reaktor.surface.Availability
 import dev.shibasis.reaktor.surface.BehaviorKernel
 import dev.shibasis.reaktor.surface.CollectionEvent
 import dev.shibasis.reaktor.surface.CollectionInput
@@ -105,6 +106,8 @@ import dev.shibasis.reaktor.surface.KeyConvention
 import dev.shibasis.reaktor.surface.LocalCommand
 import dev.shibasis.reaktor.surface.MenuInput
 import dev.shibasis.reaktor.surface.MenuKernel
+import dev.shibasis.reaktor.surface.PressProperties
+import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.SelectionMode
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.TreeItems
@@ -135,6 +138,14 @@ class ItemScope internal constructor(val key: String, val index: Int, private va
     @Composable
     fun MenuTrigger(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
         Box(modifier.then(MenuTriggerElement(host, key)), propagateMinConstraints = true) { content() }
+
+    @Composable
+    fun CommandButton(command: CommandId, modifier: Modifier = Modifier, appearance: ButtonAppearance = LocalAppearances.current.button, content: @Composable () -> Unit) {
+        val enabled = host.available(command, key)
+        Box(modifier.then(CommandButtonElement(host, key, command, enabled)), propagateMinConstraints = true) {
+            appearance.Content(PressProperties(enabled), RestingPress, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), ButtonSlots(content))
+        }
+    }
 }
 
 class RowActions(
@@ -208,6 +219,7 @@ internal fun <T> Collection(
         }
     }
     host.list = state
+    host.actions = actions
     val inputModes = LocalInputModeManager.current
     SideEffect { host.update(properties, behavior, inputModes) }
     val menus = actions !== RowActions.None
@@ -335,6 +347,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     private var pointing = false
 
     var openMenu: ((IntRect) -> Unit)? = null
+    var actions = RowActions.None
     val menuOpen = mutableStateOf(false)
     var menuAnchor = IntRect.Zero
     var coordinates: LayoutCoordinates? = null
@@ -452,6 +465,13 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     fun select(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 1))
+
+    fun available(command: CommandId, key: String): Boolean =
+        actions.commands(setOf(key)).commands.any { it.id == command && it.availability == Availability.Available }
+
+    fun run(command: CommandId, key: String) {
+        if (available(command, key)) actions.onInvoke(command, setOf(key))
+    }
 
     fun open(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 2))
 
@@ -656,6 +676,40 @@ private class MenuTriggerNode(var host: CollectionHost, var key: String) :
     private fun open() = host.menuFrom(key, placed?.takeIf { it.isAttached }?.boundsInWindow()?.roundToIntRect() ?: IntRect.Zero)
 }
 
+private data class CommandButtonElement(val host: CollectionHost, val key: String, val command: CommandId, val enabled: Boolean) :
+    ModifierNodeElement<CommandButtonNode>() {
+    override fun create() = CommandButtonNode(host, key, command, enabled)
+
+    override fun update(node: CommandButtonNode) {
+        node.host = host
+        node.key = key
+        node.command = command
+        node.enabled = enabled
+    }
+}
+
+private class CommandButtonNode(var host: CollectionHost, var key: String, var command: CommandId, var enabled: Boolean) :
+    Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
+    private val tap = TouchTap()
+
+    override val shouldMergeDescendantSemantics: Boolean get() = true
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        if (!enabled) disabled()
+        onClick {
+            host.run(command, key)
+            enabled
+        }
+    }
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (enabled && pass == PointerEventPass.Main && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) host.run(command, key)
+    }
+
+    override fun onCancelPointerInput() = tap.cancel()
+}
+
 val BareRow: RowAppearance = object : RowAppearance {
     @Composable
     override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {
@@ -686,6 +740,8 @@ internal fun Modifier.focusFrame(shown: Boolean): Modifier = drawWithContent {
 private val DefaultKernel = CollectionKernel()
 
 private val RowMenuKernel = MenuKernel()
+
+private val RestingPress = PressState()
 
 private val NoCommands = CommandSet(emptyList())
 
