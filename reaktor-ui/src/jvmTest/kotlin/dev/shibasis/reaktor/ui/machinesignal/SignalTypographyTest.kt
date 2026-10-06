@@ -132,6 +132,16 @@ class SignalTypographyTest {
     }
 
     @Test
+    fun aBaseInTheFontsReplacesTheRootTextStyle() {
+        listOf(Type.Body, Type.Meta.code, Type.Title.strong).forEach { role ->
+            val legacy = render(true) { SignalText(sample, color = MachineSignal.Text2, size = sizes.getValue(role.scale), weight = weights.getValue(role.weight), mono = role.face == TypeFace.Code, maxLines = 3) }
+            val based = render(false, MachineSignalFonts(chrome = chrome, base = MachineSignal.Type.base)) { Text(sample, role = role, ink = Ink.Text, lines = 3) }
+            if (legacy.indices.any { legacy[it] != based[it] }) failures += "base/$role differs"
+        }
+        assertTrue(failures.isEmpty(), failures.joinToString("\n"))
+    }
+
+    @Test
     fun selectionUsesTheSignalAccentAndForeignInksFailLoudly() {
         var selection: TextSelectionColors? = null
         render(true) { selection = LocalTextSelectionColors.current }
@@ -141,15 +151,15 @@ class SignalTypographyTest {
     }
 
     private fun same(name: String, hangar: Boolean, legacy: @Composable () -> Unit, surface: @Composable () -> Unit) {
-        val expected = render(hangar, legacy)
-        val actual = render(hangar, surface)
+        val expected = render(hangar, content = legacy)
+        val actual = render(hangar, content = surface)
         val differing = expected.indices.count { expected[it] != actual[it] }
         if (differing > 0) failures += "$name: $differing pixels differ"
     }
 
-    private fun render(hangar: Boolean, content: @Composable () -> Unit): IntArray {
+    private fun render(hangar: Boolean, fonts: MachineSignalFonts = MachineSignalFonts(chrome = chrome), content: @Composable () -> Unit): IntArray {
         val scene = ImageComposeScene(width = 520, height = 96, density = Density(2f)) {
-            ProvideMachineSignalFonts(MachineSignalFonts(chrome = chrome)) {
+            ProvideMachineSignalFonts(fonts) {
                 MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
                     Box(Modifier.fillMaxSize().background(MachineSignal.Editor.Canvas).padding(4.dp)) {
                         if (hangar) ProvideTextStyle(hangarBody, content) else content()

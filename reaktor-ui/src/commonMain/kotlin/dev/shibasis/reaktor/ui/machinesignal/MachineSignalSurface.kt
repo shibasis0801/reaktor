@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -309,6 +310,7 @@ fun MachineSignalSurface(
     SurfaceTheme(snapshot, appearances) {
         CompositionLocalProvider(
             LocalMachineSignalFonts provides fonts,
+            LocalTextStyle provides (fonts.base?.let { LocalTextStyle.current.merge(it.copy(fontFamily = fonts.ui)) } ?: LocalTextStyle.current),
             content = content,
         )
     }
