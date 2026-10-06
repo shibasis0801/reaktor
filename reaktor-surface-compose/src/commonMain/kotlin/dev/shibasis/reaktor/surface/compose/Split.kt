@@ -80,7 +80,7 @@ fun Split(
     behavior: SplitterBehavior = SplitterKernel(),
     appearance: SplitterAppearance = LocalAppearances.current[Appearance.Splitter],
     initialFraction: Float = fraction,
-    label: String? = null,
+    handle: Modifier = Modifier,
     first: @Composable () -> Unit,
     second: @Composable () -> Unit,
 ) {
@@ -101,22 +101,39 @@ fun Split(
             axis = if (horizontal) Axis.Horizontal else Axis.Vertical,
             rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl,
         )
-        val handle = @Composable { SplitterHandle(properties, axis, behavior, appearance, SplitterPart, label) { if (extent > 0f) changed(it.size / extent) } }
+        val divider = @Composable { SplitterHandle(properties, axis, behavior, appearance, SplitterPart, handle) { if (extent > 0f) changed(it.size / extent) } }
         if (horizontal) {
             Row(Modifier.fillMaxSize()) {
                 Box(Modifier.width(size.dp).fillMaxHeight(), propagateMinConstraints = true) { first() }
-                handle()
+                divider()
                 Box(Modifier.weight(1f).fillMaxHeight(), propagateMinConstraints = true) { second() }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.height(size.dp).fillMaxWidth(), propagateMinConstraints = true) { first() }
-                handle()
+                divider()
                 Box(Modifier.weight(1f).fillMaxWidth(), propagateMinConstraints = true) { second() }
             }
         }
     }
 }
+
+@Deprecated("Name the handle through its modifier", ReplaceWith("Split(fraction, onFractionChange, firstMin, secondMin, modifier, axis, behavior, appearance, initialFraction, Modifier.semantics { contentDescription = label }, first, second)"))
+@Composable
+fun Split(
+    fraction: Float,
+    onFractionChange: (Float) -> Unit,
+    firstMin: Dp,
+    secondMin: Dp,
+    modifier: Modifier = Modifier,
+    axis: SplitAxis = SplitAxis.Horizontal,
+    behavior: SplitterBehavior = SplitterKernel(),
+    appearance: SplitterAppearance = LocalAppearances.current[Appearance.Splitter],
+    initialFraction: Float = fraction,
+    label: String,
+    first: @Composable () -> Unit,
+    second: @Composable () -> Unit,
+) = Split(fraction, onFractionChange, firstMin, secondMin, modifier, axis, behavior, appearance, initialFraction, Modifier.semantics { contentDescription = label }, first, second)
 
 @Composable
 internal fun SplitterHandle(
@@ -125,7 +142,6 @@ internal fun SplitterHandle(
     behavior: SplitterBehavior,
     appearance: SplitterAppearance,
     part: String,
-    label: String? = null,
     modifier: Modifier = Modifier,
     onSizeChange: (SizeChange) -> Unit,
 ) {
@@ -155,7 +171,6 @@ internal fun SplitterHandle(
                 handled
             }
             .semantics {
-                if (label != null) contentDescription = label
                 progressBarRangeInfo = ProgressBarRangeInfo(properties.size, properties.min..properties.max.coerceAtLeast(properties.min))
                 setProgress { target ->
                     machine.send(SplitterInput.Drag(properties.physical(target - properties.size)))

@@ -21,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -111,8 +113,7 @@ fun PaneHost(
                     behavior,
                     appearance,
                     "$SplitterPart/${item.id}",
-                    item.label,
-                    splitterModifier(item),
+                    item.label?.let { label -> splitterModifier(item).semantics { contentDescription = label } } ?: splitterModifier(item),
                 ) { change ->
                     changed(if (change.collapsed) latest.copy(hidden = latest.hidden + item.id)
                         else latest.copy(sizes = latest.sizes + (item.id to change.size), hidden = latest.hidden - item.id))
