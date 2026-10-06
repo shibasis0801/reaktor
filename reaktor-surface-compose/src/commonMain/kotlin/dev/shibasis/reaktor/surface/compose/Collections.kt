@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -238,10 +237,10 @@ internal fun <T> Collection(
             .focusProperties { canFocus = host.waiting() }
             .focusTarget(),
     ) {
-        LazyColumn(Modifier.fillMaxSize().then(CollectionPointerElement(host)), state = state) {
+        LazyColumn(Modifier.fillMaxWidth().then(CollectionPointerElement(host)), state = state) {
             items(source.size, key = source::key, contentType = { RowContent }) { index -> CollectionRow(host, source, index, appearance, row) }
         }
-        if (scrollbar) CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+        if (scrollbar) Box(Modifier.matchParentSize()) { CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight()) }
     }
 }
 

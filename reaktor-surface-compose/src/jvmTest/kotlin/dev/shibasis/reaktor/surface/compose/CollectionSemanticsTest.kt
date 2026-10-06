@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +17,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -61,6 +63,18 @@ class CollectionSemanticsTest {
         val list = onNodeWithTag("files").fetchSemanticsNode().config
         assertEquals(10_000, list[SemanticsProperties.CollectionInfo].rowCount)
         assertTrue(SemanticsProperties.SelectableGroup in list)
+    }
+
+    @Test
+    fun aListUnderAHeightCapIsOnlyAsTallAsItsRows() = runComposeUiTest {
+        setContent {
+            Column {
+                ListBox(listSource(listOf("a", "b"), { it }), emptySet(), {}, Modifier.heightIn(max = 300.dp).testTag("short")) { BasicText(it) }
+                ListBox(rows, emptySet(), {}, Modifier.heightIn(max = 300.dp).testTag("long")) { BasicText(it) }
+            }
+        }
+        onNodeWithTag("short").assertHeightIsEqualTo(64.dp)
+        onNodeWithTag("long").assertHeightIsEqualTo(300.dp)
     }
 
     @Test
