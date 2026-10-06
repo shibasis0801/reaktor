@@ -563,6 +563,7 @@ object MachineSignal {
         val findingsMaxHeight = 340.dp
         val graphCanvasInset = 364.dp
         val graphLabelWidth = 76.dp
+        val graphOnScreenMaxHeight = 240.dp
         val graphWidth = 348.dp
         val loadLabelWidth = 52.dp
         val pipelineWidth = 320.dp
