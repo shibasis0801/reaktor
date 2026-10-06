@@ -32,7 +32,7 @@ already run in, so no discovery and no IP address is involved.
 | --- | --- | --- |
 | Android | `localabstract:reaktor-devtools` | `adb forward tcp:<port> localabstract:reaktor-devtools` |
 | Apple simulator | `127.0.0.1:47821` | directly — the simulator shares the host's loopback |
-| Apple device | `127.0.0.1:47821` | `idb forward` over usbmux |
+| Apple device | `127.0.0.1:47821` | `idb_companion --forward <hardware-UDID>:47821` over usbmux |
 | Desktop | `127.0.0.1:47821` | directly |
 | Browser | nothing | a page cannot listen; a web agent dials out instead |
 
@@ -64,6 +64,13 @@ Modifier.reaktorElement(id = "chat.send", graphNodeId = chatNode.id, clickable =
 
 Gate the whole thing on a build flag. BestBuds uses `bestbuds.devTools`, which compiles to a
 constant, so a release build contains no listening socket at all.
+
+Firebase and TestFlight release builds cannot provide app frames or elements through this agent.
+For a physical iPhone, build BestBuds with `npm run maestro:ios:build`, install the resulting
+`tmp/xcode-derived/Build/Products/Debug-iphoneos/iosApp.app` using `xcrun devicectl device install app`,
+and launch it on the unlocked phone. The workbench uses CoreDevice for discovery and resolves its
+device identifier to the hardware UDID before opening the usbmux relay; these identifiers differ.
+`devicectl` does not itself forward the agent's TCP port. The Python `idb` client is not required.
 
 ## Attaching from the workbench
 

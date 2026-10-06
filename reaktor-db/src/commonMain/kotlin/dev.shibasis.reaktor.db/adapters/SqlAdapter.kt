@@ -17,8 +17,10 @@ import kotlin.js.JsExport
 abstract class SqlAdapter<Controller>(
     controller: Controller,
     val dbName: String = "reaktor.db",
-    val fileAdapter: FileAdapter<*> = Feature.File ?: throw Error("FileAdapter not initialized")
+    fileAdapter: FileAdapter<*>? = null
 ): Adapter<Controller>(controller) {
+    private val configuredFileAdapter = fileAdapter
+    val fileAdapter: FileAdapter<*> get() = configuredFileAdapter ?: Feature.File ?: throw Error("FileAdapter not initialized")
     private var driver: SqlDriver? = null
     private var _transacter: Transacter? = null
 

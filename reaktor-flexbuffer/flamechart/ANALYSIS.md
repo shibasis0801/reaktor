@@ -1,5 +1,15 @@
 # FlexBuffer Performance Deep-Dive & Next-Gen Architecture
 
+> **Historical analysis — current status refreshed 4 October 2026.** Read the
+> [October review](../PERFORMANCE_REVIEW_2026-10-03.md) for actual Chrome and physical-device measurements,
+> JSON/Protobuf baselines and four unresolved correctness defects. Numbers and
+> architectural sketches below retain their original scope; Android bulk policy
+> is proposed, not shipped. Compiler/plugin, native and mutable-engine proposals
+> are not production features. The
+> [complete book](https://reaktor.build/docs/flatbuffers-flexbuffers-mutable-memory)
+> is now published as separate design input.
+
+
 > **Scope**: Complete analysis of FlexBuffers — the C++ reference implementation, the Kotlin port, and the `reaktor-flexbuffer` serialization layer. Maps every profiled hotspot to source code, extracts the design principles that make C++ fast, and lays out a concrete architecture for making FlexBuffers the preferred serialization format for Kotlin.
 
 ---

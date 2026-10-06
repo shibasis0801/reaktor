@@ -42,7 +42,7 @@ class StripedCounter(private val stripes: Int = 16) {
 
 
 // ─────────────────────────────────────────────────────────────────
-// ConcurrentHashMap — lock-free, open-addressing, incremental resize
+// ConcurrentHashMap — atomic open-addressing, incremental resize
 //
 // Key design from "The Art of Multiprocessor Programming":
 // - Chapter 13: Concurrent hashing, incremental resize
@@ -131,6 +131,7 @@ class ConcurrentHashMap<K : Any, V : Any>(
 
         val nextTable: AtomicReference<Table<K, V>?> = AtomicReference(null)
         val migrationIndex = AtomicInt(0)
+        val migratedBuckets = AtomicInt(0)
         val migrationComplete = AtomicBoolean(false)
     }
 
@@ -182,7 +183,8 @@ class ConcurrentHashMap<K : Any, V : Any>(
 
     /**
      * Associates [key] with [value]. Returns the previous value, or null.
-     * Lock-free. On contention, uses inline quadratic backoff (no allocation).
+     * Cooperates with in-flight resize copies before writing to the new table.
+     * On contention, uses inline quadratic backoff (no allocation).
      */
     fun put(key: K, value: V): V? = putInternal(key, value, onlyIfAbsent = false)
 
@@ -388,16 +390,15 @@ class ConcurrentHashMap<K : Any, V : Any>(
         }
 
         repeat(MIGRATE_CHUNK_SIZE) {
+            if (oldTable.migrationIndex.load() >= oldTable.capacity) return
             val idx = oldTable.migrationIndex.addAndFetch(1) - 1
-            if (idx >= oldTable.capacity) {
+            if (idx >= oldTable.capacity) return
+            migrateBucket(oldTable, newTable, idx)
+            // Claiming the last index does not mean earlier copies have finished.
+            if (oldTable.migratedBuckets.addAndFetch(1) == oldTable.capacity) {
                 finalizeMigration(oldTable, newTable)
                 return
             }
-            migrateBucket(oldTable, newTable, idx)
-        }
-
-        if (oldTable.migrationIndex.load() >= oldTable.capacity) {
-            finalizeMigration(oldTable, newTable)
         }
     }
 

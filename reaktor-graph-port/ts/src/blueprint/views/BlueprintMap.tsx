@@ -63,6 +63,8 @@ export interface BlueprintMapProps {
   onCamera?: (viewport: Viewport) => void;
   onKeyDown?: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   cameraRef?: MutableRefObject<CameraControls | null>;
+  onCardMove?: (id: string, position: { x: number; y: number }) => void;
+  onCardMoveStart?: (id: string) => void;
   children?: ReactNode;
 }
 
@@ -305,17 +307,17 @@ function MapHost(props: BlueprintMapProps) {
       const pressed = (selectedCard ?? selected) === card.id;
       const label = cardLabel?.(card) ?? card.id;
       const existing = known.get(card.id);
-      if (existing && existing.ariaLabel === label && (existing.domAttributes as Record<string, unknown>)['aria-pressed'] === pressed) return existing;
+      if (existing && existing.draggable === !!props.onCardMove && existing.ariaLabel === label && (existing.domAttributes as Record<string, unknown>)['aria-pressed'] === pressed) return existing;
       const node: Node = {
         id: card.id, type: 'card', position: { x: card.x, y: card.y }, width: card.width, height: card.height, zIndex: 3, data: {},
-        draggable: false, selectable: false, connectable: false, deletable: false, focusable: true, ariaRole: 'button', ariaLabel: label,
+        draggable: !!props.onCardMove, selectable: false, connectable: false, deletable: false, focusable: true, ariaRole: 'button', ariaLabel: label,
         domAttributes: { 'data-testid': `map-card-${card.id}`, 'aria-pressed': pressed } as Node['domAttributes'],
       };
       known.set(card.id, node);
       return node;
     });
     return [...frames, wires, ...cards, labels];
-  }, [layout, selected, selectedCard, cardLabel]);
+  }, [layout, selected, selectedCard, cardLabel, props.onCardMove]);
 
   const measure = useCallback(() => {
     const flowElement = hostRef.current?.querySelector('.react-flow');
@@ -710,6 +712,8 @@ function MapHost(props: BlueprintMapProps) {
           elevateNodesOnSelect={false}
           proOptions={proOptions}
           onNodeClick={onNodeClick}
+          onNodeDragStart={(_, node) => { if (node.type === 'card') latest.current.onCardMoveStart?.(node.id); }}
+          onNodeDrag={(_, node) => { if (node.type === 'card') latest.current.onCardMove?.(node.id, node.position); }}
           onNodeDoubleClick={onNodeDoubleClick}
           onPaneClick={onPaneClick}
         />

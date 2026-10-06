@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.secrets
 
-import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
-import dev.shibasis.reaktor.auth.transport.bearerAuthorization
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders.AUTHORIZATION as AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders.authorization as bearerAuthorization
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.await
 import kotlinx.serialization.Serializable

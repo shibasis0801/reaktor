@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.services.json.AbstractGoogleJsonClientRe
 import com.google.api.client.http.ByteArrayContent
 import com.google.api.client.http.HttpRequestInitializer
 import com.google.api.client.http.HttpTransport
+import com.google.api.client.http.GenericUrl
 import com.google.api.client.json.JsonFactory
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.calendar.model.Channel
@@ -31,7 +32,7 @@ internal val googleJson: JsonFactory = GsonFactory.getDefaultInstance()
 
 internal class GoogleOperation(val scopes: Set<String>, val prepare: (GoogleClients, Params) -> () -> String)
 
-internal class GoogleClients(transport: HttpTransport, token: String, root: String?) {
+internal class GoogleClients(private val transport: HttpTransport, token: String, private val root: String?) {
     private val adapter = HttpCredentialsAdapter(OAuth2Credentials.create(AccessToken(token, null)))
     private val credentials = HttpRequestInitializer { request ->
         adapter.initialize(request)
@@ -48,6 +49,21 @@ internal class GoogleClients(transport: HttpTransport, token: String, root: Stri
 
     val youtube: YouTubeClient by lazy {
         YouTubeClient.Builder(transport, googleJson, credentials).setApplicationName(APPLICATION).also { builder -> root?.let { builder.setRootUrl(it) } }.build()
+    }
+
+    fun document(id: String, body: JsonObject? = null): () -> String {
+        require(Regex("[A-Za-z0-9_-]{1,200}").matches(id)) { "'documentId' is a Google document id." }
+        val url = GenericUrl("${root ?: "https://docs.googleapis.com/"}v1/documents/$id${if (body == null) "?includeTabsContent=true&commentsViewMode=COMMENTS_VIEW_MODE_INCLUDED&suggestionsViewMode=SUGGESTIONS_INLINE" else ":batchUpdate"}")
+        return {
+            val content = body?.let { ByteArrayContent("application/json", it.toString().encodeToByteArray()) }
+            val request = transport.createRequestFactory(credentials).buildRequest(if (body == null) "GET" else "POST", url, content)
+            val response = request.execute()
+            try {
+                val bytes = response.content.readNBytes(10 * 1024 * 1024 + 1)
+                require(bytes.size <= 10 * 1024 * 1024) { "The document response exceeds 10 MiB." }
+                bytes.decodeToString()
+            } finally { response.disconnect() }
+        }
     }
 
     private companion object {
@@ -73,6 +89,8 @@ internal class Params(private val values: JsonObject) {
     }
 
     fun section(name: String): Params? = (values[name] as? JsonObject)?.let(::Params)
+
+    fun objectValue(name: String): JsonObject = values[name] as? JsonObject ?: throw IllegalArgumentException("'$name' is required.")
 
     fun <T> resource(name: String, type: Class<T>): T {
         val body = values[name] as? JsonObject ?: throw IllegalArgumentException("'$name' is required.")
@@ -170,6 +188,15 @@ internal object GoogleOperations {
                 buildJsonObject { put("text", bytes.decodeToString()) }.toString()
             }
             export
+        },
+        "docs/documents.get" to GoogleOperation(driveRead + scopes("documents", "documents.readonly")) { clients, params ->
+            clients.document(params.string("documentId"))
+        },
+        "docs/documents.batchUpdate" to GoogleOperation(driveWrite + scopes("documents")) { clients, params ->
+            val body = params.objectValue("body")
+            val revision = (body["writeControl"] as? JsonObject)?.get("requiredRevisionId") as? JsonPrimitive
+            require(revision?.isString == true && revision.content.isNotBlank()) { "A document write requires 'writeControl.requiredRevisionId'." }
+            clients.document(params.string("documentId"), body)
         },
         "youtube/playlists.list" to GoogleOperation(youtubeRead) { clients, params ->
             json(

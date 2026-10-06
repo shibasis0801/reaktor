@@ -6,6 +6,10 @@ It is the shared runtime used by:
 - [BestBuds](/Users/ovd/dev/bestbuds/README.md)
 - `Manna`
 
+Published documentation lives at [reaktor.build/docs](https://reaktor.build/docs/).
+Its source is in [BestBuds' Reaktor web target](/Users/ovd/dev/bestbuds/targets/reaktorWeb/docusaurus).
+The older `website/` scaffold and `docs.reaktor.build` deployment have been retired.
+
 Before trusting a green build here, read [BUILD_HEALTH.md](BUILD_HEALTH.md): three modules do not
 compile or test on JS, two fail on the JVM, and a root `jvmTest` runs only half of the modules that
 have tests.
@@ -142,7 +146,7 @@ Every module has a stability level indicating its maturity:
 | --- | --- | --- | --- |
 | [reaktor-cloudflare](/Users/ovd/dev/reaktor/reaktor-cloudflare/README.md) | **Experimental** | JS (Cloudflare Workers) | Workers, D1, R2, Durable Objects, PartyServer, Hono, service bindings |
 | [reaktor-google](/Users/ovd/dev/reaktor/reaktor-google/README.md) | **Experimental** | JVM, JS, Android, iOS | Google Cloud Pub/Sub adapters |
-| [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | Meeseeks scheduler facade; native persistence and effect recovery require qualification |
+| [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | Legacy facade; selected replacement separates durable state, attempts and direct platform wakeups |
 
 ### Native Interop
 
@@ -318,7 +322,7 @@ Reaktor ships a unified native toolchain path:
 
 ### Background work
 
-`reaktor-work` currently provides a Meeseeks scheduling facade and thin platform context adapters. Its bundled worker bodies are placeholders; native guarantees and durable effect recovery require qualification. See the [Work documentation](https://reaktor.build/docs/reaktor-work) for the canonical roadmap.
+`reaktor-work` still contains the legacy Meeseeks facade and placeholder worker bodies. The selected replacement removes Meeseeks and separates WorkStore, WorkRuntime and WorkScheduler, using WorkManager, BGTaskScheduler, browser hosts, Cloudflare Workflows/Queues/GCP Pub/Sub and Spring Quartz/queues/GCP Pub/Sub directly. These profiles remain proposed until qualified. See the [Work architecture](https://reaktor.build/docs/reaktor-work) for contracts and platform boundaries.
 
 ### Telemetry
 

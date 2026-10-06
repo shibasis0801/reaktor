@@ -1,0 +1,9 @@
+FROM debian:bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends cmake ninja-build g++ pkg-config libwebkit2gtk-4.1-dev openjdk-17-jdk ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN ln -s "$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")" /opt/java
+ENV JAVA_HOME=/opt/java
+WORKDIR /src
+COPY . .
+ARG WEBVIEW_COMMIT
+ARG WEBVIEW_SHA256
+RUN cmake -S . -B /build -G Ninja -DREAKTOR_WEBVIEW_COMMIT=$WEBVIEW_COMMIT -DREAKTOR_WEBVIEW_SHA256=$WEBVIEW_SHA256 -DCMAKE_BUILD_TYPE=Release && cmake --build /build --target ReaktorWebView

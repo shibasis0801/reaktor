@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.device.AppleDeviceBackend
 import kotlin.test.*
 
 class DeviceToolsTest {
@@ -35,6 +36,27 @@ class DeviceToolsTest {
             """.trimMargin())
         assertEquals(2, devices.size)
         assertEquals(1, devices.count { it.ready })
+    }
+
+    @Test fun coreDeviceInventoryExcludesTheMacHostAndKeepsPhysicalAppleDevices() {
+        val devices = AppleDeviceBackend().parse("""
+            {"result":{"devices":[
+              {"identifier":"host","hardwareProperties":{"platform":"macOS"},
+               "deviceProperties":{"bootState":"booted"},"connectionProperties":{"pairingState":"unsupported"}},
+              {"identifier":"phone-core-id","hardwareProperties":{"platform":"iOS","udid":"phone-udid"},
+               "deviceProperties":{"name":"Phone","bootState":"booted","osVersionNumber":"26.7.1"},
+               "connectionProperties":{"pairingState":"paired"}},
+              {"identifier":"tablet-core-id","hardwareProperties":{"platform":"iOS"},
+               "deviceProperties":{"name":"Tablet","osVersionNumber":"26.5.2"},
+               "connectionProperties":{"pairingState":"paired"}}
+            ]}}
+        """.trimIndent())
+        assertEquals(listOf("phone-core-id", "tablet-core-id"), devices.map { it.id })
+        assertEquals("Phone", devices.first().name)
+        assertEquals("iOS 26.7.1", devices.first().runtime)
+        assertTrue(devices.first().ready)
+        assertEquals("paired", devices.last().state)
+        assertTrue(devices.all { it.transport == DeviceTransport.Idb })
     }
 
     @Test fun commandsAlwaysAddressExactDeviceAndWritesRequireReview() {
