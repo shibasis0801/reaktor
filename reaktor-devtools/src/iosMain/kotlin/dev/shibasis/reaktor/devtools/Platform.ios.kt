@@ -13,8 +13,8 @@ import platform.UIKit.UIDevice
  * Apple.
  *
  * A simulator shares the host's loopback, so the workbench reaches the agent with no forwarding at
- * all. A physical device needs usbmux forwarding, which `idb forward` and `devicectl` both provide
- * — there is no equivalent of `adb`'s abstract sockets to bind to instead.
+ * all. A physical device needs usbmux forwarding through `idb_companion --forward`; `devicectl`
+ * handles discovery and app lifecycle. There are no Android-style abstract sockets on Apple.
  */
 @OptIn(ExperimentalNativeApi::class)
 private object DarwinPlatformInfo : DevToolsPlatformInfo {

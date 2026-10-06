@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders
 import dev.shibasis.reaktor.service.InterceptorContext
 import dev.shibasis.reaktor.service.InterceptorStage
 import dev.shibasis.reaktor.service.Request
@@ -15,8 +16,8 @@ import kotlin.js.JsExport
 import kotlin.js.JsName
 import dev.shibasis.reaktor.service.ServiceStatusException
 
-const val AUTHORIZATION_HEADER = "Authorization"
-const val BEARER_PREFIX = "Bearer "
+const val AUTHORIZATION_HEADER = BearerHeaders.AUTHORIZATION
+const val BEARER_PREFIX = BearerHeaders.PREFIX
 const val AUTH_CONTEXT_ATTRIBUTE = "reaktor.auth.context"
 
 @JsName("AUTHORIZATION_HEADER")
@@ -27,15 +28,11 @@ val authorizationHeaderName: String
 @JsName("bearerAuthorization")
 @JsExport
 fun bearerAuthorization(token: String): String =
-    BEARER_PREFIX + token.trim()
+    BearerHeaders.authorization(token)
 
 @JsName("bearerTokenFromHeader")
 @JsExport
-fun bearerTokenFromHeader(value: String?): String? {
-    val raw = value?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    if (!raw.startsWith(BEARER_PREFIX, ignoreCase = true)) return null
-    return raw.drop(BEARER_PREFIX.length).trim().takeIf { it.isNotEmpty() }
-}
+fun bearerTokenFromHeader(value: String?): String? = BearerHeaders.tokenFromHeader(value)
 
 @JsName("headerValue")
 fun Map<String, String>.headerValue(name: String): String? =

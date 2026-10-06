@@ -9,7 +9,7 @@ class QueryReceiptTest {
         val receipt = QueryReceipt(provider = "Postgres", columns = listOf(QueryColumn("x", "int8"), QueryColumn("x", "text")),
             rows = listOf(listOf(JsonPrimitive("9223372036854775807"), JsonNull)))
         receipt.validate(1, "Postgres")
-        assertEquals(receipt, Json.decodeFromString<QueryReceipt>(Json.encodeToString(QueryReceipt.serializer(), receipt)))
+        assertEquals(receipt, Json.decodeFromString(QueryReceipt.serializer(), Json.encodeToString(QueryReceipt.serializer(), receipt)))
         assertFails { receipt.validate(1, "ClickHouse") }
         assertFails { receipt.copy(rows = listOf(listOf(JsonNull))).validate(1) }
         assertFails { receipt.copy(rows = List(3) { receipt.rows.single() }).validate(1) }

@@ -1,11 +1,16 @@
 {
-  "name": "reaktor-cloudflare",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "name": "@reaktor/web",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
   },
-  "author": "",
-  "license": "ISC"
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test test/*.mjs"
+  },
+  "license": "MIT"
 }

@@ -6,6 +6,9 @@ import { selectedCardOf, useScene, useSelection } from './context';
 export interface PinTone {
   tone: string;
   wiring?: PinWiring;
+  action?: () => void;
+  label?: string;
+  pressed?: boolean;
 }
 
 export interface BlueprintPinRowProps {
@@ -18,6 +21,7 @@ export interface BlueprintPinRowProps {
 }
 
 function Pin({ side, pin }: { side: 'in' | 'out'; pin: PinTone }) {
+  if (pin.action) return <button type="button" className="bp-pin bp-pin--action nodrag nopan" data-part="pin" data-side={side} data-wiring={pin.wiring ?? 'unlinked'} style={{ '--bp-pin': pin.tone } as CSSProperties} aria-label={pin.label} title={pin.label} aria-pressed={pin.pressed} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); pin.action?.(); }}/>;
   return <span className="bp-pin" data-part="pin" data-side={side} data-wiring={pin.wiring ?? 'linked'} style={{ '--bp-pin': pin.tone } as CSSProperties}/>;
 }
 

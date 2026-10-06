@@ -16,7 +16,7 @@ kotlin {
         dependencies {
             api(project(":reaktor-core"))
             commonNetworking()
-            api(project(":reaktor-graph"))
+            api(project(":reaktor-graph-runtime"))
             api("io.opentelemetry.kotlin:api:$otelKotlinVersion")
             api("io.opentelemetry.kotlin:noop:$otelKotlinVersion")
             implementation("io.opentelemetry.kotlin:implementation:$otelKotlinVersion")

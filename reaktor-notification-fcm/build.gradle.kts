@@ -39,7 +39,7 @@ kotlin {
             // FirebaseCore reconciled with reaktor-telemetry (Analytics/Crashlytics).
             // Verify with an on-device iOS build.
             pod("FirebaseMessaging") {
-                version = "11.0"
+                version = dev.shibasis.dependeasy.Version.FirebaseDarwin
                 extraOpts += listOf("-compiler-option", "-fmodules")
             }
         }

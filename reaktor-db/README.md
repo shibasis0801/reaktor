@@ -1,8 +1,10 @@
 # reaktor-db
 
-> **Stability: Stable**
+> **Status: implementation varies by API and target; browser SQLite migration awaits release qualification.**
 
-`reaktor-db` contains Reaktor's data storage abstractions for offline-first apps and tenant-safe server queries.
+`reaktor-db` contains local persistence APIs, SQL/graph adapters and query-policy helpers. The complete portable data platform and general offline sync engine remain proposed.
+
+The canonical documentation is the [Data layer reading map](https://reaktor.build/docs/reaktor-db#reading-map). Read [current storage APIs](https://reaktor.build/docs/reaktor-data-storage) for implemented surfaces, [Queues and Workflows](https://reaktor.build/docs/reaktor-data-workflows) for the cloud execution profile and [implementation gates](https://reaktor.build/docs/reaktor-data-implementation) for qualification.
 
 ## Responsibilities
 
@@ -15,7 +17,9 @@
 
 ## Platforms
 
-Android, iOS (Darwin), JVM, JavaScript/Web
+Android, iOS (Darwin), JVM, JavaScript/Web have source sets and adapters. Their existence does not prove equal persistence or background-execution guarantees.
+
+The current browser source uses `openWebSqliteObjectDatabase`, a SQLite/Wasm Worker, OPFS and Web Locks. Legacy IndexedDB records are imported without replacing newer SQLite keys; a separate marker prevents reset from reimporting old records. Publish the worker/Wasm assets and qualify migration, reload, tab concurrency, quota and account isolation on supported browsers. This is local persistence, not remote backup.
 
 ## Key types
 
@@ -47,7 +51,7 @@ Android, iOS (Darwin), JVM, JavaScript/Web
 | `MemgraphInspection` | Closed catalog of bounded label, property, node, relationship and count reads for an authorized database inspector |
 | `MemgraphReadPage` | Graph-neutral, bounded node/relationship result identities, returned properties and explicit unloaded endpoints |
 
-The graph DB surface adds soft multi-tenancy through mandatory parameterization, intended for graph databases like Memgraph where tenant isolation is enforced by query shape.
+The graph DB surface binds tenant parameters and validates supported query shapes. It is a guardrail, not a proof for arbitrary Cypher, procedures or direct-driver access. Admitted executors still enforce authority and qualified query policy.
 
 `MemgraphInspection` is a pure query catalog, separate from tenant-facing graph access. Its parser accepts
 only a registered statement with a limit of 1–500 and an offset of 0–1,000,000. Callers must still bind
@@ -65,7 +69,7 @@ not their labels or properties; those endpoints remain `loaded = false`. Desktop
 | Type | Purpose |
 |---|---|
 | `SqlAdapter` | SQL adapter pattern |
-| `SyncAdapter` | Synchronization support |
+| `SyncAdapter` | Whole-database HTTP snapshot upload/download and restore; no general incremental sync or conflict protocol |
 
 ### GraphQL client
 

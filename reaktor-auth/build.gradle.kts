@@ -110,6 +110,22 @@ val normalizeGoogleSignInIosBuildSettings by tasks.registering {
     }
 }
 
+val buildGoogleSignInIosWithSdk by tasks.registering(Exec::class) {
+    dependsOn("podSetupBuildGoogleSignInIos")
+    workingDir = layout.buildDirectory.dir("cocoapods/synthetic/ios/Pods").get().asFile
+    commandLine("xcodebuild", "-project", "Pods.xcodeproj", "-scheme", "GoogleSignIn",
+        "-sdk", "iphoneos", "-arch", "arm64", "-configuration", "Debug", "SUPPORTS_MACCATALYST=NO", "build")
+    inputs.file(layout.buildDirectory.file("cocoapods/synthetic/ios/Pods/Manifest.lock"))
+    outputs.dir(layout.buildDirectory.dir("cocoapods/synthetic/ios/build/Debug-iphoneos/GoogleSignIn/GoogleSignIn.framework"))
+}
+
+tasks.matching { it.name == "podBuildGoogleSignInIos" }.configureEach {
+    dependsOn(buildGoogleSignInIosWithSdk)
+    // The generated scheme can resolve to Catalyst on Xcode 26. Select the
+    // physical-device SDK explicitly, as the existing simulator task does.
+    onlyIf { false }
+}
+
 val buildGoogleSignInIosSimulatorWithSdk by tasks.registering(Exec::class) {
     dependsOn("podSetupBuildGoogleSignInIosSimulator")
     workingDir = layout.buildDirectory.dir("cocoapods/synthetic/ios/Pods").get().asFile
