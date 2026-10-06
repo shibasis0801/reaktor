@@ -53,6 +53,7 @@ android {
 }
 
 tasks.withType<Test>().configureEach {
+    systemProperty("java.awt.headless", "true")
     if (System.getProperty("os.name").lowercase().contains("mac")) {
         // Exercise JDK native gesture dispatch and listener cleanup in the desktop regression.
         jvmArgs("--add-opens=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
