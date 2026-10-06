@@ -83,16 +83,6 @@ fun TextField(
     )
 }
 
-@Deprecated("Name the field through its modifier", ReplaceWith("SecureTextField(state, modifier.semantics { contentDescription = label }, enabled, appearance)"))
-@Composable
-fun SecureTextField(
-    state: TextFieldState,
-    modifier: Modifier = Modifier,
-    label: String,
-    enabled: Boolean = true,
-    appearance: FieldAppearance = LocalAppearances.current.field,
-) = SecureTextField(state, modifier.semantics { contentDescription = label }, enabled, appearance)
-
 @Composable
 fun SecureTextField(
     state: TextFieldState,
