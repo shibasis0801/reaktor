@@ -4,6 +4,7 @@ interface CollectionItems : RovingItems {
     override fun indexOf(key: String): Int
     override fun enabled(index: Int): Boolean = true
     override fun text(index: Int): String? = null
+    fun selectable(index: Int): Boolean = true
 }
 
 interface TreeItems : CollectionItems {
@@ -65,19 +66,21 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
         val reduced: Reduction<CollectionState, CollectionEvent> = when (input) {
             is CollectionInput.Stroke -> stroke(properties, state, input)
             is CollectionInput.Press -> when {
-                !properties.selectable(input.key) -> Reduction(state)
+                !properties.reachable(input.key) -> Reduction(state)
                 input.clicks == 1 -> point(properties, state, input.key, if (input.extend) Pick.Range else if (input.toggle) Pick.Toggle else Pick.Only)
                 input.clicks == 2 -> Reduction(state, listOf(CollectionEvent.Activate(input.key)))
                 else -> Reduction(state)
             }
-            is CollectionInput.Secondary ->
-                if (!properties.selectable(input.key)) Reduction(state)
-                else {
+            is CollectionInput.Secondary -> when {
+                !properties.reachable(input.key) -> Reduction(state)
+                !properties.selectable(input.key) -> rove(properties, state, RovingInput.Point(input.key, focus = true))
+                else -> {
                     val pointed =
                         if (input.key in properties.selection) rove(properties, state, RovingInput.Point(input.key, focus = true))
                         else point(properties, state, input.key, Pick.Only)
                     pointed.copy(events = pointed.events + CollectionEvent.MenuRequest(input.key, input.atPointer))
                 }
+            }
             is CollectionInput.Focused -> rove(properties, state.copy(within = true), RovingInput.Focused(input.key))
             CollectionInput.Blurred -> reconcile(properties, state.copy(within = false))
             is CollectionInput.Hover -> Reduction(state.copy(hovered = input.key?.takeIf { properties.items.indexOf(it) >= 0 }))
@@ -113,12 +116,11 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
             is Action.Move -> move(properties, state, input, action.pick)
             is Action.Branch -> branch(properties, state, action.open)
             Action.Open -> Reduction(state, listOfNotNull(active?.let(CollectionEvent::Activate)))
-            Action.Menu -> Reduction(state, listOfNotNull(active?.let { CollectionEvent.MenuRequest(it, atPointer = false) }))
+            Action.Menu -> Reduction(state, listOfNotNull(active?.takeIf(properties::selectable)?.let { CollectionEvent.MenuRequest(it, atPointer = false) }))
             Action.Clear -> Reduction(state, properties.request(emptySet()))
             Action.All -> Reduction(state, properties.request(properties.items.keys(0 until properties.items.size)))
             Action.Toggle -> when {
-                properties.mode != SelectionMode.Multiple -> expand(properties, state, active) { !it }
-                active == null -> Reduction(state)
+                properties.mode != SelectionMode.Multiple || active == null || !properties.selectable(active) -> expand(properties, state, active) { !it }
                 else -> land(properties, state, active, roving.moveTo(state.roving, active), Pick.Toggle)
             }
         }
@@ -187,6 +189,7 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
 
     private fun choose(properties: CollectionProperties, anchor: String, target: String, pick: Pick): Set<String> {
         val selection = properties.selection
+        if (!properties.selectable(target) && (properties.mode != SelectionMode.Multiple || pick != Pick.Range)) return selection
         return when (properties.mode) {
             SelectionMode.None -> selection
             SelectionMode.Single -> setOf(target)
@@ -244,7 +247,9 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
 
 private fun CollectionProperties.roving() = RovingProperties(items, Axis.Vertical, wrap = false)
 
-private fun CollectionProperties.selectable(key: String): Boolean = enabled && items.indexOf(key).let { it >= 0 && items.enabled(it) }
+private fun CollectionProperties.reachable(key: String): Boolean = enabled && items.indexOf(key).let { it >= 0 && items.enabled(it) }
+
+private fun CollectionProperties.selectable(key: String): Boolean = reachable(key) && items.selectable(items.indexOf(key))
 
 private fun CollectionProperties.request(next: Set<String>): List<CollectionEvent> =
     if (next == selection) emptyList() else listOf(CollectionEvent.SelectionChange(next))
@@ -252,7 +257,7 @@ private fun CollectionProperties.request(next: Set<String>): List<CollectionEven
 private fun CollectionProperties.firstSelected(): String? =
     selection.map { items.indexOf(it) }.filter { it >= 0 && items.enabled(it) }.minOrNull()?.let(items::key)
 
-private fun CollectionItems.keys(indices: IntProgression): Set<String> = indices.filter(::enabled).map(::key).toSet()
+private fun CollectionItems.keys(indices: IntProgression): Set<String> = indices.filter { enabled(it) && selectable(it) }.map(::key).toSet()
 
 private fun CollectionItems.span(from: String, to: String): Set<String> {
     val end = indexOf(to)

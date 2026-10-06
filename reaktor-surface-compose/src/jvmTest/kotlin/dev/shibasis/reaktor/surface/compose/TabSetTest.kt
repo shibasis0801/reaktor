@@ -98,6 +98,21 @@ class TabSetTest {
     }
 
     @Test
+    fun aClickOrEnterOnTheSelectedTabReportsAReselect() = runComposeUiTest {
+        val reselected = mutableListOf<String>()
+        val chosen = mutableListOf<String>()
+        setContent { TabSet(documents, "data", { chosen += it }, onReselect = { reselected += it }) { key -> BasicText(key, Modifier.testTag("label-$key")) } }
+        onNodeWithTag("label-data", useUnmergedTree = true).performClick()
+        assertEquals(listOf("data"), reselected)
+        onNodeWithTag("data").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        assertEquals(listOf("data", "data"), reselected)
+        onNodeWithTag("label-cloud", useUnmergedTree = true).performClick()
+        assertEquals(listOf("cloud"), chosen)
+        assertEquals(listOf("data", "data"), reselected)
+    }
+
+    @Test
     fun enterAndAClickSwitch() = runComposeUiTest {
         var selected by mutableStateOf("graph")
         setContent { Strip(documents, selected, { selected = it }) }

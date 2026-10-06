@@ -22,6 +22,7 @@ sealed interface TabSetInput {
 
 sealed interface TabSetEvent {
     data class Select(val key: String) : TabSetEvent
+    data class Reselect(val key: String) : TabSetEvent
     data class CloseRequest(val key: String) : TabSetEvent
 }
 
@@ -107,7 +108,7 @@ private fun TabSetProperties.roving() = RovingProperties(tabs, Axis.Horizontal, 
 
 private fun TabSetProperties.choosable(key: String): Boolean = tabs.indexOf(key).let { it >= 0 && tabs.enabled(it) }
 
-private fun TabSetProperties.select(key: String): List<TabSetEvent> = if (key == selected) emptyList() else listOf(TabSetEvent.Select(key))
+private fun TabSetProperties.select(key: String): List<TabSetEvent> = listOf(if (key == selected) TabSetEvent.Reselect(key) else TabSetEvent.Select(key))
 
 private fun CollectionItems.afterClosing(key: String): String? {
     val index = indexOf(key)

@@ -132,6 +132,38 @@ class TreeKernelTest {
     }
 
     @Test
+    fun aRowThatCannotBeSelectedTakesFocusButNeverTheSelectionOrAMenu() {
+        val headed = treeSource(tree, { it.key }, { it.children }, setOf("src", "main", "kotlin"), text = { it.key }, selectable = { it.children.isEmpty() })
+        val single = CollectionProperties(headed, setOf("App.kt"), KeyConvention.Mac, SelectionMode.Single)
+        val at = { key: String -> CollectionState(RovingState(active = key), headed.indexOf(key), key, within = true) }
+        val up = kernel.reduce(single, at("App.kt"), press(KeyName.Up))
+        assertEquals("kotlin", up.state.active)
+        assertTrue(up.events.isEmpty())
+        assertEquals(movedTo("kotlin"), up.commands)
+        val left = kernel.reduce(single, at("App.kt"), press(KeyName.Left))
+        assertEquals("kotlin", left.state.active)
+        assertTrue(left.events.isEmpty())
+        val clicked = kernel.reduce(single, at("App.kt"), CollectionInput.Press("main", extend = false, toggle = false, clicks = 1))
+        assertEquals("main", clicked.state.active)
+        assertTrue(clicked.events.isEmpty())
+        assertEquals(listOf<CollectionEvent>(CollectionEvent.Activate("main")), kernel.reduce(single, at("main"), CollectionInput.Press("main", extend = false, toggle = false, clicks = 2)).events)
+        assertEquals(listOf<CollectionEvent>(CollectionEvent.Activate("main")), kernel.reduce(single, at("main"), press(KeyName.Enter)).events)
+        val secondary = kernel.reduce(single, at("App.kt"), CollectionInput.Secondary("main", atPointer = true))
+        assertEquals("main", secondary.state.active)
+        assertTrue(secondary.events.isEmpty())
+        assertTrue(kernel.reduce(single, at("main"), CollectionInput.Stroke(KeyStroke(KeyName.F10, shift = true), 10)).events.isEmpty())
+        assertEquals(expansion("main", false), kernel.reduce(single, at("main"), press(KeyName.Space, ' ')).events)
+        assertEquals(listOf<CollectionEvent>(CollectionEvent.MenuRequest("Main.kt", atPointer = false)),
+            kernel.reduce(single, at("Main.kt"), CollectionInput.Stroke(KeyStroke(KeyName.F10, shift = true), 10)).events)
+        val multiple = single.copy(mode = SelectionMode.Multiple, selection = setOf("App.kt"))
+        assertEquals(expansion("kotlin", false), kernel.reduce(multiple, at("kotlin"), press(KeyName.Space, ' ')).events)
+        val range = kernel.reduce(multiple, at("App.kt"), CollectionInput.Press("resources", extend = true, toggle = false, clicks = 1))
+        assertEquals(setOf("App.kt", "Main.kt"), range.events.filterIsInstance<CollectionEvent.SelectionChange>().single().selection)
+        val all = kernel.reduce(multiple, at("App.kt"), CollectionInput.Stroke(KeyStroke(KeyName.A, meta = true, character = 'a'), 10))
+        assertEquals(setOf("App.kt", "Main.kt", "README.md"), all.events.filterIsInstance<CollectionEvent.SelectionChange>().single().selection)
+    }
+
+    @Test
     fun leftAndRightBelongToTreesAndTakeNoModifiers() {
         val list = properties().copy(items = listSource(listOf("a", "b"), { it }))
         assertFalse(kernel.handles(list, KeyStroke(KeyName.Left)))

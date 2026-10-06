@@ -40,14 +40,16 @@ class TabSetKernelTest {
     fun enterSpaceAndAClickSwitch() {
         assertEquals(listOf<TabSetEvent>(TabSetEvent.Select("cloud")), kernel.reduce(properties(), at("cloud"), press(KeyName.Enter)).events)
         assertEquals(listOf<TabSetEvent>(TabSetEvent.Select("cloud")), kernel.reduce(properties(), at("cloud"), press(KeyName.Space, ' ')).events)
-        assertTrue(kernel.reduce(properties(), at("data"), press(KeyName.Enter)).events.isEmpty())
+        assertEquals(listOf<TabSetEvent>(TabSetEvent.Reselect("data")), kernel.reduce(properties(), at("data"), press(KeyName.Enter)).events)
+        assertEquals(listOf<TabSetEvent>(TabSetEvent.Reselect("data")), kernel.reduce(properties(), at("data"), press(KeyName.Space, ' ')).events)
         val clicked = kernel.reduce(properties(), at("data"), TabSetInput.Point("testing"))
         assertEquals(listOf<TabSetEvent>(TabSetEvent.Select("testing")), clicked.events)
         assertEquals("testing", clicked.state.active)
         assertEquals(3, clicked.state.activeIndex)
         assertEquals(listOf<LocalCommand>(LocalCommand.Focus(PartKey("testing")), LocalCommand.Reveal(PartKey("testing"))), clicked.commands)
         val same = kernel.reduce(properties(), at("data"), TabSetInput.Point("data"))
-        assertTrue(same.events.isEmpty())
+        assertEquals(listOf<TabSetEvent>(TabSetEvent.Reselect("data")), same.events)
+        assertEquals(listOf<TabSetEvent>(TabSetEvent.Select("data")), kernel.reduce(properties(selected = null), at("data"), TabSetInput.Point("data")).events)
         assertEquals(listOf<LocalCommand>(LocalCommand.Focus(PartKey("data")), LocalCommand.Reveal(PartKey("data"))), same.commands)
         assertTrue(kernel.reduce(properties(), at("data"), TabSetInput.Point("gone")).events.isEmpty())
     }

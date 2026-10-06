@@ -37,6 +37,9 @@ class SourcesTest {
         assertEquals(listOf("alpha", "beta"), (0 until source.size).map(source::key))
         assertEquals("Alpha", source.text(0))
         assertEquals(listOf(true, false), (0 until source.size).map(source::enabled))
+        assertEquals(listOf(true, true), (0 until source.size).map(source::selectable))
+        val headed = treeSource(tree, { it.key }, { it.children }, setOf("a"), selectable = { it.children.isEmpty() })
+        assertEquals(listOf(false, false, true, false, true), (0 until headed.size).map(headed::selectable))
     }
 
     @Test

@@ -11,7 +11,8 @@ fun <T> listSource(
     key: (T) -> String,
     text: (T) -> String? = { null },
     enabled: (T) -> Boolean = { true },
-): ItemSource<T> = ListSource(items, key, text, enabled)
+    selectable: (T) -> Boolean = { true },
+): ItemSource<T> = ListSource(items, key, text, enabled, selectable)
 
 fun <T> treeSource(
     roots: List<T>,
@@ -20,6 +21,7 @@ fun <T> treeSource(
     expanded: Set<String>,
     text: (T) -> String? = { null },
     enabled: (T) -> Boolean = { true },
+    selectable: (T) -> Boolean = { true },
 ): TreeSource<T> {
     val items = mutableListOf<T>()
     val depths = mutableListOf<Int>()
@@ -32,7 +34,7 @@ fun <T> treeSource(
         if (key(item) in expanded) children(item).forEach { visit(it, depth + 1, index) }
     }
     roots.forEach { visit(it, 0, -1) }
-    return TreeRows(listSource(items, key, text, enabled), depths, parents, children, expanded)
+    return TreeRows(listSource(items, key, text, enabled, selectable), depths, parents, children, expanded)
 }
 
 private class ListSource<T>(
@@ -40,6 +42,7 @@ private class ListSource<T>(
     private val keyOf: (T) -> String,
     private val textOf: (T) -> String?,
     private val enabledOf: (T) -> Boolean,
+    private val selectableOf: (T) -> Boolean,
 ) : ItemSource<T> {
     private val positions by lazy { items.indices.associateBy { keyOf(items[it]) } }
 
@@ -49,6 +52,7 @@ private class ListSource<T>(
     override fun indexOf(key: String): Int = positions[key] ?: -1
     override fun enabled(index: Int): Boolean = enabledOf(items[index])
     override fun text(index: Int): String? = textOf(items[index])
+    override fun selectable(index: Int): Boolean = selectableOf(items[index])
 }
 
 private class TreeRows<T>(
