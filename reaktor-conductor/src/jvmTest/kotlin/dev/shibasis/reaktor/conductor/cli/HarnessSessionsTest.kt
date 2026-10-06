@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import java.io.File
 import java.nio.file.Files
@@ -46,8 +48,8 @@ class HarnessSessionsTest {
     }
 
     @AfterTest fun clean() {
-        home.deleteRecursively()
-        workspace.parentFile.deleteRecursively()
+        home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
+        workspace.parentFile.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
     }
 
     @Test fun findsTheClaudeAndCodexSessionsWorkingOnThisWorkspace() {

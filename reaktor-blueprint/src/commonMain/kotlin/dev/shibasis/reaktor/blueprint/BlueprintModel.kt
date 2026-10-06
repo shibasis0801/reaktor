@@ -83,6 +83,7 @@ data class BlueprintLayout<K>(
     val links: List<Link>,
     val width: Double,
     val height: Double,
+    val layoutFailures: List<Throwable> = emptyList(),
 ) {
     val cardOf: Map<String, String> = cards.keys.associateWith { it }
 }
@@ -98,7 +99,7 @@ class FrameEdge(
     val members: List<String>,
 )
 
-class FrameLayout(val cards: Map<String, Card>, val links: List<Link>, val width: Double, val height: Double)
+class FrameLayout(val cards: Map<String, Card>, val links: List<Link>, val width: Double, val height: Double, val failure: Throwable? = null)
 
 fun interface FrameLayouter {
     fun lay(group: BlueprintGroup, pins: Map<String, List<Pin>>, edges: List<FrameEdge>): FrameLayout

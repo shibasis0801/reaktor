@@ -215,13 +215,14 @@ internal fun <T> Collection(
     val expanded by rememberUpdatedState(onExpandedChange)
     val activated by rememberUpdatedState(onActivate)
     val checked by rememberUpdatedState(onCheckedChange)
+    fun original(key: String): String = source.indexOf(key).takeIf { it >= 0 }?.let(source::originalKey) ?: key
     host.machine = rememberMachine(behavior, properties, host::execute) { event ->
         when (event) {
-            is CollectionEvent.SelectionChange -> changed(event.selection)
-            is CollectionEvent.Activate -> activated(event.key)
-            is CollectionEvent.ExpansionChange -> expanded(event.key, event.expanded)
+            is CollectionEvent.SelectionChange -> changed(event.selection.mapTo(linkedSetOf(), ::original))
+            is CollectionEvent.Activate -> activated(original(event.key))
+            is CollectionEvent.ExpansionChange -> expanded(original(event.key), event.expanded)
             is CollectionEvent.MenuRequest -> host.menu(event)
-            is CollectionEvent.CheckChange -> checked(event.key, event.checked)
+            is CollectionEvent.CheckChange -> checked(original(event.key), event.checked)
         }
     }
     host.list = state

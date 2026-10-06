@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
@@ -74,7 +76,7 @@ class JvmProjectDiscoverySealTest {
             File(root, "buildSrc/Rules.kt").apply { parentFile.mkdirs(); writeText("// Fixture build logic\n") }
             File(included, "build.gradle.kts").writeText("// Fixture included build\n")
             block(root, included)
-        } finally { parent.deleteRecursively() }
+        } finally { parent.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     private val wrapperName = if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew"

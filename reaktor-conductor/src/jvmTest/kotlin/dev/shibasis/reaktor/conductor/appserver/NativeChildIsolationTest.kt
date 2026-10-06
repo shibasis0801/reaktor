@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.toList
@@ -46,7 +48,7 @@ for line in sys.stdin:
                 assertEquals("PARENT ANSWER", output.filterIsInstance<AgentEvent.Finished>().single().outcome.text)
                 assertTrue(output.filterIsInstance<AgentEvent.Delta>().none { it.text.contains("WRONG") })
             }
-        } finally { scope.cancel(); root.deleteRecursively() }
+        } finally { scope.cancel(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 }

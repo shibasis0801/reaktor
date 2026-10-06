@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.mcp.door
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.mcp.McpTool
 import dev.shibasis.reaktor.mcp.ReaktorMcpServer
 import dev.shibasis.reaktor.mcp.emptyObjectSchema
@@ -32,7 +34,7 @@ class DoorAuthorityTest {
     private val approvals = DoorApprovals(directory.resolve("approvals"))
     private var ran = 0
 
-    @AfterTest fun cleanUp() { scope.cancel(); directory.toFile().deleteRecursively() }
+    @AfterTest fun cleanUp() { scope.cancel(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
 
     @Test fun aReadPassesAWriteWaitsForAPersonAndTheApprovalIsSpentByOneCall() {
         val door = door(SafetyClass.NonProductionWrite, trustHints = true)
@@ -117,7 +119,7 @@ class DoorAuthorityTest {
             val policy = DoorPolicy.load(workspace, home)
             assertEquals(SeatPolicy(SafetyClass.LiveRead, SafetyClass.ProductionReversibleWrite), policy.seat("codex"), "a file an agent can edit must not widen what the machine allows")
             assertEquals(SeatPolicy(SafetyClass.ReadOnly, SafetyClass.LiveRead), policy.seat("spawned"))
-        } finally { home.deleteRecursively(); workspace.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun onlyAStatementThatProvablyReadsIsTreatedAsARead() {
@@ -160,7 +162,7 @@ class DoorAuthorityTest {
             assertTrue(runCatching { credentials.resolve(DoorCredential.SecretFile("config/mcp/link.token")) }.exceptionOrNull()?.message.orEmpty().contains("outside"), "a link must not lead out of the folder")
             val missing = runCatching { credentials.resolve(DoorCredential.SecretFile("config/mcp/absent.token", whenMissing = "Create a token and put it in config/mcp/absent.token")) }.exceptionOrNull()
             assertTrue(missing is CredentialMissing && missing.message!!.contains("Create a token"))
-        } finally { home.deleteRecursively(); workspace.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aWorkspacesProviderListIsLeftOutUntilAPersonHasAcceptedExactlyThatContent() {
@@ -176,7 +178,7 @@ class DoorAuthorityTest {
             assertEquals(listOf("github", "cloned"), DoorConfig.load(workspace, home) { it == accepted }.providers.map { it.id })
             list.appendText(" ")
             assertEquals(listOf("github"), DoorConfig.load(workspace, home) { it == accepted }.providers.map { it.id }, "an edited list has to be accepted again")
-        } finally { home.deleteRecursively(); workspace.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     private fun door(safety: SafetyClass, trustHints: Boolean, policy: DoorPolicy = DoorPolicy()): McpDoor {

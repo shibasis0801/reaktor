@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.workspace.*
 import kotlinx.coroutines.*
@@ -46,7 +48,7 @@ class InteractiveWorkspaceLiveTest {
                 assertTrue(second.output.contains("400"), "Continuation lost its context: ${second.output}")
                 assertEquals(first.session?.sessionId, second.session?.sessionId, "Same thread, same native session")
             }
-        } finally { scope.cancel(); root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { scope.cancel(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     } }
 
     private suspend fun terminal(connection: AgentWorkspaceConnection, initial: AgentRunRecord): AgentRunRecord =

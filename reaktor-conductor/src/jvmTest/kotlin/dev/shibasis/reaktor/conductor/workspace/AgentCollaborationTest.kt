@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -63,7 +65,7 @@ class AgentCollaborationTest {
                 assertTrue(codex.requests.last().prompt.contains("UNIQUE_ClaudeCode_PROPOSAL"))
                 assertTrue(connection.list().all { it.participants.values.all { participant -> participant.output.isEmpty() } })
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun participantFailureRemainsFailedEvenWhenSynthesisSucceeds() = runBlocking {
@@ -80,7 +82,7 @@ class AgentCollaborationTest {
                 assertEquals(EventKind.Synthesis, connection.transcript(run.threadId).events.last().kind)
                 assertEquals(5, run.turnUsage?.turns)
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun comparisonReservesTwoSlotsAndCancellationStopsBothParticipants() = runBlocking {
@@ -105,7 +107,7 @@ class AgentCollaborationTest {
                 assertEquals(AgentRunStatus.Interrupted, connection.cancel(run.id).status)
                 assertEquals(AgentRunStatus.Completed, connection.get(next.id).status)
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun collaborativeValidationPrecedesDispatch() {
@@ -123,7 +125,7 @@ class AgentCollaborationTest {
                 assertTrue(workspace.list().isEmpty())
                 assertTrue(codex.requests.isEmpty())
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun recoveryMarksUnfinishedParticipantsInterruptedWithoutRedispatch() = runBlocking {
@@ -149,6 +151,6 @@ class AgentCollaborationTest {
                 assertEquals(1, codex.requests.size)
                 assertEquals(1, claude.requests.size)
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import java.io.File
 import java.nio.file.Files
@@ -46,7 +48,7 @@ class AgentEvidenceTest {
             assertTrue(reopened.graph("task").edges.any { it.relation == "verifies" && it.to == repaired.id })
             assertTrue(reopened.artifact("task", repaired.diff!!.id).text.contains("repair"))
             assertFails { reopened.artifact("task", "../outside") }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun artifactRangesReassembleUnicodeWithoutDroppingBytes() {
         val data = Files.createTempDirectory("artifact-unicode")
@@ -64,7 +66,7 @@ class AgentEvidenceTest {
                 offset = next
             } while (true)
             assertEquals(text, output.toString())
-        } finally { data.toFile().deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun anIncludedBuildEditChangesTheRootCandidate() {
@@ -90,6 +92,6 @@ class AgentEvidenceTest {
             assertNotEquals(before.id, after.id)
             assertTrue(dependency.canonicalPath in after.sourceRoots)
             assertTrue(after.changedFiles.any { it.endsWith("framework/Source.kt") })
-        } finally { parent.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { parent.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

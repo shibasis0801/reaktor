@@ -28,7 +28,7 @@ struct Session {
     reaktor_web_callbacks callbacks{};
     std::map<std::string, Asset> assets;
     size_t asset_bytes = 0;
-    ~Session();
+    ~Session() noexcept;
 };
 // Never destroy AppKit objects from the JVM's process-exit thread.
 auto &sessions = *new std::map<reaktor_web_handle, std::unique_ptr<Session>>;
@@ -205,21 +205,28 @@ void check(webview_error_t status) {
 @end
 
 namespace {
-Session::~Session() {
-    if (editing_monitor) { [NSEvent removeMonitor:editing_monitor]; [editing_monitor release]; }
-    if (observes_url) [view removeObserver:delegate forKeyPath:@"URL"];
-    if (observes_title) [view removeObserver:delegate forKeyPath:@"title"];
-    [view stopLoading];
-    view.navigationDelegate = nil;
-    view.UIDelegate = nil;
-    [view.configuration.userContentController removeScriptMessageHandlerForName:@"reaktor"];
-    [widget removeFromSuperview];
-    if (browser) webview_destroy(browser);
-    [delegate release];
-    [staging close];
-    [staging release];
-    [parent release];
-    if (callbacks.release) callbacks.release(callbacks.context);
+Session::~Session() noexcept {
+    @try {
+        try {
+            if (editing_monitor) { [NSEvent removeMonitor:editing_monitor]; [editing_monitor release]; }
+            if (observes_url) [view removeObserver:delegate forKeyPath:@"URL"];
+            if (observes_title) [view removeObserver:delegate forKeyPath:@"title"];
+            [view stopLoading];
+            view.navigationDelegate = nil;
+            view.UIDelegate = nil;
+            [view.configuration.userContentController removeScriptMessageHandlerForName:@"reaktor"];
+            [widget removeFromSuperview];
+            if (browser) webview_destroy(browser);
+            [delegate release];
+            [staging close];
+            [staging release];
+            [parent release];
+        } catch (...) { NSLog(@"Reaktor WebView teardown failed"); }
+    } @catch (NSException *) { NSLog(@"Reaktor WebView teardown failed"); }
+    @try {
+        try { if (callbacks.release) callbacks.release(callbacks.context); }
+        catch (...) { NSLog(@"Reaktor WebView callback release failed"); }
+    } @catch (NSException *) { NSLog(@"Reaktor WebView callback release failed"); }
 }
 }
 void reaktor_web_configure_apple(void *configuration) {
@@ -268,8 +275,8 @@ int reaktor_web_create(void *parent, const char *profile, int debug, const char 
             styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:NO];
         [session->staging setReleasedWhenClosed:NO];
         constructing = session.get();
-        try { session->browser = webview_create(0, session->staging); } catch (...) { constructing = nullptr; throw; }
-        constructing = nullptr;
+        @try { session->browser = webview_create(0, session->staging); }
+        @finally { constructing = nullptr; }
         if (!session->browser) throw std::runtime_error("webview/webview could not create WKWebView");
         session->widget = static_cast<NSView *>(webview_get_native_handle(session->browser, WEBVIEW_NATIVE_HANDLE_KIND_UI_WIDGET));
         auto browser_view = webview_get_native_handle(session->browser, WEBVIEW_NATIVE_HANDLE_KIND_BROWSER_CONTROLLER);
@@ -290,12 +297,10 @@ int reaktor_web_create(void *parent, const char *profile, int debug, const char 
         [session->view addObserver:delegate forKeyPath:@"title" options:0 context:nullptr];
         session->observes_title = true;
         const auto handle = session->handle;
-        sessions.emplace(handle, std::move(session));
-        lookup(handle)->callbacks = callbacks;
         // AWT owns the application's menu bar, so WKWebView's standard editing
         // key equivalents need routing to its native first responder. Scope the
         // monitor to this window and focused view; Compose keeps its shortcuts.
-        lookup(handle)->editing_monitor = [[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+        session->editing_monitor = [[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
             handler:^NSEvent *(NSEvent *event) {
                 auto current = lookup(handle);
                 if (!current || event.window != current->parent.window) return event;
@@ -315,6 +320,8 @@ int reaktor_web_create(void *parent, const char *profile, int debug, const char 
                 if (action && [NSApp sendAction:action to:responder from:nil]) return nil;
                 return event;
             }] retain];
+        sessions.emplace(handle, std::move(session));
+        lookup(handle)->callbacks = callbacks;
         *result = handle;
         return REAKTOR_WEB_OK;
     });

@@ -1,0 +1,73 @@
+loose false
+node p-0 0 46.0
+node p-1 2 46.0
+node p-10 0 46.0
+node p-11 2 46.0
+node p-12 1 46.0
+node p-13 1 46.0
+node p-14 2 46.0
+node p-15 0 46.0
+node p-16 2 46.0
+node p-17 1 46.0
+node p-18 1 46.0
+node p-19 2 46.0
+node p-2 1 46.0
+node p-20 0 46.0
+node p-21 2 46.0
+node p-22 1 46.0
+node p-23 1 46.0
+node p-3 1 46.0
+node p-4 2 46.0
+node p-5 0 46.0
+node p-6 2 46.0
+node p-7 1 46.0
+node p-8 1 46.0
+node p-9 2 46.0
+edge p-0 - p-15 -
+edge p-0 - p-5 -
+edge p-1 - p-13 -
+edge p-1 - p-23 -
+edge p-10 - p-16 -
+edge p-10 - p-8 -
+edge p-11 - p-3 -
+edge p-12 - p-1 -
+edge p-12 - p-11 -
+edge p-12 - p-19 -
+edge p-13 - p-17 -
+edge p-13 - p-9 -
+edge p-14 - p-4 -
+edge p-15 - p-12 -
+edge p-15 - p-2 -
+edge p-15 - p-20 -
+edge p-16 - p-10 -
+edge p-16 - p-18 -
+edge p-17 - p-5 -
+edge p-18 - p-13 -
+edge p-18 - p-21 -
+edge p-18 - p-3 -
+edge p-19 - p-11 -
+edge p-2 - p-0 -
+edge p-2 - p-21 -
+edge p-2 - p-8 -
+edge p-20 - p-19 -
+edge p-20 - p-6 -
+edge p-21 - p-14 -
+edge p-21 - p-22 -
+edge p-21 - p-4 -
+edge p-22 - p-12 -
+edge p-23 - p-20 -
+edge p-23 - p-7 -
+edge p-3 - p-16 -
+edge p-3 - p-6 -
+edge p-4 - p-14 -
+edge p-5 - p-1 -
+edge p-5 - p-22 -
+edge p-5 - p-9 -
+edge p-6 - p-17 -
+edge p-6 - p-7 -
+edge p-7 - p-15 -
+edge p-8 - p-10 -
+edge p-8 - p-2 -
+edge p-8 - p-23 -
+edge p-9 - p-0 -
+edge p-9 - p-18 -

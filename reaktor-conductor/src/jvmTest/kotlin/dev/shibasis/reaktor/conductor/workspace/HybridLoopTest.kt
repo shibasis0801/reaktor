@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.workspace
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
@@ -74,7 +75,7 @@ class HybridLoopTest {
 
             assertEquals(File(root, "graph.kt").readText().lines().count { it.startsWith("marker") }, 2)
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -103,7 +104,7 @@ class HybridLoopTest {
             assertEquals(AgentRunStatus.Failed, record.status, "A capped loop did not finish its work and must not read as success")
             assertTrue(record.failure.orEmpty().contains("Cycle cap"), record.failure.orEmpty())
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -126,7 +127,7 @@ class HybridLoopTest {
             assertEquals(AgentRecovery.NeedsReview, workspace.get(run.id).recovery)
             assertNotNull(workspace.get(run.id).pendingHandoff, "It waits for a person instead")
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -165,7 +166,7 @@ class HybridLoopTest {
             assertEquals(HybridPhase.Reviewing, handoff.phase, "It stopped exactly where the planner was needed")
             assertNotNull(handoff.observation, "Gemini's result is durable and waiting to be reviewed")
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -201,7 +202,7 @@ class HybridLoopTest {
             assertEquals(listOf("agent-made.kt"), changed,
                 "only the file this turn wrote; the operator's own dirty files are not the agent's doing")
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -231,16 +232,6 @@ class HybridLoopTest {
         return template.copy(text = text, acceptanceCriteria = acceptance, next = next)
     }
 
-    /** Deletes without following symlinks; see HybridConnectorTest for why that matters. */
-    private fun removeTree(root: File) {
-        if (!root.exists() && !java.nio.file.Files.isSymbolicLink(root.toPath())) return
-        java.nio.file.Files.walkFileTree(root.toPath(), object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
-            override fun visitFile(file: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes) =
-                java.nio.file.FileVisitResult.CONTINUE.also { java.nio.file.Files.deleteIfExists(file) }
-            override fun postVisitDirectory(dir: java.nio.file.Path, failure: java.io.IOException?) =
-                java.nio.file.FileVisitResult.CONTINUE.also { java.nio.file.Files.deleteIfExists(dir) }
-        })
-    }
 
     private fun git(root: File, vararg args: String) {
         val process = ProcessBuilder(listOf("git") + args).directory(root).redirectErrorStream(true).start()

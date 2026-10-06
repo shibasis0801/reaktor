@@ -1,3 +1,4 @@
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import dev.shibasis.dependeasy.Version
 
 plugins {
@@ -63,7 +64,7 @@ val generateIdbProto by tasks.registering {
         val grpcPlugin = grpcPluginTool.singleFile
         listOf(protoc, grpcPlugin).forEach { it.setExecutable(true) }
         val target = outputDir.get().asFile
-        target.deleteRecursively()
+        target.deleteTreeSafely(within = layout.buildDirectory.get().asFile)
         target.mkdirs()
         providers.exec {
             commandLine(

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling.mcp.door
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.mcp.McpTool
 import dev.shibasis.reaktor.mcp.ReaktorMcpServer
 import dev.shibasis.reaktor.mcp.emptyObjectSchema
@@ -29,7 +31,7 @@ class McpDoorTest {
     private val directory: Path = Files.createTempDirectory("door-test")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    @AfterTest fun cleanUp() { scope.cancel(); directory.toFile().deleteRecursively() }
+    @AfterTest fun cleanUp() { scope.cancel(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
 
     @Test fun mergesProvidersKeepsOwnNamesAndPrefixesForeignOnes() {
         val door = door(mount("workspace", server("workspace", "agent_run", "agent_wait")), mount("compose", server("compose", "reload", "take_screenshot"), prefix = "compose"))
@@ -148,7 +150,7 @@ class McpDoorTest {
 
             File(workspace, DoorConfig.PATH).writeText("""{"providers":[{"id":"leaky","transport":{"type":"http","url":"http://example.com/mcp"}}]}""")
             assertTrue(runCatching { DoorConfig.load(workspace, home) }.exceptionOrNull()?.message.orEmpty().contains("https"))
-        } finally { home.deleteRecursively(); workspace.deleteRecursively() }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aMissingCredentialIsAStateWithAnInstructionNotACrash() {

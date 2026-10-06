@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
@@ -29,7 +31,7 @@ class DefinitionDigestCacheTest {
     }
 
     @AfterTest fun tearDown() {
-        root.deleteRecursively()
+        root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         DefinitionDigestCache.invalidate()
     }
 

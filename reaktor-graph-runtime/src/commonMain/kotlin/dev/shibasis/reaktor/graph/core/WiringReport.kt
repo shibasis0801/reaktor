@@ -14,6 +14,7 @@ data class WiringEntry(
     val key: String,
     val type: String,
     val outcome: WiringOutcome,
+    val ownerId: String = owner,
 ) {
     val qualifier: String get() = "Port:$key:$type"
 }
@@ -40,6 +41,7 @@ private fun Graph.collectWiring(): List<WiringEntry> {
                 key = consumer.key.key,
                 type = consumer.type.type,
                 outcome = outcome,
+                ownerId = (consumer.owner as? Unique)?.id?.toString() ?: consumer.owner.toString(),
             )
         }
     }

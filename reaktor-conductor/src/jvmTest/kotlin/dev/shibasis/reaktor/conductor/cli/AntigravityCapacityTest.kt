@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.coroutines.*
@@ -35,7 +37,7 @@ class AntigravityCapacityTest {
             // The turns that never ran must not leave a transcript behind them.
             assertEquals(1, events.count { it is AgentEvent.Started })
             assertEquals(1, events.count { it is AgentEvent.Finished })
-        } finally { scope.cancel(); executor.close(); root.deleteRecursively() }
+        } finally { scope.cancel(); executor.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 
@@ -52,7 +54,7 @@ class AntigravityCapacityTest {
             assertTrue(events.none { it is AgentEvent.Activity && it.item.id.startsWith("antigravity-capacity") },
                 "A turn that failed on its merits has an answer; spending the allowance again would buy the same one")
             assertEquals(1, File(root, "calls.txt").readLines().size)
-        } finally { scope.cancel(); executor.close(); root.deleteRecursively() }
+        } finally { scope.cancel(); executor.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 

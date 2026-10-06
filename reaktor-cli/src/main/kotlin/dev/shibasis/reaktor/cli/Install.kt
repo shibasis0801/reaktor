@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.parameters.options.flag
@@ -48,18 +50,18 @@ class Install : CliktCommand() {
         val staging = File(dest, "libexec.tmp")
         val previous = File(dest, "libexec.previous")
 
-        if (staging.exists()) staging.deleteRecursively()
+        staging.deleteTreeSafely(within = dest)
         sourceApp.copyRecursively(staging, overwrite = true)
 
-        if (previous.exists()) previous.deleteRecursively()
+        previous.deleteTreeSafely(within = dest)
         if (libexec.exists() && !libexec.renameTo(previous)) {
-            libexec.deleteRecursively()
+            libexec.deleteTreeSafely(within = dest)
         }
         if (!staging.renameTo(libexec)) {
             staging.copyRecursively(libexec, overwrite = true)
-            staging.deleteRecursively()
+            staging.deleteTreeSafely(within = dest)
         }
-        if (previous.exists()) previous.deleteRecursively()
+        previous.deleteTreeSafely(within = dest)
     }
 
     /** Locate the running app's home from the classpath (installDist puts the jars under home/lib). */

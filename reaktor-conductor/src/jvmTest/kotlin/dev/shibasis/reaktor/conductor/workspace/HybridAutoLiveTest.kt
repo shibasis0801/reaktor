@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.AntigravityRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
@@ -53,7 +55,7 @@ class HybridAutoLiveTest {
                 println("Unattended hybrid loop qualified: ${handoff.completedCycles} cycle(s); " +
                     "plan=${handoff.plan?.text?.take(160)}; review=${handoff.review?.text?.take(200)}")
             }
-        } finally { scope.cancel(); executor.close(); root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { scope.cancel(); executor.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 
@@ -114,7 +116,7 @@ class HybridAutoLiveTest {
                 println("Real Gemini loop qualified: conversation=${first.session?.sessionId}; " +
                     "cycle1=${first.result.take(120)}; cycle2=${second.result.take(120)}")
             }
-        } finally { scope.cancel(); executor.close(); root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { scope.cancel(); executor.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 

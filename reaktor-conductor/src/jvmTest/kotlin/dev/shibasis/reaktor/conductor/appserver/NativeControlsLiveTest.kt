@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import org.junit.Assume.assumeTrue
@@ -31,7 +33,7 @@ class NativeControlsLiveTest {
                 assertTrue(RequestKind.Permission in kinds, "No native permission request was received")
                 assertFalse(java.io.File(root, "probe.txt").exists())
             } finally { session.close() }
-        } finally { scope.cancel(); root.deleteRecursively() }
+        } finally { scope.cancel(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun codexCommandApprovalCanBeDeniedAndCannotBeReplayed() = runBlocking(Dispatchers.IO) {
@@ -54,6 +56,6 @@ class NativeControlsLiveTest {
                 assertTrue(pending > 0, "No native approval request was received")
                 assertFalse(java.io.File(root, "probe.txt").exists())
             } finally { session.close() }
-        } finally { scope.cancel(); root.deleteRecursively() }
+        } finally { scope.cancel(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

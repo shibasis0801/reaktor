@@ -60,7 +60,7 @@ object BlueprintEngine {
         }
         val width = frames.maxOfOrNull { it.x + it.width } ?: 0.0
         val height = frames.maxOfOrNull { it.y + it.height } ?: 0.0
-        return BlueprintLayout(key, cards, frames, links, width, height)
+        return BlueprintLayout(key, cards, frames, links, width, height, blocks.mapNotNull { it.layout.failure })
     }
 
     fun cardHeight(node: BlueprintNode): Double {
@@ -147,7 +147,7 @@ object BlueprintEngine {
         }
         val right = flat.width - flat.cards.values.maxOf { it.x + it.width }
         val bottom = flat.height - flat.cards.values.maxOf { it.y + it.height }
-        return FrameLayout(cards, links, cards.values.maxOf { it.x + it.width } + right, cards.values.maxOf { it.y + it.height } + bottom)
+        return FrameLayout(cards, links, cards.values.maxOf { it.x + it.width } + right, cards.values.maxOf { it.y + it.height } + bottom, flat.failure)
     }
 
     private fun pack(blocks: List<Block>, aspect: Double): List<Pair<Block, Pair<Double, Double>>> {

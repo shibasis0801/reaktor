@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.tooling.JvmProjectDiscovery
 import dev.shibasis.reaktor.tooling.AdHocProcessPlan
 import dev.shibasis.reaktor.tooling.OutputChannel
@@ -751,7 +753,7 @@ fun main(args: Array<String>) {
 
         println("tooling E2E smoke passed")
     } finally {
-        check(fixture.deleteRecursively()) { "could not remove fixture ${fixture.absolutePath}" }
+        check(fixture.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))) { "could not remove fixture ${fixture.absolutePath}" }
     }
     }
 }

@@ -1,5 +1,10 @@
 package dev.shibasis.reaktor.blueprint
 
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Level
+import java.util.logging.Logger
+import kotlinx.coroutines.CancellationException
+import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
 import org.eclipse.elk.alg.layered.options.OrderingStrategy
 import org.eclipse.elk.core.RecursiveGraphLayoutEngine
@@ -18,9 +23,20 @@ import org.eclipse.elk.graph.util.ElkGraphUtil
 actual val DefaultFrameLayouter: FrameLayouter = ElkFrameLayouter
 
 object ElkFrameLayouter : FrameLayouter {
-    override fun lay(group: BlueprintGroup, pins: Map<String, List<Pin>>, edges: List<FrameEdge>): FrameLayout {
+    private val reported = AtomicBoolean()
+
+    override fun lay(group: BlueprintGroup, pins: Map<String, List<Pin>>, edges: List<FrameEdge>): FrameLayout = try {
+        layout(group, pins, edges)
+    } catch (error: Throwable) {
+        if (error is CancellationException || error is VirtualMachineError || error is ThreadDeath || error is LinkageError) throw error
+        if (reported.compareAndSet(false, true)) Logger.getLogger("Reaktor.Blueprint").log(Level.WARNING, "ELK layout failed; using grid layout", error)
+        val grid = GridFrameLayouter.lay(group, pins, edges)
+        FrameLayout(grid.cards, grid.links, grid.width, grid.height, error)
+    }
+
+    private fun layout(group: BlueprintGroup, pins: Map<String, List<Pin>>, edges: List<FrameEdge>): FrameLayout {
         val root = ElkGraphUtil.createGraph()
-        configure(root, lanes = !group.loose)
+        configure(root)
         if (group.loose) root.setProperty(CoreOptions.ASPECT_RATIO, 1.4)
         root.setProperty(CoreOptions.HIERARCHY_HANDLING, HierarchyHandling.SEPARATE_CHILDREN)
         root.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.NODES_AND_EDGES)
@@ -28,10 +44,20 @@ object ElkFrameLayouter : FrameLayouter {
         val ports = hashMapOf<String, ElkConnectableShape>()
         val width = BlueprintEngine.CardWidth
         val middle = BlueprintEngine.HeaderHeight / 2
+        val nodes = group.nodes.associateBy { it.id }
+        val backwards = edges.filterTo(hashSetOf()) { !group.loose && nodes.getValue(it.from).lane > nodes.getValue(it.to).lane }
+        val incoming = edges.mapTo(hashSetOf()) { if (it in backwards) it.from else it.to }
+        val outgoing = edges.mapTo(hashSetOf()) { if (it in backwards) it.to else it.from }
+        val firstLane = group.nodes.minOfOrNull { it.lane }
+        val lastLane = group.nodes.maxOfOrNull { it.lane }
         group.nodes.forEach { node ->
             val box = ElkGraphUtil.createNode(root)
             boxes[node.id] = box
-            box.setProperty(CoreOptions.PARTITIONING_PARTITION, node.lane)
+            if (!group.loose && firstLane != lastLane) box.setProperty(LayeredOptions.LAYERING_LAYER_CONSTRAINT, when {
+                node.lane == firstLane && node.id !in incoming -> LayerConstraint.FIRST
+                node.lane == lastLane && node.id !in outgoing -> LayerConstraint.LAST
+                else -> LayerConstraint.NONE
+            })
             box.width = width
             box.height = BlueprintEngine.cardHeight(node)
             box.setProperty(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_POS)
@@ -49,21 +75,25 @@ object ElkFrameLayouter : FrameLayouter {
         edges.forEach { edge ->
             val source = ports["${edge.from}>${edge.fromPort.orEmpty()}"] ?: ports.getValue("${edge.from}>")
             val target = ports["${edge.to}<${edge.toPort.orEmpty()}"] ?: ports.getValue("${edge.to}<")
-            laidEdges[edge] = ElkGraphUtil.createSimpleEdge(source, target).also(ElkGraphUtil::updateContainment)
+            val backward = edge in backwards
+            laidEdges[edge] = ElkGraphUtil.createSimpleEdge(if (backward) target else source, if (backward) source else target).also(ElkGraphUtil::updateContainment)
         }
         RecursiveGraphLayoutEngine().layout(root, BasicProgressMonitor())
-        val nodes = group.nodes.associateBy { it.id }
         val cards = boxes.mapValues { (id, box) -> Card(id, box.x, box.y, box.width, box.height, pins.getValue(id), nodes.getValue(id).folded) }
         val links = laidEdges.map { (edge, laid) ->
             val points = laid.sections.flatMap { section ->
                 listOf(section.startX to section.startY) + section.bendPoints.map { it.x to it.y } + listOf(section.endX to section.endY)
             }
-            Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members, points, reversed = edge.reversed)
+            Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members, if (edge in backwards) points.asReversed() else points, reversed = edge.reversed)
+        }
+        require(root.width.isFinite() && root.height.isFinite() && cards.values.all { it.x.isFinite() && it.y.isFinite() } &&
+            links.all { it.points.isNotEmpty() && it.points.all { point -> point.first.isFinite() && point.second.isFinite() } }) {
+            "ELK returned incomplete geometry"
         }
         return FrameLayout(cards, links, root.width, root.height)
     }
 
-    private fun configure(node: ElkNode, lanes: Boolean) {
+    private fun configure(node: ElkNode) {
         node.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered")
         node.setProperty(CoreOptions.DIRECTION, Direction.RIGHT)
         node.setProperty(CoreOptions.EDGE_ROUTING, EdgeRouting.ORTHOGONAL)
@@ -74,6 +104,5 @@ object ElkFrameLayouter : FrameLayouter {
         node.setProperty(CoreOptions.SPACING_EDGE_EDGE, 7.0)
         node.setProperty(CoreOptions.SPACING_EDGE_NODE, 12.0)
         node.setProperty(CoreOptions.RANDOM_SEED, 7)
-        node.setProperty(CoreOptions.PARTITIONING_ACTIVATE, lanes)
     }
 }

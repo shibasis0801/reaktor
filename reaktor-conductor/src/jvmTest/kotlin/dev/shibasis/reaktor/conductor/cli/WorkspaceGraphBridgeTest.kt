@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.runBlocking
 import java.net.InetSocketAddress
@@ -35,7 +37,7 @@ class WorkspaceGraphBridgeTest {
                 Files.writeString(data.resolve("graph-connection.json"), "{\"workspaceRoot\":\"/wrong\",\"url\":\"http://127.0.0.1:1/mcp\"}")
                 assertFailsWith<IllegalArgumentException> { bridge.exchange("{}") }
             }
-        } finally { first.stop(0); next.stop(0); root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { first.stop(0); next.stop(0); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 
@@ -54,6 +56,6 @@ class WorkspaceGraphBridgeTest {
                 assertFailsWith<IllegalArgumentException> { it.exchange("{}") }
                 assertEquals(0, calls.get())
             }
-        } finally { server.stop(0); root.deleteRecursively() }
+        } finally { server.stop(0); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

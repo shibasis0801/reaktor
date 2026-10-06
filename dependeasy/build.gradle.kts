@@ -50,6 +50,9 @@ gradlePlugin {
 }
 
 kotlin {
+    sourceSets.main {
+        kotlin.srcDir("../reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/io")
+    }
 //    jvmToolchain(11)
     compilerOptions {
         freeCompilerArgs.addAll("-Xcontext-receivers", "-Xwhen-guards")

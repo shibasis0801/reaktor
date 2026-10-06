@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -24,7 +26,7 @@ class AgentWorkspaceTest {
                 assertEquals(EventKind.Failure, workspace.transcript(submitted.threadId).events.last().kind)
                 assertTrue(harness.requests.isEmpty())
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun anEffortTheProviderDoesNotAdvertiseIsRefusedRatherThanQuietlyLowered() {
         val root = Files.createTempDirectory("agent-root").toFile()
@@ -46,7 +48,7 @@ class AgentWorkspaceTest {
                 assertEquals(NativeEffort("high"), accepted.effort.resolved)
                 assertTrue(accepted.effort.unknownEffective, "Nothing observed it yet")
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aProviderWithNoEnumerableEffortSetAcceptsTheRequestedValue() {
@@ -61,7 +63,7 @@ class AgentWorkspaceTest {
                 assertEquals(NativeEffort("xhigh"), run.effort.resolved)
                 assertEquals(listOf(harness.kind), workspace.info().capabilities.map { it.runtime })
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     private fun advertising(runtime: RuntimeKind, levels: List<String>) = ProviderCapability(
@@ -105,7 +107,7 @@ class AgentWorkspaceTest {
                 assertEquals("", quiet.reasoning)
                 assertNull(quiet.reasoningFidelity, "A turn that produced none must not look like one that hid it")
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aBlockedTurnIsAnsweredThroughTheWorkspaceAndTheJournalClears() = runBlocking {
@@ -133,7 +135,7 @@ class AgentWorkspaceTest {
                 assertEquals(AgentRunStatus.Completed, done.status)
                 assertTrue(done.pending.isEmpty(), "An answered request must leave the journal")
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun aBatchRunReportsUnsupportedRatherThanAcceptingAnAnswerNobodyHears() = runBlocking {
@@ -148,7 +150,7 @@ class AgentWorkspaceTest {
                 assertIs<CommandOutcome.Unsupported>(owner.steer(run.id, "codex", "more input"))
                 Unit
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     /** An interactive runtime that stops for one approval and finishes once it is answered. */
@@ -210,7 +212,7 @@ class AgentWorkspaceTest {
                 assertFalse(after.live)
                 assertTrue(after.answerable.isEmpty())
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     private suspend fun terminal(connection: AgentWorkspaceConnection, initial: AgentRunRecord): AgentRunRecord = withTimeout(10000) {
@@ -255,7 +257,7 @@ class AgentWorkspaceTest {
                 assertEquals(AgentRunStatus.Completed, reopened.list().first().status)
                 assertEquals(2, harness.requests.size)
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun clientReattachesAfterOwnerRestartAndDataCannotBeReboundToAnotherWorkspace() = runBlocking {
@@ -275,7 +277,7 @@ class AgentWorkspaceTest {
                     assertEquals(1, harness.requests.size)
                 }
             }
-        } finally { root.deleteRecursively(); otherRoot.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); otherRoot.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun continuationResumesOnlyTheImmediatelyPreviousCompatibleProvider() = runBlocking {
@@ -297,7 +299,7 @@ class AgentWorkspaceTest {
                 assertTrue(codex.requests.last().prompt.contains("CLAUDE_INTERVENING_CONTEXT"))
                 assertTrue(codex.requests.all { it.persistSession })
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun cancelIsExactAndShutdownLeavesInterruptedReceiptWithoutReplay() = runBlocking {
@@ -322,7 +324,7 @@ class AgentWorkspaceTest {
                 assertEquals(AgentRunStatus.Interrupted, reopened.get(interrupted.id).status)
                 assertEquals(invokedBeforeRestart, harness.requests.size)
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun effectfulEndpointRequiresBearerAndAdvertisesEffects() {
@@ -345,6 +347,6 @@ class AgentWorkspaceTest {
                     assertTrue(tools.getValue("agent_run").getValue("readOnlyHint").jsonPrimitive.boolean)
                 }
             }
-        } finally { root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

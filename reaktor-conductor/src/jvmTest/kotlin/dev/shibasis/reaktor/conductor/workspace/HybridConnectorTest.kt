@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.*
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
@@ -109,7 +110,7 @@ class HybridConnectorTest {
                     "A finished task stops asking for attention")
             }
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -137,7 +138,7 @@ class HybridConnectorTest {
                 assertTrue(connector.secret.length >= 32)
             }
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -178,7 +179,7 @@ class HybridConnectorTest {
 
             }
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -204,7 +205,7 @@ class HybridConnectorTest {
                 }
             }
         }
-        removeTree(root); removeTree(directory.toFile())
+        root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         Unit
     }
 
@@ -247,23 +248,6 @@ class HybridConnectorTest {
             .header("Content-Type", "application/json").build(),
         HttpResponse.BodyHandlers.ofString())
 
-    /**
-     * Deletes a tree without following symlinks.
-     *
-     * Kotlin's `File.deleteRecursively` follows them, and this file deliberately plants a link to
-     * `/etc` to prove the reader refuses it — so the obvious cleanup walks `/etc` and tries to
-     * delete it. It failed on permissions rather than doing damage, but "saved by chmod" is not a
-     * property to rely on in a test that runs unattended.
-     */
-    private fun removeTree(root: File) {
-        if (!root.exists() && !java.nio.file.Files.isSymbolicLink(root.toPath())) return
-        java.nio.file.Files.walkFileTree(root.toPath(), object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
-            override fun visitFile(file: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes) =
-                java.nio.file.FileVisitResult.CONTINUE.also { java.nio.file.Files.deleteIfExists(file) }
-            override fun postVisitDirectory(dir: java.nio.file.Path, failure: java.io.IOException?) =
-                java.nio.file.FileVisitResult.CONTINUE.also { java.nio.file.Files.deleteIfExists(dir) }
-        })
-    }
 
     private fun JsonObject.str(name: String) = getValue(name).jsonPrimitive.content
     private fun JsonObject.obj(name: String) = getValue(name).jsonObject

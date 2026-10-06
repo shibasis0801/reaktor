@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.tooling.device.AppleDeviceBackend
 import kotlin.test.*
 
@@ -94,7 +96,7 @@ class DeviceToolsTest {
             bundle.resolve("build/new-code").writeText("added after approval")
             assertNotEquals(seal.digest, seal.currentDigest(), "Every app bundle member affects the reviewed artifact")
             assertFailsWith<IllegalArgumentException> { DeviceTools.command(device, DeviceAction.Install, path = "Example.app") { "xcrun" } }
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun unsupportedDeviceActionsExplainTheRequiredTransport() {

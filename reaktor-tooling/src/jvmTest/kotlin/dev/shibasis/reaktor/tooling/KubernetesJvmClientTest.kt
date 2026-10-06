@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.tooling.infra.InfrastructureSession
 import dev.shibasis.reaktor.tooling.infra.KubernetesJvmClient
 import okhttp3.Response
@@ -167,7 +169,7 @@ class KubernetesJvmClientTest {
                     token: fixture-token
             """.trimIndent()) }
             try { InfrastructureSession().use { block(server, KubernetesJvmClient(config, it), it) } }
-            finally { root.deleteRecursively() }
+            finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         }
     }
 }

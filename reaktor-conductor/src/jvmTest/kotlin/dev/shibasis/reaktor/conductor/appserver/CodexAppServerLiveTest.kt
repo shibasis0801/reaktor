@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.toList
@@ -43,7 +45,7 @@ class CodexAppServerLiveTest {
             assertTrue(events.filterIsInstance<AgentEvent.Delta>().isNotEmpty(), "No streamed deltas arrived")
             assertNotNull(finished.usage?.inputTokens, "thread/tokenUsage/updated should have been seen")
         } finally {
-            scope.cancel(); workspace.deleteRecursively()
+            scope.cancel(); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }
     } }
 }

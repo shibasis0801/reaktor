@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.AntigravityRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
@@ -63,7 +65,7 @@ class HybridLiveTest {
                 assertEquals("Gemini", answer.attributes["executor"])
                 println("ChatGPT + Gemini seat qualified live: session=${observation.session?.sessionId}; usage=${observation.usage}")
             }
-        } finally { scope.cancel(); executor.close(); root.deleteRecursively(); directory.toFile().deleteRecursively() }
+        } finally { scope.cancel(); executor.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 

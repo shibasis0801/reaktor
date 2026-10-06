@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import java.io.File
@@ -98,7 +100,7 @@ class AgentWorkflowTest {
                 workspace.memory.forget(memory.id)
                 assertTrue(workspace.memory.search("built", null, true).entries.isEmpty())
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 
@@ -129,7 +131,7 @@ class AgentWorkflowTest {
             assertEquals("user change\n", File(root, "source.txt").readText())
             assertEquals(index, git(root, "diff", "--cached"))
             store.apply(isolated.id, review.patchDigest, review.sourceRevision)
-        } finally { data.toFile().deleteRecursively(); root.deleteRecursively() }
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun approvalToolsTakeNoOperatorNameAndOldNamedReceiptsReadAsUnverified() {
         val root = Files.createTempDirectory("approval-source").toFile()
@@ -146,7 +148,7 @@ class AgentWorkflowTest {
             assertFalse(named.approverVerified)
             assertFalse(AgentWorkspaceJson.decodeFromString(AgentWorktree.serializer(),
                 """{"id":"w","runId":"r","participant":"p","sourceRevision":"s","roots":[],"applyState":"applied","appliedBy":"anyone"}""").approverVerified)
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     private fun git(root: File, vararg args: String): String {
         val process = ProcessBuilder(listOf("git", "-C", root.path) + args).redirectErrorStream(true).start()

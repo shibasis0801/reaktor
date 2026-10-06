@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.store
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
@@ -30,7 +32,7 @@ class FileThreadStoreTest {
                 assertEquals(listOf(loaded.events[1].id), loaded.events[2].parents)
                 assertEquals(2, loaded.usageSummary().input.unknownTurns)
             }
-        } finally { directory.toFile().deleteRecursively() }
+        } finally { directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test
@@ -44,7 +46,7 @@ class FileThreadStoreTest {
                 assertEquals(thread, store.load())
             }
             FileThreadStore.open(path).use { assertEquals(thread, it.load()) }
-        } finally { directory.toFile().deleteRecursively() }
+        } finally { directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test
@@ -72,6 +74,6 @@ class FileThreadStoreTest {
                 assertEquals("keep this prompt", saved.events.single().text)
                 assertEquals(session, saved.providerSessions[agent.id.value])
             }
-        } finally { directory.toFile().deleteRecursively() }
+        } finally { directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }

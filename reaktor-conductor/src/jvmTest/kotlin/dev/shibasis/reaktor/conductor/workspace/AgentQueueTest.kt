@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
@@ -37,7 +39,7 @@ class AgentQueueTest {
                 assertEquals(listOf("dispatched", "dispatched"), workspace.queueItems(initial.threadId).map { it.state })
             }
             AgentWorkspace(root, data, mapOf(runtime.kind to runtime)).use { delay(50); assertEquals(3, prompts.size) }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
     @Test fun interruptBlocksQueuedWork() = runBlocking {
         val root = Files.createTempDirectory("queue-stop-root").toFile()
@@ -55,6 +57,6 @@ class AgentQueueTest {
                 workspace.cancel(first.id)
                 assertEquals("blocked", workspace.queueItems(first.threadId).single().state)
             }
-        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 }
