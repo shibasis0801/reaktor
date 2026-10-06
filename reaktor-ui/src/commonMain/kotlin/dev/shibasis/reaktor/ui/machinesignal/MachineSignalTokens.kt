@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.ui.machinesignal
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.core.truth.TruthClass
@@ -404,6 +405,7 @@ object MachineSignal {
 
         val eyebrowTracking = 0.06.sp
         val kindTracking = 1.sp
+        val base = TextStyle(fontSize = body2, lineHeight = 15.sp, letterSpacing = 0.sp)
     }
 
     fun provenance(truth: TruthClass): ProvenanceColors = when (truth) {
