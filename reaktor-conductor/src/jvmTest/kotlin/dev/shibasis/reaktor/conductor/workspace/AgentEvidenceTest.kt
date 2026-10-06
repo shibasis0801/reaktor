@@ -28,20 +28,19 @@ class AgentEvidenceTest {
             assertNotEquals(initial.id, repaired.id, "HEAD stayed the same; dirty source must change identity")
             store.requireChecks("task", listOf("tabs-test"))
             store.check("task", AgentCandidateCheck("tabs-test", initial.id, CheckResult(listOf("tabs-test"), CheckOutcome.Passed, revision = initial.id), "kernel"))
-            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id, "fixture-operator") }
+            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id) }
             store.finding("task", AgentFinding("f1", repaired.id, "attempt-1", "claude", "Lost draft", "Restore the tab draft", "high", subject, "Tabs.kt", 1))
             store.check("task", AgentCandidateCheck("tabs-test", repaired.id, CheckResult(listOf("tabs-test"), CheckOutcome.Passed, revision = repaired.id), "kernel"))
-            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id, "fixture-operator") }
+            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id) }
             store.resolve("task", "f1", repaired.id, "Verified draft restoration in tabs-test")
-            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id, "") }
-            val accepted = store.accept("task", repaired.id, "fixture-operator")
+            val accepted = store.accept("task", repaired.id)
             assertEquals(repaired.id, accepted.acceptedCandidate)
-            assertEquals("fixture-operator", accepted.acceptedBy)
-            assertEquals("fixture-operator", AgentEvidenceStore(root, data).get("task").acceptedBy)
+            assertFalse(accepted.approverVerified)
+            assertFalse(AgentEvidenceStore(root, data).get("task").approverVerified)
             File(root, "untracked.kt").writeText("new input")
             val withNewFile = store.capture("task")
             assertTrue(store.artifact("task", withNewFile.diff!!.id).text.contains("+new input"))
-            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id, "fixture-operator") }
+            assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id) }
             val reopened = AgentEvidenceStore(root, data)
             assertEquals("attempt-1", reopened.get("task").findings.single().producerRunId)
             assertTrue(reopened.graph("task").edges.any { it.relation == "verifies" && it.to == repaired.id })

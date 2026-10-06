@@ -120,17 +120,33 @@ class AgentWorkflowTest {
             val review = store.review(isolated.id)
             assertTrue(review.conflicts.isEmpty())
             assertTrue(review.changedFiles.single().endsWith("agent.txt"))
-            assertFailsWith<IllegalArgumentException> { store.apply(isolated.id, "bad", review.sourceRevision, "fixture-operator") }
-            assertFailsWith<IllegalArgumentException> { store.apply(isolated.id, review.patchDigest, review.sourceRevision, "") }
+            assertFailsWith<IllegalArgumentException> { store.apply(isolated.id, "bad", review.sourceRevision) }
             assertFalse(File(root, "agent.txt").exists())
-            val applied = store.apply(isolated.id, review.patchDigest, review.sourceRevision, "fixture-operator")
-            assertEquals("fixture-operator", applied.worktree.appliedBy)
+            val applied = store.apply(isolated.id, review.patchDigest, review.sourceRevision)
+            assertFalse(applied.worktree.approverVerified)
             assertEquals(review.patchDigest, applied.worktree.appliedPatch)
             assertEquals("agent addition\n", File(root, "agent.txt").readText())
             assertEquals("user change\n", File(root, "source.txt").readText())
             assertEquals(index, git(root, "diff", "--cached"))
-            store.apply(isolated.id, review.patchDigest, review.sourceRevision, "fixture-operator")
+            store.apply(isolated.id, review.patchDigest, review.sourceRevision)
         } finally { data.toFile().deleteRecursively(); root.deleteRecursively() }
+    }
+    @Test fun approvalToolsTakeNoOperatorNameAndOldNamedReceiptsReadAsUnverified() {
+        val root = Files.createTempDirectory("approval-source").toFile()
+        val data = Files.createTempDirectory("approval-data")
+        try {
+            git(root, "init", "-q")
+            AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { "done" })).use { workspace ->
+                val tools = (agentWorkflowTools(workspace) + agentEvidenceTools(workspace)).filter { it.name in setOf("agent_worktree_apply", "agent_candidate_accept") }
+                assertEquals(2, tools.size)
+                tools.forEach { assertFalse("approvedBy" in it.inputSchema.getValue("properties").toString(), it.name) }
+            }
+            val named = AgentWorkspaceJson.decodeFromString(AgentTaskEvidence.serializer(), """{"taskId":"task","acceptedCandidate":"c","acceptedBy":"anyone"}""")
+            assertEquals("c", named.acceptedCandidate)
+            assertFalse(named.approverVerified)
+            assertFalse(AgentWorkspaceJson.decodeFromString(AgentWorktree.serializer(),
+                """{"id":"w","runId":"r","participant":"p","sourceRevision":"s","roots":[],"applyState":"applied","appliedBy":"anyone"}""").approverVerified)
+        } finally { root.deleteRecursively(); data.toFile().deleteRecursively() }
     }
     private fun git(root: File, vararg args: String): String {
         val process = ProcessBuilder(listOf("git", "-C", root.path) + args).redirectErrorStream(true).start()
