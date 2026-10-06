@@ -1,4 +1,4 @@
-val kotlinVersion = "2.3.20"
+val kotlinVersion = "2.3.21"
 
 plugins {
     id("java-gradle-plugin")

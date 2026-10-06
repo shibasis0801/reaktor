@@ -39,6 +39,7 @@ object Version {
 
     // Web
     const val KotlinJSWrappers = "2025.10.4"
+    const val JsJodaTimezone = "2.23.0"
 
     // Data
     const val SQLDelight = "2.0.0"

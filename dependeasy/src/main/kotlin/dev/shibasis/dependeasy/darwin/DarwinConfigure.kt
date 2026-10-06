@@ -10,12 +10,18 @@ import dev.shibasis.dependeasy.plugins.getExtension
 import dev.shibasis.dependeasy.tasks.darwinCmake
 import dev.shibasis.dependeasy.tasks.GenerateNativeDefTask
 import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.Project
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+import org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable
+import java.io.File
 
 class DarwinConfigure(): Configuration<KotlinNativeTarget>() {
     var armOnly: Boolean = true
@@ -127,6 +133,12 @@ fun KotlinMultiplatformExtension.darwin(
         it.compilations.getByName("main").cinterops {
             configure.cinterops(this)
         }
+
+        it.binaries.withType<TestExecutable>().configureEach {
+            linkTaskProvider.configure {
+                toolOptions.freeCompilerArgs.addAll(project.cocoapodsLinkerOptions(buildType, sdk))
+            }
+        }
     }
 
     getExtension<CocoapodsExtension>("cocoapods")?.apply {
@@ -149,3 +161,17 @@ fun KotlinMultiplatformExtension.darwin(
         }
     }
 }
+
+private fun Project.cocoapodsLinkerOptions(buildType: NativeBuildType, sdk: String): Provider<List<String>> =
+    layout.buildDirectory
+        .file("cocoapods/synthetic/ios/Pods/Target Support Files/Pods-ios/Pods-ios.${buildType.name.lowercase()}.xcconfig")
+        .zip(providers.exec { commandLine("xcrun", "--sdk", sdk, "--find", "swift") }.standardOutput.asText) { xcconfig, swift ->
+            val toolchain = File(swift.trim()).parentFile.parentFile.parentFile.path
+            val settings = xcconfig.asFile.takeIf { it.isFile }?.readLines().orEmpty().associate { line ->
+                line.substringBefore("=").trim() to line.substringAfter("=").split(" ")
+                    .filter { it.isNotBlank() && it != "\$(inherited)" }
+                    .map { it.replace("\"", "").replace("\${TOOLCHAIN_DIR}", toolchain).replace("\${PLATFORM_NAME}", sdk) }
+            }
+            (settings["LIBRARY_SEARCH_PATHS"].orEmpty().map { "-L$it" } + settings["OTHER_LDFLAGS"].orEmpty())
+                .flatMap { listOf("-linker-option", it) }
+        }
