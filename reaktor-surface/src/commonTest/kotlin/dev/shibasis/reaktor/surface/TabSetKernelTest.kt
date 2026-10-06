@@ -67,6 +67,13 @@ class TabSetKernelTest {
     }
 
     @Test
+    fun aClosePartTapGivesAnImpactCueOnlyWhenItRequestsAClose() {
+        assertEquals(listOf(FeedbackCue.Impact), kernel.reduce(properties(), at("graph"), TabSetInput.Close("cloud")).cues)
+        assertTrue(kernel.reduce(properties(), at("graph"), TabSetInput.Close("graph")).cues.isEmpty())
+        assertTrue(kernel.reduce(properties(), at("data"), press(KeyName.Delete)).cues.isEmpty())
+    }
+
+    @Test
     fun typingJumpsToAMatchingTab() {
         val typed = kernel.reduce(properties(), at("graph"), press(KeyName.T, 't'))
         assertEquals("testing", typed.state.active)
