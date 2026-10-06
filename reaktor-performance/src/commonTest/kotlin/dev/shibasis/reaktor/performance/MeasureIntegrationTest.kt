@@ -2,15 +2,24 @@ package dev.shibasis.reaktor.performance
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockEngineConfig
+import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.*
 
 class MeasureIntegrationTest {
     private val json = Json { ignoreUnknownKeys = true }
+
+    private fun TestScope.mockClient(handler: MockRequestHandler) = HttpClient(MockEngine(MockEngineConfig().apply {
+        dispatcher = StandardTestDispatcher(testScheduler)
+        addHandler(handler)
+    }))
 
     @Test
     fun missingHealthDoesNotBecomeZeroOrPerfectHealth() {
@@ -28,12 +37,12 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun dashboardReadsAuthenticateBoundPagesAndEncodeFilters() = runBlocking {
+    fun dashboardReadsAuthenticateBoundPagesAndEncodeFilters() = runTest {
         val requests = mutableListOf<io.ktor.client.request.HttpRequestData>()
-        val client = HttpClient(MockEngine { request ->
+        val client = mockClient { request ->
             requests += request
             respond("""{"results":[],"meta":{"next":true,"previous":false}}""", headers = headersOf("Content-Type", "application/json"))
-        })
+        }
         try {
             val service = MeasureService("http://127.0.0.1:47180", "test-access", client)
             val query = MeasureQuery("2026-09-29T00:00:00.000Z", "2026-09-30T00:00:00.000Z", listOf("1.2 debug"), listOf("120"))
@@ -54,11 +63,11 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun freshAppsHaveMissingHealthWithoutQueryingInvalidEmptyVersionTuples() = runBlocking {
-        val client = HttpClient(MockEngine { request ->
+    fun freshAppsHaveMissingHealthWithoutQueryingInvalidEmptyVersionTuples() = runTest {
+        val client = mockClient { request ->
             assertTrue(request.url.encodedPath.endsWith("/filters"))
             respond("""{"versions":null}""", headers = headersOf("Content-Type", "application/json"))
-        })
+        }
         try {
             val metrics = MeasureService("http://localhost:47180", "local-token", client).metrics("app")
             assertFalse(metrics.recordingsAvailable)
@@ -67,13 +76,13 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun allVersionHealthExpandsTheServerVersionPairs() = runBlocking {
+    fun allVersionHealthExpandsTheServerVersionPairs() = runTest {
         val requests = mutableListOf<io.ktor.client.request.HttpRequestData>()
-        val client = HttpClient(MockEngine { request ->
+        val client = mockClient { request ->
             requests += request
             respond(if (request.url.encodedPath.endsWith("/filters")) """{"versions":[{"name":"1.0","code":"1"}]}"""
                 else """{"cold_launch":{"no_data":false,"p95":10}}""", headers = headersOf("Content-Type", "application/json"))
-        })
+        }
         try {
             val query = MeasureQuery("2026-09-29T00:00:00.000Z", "2026-09-30T00:00:00.000Z")
             val response = MeasureService("http://localhost:47180", "token", client).metrics("app", query)
@@ -85,8 +94,8 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun failedReadsDoNotDecodeIntoSuccessfulEmptyResults() = runBlocking {
-        val client = HttpClient(MockEngine { respond("""{"error":"sensitive server detail"}""", HttpStatusCode.Unauthorized, headersOf("Content-Type", "application/json")) })
+    fun failedReadsDoNotDecodeIntoSuccessfulEmptyResults() = runTest {
+        val client = mockClient { respond("""{"error":"sensitive server detail"}""", HttpStatusCode.Unauthorized, headersOf("Content-Type", "application/json")) }
         try {
             val failure = assertFailsWith<MeasureRequestFailed> { MeasureService("http://localhost:47180", "secret-token", client).sessions("app") }
             assertTrue(failure.unauthorized)
@@ -97,8 +106,8 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun aRejectedQuerySaysWhyInsteadOfOnlyItsStatus() = runBlocking {
-        val client = HttpClient(MockEngine { respond("""{"error":"`severity` must be any combination of: fatal, unhandled, handled"}""", HttpStatusCode.BadRequest, headersOf("Content-Type", "application/json")) })
+    fun aRejectedQuerySaysWhyInsteadOfOnlyItsStatus() = runTest {
+        val client = mockClient { respond("""{"error":"`severity` must be any combination of: fatal, unhandled, handled"}""", HttpStatusCode.BadRequest, headersOf("Content-Type", "application/json")) }
         try {
             val failure = assertFailsWith<MeasureRequestFailed> { MeasureService("http://localhost:47180", "token", client).problems("app", MeasureProblem.Handled) }
             assertEquals(400, failure.status)
@@ -107,16 +116,16 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun problemsAskForTheirKindAndKeepCrashedAndHandledTwinsApart() = runBlocking {
+    fun problemsAskForTheirKindAndKeepCrashedAndHandledTwinsApart() = runTest {
         val requests = mutableListOf<io.ktor.client.request.HttpRequestData>()
-        val client = HttpClient(MockEngine { request ->
+        val client = mockClient { request ->
             requests += request
             respond("""{"results":[
                 {"app_id":"a","id":"g1","type":"java.lang.IllegalStateException","error_type":"error","severity":"fatal","is_custom":false,
                  "message":"boom","method_name":"load","file_name":"Feed.kt","line_number":42,"count":7,"percentage_contribution":63.64,"updated_at":"2026-09-30T10:00:00Z"},
                 {"app_id":"a","id":"g1","type":"java.lang.IllegalStateException","error_type":"error","severity":"handled","message":"boom","count":4,"percentage_contribution":36.36}
             ],"meta":{"next":false}}""", headers = headersOf("Content-Type", "application/json"))
-        })
+        }
         try {
             val service = MeasureService("http://localhost:47180", "token", client)
             val page = service.problems("app", MeasureProblem.Crashes)
@@ -179,13 +188,12 @@ class MeasureIntegrationTest {
     }
 
     @Test
-    fun invalidRangesCredentialsAndIdentifiersFailBeforeIo() = runBlocking {
+    fun invalidRangesCredentialsAndIdentifiersFailBeforeIo() = runTest {
         assertFailsWith<IllegalArgumentException> { MeasureQuery(from = "2026-09-30T00:00:00Z") }
         assertFailsWith<IllegalArgumentException> { MeasureQuery(versions = listOf("1.2")) }
         assertFailsWith<IllegalArgumentException> { MeasureService("http://public.example", "token") }
         assertFailsWith<IllegalArgumentException> { MeasureService("https://example.com?token=secret", "token") }
         assertFailsWith<IllegalArgumentException> { MeasureService("https://example.com", "token\nheader") }
         assertFailsWith<IllegalArgumentException> { MeasureService("http://localhost", "token").session("app", "../secret") }
-        Unit
     }
 }
