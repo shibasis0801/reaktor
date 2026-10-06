@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.truth.Fact
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.InkRole
 import dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot
 
 data class MachineSignalFonts(
@@ -162,6 +165,13 @@ fun SignalPill(
 @Composable
 fun StatusDot(color: Color, modifier: Modifier = Modifier) =
     Box(modifier.size(6.dp).background(color, RoundedCornerShape(3.dp)))
+
+@Composable
+fun StatusDot(ink: InkRole, modifier: Modifier = Modifier) = StatusDot(LocalThemeSnapshot.current.machineSignal.ink(ink), modifier)
+
+@Composable
+fun RoundDot(ink: InkRole, modifier: Modifier = Modifier) =
+    Box(modifier.clip(CircleShape).background(LocalThemeSnapshot.current.machineSignal.ink(ink)))
 
 @Composable
 fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: String? = null) {

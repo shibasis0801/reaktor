@@ -271,6 +271,7 @@ fun BlueprintPin(
     filled: Boolean,
     chip: Boolean = false,
     tooltip: (@Composable () -> Unit)? = null,
+    tip: TooltipAppearance = UnframedBlueprintTip,
 ) {
     val row = @Composable {
         Row(
@@ -287,7 +288,7 @@ fun BlueprintPin(
             if (pin.provides) PinDot(color, filled)
         }
     }
-    if (tooltip == null) row() else Tooltip(appearance = UnframedBlueprintTip, tip = tooltip) { row() }
+    if (tooltip == null) row() else Tooltip(appearance = tip, tip = tooltip) { row() }
 }
 
 @Composable
