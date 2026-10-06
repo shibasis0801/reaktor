@@ -1,12 +1,11 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
 import androidx.compose.ui.text.style.TextOverflow
-import dev.shibasis.reaktor.ui.machinesignal.SignalTone
 import dev.shibasis.reaktor.ui.machinesignal.surface.toneButton
-import androidx.compose.material3.Text as SurfaceText
 import dev.shibasis.reaktor.surface.compose.Button as SurfaceButton
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
@@ -31,7 +30,7 @@ class WrapperCostTest {
     private val wrappedButtons: @Composable () -> Unit = { repeat(buttons) { index -> SurfaceButton(
         onActivate = {},
         appearance = toneButton(SignalTone.Secondary),
-    ) { SurfaceText("Deploy $index", maxLines = 1, overflow = TextOverflow.Ellipsis) } } }
+    ) { Text("Deploy $index", maxLines = 1, overflow = TextOverflow.Ellipsis) } } }
 
     @Test
     fun twoThousandWrappedButtonsComposeWithinATenthOfTheLegacyKit() {

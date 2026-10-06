@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -53,7 +54,6 @@ interface FieldAppearance : ComposeAppearance<FieldProperties, PressState, Field
     fun cursor(properties: FieldProperties, theme: ThemeSnapshot): Brush
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TextField(
     state: TextFieldState,
@@ -68,6 +68,54 @@ fun TextField(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     label: String? = null,
+) = Field(state, modifier, enabled, error, label, appearance, placeholder, leading, trailing) { field, style, source, cursor, decorator ->
+    BasicTextField(
+        state = state,
+        modifier = field,
+        enabled = enabled,
+        textStyle = style,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = onKeyboardAction,
+        lineLimits = lineLimits,
+        interactionSource = source,
+        cursorBrush = cursor,
+        decorator = decorator,
+    )
+}
+
+@Composable
+fun SecureTextField(
+    state: TextFieldState,
+    modifier: Modifier = Modifier,
+    label: String,
+    enabled: Boolean = true,
+    appearance: FieldAppearance = LocalAppearances.current.field,
+) = Field(state, modifier, enabled, false, label, appearance, null, null, null) { field, style, source, cursor, decorator ->
+    BasicSecureTextField(
+        state = state,
+        enabled = enabled,
+        modifier = field,
+        textStyle = style,
+        interactionSource = source,
+        cursorBrush = cursor,
+        textObfuscationMode = TextObfuscationMode.Hidden,
+        decorator = decorator,
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Field(
+    state: TextFieldState,
+    modifier: Modifier,
+    enabled: Boolean,
+    error: Boolean,
+    label: String?,
+    appearance: FieldAppearance,
+    placeholder: (@Composable () -> Unit)?,
+    leading: (@Composable () -> Unit)?,
+    trailing: (@Composable () -> Unit)?,
+    editor: @Composable (Modifier, TextStyle, MutableInteractionSource, Brush, TextFieldDecorator) -> Unit,
 ) {
     val properties = FieldProperties(enabled, error, state.text.isEmpty())
     val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
@@ -81,54 +129,12 @@ fun TextField(
             reveal.bringIntoView()
         }
     }
-    BasicTextField(
-        state = state,
-        modifier = (if (label == null) modifier else modifier.semantics { contentDescription = label }).bringIntoViewRequester(reveal),
-        enabled = enabled,
-        textStyle = appearance.textStyle(properties, theme),
-        keyboardOptions = keyboardOptions,
-        onKeyboardAction = onKeyboardAction,
-        lineLimits = lineLimits,
-        interactionSource = source,
-        cursorBrush = appearance.cursor(properties, theme),
-        decorator = TextFieldDecorator { editor ->
-            appearance.Content(properties, press.state, theme, feedback, FieldSlots(editor, placeholder, leading, trailing))
-        },
-    )
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun SecureTextField(
-    state: TextFieldState,
-    modifier: Modifier = Modifier,
-    label: String,
-    enabled: Boolean = true,
-    appearance: FieldAppearance = LocalAppearances.current.field,
-) {
-    val properties = FieldProperties(enabled, false, state.text.isEmpty())
-    val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
-    val source = rememberInteractions(press)
-    val theme = LocalThemeSnapshot.current
-    val feedback = rememberFeedback(press.state.pressed, press.state.focused)
-    val reveal = remember { BringIntoViewRequester() }
-    LaunchedEffect(press.state.focused, LocalWindowInfo.current.containerSize) {
-        if (press.state.focused) {
-            withFrameNanos { }
-            reveal.bringIntoView()
-        }
-    }
-    BasicSecureTextField(
-        state = state,
-        enabled = enabled,
-        modifier = modifier.semantics { contentDescription = label }.bringIntoViewRequester(reveal),
-        textStyle = appearance.textStyle(properties, theme),
-        interactionSource = source,
-        cursorBrush = appearance.cursor(properties, theme),
-        textObfuscationMode = TextObfuscationMode.Hidden,
-        decorator = TextFieldDecorator { editor ->
-            appearance.Content(properties, press.state, theme, feedback, FieldSlots(editor, null, null, null))
-        },
+    editor(
+        (if (label == null) modifier else modifier.semantics { contentDescription = label }).bringIntoViewRequester(reveal),
+        appearance.textStyle(properties, theme),
+        source,
+        appearance.cursor(properties, theme),
+        TextFieldDecorator { inner -> appearance.Content(properties, press.state, theme, feedback, FieldSlots(inner, placeholder, leading, trailing)) },
     )
 }
 
