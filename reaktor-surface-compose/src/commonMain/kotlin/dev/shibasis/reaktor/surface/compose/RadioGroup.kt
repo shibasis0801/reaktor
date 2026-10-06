@@ -95,7 +95,7 @@ class OneOfScope internal constructor(
                 .rovingItem(roving, key, properties.enabled, typeahead)
                 .selectable(properties.selected, source, indication = null, enabled = properties.enabled, role = role) {
                     group.send(Choose(key, group.nextSequence()))
-                    roving.point(key)
+                    roving.point(key, focus = role == Role.Tab)
                 },
             propagateMinConstraints = true,
         ) {

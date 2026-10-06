@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -14,12 +15,14 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
@@ -150,6 +153,22 @@ class RovingTest {
         onRoot().performKeyInput { pressKey(Key.W) }
         onNodeWithTag("ws").assertIsFocused().assertIsOff()
         assertEquals(setOf("xhr", "doc"), shown)
+    }
+
+    @Test
+    fun aClickOnATabTakesFocusFromTheFieldThatHadIt() = runComposeUiTest {
+        var selected by mutableStateOf("rows")
+        setContent {
+            Column {
+                TextField(TextFieldState("orders"), Modifier.testTag("query"))
+                ViewTabs(selected) { selected = it }
+            }
+        }
+        onNodeWithTag("query").requestFocus()
+        onNodeWithTag("plan").performClick()
+        onNodeWithTag("plan").assertIsFocused().assertIsSelected()
+        onNodeWithTag("query").assertIsNotFocused()
+        assertEquals("plan", selected)
     }
 
     @Test
