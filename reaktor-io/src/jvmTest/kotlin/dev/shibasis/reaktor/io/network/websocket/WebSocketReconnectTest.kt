@@ -59,7 +59,7 @@ class WebSocketReconnectTest {
 
     @Test
     fun aServerCloseReconnectsAndTheSameReceiverKeepsDelivering() = runBlocking {
-        answer("first", CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+        answer("first", CloseReason(CloseReason.Codes.GOING_AWAY, "Restarting"))
         answer("second")
         val socket = socket()
         val states = mutableListOf<ConnectionState>()
@@ -70,7 +70,7 @@ class WebSocketReconnectTest {
         assertEquals(listOf("first", "second"), frames)
         assertEquals(2, server.requestCount)
         val dropped = states.filterIsInstance<ConnectionState.Failed>().map { it.exception }.filterIsInstance<DroppedConnection>().single()
-        assertEquals(CloseReason.Codes.VIOLATED_POLICY.code, dropped.reason?.code)
+        assertEquals(CloseReason.Codes.GOING_AWAY.code, dropped.reason?.code)
         assertIs<ConnectionState.Open>(socket.state.value)
         watching.cancel()
         socket.disconnect()
