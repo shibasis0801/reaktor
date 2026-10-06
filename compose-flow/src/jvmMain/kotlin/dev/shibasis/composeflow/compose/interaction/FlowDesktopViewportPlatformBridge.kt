@@ -17,7 +17,9 @@ import kotlin.math.abs
 import kotlin.math.exp
 
 class FlowDesktopViewportPlatformBridge internal constructor(
-    private val window: ComposeWindow,
+    private val content: JComponent?,
+    private val windowScale: () -> Float?,
+    private val pointerOnScreen: () -> Point? = { MouseInfo.getPointerInfo()?.location },
 ) : FlowViewportPlatformBridge {
     override fun resolveScrollAnchor(
         event: PointerEvent,
@@ -48,7 +50,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
         config: FlowViewportGestureConfig,
     ): FlowViewportPlatformGestureSubscription? {
         if (!isMacOs()) return null
-        val content = window.contentPane as? JComponent ?: return null
+        val content = content ?: return null
         val gestureUtilitiesClass = runCatching { Class.forName("com.apple.eawt.event.GestureUtilities") }.getOrNull() ?: return null
         val gestureListenerClass = runCatching { Class.forName("com.apple.eawt.event.GestureListener") }.getOrNull() ?: return null
         val magnificationListenerClass = runCatching { Class.forName("com.apple.eawt.event.MagnificationListener") }.getOrNull() ?: return null
@@ -85,7 +87,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
                 return@newProxyInstance null
             }
 
-            val scale = window.graphicsConfiguration?.defaultTransform?.scaleX?.toFloat() ?: interactionState.canvasDensity
+            val scale = windowScale() ?: interactionState.canvasDensity
             val anchor = pointerPositionInContent(content)
                 ?.let { interactionState.canvasPositionFromWindow(it, scale) } ?: return@newProxyInstance null
 
@@ -118,7 +120,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
     }
 
     private fun pointerPositionInContent(content: JComponent): Offset? {
-        val location = MouseInfo.getPointerInfo()?.location ?: return null
+        val location = pointerOnScreen() ?: return null
         val localPoint = Point(location)
         SwingUtilities.convertPointFromScreen(localPoint, content)
         return Offset(localPoint.x.toFloat(), localPoint.y.toFloat())
@@ -132,5 +134,5 @@ class FlowDesktopViewportPlatformBridge internal constructor(
 fun rememberFlowDesktopViewportPlatformBridge(
     window: ComposeWindow?,
 ): FlowViewportPlatformBridge? = remember(window) {
-    window?.let(::FlowDesktopViewportPlatformBridge)
+    window?.let { FlowDesktopViewportPlatformBridge(it.contentPane as? JComponent, { it.graphicsConfiguration?.defaultTransform?.scaleX?.toFloat() }) }
 }

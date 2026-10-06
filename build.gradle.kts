@@ -49,7 +49,7 @@ subprojects {
 
     // Disable lint for library modules — lint runs on the app target, not here
     afterEvaluate {
-        tasks.matching { it.name.contains("lint", ignoreCase = true) }.configureEach {
+        tasks.matching { it.name.startsWith("lint") }.configureEach {
             enabled = false
         }
     }

@@ -45,6 +45,12 @@ abstract class KotlinCMakeTask : DefaultTask() {
     fun build() {
         val sourceDir = sourceDirectory.get().asFile
         val buildDir = buildDirectory.get().asFile
+        val configuration = listOf(generator.get()) + configureArguments.get()
+        val configured = buildDir.resolve("configure-arguments.txt")
+        if (!configured.isFile || configured.readLines() != configuration) {
+            buildDir.resolve("CMakeCache.txt").delete()
+            buildDir.resolve("CMakeFiles").deleteRecursively()
+        }
         buildDir.mkdirs()
 
         execOperations.exec {
@@ -57,6 +63,7 @@ abstract class KotlinCMakeTask : DefaultTask() {
             )
             args(configureArguments.get())
         }
+        configured.writeText(configuration.joinToString("\n"))
 
         execOperations.exec {
             workingDir = sourceDir
