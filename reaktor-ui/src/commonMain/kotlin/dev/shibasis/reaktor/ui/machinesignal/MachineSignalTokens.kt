@@ -428,6 +428,10 @@ object MachineSignal {
         val height = 64.dp
     }
 
+    object AuditFindings {
+        val maxHeight = 420.dp
+    }
+
     object BotRail {
         val width = 330.dp
     }
@@ -492,6 +496,16 @@ object MachineSignal {
 
     object DeployOrder {
         val labelWidth = 84.dp
+    }
+
+    object DetailCode {
+        val lineHeight = 17.dp
+        val inset = 12.dp
+        val minHeight = 40.dp
+        val requestHeight = 220.dp
+        val shortHeight = 240.dp
+        val mediumHeight = 280.dp
+        val tallHeight = 360.dp
     }
 
     object Device {
