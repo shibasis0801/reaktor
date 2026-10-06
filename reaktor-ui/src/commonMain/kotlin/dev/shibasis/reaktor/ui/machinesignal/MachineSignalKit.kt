@@ -20,6 +20,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.TextLayoutInput
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
+import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -75,6 +88,33 @@ fun SignalText(
     maxLines = maxLines,
     overflow = TextOverflow.Ellipsis,
 )
+
+@Composable
+fun rememberSignalGlyph(text: String, color: Color = MachineSignal.Text2, size: TextUnit = MachineSignal.Type.body): Modifier {
+    val style = LocalTextStyle.current.merge(color = workspaceColor(color), fontSize = size, fontWeight = FontWeight.Normal, fontFamily = signalFonts().ui)
+    val measurer = rememberTextMeasurer(cacheSize = 0)
+    return remember(text, style, measurer) {
+        val glyph = SharedGlyph(text, style, measurer)
+        Modifier
+            .drawWithCache {
+                val layout = glyph.layout(Constraints.fixed(this.size.width.roundToInt(), this.size.height.roundToInt()), layoutDirection, this)
+                onDrawBehind { drawText(layout) }
+            }
+            .semantics { this.text = glyph.described }
+    }
+}
+
+private class SharedGlyph(private val text: String, private val style: TextStyle, private val measurer: TextMeasurer) {
+    val described = AnnotatedString(text)
+    private var last: TextLayoutResult? = null
+
+    fun layout(box: Constraints, direction: LayoutDirection, density: Density): TextLayoutResult =
+        last?.takeIf { it.layoutInput.fits(box, direction, density) }
+            ?: measurer.measure(text, style, TextOverflow.Ellipsis, maxLines = 1, constraints = box, layoutDirection = direction, density = density).also { last = it }
+
+    private fun TextLayoutInput.fits(box: Constraints, direction: LayoutDirection, density: Density) =
+        constraints == box && layoutDirection == direction && this.density.density == density.density && this.density.fontScale == density.fontScale
+}
 
 @Composable
 fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = MachineSignal.Text4) = Text(
