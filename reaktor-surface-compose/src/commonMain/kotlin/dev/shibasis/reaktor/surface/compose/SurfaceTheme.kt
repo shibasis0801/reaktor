@@ -69,6 +69,12 @@ object Appearance {
     val Scrollbar = AppearanceKey<ScrollbarAppearance>("scrollbar", BareScrollbar)
     val Island = AppearanceKey<IslandAppearance>("island", BareIsland)
     val Text = AppearanceKey<TextAppearance>("text", BareText)
+    val Icon = AppearanceKey<IconAppearance>("icon", BareIcon)
+    val Bar = AppearanceKey<BarAppearance>("bar", BareBar)
+    val Section = AppearanceKey<SectionAppearance>("section", BareSection)
+    val Property = AppearanceKey<PropertyAppearance>("property", BareProperty)
+    val Metric = AppearanceKey<MetricAppearance>("metric", BareMetric)
+    val Finding = AppearanceKey<FindingAppearance>("finding", BareFinding)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =

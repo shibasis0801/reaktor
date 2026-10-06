@@ -22,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.InkRole
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.compose.BadgeAppearance
 import dev.shibasis.reaktor.surface.compose.BadgeSlots
@@ -33,22 +34,49 @@ import dev.shibasis.reaktor.surface.compose.SparklineAppearance
 import dev.shibasis.reaktor.surface.compose.SparklineProperties
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
 fun toneBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBadge(filled = false, tone)
 
 fun filledBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBadge(filled = true, tone)
 
+fun toneBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = false)
+
+fun filledBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = true)
+
+fun compactBadge(ink: InkRole): BadgeAppearance = CompactBadge(ink)
+
 private fun signalBadge(filled: Boolean, tone: (MachineSignalColors) -> Color): BadgeAppearance = object : BadgeAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) =
+        SignalBadge(theme.machineSignal, tone(theme.machineSignal.colors), filled, slots)
+}
+
+private data class InkBadge(val ink: InkRole, val filled: Boolean) : BadgeAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) =
+        SignalBadge(theme.machineSignal, theme.machineSignal.ink(ink), filled, slots)
+}
+
+@Composable
+private fun SignalBadge(signal: MachineSignalSnapshot, color: Color, filled: Boolean, slots: BadgeSlots) = Box(
+    Modifier.heightIn(min = 16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
+    contentAlignment = Alignment.Center,
+) {
+    ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta)) { slots.content() }
+}
+
+private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) {
         val signal = theme.machineSignal
-        val color = tone(signal.colors)
+        val color = signal.ink(ink)
         Box(
-            Modifier.heightIn(min = 16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
+            Modifier.height(CompactBadgeHeight).clip(BadgeShape).background(color.copy(alpha = .18f)).padding(horizontal = MachineSignal.Space.s1),
             contentAlignment = Alignment.Center,
         ) {
-            ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta)) { slots.content() }
+            ProvideLabel(Label(color, signal.fonts.ui, MachineSignal.Type.dataMicro, FontWeight.SemiBold)) { slots.content() }
         }
     }
 }
@@ -111,18 +139,28 @@ val NumberBadge: BadgeAppearance = object : BadgeAppearance {
 
 fun signalSparkline(tone: (MachineSignalColors) -> Color): SparklineAppearance = object : SparklineAppearance {
     @Composable
-    override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
-        val colors = theme.machineSignal.colors
-        val color = tone(colors)
-        Canvas(Modifier.fillMaxSize()) {
-            val step = size.width / (properties.values.size - 1)
-            properties.threshold?.let { line ->
-                val y = size.height - line * size.height
-                drawLine(colors.line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-            }
-            properties.values.zipWithNext().forEachIndexed { index, (from, to) ->
-                drawLine(color, Offset(index * step, size.height - from * size.height), Offset((index + 1) * step, size.height - to * size.height), strokeWidth = 1.5f)
-            }
+    override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+        SignalSparkline(properties, theme.machineSignal.colors, tone(theme.machineSignal.colors))
+}
+
+fun signalSparkline(ink: InkRole): SparklineAppearance = InkSparkline(ink)
+
+private data class InkSparkline(val ink: InkRole) : SparklineAppearance {
+    @Composable
+    override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+        SignalSparkline(properties, theme.machineSignal.colors, theme.machineSignal.ink(ink))
+}
+
+@Composable
+private fun SignalSparkline(properties: SparklineProperties, colors: MachineSignalColors, color: Color) {
+    Canvas(Modifier.fillMaxSize()) {
+        val step = size.width / (properties.values.size - 1)
+        properties.threshold?.let { line ->
+            val y = size.height - line * size.height
+            drawLine(colors.line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+        }
+        properties.values.zipWithNext().forEachIndexed { index, (from, to) ->
+            drawLine(color, Offset(index * step, size.height - from * size.height), Offset((index + 1) * step, size.height - to * size.height), strokeWidth = 1.5f)
         }
     }
 }
@@ -148,21 +186,33 @@ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : 
 
 fun signalRangeBar(tone: (MachineSignalColors) -> Color): RangeBarAppearance = object : RangeBarAppearance {
     @Composable
-    override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
-        val color = tone(theme.machineSignal.colors)
-        Box(Modifier.fillMaxWidth().height(10.dp)) {
-            Box(Modifier.fillMaxWidth(properties.end).fillMaxHeight(), contentAlignment = Alignment.CenterEnd) {
-                Box(
-                    Modifier
-                        .fillMaxWidth(if (properties.end <= 0f) 1f else ((properties.end - properties.start) / properties.end).coerceIn(0.02f, 1f))
-                        .height(8.dp)
-                        .clip(RangeShape)
-                        .background(color),
-                )
-            }
+    override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+        SignalRangeBar(properties, tone(theme.machineSignal.colors))
+}
+
+fun signalRangeBar(ink: InkRole): RangeBarAppearance = InkRangeBar(ink)
+
+private data class InkRangeBar(val ink: InkRole) : RangeBarAppearance {
+    @Composable
+    override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+        SignalRangeBar(properties, theme.machineSignal.ink(ink))
+}
+
+@Composable
+private fun SignalRangeBar(properties: Range, color: Color) {
+    Box(Modifier.fillMaxWidth().height(10.dp)) {
+        Box(Modifier.fillMaxWidth(properties.end).fillMaxHeight(), contentAlignment = Alignment.CenterEnd) {
+            Box(
+                Modifier
+                    .fillMaxWidth(if (properties.end <= 0f) 1f else ((properties.end - properties.start) / properties.end).coerceIn(0.02f, 1f))
+                    .height(8.dp)
+                    .clip(RangeShape)
+                    .background(color),
+            )
         }
     }
 }
 
 private val BadgeShape = RoundedCornerShape(3.dp)
+private val CompactBadgeHeight = 15.dp
 private val RangeShape = RoundedCornerShape(2.dp)

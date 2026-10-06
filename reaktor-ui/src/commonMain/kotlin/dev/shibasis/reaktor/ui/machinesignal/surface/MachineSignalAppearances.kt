@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.Ink
 import dev.shibasis.reaktor.surface.compose.Appearance
 import dev.shibasis.reaktor.surface.compose.Appearances
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
@@ -29,4 +30,6 @@ fun MachineSignalAppearances(snapshot: MachineSignalSnapshot): Appearances = App
     (Appearance.RangeBar provides signalRangeBar { it.accent }) + (Appearance.Row provides SignalItemRow) +
     (Appearance.Splitter provides SignalSplitter) + (Appearance.DocumentTab provides SignalDocumentTab) + (Appearance.TabClose provides SignalTabClose) +
     (Appearance.TableRow provides SignalTableRow) + (Appearance.TableHeader provides SignalTableHeader) + (Appearance.Scrollbar provides SignalScrollbar) +
-    (Appearance.Island provides SignalIsland) + (Appearance.Text provides SignalTypography)
+    (Appearance.Island provides SignalIsland) + (Appearance.Text provides SignalTypography) + (Appearance.Icon provides SignalIcon) +
+    (Appearance.Bar provides ToolStrip) + (Appearance.Section provides InspectorSection) + (Appearance.Property provides InspectorProperty) +
+    (Appearance.Metric provides TileMetric) + (Appearance.Finding provides graphFinding(Ink.Muted))
