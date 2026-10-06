@@ -304,22 +304,21 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
                 if (expandable) {
                     if (expanded) collapse { host.expand(key, false); true } else expand { host.expand(key, true); true }
                 }
-            },
+            }
+            .focusProperties { onEnter = { cancelFocusChange() } }
+            .focusGroup(),
         propagateMinConstraints = true,
     ) {
+        val content = remember(scope, item, row) { @Composable { scope.row(item) } }
         appearance.Content(
             RowProperties(selected, enabled, index, tree?.depth(index) ?: 0, expandable, expanded),
             state,
             LocalThemeSnapshot.current,
             rememberFeedback(pressed = false, focusVisible = state.focusVisible),
-            RowSlots({ Unenterable { scope.row(item) } }, if (tree == null) null else host.toggle(key, expandable, expanded)),
+            RowSlots(content, if (tree == null) null else host.toggle(key, expandable, expanded)),
         )
     }
 }
-
-@Composable
-private fun Unenterable(content: @Composable () -> Unit) =
-    Box(Modifier.focusProperties { onEnter = { cancelFocusChange() } }.focusGroup(), propagateMinConstraints = true) { content() }
 
 @Stable
 internal class RowFlags(host: CollectionHost, key: String) {

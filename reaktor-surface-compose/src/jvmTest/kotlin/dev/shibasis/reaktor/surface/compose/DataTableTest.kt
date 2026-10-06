@@ -11,6 +11,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -292,6 +293,37 @@ class DataTableTest {
         val header = onNodeWithTag("files/header/name").fetchSemanticsNode().boundsInRoot
         val empty = onNodeWithTag("empty").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(empty.top >= header.bottom, "empty at $empty, header at $header")
+    }
+
+    @Test
+    fun aColumnAlignsAndPadsItsCellsInsideItsOwnSpanInEitherDirection() = runComposeUiTest {
+        val shaped = listOf(
+            TableColumn<String>("name", ColumnWidth.Share(1f), cellPadding = 8.dp, header = { BasicText("Name") }) { BasicText(it, Modifier.testTag("name-$it")) },
+            TableColumn<String>("size", ColumnWidth.Fixed(120.dp), cellAlign = Alignment.End, cellPadding = 8.dp, header = { BasicText("Size") }) {
+                BasicText("${it.length} B", Modifier.testTag("size-$it"))
+            },
+            TableColumn<String>("note", ColumnWidth.Fixed(100.dp), cellPadding = 10.dp, header = { BasicText("Note") }) {
+                BasicText("x".repeat(80), Modifier.testTag("note-$it"), maxLines = 1)
+            },
+        )
+        var direction by mutableStateOf(LayoutDirection.Ltr)
+        setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                DataTable(files, shaped, emptySet(), {}, Modifier.requiredSize(600.dp, 400.dp).testTag("table"))
+            }
+        }
+        fun bounds(tag: String) = onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val left = bounds("table").left
+        assertEquals(left + 8f, bounds("name-file-1").left)
+        assertEquals(left + 500f - 8f, bounds("size-file-1").right)
+        assertEquals(left + 510f, bounds("note-file-1").left)
+        assertEquals(80f, bounds("note-file-1").width)
+        direction = LayoutDirection.Rtl
+        waitForIdle()
+        val right = bounds("table").right
+        assertEquals(right - 8f, bounds("name-file-1").right)
+        assertEquals(right - 500f + 8f, bounds("size-file-1").left)
+        assertEquals(right - 510f, bounds("note-file-1").right)
     }
 
     private fun SemanticsNodeInteraction.assertDescribed(description: String) =
