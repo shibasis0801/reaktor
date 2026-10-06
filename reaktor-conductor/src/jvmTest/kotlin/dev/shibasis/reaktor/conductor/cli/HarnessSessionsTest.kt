@@ -84,6 +84,26 @@ class HarnessSessionsTest {
         assertEquals("Fix the agent pane", HarnessSessions.read(workspace, home, now).first { it.id == "c1" }.title)
     }
 
+    @Test fun aContinuedClaudeSessionIsItsOwnSessionEvenWhenItStartsWithItsParentsHistory() {
+        val ws = workspace.path
+        claude("-in-workspace", "c4", ws, now - 10_000,
+            """{"type":"user","cwd":"$ws","sessionId":"c1","timestamp":"2026-10-02T06:00:01Z","message":{"role":"user","content":"Fix the agent pane"}}""",
+            """{"type":"user","cwd":"$ws","sessionId":"c4","timestamp":"2026-10-02T06:59:30Z","message":{"role":"user","content":"Carry on"}}""")
+        val claude = HarnessSessions.read(workspace, home, now).filter { it.runtime == RuntimeKind.ClaudeCode }
+        assertEquals(listOf("c4", "c1"), claude.map { it.id })
+        assertEquals("claude --resume c4", claude.first().resumeCommand())
+    }
+
+    @Test fun transcriptsWrittenUnderOneSessionAreOneSessionFromTheLatestTranscript() {
+        val latest = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T12-00-00-x1.jsonl").apply {
+            writeText("""{"timestamp":"2026-10-01T12:00:00Z","type":"session_meta","payload":{"id":"x1","cwd":"${workspace.parentFile.path}","timestamp":"2026-10-01T12:00:00Z"}}""" + "\n")
+            setLastModified(now - 60_000)
+        }
+        val codex = HarnessSessions.read(workspace, home, now).filter { it.runtime == RuntimeKind.Codex }
+        assertEquals(listOf("x1"), codex.map { it.id })
+        assertEquals(latest.path, codex.single().transcript)
+    }
+
     private fun claude(project: String, id: String, cwd: String, modified: Long, vararg lines: String) {
         File(home, ".claude/projects/$project/$id.jsonl").apply { parentFile.mkdirs() }.apply {
             writeText(lines.joinToString("\n", postfix = "\n"))
