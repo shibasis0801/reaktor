@@ -59,6 +59,8 @@ object Blueprint {
     val Live = MachineSignal.Status.Ok
     val Hop = MachineSignal.Editor.Source
     val Rule = MachineSignal.Entity.Auth
+    val Faint = Color.White.copy(alpha = .16f)
+    val Pulse = lerp(Live, Color.White, .8f)
     const val FarZoom = 0.42
 
     fun header(tone: Color): Brush = Brush.horizontalGradient(listOf(lerp(tone, Color.Black, .3f), lerp(tone, Color.Black, .78f)))

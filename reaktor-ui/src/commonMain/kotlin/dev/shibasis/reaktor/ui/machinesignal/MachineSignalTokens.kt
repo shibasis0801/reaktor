@@ -408,6 +408,444 @@ object MachineSignal {
         val base = TextStyle(fontSize = body2, lineHeight = 15.sp, letterSpacing = 0.sp)
     }
 
+    object ActivityStrip {
+        val height = 64.dp
+    }
+
+    object AgentInspector {
+        val stepToolWidth = 130.dp
+    }
+
+    object AiFindings {
+        val maxHeight = 240.dp
+    }
+
+    object AnalyticsChart {
+        val height = 90.dp
+    }
+
+    object AuditChart {
+        val height = 64.dp
+    }
+
+    object BotRail {
+        val width = 330.dp
+    }
+
+    object BottomBar {
+        val widgetDividerHeight = 12.dp
+        val widgetIconSize = 12.dp
+    }
+
+    object Breakpoint {
+        val compact = 720.dp
+        val extraWide = 1500.dp
+        val medium = 900.dp
+        val wide = 1240.dp
+    }
+
+    object Chart {
+        val empty = Color.White.copy(alpha = .08f)
+        val track = Color.White.copy(alpha = .05f)
+        val selection = Color.White
+    }
+
+    object ChartLegend {
+        val swatchSize = 8.dp
+    }
+
+    object CloudAppSection {
+        val labelWidth = 92.dp
+    }
+
+    object CloudInspector {
+        val bindingLabelWidth = 150.dp
+        val changeAgeWidth = 64.dp
+        val relationVerbWidth = 112.dp
+    }
+
+    object CodeBlock {
+        val copyInset = 34.dp
+    }
+
+    object CommandRunner {
+        val actionWidth = 120.dp
+    }
+
+    object CostLine {
+        val labelWidth = 170.dp
+        val valueWidth = 150.dp
+    }
+
+    object DataDocument {
+        val blockerMaxHeight = 124.dp
+        val identityMaxHeight = 160.dp
+    }
+
+    object DataInspector {
+        val keyMarkWidth = 10.dp
+    }
+
+    object DataSystemBar {
+        val height = 32.dp
+    }
+
+    object DeployOrder {
+        val labelWidth = 84.dp
+    }
+
+    object Device {
+        val frameWidth = 8.dp
+        val phoneHeight = 900.dp
+        val phoneRadius = 40.dp
+        val phoneScreenRadius = 32.dp
+        val phoneWidth = 440.dp
+        val tabletHeight = 960.dp
+        val tabletRadius = 30.dp
+        val tabletScreenRadius = 24.dp
+        val tabletWidth = 720.dp
+        val screen = Color.Black
+    }
+
+    object DeviceBar {
+        val height = 40.dp
+    }
+
+    object Drawer {
+        val runOutputHeight = 220.dp
+        val tabHeight = 38.dp
+    }
+
+    object ElementRow {
+        val height = 24.dp
+    }
+
+    object ExecutionTrace {
+        val ageWidth = 56.dp
+        val durationWidth = 64.dp
+        val headerHeight = 30.dp
+        val outcomeWidth = 44.dp
+        val rowHeight = 22.dp
+    }
+
+    object FindingStrip {
+        val severityWidth = 62.dp
+    }
+
+    object FixtureRows {
+        val labelWidth = 128.dp
+    }
+
+    object Funnel {
+        val barHeight = 16.dp
+        val countWidth = 48.dp
+        val labelWidth = 180.dp
+        val shareWidth = 56.dp
+    }
+
+    object GatewayTraffic {
+        val emptyHeight = 150.dp
+    }
+
+    object Gauge {
+        val ringSize = 56.dp
+        val strokeWidth = 5.dp
+        val width = 84.dp
+    }
+
+    object Glance {
+        val barHeight = 6.dp
+        val canvasInset = 376.dp
+        val dataFindingsMaxHeight = 300.dp
+        val dataLabelWidth = 70.dp
+        val findingsMaxHeight = 340.dp
+        val graphCanvasInset = 364.dp
+        val graphWidth = 348.dp
+        val loadLabelWidth = 52.dp
+        val pipelineWidth = 320.dp
+        val trendHeight = 16.dp
+        val width = 360.dp
+    }
+
+    object GraphInspector {
+        val factLabelWidth = 96.dp
+        val roleStripeHeight = 4.dp
+        val trafficCallsWidth = 48.dp
+        val trafficP50Width = 88.dp
+    }
+
+    object GraphResults {
+        val width = 300.dp
+    }
+
+    object GraphWorkspace {
+        val liveBorderWidth = 1.5.dp
+    }
+
+    object HistoryRow {
+        val actorWidth = 150.dp
+        val kindWidth = 86.dp
+        val resourceWidth = 240.dp
+        val timeWidth = 104.dp
+    }
+
+    object Icon {
+        val viewport = 24.dp
+        val fill = Color.Black
+    }
+
+    object IdleCapacity {
+        val barHeight = 10.dp
+    }
+
+    object InfoRows {
+        val labelWidth = 120.dp
+    }
+
+    object InspectionWorkspace {
+        val elementsWidth = 300.dp
+        val sourceDockHeight = 150.dp
+    }
+
+    object Inventory {
+        val rowHeight = 38.dp
+    }
+
+    object Lab {
+        val catalogueWidth = 220.dp
+        val cellHeight = 440.dp
+        val cellWidth = 320.dp
+        val codeViewHeight = 240.dp
+        val environmentWidth = 280.dp
+        val hangarStoryHeight = 600.dp
+        val islandStoryHeight = 460.dp
+        val liveHeight = 720.dp
+        val liveWidth = 390.dp
+        val markHeight = 36.dp
+        val markWidth = 200.dp
+        val mediumStoryWidth = 900.dp
+        val narrowPaneHostWidth = 600.dp
+        val paneHostHeight = 640.dp
+        val panesStoryHeight = 700.dp
+        val rowLabelWidth = 96.dp
+        val sampleHeight = 320.dp
+        val splitMin = 80.dp
+        val staleViewHeight = 56.dp
+        val stateViewHeight = 220.dp
+        val swatchSize = 18.dp
+        val tableHeight = 420.dp
+        val tableStoryHeight = 480.dp
+        val wideStoryWidth = 1100.dp
+    }
+
+    object Ledger {
+        val measureWidth = 96.dp
+    }
+
+    object LivePreview {
+        val noticeMaxWidth = 520.dp
+        val sidebarWidth = 440.dp
+    }
+
+    object LogRow {
+        val height = 22.dp
+        val levelWidth = 12.dp
+        val tagWidth = 150.dp
+        val timeWidth = 62.dp
+    }
+
+    object Matrix {
+        val cellHeight = 22.dp
+        val emptyCellMark = 3.dp
+        val headerHeight = 118.dp
+        val holdersColumn = 150.dp
+        val permissionColumn = 300.dp
+        val permissionIndent = 22.dp
+        val roleColumn = 30.dp
+    }
+
+    object McpDoor {
+        val approvalFieldWidth = 260.dp
+        val approvalsMaxHeight = 420.dp
+        val callsMaxHeight = 360.dp
+        val callsMinHeight = 120.dp
+    }
+
+    object McpInspector {
+        val argumentsHeight = 110.dp
+        val schemaHeight = 120.dp
+    }
+
+    object MeasureEventRow {
+        val detailIndent = 70.dp
+        val offsetWidth = 64.dp
+        val typeWidth = 120.dp
+    }
+
+    object MeasureHeader {
+        val statusMaxWidth = 220.dp
+    }
+
+    object Mirror {
+        val frameRadius = 14.dp
+        val headerHeight = 34.dp
+        val readoutLift = 26.dp
+        val toolbarHeight = 30.dp
+    }
+
+    object ModeRail {
+        val width = 188.dp
+    }
+
+    object NodeTree {
+        val detailLabelWidth = 92.dp
+        val detailsMinHeight = 180.dp
+        val disclosureHeight = 22.dp
+        val disclosureWidth = 15.dp
+        val splitHandleHeight = 22.dp
+        val splitHandlePillHeight = 18.dp
+        val splitHandlePillWidth = 58.dp
+        val splitHandleStroke = 1.4.dp
+        val treeMinHeight = 160.dp
+    }
+
+    object OperationRow {
+        val actionsWidth = 150.dp
+        val blockedMaxWidth = 360.dp
+        val detailIndent = 36.dp
+        val lastRunMinWidth = 180.dp
+    }
+
+    object Palette {
+        val emptyInset = 20.dp
+        val maxHeight = 640.dp
+        val maxWidth = 760.dp
+        val minWidth = 620.dp
+        val topInset = 72.dp
+    }
+
+    object PaneSearch {
+        val compactWidth = 240.dp
+        val modelsWidth = 220.dp
+        val sessionsWidth = 360.dp
+        val socketsWidth = 260.dp
+        val standardWidth = 300.dp
+        val wideWidth = 320.dp
+    }
+
+    object PersonActivity {
+        val sparklineHeight = 28.dp
+    }
+
+    object PipelineInspector {
+        val linkLabelWidth = 76.dp
+    }
+
+    object PortStatsRow {
+        val callsWidth = 48.dp
+        val durationWidth = 84.dp
+        val failuresWidth = 64.dp
+        val height = 24.dp
+        val portWidth = 200.dp
+    }
+
+    object QueryPlan {
+        val documentHeight = 280.dp
+        val emptyWidth = 480.dp
+        val toolbarHeight = 40.dp
+    }
+
+    object RefreshChain {
+        val indexWidth = 28.dp
+    }
+
+    object Results {
+        val cellValueHeight = 120.dp
+        val comparisonStatementHeight = 64.dp
+        val nodePropertiesHeight = 200.dp
+    }
+
+    object RowMarker {
+        val compactHeight = 12.dp
+        val height = 14.dp
+        val outlineHeight = 13.dp
+        val width = 3.dp
+    }
+
+    object SchemaView {
+        val emptyWidth = 460.dp
+        val searchResultsMaxHeight = 360.dp
+        val searchResultsWidth = 320.dp
+        val viewNameWidth = 170.dp
+    }
+
+    object Scrim {
+        val modal = Color.Black.copy(alpha = .72f)
+        val readout = Color.Black.copy(alpha = .62f)
+    }
+
+    object SearchField {
+        val iconSize = 13.dp
+    }
+
+    object SessionChart {
+        val height = 56.dp
+        val width = 420.dp
+    }
+
+    object SimulatorInput {
+        val width = 360.dp
+    }
+
+    object SimulatorSteps {
+        val titleWidth = 170.dp
+    }
+
+    object SocketMessageRow {
+        val offsetWidth = 56.dp
+        val sizeWidth = 52.dp
+    }
+
+    object Sparkline {
+        val deployTrafficWidth = 56.dp
+        val errorsHeight = 18.dp
+        val inlineHeight = 14.dp
+        val portLatencyWidth = 80.dp
+        val requestsHeight = 36.dp
+        val resourceTrafficWidth = 96.dp
+        val usageHeight = 28.dp
+    }
+
+    object TenancyTree {
+        val width = 272.dp
+    }
+
+    object TokenChecks {
+        val nameWidth = 84.dp
+        val width = 440.dp
+    }
+
+    object TokenClaims {
+        val nameWidth = 110.dp
+    }
+
+    object TokenInput {
+        val maxHeight = 140.dp
+        val minHeight = 72.dp
+    }
+
+    object VerdictTrace {
+        val stepNumberWidth = 14.dp
+    }
+
+    object WindowChrome {
+        val trafficLightRowHeight = 40.dp
+        val trafficLightsWidth = 78.dp
+    }
+
+    object ZoomBar {
+        val levelWidth = 44.dp
+    }
     fun provenance(truth: TruthClass): ProvenanceColors = when (truth) {
         TruthClass.Live -> ProvenanceColors(Color(0xFF35C978), Color(0x1435C978), Color(0x5235C978))
         TruthClass.Source -> ProvenanceColors(Color(0xFF5C80FF), Color(0x165C80FF), Color(0x525C80FF))
