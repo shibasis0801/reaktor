@@ -49,24 +49,25 @@ internal class RovingEntries {
     }
 
     fun list(rightToLeft: Boolean): RovingList {
-        val placed = entries.mapNotNull { (key, entry) -> entry.bounds?.let { Placed(key, entry, it) } }
-        val lines = mutableListOf<MutableList<Placed>>()
-        var lineBottom = Float.NEGATIVE_INFINITY
-        placed.sortedBy { it.bounds.top }.forEach { item ->
-            if (item.bounds.top >= lineBottom) {
-                lines += mutableListOf(item)
-                lineBottom = item.bounds.bottom
-            } else {
-                lines.last() += item
-                lineBottom = maxOf(lineBottom, item.bounds.bottom)
-            }
-        }
-        val reading = lines.flatMap { line -> line.sortedBy { if (rightToLeft) -it.bounds.right else it.bounds.left } }
-        val waiting = entries.filterValues { it.bounds == null }.map { (key, entry) -> Placed(key, entry, Rect.Zero) }
-        return RovingList((reading + waiting).map { RovingItem(it.key, it.entry.enabled, it.entry.text) })
+        val reading = readingOrder(entries.mapNotNull { (key, entry) -> entry.bounds?.let { key to it } }, rightToLeft)
+        val waiting = entries.filterValues { it.bounds == null }.keys
+        return RovingList((reading + waiting).map { key -> entries.getValue(key).let { RovingItem(key, it.enabled, it.text) } })
     }
+}
 
-    private class Placed(val key: String, val entry: RovingEntry, val bounds: Rect)
+internal fun <T> readingOrder(placed: List<Pair<T, Rect>>, rightToLeft: Boolean): List<T> {
+    val lines = mutableListOf<MutableList<Pair<T, Rect>>>()
+    var lineBottom = Float.NEGATIVE_INFINITY
+    placed.sortedBy { it.second.top }.forEach { item ->
+        if (item.second.top >= lineBottom) {
+            lines += mutableListOf(item)
+            lineBottom = item.second.bottom
+        } else {
+            lines.last() += item
+            lineBottom = maxOf(lineBottom, item.second.bottom)
+        }
+    }
+    return lines.flatMap { line -> line.sortedBy { if (rightToLeft) -it.second.right else it.second.left }.map { it.first } }
 }
 
 @Stable

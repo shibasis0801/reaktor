@@ -223,6 +223,39 @@ class PaneHostTest {
         onNodeWithTag("rail-button").assertIsFocused()
     }
 
+    @Test
+    fun siblingHostsTakeTheirF6TurnByPositionNotByWhenTheyAppeared() = runComposeUiTest {
+        val outer = PaneSpec(listOf(Region("rail", RegionEdge.Start, 40f, 40f, 40f, 0)), 200f, 100f)
+        var upper by mutableStateOf(false)
+        setContent {
+            Box(Modifier.requiredSize(1000.dp, 700.dp)) {
+                PaneHost(outer, PanePreferences(), {}, main = {
+                    Column {
+                        if (upper) Box(Modifier.weight(1f)) { Sibling("upper") }
+                        Box(Modifier.weight(1f)) { Sibling("lower") }
+                    }
+                }) { Button({}, Modifier.testTag("rail-button")) { BasicText("Rail") } }
+            }
+        }
+        upper = true
+        waitForIdle()
+        onNodeWithTag("rail-button").requestFocus()
+        listOf("upper-body", "upper-detail", "lower-body", "lower-detail", "rail-button").forEach {
+            f6()
+            onNodeWithTag(it).assertIsFocused()
+        }
+        upper = false
+        waitForIdle()
+        f6()
+        onNodeWithTag("lower-body").assertIsFocused()
+    }
+
+    @Composable
+    private fun Sibling(name: String) =
+        PaneHost(PaneSpec(listOf(Region("detail", RegionEdge.End, 300f, 280f, 400f, 0)), 200f, 100f), PanePreferences(), {}, main = {
+            Button({}, Modifier.testTag("$name-body")) { BasicText(name) }
+        }) { Button({}, Modifier.testTag("$name-detail")) { BasicText("$name detail") } }
+
     private fun androidx.compose.ui.test.ComposeUiTest.f6() = onRoot().performKeyInput { pressKey(Key.F6) }
 
     private fun SemanticsNodeInteraction.width(): Float = fetchSemanticsNode().size.width.toFloat()
