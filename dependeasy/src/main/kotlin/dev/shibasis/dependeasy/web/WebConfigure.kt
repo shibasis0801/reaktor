@@ -2,16 +2,20 @@ package dev.shibasis.dependeasy.web
 
 
 import dev.shibasis.dependeasy.common.Configuration
+import org.gradle.api.Project
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.invoke
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.the
 import org.gradle.kotlin.dsl.withType
+import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.dsl.JsSourceMapEmbedMode
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
 import org.jetbrains.kotlin.gradle.targets.js.npm.PackageJson
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 import org.jetbrains.kotlin.gradle.targets.js.webpack.WebpackDevtool
@@ -90,6 +94,11 @@ fun KotlinMultiplatformExtension.web(
             configure.moduleName?.apply { name = this }
             configure.packageJsonCustomizer?.invoke(this)
         }
+        if (!project.pluginManager.hasPlugin("org.jetbrains.compose")) {
+            project.tasks.named<ProcessResources>(compilations["test"].processResourcesTaskName) {
+                from(project.skikoRuntime(compilations["test"])) { exclude("META-INF/**") }
+            }
+        }
 
         configure.targetModifier(this)
     }
@@ -129,4 +138,11 @@ fun KotlinMultiplatformExtension.web(
             ];
         """.trimIndent())
     }
+}
+
+private fun Project.skikoRuntime(compilation: KotlinJsIrCompilation) = provider {
+    configurations.getByName(compilation.runtimeDependencyConfigurationName).incoming.resolutionResult.allComponents
+        .mapNotNull { component -> component.moduleVersion?.takeIf { it.group == "org.jetbrains.skiko" }?.version }
+        .distinct()
+        .map { zipTree(configurations.detachedConfiguration(dependencies.create("org.jetbrains.skiko:skiko-js-wasm-runtime:$it")).singleFile) }
 }
