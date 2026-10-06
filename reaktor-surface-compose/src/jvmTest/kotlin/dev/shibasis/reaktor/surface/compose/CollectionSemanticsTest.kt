@@ -103,7 +103,7 @@ class CollectionSemanticsTest {
     }
 
     @Test
-    fun theVisibleTreeToggleUsesItsOwnSemanticActionWithoutSelectingTheRow() = runComposeUiTest {
+    fun theTreeToggleIsAnAutomationTargetThatScreenReadersSkipAndItTogglesWithoutSelectingTheRow() = runComposeUiTest {
         var open by mutableStateOf(setOf("src"))
         var selection by mutableStateOf(emptySet<String>())
         val look = object : RowAppearance {
@@ -117,6 +117,7 @@ class CollectionSemanticsTest {
             Tree(treeSource(Files, { it.key }, { it.children }, open), selection, { selection = it },
                 { key, expanded -> open = if (expanded) open + key else open - key }, Modifier.height(400.dp), appearance = look) { BasicText(it.key) }
         }
+        assertTrue(SemanticsProperties.HideFromAccessibility in onNodeWithTag("toggle-0", useUnmergedTree = true).fetchSemanticsNode().config)
         onNodeWithTag("toggle-0", useUnmergedTree = true).performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(emptySet(), open)
         assertEquals(emptySet(), selection)
