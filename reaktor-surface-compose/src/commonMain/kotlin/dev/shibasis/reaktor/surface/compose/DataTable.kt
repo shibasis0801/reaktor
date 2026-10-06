@@ -79,6 +79,8 @@ class TableColumn<T>(
     val key: String,
     val width: ColumnWidth,
     val sortable: Boolean = false,
+    val cellAlign: Alignment.Horizontal = Alignment.Start,
+    val cellPadding: Dp = 0.dp,
     val header: @Composable () -> Unit,
     val cell: @Composable ItemScope.(T) -> Unit,
 )
@@ -131,11 +133,15 @@ fun <T> DataTable(
             if (source.size == 0) {
                 Box(body) { empty() }
             } else {
-                val cells = remember(columns, state) { CellsPolicy(columns) { state.layout.widths } }
-                Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, actions, state.list, behavior, appearance, false) { item ->
-                    val scope = this
-                    Layout(columns.map { column -> @Composable { column.cell(scope, item) } }, measurePolicy = cells)
+                val row = remember(columns, state) {
+                    val cells = CellsPolicy(columns) { state.layout.widths }
+                    val content: @Composable ItemScope.(T) -> Unit = { item ->
+                        val scope = this
+                        Layout(columns.map { column -> @Composable { column.cell(scope, item) } }, measurePolicy = cells)
+                    }
+                    content
                 }
+                Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, actions, state.list, behavior, appearance, false, row)
             }
         }
         CollectionScrollbar(state.list, Modifier.align(Alignment.TopEnd).padding(top = with(LocalDensity.current) { rowsTop.toDp() }).fillMaxHeight())
@@ -180,12 +186,15 @@ private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modi
 private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val widths: () -> Map<String, Float>) : MultiContentMeasurePolicy {
     override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
         val spans = columnSpans(columns, widths(), if (constraints.hasBoundedWidth) constraints.maxWidth else 0, this)
-        val placeables = measurables.mapIndexed { index, cell -> cell.map { it.measure(Constraints(0, spans[index], 0, constraints.maxHeight)) } }
+        val insets = IntArray(columns.size) { columns[it].cellPadding.roundToPx() }
+        val rooms = IntArray(columns.size) { (spans[it] - 2 * insets[it]).coerceAtLeast(0) }
+        val placeables = measurables.mapIndexed { index, cell -> cell.map { it.measure(Constraints(0, rooms[index], 0, constraints.maxHeight)) } }
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else placeables.maxOf { cell -> cell.maxOfOrNull { it.height } ?: 0 }.coerceAtLeast(constraints.minHeight)
         return layout(constraints.constrainWidth(spans.sum()), height) {
             var x = 0
             placeables.forEachIndexed { index, cell ->
-                cell.forEach { it.placeRelative(x, (height - it.height) / 2) }
+                val align = columns[index].cellAlign
+                cell.forEach { it.placeRelative(x + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), (height - it.height) / 2) }
                 x += spans[index]
             }
         }
