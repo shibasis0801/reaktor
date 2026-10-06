@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import dev.shibasis.reaktor.surface.Ink
+import dev.shibasis.reaktor.surface.Type
+import dev.shibasis.reaktor.surface.compose.Text
 import androidx.compose.ui.unit.dp
 
 /** Deliberate empty or unavailable workspace, with one clear explanation and room for a real action. */
@@ -21,11 +23,11 @@ fun SignalWorkspaceEmptyState(
         if (!compact) Box(Modifier.size(MachineSignal.Editor.toolHitSize + MachineSignal.Space.s3)
             .background(MachineSignal.Editor.Surface, MachineSignal.Shape.Panel)
             .border(1.dp, MachineSignal.Editor.Line, MachineSignal.Shape.Panel), contentAlignment = Alignment.Center) {
-            SignalText(symbol, color = MachineSignal.Editor.Accent, size = MachineSignal.Type.display)
+            Text(symbol, role = Type.Display, ink = Ink.Accent)
         }
-        SignalText(title, color = MachineSignal.Editor.Text, size = MachineSignal.Type.title, weight = FontWeight.SemiBold, maxLines = 3)
-        SignalText(description, color = MachineSignal.Editor.Muted, maxLines = Int.MAX_VALUE)
-        if (!compact && detail.isNotBlank()) SignalText(detail, color = MachineSignal.Editor.Unknown, size = MachineSignal.Editor.label, maxLines = Int.MAX_VALUE)
+        Text(title, role = Type.Title.strong, ink = Ink.Text, lines = 3)
+        Text(description, role = Type.Body, ink = Ink.Muted, lines = Int.MAX_VALUE)
+        if (!compact && detail.isNotBlank()) Text(detail, role = Type.Label, ink = Ink.Unknown, lines = Int.MAX_VALUE)
         if (actions != null) Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), content = actions)
     }
 }

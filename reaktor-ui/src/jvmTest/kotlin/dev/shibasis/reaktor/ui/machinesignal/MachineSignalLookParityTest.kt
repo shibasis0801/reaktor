@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
+import dev.shibasis.reaktor.surface.Ink
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.ToastEntry
 import dev.shibasis.reaktor.surface.TooltipState
@@ -204,7 +205,7 @@ class MachineSignalLookParityTest {
         scene(density, variant, {
             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    Box(Modifier.testTag("legacy-pill")) { StatusPill("12 succeeded", MachineSignal.Status.Ok) }
+                    Box(Modifier.testTag("legacy-pill")) { StatusPill("12 succeeded", Ink.Ok) }
                     Box(Modifier.testTag("surface-pill")) {
                         Look { theme, feedback ->
                             statusToast { it.ok }.Content(entry, PressState(), theme, feedback, ToastSlots {

@@ -60,6 +60,7 @@ import dev.shibasis.reaktor.surface.compose.PropertyAppearance
 import dev.shibasis.reaktor.surface.compose.PropertySlots
 import dev.shibasis.reaktor.surface.compose.SectionAppearance
 import dev.shibasis.reaktor.surface.compose.SectionSlots
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 import dev.shibasis.reaktor.surface.compose.TipContent
 import dev.shibasis.reaktor.surface.compose.TooltipAppearance
 import dev.shibasis.reaktor.surface.compose.TooltipSlots
@@ -67,6 +68,7 @@ import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
 import dev.shibasis.reaktor.ui.machinesignal.StatusDot
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
+import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
 
 private val ToolStripHeight = 32.dp
 private val ToolButtonSize = 24.dp
@@ -82,6 +84,7 @@ private val AuthFindingFixWidth = 220.dp
 private val CloudFindingTitle = 12.5.sp
 private val VerdictLarge = 20.sp
 private val DropdownMargin = 48.dp
+private val PanelHeaderHeight = 34.dp
 
 val SignalIcon: IconAppearance = object : IconAppearance {
     @Composable
@@ -306,6 +309,33 @@ val CardSection: SectionAppearance = object : SectionAppearance {
         ) {
             ProvideLabel(signal.label(signal.colors.textFaint, MachineSignal.Editor.meta), slots.heading)
             slots.content(this)
+        }
+    }
+}
+
+val PanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.s3)
+
+val FlushPanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.none)
+
+private data class SignalPanelSection(val inset: Dp) : SectionAppearance {
+    @Composable
+    override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
+        val signal = theme.signalOrBoard
+        Column(Modifier.background(signal.colors.surface).then(
+            if (signal.variant == MachineSignalVariant.Editor) Modifier.border(MachineSignal.Stroke.hairline, signal.colors.lineSubtle) else Modifier,
+        )) {
+            Row(
+                Modifier.fillMaxWidth().height(PanelHeaderHeight).padding(horizontal = inset),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ProvideLabel(signal.label(signal.colors.text, MachineSignal.Type.body, FontWeight.Medium), slots.heading)
+                slots.trailing?.let { trailing ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) { trailing() }
+                }
+            }
+            Box(Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline).background(signal.colors.lineSubtle))
+            Column(Modifier.padding(inset)) { slots.content(this) }
         }
     }
 }

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -89,10 +88,11 @@ import dev.shibasis.reaktor.code.CodeIntelligence
 import dev.shibasis.reaktor.code.CodePosition
 import dev.shibasis.reaktor.code.CodeSeverity
 import dev.shibasis.reaktor.code.CodeSpan
-import dev.shibasis.reaktor.ui.machinesignal.Eyebrow
+import dev.shibasis.reaktor.surface.Ink
+import dev.shibasis.reaktor.surface.Type
+import dev.shibasis.reaktor.surface.compose.Text
 import dev.shibasis.reaktor.ui.machinesignal.LocalMachineSignalFonts
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
-import dev.shibasis.reaktor.ui.machinesignal.SignalText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -543,7 +543,7 @@ private fun CodeLine(
                 Modifier.width(gutterWidth).fillMaxHeight().background(MachineSignal.Editor.Canvas),
                 contentAlignment = Alignment.CenterEnd,
             ) {
-                Text(
+                androidx.compose.material3.Text(
                     text = "${index + 1}",
                     style = style.copy(
                         color = if (onCaretLine) MachineSignal.Editor.Code.GutterActive else MachineSignal.Editor.Code.Gutter,
@@ -614,7 +614,7 @@ private fun CodeLine(
                         }
                     },
             ) {
-                Text(text = annotated, style = style, softWrap = false, maxLines = 1,
+                androidx.compose.material3.Text(text = annotated, style = style, softWrap = false, maxLines = 1,
                     modifier = Modifier.graphicsLayer { translationX = firstColumn * metrics.charWidth - hScroll.value })
             }
         }
@@ -632,7 +632,7 @@ private fun CodeFindBar(state: CodeEditorState, modifier: Modifier, tag: String)
     val fonts = LocalMachineSignalFonts.current
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    Eyebrow("FIND")
+    Text("FIND", role = Type.Eyebrow, ink = Ink.Unknown)
     BasicTextField(
         value = state.findQuery,
         onValueChange = { state.findQuery = it; state.findIndex = 0 },
@@ -654,13 +654,8 @@ private fun CodeFindBar(state: CodeEditorState, modifier: Modifier, tag: String)
         cursorBrush = SolidColor(MachineSignal.Editor.Source),
     )
     val matches = state.findMatches
-    SignalText(
-        text = if (matches.isEmpty()) "no matches" else "${state.findIndex + 1} of ${matches.size}",
-        color = if (matches.isEmpty()) MachineSignal.Text4 else MachineSignal.Editor.Muted,
-        size = MachineSignal.Type.data,
-        mono = true,
-        modifier = Modifier.testTag("$tag-find-count"),
-    )
+    Text(if (matches.isEmpty()) "no matches" else "${state.findIndex + 1} of ${matches.size}", Modifier.testTag("$tag-find-count"),
+        role = Type.Data.code, ink = if (matches.isEmpty()) Ink.Unknown else Ink.Muted)
     CodeChromeAction("Prev", "$tag-find-prev") { state.findNext(forward = false) }
     CodeChromeAction("Next", "$tag-find-next") { state.findNext(forward = true) }
     CodeChromeAction("Close", "$tag-find-close") { state.closeFind() }
@@ -682,34 +677,21 @@ private fun CodeStatusBar(
 ) {
     val errors = state.diagnostics.count { it.severity == CodeSeverity.Error }
     val warnings = state.diagnostics.count { it.severity == CodeSeverity.Warning }
-    SignalText("Ln ${state.caret.line + 1}, Col ${state.caret.column + 1}", color = MachineSignal.Editor.Muted,
-        size = MachineSignal.Type.data, mono = true, modifier = Modifier.testTag("$tag-caret"))
-    state.selection?.let { SignalText("${state.selectedText?.length ?: 0} selected", color = MachineSignal.Text4, size = MachineSignal.Type.data, mono = true) }
-    if (errors > 0) SignalText("$errors error${if (errors == 1) "" else "s"}", color = MachineSignal.Status.Error,
-        size = MachineSignal.Type.data, mono = true, modifier = Modifier.testTag("$tag-errors"))
-    if (warnings > 0) SignalText("$warnings warning${if (warnings == 1) "" else "s"}", color = MachineSignal.Status.Warn,
-        size = MachineSignal.Type.data, mono = true)
+    Text("Ln ${state.caret.line + 1}, Col ${state.caret.column + 1}", Modifier.testTag("$tag-caret"), role = Type.Data.code, ink = Ink.Muted)
+    state.selection?.let { Text("${state.selectedText?.length ?: 0} selected", role = Type.Data.code, ink = Ink.Unknown) }
+    if (errors > 0) Text("$errors error${if (errors == 1) "" else "s"}", Modifier.testTag("$tag-errors"), role = Type.Data.code, ink = Ink.Danger)
+    if (warnings > 0) Text("$warnings warning${if (warnings == 1) "" else "s"}", role = Type.Data.code, ink = Ink.Warn)
     Spacer(Modifier.weight(1f))
-    if (state.readOnly) SignalText("read only", color = MachineSignal.Text4, size = MachineSignal.Type.data, mono = true,
-        modifier = Modifier.testTag("$tag-readonly"))
-    SignalText(
-        text = intelligence.status.name.lowercase(),
-        color = if (intelligence.status.available) MachineSignal.Status.Ok else MachineSignal.Text4,
-        size = MachineSignal.Type.data, mono = true,
-        modifier = Modifier.testTag("$tag-intelligence"),
-    )
-    SignalText(state.language.label, color = MachineSignal.Editor.Muted, size = MachineSignal.Type.data, mono = true)
+    if (state.readOnly) Text("read only", Modifier.testTag("$tag-readonly"), role = Type.Data.code, ink = Ink.Unknown)
+    Text(intelligence.status.name.lowercase(), Modifier.testTag("$tag-intelligence"), role = Type.Data.code,
+        ink = if (intelligence.status.available) Ink.Ok else Ink.Unknown)
+    Text(state.language.label, role = Type.Data.code, ink = Ink.Muted)
     onOpenExternally?.let { CodeChromeAction("Open in IDE", "$tag-open-ide", it) }
 }
 
 @Composable
-internal fun CodeChromeAction(label: String, tag: String, onClick: () -> Unit) = SignalText(
-    text = label,
-    color = MachineSignal.Editor.Source,
-    size = MachineSignal.Type.data,
-    modifier = Modifier.clickable(onClick = onClick).testTag(tag)
-        .padding(horizontal = MachineSignal.Space.s1),
-)
+internal fun CodeChromeAction(label: String, tag: String, onClick: () -> Unit) =
+    Text(label, Modifier.clickable(onClick = onClick).testTag(tag).padding(horizontal = MachineSignal.Space.s1), role = Type.Data, ink = Ink.Source)
 
 @Composable
 private fun CodeTip(message: String, origin: String?, accent: Color, tag: String) = Box(
@@ -724,8 +706,8 @@ private fun CodeTip(message: String, origin: String?, accent: Color, tag: String
             .semantics(mergeDescendants = true) {}
             .testTag(tag),
     ) {
-        SignalText(message, color = MachineSignal.Editor.Text, size = MachineSignal.Type.data, maxLines = 6)
-        origin?.let { SignalText(it, color = MachineSignal.Text4, size = MachineSignal.Type.dataMicro, mono = true) }
+        Text(message, role = Type.Data, ink = Ink.Text, lines = 6)
+        origin?.let { Text(it, role = Type.Micro.code, ink = Ink.Unknown) }
     }
 }
 
