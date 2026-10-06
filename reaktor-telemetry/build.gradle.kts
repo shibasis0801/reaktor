@@ -33,6 +33,16 @@ kotlin {
         dependencies {
             api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
         }
+        podDependencies {
+            pod("FirebaseAnalytics/WithoutAdIdSupport") {
+                version = "11.0"
+                linkOnly = true
+            }
+            pod("FirebaseCrashlytics") {
+                version = "11.0"
+                linkOnly = true
+            }
+        }
     }
     web {}
     server {}
