@@ -10,25 +10,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -65,14 +68,17 @@ fun PaneHost(
     val latest by rememberUpdatedState(preferences)
     val changed by rememberUpdatedState(onPreferencesChange)
     val parent = LocalPaneFocusGroup.current
-    val groups = parent?.owner ?: focus
-    val host = remember { Any() }
-    DisposableEffect(groups, host) { onDispose { groups.remove(host) } }
+    val coordinator = parent?.owner ?: focus
+    val host = remember(coordinator, parent) { PaneFocusHost(parent) }
+    DisposableEffect(coordinator, host) {
+        coordinator.add(host)
+        onDispose { coordinator.remove(host) }
+    }
     val scale = LocalDensity.current.fontScale
     val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
-    BoxWithConstraints(modifier.onPreviewKeyEvent { event ->
+    BoxWithConstraints(modifier.onPlaced { host.coordinates = it }.onPreviewKeyEvent { event ->
         val stroke = event.stroke()
-        event.type == KeyEventType.KeyDown && stroke != null && stroke.key == KeyName.F6 && !stroke.meta && !stroke.control && !stroke.alt && groups.cycle(stroke.shift)
+        event.type == KeyEventType.KeyDown && stroke != null && stroke.key == KeyName.F6 && !stroke.meta && !stroke.control && !stroke.alt && coordinator.cycle(stroke.shift)
     }) {
         val plan = spec.plan(maxWidth.value, maxHeight.value, scale, preferences)
         val shown = spec.regions.filter { it.id in plan.sizes }
@@ -81,37 +87,44 @@ fun PaneHost(
         val bottoms = shown.filter { it.edge == RegionEdge.Bottom }
         val roomAcross = plan.mainWidth - spec.mainMinWidth * scale
         val roomDown = plan.mainHeight - spec.mainMinHeight * scale
-        val order = starts + listOf(null) + bottoms + ends
-        val focusGroups = groups.register(host, parent, order.map { it?.id })
+        val order = (starts + listOf(null) + bottoms + ends).map { it?.id }
+        SideEffect {
+            host.order = order
+            host.rightToLeft = rightToLeft
+        }
         val handle = @Composable { item: Region ->
             if (item.min < item.max) {
-            val size = plan.sizes.getValue(item.id)
-            val bottom = item.edge == RegionEdge.Bottom
-            SplitterHandle(
-                SplitterProperties(
-                    size = size,
-                    min = item.min * scale,
-                    max = minOf(item.max, size + if (bottom) roomDown else roomAcross),
-                    initial = item.preferred,
-                    collapsible = item.collapsible,
-                    reversed = item.edge != RegionEdge.Start,
-                    axis = if (bottom) Axis.Vertical else Axis.Horizontal,
-                    rightToLeft = rightToLeft,
-                ),
-                if (bottom) SplitAxis.Vertical else SplitAxis.Horizontal,
-                behavior,
-                appearance,
-                "$SplitterPart/${item.id}",
-                item.label,
-                splitterModifier(item),
-            ) { change ->
-                changed(if (change.collapsed) latest.copy(hidden = latest.hidden + item.id)
-                    else latest.copy(sizes = latest.sizes + (item.id to change.size), hidden = latest.hidden - item.id))
-            }
+                val size = plan.sizes.getValue(item.id)
+                val bottom = item.edge == RegionEdge.Bottom
+                SplitterHandle(
+                    SplitterProperties(
+                        size = size,
+                        min = item.min * scale,
+                        max = minOf(item.max, size + if (bottom) roomDown else roomAcross),
+                        initial = item.preferred,
+                        collapsible = item.collapsible,
+                        reversed = item.edge != RegionEdge.Start,
+                        axis = if (bottom) Axis.Vertical else Axis.Horizontal,
+                        rightToLeft = rightToLeft,
+                    ),
+                    if (bottom) SplitAxis.Vertical else SplitAxis.Horizontal,
+                    behavior,
+                    appearance,
+                    "$SplitterPart/${item.id}",
+                    item.label,
+                    splitterModifier(item),
+                ) { change ->
+                    changed(if (change.collapsed) latest.copy(hidden = latest.hidden + item.id)
+                        else latest.copy(sizes = latest.sizes + (item.id to change.size), hidden = latest.hidden - item.id))
+                }
             }
         }
         val pane = @Composable { item: Region?, content: @Composable PaneScope.() -> Unit ->
-            val group = focusGroups[order.indexOf(item)]
+            val group = remember(host) { PaneFocusGroup(coordinator) }
+            DisposableEffect(host, group) {
+                host.groups[item?.id] = group
+                onDispose { if (host.groups[item?.id] === group) host.groups.remove(item?.id) }
+            }
             CompositionLocalProvider(LocalPaneFocusGroup provides group) {
                 BoxWithConstraints(group.modifier(), propagateMinConstraints = true) { PaneScope(maxWidth, maxHeight, plan.collapsed).content() }
             }
@@ -153,40 +166,39 @@ private val LocalPaneFocusGroup = staticCompositionLocalOf<PaneFocusGroup?> { nu
 internal class PaneFocusGroup(val owner: PaneHostFocus) {
     private val requester = FocusRequester()
     private var focused = false
-    var children by mutableStateOf<List<PaneFocusGroup>>(emptyList())
 
     fun modifier(): Modifier = Modifier.focusRequester(requester)
         .onFocusChanged { focused = it.hasFocus }
         .focusProperties { onExit = { requester.saveFocusedChild() } }.focusGroup()
 
-    fun leaves(): List<PaneFocusGroup> = if (children.isEmpty()) listOf(this) else children.flatMap { it.leaves() }
     fun hasFocus(): Boolean = focused
     fun request(): Boolean = requester.restoreFocusedChild() || requester.requestFocus()
 }
 
+internal class PaneFocusHost(val parent: PaneFocusGroup?) {
+    val groups = mutableMapOf<String?, PaneFocusGroup>()
+    var order: List<String?> = emptyList()
+    var rightToLeft = false
+    var coordinates: LayoutCoordinates? = null
+
+    fun entries(): List<PaneFocusGroup> = order.mapNotNull(groups::get)
+    fun bounds(): Rect? = coordinates?.takeIf { it.isAttached }?.boundsInWindow()
+}
+
 @Stable
 class PaneHostFocus {
-    private class Host(val parent: PaneFocusGroup?, val groups: MutableMap<String?, PaneFocusGroup> = linkedMapOf()) {
-        var order: List<String?> = emptyList()
-        fun entries() = order.mapNotNull(groups::get)
-    }
-    private val hosts = linkedMapOf<Any, Host>()
+    private val hosts = mutableListOf<PaneFocusHost>()
 
-    internal fun register(key: Any, parent: PaneFocusGroup?, order: List<String?>): List<PaneFocusGroup> {
-        val host = hosts.getOrPut(key) { Host(parent) }
-        host.order = order
-        order.forEach { host.groups.getOrPut(it) { PaneFocusGroup(this) } }
-        parent?.children = hosts.values.filter { it.parent === parent }.flatMap { it.entries() }
-        return host.entries()
+    internal fun add(host: PaneFocusHost) {
+        hosts += host
     }
 
-    internal fun remove(key: Any) {
-        val host = hosts.remove(key) ?: return
-        host.parent?.let { parent -> parent.children = hosts.values.filter { it.parent === parent }.flatMap { it.entries() } }
+    internal fun remove(host: PaneFocusHost) {
+        hosts -= host
     }
 
     fun cycle(backward: Boolean = false): Boolean {
-        val groups = hosts.values.filter { it.parent == null }.flatMap { it.entries() }.flatMap { it.leaves() }
+        val groups = leaves(null)
         if (groups.isEmpty()) return false
         val step = if (backward) -1 else 1
         val focused = groups.indexOfFirst { it.hasFocus() }
@@ -195,5 +207,12 @@ class PaneHostFocus {
             if (groups[(start + step * offset).mod(groups.size)].request()) return true
         }
         return true
+    }
+
+    private fun leaves(parent: PaneFocusGroup?): List<PaneFocusGroup> {
+        val siblings = hosts.filter { it.parent === parent }
+        val placed = siblings.mapNotNull { host -> host.bounds()?.let { host to it } }
+        val ordered = readingOrder(placed, siblings.any { it.rightToLeft }) + siblings.filter { it.bounds() == null }
+        return ordered.flatMap { it.entries() }.flatMap { group -> leaves(group).ifEmpty { listOf(group) } }
     }
 }
