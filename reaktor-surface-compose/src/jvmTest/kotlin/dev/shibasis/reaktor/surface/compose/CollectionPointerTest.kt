@@ -2,12 +2,14 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -27,9 +29,11 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performMultiModalInput
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.Chord
@@ -98,6 +102,56 @@ class CollectionPointerTest {
         mainClock.advanceTimeBy(1_000)
         onNodeWithTag("files/row/row-7").performMouseInput { click() }
         assertEquals(listOf("row-6"), opened)
+    }
+
+    @Test
+    fun aTouchThatScrollsSelectsNothingAndATapSelectsWhenTheFingerLifts() = runComposeUiTest {
+        var selection by mutableStateOf(emptySet<String>())
+        val opened = mutableListOf<String>()
+        val list = LazyListState()
+        setContent {
+            AutomationScope("files") {
+                ListBox(rows, selection, { selection = it }, Modifier.height(400.dp), onActivate = { opened += it }, state = list) { BasicText(it) }
+            }
+        }
+        onNodeWithTag("files/row/row-3").performTouchInput { swipe(center, center - Offset(0f, 300f), 600) }
+        waitForIdle()
+        assertTrue(list.firstVisibleItemIndex > 0)
+        assertEquals(emptySet(), selection)
+        val row = "row-${list.firstVisibleItemIndex + 2}"
+        onNodeWithTag("files/row/$row").performTouchInput { down(center) }
+        assertEquals(emptySet(), selection)
+        onNodeWithTag("files/row/$row").performTouchInput { up() }
+        assertEquals(setOf(row), selection)
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("files/row/$row").performTouchInput { doubleClick() }
+        assertEquals(listOf(row), opened)
+    }
+
+    @Test
+    fun aTouchThatScrollsFromACaretLeavesItsBranchAndATapTogglesIt() = runComposeUiTest {
+        var expanded by mutableStateOf(emptySet<String>())
+        var selection by mutableStateOf(emptySet<String>())
+        val look = object : RowAppearance {
+            @Composable
+            override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) =
+                BareRow.Content(properties, state, theme, feedback, RowSlots(slots.content, slots.toggle?.let { Modifier.testTag("toggle-${properties.index}").then(it) }))
+        }
+        setContent {
+            Tree(
+                treeSource((0 until 60).map { "dir-$it" }, { it }, { listOf("$it/file") }, expanded, text = { it }),
+                selection,
+                { selection = it },
+                { key, open -> expanded = if (open) expanded + key else expanded - key },
+                Modifier.height(400.dp),
+                appearance = look,
+            ) { BasicText(it) }
+        }
+        onNodeWithTag("toggle-0", useUnmergedTree = true).performTouchInput { click() }
+        assertEquals(setOf("dir-0"), expanded)
+        onNodeWithTag("toggle-2", useUnmergedTree = true).performTouchInput { swipe(center, center - Offset(0f, 200f), 600) }
+        assertEquals(setOf("dir-0"), expanded)
+        assertEquals(emptySet(), selection)
     }
 
     @Test

@@ -47,8 +47,10 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -76,6 +78,7 @@ import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.expand
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selectableGroup
@@ -514,10 +517,15 @@ private class CollectionPointerNode(var host: CollectionHost) :
     private var lastTime = 0L
     private var lastPosition = Offset.Zero
     private var clicks = 0
+    private val tap = TouchTap()
 
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
         if (pass != PointerEventPass.Main) return
         val change = pointerEvent.changes.firstOrNull() ?: return
+        if (change.type != PointerType.Mouse) {
+            if (tap.completes(pointerEvent.type, change, currentValueOf(LocalViewConfiguration).touchSlop)) press(pointerEvent, change)
+            return
+        }
         when (pointerEvent.type) {
             PointerEventType.Enter, PointerEventType.Move -> host.hover(host.keyAt(change.position))
             PointerEventType.Exit -> host.hover(null)
@@ -542,10 +550,43 @@ private class CollectionPointerNode(var host: CollectionHost) :
         change.consume()
     }
 
-    override fun onCancelPointerInput() = Unit
+    override fun onCancelPointerInput() = tap.cancel()
 
     override fun onPlaced(coordinates: LayoutCoordinates) {
         host.coordinates = coordinates
+    }
+}
+
+private fun PointerEvent.activates(tap: TouchTap, slop: Float): Boolean {
+    val change = changes.firstOrNull() ?: return false
+    if (change.type != PointerType.Mouse) return tap.completes(type, change, slop).also { if (it) change.consume() }
+    if (type != PointerEventType.Press || buttons.isSecondaryPressed || change.isConsumed) return false
+    change.consume()
+    return true
+}
+
+private class TouchTap {
+    private var pointer: PointerId? = null
+    private var origin = Offset.Zero
+
+    fun completes(type: PointerEventType, change: PointerInputChange, slop: Float): Boolean {
+        when (type) {
+            PointerEventType.Press -> if (!change.isConsumed) {
+                pointer = change.id
+                origin = change.position
+                change.consume()
+            }
+            PointerEventType.Move -> if (change.id == pointer && (change.isConsumed || (change.position - origin).getDistance() > slop)) pointer = null
+            PointerEventType.Release -> if (change.id == pointer) {
+                pointer = null
+                return !change.isConsumed
+            }
+        }
+        return false
+    }
+
+    fun cancel() {
+        pointer = null
     }
 }
 
@@ -559,22 +600,23 @@ private data class ToggleElement(val host: CollectionHost, val key: String, val 
     }
 }
 
-private class ToggleNode(var host: CollectionHost, var key: String, var expanded: Boolean) : Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode {
+private class ToggleNode(var host: CollectionHost, var key: String, var expanded: Boolean) :
+    Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
+    private val tap = TouchTap()
+
     override val shouldMergeDescendantSemantics: Boolean get() = true
 
     override fun SemanticsPropertyReceiver.applySemantics() {
         role = Role.Button
+        hideFromAccessibility()
         onClick(label = if (expanded) "Collapse" else "Expand") { host.expand(key, !expanded); true }
     }
 
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
-        if (pass != PointerEventPass.Main || pointerEvent.type != PointerEventType.Press || pointerEvent.buttons.isSecondaryPressed) return
-        val change = pointerEvent.changes.firstOrNull()?.takeUnless { it.isConsumed } ?: return
-        change.consume()
-        host.expand(key, !expanded)
+        if (pass == PointerEventPass.Main && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) host.expand(key, !expanded)
     }
 
-    override fun onCancelPointerInput() = Unit
+    override fun onCancelPointerInput() = tap.cancel()
 }
 
 private data class MenuTriggerElement(val host: CollectionHost, val key: String) : ModifierNodeElement<MenuTriggerNode>() {
@@ -587,8 +629,9 @@ private data class MenuTriggerElement(val host: CollectionHost, val key: String)
 }
 
 private class MenuTriggerNode(var host: CollectionHost, var key: String) :
-    Modifier.Node(), PointerInputModifierNode, LayoutAwareModifierNode, SemanticsModifierNode {
+    Modifier.Node(), PointerInputModifierNode, LayoutAwareModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
     private var placed: LayoutCoordinates? = null
+    private val tap = TouchTap()
 
     override val shouldMergeDescendantSemantics: Boolean get() = true
 
@@ -597,13 +640,10 @@ private class MenuTriggerNode(var host: CollectionHost, var key: String) :
     }
 
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
-        if (pass != PointerEventPass.Main || pointerEvent.type != PointerEventType.Press || pointerEvent.buttons.isSecondaryPressed) return
-        val change = pointerEvent.changes.firstOrNull()?.takeUnless { it.isConsumed } ?: return
-        change.consume()
-        open()
+        if (pass == PointerEventPass.Main && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) open()
     }
 
-    override fun onCancelPointerInput() = Unit
+    override fun onCancelPointerInput() = tap.cancel()
 
     override fun SemanticsPropertyReceiver.applySemantics() {
         role = Role.Button
