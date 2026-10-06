@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.core.truth.Fact
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot
 
 data class MachineSignalFonts(
     val ui: FontFamily = FontFamily.SansSerif,
@@ -98,7 +99,7 @@ fun SignalPanel(
     contentPadding: Dp = MachineSignal.Space.s3,
     content: @Composable ColumnScope.() -> Unit,
 ) = Column(modifier.background(workspaceColor(background)).then(
-    if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Modifier.border(1.dp, MachineSignal.Editor.Code.GutterLine) else Modifier
+    if (editorVariant()) Modifier.border(1.dp, MachineSignal.Editor.Code.GutterLine) else Modifier
 )) {
     if (title != null || trailing != null) {
         Row(
@@ -221,21 +222,24 @@ fun KeyValueRow(
     fact: Fact<String>,
     modifier: Modifier = Modifier,
     keyWidth: Dp = 132.dp,
-) = Row(
-    modifier.fillMaxWidth().then(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Modifier.heightIn(min = MachineSignal.Editor.treeRowHeight).padding(vertical = MachineSignal.Space.s1) else Modifier.height(MachineSignal.Metrics.kvRowHeight)),
-    horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
-    verticalAlignment = Alignment.CenterVertically,
 ) {
-    SignalText(key, if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Modifier.weight(.38f) else Modifier.width(keyWidth), color = MachineSignal.Text4, size = MachineSignal.Editor.label, maxLines = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Int.MAX_VALUE else 1)
-    SignalText(
-        text = fact.value,
-        modifier = Modifier.weight(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) .62f else 1f),
-        color = if (fact.provesHealth) MachineSignal.Text2 else MachineSignal.Text4,
-        size = MachineSignal.Type.caption,
-        mono = !((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor),
-        maxLines = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) Int.MAX_VALUE else 1,
-    )
-    if (fact.truth != TruthClass.Live) ProvenanceBadge(fact.truth)
+    val editor = editorVariant()
+    Row(
+        modifier.fillMaxWidth().then(if (editor) Modifier.heightIn(min = MachineSignal.Editor.treeRowHeight).padding(vertical = MachineSignal.Space.s1) else Modifier.height(MachineSignal.Metrics.kvRowHeight)),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SignalText(key, if (editor) Modifier.weight(.38f) else Modifier.width(keyWidth), color = MachineSignal.Text4, size = MachineSignal.Editor.label, maxLines = if (editor) Int.MAX_VALUE else 1)
+        SignalText(
+            text = fact.value,
+            modifier = Modifier.weight(if (editor) .62f else 1f),
+            color = if (fact.provesHealth) MachineSignal.Text2 else MachineSignal.Text4,
+            size = MachineSignal.Type.caption,
+            mono = !editor,
+            maxLines = if (editor) Int.MAX_VALUE else 1,
+        )
+        if (fact.truth != TruthClass.Live) ProvenanceBadge(fact.truth)
+    }
 }
 
 @Composable
@@ -264,7 +268,7 @@ fun ContextBar(
     modifier: Modifier = Modifier,
     truth: TruthClass? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
-) = Column(modifier.fillMaxWidth().height(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.menuHeight else MachineSignal.Metrics.contextBarHeight)) {
+) = Column(modifier.fillMaxWidth().height(if (editorVariant()) MachineSignal.Editor.menuHeight else MachineSignal.Metrics.contextBarHeight)) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -368,7 +372,6 @@ fun KindBadge(kind: String, modifier: Modifier = Modifier, color: Color = Machin
     )
 }
 
-/** `Chip / Entity` — a reference to something in the graph. */
 @Composable
 fun StatusPill(
     label: String,
@@ -387,7 +390,6 @@ fun StatusPill(
     SignalText(label, color = MachineSignal.Text1, size = MachineSignal.Type.data, weight = FontWeight.SemiBold, mono = true)
 }
 
-/** `Pill / Branch` — the branch and revision the workbench is looking at. */
 @Composable
 fun Avatar(
     initials: String,
@@ -408,5 +410,7 @@ fun Avatar(
 }
 
 @Composable
-private fun signalFonts(): MachineSignalFonts =
-    (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts ?: LocalMachineSignalFonts.current
+private fun signalFonts(): MachineSignalFonts = (LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts ?: LocalMachineSignalFonts.current
+
+@Composable
+private fun editorVariant(): Boolean = (LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor

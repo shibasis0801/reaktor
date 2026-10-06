@@ -1,8 +1,5 @@
 package dev.shibasis.reaktor.blueprint
 
-import dev.shibasis.reaktor.surface.compose.Tooltip as SurfaceTooltip
-import androidx.compose.material3.Text as SurfaceText
-import dev.shibasis.reaktor.surface.compose.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +42,13 @@ import dev.shibasis.reaktor.blueprint.canvas.GraphCanvas
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import dev.shibasis.reaktor.blueprint.canvas.LinkArrow
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
+import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.TooltipState
+import dev.shibasis.reaktor.surface.compose.ComposeFeedback
+import dev.shibasis.reaktor.surface.compose.TipContent
+import dev.shibasis.reaktor.surface.compose.Tooltip
+import dev.shibasis.reaktor.surface.compose.TooltipAppearance
+import dev.shibasis.reaktor.surface.compose.TooltipSlots
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.SignalText
 
@@ -283,7 +287,7 @@ fun BlueprintPin(
             if (pin.provides) PinDot(color, filled)
         }
     }
-    if (tooltip == null) row() else SurfaceTooltip(appearance = UnframedBlueprintTip, tip = tooltip) { row() }
+    if (tooltip == null) row() else Tooltip(appearance = UnframedBlueprintTip, tip = tooltip) { row() }
 }
 
 @Composable
@@ -342,6 +346,5 @@ fun BlueprintWatermark(title: String, line: String, lineColor: Color, modifier: 
 
 private val UnframedBlueprintTip: TooltipAppearance = object : TooltipAppearance {
     @Composable
-    override fun Content(properties: TipContent, state: dev.shibasis.reaktor.surface.TooltipState,
-        theme: dev.shibasis.reaktor.surface.ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) = slots.tip()
+    override fun Content(properties: TipContent, state: TooltipState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) = slots.tip()
 }
