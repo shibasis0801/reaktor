@@ -78,8 +78,19 @@ class WebSocketReconnectTest {
 
     @Test
     fun whenRetriesRunOutTheSocketEndsClosedWithTheServersReason() = runBlocking {
+        repeat(3) { answer("going away", CloseReason(CloseReason.Codes.GOING_AWAY, "Restarting")) }
+        val socket = socket(retries = 2)
+        socket.connect()
+        val closed = withTimeout(10.seconds) { socket.state.filterIsInstance<ConnectionState.Closed>().first() }
+        assertEquals(CloseReason.Codes.GOING_AWAY.code, closed.reason.code)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun aPolicyCloseIsFinal() = runBlocking {
         answer("only", CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
-        val socket = socket(retries = 1)
+        answer("unexpected")
+        val socket = socket()
         socket.connect()
         val closed = withTimeout(10.seconds) { socket.state.filterIsInstance<ConnectionState.Closed>().first() }
         assertEquals(CloseReason.Codes.VIOLATED_POLICY.code, closed.reason.code)
