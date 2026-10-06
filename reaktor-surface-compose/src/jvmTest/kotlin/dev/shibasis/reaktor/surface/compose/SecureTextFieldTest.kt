@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -23,13 +25,14 @@ class SecureTextFieldTest {
         val state = TextFieldState()
         setContent {
             SurfaceEnvironmentProvider(SurfaceEnvironment()) {
-                SecureTextField(state, Modifier.testTag("secret"), label = "Secret")
+                SecureTextField(state, Modifier.testTag("secret").semantics { contentDescription = "Secret" })
             }
         }
         onNodeWithTag("secret").performClick().performTextInput("private-token")
         assertEquals("private-token", state.text.toString())
         val node = onNodeWithTag("secret").fetchSemanticsNode()
         assertTrue(node.config.contains(SemanticsProperties.Password))
+        assertEquals(listOf("Secret"), node.config[SemanticsProperties.ContentDescription])
         val layouts = mutableListOf<TextLayoutResult>()
         assertTrue(node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts) == true)
         assertEquals("•".repeat(state.text.length), layouts.single().layoutInput.text.text)

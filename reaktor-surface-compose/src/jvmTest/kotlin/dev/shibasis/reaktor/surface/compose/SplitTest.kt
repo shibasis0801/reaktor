@@ -9,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -169,7 +171,7 @@ class SplitTest {
             if (shown) Box(Modifier.size(408.dp, 200.dp)) {
                 AutomationScope("retained") {
                     Split(fraction, { fraction = it }, 100.dp, 120.dp, Modifier.fillMaxSize(),
-                        initialFraction = .42f, label = "Resize query and results",
+                        initialFraction = .42f, handle = Modifier.semantics { contentDescription = "Resize query and results" },
                         first = { BasicText("Query") }, second = { BasicText("Results") })
                 }
             }
