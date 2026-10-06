@@ -5,8 +5,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
@@ -103,6 +107,28 @@ class FramesTest {
         assertEquals(listOf<InkRole?>(Ink.Danger), tints.distinct())
         listOf("strip", "heading", "label", "value", "42", "Open bucket").forEach { onNodeWithText(it).assertExists() }
         assertEquals(with(density) { 16.dp.roundToPx() }, onNodeWithTag("icon").fetchSemanticsNode().size.width)
+    }
+
+    @Test
+    fun aPainterIconDrawsWithTheAppearanceTint() = runComposeUiTest {
+        val filters = mutableListOf<ColorFilter?>()
+        val glyph = object : Painter() {
+            override val intrinsicSize: Size get() = Size.Unspecified
+
+            override fun applyColorFilter(colorFilter: ColorFilter?): Boolean {
+                filters += colorFilter
+                return true
+            }
+
+            override fun DrawScope.onDraw() {}
+        }
+        setContent {
+            SurfaceTheme(BareTheme, recording) { Icon(glyph, Modifier.size(12.dp).testTag("glyph"), Ink.Warn) }
+        }
+        waitForIdle()
+        assertEquals(listOf<InkRole?>(Ink.Warn), tints.distinct())
+        assertEquals(ColorFilter.tint(Color.Red), filters.last())
+        assertEquals(with(density) { 12.dp.roundToPx() }, onNodeWithTag("glyph").fetchSemanticsNode().size.width)
     }
 
     @Test

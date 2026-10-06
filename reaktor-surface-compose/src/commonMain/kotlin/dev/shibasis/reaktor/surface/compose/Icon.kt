@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -24,8 +25,15 @@ fun Icon(
     modifier: Modifier = Modifier,
     ink: InkRole? = null,
     appearance: IconAppearance = LocalAppearances.current[Appearance.Icon],
+) = Icon(rememberVectorPainter(image), modifier, ink, appearance)
+
+@Composable
+fun Icon(
+    painter: Painter,
+    modifier: Modifier = Modifier,
+    ink: InkRole? = null,
+    appearance: IconAppearance = LocalAppearances.current[Appearance.Icon],
 ) {
-    val painter = rememberVectorPainter(image)
     val tint = appearance.tint(ink, LocalThemeSnapshot.current)
     val filter = remember(tint) { if (tint == Color.Unspecified) null else ColorFilter.tint(tint) }
     Box(modifier.paint(painter, colorFilter = filter, contentScale = ContentScale.Fit))
