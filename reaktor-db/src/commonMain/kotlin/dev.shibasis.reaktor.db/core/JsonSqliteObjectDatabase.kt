@@ -16,13 +16,17 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlin.reflect.KClass
 
+/** The table a [SqliteObjectDatabase] called [name] keeps its rows in. */
+internal fun objectTableName(name: String): String =
+    "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+
 class SqliteObjectDatabase(
     private val driver: SqlDriver,
     name: String,
     objectSerializer: ObjectSerializer<*> = TextSerializer(),
     private val timestampProvider: TimestampProvider = DefaultTimestampProvider()
 ): ObjectDatabase(objectSerializer) {
-    private val tableName = "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+    private val tableName = objectTableName(name)
     private val log = "SqliteObjectDatabase".logger()
 
     init {
