@@ -80,10 +80,16 @@ class DataTableTest {
             assertTrue(state.horizontal.maxValue > 0)
         }
         onNodeWithTag("wide/scrollbar/horizontal").assertIsDisplayed()
+        onNodeWithTag("content-30", useUnmergedTree = true).assertDoesNotExist()
         onNodeWithTag("wide/header/column1").performCustomAccessibilityActionWithLabel("Wider")
         runOnIdle { assertTrue(state.layout.widths.getValue("column1") > 96f) }
         onNodeWithTag("wide/header/column1").requestFocus().performKeyInput { repeat(10) { pressKey(Key.DirectionRight) } }
         runOnIdle { assertTrue(state.horizontal.value > 0) }
+        do { runOnIdle { state.horizontal.dispatchRawDelta(state.horizontal.maxValue.toFloat()) } }
+        while (state.horizontal.value < state.horizontal.maxValue)
+        val last = onNodeWithTag("content-30", useUnmergedTree = true).fetchSemanticsNode()
+        assertTrue(last.boundsInRoot.width > 0, "Last cell ${last.boundsInRoot}, root ${onRoot().fetchSemanticsNode().boundsInRoot}, scroll ${state.horizontal.value}/${state.horizontal.maxValue}")
+        onNodeWithTag("content-1", useUnmergedTree = true).assertDoesNotExist()
     }
 
     private val files = listSource((1..200).map { "file-$it" }, { it }, text = { it })

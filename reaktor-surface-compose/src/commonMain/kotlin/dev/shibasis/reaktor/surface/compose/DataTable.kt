@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -129,7 +130,8 @@ fun <T> DataTable(
     val mirrored = LocalLayoutDirection.current == LayoutDirection.Rtl
     val automation = LocalAutomationScope.current
     val measured = remember(columns, LocalDensity.current, LocalThemeSnapshot.current) { mutableStateMapOf<String, Float>() }
-    val widths = { measured + state.layout.widths }
+    val cachedWidths = remember(measured, state) { derivedStateOf { measured + state.layout.widths } }
+    val widths = { cachedWidths.value }
     val record: (TableColumn<T>, Float) -> Unit = { column, width ->
         val content = column.width as? ColumnWidth.Content
         if (content != null && column.key !in state.layout.widths) {
@@ -139,6 +141,25 @@ fun <T> DataTable(
     }
     BoxWithConstraints(modifier.busy(busy).onKeyEvent { state.scrollColumns(it, if (mirrored) -step else step) }) {
         val tableWidth = maxOf(maxWidth, columns.narrowest(widths()))
+        val density = LocalDensity.current
+        val viewport = with(density) { maxWidth.roundToPx() }
+        val layoutWidth = with(density) { tableWidth.roundToPx() }
+        val visible by remember(columns, state, measured, density, viewport, layoutWidth) {
+            derivedStateOf {
+                val spans = columnSpans(columns, widths(), layoutWidth, density)
+                if (spans.isEmpty()) return@derivedStateOf IntRange.EMPTY
+                val start = state.horizontal.value
+                var left = 0
+                var first = 0
+                var last = columns.lastIndex
+                spans.forEachIndexed { index, width ->
+                    if (left + width <= start) first = index + 1
+                    if (left < start + viewport) last = index
+                    left += width
+                }
+                first.coerceAtMost(columns.lastIndex)..last
+            }
+        }
         var rowsTop by remember { mutableIntStateOf(0) }
         Column(Modifier.fillMaxSize().horizontalScroll(state.horizontal)) {
             HeaderRow(columns, state, Modifier.width(tableWidth), header, widths, record)
@@ -147,11 +168,11 @@ fun <T> DataTable(
             if (source.size == 0) {
                 Box(body) { empty() }
             } else {
-                val row = remember(columns, state, measured) {
+                val row = remember(columns, state, measured, visible) {
                     val content: @Composable ItemScope.(T) -> Unit = { item ->
                         val scope = this
-                        val cells = remember(index) { CellsPolicy(columns, widths, index, record) }
-                        Layout(columns.map { column -> @Composable { column.cell(scope, item) } }, measurePolicy = cells)
+                        val cells = remember(index, visible) { CellsPolicy(columns, widths, index, record, visible) }
+                        Layout(visible.map { index -> @Composable { columns[index].cell(scope, item) } }, measurePolicy = cells)
                     }
                     content
                 }
@@ -208,24 +229,25 @@ private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modi
 }
 
 private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val widths: () -> Map<String, Float>,
-    private val row: Int, private val record: (TableColumn<T>, Float) -> Unit) : MultiContentMeasurePolicy {
+    private val row: Int, private val record: (TableColumn<T>, Float) -> Unit, private val visible: IntRange) : MultiContentMeasurePolicy {
     override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
-        columns.forEachIndexed { index, column ->
+        visible.forEachIndexed { index, columnIndex ->
+            val column = columns[columnIndex]
             val content = column.width as? ColumnWidth.Content
             if (content != null && row < content.sample) record(column,
                 (measurables[index].maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0).toDp().value + 2 * column.cellPadding.value)
         }
         val spans = columnSpans(columns, widths(), if (constraints.hasBoundedWidth) constraints.maxWidth else 0, this)
-        val insets = IntArray(columns.size) { columns[it].cellPadding.roundToPx() }
-        val rooms = IntArray(columns.size) { (spans[it] - 2 * insets[it]).coerceAtLeast(0) }
+        val insets = IntArray(visible.count()) { columns[visible.first + it].cellPadding.roundToPx() }
+        val rooms = IntArray(visible.count()) { (spans[visible.first + it] - 2 * insets[it]).coerceAtLeast(0) }
         val placeables = measurables.mapIndexed { index, cell -> cell.map { it.measure(Constraints(0, rooms[index], 0, constraints.maxHeight)) } }
-        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else placeables.maxOf { cell -> cell.maxOfOrNull { it.height } ?: 0 }.coerceAtLeast(constraints.minHeight)
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else (placeables.maxOfOrNull { cell -> cell.maxOfOrNull { it.height } ?: 0 } ?: 0).coerceAtLeast(constraints.minHeight)
         return layout(constraints.constrainWidth(spans.sum()), height) {
-            var x = 0
+            var x = spans.take(visible.first).sum()
             placeables.forEachIndexed { index, cell ->
-                val align = columns[index].cellAlign
+                val align = columns[visible.first + index].cellAlign
                 cell.forEach { it.placeRelative(x + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), (height - it.height) / 2) }
-                x += spans[index]
+                x += spans[visible.first + index]
             }
         }
     }
