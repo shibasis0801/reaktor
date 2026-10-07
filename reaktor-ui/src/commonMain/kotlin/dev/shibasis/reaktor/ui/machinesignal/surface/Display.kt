@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.compose.lineBox
+import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -75,7 +77,7 @@ private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
         val signal = theme.machineSignal
         val color = signal.ink(ink)
         Box(
-            Modifier.height(CompactBadgeHeight).clip(BadgeShape).background(color.copy(alpha = .18f)).padding(horizontal = MachineSignal.Space.s1),
+            Modifier.heightIn(min = CompactBadgeHeight).lineBox(Type.Micro, MachineSignal.Space.none).clip(BadgeShape).background(color.copy(alpha = .18f)).padding(horizontal = MachineSignal.Space.s1),
             contentAlignment = Alignment.Center,
         ) {
             ProvideLabel(Label(color, signal.fonts.ui, MachineSignal.Type.dataMicro, FontWeight.SemiBold)) { slots.content() }
@@ -160,7 +162,7 @@ val KeyBadge: BadgeAppearance = object : BadgeAppearance {
         val signal = theme.signalOrBoard
         Box(
             Modifier
-                .height(MachineSignal.Metrics.kbdHeight)
+                .heightIn(min = MachineSignal.Metrics.kbdHeight).lineBox(Type.Data.code, MachineSignal.Space.none)
                 .background(signal.colors.raised, MachineSignal.Shape.Tight)
                 .border(MachineSignal.Stroke.hairline, signal.colors.line, MachineSignal.Shape.Tight)
                 .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),

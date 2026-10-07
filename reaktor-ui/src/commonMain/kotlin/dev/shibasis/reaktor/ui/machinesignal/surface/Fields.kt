@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.compose.lineBox
+import dev.shibasis.reaktor.surface.Type
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -52,7 +55,7 @@ val ToolbarSearchField: FieldAppearance = object : FieldAppearance {
         Row(
             Modifier
                 .focusRing(state.focused, feedback, FocusRing(colors.accent, signal.metrics.focusRing, shape))
-                .height(signal.metrics.controlHeight)
+                .heightIn(min = signal.metrics.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
                 .clip(shape)
                 .background(colors.canvas)
                 .border(1.dp, if (properties.error) colors.error else colors.line, shape)
@@ -90,7 +93,7 @@ val BoardSearchField: FieldAppearance = object : FieldAppearance {
         Row(
             Modifier
                 .focusRing(state.focused, feedback, FocusRing(colors.accent, signal.metrics.focusRing, MachineSignal.Shape.Control))
-                .height(signal.metrics.controlHeight)
+                .heightIn(min = signal.metrics.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
                 .background(colors.surface, MachineSignal.Shape.Control)
                 .border(1.dp, if (properties.error) colors.error else colors.line, MachineSignal.Shape.Control)
                 .padding(horizontal = MachineSignal.Metrics.searchPaddingX),
