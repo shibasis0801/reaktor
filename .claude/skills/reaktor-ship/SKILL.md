@@ -251,13 +251,96 @@ above — a record, so the next release knows what was covered and what was assu
 The checks worth running at least once per app:
 
 - Fresh install from wiped state, on a device and on a simulator.
+- **Fresh install with no network, then use it.** First launch offline is a state every app has
+  and few are run in. Cairn's sealed with a key it is only given on reaching the server; the send
+  button closed the app.
 - Release build with minification, installed over real data, then **read that data back**.
 - Backup exported, install wiped, backup restored — hash-compare every document before and after.
-- A deliberately corrupted database file on both platforms. Both should recover rather than
-  throwing on every launch forever.
-- System font at 1.5× and 2.0×.
+  If the app deliberately has no backup (keys in the database, `allowBackup="false"`), write that
+  down with the reason and say what stands in for one, rather than leaving the line unticked.
+- A deliberately corrupted database file on every platform — see below; "recovers" is two things.
+- System font at 1.5× and 2.0×: `adb shell settings put system font_scale 2.0`, relaunch, and put
+  it back afterwards.
 - Every permission-gated flow, on the release build, with the permission granted and refused.
-- Cold start time, recorded.
+- Cold start time, recorded: `adb shell am start -W -n <pkg>/<activity>` after a `force-stop`,
+  several times, and say what it was measured on. The first launch after an install is its own
+  number.
+
+### A corrupted database: survive it, then explain it
+
+Overwrite the file with random bytes and relaunch. On Android that needs `run-as`, so a **debug**
+build: `adb shell "run-as <pkg> sh -c 'head -c 16384 /dev/urandom > databases/reaktor.db'"`.
+
+What the platforms do is not the same, and until Cairn checked, one of them did nothing:
+
+| Platform | What happens to an unreadable file |
+| --- | --- |
+| Android | SQLite's default handler deletes it and opens a new one. Silently |
+| iOS | `DarwinSqlAdapter` does the same by hand |
+| JVM desktop | `createSqliteObjectDatabase` moves it aside as `name.db.unreadable` and opens a new one. Before that existed it threw from the factory on every launch — and a desktop opens storage before it opens a window |
+
+Launching is half of it. If identity lived in that file the app comes back as a stranger, which
+from the inside looks exactly like a first install. Take the callback — `onUnreadable` on both
+`createSqliteObjectDatabase` and `AndroidSqlAdapter` — and tell the person what happened and what
+gets their data back. Persist that notice until it is dismissed: on Android a permission prompt is
+covering the screen on exactly that launch, and the process may not outlive it.
+
+Only real damage should trigger recovery. A locked file (`SQLITE_BUSY`, a second copy of the app)
+or an unreadable one says nothing about the bytes, and setting a healthy database aside is the
+loss the mechanism exists to prevent. Test that case too.
+
+### Look at every screen, including the ones with nothing wrong
+
+A green suite does not mean the screen is usable. Cairn shipped a library whose second and third
+tabs were a few pixels wide — labels wrapped one letter per line down the edge — on every device,
+with every test passing, because a label that narrow is still "displayed".
+
+Compose can draw the real composition into a bitmap with no device and no display:
+
+```kotlin
+val scene = ImageComposeScene(width, height, Density(2f, fontScale = 2f)) {
+    AppTheme { GraphApplication(graph) }
+}
+scene.render(0)                       // composes
+val image = scene.render(16_000_000)  // state collected from flows lands on the frame after
+File("build/renders/library-2x.png").writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes)
+```
+
+It needs `compose.desktop.currentOs` on the JVM test classpath (tests only — a library should not
+pick a rendering backend for whoever links it). Build the graph the way a shell does, put content
+in it, set each surface, and write one picture per surface at 1× and 2×. Then read them. In one
+sitting that found the tabs, a notice that gave its paragraph six tenths of the width, a crash on
+first launch offline, and an empty state whose only way forward was drawn only when it was not
+empty.
+
+Two assertions are worth keeping beside the pictures, because pictures do not fail a build:
+
+- **Wider than tall.** For a one-line label, `size.width > size.height`. A wrapped label fails it
+  and `assertIsDisplayed` does not.
+- **Click through from the empty state.** Start with nothing, tap what the empty state offers, and
+  assert where you land. Entry points that live under a list do not exist when the list is empty.
+
+This is the shared layout, not Android's font metrics. It replaces staring at a phone for most of
+it and not for the last check.
+
+### Things that are right for development and wrong in a release
+
+Both of these were in Cairn's release build and in nobody's notes:
+
+- **`android:usesCleartextTraffic="true"`**, added so the emulator can reach a dev server over
+  http. It is in the main manifest, so it is in the release too, and a bearer token then crosses
+  any wifi in the clear. Use `android:networkSecurityConfig` instead: the file in `src/main`
+  refuses cleartext except to `10.0.2.2`, `localhost` and `127.0.0.1`, and a file of the same name
+  in `src/debug/res/xml` permits it for LAN testing. OkHttp enforces it. Anything the user can
+  type an address into should ask `NetworkSecurityPolicy.isCleartextTrafficPermitted(host)` first
+  and refuse with a sentence — otherwise the refusal looks like the site being down, for ever.
+- **The server address.** A constant like `10.0.2.2:8787` survives into a release that can then
+  reach nothing on a real phone. Check what the release build is pointed at, in the built APK's
+  behaviour rather than in the source.
+
+To prove a policy rather than read it, put a plain listener on the host port
+(`python3 -m http.server 8787 --bind 127.0.0.1`) and watch the release build's requests arrive.
+"Unreachable" in the UI proves nothing: an emulator without DNS produces the same word.
 
 Drive the UI by reading the accessibility tree rather than tapping guessed coordinates —
 `adb shell uiautomator dump` gives element bounds, and taps at remembered pixel positions land on
