@@ -1,3 +1,4 @@
+export const AtlasCardRows = 20;
 import { hashValue } from './hash';
 import type {
   BlueprintEdge,

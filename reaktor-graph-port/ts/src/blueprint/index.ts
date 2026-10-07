@@ -3,6 +3,8 @@ export * from './engine';
 export { hashText, hashValue } from './hash';
 export * from './highlight';
 export * from './query';
+export * from './referenceGraph';
+export {ReferenceMap, type ReferenceMapProps} from './views/ReferenceMap';
 export * from './elkClient';
 export * from './views/looks';
 export * from './views/camera';
@@ -14,3 +16,5 @@ export { BlueprintFrame, type BlueprintFrameProps } from './views/BlueprintFrame
 export { BlueprintPinRow, type BlueprintPinRowProps, type PinTone } from './views/BlueprintPinRow';
 export { BlueprintWires, corridorsOf, type Corridor } from './views/BlueprintWires';
 export { BlueprintCamera, BlueprintLegend, BlueprintWatermark, LegendDot, LegendLine, LegendNote } from './views/BlueprintChrome';
+export * from './definition';
+export {DefinitionMap} from './views/DefinitionMap';
