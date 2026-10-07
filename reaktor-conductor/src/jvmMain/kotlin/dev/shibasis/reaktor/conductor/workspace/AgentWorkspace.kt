@@ -498,6 +498,26 @@ class AgentWorkspace(
         recent.take(limit).map(::get)
     }
 
+    fun tasksPage(query: String = "", offset: Int = 0, limit: Int = 50): AgentTasksPage = synchronized(lock) {
+        require(query.length <= 200 && offset in 0..200 && limit in 1..50)
+        val search = dev.shibasis.reaktor.tooling.query.SearchQuery(query)
+        val matches = recent.map(::get).distinctBy { it.threadId }.filter { run ->
+            search.matches("${run.title} ${run.provider.name} ${run.taskStatus()} ${run.id}") { key, value, pattern ->
+                val field = when (key) { "title" -> run.title; "provider" -> run.provider.name; "status" -> run.taskStatus(); "id" -> run.id; else -> null }
+                field?.let { pattern?.containsMatchIn(it) ?: it.contains(value, ignoreCase = true) }
+            }
+        }
+        AgentTasksPage(changes.value, matches.drop(offset).take(limit), (offset + limit).takeIf { it < matches.size })
+    }
+
+    suspend fun awaitTasks(afterRevision: Long, query: String = "", offset: Int = 0, limit: Int = 50, timeoutMillis: Long = 30000): AgentTasksPage {
+        require(afterRevision >= 0 && timeoutMillis in 0..30000)
+        val current = tasksPage(query, offset, limit)
+        if (current.revision != afterRevision || timeoutMillis == 0L) return current
+        withTimeoutOrNull(timeoutMillis) { changes.first { it != afterRevision } }
+        return tasksPage(query, offset, limit)
+    }
+
     suspend fun awaitChange(id: String, afterRevision: Long, timeoutMillis: Long): AgentRunRecord {
         require(afterRevision >= 0 && timeoutMillis in 0..30000)
         val before = changes.value

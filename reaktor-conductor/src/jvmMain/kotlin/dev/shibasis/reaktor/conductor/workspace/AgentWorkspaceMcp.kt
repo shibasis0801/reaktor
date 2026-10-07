@@ -16,10 +16,18 @@ import java.util.concurrent.Semaphore
 
 internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTool> = emptyList()): ReaktorMcpServer {
     val waits = Semaphore(2)
+    val taskWaits = Semaphore(2)
     fun JsonObject.string(name: String) = (get(name) as? JsonPrimitive)?.contentOrNull ?: error("$name is required")
     fun JsonObject.long(name: String, default: Long) = (get(name) as? JsonPrimitive)?.longOrNull ?: default
     fun result(record: AgentRunRecord) = AgentWorkspaceJson.encodeToJsonElement(AgentRunRecord.serializer(), record)
     fun outcome(value: CommandOutcome) = AgentWorkspaceJson.encodeToJsonElement(CommandOutcome.serializer(), value)
+    fun tasks(page: AgentTasksPage): JsonElement = AgentWorkspaceJson.encodeToJsonElement(AgentTasksPage.serializer(), page.copy(runs = page.runs.map { run ->
+        run.copy(output = "", context = null, reasoning = "", pending = emptyList(),
+            pendingCount = (run.pending.map { it.id } + run.participants.values.flatMap { it.pending }.map { it.id }).distinct().size,
+            outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
+            participants = run.participants.mapValues { (_, participant) -> participant.copy(output = "", reasoning = "", pending = emptyList(),
+                outputTruncated = participant.outputTruncated || participant.output.isNotEmpty()) })
+    }))
     val runSchema = objectSchema(mapOf("runId" to stringSchema("Exact run id")), listOf("runId"))
     val tools = listOf(
         McpTool("agent_workspace_info", "Read this workspace's configured providers and session capabilities.", emptyObjectSchema(), true, true) {
@@ -27,15 +35,23 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
         },
         McpTool("agent_runs", "Read up to 50 recent run summaries; direct run ids remain addressable beyond the recent index.",
             objectSchema(mapOf("limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) })), true, true) {
-            val summaries = workspace.list(it.long("limit", 20).toInt()).map { run ->
-                run.copy(output = "", context = null, reasoning = "", pending = emptyList(),
-                    pendingCount = (run.pending.map { it.id } + run.participants.values.flatMap { it.pending }.map { it.id }).distinct().size,
-                    outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
-                    participants = run.participants.mapValues { (_, participant) -> participant.copy(output = "",
-                        reasoning = "", pending = emptyList(),
-                        outputTruncated = participant.outputTruncated || participant.output.isNotEmpty()) })
+            val page = tasks(AgentTasksPage(0, workspace.list(it.long("limit", 20).toInt()))).jsonObject
+            buildJsonObject { put("runs", page.getValue("runs")) }
+        },
+        McpTool("agent_tasks_wait", "Wait for the workspace task revision to change, then return the current search page. Use its revision on the next wait.",
+            objectSchema(mapOf("revision" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
+                "query" to stringSchema("Task search"), "offset" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 200) },
+                "limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) },
+                "timeoutMillis" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 30000) }), listOf("revision")), true, true) {
+            val query = it["query"]?.jsonPrimitive?.content.orEmpty()
+            val offset = it.long("offset", 0).toInt()
+            val limit = it.long("limit", 50).toInt()
+            val timeout = it.long("timeoutMillis", 30000)
+            if (timeout == 0L) tasks(workspace.tasksPage(query, offset, limit)) else {
+                check(taskWaits.tryAcquire()) { "Task wait capacity is busy; retry later" }
+                try { runBlocking { tasks(workspace.awaitTasks(it.long("revision", 0), query, offset, limit, timeout)) } }
+                finally { taskWaits.release() }
             }
-            buildJsonObject { put("runs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentRunRecord.serializer()), summaries)) }
         },
         McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider; councilHybrid adds the third ChatGPT + Gemini seat. Single ChatGptGemini uses only human ChatGPT handoffs and Gemini execution. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
             objectSchema(mapOf(
