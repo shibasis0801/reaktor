@@ -95,7 +95,7 @@ val SignalTableRow: RowAppearance = object : RowAppearance {
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
-                .height(signal.metrics.tableRow)
+                .heightIn(min = signal.metrics.tableRow)
                 .background(
                     when {
                         properties.selected -> colors.controlAccent.copy(alpha = SelectedFill)

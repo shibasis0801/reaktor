@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,22 +22,27 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.ThemeMismatch
 import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.listSource
 import dev.shibasis.reaktor.surface.compose.Appearance
 import dev.shibasis.reaktor.surface.compose.AppearanceKey
 import dev.shibasis.reaktor.surface.compose.Appearances
 import dev.shibasis.reaktor.surface.compose.Button
+import dev.shibasis.reaktor.surface.compose.AutomationScope
+import dev.shibasis.reaktor.surface.compose.ListBox
 import dev.shibasis.reaktor.surface.compose.SurfaceEnvironment
 import dev.shibasis.reaktor.surface.compose.SurfaceEnvironmentProvider
 import dev.shibasis.reaktor.surface.compose.SurfaceTheme
 import dev.shibasis.reaktor.ui.machinesignal.surface.BoardSearchField
 import dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalAppearances
 import dev.shibasis.reaktor.ui.machinesignal.surface.SecondaryButton
+import dev.shibasis.reaktor.ui.machinesignal.surface.SignalTableRow
 import dev.shibasis.reaktor.ui.machinesignal.surface.ToolbarSearchField
 import kotlin.math.abs
 import kotlin.test.Test
@@ -74,6 +80,27 @@ class MachineSignalAppearancesTest {
         assertSame(BoardSearchField, MachineSignalAppearances(MachineSignalSnapshot.Board)[Appearance.Field])
         assertSame(ToolbarSearchField, MachineSignalAppearances(MachineSignalSnapshot.Editor)[Appearance.Field])
         assertSame(SecondaryButton, MachineSignalAppearances(MachineSignalSnapshot.Editor)[Appearance.Button])
+    }
+
+    @Test
+    fun tableRowsKeepTheirMinimumAndGrowForMultilineContent() = runSkikoComposeUiTest(size = Size(400f, 200f)) {
+        var multilineTextHeight = 0
+        setContent {
+            MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
+                AutomationScope("rows") {
+                    ListBox(listSource(listOf("single", "multiline"), { it }), emptySet(), {}, Modifier.fillMaxWidth(),
+                        appearance = SignalTableRow, scrolling = false) {
+                        Text(if (it == "single") "One line" else "First line\nSecond line\nThird line",
+                            onTextLayout = { result -> if (it == "multiline") multilineTextHeight = result.multiParagraph.height.toInt() })
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        val single = onNodeWithTag("rows/row/single").fetchSemanticsNode().boundsInRoot.height
+        val multiline = onNodeWithTag("rows/row/multiline").fetchSemanticsNode().boundsInRoot.height
+        assertTrue(single >= MachineSignalSnapshot.Editor.metrics.tableRow.value)
+        assertTrue(multiline >= multilineTextHeight && multiline > single, "all three text lines must fit: $multilineTextHeight in $multiline")
     }
 
     @Test
