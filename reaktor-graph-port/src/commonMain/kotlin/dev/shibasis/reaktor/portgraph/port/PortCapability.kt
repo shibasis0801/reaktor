@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.portgraph.port
 
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.update
 import kotlin.js.JsExport
 
 @JsExport
@@ -40,20 +42,32 @@ interface PortCapability {
 open class PortCapabilityImpl(
     override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = hashMapOf(),
     override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = hashMapOf(),
-    private val listeners: MutableList<PortEventListener> = mutableListOf()
+    listeners: List<PortEventListener> = emptyList()
 ): PortCapability {
+    /**
+     * Replaced whole on every change, never edited.
+     *
+     * A node's listeners are added from its own coroutines, on whatever threads those run on, and
+     * called from the thread wiring the graph. As a list edited in place this was read while it was
+     * being written: a listener that was null, an index past the end, and — the quiet one — a
+     * listener that was added and is not there. An immutable list swapped atomically has none of
+     * those states for another thread to see.
+     *
+     * It also makes [emit] safe against the listener that removes itself while being called, which
+     * is the common shape for "wake me when this port is connected": what is being iterated is the
+     * list as it was, whatever has been swapped in since.
+     */
+    private val listeners = atomic(listeners.toList())
+
     override fun addPortEventListener(listener: PortEventListener) {
-        listeners.add(listener)
+        listeners.update { it + listener }
     }
 
     override fun removePortEventListener(listener: PortEventListener) {
-        listeners.remove(listener)
+        listeners.update { it - listener }
     }
 
     override fun emit(event: PortEvent) {
-        // Over a snapshot: a one-shot listener — the common shape for "wake me when this port is
-        // connected" — removes itself while being called, which mutates the list mid-iteration.
-        // Adding a listener from inside a handler has the same problem, and the same fix.
-        listeners.toList().forEach { it(event) }
+        listeners.value.forEach { it(event) }
     }
 }

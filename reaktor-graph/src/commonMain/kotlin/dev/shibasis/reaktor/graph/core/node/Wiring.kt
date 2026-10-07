@@ -3,11 +3,10 @@ package dev.shibasis.reaktor.graph.core.node
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.PortEvent
 import dev.shibasis.reaktor.portgraph.port.PortEventListener
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 /**
  * Wait until this port has a provider on the other end.
@@ -20,33 +19,32 @@ import kotlin.coroutines.resume
  * then sits there, attached and healthy-looking, collecting nothing.
  *
  * Returns immediately when the port is already connected, so the common case costs nothing.
+ *
+ * Two threads meet here on every launch — the node's, waiting, and the one wiring the graph — and
+ * both can notice the same connection. The wake-up is therefore something that may be asked for
+ * twice and happens once: a `CompletableDeferred`, not a continuation. The first version of this
+ * resumed a continuation after checking it was still active, which is two steps, and when the two
+ * threads interleaved between them the second resume threw `Already resumed` inside the node's own
+ * coroutine. That is the failure this function exists to prevent, caused by it: a node that never
+ * starts its work, under a supervisor that says nothing.
  */
 suspend fun ConsumerPort<*>.awaitConnected() {
     if (isConnected()) return
 
-    suspendCancellableCoroutine { continuation ->
-        // Re-checked inside the listener registration window: `connect` may have run between the
-        // check above and this line, and a listener added afterwards would never hear about it.
-        if (isConnected()) {
-            continuation.resume(Unit)
-            return@suspendCancellableCoroutine
-        }
+    val connected = CompletableDeferred<Unit>()
+    val listener: PortEventListener = { event ->
+        if (event is PortEvent.Connected && event.port === this && isConnected()) connected.complete(Unit)
+    }
 
-        lateinit var listener: PortEventListener
-        listener = { event ->
-            if (event is PortEvent.Connected && event.port === this && isConnected()) {
-                owner.removePortEventListener(listener)
-                if (continuation.isActive) continuation.resume(Unit)
-            }
-        }
-        owner.addPortEventListener(listener)
-        continuation.invokeOnCancellation { owner.removePortEventListener(listener) }
-
-        // One last look, in case the connection landed while the listener was being registered.
-        if (isConnected()) {
-            owner.removePortEventListener(listener)
-            if (continuation.isActive) continuation.resume(Unit)
-        }
+    owner.addPortEventListener(listener)
+    try {
+        // Looked at again now that the listener is in place. A connection that landed before the
+        // listener was registered made no sound it could hear.
+        if (isConnected()) connected.complete(Unit)
+        connected.await()
+    } finally {
+        // Also on cancellation: a node torn down while waiting must not leave itself listening.
+        owner.removePortEventListener(listener)
     }
 }
 
