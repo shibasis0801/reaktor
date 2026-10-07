@@ -13,12 +13,13 @@ object SqlReadStatement {
         "readfile", "set_config", "setval", "writefile",
     )
 
-    fun normalize(value: String): String {
+    fun normalize(value: String, readOnlyTransaction: Boolean = false): String {
         require(value.isNotBlank()) { "Enter a read query" }
         require('\u0000' !in value) { "Query text cannot contain a NUL byte" }
         require(value.encodeToByteArray().size <= 262_144) { "Query exceeds the 256 KiB limit" }
         val output = StringBuilder(value.length)
         val words = mutableListOf<String>()
+        val wordEnds = mutableListOf<Int>()
         val word = StringBuilder()
         var index = 0
         var state = LexicalState.Normal
@@ -29,6 +30,7 @@ object SqlReadStatement {
         fun finishWord() {
             if (word.isNotEmpty()) {
                 words += word.toString().lowercase()
+                wordEnds += output.length
                 word.clear()
             }
         }
@@ -168,7 +170,13 @@ object SqlReadStatement {
         require(words.firstOrNull() in setOf("select", "with", "values")) {
             "Database Studio accepts only SELECT, WITH, or VALUES queries"
         }
-        val forbidden = words.firstOrNull { it in forbiddenWords || it in forbiddenFunctions }
+        val forbidden = words.withIndex().firstOrNull { (index, word) ->
+            word in forbiddenFunctions || !readOnlyTransaction && word in forbiddenWords && run {
+                var next = wordEnds[index]
+                while (rawStatement.getOrNull(next)?.isWhitespace() == true) next++
+                rawStatement.getOrNull(next) != '('
+            }
+        }?.value
         require(forbidden == null) { "Read query contains forbidden operation '$forbidden'" }
         require(!("for" in words && ("share" in words || "key" in words))) {
             "Locking SELECT clauses are not allowed"
