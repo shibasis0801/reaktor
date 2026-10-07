@@ -152,9 +152,12 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
             runBlocking { outcome(workspace.steer(it.string("runId"), it.string("agent"),
                 it.string("text"), (it["expectedTurn"] as? JsonPrimitive)?.contentOrNull)) }
         },
-        McpTool("agent_transcript", "Read the last 20 canonical events with a 24000-character text budget and explicit partial status.",
-            objectSchema(mapOf("threadId" to stringSchema("Reaktor conversation id")), listOf("threadId")), true, true) {
-            AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId")))
+        McpTool("agent_transcript", "Read a page of complete canonical events. Use nextBefore as before to read earlier messages; defaults to the latest 20 events, within a 256 KiB serialized event budget.",
+            objectSchema(mapOf("threadId" to stringSchema("Reaktor conversation id"),
+                "before" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
+                "limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) }), listOf("threadId")), true, true) {
+            AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId"),
+                it["before"]?.jsonPrimitive?.int, it.long("limit", 20).toInt()))
         },
     ) + agentEvidenceTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
     return ReaktorMcpServer("reaktor-agent-workspace", "1.0.0",

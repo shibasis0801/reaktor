@@ -143,7 +143,7 @@ data class AgentRunRecord(
 )
 
 @Serializable
-data class AgentTranscript(val threadId: String, val events: List<ThreadEvent>, val partial: Boolean)
+data class AgentTranscript(val threadId: String, val events: List<ThreadEvent>, val partial: Boolean, val nextBefore: Int? = null)
 
 @Serializable
 data class AgentTasksPage(val revision: Long, val runs: List<AgentRunRecord>, val nextOffset: Int? = null)

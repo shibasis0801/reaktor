@@ -90,8 +90,8 @@ class AgentWorkspaceConnection private constructor(
             put("runId", runId); put("agent", agent); put("text", text)
             expectedTurn?.let { put("expectedTurn", it) }
         }))
-    suspend fun transcript(id: String): AgentTranscript = ConductorJson.decodeFromJsonElement(AgentTranscript.serializer(),
-        call("agent_transcript", buildJsonObject { put("threadId", id) }))
+    suspend fun transcript(id: String, before: Int? = null, limit: Int = 20): AgentTranscript = ConductorJson.decodeFromJsonElement(AgentTranscript.serializer(),
+        call("agent_transcript", buildJsonObject { put("threadId", id); before?.let { put("before", it) }; put("limit", limit) }))
 
     suspend fun call(name: String, args: JsonObject = buildJsonObject {}): JsonElement {
         val request = buildJsonObject {
