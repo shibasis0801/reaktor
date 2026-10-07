@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,6 +72,45 @@ class CollectionContentTest {
         onNodeWithTag("files/row/row-0").assertIsFocused().assertIsDisplayed()
         waitForIdle()
         assertEquals(0, scroll.value)
+    }
+
+    @Test
+    fun prependingRowsKeepsAnUntouchedViewportAtTheTop() = runComposeUiTest {
+        val scroll = LazyListState()
+        var values by mutableStateOf((0 until 20).map { "row-$it" })
+        setContent {
+            AutomationScope("top") {
+                ListBox(listSource(values, { it }), emptySet(), {}, Modifier.height(160.dp), state = scroll) { BasicText(it) }
+            }
+        }
+        waitForIdle()
+        assertEquals(0, scroll.firstVisibleItemIndex)
+        runOnIdle { values = listOf("new-row") + values }
+        waitForIdle()
+        assertEquals(0, scroll.firstVisibleItemIndex)
+        onNodeWithTag("top/row/new-row").assertIsDisplayed()
+    }
+
+    @Test
+    fun prependingRowsPreservesTheVisibleKeyAfterTheOperatorScrolls() = runComposeUiTest {
+        val scroll = LazyListState()
+        var values by mutableStateOf((0 until 20).map { "row-$it" })
+        var selection by mutableStateOf(emptySet<String>())
+        setContent {
+            AutomationScope("anchor") {
+                ListBox(listSource(values, { it }), selection, { selection = it }, Modifier.height(160.dp), state = scroll) { BasicText(it) }
+            }
+        }
+        waitForIdle()
+        runOnIdle { scroll.requestScrollToItem(5) }
+        waitForIdle()
+        onNodeWithTag("anchor/row/row-5").performMouseInput { click(center) }
+        val index = scroll.firstVisibleItemIndex
+        val key = values[index]
+        runOnIdle { values = listOf("new-row") + values }
+        waitForIdle()
+        assertEquals(key, values[scroll.firstVisibleItemIndex])
+        onNodeWithTag("anchor/row/row-5").assertIsDisplayed()
     }
 
     @Test
