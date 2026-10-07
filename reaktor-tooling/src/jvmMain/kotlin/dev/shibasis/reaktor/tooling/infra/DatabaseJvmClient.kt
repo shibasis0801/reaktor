@@ -30,7 +30,7 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
             file.readText()
         }
         require(!op.parameterized || (op.engine == DatabaseProvider.Postgres && payload != null)) { "Bound parameters require the PostgreSQL JVM adapter" }
-        val bound = if (op.parameterized) Json.decodeFromString<BoundQuery>(requireNotNull(payload)).also { it.validate() } else null
+        val bound = if (op.parameterized) Json.decodeFromString<BoundQuery>(requireNotNull(payload)).also { it.validate(readOnlyTransaction = op.engine == DatabaseProvider.Postgres) } else null
         val query = bound?.statement ?: payload
         val resultFile = op.resultFile?.let(::File)
         require((query == null) == (resultFile == null)) { "Query requires a private result destination" }
@@ -125,7 +125,8 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
         if (query != null) {
             val policy = env["REAKTOR_PG_INSPECTOR_POLICY"]
             require(policy in setOf("least-privilege-inspector-v1", "bounded-read-session")) { "PostgreSQL query access policy is not configured" }
-            SqlReadStatement.normalize(query)
+            check(connection.isReadOnly && !connection.autoCommit) { "PostgreSQL queries require a read-only transaction" }
+            SqlReadStatement.normalize(query, readOnlyTransaction = true)
 
             connection.createStatement().use { statement ->
                 statement.queryTimeout = 5
