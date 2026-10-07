@@ -56,6 +56,21 @@ share coming *in*. The inbound half is a sibling of the outbound one in the same
 module and not app-local code, and naming it after its direction (`ShareReceiver` beside
 `ShareAdapter`) keeps the next reader from concluding the module does not do it.
 
+**Then look across platforms, not just across directions.** A capability that exists is not a
+capability on every target the app ships. When Cairn — Android, desktop and browser — went to hand
+a received file back to its user, `ShareAdapter` had an Android and an iOS implementation and
+nothing for the other two, while `ShareReceiver` covered Android, desktop and browser. The app
+could take a file in on all three of its shells and let one out on one. Before relying on an
+adapter, list its actuals against the app's targets:
+
+```bash
+find . -path '*/build' -prune -o -name '*ShareAdapter*.kt' -print
+```
+
+A missing platform is a sibling file in that module, the same as a missing direction. It is also a
+hole no compiler reports: the slot is nullable, the app reads `Feature.Share ?: return`, and the
+feature is simply absent on that shell.
+
 **Directories in this repo lie about packages.** Several modules carry both a dotted source
 directory and a nested one under the same source set:
 
