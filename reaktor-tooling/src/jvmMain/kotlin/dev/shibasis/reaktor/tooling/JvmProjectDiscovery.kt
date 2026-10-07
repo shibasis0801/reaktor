@@ -427,6 +427,14 @@ private class TaskCatalogBuilder(
 ) {
     val tasks = mutableListOf<ToolingTask>()
     val bindings = linkedMapOf<TaskId, JvmTaskBinding>()
+    private val workerSourceImports = mutableMapOf<File, Set<String>>()
+    private val workerBundleFiles = mutableMapOf<String, List<File>>()
+    private val workerModuleImports = mutableMapOf<File, List<File>>()
+    private val workerBundleManifest: JsonObject by lazy {
+        Json.parseToJsonElement(File(root, "modules/app/bestbuds-kt.manifest.json").readText()).jsonObject.also {
+            require(it.string("format") == "1") { "Unsupported generated worker bundle manifest" }
+        }
+    }
 
     // Gradle tasks share one build-definition closure within this discovery pass. Task-specific
     // provenance still participates in each plan; preparation and admission recapture the seal.
@@ -739,14 +747,7 @@ private class TaskCatalogBuilder(
                 val targetDirectory = manifest.parentFile
                 addDirectory(targetDirectory)
                 val targetSources = targetDirectory.resolve("src")
-                val importsGeneratedBundle = targetSources.walkTopDown()
-                    .filter(File::isFile)
-                    .any { runCatching { "bestbuds-kt" in it.readText() }.getOrDefault(false) }
-                if (importsGeneratedBundle) {
-                    val generated = File(root, "modules/app/bestbuds-kt")
-                    if (generated.isDirectory) addDirectory(generated)
-                    else blockedReason = "Generated worker bundle is unavailable for exact execution sealing"
-                }
+                generatedWorkerFiles(targetSources).forEach(::addFile)
             }
         }
 
@@ -755,6 +756,56 @@ private class TaskCatalogBuilder(
             directories = directories.sortedBy { it.directory.absolutePath },
             blockedReason = blockedReason,
         )
+    }
+
+    private fun generatedWorkerFiles(source: File): List<File> {
+        val imports = workerSourceImports.getOrPut(source.canonicalFile) {
+            if (!source.isDirectory) emptySet() else DefinitionDigestCache.listing(source,
+                setOf(".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"), setOf("node_modules", "build", "dist", ".git"))
+                .flatMap { file -> WORKER_BUNDLE_IMPORT.findAll(file.readText()).map { it.groupValues[1] }.toList() }.toSet()
+        }
+        if (imports.isEmpty()) return emptyList()
+        val bundle = File(root, "modules/app/bestbuds-kt").canonicalFile
+        require(bundle.toPath().startsWith(root.canonicalFile.toPath())) { "Generated worker bundle escapes the workspace" }
+        val manifest = File(root, "modules/app/bestbuds-kt.manifest.json").canonicalFile
+        require(manifest.toPath().startsWith(root.canonicalFile.toPath()) && manifest.isFile) {
+            "Generated worker bundle manifest is unavailable; run :app:jsBrowserProductionLibraryDistribution"
+        }
+        require(manifest.length() <= 32L * 1024 * 1024) { "Generated worker bundle manifest is too large" }
+        return listOf(manifest) + imports.flatMap { imported ->
+            workerBundleFiles.getOrPut(imported) {
+                val entries = (workerBundleManifest["imports"] as? JsonObject)?.get(imported) as? JsonArray
+                    ?: error("Generated worker bundle manifest has no $imported; rebuild :app:jsBrowserProductionLibraryDistribution")
+                require(entries.isNotEmpty() && entries.size <= 20_000) { "Generated worker import closure is empty or too large: $imported" }
+                val members = entries.map { element ->
+                    val entry = element.jsonObject
+                    val path = entry.string("path") ?: error("Generated worker bundle manifest has no path")
+                    require(!File(path).isAbsolute && path.split('/', '\\').none { it == ".." }) { "Generated worker bundle manifest path escapes the bundle" }
+                    val file = bundle.resolve(path).canonicalFile
+                    require(file.toPath().startsWith(bundle.toPath()) && file.isFile) { "Generated worker bundle member is missing or outside the bundle: $path" }
+                    val digest = entry.string("sha256") ?: error("Generated worker bundle manifest has no digest")
+                    require(digest.matches(Regex("[a-f0-9]{64}")) && DefinitionDigestCache.digestOf(file) == digest) {
+                        "Generated worker bundle manifest is stale: $path; rebuild :app:jsBrowserProductionLibraryDistribution"
+                    }
+                    file
+                }
+                val packageFile = bundle.resolve("package.json")
+                val entryFile = if (imported == "bestbuds-kt") bundle.resolve(
+                    JvmProjectDiscovery.parseObject(packageFile)?.string("main") ?: error("Generated worker bundle has no main module")
+                ) else bundle.resolve(imported.substringAfter("bestbuds-kt/"))
+                val included = members.toSet()
+                require(packageFile.canonicalFile in included && entryFile.canonicalFile in included) { "Generated worker bundle manifest omits its entry or package metadata: $imported" }
+                members.filter { it.extension in setOf("mjs", "js", "cjs") }.forEach { member ->
+                    val dependencies = workerModuleImports.getOrPut(member) {
+                        WORKER_RELATIVE_IMPORT.findAll(member.readText()).map { match ->
+                            member.parentFile.resolve(match.groupValues[1]).canonicalFile
+                        }.toList()
+                    }
+                    require(dependencies.all { it in included }) { "Generated worker bundle manifest omits a dependency of ${member.relativeTo(bundle)}" }
+                }
+                members
+            }
+        }
     }
 
     private fun expandNpmScripts(initialBody: String): String {
@@ -780,6 +831,8 @@ private class TaskCatalogBuilder(
     }
 
     companion object {
+        private val WORKER_BUNDLE_IMPORT = Regex("""(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s*)['"](bestbuds-kt(?:/[^'"]+)?)['"]""")
+        private val WORKER_RELATIVE_IMPORT = Regex("""(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s*|new\s+URL\s*\(\s*)['"](\.[^'"]+)['"]""")
         private val DESTRUCTIVE_WORDS = listOf("destroy", "delete", "purge", "drop ", "teardown", "uninstall")
         private val MIGRATION_WORDS = listOf("migrate", "migration", "schema:apply")
         private val CREDENTIAL_WORDS = listOf(
