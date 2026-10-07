@@ -22,7 +22,7 @@ kotlin {
             api(compose.runtime)
             api(compose.foundation)
             api(compose.material3)
-            api(compose.materialIconsExtended)
+            api("org.jetbrains.compose.material:material-icons-core:1.7.3")
             // Common BackHandler — needed by any full-screen overlay that must swallow back
             // instead of letting it pop the route underneath.
             api("org.jetbrains.compose.ui:ui-backhandler:${project.property("compose.version")}")
