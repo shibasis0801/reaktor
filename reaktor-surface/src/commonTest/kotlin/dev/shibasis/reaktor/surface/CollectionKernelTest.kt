@@ -46,6 +46,43 @@ class CollectionKernelTest {
     private fun movedTo(key: String) = listOf<LocalCommand>(LocalCommand.Focus(PartKey(key)), LocalCommand.Reveal(PartKey(key)))
 
     @Test
+    fun navigatorRowsOpenOnceOnPlainPressWhileKeysAndModifiersOnlySelect() {
+        val items = listSource(fruit, { it.key }, text = { it.name }, enabled = { it.enabled }, activateOnPress = { it.key == "blueberry" })
+        SelectionMode.entries.forEach { mode ->
+            val properties = CollectionProperties(items, emptySet(), KeyConvention.Mac, mode)
+            val initial = kernel.initial(properties)
+            val pressed = kernel.reduce(properties, initial, click("blueberry"))
+            assertEquals(listOf(CollectionEvent.Activate("blueberry")), pressed.events.filterIsInstance<CollectionEvent.Activate>())
+            assertTrue(kernel.reduce(properties, pressed.state, click("blueberry", clicks = 2)).events.isEmpty())
+            listOf(click("blueberry", extend = true), click("blueberry", toggle = true)).forEach { input ->
+                assertTrue(kernel.reduce(properties, initial, input).events.none { it is CollectionEvent.Activate })
+            }
+            val moved = kernel.reduce(properties, pressed.state, stroke(KeyName.Down))
+            assertEquals("date", moved.state.active)
+            assertTrue(moved.events.none { it is CollectionEvent.Activate })
+            assertEquals(listOf(CollectionEvent.Activate("date")), kernel.reduce(properties, moved.state, stroke(KeyName.Enter)).events)
+            assertEquals(listOf(CollectionEvent.Activate("blueberry")), kernel.reduce(properties, moved.state, CollectionInput.Open("blueberry")).events)
+            assertTrue(kernel.reduce(properties, initial, click("cherry")).events.isEmpty())
+            assertTrue(kernel.reduce(properties, initial, CollectionInput.Open("cherry")).events.isEmpty())
+            assertTrue(kernel.reduce(properties, initial, click("banana")).events.none { it is CollectionEvent.Activate })
+            assertEquals(listOf(CollectionEvent.Activate("banana")), kernel.reduce(properties, initial, click("banana", clicks = 2)).events)
+        }
+    }
+
+    @Test
+    fun treeNavigationPolicyFollowsTheRowKindAndDisclosureKeepsItsOwnAction() {
+        val items = treeSource(listOf("folder"), { it }, { if (it == "folder") listOf("leaf") else emptyList() }, setOf("folder"),
+            selectable = { it == "leaf" }, activateOnPress = { it == "leaf" })
+        val properties = CollectionProperties(items, emptySet(), KeyConvention.Mac)
+        val initial = kernel.initial(properties)
+        assertTrue(kernel.reduce(properties, initial, click("folder")).events.none { it is CollectionEvent.Activate })
+        assertEquals(listOf(CollectionEvent.ExpansionChange("folder", false)),
+            kernel.reduce(properties, initial, CollectionInput.Expand("folder", false)).events)
+        assertEquals(listOf(CollectionEvent.SelectionChange(setOf("leaf")), CollectionEvent.Activate("leaf")),
+            kernel.reduce(properties, initial, click("leaf")).events)
+    }
+
+    @Test
     fun arrowsMoveAndTheSelectionFollowsTheActiveRow() {
         val (none, single, multiple) = everyMode(stroke(KeyName.Down), at("blueberry"), setOf("apple", "blueberry"))
         listOf(none, single, multiple).forEach {

@@ -30,12 +30,62 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.LayoutDirection
 import dev.shibasis.reaktor.surface.Axis
+import dev.shibasis.reaktor.surface.Activation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class RovingTest {
     private val views = listOf("rows" to "Rows", "chart" to "Chart", "plan" to "Plan")
+
+    @Test
+    fun manualTabsMoveFocusWithoutChoosingUntilEnterSpaceOrClick() = runComposeUiTest {
+        var selected by mutableStateOf("rows")
+        val chosen = mutableListOf<String>()
+        setContent {
+            Tabs(selected, { selected = it; chosen += it }, axis = Axis.Vertical, activation = Activation.Manual) {
+                Column { views.forEach { (key, label) -> Item(key, typeahead = label) { BasicText(label) } } }
+            }
+        }
+        onNodeWithTag("rows").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        onNodeWithTag("chart").assertIsFocused().assertIsNotSelected()
+        onNodeWithTag("rows").assertIsSelected()
+        onRoot().performKeyInput { pressKey(Key.MoveEnd) }
+        onNodeWithTag("plan").assertIsFocused().assertIsNotSelected()
+        onRoot().performKeyInput { pressKey(Key.MoveHome); pressKey(Key.P) }
+        onNodeWithTag("plan").assertIsFocused()
+        assertEquals(emptyList(), chosen)
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        onNodeWithTag("plan").assertIsSelected()
+        onRoot().performKeyInput { pressKey(Key.DirectionUp) }
+        onNodeWithTag("chart").assertIsFocused().assertIsNotSelected()
+        onRoot().performKeyInput { pressKey(Key.Spacebar) }
+        onNodeWithTag("chart").assertIsSelected()
+        onNodeWithTag("rows").performClick()
+        onNodeWithTag("rows").assertIsFocused().assertIsSelected()
+        assertEquals(listOf("plan", "chart", "rows"), chosen)
+    }
+
+    @Test
+    fun manualTabsFollowAnExternalSelectionWhenFocusReturnsToTheStrip() = runComposeUiTest {
+        var selected by mutableStateOf("rows")
+        setContent {
+            Column {
+                Button({}, Modifier.testTag("before")) { BasicText("Before") }
+                Tabs(selected, { selected = it }, activation = Activation.Manual) {
+                    Row { views.forEach { (key, label) -> Item(key, typeahead = label) { BasicText(label) } } }
+                }
+            }
+        }
+        onNodeWithTag("rows").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        onNodeWithTag("chart").assertIsFocused()
+        onNodeWithTag("before").requestFocus()
+        selected = "plan"
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("plan").assertIsFocused().assertIsSelected()
+    }
 
     @Test
     fun verticalTabsFollowUpAndDownAndIgnoreHorizontalArrows() = runComposeUiTest {

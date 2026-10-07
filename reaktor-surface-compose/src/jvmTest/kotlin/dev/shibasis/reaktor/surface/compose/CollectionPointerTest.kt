@@ -25,6 +25,7 @@ import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performMultiModalInput
@@ -55,6 +56,38 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class)
 class CollectionPointerTest {
     private val rows = listSource((0 until 100).map { "row-$it" }, { it }, text = { it })
+
+    @Test
+    fun navigatorRowsShareOneActivationPolicyAcrossMouseTouchKeysAndAccessibility() = runComposeUiTest {
+        var selection by mutableStateOf(emptySet<String>())
+        val opened = mutableListOf<String>()
+        val source = listSource((0 until 100).map { "row-$it" }, { it }, text = { it }, enabled = { it != "row-6" },
+            activateOnPress = { it.removePrefix("row-").toInt() % 2 == 0 })
+        setContent {
+            AutomationScope("files") {
+                ListBox(source, selection, { selection = it }, Modifier.height(400.dp), mode = SelectionMode.Multiple, onActivate = { opened += it }) { BasicText(it) }
+            }
+        }
+        onNodeWithTag("files/row/row-2").performMouseInput { doubleClick() }
+        assertEquals(listOf("row-2"), opened)
+        onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        assertEquals(setOf("row-3"), selection)
+        assertEquals(listOf("row-2"), opened)
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        mainClock.advanceTimeBy(1_000)
+        onNodeWithTag("files/row/row-4").performTouchInput { click() }
+        assertEquals(listOf("row-2", "row-3", "row-4"), opened)
+        onNodeWithTag("files/row/row-5").performMouseInput { doubleClick() }
+        onNodeWithTag("files/row/row-6").performMouseInput { click() }
+        onNodeWithTag("files/row/row-8").clickHolding(Key.ShiftLeft)
+        assertEquals(listOf("row-2", "row-3", "row-4", "row-5"), opened)
+        onNodeWithTag("files/row/row-2").performClick()
+        onNodeWithTag("files/row/row-4").performCustomAccessibilityActionWithLabel("Open")
+        assertEquals(listOf("row-2", "row-3", "row-4", "row-5", "row-2", "row-4"), opened)
+        val beforeScroll = opened.toList()
+        onNodeWithTag("files/row/row-8").performTouchInput { swipe(center, center - Offset(0f, 240f), 600) }
+        assertEquals(beforeScroll, opened)
+    }
 
     @Test
     fun clickShiftClickAndPrimaryClickFollowEachKeyConvention() {

@@ -53,7 +53,7 @@ fun Button(
             .press(source, enabled, onHold?.let { { machine.send(PressInput.Hold(machine.nextSequence())) } }) {
                 machine.send(PressInput.Activate(machine.nextSequence()))
             },
-        propagateMinConstraints = true,
+        contentAlignment = Alignment.Center,
     ) {
         val state = machine.state
         appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ButtonSlots(content))

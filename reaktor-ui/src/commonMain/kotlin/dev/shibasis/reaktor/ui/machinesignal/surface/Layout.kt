@@ -118,7 +118,6 @@ private fun ChromeFocus(state: PressState, theme: ThemeSnapshot, feedback: Compo
     Box(
         Modifier.focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, RectangleShape)),
         contentAlignment = Alignment.Center,
-        propagateMinConstraints = true,
     ) { content() }
 }
 

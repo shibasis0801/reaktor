@@ -504,7 +504,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         if (available(command, key)) actions.onInvoke(command, setOf(key))
     }
 
-    fun open(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 2))
+    fun open(key: String) = machine.send(CollectionInput.Open(key))
 
     fun expand(key: String, expanded: Boolean) = machine.send(CollectionInput.Expand(key, expanded))
 

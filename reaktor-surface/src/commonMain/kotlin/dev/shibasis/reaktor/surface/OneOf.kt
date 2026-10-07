@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.surface
 
+enum class Activation { Automatic, Manual }
+
 data class OneOfProperties(val selected: String?, val enabled: Boolean = true)
 
 data class OneOfState(val lastChoice: Long = 0)

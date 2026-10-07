@@ -6,6 +6,7 @@ interface CollectionItems : RovingItems {
     override fun text(index: Int): String? = null
     fun selectable(index: Int): Boolean = true
     fun checked(index: Int): Boolean? = null
+    fun activateOnPress(index: Int): Boolean = false
 }
 
 interface TreeItems : CollectionItems {
@@ -39,6 +40,7 @@ data class CollectionState(
 sealed interface CollectionInput {
     data class Stroke(val stroke: KeyStroke, val page: Int) : CollectionInput
     data class Press(val key: String, val extend: Boolean, val toggle: Boolean, val clicks: Int) : CollectionInput
+    data class Open(val key: String) : CollectionInput
     data class Secondary(val key: String, val atPointer: Boolean) : CollectionInput
     data class Focused(val key: String) : CollectionInput
     data object Blurred : CollectionInput
@@ -69,10 +71,17 @@ data class CollectionKernel(val roving: RovingKernel = RovingKernel()) :
             is CollectionInput.Stroke -> stroke(properties, state, input)
             is CollectionInput.Press -> when {
                 !properties.reachable(input.key) -> Reduction(state)
-                input.clicks == 1 -> point(properties, state, input.key, if (input.extend) Pick.Range else if (input.toggle) Pick.Toggle else Pick.Only)
-                input.clicks == 2 -> Reduction(state, listOf(CollectionEvent.Activate(input.key)))
+                input.clicks == 1 -> {
+                    val pointed = point(properties, state, input.key, if (input.extend) Pick.Range else if (input.toggle) Pick.Toggle else Pick.Only)
+                    if (!input.extend && !input.toggle && properties.items.activateOnPress(properties.items.indexOf(input.key)))
+                        pointed.copy(events = pointed.events + CollectionEvent.Activate(input.key))
+                    else pointed
+                }
+                input.clicks == 2 && !properties.items.activateOnPress(properties.items.indexOf(input.key)) ->
+                    Reduction(state, listOf(CollectionEvent.Activate(input.key)))
                 else -> Reduction(state)
             }
+            is CollectionInput.Open -> if (properties.reachable(input.key)) Reduction(state, listOf(CollectionEvent.Activate(input.key))) else Reduction(state)
             is CollectionInput.Secondary -> when {
                 !properties.reachable(input.key) -> Reduction(state)
                 !properties.selectable(input.key) -> rove(properties, state, RovingInput.Point(input.key, focus = true))
