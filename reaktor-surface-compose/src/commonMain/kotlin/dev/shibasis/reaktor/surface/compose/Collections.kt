@@ -385,6 +385,12 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     val hovered: String? get() = machine.state.hovered
 
     fun update(properties: CollectionProperties, behavior: CollectionBehavior, inputModes: InputModeManager) {
+        val viewport = list
+        val previous = this.properties?.items
+        if (viewport != null && viewport.firstVisibleItemIndex == 0 && viewport.firstVisibleItemScrollOffset == 0 &&
+            previous != null && previous.size > 0 && properties.items.size > 0 && previous.key(0) != properties.items.key(0)) {
+            viewport.requestScrollToItem(0)
+        }
         this.properties = properties
         this.behavior = behavior
         this.inputModes = inputModes
