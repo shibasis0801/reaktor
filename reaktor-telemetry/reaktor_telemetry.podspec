@@ -9,7 +9,6 @@ Pod::Spec.new do |spec|
     spec.vendored_frameworks      = 'build/cocoapods/framework/reaktor_telemetry.framework'
     spec.libraries                = 'c++'
     spec.ios.deployment_target    = '13'
-    spec.dependency 'FirebaseAnalytics/WithoutAdIdSupport', '11.0'
     spec.dependency 'FirebaseCrashlytics', '11.0'
     if !Dir.exist?('build/cocoapods/framework/reaktor_telemetry.framework') || Dir.empty?('build/cocoapods/framework/reaktor_telemetry.framework')
         raise "

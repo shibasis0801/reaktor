@@ -65,7 +65,6 @@ fun KotlinDependencyHandler.firebase(
 
     if (minimal) {
         installModules(
-            module("com.google.firebase:firebase-analytics-ktx"),
             module("com.google.firebase:firebase-crashlytics-ktx"),
             module("co.touchlab:kermit-crashlytics:${Version.Kermit}")
         )
@@ -74,7 +73,6 @@ fun KotlinDependencyHandler.firebase(
         installModules(
             module("com.google.firebase:firebase-auth-ktx"),
             module("com.google.firebase:firebase-config-ktx"),
-            module("com.google.firebase:firebase-analytics-ktx"),
             module("com.google.firebase:firebase-crashlytics-ktx"),
             module("com.google.firebase:firebase-messaging-ktx"),
             module("com.google.android.gms:play-services-auth:20.1.0"),

@@ -33,10 +33,6 @@ kotlin {
             api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
         }
         podDependencies {
-            pod("FirebaseAnalytics/WithoutAdIdSupport") {
-                version = "11.0"
-                linkOnly = true
-            }
             pod("FirebaseCrashlytics") {
                 version = "11.0"
                 linkOnly = true
@@ -46,15 +42,6 @@ kotlin {
     web {}
     server {}
     applyDefaultHierarchyTemplate()
-    sourceSets {
-        val mobileMain by creating {
-            dependsOn(commonMain.get())
-            dependencies { api("dev.gitlive:firebase-analytics:$firebaseKotlinVersion") }
-        }
-        androidMain.get().dependsOn(mobileMain)
-        iosMain.get().dependsOn(mobileMain)
-    }
-
     sourceSets.commonTest.dependencies {
         implementation(kotlin("test"))
         implementation("io.ktor:ktor-client-mock:3.0.3")
