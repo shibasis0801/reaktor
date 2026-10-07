@@ -368,7 +368,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     private var pointing = false
 
     var openMenu: ((IntRect) -> Unit)? = null
-    var actions = RowActions.None
+    var actions by mutableStateOf(RowActions.None)
     val menuOpen = mutableStateOf(false)
     var menuAnchor = IntRect.Zero
     var coordinates: LayoutCoordinates? = null

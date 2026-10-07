@@ -285,6 +285,31 @@ class CollectionPointerTest {
     }
 
     @Test
+    fun aRowCommandButtonUpdatesAvailabilityWithoutChangingItsRow() = runComposeUiTest {
+        var available by mutableStateOf(true)
+        var invoked = 0
+        setContent {
+            val availability = if (available) Availability.Available else Availability.Unavailable("Blocked")
+            ListBox(rows, emptySet(), {}, Modifier.height(400.dp), actions = RowActions(
+                { CommandSet(listOf(Command(CommandId("run"), "Run", availability = availability))) },
+                { _, _ -> invoked++ },
+            )) { key ->
+                CommandButton(CommandId("run"), Modifier.testTag("run-$key")) { BasicText("Run") }
+            }
+        }
+        onNodeWithTag("run-row-2").performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(1, invoked)
+        runOnIdle { available = false }
+        onNodeWithTag("run-row-2").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
+            .performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(1, invoked)
+        runOnIdle { available = true }
+        onNodeWithTag("run-row-2").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Disabled))
+            .performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(2, invoked)
+    }
+
+    @Test
     fun aRowChordRunsItsCommandOnTheSelection() = runComposeUiTest {
         var selection by mutableStateOf(setOf("row-3"))
         val invoked = mutableListOf<Pair<String, Set<String>>>()
