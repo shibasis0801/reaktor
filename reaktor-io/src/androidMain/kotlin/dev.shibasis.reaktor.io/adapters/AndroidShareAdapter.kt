@@ -61,12 +61,14 @@ class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity)
         runCatching { context.startActivity(intent) }.isSuccess
     }
 
+    // The name is made safe first: it is joined to a directory inside the app's own sandbox, and a
+    // name with `..` in it would be written wherever it pointed, the app's database included.
     private suspend fun stage(context: Context, payload: SharePayload): Uri? = withContext(Dispatchers.IO) {
         runCatching {
             // Staged in a dedicated cache folder that the provider's paths file exposes;
             // everything else in the sandbox stays unreachable.
             val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
-            val file = File(directory, payload.fileName)
+            val file = File(directory, safeFileName(payload.fileName))
             file.writeBytes(payload.bytes)
             FileProvider.getUriForFile(context, authority(context.packageName), file)
         }.getOrNull()

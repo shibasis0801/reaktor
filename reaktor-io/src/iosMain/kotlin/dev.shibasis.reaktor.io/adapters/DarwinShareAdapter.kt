@@ -77,7 +77,8 @@ class DarwinShareAdapter : ShareAdapter<Unit>(Unit) {
     }
 
     private fun write(payload: SharePayload, fileName: String = payload.fileName): NSURL? {
-        val path = NSTemporaryDirectory() + fileName
+        // Made safe first: a name with `..` in it would be written outside the temporary directory.
+        val path = NSTemporaryDirectory() + safeFileName(fileName)
         val data = payload.bytes.toNSData()
         return if (data.writeToFile(path, atomically = true)) NSURL.fileURLWithPath(path) else null
     }
