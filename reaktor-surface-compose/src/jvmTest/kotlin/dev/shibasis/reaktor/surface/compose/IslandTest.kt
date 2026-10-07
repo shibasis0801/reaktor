@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -21,10 +22,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
@@ -154,6 +158,53 @@ class IslandTest {
         onRoot().performKeyInput { pressKey(Key.Tab) }
         onNodeWithTag("after").assertIsFocused()
         assertFalse(rings.last())
+    }
+
+    @Test
+    fun aCanvasTakesFocusOnMouseOrTouchPressAndItsNextChordRunsOnce() = runComposeUiTest {
+        setContent { Page(withEngine = false) }
+        onNodeWithTag("before").requestFocus()
+        onNodeWithTag("island").performMouseInput { moveTo(center); press() }
+        onNodeWithTag("island").assertIsFocused()
+        assertTrue(invoked.isEmpty())
+        onRoot().performKeyInput { withKeyDown(Key.CtrlLeft) { pressKey(Key.Equals) } }
+        assertEquals(listOf("zoom-in"), invoked)
+        onNodeWithTag("island").performMouseInput { release(); exit() }
+        onNodeWithTag("before").requestFocus()
+        onNodeWithTag("island").performTouchInput { down(center) }
+        onNodeWithTag("island").assertIsFocused()
+        onNodeWithTag("island").performTouchInput { up() }
+        onRoot().performKeyInput { withKeyDown(Key.CtrlLeft) { pressKey(Key.Zero) } }
+        assertEquals(listOf("zoom-in", "fit"), invoked)
+    }
+
+    @Test
+    fun aCanvasLeavesChildControlsAndAnEnginesFocusOwnershipIntact() = runComposeUiTest {
+        var text by mutableStateOf("")
+        var clicks = 0
+        setContent {
+            Column {
+                Button({}, Modifier.testTag("before")) { BasicText("Before") }
+                Island(commands, { invoked += it.value }, Modifier.size(200.dp, 120.dp).testTag("island"), focusable = true) {
+                    Column {
+                        BasicTextField(text, { text = it }, Modifier.testTag("field"))
+                        Button({ clicks++ }, Modifier.testTag("child")) { BasicText("Child") }
+                    }
+                }
+                Island(commands, { invoked += it.value }, Modifier.size(200.dp, 120.dp).testTag("engine-group")) {
+                    Box(Modifier.fillMaxSize().testTag("engine").focusable())
+                }
+            }
+        }
+        onNodeWithTag("before").requestFocus()
+        onNodeWithTag("field").performMouseInput { click() }
+        onNodeWithTag("field").assertIsFocused()
+        onNodeWithTag("child").performMouseInput { click() }
+        assertEquals(1, clicks)
+        onNodeWithTag("engine").requestFocus()
+        onNodeWithTag("engine-group").performMouseInput { click() }
+        onNodeWithTag("engine").assertIsFocused()
+        assertTrue(invoked.isEmpty())
     }
 
     @Test
