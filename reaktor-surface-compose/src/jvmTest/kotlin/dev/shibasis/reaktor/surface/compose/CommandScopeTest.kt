@@ -136,6 +136,51 @@ class CommandScopeTest {
     }
 
     @Test
+    fun theWindowFallbackUsesTheFocusedPaneBeforeTheRoot() = runComposeUiTest {
+        var host: CommandHost? = null
+        val invoked = mutableListOf<String>()
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment()) {
+                host = LocalCommandHost.current
+                Column(Modifier.commands(commandsOf(Command(CommandId("root-find"), "Find", find))) { invoked += it.value }) {
+                    Box(Modifier.commands(commandsOf(Command(CommandId("first-find"), "Find in first pane", find))) { invoked += it.value }) {
+                        Button({}, Modifier.testTag("first")) { BasicText("First") }
+                    }
+                    Box(Modifier.commands(commandsOf(Command(CommandId("second-find"), "Find in second pane", find))) { invoked += it.value }) {
+                        Button({}, Modifier.testTag("second")) { BasicText("Second") }
+                    }
+                }
+            }
+        }
+        onNodeWithTag("first").requestFocus()
+        assertTrue(runOnIdle { requireNotNull(host).dispatch(primaryEvent(Key.F)) })
+        onNodeWithTag("second").requestFocus()
+        assertTrue(runOnIdle { requireNotNull(host).dispatch(primaryEvent(Key.F)) })
+        assertEquals(listOf("first-find", "second-find"), invoked)
+    }
+
+    @Test
+    fun disposingTheNewestRootRestoresThePreviousRegistration() = runComposeUiTest {
+        var host: CommandHost? = null
+        var second by mutableStateOf(true)
+        val invoked = mutableListOf<String>()
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment()) {
+                host = LocalCommandHost.current
+                Column {
+                    Box(Modifier.commands(commandsOf(drawer)) { invoked += "first" }) { BasicText("First") }
+                    if (second) Box(Modifier.commands(commandsOf(drawer)) { invoked += "second" }) { BasicText("Second") }
+                }
+            }
+        }
+        assertTrue(runOnIdle { requireNotNull(host).dispatch(primaryEvent(Key.J)) })
+        second = false
+        waitForIdle()
+        assertTrue(runOnIdle { requireNotNull(host).dispatch(primaryEvent(Key.J)) })
+        assertEquals(listOf("second", "first"), invoked)
+    }
+
+    @Test
     fun aChordPressedInAnOverlayReachesTheRootScopeOnceThroughTheWindowFallback() = runComposeUiTest {
         var host: CommandHost? = null
         var open by mutableStateOf(false)

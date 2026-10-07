@@ -164,6 +164,26 @@ fun PaneHost(
 
 private val LocalPaneFocusGroup = staticCompositionLocalOf<PaneFocusGroup?> { null }
 
+@Composable
+fun Modifier.paneFocus(focus: PaneHostFocus): Modifier {
+    val parent = LocalPaneFocusGroup.current
+    val coordinator = parent?.owner ?: focus
+    val host = remember(coordinator, parent) { PaneFocusHost(parent) }
+    val group = remember(host) { PaneFocusGroup(coordinator) }
+    val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
+    DisposableEffect(coordinator, host, group) {
+        host.groups[null] = group
+        host.order = listOf(null)
+        coordinator.add(host)
+        onDispose { coordinator.remove(host) }
+    }
+    SideEffect { host.rightToLeft = rightToLeft }
+    return this.then(group.modifier()).onPlaced { host.coordinates = it }.onPreviewKeyEvent { event ->
+        val stroke = event.stroke()
+        event.type == KeyEventType.KeyDown && stroke != null && stroke.key == KeyName.F6 && !stroke.meta && !stroke.control && !stroke.alt && coordinator.cycle(stroke.shift)
+    }
+}
+
 internal class PaneFocusGroup(val owner: PaneHostFocus) {
     private val requester = FocusRequester()
     private var focused = false
