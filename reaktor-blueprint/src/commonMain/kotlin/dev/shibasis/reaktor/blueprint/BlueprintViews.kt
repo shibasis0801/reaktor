@@ -21,12 +21,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +51,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Constraints
+import dev.shibasis.reaktor.surface.compose.TooltipGroup
+import kotlin.math.roundToInt
 import dev.shibasis.reaktor.blueprint.canvas.CanvasCard
 import dev.shibasis.reaktor.blueprint.canvas.CanvasFrame
 import dev.shibasis.reaktor.blueprint.canvas.CanvasGrid
@@ -127,6 +147,7 @@ fun <K> BlueprintCanvas(
     startInset: Dp = 0.dp,
     pulses: List<CanvasPulse> = emptyList(),
     glow: (String) -> Color? = { null },
+    cardOverview: ((Card) -> Pair<String, Color>)? = null,
 ) {
     val frames = remember(layout) { layout.frames.map { CanvasFrame("frame:${it.key}", it.x, it.y, it.width, it.height, 1) } }
     val framesById = remember(layout) { layout.frames.associateBy { "frame:${it.key}" } }
@@ -135,38 +156,71 @@ fun <K> BlueprintCanvas(
         layout.links.map { CanvasLink(it.id, it.from, it.to, it.points, labels[it.id], if (it.reversed) LinkArrow.Start else LinkArrow.End) }
     }
     val linksById = remember(layout) { layout.links.associateBy { it.id } }
-    Box(modifier.fillMaxSize().background(MachineSignal.Editor.Canvas)) {
-        GraphCanvas(
-            frames = frames,
-            cards = cards,
-            links = links,
-            state = canvas,
-            background = MachineSignal.Editor.Canvas,
-            fitKey = fitKey,
-            topInset = 48.dp,
-            startInset = startInset,
-            grid = Blueprint.Grid,
-            pulses = pulses,
-            frameContent = { frame -> framesById[frame.id]?.let { frameContent(it) } },
-            cardContent = { card -> layout.cards[card.id]?.let { cardContent(it) } },
-            cardStyle = { card ->
-                CardStyle(
-                    alpha = if (highlight.isEmpty() || card.id in highlight) 1f else 0.2f,
-                    glow = if (card.id == selected) MachineSignal.Editor.Accent.copy(alpha = 0.45f) else glow(card.id),
+    val far by remember(canvas) { derivedStateOf { canvas.zoom < Blueprint.FarZoom } }
+    val painting = far && cardOverview != null
+    val overview = remember(layout, cardOverview, painting) {
+        if (painting) layout.cards.mapValues { requireNotNull(cardOverview)(it.value) } else emptyMap()
+    }
+    val density = LocalDensity.current.density
+    val fonts = LocalMachineSignalFonts.current
+    val measurer = rememberTextMeasurer()
+    val overviewLabels = remember(overview, fonts, density, measurer) {
+        overview.mapValues { (id, value) -> measurer.measure(value.first,
+            TextStyle(color = MachineSignal.Editor.Text, fontFamily = fonts.mono, fontWeight = FontWeight.SemiBold,
+                fontSize = Blueprint.fitted(value.first, layout.cards.getValue(id).width - 18, 13.0, Blueprint.FarZoom)),
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            constraints = Constraints(maxWidth = ((layout.cards.getValue(id).width - 18) * density).roundToInt())) }
+    }
+    CompositionLocalProvider(LocalBlueprintOverview provides painting) {
+        TooltipGroup {
+            Box(modifier.fillMaxSize().background(MachineSignal.Editor.Canvas)) {
+                GraphCanvas(
+                    frames = frames,
+                    cards = cards,
+                    links = links,
+                    state = canvas,
+                    background = MachineSignal.Editor.Canvas,
+                    fitKey = fitKey,
+                    topInset = 48.dp,
+                    startInset = startInset,
+                    grid = Blueprint.Grid,
+                    pulses = pulses,
+                    frameContent = { frame -> framesById[frame.id]?.let { frameContent(it) } },
+                    cardContent = { card -> layout.cards[card.id]?.let { cardContent(it) } },
+                    cardStyle = { card ->
+                        CardStyle(
+                            alpha = if (highlight.isEmpty() || card.id in highlight) 1f else 0.2f,
+                            glow = if (card.id == selected) MachineSignal.Editor.Accent.copy(alpha = 0.45f) else glow(card.id),
+                        )
+                    },
+                    linkStyle = { link -> linksById[link.id]?.let(linkStyle) ?: LinkStyle(color = MachineSignal.Editor.Muted) },
+                    onCardClick = onCardClick,
+                    onLinkClick = { id -> linksById[id]?.let(onLinkClick) },
+                    onPaneClick = onPaneClick,
+                    cardDrawing = if (!painting) null else draw@ { card ->
+                        val item = overview[card.id] ?: return@draw
+                        val position = Offset((card.x * density).toFloat(), (card.y * density).toFloat())
+                        val size = Size((card.width * density).toFloat(), (card.height * density).toFloat())
+                        val radius = CornerRadius(8 * density)
+                        val alpha = if (highlight.isEmpty() || card.id in highlight) 1f else .2f
+                        drawRoundRect(Blueprint.far(item.second), position, size, radius, alpha = alpha)
+                        val outline = glow(card.id)
+                        drawRoundRect(if (card.id == selected) MachineSignal.Editor.Accent else outline ?: item.second.copy(alpha = .3f),
+                            position, size, radius, alpha = alpha, style = Stroke((if (card.id == selected) 2f else if (outline != null) 1.6f else 1f) * density))
+                        overviewLabels[card.id]?.let { drawText(it, topLeft = position + Offset(10 * density, 6 * density), alpha = alpha) }
+                    },
                 )
-            },
-            linkStyle = { link -> linksById[link.id]?.let(linkStyle) ?: LinkStyle(color = MachineSignal.Editor.Muted) },
-            onCardClick = onCardClick,
-            onLinkClick = { id -> linksById[id]?.let(onLinkClick) },
-            onPaneClick = onPaneClick,
-        )
+            }
+        }
     }
 }
+
+private val LocalBlueprintOverview = staticCompositionLocalOf { false }
 
 @Composable
 fun BlueprintFrame(
     frame: Frame,
-    zoom: Double,
+    zoom: () -> Double,
     icon: ImageVector,
     count: String,
     modifier: Modifier = Modifier,
@@ -187,10 +241,10 @@ fun BlueprintFrame(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(icon, null, Modifier.size((14 * (1.0 / zoom.coerceIn(0.35, 1.0)).coerceAtMost(1.8)).dp), tint = tint)
-            CanvasText(frame.label, color = MachineSignal.Editor.Text, size = Blueprint.scaled(13.0, zoom), weight = FontWeight.SemiBold)
-            CanvasText(count, color = MachineSignal.Editor.Muted, size = Blueprint.scaled(11.0, zoom))
-            CanvasText(frame.detail.joinToString(" · "), color = MachineSignal.Editor.Muted, size = Blueprint.scaled(11.0, zoom), mono = true, maxLines = 1)
+            Icon(icon, null, Modifier.canvasScale(zoom).size(14.dp), tint = tint)
+            CanvasText(frame.label, Modifier.canvasScale(zoom), color = MachineSignal.Editor.Text, size = 13.sp, weight = FontWeight.SemiBold)
+            CanvasText(count, Modifier.canvasScale(zoom), color = MachineSignal.Editor.Muted, size = 11.sp)
+            CanvasText(frame.detail.joinToString(" · "), Modifier.canvasScale(zoom), color = MachineSignal.Editor.Muted, size = 11.sp, mono = true, maxLines = 1)
             badges()
         }
     }
@@ -199,7 +253,7 @@ fun BlueprintFrame(
 @Composable
 fun BlueprintCard(
     card: Card,
-    zoom: Double,
+    zoom: () -> Double,
     tone: Color,
     icon: ImageVector,
     title: String,
@@ -212,7 +266,11 @@ fun BlueprintCard(
     badges: @Composable RowScope.() -> Unit = {},
     pin: @Composable (Pin) -> Unit = {},
 ) {
-    val far = zoom < Blueprint.FarZoom
+    val far by remember(zoom) { derivedStateOf { zoom() < Blueprint.FarZoom } }
+    if (far && LocalBlueprintOverview.current) {
+        Box(modifier.fillMaxSize().semantics { text = AnnotatedString(title) })
+        return
+    }
     val shape = RoundedCornerShape(8.dp)
     Box(
         Modifier.fillMaxSize().clip(shape)
@@ -234,7 +292,7 @@ fun BlueprintCard(
     ) {
         if (far) {
             CanvasText(title, Modifier.padding(start = 10.dp, end = 8.dp, top = 6.dp), color = MachineSignal.Editor.Text,
-                size = Blueprint.fitted(title, card.width - 18, 13.0, zoom), weight = FontWeight.SemiBold, mono = true, maxLines = 1)
+                size = Blueprint.fitted(title, card.width - 18, 13.0, Blueprint.FarZoom), weight = FontWeight.SemiBold, mono = true, maxLines = 1)
             return@Box
         }
         Column(Modifier.fillMaxWidth()) {
@@ -366,4 +424,21 @@ private fun CanvasText(
 ) {
     val fonts = LocalMachineSignalFonts.current
     Text(text, modifier, color = color, fontFamily = if (mono) fonts.mono else fonts.ui, fontSize = size, fontWeight = weight, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+}
+
+private fun Modifier.canvasScale(zoom: () -> Double) = layout { measurable, constraints ->
+    val scale = (1.0 / zoom().coerceIn(0.35, 1.0)).coerceAtMost(1.8).toFloat()
+    val measured = measurable.measure(constraints.copy(
+        minWidth = (constraints.minWidth / scale).roundToInt(),
+        minHeight = (constraints.minHeight / scale).roundToInt(),
+        maxWidth = if (constraints.maxWidth == Constraints.Infinity) Constraints.Infinity else (constraints.maxWidth / scale).roundToInt(),
+        maxHeight = if (constraints.maxHeight == Constraints.Infinity) Constraints.Infinity else (constraints.maxHeight / scale).roundToInt(),
+    ))
+    layout((measured.width * scale).roundToInt(), (measured.height * scale).roundToInt()) {
+        measured.placeWithLayer(0, 0) {
+            scaleX = scale
+            scaleY = scale
+            transformOrigin = TransformOrigin(0f, 0f)
+        }
+    }
 }

@@ -16,6 +16,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusEventModifierNode
 import androidx.compose.ui.focus.FocusState
@@ -75,6 +77,26 @@ val BareTooltip: TooltipAppearance = object : TooltipAppearance {
     }
 }
 
+private val LocalTooltipGroup = staticCompositionLocalOf<TooltipGroupState?> { null }
+
+@Stable
+internal class TooltipGroupState(val scope: CoroutineScope) {
+    var active by mutableStateOf<TooltipAnchor?>(null)
+    fun retire(anchor: TooltipAnchor) { if (active === anchor) active = null }
+}
+
+@Composable
+fun TooltipGroup(content: @Composable () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val group = remember(scope) { TooltipGroupState(scope) }
+    CompositionLocalProvider(LocalTooltipGroup provides group) {
+        Box(propagateMinConstraints = true) {
+            content()
+            group.active?.frame?.invoke()
+        }
+    }
+}
+
 @Composable
 fun Tooltip(
     modifier: Modifier = Modifier,
@@ -86,16 +108,22 @@ fun Tooltip(
     tip: @Composable () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
+    val group = LocalTooltipGroup.current
+    val scope = group?.scope ?: rememberCoroutineScope()
     val host = LocalOverlayHost.current
-    val anchor = remember(behavior, host) { TooltipAnchor(behavior, scope, host) }
+    val anchor = remember(behavior, host, group) { TooltipAnchor(behavior, scope, host, group) }
     SideEffect { anchor.update(TooltipProperties(enabled)) }
     DisposableEffect(anchor) { onDispose(anchor::retire) }
+    val frame = @Composable {
+        Tip(anchor, host, placement) {
+            appearance.Content(tipContent(command), anchor.state, LocalThemeSnapshot.current,
+                rememberFeedback(pressed = false, focusVisible = false), TooltipSlots(tip))
+        }
+    }
+    SideEffect { if (group != null) anchor.frame = frame }
     Box(modifier.then(TooltipAnchorElement(anchor)), propagateMinConstraints = true) {
         content()
-        if (anchor.shown) Tip(anchor, host, placement) {
-            appearance.Content(tipContent(command), anchor.state, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), TooltipSlots(tip))
-        }
+        if (group == null && anchor.shown) frame()
     }
 }
 
@@ -130,10 +158,11 @@ private fun Tip(anchor: TooltipAnchor, host: OverlayHost?, placement: Placement,
 }
 
 @Stable
-internal class TooltipAnchor(private val behavior: TooltipBehavior, private val scope: CoroutineScope, private val host: OverlayHost?) {
+internal class TooltipAnchor(private val behavior: TooltipBehavior, private val scope: CoroutineScope, private val host: OverlayHost?, private val group: TooltipGroupState?) {
     private var properties = TooltipProperties()
     private var machine by mutableStateOf<Machine<TooltipProperties, TooltipState, TooltipInput, TooltipEvent>?>(null)
     var bounds by mutableStateOf(IntRect.Zero)
+    var frame by mutableStateOf<(@Composable () -> Unit)?>(null)
 
     val state: TooltipState get() = machine?.state ?: TooltipState()
     val shown: Boolean get() = machine?.state?.shown == true
@@ -168,14 +197,20 @@ internal class TooltipAnchor(private val behavior: TooltipBehavior, private val 
     }
 
     fun retire() {
+        group?.retire(this)
         host?.tips?.remove(this)
         machine?.retire()
     }
 
     private fun event(event: TooltipEvent) {
         when (event) {
-            TooltipEvent.Shown -> host?.tips?.add(this)
-            TooltipEvent.Hidden -> host?.tips?.remove(this)
+            TooltipEvent.Shown -> {
+                host?.tips?.add(this)
+                val previous = group?.active
+                group?.active = this
+                if (previous !== this) previous?.escape()
+            }
+            TooltipEvent.Hidden -> { host?.tips?.remove(this); group?.retire(this) }
         }
     }
 }

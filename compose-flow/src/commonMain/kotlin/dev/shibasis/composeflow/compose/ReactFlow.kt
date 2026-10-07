@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -137,8 +139,10 @@ fun ReactFlow(
     overlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
     viewportOverlay: @Composable BoxScope.(ReactFlowState) -> Unit = {},
     canvasBackground: androidx.compose.ui.graphics.Color = FlowCanvasBackground,
+    nodeDrawing: (DrawScope.() -> Unit)? = null,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    val viewport = remember(state) { { state.viewport } }
     val interactionState = rememberFlowViewportInteractionState()
     val platformBridge = LocalFlowViewportPlatformBridge.current
     val gestureConfig = remember(minZoom, maxZoom) {
@@ -329,14 +333,29 @@ fun ReactFlow(
                         }
                     }
 
-                    nodes.filterNot { it.hidden }.sortedBy { it.zIndex }.forEach { node ->
+                    nodeDrawing?.let { drawing -> Canvas(Modifier.fillMaxSize()) { drawing() } }
+
+                    val visibleNodes by remember(nodes, state, canvasSize, defaultWidthPx, defaultHeightPx) {
+                        derivedStateOf {
+                            val view = state.viewport
+                            val left = -view.x / view.zoom
+                            val top = -view.y / view.zoom
+                            val right = (canvasSize.width - view.x) / view.zoom
+                            val bottom = (canvasSize.height - view.y) / view.zoom
+                            nodes.filter { node -> !node.hidden && (node.dragging ||
+                                node.position.x < right && node.position.y < bottom &&
+                                node.position.x + (node.width ?: defaultWidthPx) > left &&
+                                node.position.y + (node.height ?: defaultHeightPx) > top) }.sortedBy { it.zIndex }
+                        }
+                    }
+                    visibleNodes.forEach { node ->
                         FlowNodeBox(
                             node = node,
                             nodeContent = nodeTypes[node.type],
                             onNodeClick = onNodeClick,
                             onNodesChange = onNodesChange,
                             onConnect = onConnect,
-                            viewport = state.viewport,
+                            viewport = viewport,
                             renderStyle = nodeRenderStyle(node),
                             handleRenderStyle = { handle -> handleRenderStyle(node, handle) },
                             defaultNodeWidthPx = defaultWidthPx,

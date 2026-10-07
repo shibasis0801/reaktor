@@ -85,6 +85,32 @@ class TooltipTest {
     }
 
     @Test
+    fun aGroupShowsOneTipAndRetiresTheHoveredAnchor() = runComposeUiTest {
+        var visible by androidx.compose.runtime.mutableStateOf(true)
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment()) {
+                TooltipGroup {
+                    Row(Modifier.offset(20.dp, 20.dp)) {
+                        Tooltip(tip = { BasicText("First pin") }) { Swatch("first") }
+                        if (visible) Tooltip(tip = { BasicText("Second pin") }) { Swatch("second") }
+                    }
+                }
+            }
+        }
+        mainClock.autoAdvance = false
+        hover("first")
+        mainClock.advanceTimeBy(400)
+        onNodeWithText("First pin").assertExists()
+        hover("second")
+        mainClock.advanceTimeBy(400)
+        onNodeWithText("Second pin").assertExists()
+        onNodeWithText("First pin").assertDoesNotExist()
+        runOnIdle { visible = false }
+        mainClock.advanceTimeBy(200)
+        onNodeWithText("Second pin").assertDoesNotExist()
+    }
+
+    @Test
     fun aDisabledAnchorStillShowsItsTipAndAPressHidesIt() = runComposeUiTest {
         setContent {
             SurfaceEnvironmentProvider(SurfaceEnvironment()) {
