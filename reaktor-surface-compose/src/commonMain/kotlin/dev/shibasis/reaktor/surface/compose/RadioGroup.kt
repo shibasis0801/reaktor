@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.Axis
+import dev.shibasis.reaktor.surface.Activation
 import dev.shibasis.reaktor.surface.BehaviorKernel
 import dev.shibasis.reaktor.surface.Choose
 import dev.shibasis.reaktor.surface.Chosen
@@ -46,7 +47,7 @@ fun RadioGroup(
     enabled: Boolean = true,
     behavior: OneOfBehavior = OneOfKernel,
     content: @Composable OneOfScope.() -> Unit,
-) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.RadioButton, LocalAppearances.current.radio, Axis.Both, content)
+) = OneOf(selected, onSelectedChange, modifier, enabled, behavior, Role.RadioButton, LocalAppearances.current.radio, Axis.Both, Activation.Automatic, content)
 
 @Composable
 internal fun OneOf(
@@ -58,10 +59,13 @@ internal fun OneOf(
     role: Role,
     appearance: ItemAppearance,
     axis: Axis,
+    activation: Activation,
     content: @Composable OneOfScope.() -> Unit,
 ) {
     val group = rememberMachine(behavior, OneOfProperties(selected, enabled)) { onSelectedChange(it.key) }
-    val roving = rememberRoving(axis) { key -> group.send(Choose(key, group.nextSequence())) }
+    val roving = rememberRoving(axis) { key ->
+        if (activation == Activation.Automatic) group.send(Choose(key, group.nextSequence()))
+    }
     Box(modifier.selectableGroup().roving(roving), propagateMinConstraints = true) {
         OneOfScope(group, roving, selected, enabled, role, appearance).content()
     }

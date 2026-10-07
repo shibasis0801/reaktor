@@ -23,7 +23,8 @@ fun <T> listSource(
     selectable: (T) -> Boolean = { true },
     checked: (T) -> Boolean? = { null },
     diagnostics: SurfaceDiagnostics = SurfaceDiagnostics.None,
-): ItemSource<T> = ListSource(items, key, text, enabled, selectable, checked, diagnostics)
+    activateOnPress: (T) -> Boolean = { false },
+): ItemSource<T> = ListSource(items, key, text, enabled, selectable, checked, diagnostics, activateOnPress)
 
 fun <T> treeSource(
     roots: List<T>,
@@ -34,6 +35,7 @@ fun <T> treeSource(
     enabled: (T) -> Boolean = { true },
     selectable: (T) -> Boolean = { true },
     diagnostics: SurfaceDiagnostics = SurfaceDiagnostics.None,
+    activateOnPress: (T) -> Boolean = { false },
 ): TreeSource<T> {
     val items = mutableListOf<T>()
     val depths = mutableListOf<Int>()
@@ -46,7 +48,7 @@ fun <T> treeSource(
         if (key(item) in expanded) children(item).forEach { visit(it, depth + 1, index) }
     }
     roots.forEach { visit(it, 0, -1) }
-    return TreeRows(listSource(items, key, text, enabled, selectable, diagnostics = diagnostics), depths, parents, children, expanded)
+    return TreeRows(listSource(items, key, text, enabled, selectable, diagnostics = diagnostics, activateOnPress = activateOnPress), depths, parents, children, expanded)
 }
 
 private class ListSource<T>(
@@ -57,6 +59,7 @@ private class ListSource<T>(
     private val selectableOf: (T) -> Boolean,
     private val checkedOf: (T) -> Boolean?,
     private val diagnostics: SurfaceDiagnostics,
+    private val activateOnPressOf: (T) -> Boolean,
 ) : ItemSource<T> {
     private val originals by lazy { items.map(keyOf) }
     private val keys by lazy {
@@ -88,6 +91,7 @@ private class ListSource<T>(
     override fun text(index: Int): String? = textOf(items[index])
     override fun selectable(index: Int): Boolean = selectableOf(items[index])
     override fun checked(index: Int): Boolean? = checkedOf(items[index])
+    override fun activateOnPress(index: Int): Boolean = activateOnPressOf(items[index])
 }
 
 private class TreeRows<T>(
