@@ -116,13 +116,17 @@ class MachineSignalLookParityTest {
     }
 
     @Test
-    fun subTabsMatchTheLegacySubTabAsATabsGroup() = everyScene("tab") { variant, density ->
+    fun subTabsKeepLegacyPaintWithEnoughRoomForTheLabelLine() = everyScene("tab") { variant, density ->
         val cases = listOf(true to null, false to null, true to 12, false to 3)
         scene(density, variant, {
             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 cases.forEach { (selected, count) ->
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        Box(Modifier.testTag("legacy-$selected-$count")) { LegacySubTab("Query receipts", selected, {}, count = count) }
+                        Box(Modifier.testTag("legacy-$selected-$count")) {
+                            val height = if (variant == MachineSignalVariant.Editor) MachineSignal.Editor.documentTabHeight else
+                                with(LocalDensity.current) { hangarBody.lineHeight.toDp() } + MachineSignal.Metrics.subTabPaddingTop + MachineSignal.Metrics.subTabGap + MachineSignal.Metrics.subTabUnderlineHeight
+                            LegacySubTab("Query receipts", selected, {}, modifier = Modifier.height(height), count = count)
+                        }
                         Box(Modifier.testTag("group-$selected-$count")) {
                             Tabs(if (selected) "receipts" else null, {}) {
                                 Item("receipts", appearance = UnderlineTab) { TabLabel("Query receipts", selected, count) }

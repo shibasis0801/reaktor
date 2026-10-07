@@ -319,7 +319,9 @@ fun MachineSignalSurface(
     SurfaceTheme(snapshot, appearances) {
         CompositionLocalProvider(
             LocalMachineSignalFonts provides fonts,
-            LocalTextStyle provides (fonts.base?.let { LocalTextStyle.current.merge(it.copy(fontFamily = fonts.ui)) } ?: LocalTextStyle.current),
+            LocalTextStyle provides (fonts.base?.let { LocalTextStyle.current.merge(it.copy(fontFamily = fonts.ui)) } ?: LocalTextStyle.current).let {
+                it.copy(fontFeatureSettings = listOfNotNull(it.fontFeatureSettings, "tnum").joinToString(","))
+            },
             content = content,
         )
     }

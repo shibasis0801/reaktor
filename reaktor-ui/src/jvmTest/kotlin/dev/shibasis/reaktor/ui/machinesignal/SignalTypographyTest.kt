@@ -125,7 +125,7 @@ class SignalTypographyTest {
                 same("chrome/$scale/$weight", true, {
                     MaterialText(sample, color = MachineSignal.Editor.Muted, fontFamily = MachineSignalFonts().ui, fontSize = size,
                         fontWeight = weights.getValue(weight), lineHeight = size * MachineSignal.Editor.lineHeight,
-                        style = TextStyle(platformStyle = chrome), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        style = TextStyle(platformStyle = chrome, fontFeatureSettings = "tnum"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }, { Text(sample, role = TextRole(scale, weight, TypeFace.Chrome), ink = Ink.Muted) })
             }
         }

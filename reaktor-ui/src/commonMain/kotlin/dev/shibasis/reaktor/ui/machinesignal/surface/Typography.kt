@@ -32,6 +32,7 @@ val SignalTypography: TextAppearance = object : TextAppearance {
             fontFamily = signal.fonts.ui,
             lineHeight = signal.type.chromeLine,
             platformStyle = signal.fonts.chrome,
+            fontFeatureSettings = base.fontFeatureSettings,
         )
         return base.merge(
             color = color,

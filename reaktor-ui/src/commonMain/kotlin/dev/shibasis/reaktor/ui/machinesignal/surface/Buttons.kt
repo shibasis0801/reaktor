@@ -1,10 +1,12 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.compose.lineBox
+import dev.shibasis.reaktor.surface.Type
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,7 +88,7 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
             .pointerHoverIcon(PointerIcon.Hand)
             .focusRing(look.focused, feedback, look.ring)
             .then(if (look.busy) Modifier.alpha(BusyAlpha) else Modifier)
-            .height(look.height)
+            .heightIn(min = look.height).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
             .background(look.fill, MachineSignal.Shape.Control)
             .border(1.dp, look.line, MachineSignal.Shape.Control)
             .padding(horizontal = look.padding),

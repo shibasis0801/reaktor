@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,6 +83,24 @@ class TextTest {
         assertEquals(2, layout("two", this).lineCount)
         assertEquals(TextAlign.End, layout("aligned", this).layoutInput.style.textAlign)
         onNodeWithTag("one").assertTextEquals(long)
+    }
+
+    @Test
+    fun middleElisionPaintsBothEndsAndKeepsTheFullAnnotatedTextAccessible() = runComposeUiTest {
+        val path = "/a/very/long/path/with/a/surrogate/🚀/Report.kt"
+        val rich = AnnotatedString(path, listOf(AnnotatedString.Range(SpanStyle(color = Color.Blue), path.length - 9, path.length)))
+        setContent {
+            SurfaceTheme(BareTheme, Appearances(Appearance.Text provides recording)) {
+                Text(rich, Modifier.width(90.dp).testTag("path"), overflow = TextOverflow.MiddleEllipsis)
+            }
+        }
+        waitForIdle()
+        onNodeWithTag("path").assertTextEquals(path)
+        val painted = layout("path", this)
+        assertTrue(painted.layoutInput.text.text.startsWith("/a/") && painted.layoutInput.text.text.endsWith(".kt"))
+        assertTrue('…' in painted.layoutInput.text.text)
+        assertTrue(!painted.hasVisualOverflow)
+        assertEquals(Color.Blue, painted.layoutInput.text.spanStyles.last().item.color)
     }
 
     @Test

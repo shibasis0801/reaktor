@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.compose.lineBox
+import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -7,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -53,7 +54,7 @@ val SignalItemRow: RowAppearance = object : RowAppearance {
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
-                .heightIn(min = metrics.itemRow)
+                .heightIn(min = metrics.itemRow).lineBox(Type.Body, MachineSignal.Space.s1 / 2)
                 .background(
                     when {
                         properties.selected -> colors.controlAccentSoft
@@ -95,7 +96,7 @@ val SignalTableRow: RowAppearance = object : RowAppearance {
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
-                .heightIn(min = signal.metrics.tableRow)
+                .heightIn(min = signal.metrics.tableRow).lineBox(Type.Meta, MachineSignal.Space.s1 / 2)
                 .background(
                     when {
                         properties.selected -> colors.controlAccent.copy(alpha = SelectedFill)
@@ -121,7 +122,7 @@ val SignalTableHeader: TableHeaderAppearance = object : TableHeaderAppearance {
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
-                .height(HeaderHeight)
+                .heightIn(min = HeaderHeight).lineBox(Type.Meta, MachineSignal.Space.s1)
                 .background(colors.surface)
                 .stateLayer(LocalContentColor.current, properties.sortable && state.hovered, feedback)
                 .padding(horizontal = MachineSignal.Space.s2),

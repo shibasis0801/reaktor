@@ -1,8 +1,11 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.compose.lineBox
+import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.IntrinsicSize
 import dev.shibasis.reaktor.surface.compose.Align
 import dev.shibasis.reaktor.surface.compose.Placement
 import dev.shibasis.reaktor.surface.compose.RowAppearance
@@ -98,7 +101,7 @@ val StatusStrip: BarAppearance = strip(MachineSignal.Editor.statusHeight, Machin
 private fun strip(height: Dp, gap: Dp): BarAppearance = object : BarAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BarSlots) = Row(
-        Modifier.fillMaxWidth().height(height).background(theme.machineSignal.colors.surface).padding(horizontal = MachineSignal.Space.s2),
+        Modifier.fillMaxWidth().heightIn(min = height).lineBox(Type.Meta, MachineSignal.Space.s1 / 2).background(theme.machineSignal.colors.surface).padding(horizontal = MachineSignal.Space.s2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(gap),
         content = slots.content,
@@ -111,7 +114,7 @@ val SegmentTrack: BarAppearance = object : BarAppearance {
         val colors = theme.machineSignal.colors
         val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
         Row(
-            Modifier.height(MachineSignal.Editor.controlHeight).clip(shape).background(colors.canvas).border(MachineSignal.Stroke.hairline, colors.line, shape),
+            Modifier.heightIn(min = MachineSignal.Editor.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2).height(IntrinsicSize.Min).clip(shape).background(colors.canvas).border(MachineSignal.Stroke.hairline, colors.line, shape),
             verticalAlignment = Alignment.CenterVertically,
             content = slots.content,
         )
@@ -325,7 +328,7 @@ private data class SignalPanelSection(val inset: Dp) : SectionAppearance {
             if (signal.variant == MachineSignalVariant.Editor) Modifier.border(MachineSignal.Stroke.hairline, signal.colors.lineSubtle) else Modifier,
         )) {
             Row(
-                Modifier.fillMaxWidth().height(PanelHeaderHeight).padding(horizontal = inset),
+                Modifier.fillMaxWidth().heightIn(min = PanelHeaderHeight).lineBox(Type.Body, MachineSignal.Space.s1 / 2).padding(horizontal = inset),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

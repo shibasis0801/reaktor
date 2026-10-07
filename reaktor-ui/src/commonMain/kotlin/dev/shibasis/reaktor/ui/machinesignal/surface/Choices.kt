@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.surface.compose.lineBox
+import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -87,7 +89,9 @@ private fun UnderlineFrame(look: TabLook, feedback: ComposeFeedback, icon: (@Com
         Modifier
             .focusRing(look.focused, feedback, look.ring)
             .width(IntrinsicSize.Max)
-            .height(look.height)
+            .heightIn(min = look.height)
+            .lineBox(Type.Label, (MachineSignal.Metrics.subTabPaddingTop + MachineSignal.Metrics.subTabGap + MachineSignal.Metrics.subTabUnderlineHeight) / 2)
+            .height(IntrinsicSize.Min)
             .background(look.fill)
             .stateLayer(LocalContentColor.current, look.hovered, feedback)
             .padding(
@@ -163,7 +167,7 @@ val FilterChip: ItemAppearance = composeAppearance(
     Box(
         Modifier
             .focusRing(look.focused, feedback, look.ring)
-            .height(22.dp)
+            .heightIn(min = 22.dp).lineBox(Type.Meta, MachineSignal.Space.s1 / 4)
             .clip(ChipShape)
             .background(look.fill)
             .border(1.dp, look.line, ChipShape)
