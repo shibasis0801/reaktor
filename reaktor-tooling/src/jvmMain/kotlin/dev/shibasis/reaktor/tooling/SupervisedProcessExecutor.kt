@@ -64,16 +64,17 @@ data class ProcessDefinitionSeal(
                 .map { it.copy(directory = it.directory.canonicalFile) }
                 .distinct()
                 .sortedBy { it.directory.absolutePath }
+            val digest = processDefinitionDigest(canonicalFiles, canonicalDirectories)
+            DefinitionDigestCache.flush()
             return ProcessDefinitionSeal(
                 files = canonicalFiles,
-                digest = processDefinitionDigest(canonicalFiles, canonicalDirectories),
+                digest = digest,
                 directories = canonicalDirectories,
             )
         }
     }
 }
 
-/** A deterministic, bounded source root. Empty [includedSuffixes] means every non-cache file. */
 data class ProcessDefinitionDirectory(
     val directory: File,
     val includedSuffixes: Set<String> = emptySet(),

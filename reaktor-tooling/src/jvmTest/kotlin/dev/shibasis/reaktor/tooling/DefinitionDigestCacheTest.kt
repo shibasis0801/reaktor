@@ -125,6 +125,32 @@ class DefinitionDigestCacheTest {
         assertEquals(49, statistics.hits)
     }
 
+    @Test fun aSameLengthEditWithItsTimestampRestoredIsRehashed() {
+        val file = write("build.sh", "echo one")
+        val stamp = Files.getLastModifiedTime(file.toPath())
+        val before = DefinitionDigestCache.digestOf(file)
+        write("build.sh", "echo two")
+        Files.setLastModifiedTime(file.toPath(), stamp)
+        assertNotEquals(before, DefinitionDigestCache.digestOf(file))
+    }
+
+    @Test fun implicitDirectoriesOmitBinariesAndGitIgnoredFolders() {
+        assertTrue(ProcessQuery.read(listOf("git", "init", "--quiet"), root).succeeded)
+        write(".gitignore", "ignored/\n")
+        write("source.sh", "echo one")
+        write("ignored/source.sh", "echo ignored")
+        write("artifact.jar", "binary fixture")
+        val before = seal(root)
+        write("ignored/source.sh", "echo changed ignored")
+        write("artifact.jar", "changed binary fixture")
+        assertEquals(before, seal(root))
+        val explicit = ProcessDefinitionSeal.capture(files = listOf(File(root, "artifact.jar")))
+        write("artifact.jar", "explicit binary changed")
+        assertNotEquals(explicit.digest, explicit.currentDigest())
+        write("source.sh", "echo changed source")
+        assertNotEquals(before, seal(root))
+    }
+
     private fun seal(directory: File): String = ProcessDefinitionSeal
         .capture(directories = listOf(ProcessDefinitionDirectory(directory)))
         .digest

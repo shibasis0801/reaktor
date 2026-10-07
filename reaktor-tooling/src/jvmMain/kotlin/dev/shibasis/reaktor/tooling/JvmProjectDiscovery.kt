@@ -38,14 +38,9 @@ class DiscoveredJvmWorkspace internal constructor(
         }
         val binding = bindings[invocation.taskId]
             ?: throw IllegalStateException("Task '${invocation.taskId.value}' has no JVM execution adapter")
-        binding.blockedReason?.let { reason ->
-            error("Task '${task.id.value}' is unavailable: $reason")
-        }
-        if (binding.definitionFiles.isNotEmpty() || binding.definitionDirectories.isNotEmpty()) {
-            val currentSeal = ProcessDefinitionSeal.capture(binding.definitionFiles, binding.definitionDirectories)
-            check(currentSeal.digest == binding.definitionDigest) {
-                "Task definition changed after catalog discovery; refresh the catalog before planning '${task.id.value}'"
-            }
+        val definitionSeal = binding.definitionSeal.value
+        check(definitionSeal.currentDigest() == definitionSeal.digest) {
+            "Task definition changed after planning; refresh the catalog before planning '${task.id.value}'"
         }
         val inputSecrets = task.inputs
             .filter { it.sensitive }
@@ -79,11 +74,9 @@ class DiscoveredJvmWorkspace internal constructor(
             fingerprintContext = listOf(
                 task.provenance.source,
                 task.provenance.path.orEmpty(),
-                binding.definitionDigest.orEmpty(),
+                definitionSeal.digest,
             ),
-            definitionSeal = binding.definitionDigest?.let { digest ->
-                ProcessDefinitionSeal(binding.definitionFiles, digest, binding.definitionDirectories)
-            },
+            definitionSeal = definitionSeal,
         )
         return PreparedProcessExecution(
             plan = request.plan,
@@ -171,10 +164,7 @@ private fun SafetyClass.riskRank(): Int = when (this) {
 internal data class JvmTaskBinding(
     val argv: List<String>,
     val workingDirectory: File,
-    val definitionFiles: List<File> = emptyList(),
-    val definitionDirectories: List<ProcessDefinitionDirectory> = emptyList(),
-    val definitionDigest: String? = null,
-    val blockedReason: String? = null,
+    val definitionSeal: Lazy<ProcessDefinitionSeal>,
     val environment: Map<String, String> = emptyMap(),
     val sensitiveEnvironmentKeys: Set<String> = emptySet(),
     val redactions: Set<String> = emptySet(),
@@ -193,7 +183,15 @@ class JvmProjectDiscovery(
 
     fun discoverWorkspace(start: File = File(System.getProperty("user.dir"))): DiscoveredJvmWorkspace? {
         val root = locateRoot(start) ?: return null
-        val packageJson = parseObject(File(root, "package.json")) ?: return null
+        val declarationsText = mutableMapOf<File, String>()
+        fun declaration(file: File): JsonObject? {
+            if (!file.isFile || file.length() > 1_048_576) return null
+            return runCatching {
+                val text = declarationsText.getOrPut(file.canonicalFile) { file.readText() }
+                Json.parseToJsonElement(text).jsonObject
+            }.getOrNull()
+        }
+        val packageJson = declaration(File(root, "package.json")) ?: return null
         val reaktor = packageJson["reaktor"] as? JsonObject ?: return null
         val name = reaktor.string("name") ?: packageJson.string("name") ?: root.name
         val scripts = packageJson.stringMap("scripts")
@@ -222,7 +220,7 @@ class JvmProjectDiscovery(
             )
         }
         val resources = buildResources(reaktor)
-        val taskBuilder = TaskCatalogBuilder(root, workspace, scripts)
+        val taskBuilder = TaskCatalogBuilder(root, scripts, declarationsText)
         scripts.toSortedMap().forEach { (script, body) ->
             taskBuilder.npmTask(
                 id = "npm/$script",
@@ -235,7 +233,7 @@ class JvmProjectDiscovery(
         }
         targets.forEach { target ->
             val targetDir = File(root, target.path)
-            parseObject(File(targetDir, "package.json"))?.stringMap("scripts")?.toSortedMap()?.forEach { (script, body) ->
+            declaration(File(targetDir, "package.json"))?.stringMap("scripts")?.toSortedMap()?.forEach { (script, body) ->
                 taskBuilder.npmTask(
                     id = "target/${target.name}/npm/$script",
                     label = "${target.name}: $script",
@@ -314,7 +312,7 @@ class JvmProjectDiscovery(
         }
 
         internal fun parseObject(file: File): JsonObject? {
-            if (!file.isFile) return null
+            if (!file.isFile || file.length() > 1_048_576) return null
             return runCatching { Json.parseToJsonElement(file.readText()).jsonObject }.getOrNull()
         }
 
@@ -322,6 +320,7 @@ class JvmProjectDiscovery(
             val settings = File(root, "settings.gradle.kts").takeIf(File::isFile)
                 ?: File(root, "settings.gradle").takeIf(File::isFile)
                 ?: return emptyList()
+            if (settings.length() > 1_048_576) return emptyList()
             val text = settings.readText()
             val modules = mutableListOf<String>()
             Regex("""\binclude\(([^)]*)\)""").findAll(text).forEach { match ->
@@ -422,23 +421,16 @@ private data class TargetDeclaration(
 
 private class TaskCatalogBuilder(
     private val root: File,
-    private val workspace: ToolingWorkspace,
     private val rootScripts: Map<String, String>,
+    private val declarationsText: Map<File, String>,
 ) {
     val tasks = mutableListOf<ToolingTask>()
     val bindings = linkedMapOf<TaskId, JvmTaskBinding>()
-    private val workerSourceImports = mutableMapOf<File, Set<String>>()
-    private val workerBundleFiles = mutableMapOf<String, List<File>>()
-    private val workerModuleImports = mutableMapOf<File, List<File>>()
-    private val workerBundleManifest: JsonObject by lazy {
-        Json.parseToJsonElement(File(root, "modules/app/bestbuds-kt.manifest.json").readText()).jsonObject.also {
-            require(it.string("format") == "1") { "Unsupported generated worker bundle manifest" }
-        }
-    }
-
-    // Gradle tasks share one build-definition closure within this discovery pass. Task-specific
-    // provenance still participates in each plan; preparation and admission recapture the seal.
-    private val gradleDefinitionSeal: ProcessDefinitionSeal by lazy {
+    private val declarationDigests = mutableMapOf<File, String>()
+    private val sourceText = mutableMapOf<File, Pair<String, String>>()
+    private val gradleDefinitionSeal = lazy {
+        val declarations = mapOf(File(root, "package.json").canonicalFile to declarationDigest(File(root, "package.json")))
+        checkDeclarations(declarations)
         val wrapper = File(root, if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
         val definitionFiles = listOfNotNull(
             wrapper,
@@ -448,6 +440,7 @@ private class TaskCatalogBuilder(
                 ?: File(root, "build.gradle").takeIf(File::isFile),
             File(root, "gradle.properties").takeIf(File::isFile),
         )
+        val metadata = definitionFiles.associateWith(DefinitionDigestCache::metadataOf)
         val definitionDirectories = buildList {
             add(ProcessDefinitionDirectory(root, GRADLE_DEFINITION_SUFFIXES))
             File(root, "buildSrc").takeIf(File::isDirectory)?.let {
@@ -456,7 +449,12 @@ private class TaskCatalogBuilder(
             gradleSourceRoots(root).roots.filter(File::isDirectory)
                 .forEach { add(ProcessDefinitionDirectory(it, GRADLE_DEFINITION_SUFFIXES)) }
         }
-        ProcessDefinitionSeal.capture(definitionFiles, definitionDirectories)
+        ProcessDefinitionSeal.capture(definitionFiles, definitionDirectories).also {
+            checkDeclarations(declarations)
+            check(metadata.all { (file, identity) -> DefinitionDigestCache.metadataOf(file) == identity }) {
+                "Build definitions changed while planning; refresh the catalog"
+            }
+        }
     }
 
     fun npmTask(
@@ -473,27 +471,35 @@ private class TaskCatalogBuilder(
         if (bindings.containsKey(taskId)) return
         val safety = safetyFor(script, body)
         val definitionFile = File(workingDirectory, "package.json")
-        // A single oversized or otherwise unreadable target must not erase the entire workspace
-        // catalog. Keep the task visible but fail its execution closed with an explicit reason.
-        val definitionClosure = runCatching {
-            transitiveDefinitionClosure(definitionFile, workingDirectory, script, body)
-        }.getOrElse { failure ->
-            DefinitionClosure(
-                files = listOfNotNull(definitionFile.takeIf(File::isFile)),
-                directories = emptyList(),
-                blockedReason = "Task definition closure could not be sealed: ${failure.message ?: failure::class.simpleName}",
-            )
+        val expandedBody = expandNpmScripts(body)
+        val words = "$script $expandedBody".lowercase()
+        val blockedReason = when {
+            "fastlane" in words && FASTLANE_PUBLISH_WORDS.any(words::contains) ->
+                "Production distribution is disabled until its app artifact/source closure is sealed"
+            "fastlane" in words && !File(root, "fastlane").isDirectory ->
+                "Fastlane definitions are not available for exact execution sealing"
+            ("karate" in words || Regex("(?:^|[:/\\s])k6(?:[:/\\s]|${'$'})").containsMatchIn(words)) &&
+                TEST_DIRECTORY_PATH.findAll(expandedBody).none { File(workingDirectory, it.groupValues[1]).isDirectory } ->
+                "Remote harness flow/config closure could not be bounded"
+            "wrangler deploy" in words && definitionFile.parentFile == root && "--workspace" !in words ->
+                "Worker deploy target could not be resolved to a bounded workspace"
+            else -> null
         }
-        val capturedSeal = runCatching {
-            ProcessDefinitionSeal.capture(definitionClosure.files, definitionClosure.directories)
+        val declarations = listOf(File(root, "package.json"), definitionFile).distinctBy(File::getCanonicalPath)
+            .associate { it.canonicalFile to declarationDigest(it) }
+        val definitionSeal = lazy {
+            synchronized(this) {
+                checkDeclarations(declarations)
+                val closure = transitiveDefinitionClosure(definitionFile, workingDirectory, script, body)
+                check(closure.blockedReason == null) { requireNotNull(closure.blockedReason) }
+                ProcessDefinitionSeal.capture(closure.files, closure.directories).also {
+                    checkDeclarations(declarations)
+                    check(sourceText.all { (file, cached) -> file.isFile && DefinitionDigestCache.metadataOf(file) == cached.first }) {
+                        "Task sources changed while planning; refresh the catalog"
+                    }
+                }
+            }
         }
-        val definitionSeal = capturedSeal.getOrElse {
-            ProcessDefinitionSeal.capture(files = listOfNotNull(definitionFile.takeIf(File::isFile)))
-        }
-        val blockedReason = definitionClosure.blockedReason ?: capturedSeal.exceptionOrNull()?.let { failure ->
-            "Task definition closure could not be sealed: ${failure.message ?: failure::class.simpleName}"
-        }
-        val definitionDigest = definitionSeal.digest
         tasks += ToolingTask(
             id = taskId,
             label = label,
@@ -501,20 +507,14 @@ private class TaskCatalogBuilder(
             provider = "npm",
             targetId = targetId,
             safety = safety,
-            provenance = TaskProvenance("package-json", provenancePath, definitionDigest?.take(16)),
+            provenance = TaskProvenance("package-json", provenancePath, declarationDigest(definitionFile).take(16)),
             unavailableReason = blockedReason,
-            attributes = buildMap {
-                put("script", script)
-                blockedReason?.let { put("unavailableReason", it) }
-            },
+            attributes = mapOf("script" to script),
         )
         bindings[taskId] = JvmTaskBinding(
             argv = listOf(platformExecutable("npm"), "run", script, "--"),
             workingDirectory = workingDirectory,
-            definitionFiles = definitionSeal.files,
-            definitionDirectories = definitionSeal.directories,
-            definitionDigest = definitionDigest,
-            blockedReason = blockedReason,
+            definitionSeal = definitionSeal,
         )
     }
 
@@ -530,8 +530,6 @@ private class TaskCatalogBuilder(
         if (!wrapper.isFile) return
         val taskId = TaskId(id)
         if (bindings.containsKey(taskId)) return
-        val definitionSeal = gradleDefinitionSeal
-        val definitionDigest = definitionSeal.digest
         tasks += ToolingTask(
             id = taskId,
             label = label,
@@ -539,15 +537,13 @@ private class TaskCatalogBuilder(
             provider = "gradle",
             targetId = targetId,
             safety = safetyFor(gradleTask, gradleTask),
-            provenance = TaskProvenance("gradle-settings", provenancePath, definitionDigest?.take(16)),
+            provenance = TaskProvenance("gradle-settings", provenancePath),
             attributes = mapOf("gradleTask" to gradleTask),
         )
         bindings[taskId] = JvmTaskBinding(
             argv = listOf(wrapper.absolutePath, gradleTask),
             workingDirectory = root,
-            definitionFiles = definitionSeal.files,
-            definitionDirectories = definitionSeal.directories,
-            definitionDigest = definitionDigest,
+            definitionSeal = gradleDefinitionSeal,
         )
     }
 
@@ -635,7 +631,7 @@ private class TaskCatalogBuilder(
             val canonical = scriptFile.canonicalFile
             if (!canonical.isFile || !visited.add(canonical)) return
             files += canonical
-            val sourceText = canonical.readText()
+            val sourceText = text(canonical)
             SOURCE_DEPENDENCY.findAll(sourceText).forEach { match ->
                 val raw = match.groupValues[1].trim(' ', '"', '\'')
                 val dependency = when {
@@ -713,7 +709,7 @@ private class TaskCatalogBuilder(
         if ("maestro" in words) {
             val definitionText = buildString {
                 append(expandedBody)
-                File(root, "fastlane/Fastfile").takeIf(File::isFile)?.let { append('\n').append(it.readText()) }
+                File(root, "fastlane/Fastfile").takeIf(File::isFile)?.let { append('\n').append(text(it)) }
             }
             TEST_DIRECTORY_PATH.findAll(definitionText).forEach { match ->
                 resolveLiteral(workingDirectory, match.groupValues[1])?.let {
@@ -759,11 +755,9 @@ private class TaskCatalogBuilder(
     }
 
     private fun generatedWorkerFiles(source: File): List<File> {
-        val imports = workerSourceImports.getOrPut(source.canonicalFile) {
-            if (!source.isDirectory) emptySet() else DefinitionDigestCache.listing(source,
-                setOf(".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"), setOf("node_modules", "build", "dist", ".git"))
-                .flatMap { file -> WORKER_BUNDLE_IMPORT.findAll(file.readText()).map { it.groupValues[1] }.toList() }.toSet()
-        }
+        val imports = if (!source.isDirectory) emptySet() else DefinitionDigestCache.listing(source,
+            setOf(".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"), setOf("node_modules", "build", "dist", ".git"))
+            .flatMap { file -> WORKER_BUNDLE_IMPORT.findAll(text(file)).map { it.groupValues[1] }.toList() }.toSet()
         if (imports.isEmpty()) return emptyList()
         val bundle = File(root, "modules/app/bestbuds-kt").canonicalFile
         require(bundle.toPath().startsWith(root.canonicalFile.toPath())) { "Generated worker bundle escapes the workspace" }
@@ -772,6 +766,10 @@ private class TaskCatalogBuilder(
             "Generated worker bundle manifest is unavailable; run :app:jsBrowserProductionLibraryDistribution"
         }
         require(manifest.length() <= 32L * 1024 * 1024) { "Generated worker bundle manifest is too large" }
+        val workerBundleManifest = Json.parseToJsonElement(text(manifest)).jsonObject
+        require(workerBundleManifest.string("format") == "1") { "Unsupported generated worker bundle manifest" }
+        val workerBundleFiles = mutableMapOf<String, List<File>>()
+        val workerModuleImports = mutableMapOf<File, List<File>>()
         return listOf(manifest) + imports.flatMap { imported ->
             workerBundleFiles.getOrPut(imported) {
                 val entries = (workerBundleManifest["imports"] as? JsonObject)?.get(imported) as? JsonArray
@@ -791,13 +789,13 @@ private class TaskCatalogBuilder(
                 }
                 val packageFile = bundle.resolve("package.json")
                 val entryFile = if (imported == "bestbuds-kt") bundle.resolve(
-                    JvmProjectDiscovery.parseObject(packageFile)?.string("main") ?: error("Generated worker bundle has no main module")
+                    parse(packageFile)?.string("main") ?: error("Generated worker bundle has no main module")
                 ) else bundle.resolve(imported.substringAfter("bestbuds-kt/"))
                 val included = members.toSet()
                 require(packageFile.canonicalFile in included && entryFile.canonicalFile in included) { "Generated worker bundle manifest omits its entry or package metadata: $imported" }
                 members.filter { it.extension in setOf("mjs", "js", "cjs") }.forEach { member ->
                     val dependencies = workerModuleImports.getOrPut(member) {
-                        WORKER_RELATIVE_IMPORT.findAll(member.readText()).map { match ->
+                        WORKER_RELATIVE_IMPORT.findAll(text(member)).map { match ->
                             member.parentFile.resolve(match.groupValues[1]).canonicalFile
                         }.toList()
                     }
@@ -807,6 +805,29 @@ private class TaskCatalogBuilder(
             }
         }
     }
+
+    private fun declarationDigest(file: File): String = declarationDigests.getOrPut(file.canonicalFile) {
+        sha256(declarationsText.getValue(file.canonicalFile))
+    }
+
+    private fun checkDeclarations(expected: Map<File, String>) {
+        check(expected.all { (file, digest) -> file.isFile && sha256(file.readText()) == digest }) {
+            "Task declarations changed after catalog discovery; refresh the catalog before planning"
+        }
+    }
+
+    private fun text(file: File): String {
+        val canonical = file.canonicalFile
+        val metadata = DefinitionDigestCache.metadataOf(canonical)
+        sourceText[canonical]?.takeIf { it.first == metadata }?.let { return it.second }
+        return canonical.readText().also {
+            check(DefinitionDigestCache.metadataOf(canonical) == metadata) { "Task source changed while reading; refresh the catalog" }
+            sourceText[canonical] = metadata to it
+        }
+    }
+
+    private fun parse(file: File): JsonObject? = if (!file.isFile) null else
+        runCatching { Json.parseToJsonElement(text(file)).jsonObject }.getOrNull()
 
     private fun expandNpmScripts(initialBody: String): String {
         val bodies = mutableListOf(initialBody)
@@ -823,11 +844,11 @@ private class TaskCatalogBuilder(
 
     private fun resolveWorkspacePackage(reference: String): File? {
         File(root, reference).resolve("package.json").takeIf(File::isFile)?.let { return it }
-        val rootManifest = JvmProjectDiscovery.parseObject(File(root, "package.json")) ?: return null
+        val rootManifest = parse(File(root, "package.json")) ?: return null
         return rootManifest.workspaces().asSequence()
             .map { File(root, it).resolve("package.json") }
             .filter(File::isFile)
-            .firstOrNull { manifest -> JvmProjectDiscovery.parseObject(manifest)?.string("name") == reference }
+            .firstOrNull { manifest -> parse(manifest)?.string("name") == reference }
     }
 
     companion object {
