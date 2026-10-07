@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
@@ -23,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +75,9 @@ import kotlin.math.roundToInt
 sealed interface ColumnWidth {
     data class Fixed(val width: Dp) : ColumnWidth
     data class Share(val weight: Float) : ColumnWidth
+    data class Content(val min: Dp, val max: Dp, val sample: Int = 200) : ColumnWidth {
+        init { require(min > 0.dp && max >= min && sample > 0) }
+    }
 }
 
 class TableColumn<T>(
@@ -122,21 +127,30 @@ fun <T> DataTable(
     val header = LocalAppearances.current[Appearance.TableHeader]
     val step = with(LocalDensity.current) { ColumnStep.toPx() }
     val mirrored = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val automation = LocalAutomationScope.current
+    val measured = remember(columns, LocalDensity.current, LocalThemeSnapshot.current) { mutableStateMapOf<String, Float>() }
+    val widths = { measured + state.layout.widths }
+    val record: (TableColumn<T>, Float) -> Unit = { column, width ->
+        val content = column.width as? ColumnWidth.Content
+        if (content != null && column.key !in state.layout.widths) {
+            val next = width.coerceIn(content.min.value, content.max.value)
+            if (next > (measured[column.key] ?: content.min.value)) measured[column.key] = next
+        }
+    }
     BoxWithConstraints(modifier.busy(busy).onKeyEvent { state.scrollColumns(it, if (mirrored) -step else step) }) {
-        val widths = state.layout.widths
-        val tableWidth = maxOf(maxWidth, columns.narrowest(widths))
+        val tableWidth = maxOf(maxWidth, columns.narrowest(widths()))
         var rowsTop by remember { mutableIntStateOf(0) }
         Column(Modifier.fillMaxSize().horizontalScroll(state.horizontal)) {
-            HeaderRow(columns, state, Modifier.width(tableWidth), header)
+            HeaderRow(columns, state, Modifier.width(tableWidth), header, widths, record)
             if (busy) Progress(null, Modifier.width(tableWidth))
             val body = Modifier.width(tableWidth).weight(1f).onPlaced { rowsTop = it.positionInParent().y.roundToInt() }
             if (source.size == 0) {
                 Box(body) { empty() }
             } else {
-                val row = remember(columns, state) {
-                    val cells = CellsPolicy(columns) { state.layout.widths }
+                val row = remember(columns, state, measured) {
                     val content: @Composable ItemScope.(T) -> Unit = { item ->
                         val scope = this
+                        val cells = remember(index) { CellsPolicy(columns, widths, index, record) }
                         Layout(columns.map { column -> @Composable { column.cell(scope, item) } }, measurePolicy = cells)
                     }
                     content
@@ -145,6 +159,8 @@ fun <T> DataTable(
             }
         }
         CollectionScrollbar(state.list, Modifier.align(Alignment.TopEnd).padding(top = with(LocalDensity.current) { rowsTop.toDp() }).fillMaxHeight())
+        if (state.horizontal.maxValue > 0) TableScrollbar(state.horizontal, Modifier.align(Alignment.BottomStart).fillMaxWidth()
+            .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, "scrollbar/horizontal"))))
     }
 }
 
@@ -160,17 +176,25 @@ private fun TableState.scrollColumns(event: KeyEvent, step: Float): Boolean {
 }
 
 private fun <T> List<TableColumn<T>>.narrowest(widths: Map<String, Float>): Dp = fold(0.dp) { total, column ->
-    total + (widths[column.key]?.dp ?: (column.width as? ColumnWidth.Fixed)?.width ?: MinColumn)
+    total + (widths[column.key]?.dp ?: when (val width = column.width) {
+        is ColumnWidth.Fixed -> width.width
+        is ColumnWidth.Content -> width.min
+        is ColumnWidth.Share -> MinColumn
+    })
 }
 
 @Composable
-private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modifier: Modifier, appearance: TableHeaderAppearance) {
+private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modifier: Modifier, appearance: TableHeaderAppearance,
+    widths: () -> Map<String, Float>, record: (TableColumn<T>, Float) -> Unit) {
     val roving = rememberRoving(Axis.Horizontal) {}
     Layout(
         content = { columns.forEach { column -> key(column.key) { HeaderCell(column, state, roving, appearance) } } },
         modifier = modifier.roving(roving),
     ) { measurables, constraints ->
-        val spans = columnSpans(columns, state.layout.widths, constraints.maxWidth, this)
+        columns.forEachIndexed { index, column ->
+            if (column.width is ColumnWidth.Content) record(column, measurables[index].maxIntrinsicWidth(Constraints.Infinity).toDp().value)
+        }
+        val spans = columnSpans(columns, widths(), constraints.maxWidth, this)
         val placeables = measurables.mapIndexed { index, measurable -> measurable.measure(Constraints(spans[index], spans[index], 0, constraints.maxHeight)) }
         val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
         layout(constraints.constrainWidth(spans.sum()), height) {
@@ -183,8 +207,14 @@ private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modi
     }
 }
 
-private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val widths: () -> Map<String, Float>) : MultiContentMeasurePolicy {
+private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val widths: () -> Map<String, Float>,
+    private val row: Int, private val record: (TableColumn<T>, Float) -> Unit) : MultiContentMeasurePolicy {
     override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
+        columns.forEachIndexed { index, column ->
+            val content = column.width as? ColumnWidth.Content
+            if (content != null && row < content.sample) record(column,
+                (measurables[index].maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0).toDp().value + 2 * column.cellPadding.value)
+        }
         val spans = columnSpans(columns, widths(), if (constraints.hasBoundedWidth) constraints.maxWidth else 0, this)
         val insets = IntArray(columns.size) { columns[it].cellPadding.roundToPx() }
         val rooms = IntArray(columns.size) { (spans[it] - 2 * insets[it]).coerceAtLeast(0) }
@@ -208,6 +238,7 @@ private fun <T> columnSpans(columns: List<TableColumn<T>>, widths: Map<String, F
         val chosen = widths[column.key]
         when (val declared = column.width) {
             is ColumnWidth.Fixed -> spans[index] = with(density) { (chosen?.dp ?: declared.width).roundToPx() }
+            is ColumnWidth.Content -> spans[index] = with(density) { (chosen?.dp ?: declared.min).roundToPx() }
             is ColumnWidth.Share -> if (chosen == null) weights += declared.weight.coerceAtLeast(MinWeight) else spans[index] = with(density) { chosen.dp.roundToPx() }
         }
     }

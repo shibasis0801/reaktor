@@ -42,6 +42,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextLayoutResult
 import dev.shibasis.reaktor.surface.Command
 import dev.shibasis.reaktor.surface.CommandId
 import dev.shibasis.reaktor.surface.CommandSet
@@ -57,6 +58,34 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class DataTableTest {
+    @Test
+    fun thirtyContentColumnsKeepHeadersAndLeadingValuesWholeAndRemainScrollable() = runComposeUiTest {
+        val headers = mutableMapOf<Int, TextLayoutResult>()
+        val values = mutableMapOf<Int, TextLayoutResult>()
+        val state = TableState()
+        val columns = (1..30).map { index ->
+            TableColumn<String>("column$index", ColumnWidth.Content(96.dp, 480.dp), header = {
+                BasicText("column_${index}_long_header", maxLines = 1, onTextLayout = { headers[index] = it })
+            }) { value -> BasicText("complete value $index $value", Modifier.testTag("content-$index"), maxLines = 1, onTextLayout = { values[index] = it }) }
+        }
+        setContent {
+            AutomationScope("wide") {
+                DataTable(listSource(listOf("row"), { it }), columns, emptySet(), {}, Modifier.requiredSize(1512.dp, 400.dp), state = state)
+            }
+        }
+        runOnIdle {
+            assertEquals(30, headers.size)
+            assertTrue(headers.values.none { it.hasVisualOverflow })
+            assertTrue((1..5).all { values.getValue(it).hasVisualOverflow.not() })
+            assertTrue(state.horizontal.maxValue > 0)
+        }
+        onNodeWithTag("wide/scrollbar/horizontal").assertIsDisplayed()
+        onNodeWithTag("wide/header/column1").performCustomAccessibilityActionWithLabel("Wider")
+        runOnIdle { assertTrue(state.layout.widths.getValue("column1") > 96f) }
+        onNodeWithTag("wide/header/column1").requestFocus().performKeyInput { repeat(10) { pressKey(Key.DirectionRight) } }
+        runOnIdle { assertTrue(state.horizontal.value > 0) }
+    }
+
     private val files = listSource((1..200).map { "file-$it" }, { it }, text = { it })
     private val columns = listOf(
         TableColumn<String>("name", ColumnWidth.Share(1f), sortable = true, header = { BasicText("Name") }) { BasicText(it) },
