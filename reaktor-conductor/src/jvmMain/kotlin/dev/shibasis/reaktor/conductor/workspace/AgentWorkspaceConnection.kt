@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
@@ -56,6 +57,10 @@ class AgentWorkspaceConnection private constructor(
     suspend fun get(id: String): AgentRunRecord = decode(call("agent_run", buildJsonObject { put("runId", id) }))
     suspend fun list(limit: Int = 20): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
         call("agent_runs", buildJsonObject { put("limit", limit) }).jsonObject.getValue("runs"))
+    suspend fun tasks(query: String = "", offset: Int = 0): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
+        call("agent_tasks_wait", buildJsonObject { put("revision", 0); put("query", query); put("offset", offset); put("limit", 50); put("timeoutMillis", 0) }))
+    suspend fun waitTasks(revision: Long, query: String = ""): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
+        call("agent_tasks_wait", buildJsonObject { put("revision", revision); put("query", query); put("limit", 50) }))
     suspend fun wait(id: String, afterRevision: Long, timeoutMillis: Long = 30000): AgentRunRecord = decode(call("agent_wait", buildJsonObject {
         put("runId", id); put("afterRevision", afterRevision); put("timeoutMillis", timeoutMillis)
     }))
@@ -112,10 +117,10 @@ class AgentWorkspaceConnection private constructor(
             require(current.version == 1 && current.workspaceRoot == endpoint.workspaceRoot && current.port in 1..65535 && current.token.length >= 32)
             endpoint = current
         }
-        val response = http.send(HttpRequest.newBuilder(URI(url)).timeout(Duration.ofSeconds(35))
+        val response = runInterruptible { http.send(HttpRequest.newBuilder(URI(url)).timeout(Duration.ofSeconds(35))
             .header("Authorization", "Bearer ${endpoint.token}").header("Content-Type", "application/json")
             .header("MCP-Protocol-Version", protocolVersion)
-            .POST(HttpRequest.BodyPublishers.ofString(message)).build(), HttpResponse.BodyHandlers.ofInputStream())
+            .POST(HttpRequest.BodyPublishers.ofString(message)).build(), HttpResponse.BodyHandlers.ofInputStream()) }
         val bytes = response.body().use { it.readNBytes(2_000_001) }
         check(bytes.size <= 2_000_000) { "Workspace response exceeded the transport budget" }
         if (response.statusCode() == 202 && bytes.isEmpty()) return@withContext null

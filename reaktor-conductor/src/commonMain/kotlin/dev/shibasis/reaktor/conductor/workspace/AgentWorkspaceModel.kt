@@ -146,6 +146,20 @@ data class AgentRunRecord(
 data class AgentTranscript(val threadId: String, val events: List<ThreadEvent>, val partial: Boolean)
 
 @Serializable
+data class AgentTasksPage(val revision: Long, val runs: List<AgentRunRecord>, val nextOffset: Int? = null)
+
+fun AgentRunRecord.taskStatus() = when {
+    pendingHandoff != null -> "Waiting for ChatGPT"
+    recovery == AgentRecovery.NeedsReview -> "Recovery needs review"
+    recovery == AgentRecovery.Pending -> "Recovery pending"
+    recovery == AgentRecovery.Resuming -> "Resuming · attempt $attempt"
+    pendingCount > 0 || pending.isNotEmpty() || participants.values.any { it.pending.isNotEmpty() } -> "Waiting for you"
+    status == AgentRunStatus.Running -> lastTool ?: "Working"
+    status == AgentRunStatus.Interrupted -> "Stopped"
+    else -> status.name
+}
+
+@Serializable
 data class AgentWorkspaceInfo(
     val workspaceRoot: String,
     val providers: List<RuntimeKind>,

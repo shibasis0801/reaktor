@@ -168,6 +168,8 @@ class DoorApprovals(private val directory: Path, private val minutes: Long = 15)
 
     fun pending(): List<DoorApproval> = live().filter { it.state == DoorApproval.State.Pending }.sortedBy(DoorApproval::requestedAtEpochMillis)
 
+    fun decisions(): List<DoorApproval> = live().filter { it.state != DoorApproval.State.Pending && it.decidedBy != null }
+
     fun decide(id: String, approve: Boolean, by: String): DoorApproval {
         val found = live().firstOrNull { it.id == id } ?: error("No approval '$id' is waiting; it may have expired")
         check(found.state == DoorApproval.State.Pending) { "Approval $id was already ${found.state.name.lowercase()}" }
