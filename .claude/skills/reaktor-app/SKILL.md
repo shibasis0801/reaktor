@@ -215,6 +215,50 @@ Pair it with `eager = false` and connect yourself, so nothing opens before there
 open it with — and re-read the token in `queryProvider`, which runs on every reconnect, so one
 refreshed while offline is picked up without tearing the socket down.
 
+## A function that returns `Result` must not throw
+
+Ports here return `Result` so the screen can say what went wrong. That is a promise about every
+path through the function, including the dependency three calls down that signals failure with
+`error(...)`. Cairn's `send` returned `Result<Drop>` and called a sealer that threw when the device
+had no key yet. What the throw did depended on who was calling:
+
+- **From the UI** — `scope.launch { port().send(x).onFailure { toast(it) } }` in a
+  `rememberCoroutineScope`. The `onFailure` never runs; the exception leaves the composition's
+  scope and the app closes. `FATAL EXCEPTION: main` on Android.
+- **From a collector** — `flow.collect { share -> feed(share) }`. The exception ends the
+  collection. Under a `SupervisorJob` nothing reports it, and the receiver goes on looking alive
+  while dropping everything for the rest of the session.
+
+So: catch at the boundary where the `Result` is made, rethrow `CancellationException`, and give
+expected refusals their own exception type with a message written for a person — it will be shown
+verbatim. And in a long-lived `collect`, guard the whole body, not just the half that looked
+risky.
+
+```kotlin
+private suspend fun seal(payload: Payload): Result<Envelope> =
+    try { Result.success(sealer().seal(payload)) }
+    catch (cancelled: CancellationException) { throw cancelled }
+    catch (error: Exception) { Result.failure(error) }
+```
+
+States worth exercising because they are ordinary and rarely run: first launch with no network,
+and whatever sits between "has an identity" and "has been let in".
+
+## Testing a graph: wait for what you assert
+
+Nodes do their work on their own dispatcher, so a test waits for it. Two ways that goes wrong,
+both of which pass on a quiet machine and fail one run in four on a busy one:
+
+- **`runTest` makes `withTimeout` virtual.** The work is on real threads; the test scheduler is
+  idle, skips to the deadline, and the wait "times out" instantly. Use `runBlocking` when the thing
+  waited for does not run on the test dispatcher.
+- **Waiting for one thing and asserting another.** A source appears in the list when it is
+  registered; its document arrives when the poll that registering starts has finished. Wait on the
+  flow that carries the fact you are about to assert.
+
+And a slot set in one test is set in the next: `Feature.Database = …` needs an `@AfterTest` that
+puts it back to `null`.
+
 ## Extending reaktor rather than working around it
 
 When an app needs something reaktor does not have, the default is to add it to reaktor rather
@@ -236,5 +280,8 @@ when the capability would cost every other app a permission or a heavy SDK it di
 - [ ] Adapters installed File-before-Sql.
 - [ ] Every new `expect` has an `actual` on every target, no-ops included.
 - [ ] Any socket meant to stay open: `maxRetries` raised, and something re-opens a `Failed` one.
+- [ ] Every function returning `Result` returns one on every path — nothing below it throws through.
+- [ ] Every long-lived `collect { }` survives its own body throwing.
+- [ ] Run it once with no network from a fresh install, and use it.
 - [ ] Run it. These failures are all runtime, so a green build proves nothing about wiring. Run the
       **minified** build too: renamed properties break wiring there and nowhere else.
