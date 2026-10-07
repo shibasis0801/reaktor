@@ -6,11 +6,23 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 
 
 /**
- * Deliberately leaves `onCorruption` to the framework, which deletes the file and starts over.
- * Overriding it to rethrow would leave the app unable to launch at all — see DarwinSqlAdapter,
- * which reproduces this behaviour by hand because SQLiter has no equivalent.
+ * Leaves what to *do* about a corrupt file to the framework, which deletes it and starts over.
+ * Overriding that to rethrow would leave the app unable to launch at all — see DarwinSqlAdapter,
+ * which reproduces the behaviour by hand because SQLiter has no equivalent.
+ *
+ * What it adds is that somebody hears about it. The framework's recovery is silent, so an app
+ * whose user just lost everything in the file opens looking exactly like a first install, with
+ * nothing to tell the two apart. [onUnreadable] runs after the file has been replaced.
  */
-class ReaktorSqliteHelper(version: Int): SupportSQLiteOpenHelper.Callback(version) {
+class ReaktorSqliteHelper(
+    version: Int,
+    private val onUnreadable: () -> Unit = {},
+): SupportSQLiteOpenHelper.Callback(version) {
+    override fun onCorruption(db: SupportSQLiteDatabase) {
+        super.onCorruption(db)
+        onUnreadable()
+    }
+
     override fun onCreate(db: SupportSQLiteDatabase) {
 //        // Create your tables here
 //        db.execSQL(
