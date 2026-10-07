@@ -39,17 +39,27 @@ class ComposeFeedback internal constructor(
     focusVisible: Boolean,
     reducedMotion: Boolean,
 ) {
-    private val pressTrack = FeedbackTrack(scope, if (pressed) 1f else 0f)
-    private val focusTrack = FeedbackTrack(scope, if (focusVisible) 1f else 0f)
+    private val initialPress = if (pressed) 1f else 0f
+    private val initialFocus = if (focusVisible) 1f else 0f
+    private var pressTrack by mutableStateOf<FeedbackTrack?>(null)
+    private var focusTrack by mutableStateOf<FeedbackTrack?>(null)
     var reducedMotion: Boolean by mutableStateOf(reducedMotion)
         private set
-    val press: Float get() = pressTrack.value
-    val focus: Float get() = focusTrack.value
+    val press: Float get() = pressTrack?.value ?: initialPress
+    val focus: Float get() = focusTrack?.value ?: initialFocus
 
     internal fun update(pressed: Boolean, focusVisible: Boolean, reducedMotion: Boolean) {
         this.reducedMotion = reducedMotion
-        pressTrack.moveTo(if (pressed) 1f else 0f, reducedMotion)
-        focusTrack.moveTo(if (focusVisible) 1f else 0f, reducedMotion)
+        val press = if (pressed) 1f else 0f
+        val focus = if (focusVisible) 1f else 0f
+        if (pressTrack != null || press != initialPress) {
+            val track = pressTrack ?: FeedbackTrack(scope, initialPress).also { pressTrack = it }
+            track.moveTo(press, reducedMotion)
+        }
+        if (focusTrack != null || focus != initialFocus) {
+            val track = focusTrack ?: FeedbackTrack(scope, initialFocus).also { focusTrack = it }
+            track.moveTo(focus, reducedMotion)
+        }
     }
 }
 

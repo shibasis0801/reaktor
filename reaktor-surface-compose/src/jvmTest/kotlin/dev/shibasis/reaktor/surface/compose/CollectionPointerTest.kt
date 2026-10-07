@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,6 +47,8 @@ import dev.shibasis.reaktor.surface.KeyConvention
 import dev.shibasis.reaktor.surface.KeyName
 import dev.shibasis.reaktor.surface.SelectionMode
 import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.PressProperties
+import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.listSource
 import dev.shibasis.reaktor.surface.treeSource
 import kotlin.test.Test
@@ -315,6 +318,103 @@ class CollectionPointerTest {
         onNodeWithTag("run-row-3").performMouseInput { click(center) }
         assertEquals(setOf("row-3"), selection)
         assertEquals(2, invoked.size)
+    }
+
+    @Test
+    fun rowCommandButtonsPaintHoverPressReleaseAndTouchCancellation() = runComposeUiTest {
+        val painted = mutableMapOf<String, PressState>()
+        var available by mutableStateOf(true)
+        var invoked = 0
+        var selected by mutableStateOf(emptySet<String>())
+        setContent {
+            ListBox(rows, selected, { selected = it }, Modifier.height(400.dp), actions = RowActions(
+                { CommandSet(listOf(Command(CommandId("run"), "Run", availability =
+                    if (available) Availability.Available else Availability.Unavailable("Blocked")))) },
+                { _, _ -> invoked++ },
+            )) { key ->
+                val look = remember(key) { object : ButtonAppearance {
+                    @Composable
+                    override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) {
+                        androidx.compose.runtime.SideEffect { painted[key] = state }
+                        slots.content()
+                    }
+                } }
+                CommandButton(CommandId("run"), Modifier.testTag("run-$key"), appearance = look) { BasicText("Run") }
+            }
+        }
+        onNodeWithTag("run-row-2").performMouseInput { moveTo(center) }
+        waitForIdle()
+        assertTrue(painted.getValue("row-2").hovered)
+        onNodeWithTag("run-row-2").performMouseInput { press() }
+        waitForIdle()
+        assertTrue(painted.getValue("row-2").pressed)
+        assertEquals(1, invoked)
+        onNodeWithTag("run-row-2").performMouseInput { release() }
+        waitForIdle()
+        assertFalse(painted.getValue("row-2").pressed)
+        onNodeWithTag("run-row-2").performMouseInput { exit() }
+        waitForIdle()
+        assertFalse(painted.getValue("row-2").hovered)
+        onNodeWithTag("run-row-2").performTouchInput { down(center) }
+        waitForIdle()
+        assertTrue(painted.getValue("row-2").pressed)
+        assertEquals(1, invoked)
+        onNodeWithTag("run-row-2").performTouchInput { up() }
+        waitForIdle()
+        assertFalse(painted.getValue("row-2").pressed)
+        assertEquals(2, invoked)
+        onNodeWithTag("run-row-2").performTouchInput { down(center); moveTo(center + Offset(80f, 0f)) }
+        waitForIdle()
+        assertFalse(painted.getValue("row-2").pressed)
+        onNodeWithTag("run-row-2").performTouchInput { up() }
+        assertEquals(2, invoked)
+        runOnIdle { available = false }
+        onNodeWithTag("run-row-2").performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(2, invoked)
+        assertEquals(emptySet(), selected)
+    }
+
+    @Test
+    fun rowButtonsShareCachedAvailabilityAndRecheckItBeforeInvocation() = runComposeUiTest {
+        val calls = mutableMapOf<String, Int>()
+        var available by mutableStateOf(true)
+        var permitted = true
+        var invoked = 0
+        setContent {
+            ListBox(rows, emptySet(), {}, Modifier.height(400.dp), actions = RowActions(
+                { keys ->
+                    if (keys.size == 1) calls[keys.single()] = (calls[keys.single()] ?: 0) + 1
+                    val availability = if (available && permitted) Availability.Available else Availability.Unavailable("Blocked")
+                    CommandSet(listOf(Command(CommandId("run"), "Run", availability = availability),
+                        Command(CommandId("inspect"), "Inspect", availability = availability)))
+                }, { _, _ -> invoked++ },
+            )) { key ->
+                Row {
+                    CommandButton(CommandId("run"), Modifier.testTag("run-$key")) { BasicText("Run") }
+                    CommandButton(CommandId("inspect"), Modifier.testTag("inspect-$key")) { BasicText("Inspect") }
+                }
+            }
+        }
+        waitForIdle()
+        assertTrue(calls.isNotEmpty())
+        assertTrue(calls.values.all { it == 1 }, "$calls")
+        calls.clear()
+        onNodeWithTag("run-row-2").performSemanticsAction(SemanticsActions.OnClick)
+        onNodeWithTag("inspect-row-2").performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(2, invoked)
+        assertEquals(mapOf("row-2" to 2), calls)
+        calls.clear()
+        permitted = false
+        onNodeWithTag("run-row-2").performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(2, invoked)
+        assertEquals(mapOf("row-2" to 1), calls)
+        calls.clear()
+        runOnIdle { available = false }
+        waitForIdle()
+        assertTrue(calls.values.all { it == 1 }, "$calls")
+        onNodeWithTag("run-row-2").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
+            .performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(2, invoked)
     }
 
     @Test
