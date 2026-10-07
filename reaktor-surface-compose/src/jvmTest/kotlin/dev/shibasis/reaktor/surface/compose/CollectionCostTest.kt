@@ -18,6 +18,9 @@ import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.Command
+import dev.shibasis.reaktor.surface.CommandId
+import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.listSource
 import kotlinx.coroutines.debug.DebugProbes
 import kotlin.test.AfterTest
@@ -68,6 +71,41 @@ class CollectionCostTest {
         held.forEach { (atRest, touched) ->
             assertTrue(atRest <= ScrollbarCoroutines, "a list at rest holds $atRest coroutines")
             assertTrue(touched <= ScrollbarCoroutines, "a touched list holds $touched coroutines")
+        }
+    }
+
+    @Test
+    fun rowActionButtonsHoldNoAdditionalCoroutineAfterTheirFeedbackSettles() {
+        val held = listOf(100, 800).map { height ->
+            var counts = 0 to 0
+            runComposeUiTest {
+                var shown by mutableStateOf(false)
+                setContent {
+                    if (shown) ListBox(rows, emptySet(), {}, Modifier.size(300.dp, height.dp),
+                        actions = RowActions({ CommandSet(listOf(Command(CommandId("run"), "Run"))) }, { _, _ -> })) { key ->
+                        CommandButton(CommandId("run"), Modifier.testTag("run-$key")) { BasicText("Run") }
+                    }
+                }
+                waitForIdle()
+                val before = liveCoroutines()
+                shown = true
+                settle()
+                val atRest = liveCoroutines() - before
+                onNodeWithTag("run-row-1").performMouseInput { moveTo(center); press() }
+                settle()
+                onNodeWithTag("run-row-1").performMouseInput { release(); exit() }
+                settle()
+                counts = atRest to liveCoroutines() - before
+                shown = false
+                settle()
+                assertTrue(liveCoroutines() - before <= 0)
+            }
+            counts
+        }
+        assertEquals(held[0], held[1], "eight times the row buttons must hold no more coroutines")
+        held.forEach { (atRest, touched) ->
+            assertTrue(atRest <= ScrollbarCoroutines)
+            assertTrue(touched <= ScrollbarCoroutines)
         }
     }
 

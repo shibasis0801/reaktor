@@ -19,6 +19,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -55,6 +56,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
@@ -111,6 +113,8 @@ import dev.shibasis.reaktor.surface.LocalCommand
 import dev.shibasis.reaktor.surface.MenuInput
 import dev.shibasis.reaktor.surface.MenuKernel
 import dev.shibasis.reaktor.surface.PressProperties
+import dev.shibasis.reaktor.surface.PressInput
+import dev.shibasis.reaktor.surface.PressKernel
 import dev.shibasis.reaktor.surface.PressState
 import dev.shibasis.reaktor.surface.SelectionMode
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -146,8 +150,9 @@ class ItemScope internal constructor(val key: String, val index: Int, private va
     @Composable
     fun CommandButton(command: CommandId, modifier: Modifier = Modifier, appearance: ButtonAppearance = LocalAppearances.current.button, content: @Composable () -> Unit) {
         val enabled = host.available(command, key)
-        Box(modifier.then(CommandButtonElement(host, key, command, enabled)), propagateMinConstraints = true) {
-            appearance.Content(PressProperties(enabled), RestingPress, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), ButtonSlots(content))
+        val press = remember(host, key, command) { mutableStateOf(RestingPress) }
+        Box(modifier.then(CommandButtonElement(host, key, command, enabled, press)), propagateMinConstraints = true) {
+            appearance.Content(PressProperties(enabled), press.value, LocalThemeSnapshot.current, rememberFeedback(pressed = press.value.pressed, focusVisible = false), ButtonSlots(content))
         }
     }
 }
@@ -364,6 +369,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     private var behavior: CollectionBehavior = DefaultKernel
     private var inputModes: InputModeManager? = null
     private val rows = HashMap<String, FocusRequester>()
+    private val availability = HashMap<String, State<Set<CommandId>>>()
     private var pending: String? = null
     private var pointing = false
 
@@ -425,6 +431,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         if (rows[key] === focus) {
             rows.remove(key)
             rowCoordinates.remove(key)
+            availability.remove(key)
         }
     }
 
@@ -497,11 +504,13 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
 
     fun select(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 1))
 
-    fun available(command: CommandId, key: String): Boolean =
-        actions.commands(setOf(key)).commands.any { it.id == command && it.availability == Availability.Available }
+    fun available(command: CommandId, key: String): Boolean = command in availability.getOrPut(key) {
+        derivedStateOf { actions.commands(setOf(key)).commands.filter { it.availability == Availability.Available }.mapTo(mutableSetOf()) { it.id } }
+    }.value
 
     fun run(command: CommandId, key: String) {
-        if (available(command, key)) actions.onInvoke(command, setOf(key))
+        val chosen = setOf(key)
+        if (actions.commands(chosen).commands.any { it.id == command && it.availability == Availability.Available }) actions.onInvoke(command, chosen)
     }
 
     fun open(key: String) = machine.send(CollectionInput.Open(key))
@@ -628,6 +637,8 @@ private class TouchTap {
     private var pointer: PointerId? = null
     private var origin = Offset.Zero
 
+    fun holds(id: PointerId): Boolean = pointer == id
+
     fun completes(type: PointerEventType, change: PointerInputChange, slop: Float): Boolean {
         when (type) {
             PointerEventType.Press -> if (!change.isConsumed) {
@@ -715,19 +726,21 @@ private class MenuTriggerNode(var host: CollectionHost, var key: String) :
     private fun open() = host.menuFrom(key, placed?.takeIf { it.isAttached }?.boundsInWindow()?.roundToIntRect() ?: IntRect.Zero)
 }
 
-private data class CommandButtonElement(val host: CollectionHost, val key: String, val command: CommandId, val enabled: Boolean) :
+private data class CommandButtonElement(val host: CollectionHost, val key: String, val command: CommandId, val enabled: Boolean, val press: MutableState<PressState>) :
     ModifierNodeElement<CommandButtonNode>() {
-    override fun create() = CommandButtonNode(host, key, command, enabled)
+    override fun create() = CommandButtonNode(host, key, command, enabled, press)
 
     override fun update(node: CommandButtonNode) {
         node.host = host
         node.key = key
         node.command = command
         node.enabled = enabled
+        node.press = press
+        if (!enabled) node.onCancelPointerInput()
     }
 }
 
-private class CommandButtonNode(var host: CollectionHost, var key: String, var command: CommandId, var enabled: Boolean) :
+private class CommandButtonNode(var host: CollectionHost, var key: String, var command: CommandId, var enabled: Boolean, var press: MutableState<PressState>) :
     Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
     private val tap = TouchTap()
 
@@ -743,10 +756,30 @@ private class CommandButtonNode(var host: CollectionHost, var key: String, var c
     }
 
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
-        if (enabled && pass == PointerEventPass.Main && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) host.run(command, key)
+        if (!enabled || pass != PointerEventPass.Main) return
+        val change = pointerEvent.changes.firstOrNull() ?: return
+        val mouse = change.type == PointerType.Mouse
+        val activate = (!mouse || pointerEvent.buttons.isPrimaryPressed) && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)
+        if (mouse) {
+            val inside = pointerEvent.type != PointerEventType.Exit && change.position.x >= 0f && change.position.y >= 0f &&
+                change.position.x < bounds.width && change.position.y < bounds.height
+            feedback(PressInput.Hover(inside))
+            if (pointerEvent.type == PointerEventType.Press && activate) feedback(PressInput.Press(change.id.value))
+            else if (!pointerEvent.buttons.isPrimaryPressed || !inside) feedback(PressInput.Cancel(change.id.value))
+        } else {
+            feedback(if (tap.holds(change.id)) PressInput.Press(change.id.value) else PressInput.Cancel(change.id.value))
+        }
+        if (activate) host.run(command, key)
     }
 
-    override fun onCancelPointerInput() = tap.cancel()
+    override fun onCancelPointerInput() {
+        tap.cancel()
+        press.value = PressKernel.reconcile(PressProperties(enabled = false), press.value).state
+    }
+
+    private fun feedback(input: PressInput) {
+        press.value = PressKernel.reduce(PressProperties(enabled), press.value, input).state
+    }
 }
 
 val BareRow: RowAppearance = object : RowAppearance {
