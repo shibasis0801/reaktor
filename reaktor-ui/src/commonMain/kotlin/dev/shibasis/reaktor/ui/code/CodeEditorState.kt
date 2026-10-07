@@ -131,6 +131,15 @@ class CodeEditorState(
         version++
     }
 
+    fun append(text: String) {
+        check(readOnly) { "Producer output requires a read-only document" }
+        if (text.isEmpty()) return
+        val end = document.end
+        document = document.replace(CodeSpan.at(end), text)
+        invalidateSyntaxFrom(end.line)
+        version++
+    }
+
     fun type(input: String): Boolean {
         if (readOnly) return false
         val active = selection

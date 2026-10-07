@@ -10,6 +10,29 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CodeEditorStateTest {
+    @Test fun producerAppendPreservesReadOnlySelectionAndFind() {
+        val editor = CodeEditorState("first", CodeLanguage.Plain, readOnly = true)
+        editor.selectAll()
+        editor.findVisible = true
+        editor.findQuery = "second"
+        editor.append("\nsecond")
+        assertEquals("first\nsecond", editor.text)
+        assertEquals("first", editor.selectedText)
+        assertTrue(editor.findVisible)
+        assertEquals("second", editor.findQuery)
+        assertFalse(editor.type("ignored"))
+        assertFalse(editor.canUndo)
+    }
+
+    @Test fun emptyProducerAppendDoesNotInvalidateTheDocument() {
+        val editor = CodeEditorState("first", readOnly = true)
+        val version = editor.version
+        val document = editor.document
+        editor.append("")
+        assertEquals(version, editor.version)
+        assertTrue(document === editor.document)
+    }
+
     private fun state(text: String = "", language: CodeLanguage = CodeLanguage.Kotlin) =
         CodeEditorState(text, language)
 
