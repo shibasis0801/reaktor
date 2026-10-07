@@ -45,7 +45,8 @@ class CommandHost internal constructor() {
         return true
     }
 
-    fun dispatch(event: KeyEvent): Boolean = scopes.filter { it.parent() == null }.any { it.handle(event) }
+    fun dispatch(event: KeyEvent): Boolean =
+        (focusPath() + scopes.asReversed().filter { it.parent() == null && !it.focused }).any { it.handle(event) }
 
     internal fun register(scope: CommandScopeNode) {
         scopes += scope
@@ -55,7 +56,7 @@ class CommandHost internal constructor() {
         scopes -= scope
     }
 
-    private fun focusPath() = scopes.filter { it.focused }.sortedByDescending { it.depth() }
+    private fun focusPath() = scopes.asReversed().filter { it.focused }.sortedByDescending { it.depth() }
 
     private fun owner(id: CommandId): CommandScopeNode? =
         (focusPath() + scopes.filterNot { it.focused }).firstOrNull { scope -> scope.set.commands.any { it.id == id } }

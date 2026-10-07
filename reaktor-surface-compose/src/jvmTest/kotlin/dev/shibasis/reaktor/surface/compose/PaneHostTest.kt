@@ -145,6 +145,38 @@ class PaneHostTest {
     }
 
     @Test
+    fun f6IncludesExternalChromeAndRestoresItsChildFocus() = runComposeUiTest {
+        val focus = PaneHostFocus()
+        setContent {
+            Column(Modifier.requiredSize(600.dp, 800.dp)) {
+                Column(Modifier.paneFocus(focus)) {
+                    Button({}, Modifier.testTag("header-first")) { BasicText("Header") }
+                    Button({}, Modifier.testTag("header-second")) { BasicText("Search") }
+                }
+                PaneHost(PaneSpec(listOf(Region("rail", RegionEdge.Start, 80f, 80f, 80f, 0)), 100f, 100f),
+                    PanePreferences(), {}, Modifier.weight(1f), focus = focus,
+                    main = { Button({}, Modifier.testTag("content")) { BasicText("Content") } }) {
+                    Button({}, Modifier.testTag("rail")) { BasicText("Rail") }
+                }
+                Box(Modifier.paneFocus(focus)) {
+                    Button({}, Modifier.testTag("status")) { BasicText("Status") }
+                }
+            }
+        }
+        onNodeWithTag("header-second").requestFocus()
+        f6()
+        onNodeWithTag("rail").assertIsFocused()
+        f6()
+        onNodeWithTag("content").assertIsFocused()
+        f6()
+        onNodeWithTag("status").assertIsFocused()
+        f6()
+        onNodeWithTag("header-second").assertIsFocused()
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.F6) } }
+        onNodeWithTag("status").assertIsFocused()
+    }
+
+    @Test
     fun anExplicitChildRequestWinsOverThePreviouslyFocusedChild() = runComposeUiTest {
         setContent { Graph(1512, PanePreferences()) }
         onNodeWithTag("main-first").requestFocus()
