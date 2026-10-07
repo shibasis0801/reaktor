@@ -54,20 +54,9 @@ fun LegacySignalButton(
 ) {
     val (interaction, hovered) = rememberHover()
     val editor = ((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)
-    Row(
+    Box(
         modifier
-            .height(if (editor) MachineSignal.Editor.controlHeight else MachineSignal.Metrics.buttonHeight)
             .hoverable(interaction)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .background(
-                when {
-                    !enabled -> Color.Transparent
-                    hovered -> workspaceColor(tone.hover)
-                    else -> workspaceColor(tone.fill)
-                },
-                MachineSignal.Shape.Control,
-            )
-            .border(1.dp, if (editor && tone == SignalTone.Ghost) Color.Transparent else workspaceColor(if (enabled) tone.line else MachineSignal.Line1), MachineSignal.Shape.Control)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -75,28 +64,44 @@ fun LegacySignalButton(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .semantics { role = Role.Button; if (!enabled) disabled() }
-            .padding(
-                horizontal = if (editor) MachineSignal.Space.s2 else if (tone == SignalTone.Ghost) {
-                    MachineSignal.Metrics.ghostPaddingX
-                } else {
-                    MachineSignal.Metrics.buttonPaddingX
-                },
-            ),
-        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.buttonGap),
-        verticalAlignment = Alignment.CenterVertically,
+            .semantics { role = Role.Button; if (!enabled) disabled() },
+        contentAlignment = Alignment.Center,
     ) {
-        leading?.invoke()
-        SignalText(
-            text = label,
-            color = if (enabled) tone.text else MachineSignal.Text4,
-            size = if (editor) MachineSignal.Editor.label else MachineSignal.Type.control,
-            weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) {
-                FontWeight.SemiBold
-            } else {
-                FontWeight.Medium
-            },
-        )
+        Row(
+            Modifier
+                .height(if (editor) MachineSignal.Editor.controlHeight else MachineSignal.Metrics.buttonHeight)
+                .pointerHoverIcon(PointerIcon.Hand)
+                .background(
+                    when {
+                        !enabled -> Color.Transparent
+                        hovered -> workspaceColor(tone.hover)
+                        else -> workspaceColor(tone.fill)
+                    },
+                    MachineSignal.Shape.Control,
+                )
+                .border(1.dp, if (editor && tone == SignalTone.Ghost) Color.Transparent else workspaceColor(if (enabled) tone.line else MachineSignal.Line1), MachineSignal.Shape.Control)
+                .padding(
+                    horizontal = if (editor) MachineSignal.Space.s2 else if (tone == SignalTone.Ghost) {
+                        MachineSignal.Metrics.ghostPaddingX
+                    } else {
+                        MachineSignal.Metrics.buttonPaddingX
+                    },
+                ),
+            horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.buttonGap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            leading?.invoke()
+            SignalText(
+                text = label,
+                color = if (enabled) tone.text else MachineSignal.Text4,
+                size = if (editor) MachineSignal.Editor.label else MachineSignal.Type.control,
+                weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) {
+                    FontWeight.SemiBold
+                } else {
+                    FontWeight.Medium
+                },
+            )
+        }
     }
 }
 
