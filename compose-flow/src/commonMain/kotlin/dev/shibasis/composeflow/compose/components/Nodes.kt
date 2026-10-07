@@ -70,7 +70,7 @@ internal fun FlowNodeBox(
     onNodeClick: ((Node) -> Unit)?,
     onNodesChange: ((List<NodeChange>) -> Unit)?,
     onConnect: ((Connection) -> Unit)?,
-    viewport: Viewport,
+    viewport: () -> Viewport,
     renderStyle: NodeRenderStyle,
     handleRenderStyle: (Handle) -> HandleRenderStyle,
     defaultNodeWidthPx: Double,
@@ -138,7 +138,7 @@ internal fun FlowNodeBox(
                     onNodesChange?.invoke(listOf(NodeDimensionChange(id = node.id, dimensions = dimensions)))
                 }
             }
-            .pointerInput(node.id, viewport.zoom, node.draggable, node.selectable) {
+            .pointerInput(node.id, node.draggable, node.selectable) {
                 awaitPointerEventScope {
                     while (true) {
                         val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
@@ -176,8 +176,9 @@ internal fun FlowNodeBox(
                                 }
                             }
 
-                            var newX = currentPosition.x + delta.x / viewport.zoom
-                            var newY = currentPosition.y + delta.y / viewport.zoom
+                            val zoom = viewport().zoom
+                            var newX = currentPosition.x + delta.x / zoom
+                            var newY = currentPosition.y + delta.y / zoom
 
                             if (snapToGrid) {
                                 newX = (kotlin.math.round(newX / snapGrid.first) * snapGrid.first)

@@ -16,6 +16,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -129,6 +130,7 @@ fun GraphCanvas(
     grid: CanvasGrid? = null,
     pulses: List<CanvasPulse> = emptyList(),
     overlay: @Composable BoxScope.() -> Unit = {},
+    cardDrawing: (DrawScope.(CanvasCard) -> Unit)? = null,
 ) {
     val density = LocalDensity.current.density.toDouble()
     state.density = density
@@ -214,6 +216,7 @@ fun GraphCanvas(
             viewportOverlay = { if (pulses.isNotEmpty()) PulseLayer(pulses, paths, scale) },
             showBackground = grid == null,
             canvasBackground = if (grid == null) background else Color.Transparent,
+            nodeDrawing = if (cardDrawing == null) null else ({ cards.forEach { cardDrawing(it) } }),
         )
     }
 }
