@@ -585,6 +585,11 @@ object MachineSignal {
         val rowHeight = 22.dp
     }
 
+    object DataResult {
+        val columnMinWidth = 96.dp
+        val columnMaxWidth = 480.dp
+    }
+
     object Gauge {
         val ringSize = 56.dp
         val strokeWidth = 5.dp

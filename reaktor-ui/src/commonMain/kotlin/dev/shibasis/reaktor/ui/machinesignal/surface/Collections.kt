@@ -139,7 +139,7 @@ val SignalScrollbar: ScrollbarAppearance = object : ScrollbarAppearance {
     @Composable
     override fun Content(properties: ScrollbarProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ScrollbarSlots) {
         val colors = theme.machineSignal.colors
-        Box(Modifier.fillMaxHeight().background(if (properties.scrollable) colors.line else Color.Transparent, ScrollbarShape)) {
+        Box(Modifier.background(if (properties.scrollable) colors.line else Color.Transparent, ScrollbarShape)) {
             slots.thumb(ScrollbarThumb(ScrollbarThickness, colors.textMuted.copy(alpha = IdleThumb), colors.textMuted, ScrollbarShape))
         }
     }

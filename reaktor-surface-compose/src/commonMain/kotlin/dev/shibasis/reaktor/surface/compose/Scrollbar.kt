@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -23,10 +24,17 @@ typealias ScrollbarAppearance = ComposeAppearance<ScrollbarProperties, Unit, Scr
 internal expect fun CollectionScrollbar(state: LazyListState, modifier: Modifier)
 
 @Composable
+internal expect fun TableScrollbar(state: ScrollState, modifier: Modifier)
+
+@Composable
 internal fun Scrollbar(state: LazyListState, modifier: Modifier, thumb: @Composable (ScrollbarThumb) -> Unit) =
+    Scrollbar(state.canScrollBackward || state.canScrollForward, modifier, thumb)
+
+@Composable
+internal fun Scrollbar(scrollable: Boolean, modifier: Modifier, thumb: @Composable (ScrollbarThumb) -> Unit) =
     Box(modifier, propagateMinConstraints = true) {
         LocalAppearances.current[Appearance.Scrollbar].Content(
-            ScrollbarProperties(state.canScrollBackward || state.canScrollForward),
+            ScrollbarProperties(scrollable),
             Unit,
             LocalThemeSnapshot.current,
             rememberFeedback(pressed = false, focusVisible = false),
