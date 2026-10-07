@@ -256,6 +256,14 @@ both of which pass on a quiet machine and fail one run in four on a busy one:
   registered; its document arrives when the poll that registering starts has finished. Wait on the
   flow that carries the fact you are about to assert.
 
+**A test that fails in a different place each time is one bug.** One run in six, somewhere in
+Cairn's suite, a test died with `Already resumed`. Each time it looked like that test's flake, and
+rerunning the test alone passed. It was `launchWhenWired` — the node's thread and the wiring
+thread noticing the same connection — and every graph any test built was a chance to hit it. Run
+the *whole* suite several times and read the stack, not the test's name. Then reproduce it on
+purpose: release both sides from a barrier a few thousand times and the window that opened once in
+six runs opens in under a second.
+
 And a slot set in one test is set in the next: `Feature.Database = …` needs an `@AfterTest` that
 puts it back to `null`.
 

@@ -261,6 +261,15 @@ The checks worth running at least once per app:
 - A deliberately corrupted database file on every platform — see below; "recovers" is two things.
 - System font at 1.5× and 2.0×: `adb shell settings put system font_scale 2.0`, relaunch, and put
   it back afterwards.
+- **For each kind of thing the app can receive, do what a person would do next with it.** Cairn
+  moved files between devices correctly for months and had no way to open or save one: text and
+  links had *copy*, and a file had its name. Every transfer test passed, because each ended when
+  the bytes arrived. And compose something of every kind from *inside* the app — if the only
+  composer is a text field, the app sends text, whatever its share sheet accepts.
+- **Every shell, opened and used.** The web shell draws with the one font it ships. Anything typed
+  outside Latin-1 — `←`, `▸`, `✕`, `☐` — is a missing-glyph box there and fine everywhere else,
+  so a back button can be an empty rectangle on one target of three. Draw such marks instead of
+  typing them, and size them in `sp` so they grow with the text.
 - Every permission-gated flow, on the release build, with the permission granted and refused.
 - Cold start time, recorded: `adb shell am start -W -n <pkg>/<activity>` after a `force-stop`,
   several times, and say what it was measured on. The first launch after an install is its own
