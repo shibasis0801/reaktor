@@ -88,7 +88,7 @@ class JvmProjectDiscoverySealTest {
         assertFailsWith<IllegalStateException> { workspace.prepare(invocation) }
         SupervisedProcessExecutor().use { executor -> assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) } }
         val changed = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        assertTrue(changed.catalog.tasks.first { it.id == invocation.taskId }.unavailableReason.orEmpty().contains("manifest is stale"))
+        assertTrue(assertFailsWith<IllegalArgumentException> { changed.prepare(invocation) }.message.orEmpty().contains("manifest is stale"))
         println("worker-manifest discovery-ms=$elapsedMillis files=${seal.files.size}")
     }
 
@@ -96,8 +96,9 @@ class JvmProjectDiscoverySealTest {
     fun generatedWorkerMissingIncompleteAndEscapingManifestsFailClosed() = fixture { root, _ ->
         worker(root)
         val entry = File(root, "modules/app/bestbuds-kt/worker.mjs").apply { parentFile.mkdirs(); writeText("export const value = 1;") }
-        fun reason(): String = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).catalog.tasks
-            .first { it.id == TaskId("target/worker/npm/deploy") }.unavailableReason.orEmpty()
+        fun reason(): String = runCatching {
+            assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(TaskInvocation(TaskId("target/worker/npm/deploy")))
+        }.exceptionOrNull()?.message.orEmpty()
         assertTrue(reason().contains("manifest is unavailable"))
         bundleManifest(root, listOf(entry), imported = "bestbuds-kt/other.mjs")
         assertTrue(reason().contains("manifest has no bestbuds-kt/worker.mjs"))
