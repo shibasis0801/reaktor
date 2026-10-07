@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -56,6 +58,7 @@ import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
@@ -171,8 +174,9 @@ fun <T> ListBox(
     state: LazyListState = rememberLazyListState(),
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
+    scrolling: Boolean = true,
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, row)
+) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, scrolling, row)
 
 @Composable
 fun <T> Tree(
@@ -189,7 +193,7 @@ fun <T> Tree(
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, row)
+) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, true, row)
 
 @Composable
 internal fun <T> Collection(
@@ -206,6 +210,7 @@ internal fun <T> Collection(
     behavior: CollectionBehavior,
     appearance: RowAppearance,
     scrollbar: Boolean,
+    scrolling: Boolean,
     row: @Composable ItemScope.(T) -> Unit,
 ) {
     val properties = CollectionProperties(source, selection, LocalSurfaceEnvironment.current.keys, mode, LocalLayoutDirection.current == LayoutDirection.Rtl)
@@ -225,7 +230,7 @@ internal fun <T> Collection(
             is CollectionEvent.CheckChange -> checked(original(event.key), event.checked)
         }
     }
-    host.list = state
+    host.list = state.takeIf { scrolling }
     host.actions = actions
     val inputModes = LocalInputModeManager.current
     SideEffect { host.update(properties, behavior, inputModes) }
@@ -245,10 +250,16 @@ internal fun <T> Collection(
             .focusProperties { canFocus = host.waiting() }
             .focusTarget(),
     ) {
-        LazyColumn(Modifier.fillMaxWidth().then(CollectionPointerElement(host)), state = state) {
-            items(source.size, key = source::key, contentType = { RowContent }) { index -> CollectionRow(host, source, index, appearance, row) }
+        if (scrolling) {
+            LazyColumn(Modifier.fillMaxWidth().then(CollectionPointerElement(host)), state = state) {
+                items(source.size, key = source::key, contentType = { RowContent }) { index -> CollectionRow(host, source, index, appearance, row) }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth().then(CollectionPointerElement(host))) {
+                repeat(source.size) { index -> key(source.key(index)) { CollectionRow(host, source, index, appearance, row) } }
+            }
         }
-        if (scrollbar) Box(Modifier.matchParentSize()) { CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight()) }
+        if (scrollbar && scrolling) Box(Modifier.matchParentSize()) { CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight()) }
     }
 }
 
@@ -297,6 +308,7 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
     Box(
         Modifier
             .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, "row/$key")))
+            .then(if (host.list == null) Modifier.onGloballyPositioned { host.rowCoordinates[key] = it } else Modifier)
             .focusRequester(focus)
             .onFocusChanged { host.onRowFocus(key, it.isFocused) }
             .focusProperties { canFocus = host.canFocus(key) }
@@ -346,7 +358,8 @@ internal class RowFlags(host: CollectionHost, key: String) {
 @Stable
 internal class CollectionHost(private val selection: State<Set<String>>) {
     lateinit var machine: Machine<CollectionProperties, CollectionState, CollectionInput, CollectionEvent>
-    lateinit var list: LazyListState
+    var list: LazyListState? = null
+    val rowCoordinates = HashMap<String, LayoutCoordinates>()
     private var properties: CollectionProperties? = null
     private var behavior: CollectionBehavior = DefaultKernel
     private var inputModes: InputModeManager? = null
@@ -403,7 +416,10 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     fun unregister(key: String, focus: FocusRequester) {
-        if (rows[key] === focus) rows.remove(key)
+        if (rows[key] === focus) {
+            rows.remove(key)
+            rowCoordinates.remove(key)
+        }
     }
 
     fun canFocus(key: String): Boolean = machine.state.active == key
@@ -466,8 +482,9 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     private fun rowAnchor(key: String): IntRect {
+        rowCoordinates[key]?.takeIf { it.isAttached }?.let { return it.boundsInWindow().roundToIntRect() }
         val layout = coordinates?.takeIf { it.isAttached } ?: return IntRect.Zero
-        val item = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key } ?: return IntRect(layout.localToWindow(Offset.Zero).round(), IntSize.Zero)
+        val item = list?.layoutInfo?.visibleItemsInfo?.firstOrNull { it.key == key } ?: return IntRect(layout.localToWindow(Offset.Zero).round(), IntSize.Zero)
         val origin = layout.localToWindow(Offset(0f, item.offset.toFloat())).round()
         return IntRect(origin, IntSize(layout.size.width, item.size))
     }
@@ -490,6 +507,11 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     fun keyAt(position: Offset): String? {
+        val list = list
+        if (list == null) {
+            val point = coordinates?.takeIf { it.isAttached }?.localToWindow(position) ?: return null
+            return rowCoordinates.entries.firstOrNull { (_, row) -> row.isAttached && row.boundsInWindow().contains(point) }?.key
+        }
         val y = position.y.toInt()
         return list.layoutInfo.visibleItemsInfo.firstOrNull { y >= it.offset && y < it.offset + it.size }?.key as? String
     }
@@ -518,6 +540,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     private fun reveal(key: String) {
+        val list = list ?: return
         val index = properties?.items?.indexOf(key)?.takeIf { it >= 0 } ?: return
         val visible = list.layoutInfo.visibleItemsInfo
         if (visible.any { it.index == index }) return
@@ -526,7 +549,9 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     private fun page(): Int {
-        val info = list.layoutInfo
+        val info = list?.layoutInfo ?: return rowCoordinates.values.count { row ->
+            row.isAttached && row.boundsInWindow().height >= row.size.height && row.size.height > 0
+        }.coerceAtLeast(1)
         return info.visibleItemsInfo.count { it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset }.coerceAtLeast(1)
     }
 }
