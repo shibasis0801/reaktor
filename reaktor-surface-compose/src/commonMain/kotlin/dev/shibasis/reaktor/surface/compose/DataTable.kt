@@ -176,7 +176,7 @@ fun <T> DataTable(
                     }
                     content
                 }
-                Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, { _, _ -> }, actions, state.list, behavior, appearance, false, row)
+                Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, { _, _ -> }, actions, state.list, behavior, appearance, false, true, row)
             }
         }
         CollectionScrollbar(state.list, Modifier.align(Alignment.TopEnd).padding(top = with(LocalDensity.current) { rowsTop.toDp() }).fillMaxHeight())
