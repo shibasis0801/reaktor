@@ -19,6 +19,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.reflect.KClass
 
+/** The table a [SqliteObjectDatabase] called [name] keeps its rows in. */
+internal fun objectTableName(name: String): String =
+    "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+
 class SqliteObjectDatabase(
     private val driver: SqlDriver,
     name: String,
@@ -27,7 +31,7 @@ class SqliteObjectDatabase(
     /** Opt in before the first write. Existing rows are not retroactively journaled. */
     private val journalStorePrefix: String? = null,
 ): ObjectDatabase(objectSerializer) {
-    private val tableName = "object_db_${name.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+    private val tableName = objectTableName(name)
     private val log = "SqliteObjectDatabase".logger()
     private val initialization: QueryResult<Long>
     private val initializationMutex = Mutex()
