@@ -32,6 +32,29 @@ class SharePayload(
     ) : this(fileName, contents.encodeToByteArray(), mimeType, title)
 }
 
+/**
+ * [name] as something that is safe to create a file called.
+ *
+ * A file name handed to a share adapter is very often somebody else's — the name a document
+ * arrived under, from another device or another person — and every adapter turns it into a path.
+ * `../../databases/app.db` is a name too, and written under a staging directory it is the app's
+ * own database. So: the last path segment only, no separators of either kind, no control
+ * characters, no leading dots (a file that is saved and cannot be seen was not saved, as far as
+ * the person is concerned), and never empty.
+ */
+fun safeFileName(name: String): String {
+    val leaf = name.substringAfterLast('/').substringAfterLast('\\')
+    val cleaned = buildString {
+        for (char in leaf) {
+            append(if (char < ' ' || char == ':' || char == '\u007f') '_' else char)
+        }
+    }.trim().trimStart('.').trim()
+    return cleaned.ifEmpty { "file" }.take(MAX_FILE_NAME)
+}
+
+/** Under every filesystem's limit with room for " (12)" before the extension. */
+private const val MAX_FILE_NAME = 200
+
 abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Controller>(controller) {
     /**
      * Offers [payload] to the user through the platform's share UI.
@@ -41,6 +64,16 @@ abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Contro
      * reporting a success the user never saw.
      */
     abstract suspend fun shareFile(payload: SharePayload): Boolean
+
+    /**
+     * Shows [payload] to the user, in whatever opens that kind of file.
+     *
+     * Not the same request as [shareFile]. Sharing asks "where should this go"; opening asks "let
+     * me look at it", and on a phone those are different sheets — a photo somebody sent is to be
+     * seen first, and only sometimes passed on. Where a platform has no such distinction, handing
+     * the file over is the nearest thing, which is what this does unless an adapter knows better.
+     */
+    open suspend fun openFile(payload: SharePayload): Boolean = shareFile(payload)
 
     /**
      * Offers [text] itself, rather than a document containing it.

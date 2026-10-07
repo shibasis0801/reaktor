@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.io.adapters
 import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
+import android.net.Uri
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,19 +15,47 @@ import java.io.File
  */
 class AndroidShareAdapter(activity: Activity) : ShareAdapter<Activity>(activity) {
 
+    /**
+     * Writes [payload] where the provider can serve it from, and returns the address to hand out.
+     *
+     * The name is made safe first. It is joined to a directory inside the app's own sandbox, and a
+     * name with `..` in it would be written wherever it pointed — the app's database included.
+     */
+    private suspend fun stage(context: Activity, payload: SharePayload): Uri? = withContext(Dispatchers.IO) {
+        runCatching {
+            // Staged in a dedicated cache folder that the provider's paths file exposes;
+            // everything else in the sandbox stays unreachable.
+            val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
+            val file = File(directory, safeFileName(payload.fileName))
+            file.writeBytes(payload.bytes)
+            FileProvider.getUriForFile(context, authority(context.packageName), file)
+        }.getOrNull()
+    }
+
+    /**
+     * Opens [payload] in an app that views that kind of file.
+     *
+     * Falls back to the share sheet when nothing on the device claims the type: being offered
+     * somewhere to send a file is still better than being told it cannot be shown.
+     */
+    override suspend fun openFile(payload: SharePayload): Boolean {
+        val context = controller ?: return false
+        val uri = stage(context, payload) ?: return false
+
+        val view = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, payload.mimeType)
+            clipData = ClipData.newRawUri(payload.fileName, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        val opened = runCatching { context.startActivity(view) }.isSuccess
+        return opened || shareFile(payload)
+    }
+
     override suspend fun shareFile(payload: SharePayload): Boolean {
         val context = controller ?: return false
 
-        val uri = withContext(Dispatchers.IO) {
-            runCatching {
-                // Staged in a dedicated cache folder that the provider's paths file exposes;
-                // everything else in the sandbox stays unreachable.
-                val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
-                val file = File(directory, payload.fileName)
-                file.writeBytes(payload.bytes)
-                FileProvider.getUriForFile(context, authority(context.packageName), file)
-            }.getOrNull()
-        } ?: return false
+        val uri = stage(context, payload) ?: return false
 
         val send = Intent(Intent.ACTION_SEND).apply {
             type = payload.mimeType
