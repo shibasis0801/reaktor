@@ -12,6 +12,47 @@ import kotlin.test.*
 import kotlinx.serialization.json.*
 
 class AgentWorkspaceTest {
+    @Test fun transcriptPagesReachTheFirstEventAndKeepLongRepliesWhole() = runBlocking {
+        val root = Files.createTempDirectory("agent-transcript-root").toFile()
+        val directory = Files.createTempDirectory("agent-transcript-state")
+        val thread = java.util.UUID.randomUUID().toString()
+        val reply = "Reply ".repeat(3333) + "!!"
+        val events = (1..60).map { index -> ThreadEvent(EventId("event-$index"), Author.Human(), EventKind.Note,
+            if (index == 60) reply else "Message $index", parents = if (index == 1) emptyList() else listOf(EventId("event-${index - 1}"))) }
+        try {
+            dev.shibasis.reaktor.conductor.store.FileThreadStore.open(directory.resolve("threads/$thread.json")).use {
+                it.checkpoint(ThreadDocument(ThreadId(thread), "Paged transcript", events = events))
+            }
+            AgentWorkspaceConnection.open(root, directory, mapOf(RuntimeKind.Codex to EchoRuntime(RuntimeKind.Codex) { "fixture" })).use { owner ->
+                var page = owner.transcript(thread)
+                assertEquals(20, page.events.size)
+                assertEquals(reply, page.events.last().text)
+                val loaded = page.events.toMutableList()
+                while (page.nextBefore != null) {
+                    page = owner.transcript(thread, page.nextBefore)
+                    loaded.addAll(0, page.events)
+                }
+                assertEquals(events, loaded)
+                assertFalse(page.partial)
+                assertEquals(events.first(), owner.transcript(thread, before = 1, limit = 1).events.single())
+                assertTrue(owner.transcript(thread, before = 0).events.isEmpty())
+                assertFailsWith<IllegalStateException> { owner.transcript(thread, before = 61) }
+                assertFailsWith<IllegalStateException> { owner.transcript(thread, limit = 51) }
+                val large = events.map { it.copy(text = "界\"\\\n".repeat(4000)) }
+                dev.shibasis.reaktor.conductor.store.FileThreadStore.open(directory.resolve("threads/$thread.json")).use {
+                    it.checkpoint(ThreadDocument(ThreadId(thread), "Byte bounded transcript", events = large))
+                }
+                page = owner.transcript(thread, limit = 50)
+                assertTrue(page.events.size in 1..49)
+                val complete = page.events.toMutableList()
+                while (page.nextBefore != null) {
+                    page = owner.transcript(thread, page.nextBefore, limit = 50)
+                    complete.addAll(0, page.events)
+                }
+                assertEquals(large, complete)
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
     @Test fun cancellationBeforeDispatchRetainsTheFullPromptInAContinuableConversation() = runBlocking {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")

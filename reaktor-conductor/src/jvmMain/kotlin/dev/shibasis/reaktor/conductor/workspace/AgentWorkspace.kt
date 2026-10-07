@@ -545,17 +545,25 @@ class AgentWorkspace(
         return get(id)
     }
 
-    fun transcript(threadId: String): AgentTranscript {
+    fun transcript(threadId: String, before: Int? = null, limit: Int = 20): AgentTranscript {
+        require(limit in 1..50) { "Transcript page limit must be between 1 and 50" }
         val path = threadPath(threadId)
         require(Files.exists(path)) { "Conversation not found in this workspace" }
         val document = decodeThread(Files.readString(path))
-        var remaining = 24000
-        val selected = document.events.takeLast(20).asReversed().map { event ->
-            val text = event.text.take(remaining.coerceAtMost(6000))
-            remaining -= text.length
-            event.copy(text = text)
-        }.asReversed()
-        return AgentTranscript(threadId, selected, selected != document.events)
+        val end = before ?: document.events.size
+        require(end in 0..document.events.size) { "Transcript cursor is outside this conversation" }
+        var start = end
+        var remaining = 256 * 1024
+        while (start > 0 && end - start < limit) {
+            val size = ConductorJson.encodeToString(ThreadEvent.serializer(), document.events[start - 1]).toByteArray(Charsets.UTF_8).size + 1
+            if (size > remaining) {
+                require(start < end) { "This complete event exceeds the transcript page transport budget" }
+                break
+            }
+            remaining -= size
+            start--
+        }
+        return AgentTranscript(threadId, document.events.subList(start, end), start > 0, start.takeIf { it > 0 })
     }
 
     private suspend fun execute(initial: AgentRunRecord, request: AgentSubmission) {
