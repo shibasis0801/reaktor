@@ -27,8 +27,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -58,6 +63,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.Activated
+import dev.shibasis.reaktor.surface.ActiveChange
+import dev.shibasis.reaktor.surface.Edge
+import dev.shibasis.reaktor.surface.LocalCommand
+import dev.shibasis.reaktor.surface.RovingInput
+import dev.shibasis.reaktor.surface.RovingItem
+import dev.shibasis.reaktor.surface.RovingKernel
+import dev.shibasis.reaktor.surface.RovingList
+import dev.shibasis.reaktor.surface.RovingProperties
+import dev.shibasis.reaktor.surface.RovingState
 import dev.shibasis.reaktor.surface.Axis
 import dev.shibasis.reaktor.surface.CollectionKernel
 import dev.shibasis.reaktor.surface.ItemSource
@@ -144,35 +158,28 @@ fun <T> DataTable(
         val density = LocalDensity.current
         val viewport = with(density) { maxWidth.roundToPx() }
         val layoutWidth = with(density) { tableWidth.roundToPx() }
-        val visible by remember(columns, state, measured, density, viewport, layoutWidth) {
-            derivedStateOf {
-                val spans = columnSpans(columns, widths(), layoutWidth, density)
-                if (spans.isEmpty()) return@derivedStateOf IntRange.EMPTY
-                val start = state.horizontal.value
-                var left = 0
-                var first = 0
-                var last = columns.lastIndex
-                spans.forEachIndexed { index, width ->
-                    if (left + width <= start) first = index + 1
-                    if (left < start + viewport) last = index
-                    left += width
-                }
-                first.coerceAtMost(columns.lastIndex)..last
-            }
+        val pins = remember(state) { derivedStateOf { state.layout.pins } }
+        val geometryState = remember(columns, state, measured, density, viewport, layoutWidth) {
+            derivedStateOf { ColumnGeometry(columnSpans(columns, widths(), layoutWidth, density), columns.map { pins.value[it.key] }, viewport) }
         }
+        val geometry = { geometryState.value }
+        val visible by remember(geometryState, state) { derivedStateOf { geometry().visible(state.horizontal.value) } }
         var rowsTop by remember { mutableIntStateOf(0) }
         Column(Modifier.fillMaxSize().horizontalScroll(state.horizontal)) {
-            HeaderRow(columns, state, Modifier.width(tableWidth), header, widths, record)
+            HeaderRow(columns, state, Modifier.width(tableWidth), header, geometry, visible, record)
             if (busy) Progress(null, Modifier.width(tableWidth))
             val body = Modifier.width(tableWidth).weight(1f).onPlaced { rowsTop = it.positionInParent().y.roundToInt() }
             if (source.size == 0) {
                 Box(body) { empty() }
             } else {
-                val row = remember(columns, state, measured, visible) {
+                val row = remember(columns, state, geometryState, visible) {
                     val content: @Composable ItemScope.(T) -> Unit = { item ->
                         val scope = this
-                        val cells = remember(index, visible) { CellsPolicy(columns, widths, index, record, visible) }
-                        Layout(visible.map { index -> @Composable { columns[index].cell(scope, item) } }, measurePolicy = cells)
+                        ColumnBands(geometry, state.horizontal, Modifier) { band ->
+                            val shown = visible[band]
+                            val cells = remember(columns, geometryState, index, shown, band) { CellsPolicy(columns, geometry, state.horizontal, band, index, record, shown) }
+                            Layout(shown.map { column -> @Composable { key(columns[column].key) { columns[column].cell(scope, item) } } }, measurePolicy = cells)
+                        }
                     }
                     content
                 }
@@ -204,32 +211,117 @@ private fun <T> List<TableColumn<T>>.narrowest(widths: Map<String, Float>): Dp =
     })
 }
 
+private class ColumnGeometry(val spans: IntArray, pins: List<Edge?>, val viewport: Int) {
+    val bands = listOf(pins.indices.filter { pins[it] == null }, pins.indices.filter { pins[it] == Edge.First }, pins.indices.filter { pins[it] == Edge.Last })
+    val offsets = IntArray(spans.size)
+    val rooms = IntArray(3).apply {
+        val totals = IntArray(3) { band ->
+            var total = 0
+            bands[band].forEach { offsets[it] = total; total += spans[it] }
+            total
+        }
+        this[2] = totals[2].coerceAtMost(viewport)
+        this[1] = totals[1].coerceAtMost((viewport - this[2]).coerceAtLeast(0))
+        this[0] = viewport - this[1] - this[2]
+    }
+    val edges = intArrayOf(rooms[1], 0, viewport - rooms[2])
+
+    fun visible(scroll: Int): List<List<Int>> = listOf(
+        bands[0].filter { rooms[0] > 0 && offsets[it] + spans[it] > scroll && offsets[it] < scroll + rooms[0] }, bands[1], bands[2],
+    )
+
+    fun reveal(column: Int, scroll: Int, command: LocalCommand): Int {
+        val maximum = (spans.sum() - viewport).coerceAtLeast(0)
+        return when {
+            column in bands[1] -> if (command is LocalCommand.Reveal) 0 else scroll
+            column in bands[2] -> if (command is LocalCommand.Reveal) maximum else scroll
+            rooms[0] == 0 -> scroll
+            spans[column] >= rooms[0] || offsets[column] < scroll -> offsets[column]
+            offsets[column] + spans[column] > scroll + rooms[0] -> offsets[column] + spans[column] - rooms[0]
+            else -> scroll
+        }.coerceIn(0, maximum)
+    }
+}
+
+@Composable
+private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, modifier: Modifier, content: @Composable (Int) -> Unit) {
+    val bands = geometry().bands.indices.filter { geometry().bands[it].isNotEmpty() }
+    Layout(content = { bands.forEach { band -> Box(Modifier.clipToBounds(), propagateMinConstraints = true) { content(band) } } }, modifier = modifier) { measurables, constraints ->
+        val shape = geometry()
+        val placeables = measurables.mapIndexed { index, measurable ->
+            val band = bands[index]
+            measurable.measure(constraints.copy(minWidth = shape.rooms[band], maxWidth = shape.rooms[band]))
+        }
+        val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
+        layout(constraints.constrainWidth(shape.spans.sum()), height) {
+            placeables.forEachIndexed { index, placeable -> placeable.placeRelative(scroll.value + shape.edges[bands[index]], (height - placeable.height) / 2) }
+        }
+    }
+}
+
 @Composable
 private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modifier: Modifier, appearance: TableHeaderAppearance,
-    widths: () -> Map<String, Float>, record: (TableColumn<T>, Float) -> Unit) {
-    val roving = rememberRoving(Axis.Horizontal) {}
-    Layout(
-        content = { columns.forEach { column -> key(column.key) { HeaderCell(column, state, roving, appearance) } } },
-        modifier = modifier.roving(roving),
-    ) { measurables, constraints ->
-        columns.forEachIndexed { index, column ->
-            if (column.width is ColumnWidth.Content) record(column, measurables[index].maxIntrinsicWidth(Constraints.Infinity).toDp().value)
+    geometry: () -> ColumnGeometry, visible: List<List<Int>>, record: (TableColumn<T>, Float) -> Unit) {
+    val kernel = remember { RovingKernel() }
+    val direction = LocalLayoutDirection.current
+    val items = remember(columns, state.layout.pins) {
+        RovingList((geometry().bands[1] + geometry().bands[0] + geometry().bands[2]).map { RovingItem("$HeaderPart/${columns[it].key}") })
+    }
+    val liveGeometry by rememberUpdatedState(geometry)
+    val liveColumns by rememberUpdatedState(columns)
+    val mounted = remember(visible) { visible.flatten().toSet() }
+    val liveMounted by rememberUpdatedState(mounted)
+    var pending by remember { mutableStateOf<LocalCommand?>(null) }
+    val machine = rememberMachine(kernel, RovingProperties(items, Axis.Horizontal, rightToLeft = direction == LayoutDirection.Rtl), { command ->
+        if (command is LocalCommand.Focus && (pending as? LocalCommand.Reveal)?.part != command.part) pending = command
+        val part = when (command) { is LocalCommand.Focus -> command.part; is LocalCommand.Reveal -> command.part; else -> null }
+        val index = part?.value?.removePrefix("$HeaderPart/")?.let { key -> liveColumns.indexOfFirst { it.key == key } } ?: -1
+        if (index < 0) false else if (command is LocalCommand.Reveal || index !in liveMounted) {
+            if (command is LocalCommand.Reveal) pending = command
+            state.horizontal.dispatchRawDelta((liveGeometry().reveal(index, state.horizontal.value, command) - state.horizontal.value).toFloat())
+            true
+        } else false
+    }) {}
+    val requested = when (val command = pending) { is LocalCommand.Focus -> command.part; is LocalCommand.Reveal -> command.part; else -> null }
+    requested?.value?.takeIf { key -> columns.indexOfFirst { "$HeaderPart/${it.key}" == key } in mounted }?.let { key ->
+        SideEffect { machine.send(RovingInput.Point(key, focus = true)) }
+    }
+    ColumnBands(geometry, state.horizontal, modifier.onKeyEvent { event ->
+        val stroke = event.stroke()
+        if (event.type != KeyEventType.KeyDown || stroke == null || !kernel.handles(RovingProperties(items, Axis.Horizontal, rightToLeft = direction == LayoutDirection.Rtl), stroke)) false
+        else {
+            machine.send(RovingInput.Stroke(stroke))
+            if (stroke.key == KeyName.Home || stroke.key == KeyName.End) machine.state.active?.let { pending = LocalCommand.Reveal(dev.shibasis.reaktor.surface.PartKey(it)) }
+            true
         }
-        val spans = columnSpans(columns, widths(), constraints.maxWidth, this)
-        val placeables = measurables.mapIndexed { index, measurable -> measurable.measure(Constraints(spans[index], spans[index], 0, constraints.maxHeight)) }
-        val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
-        layout(constraints.constrainWidth(spans.sum()), height) {
-            var x = 0
-            placeables.forEach { placeable ->
-                placeable.placeRelative(x, (height - placeable.height) / 2)
-                x += placeable.width
+    }) { band ->
+        val shown = visible[band]
+        Layout(content = { shown.forEach { index -> key(columns[index].key) { HeaderCell(columns[index], state, machine, appearance) } } }) { measurables, constraints ->
+            shown.forEachIndexed { index, column ->
+                if (columns[column].width is ColumnWidth.Content) record(columns[column], measurables[index].maxIntrinsicWidth(Constraints.Infinity).toDp().value)
+            }
+            val shape = geometry()
+            val placeables = measurables.mapIndexed { index, measurable -> measurable.measure(Constraints(shape.spans[shown[index]], shape.spans[shown[index]], 0, constraints.maxHeight)) }
+            val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
+            layout(constraints.maxWidth, height) {
+                pending?.let { command ->
+                    val part = when (command) { is LocalCommand.Focus -> command.part; is LocalCommand.Reveal -> command.part; else -> null }
+                    val active = columns.indexOfFirst { "$HeaderPart/${it.key}" == part?.value }
+                    if (active >= 0) {
+                        val wanted = geometry().reveal(active, state.horizontal.value, command)
+                        state.horizontal.dispatchRawDelta((wanted - state.horizontal.value).toFloat())
+                        if (active in shown && state.horizontal.value == wanted) pending = null
+                    }
+                }
+                val scroll = if (band == 0) state.horizontal.value else 0
+                placeables.forEachIndexed { index, placeable -> placeable.placeRelative(shape.offsets[shown[index]] - scroll, (height - placeable.height) / 2) }
             }
         }
     }
 }
 
-private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val widths: () -> Map<String, Float>,
-    private val row: Int, private val record: (TableColumn<T>, Float) -> Unit, private val visible: IntRange) : MultiContentMeasurePolicy {
+private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val geometry: () -> ColumnGeometry,
+    private val scroll: ScrollState, private val band: Int, private val row: Int, private val record: (TableColumn<T>, Float) -> Unit, private val visible: List<Int>) : MultiContentMeasurePolicy {
     override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
         visible.forEachIndexed { index, columnIndex ->
             val column = columns[columnIndex]
@@ -237,17 +329,15 @@ private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private 
             if (content != null && row < content.sample) record(column,
                 (measurables[index].maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0).toDp().value + 2 * column.cellPadding.value)
         }
-        val spans = columnSpans(columns, widths(), if (constraints.hasBoundedWidth) constraints.maxWidth else 0, this)
-        val insets = IntArray(visible.count()) { columns[visible.first + it].cellPadding.roundToPx() }
-        val rooms = IntArray(visible.count()) { (spans[visible.first + it] - 2 * insets[it]).coerceAtLeast(0) }
+        val shape = geometry()
+        val insets = IntArray(visible.size) { columns[visible[it]].cellPadding.roundToPx() }
+        val rooms = IntArray(visible.size) { (shape.spans[visible[it]] - 2 * insets[it]).coerceAtLeast(0) }
         val placeables = measurables.mapIndexed { index, cell -> cell.map { it.measure(Constraints(0, rooms[index], 0, constraints.maxHeight)) } }
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else (placeables.maxOfOrNull { cell -> cell.maxOfOrNull { it.height } ?: 0 } ?: 0).coerceAtLeast(constraints.minHeight)
-        return layout(constraints.constrainWidth(spans.sum()), height) {
-            var x = spans.take(visible.first).sum()
+        return layout(constraints.maxWidth, height) {
             placeables.forEachIndexed { index, cell ->
-                val align = columns[visible.first + index].cellAlign
-                cell.forEach { it.placeRelative(x + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), (height - it.height) / 2) }
-                x += spans[visible.first + index]
+                val align = columns[visible[index]].cellAlign
+                cell.forEach { it.placeRelative(shape.offsets[visible[index]] - (if (band == 0) scroll.value else 0) + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), (height - it.height) / 2) }
             }
         }
     }
@@ -278,10 +368,13 @@ private fun <T> columnSpans(columns: List<TableColumn<T>>, widths: Map<String, F
 }
 
 @Composable
-private fun <T> HeaderCell(column: TableColumn<T>, state: TableState, roving: Roving, appearance: TableHeaderAppearance) {
+private fun <T> HeaderCell(column: TableColumn<T>, state: TableState, roving: Machine<RovingProperties, RovingState, RovingInput, ActiveChange>, appearance: TableHeaderAppearance) {
     val descending = state.layout.sort?.takeIf { it.column == column.key }?.descending
     val press = rememberMachine(PressKernel, PressProperties(enabled = column.sortable)) {
-        if (it == Activated) state.layout = state.layout.copy(sort = state.layout.sort.next(column.key))
+        if (it == Activated) {
+            roving.send(RovingInput.Point("$HeaderPart/${column.key}", focus = true))
+            state.layout = state.layout.copy(sort = state.layout.sort.next(column.key))
+        }
     }
     val source = rememberInteractions(press)
     val density = LocalDensity.current
@@ -307,7 +400,9 @@ private fun <T> HeaderCell(column: TableColumn<T>, state: TableState, roving: Ro
         },
         modifier = Modifier
             .onSizeChanged { measured[0] = with(density) { it.width.toDp().value } }
-            .rovingItem(roving, "$HeaderPart/${column.key}", enabled = true, typeahead = null)
+            .part(roving, dev.shibasis.reaktor.surface.PartKey("$HeaderPart/${column.key}"))
+            .onFocusChanged { if (it.isFocused) roving.send(RovingInput.Focused("$HeaderPart/${column.key}")) }
+            .focusProperties { canFocus = roving.state.active == "$HeaderPart/${column.key}" }
             .then(if (column.sortable) Modifier.press(source, enabled = true, onHold = null) { press.send(PressInput.Activate(press.nextSequence())) } else Modifier.focusable(interactionSource = source))
             .semantics(mergeDescendants = true) {
                 if (column.sortable) {

@@ -8,4 +8,4 @@ fun Sort?.next(column: String): Sort? = when {
     else -> null
 }
 
-data class TableLayout(val sort: Sort? = null, val widths: Map<String, Float> = emptyMap())
+data class TableLayout(val sort: Sort? = null, val widths: Map<String, Float> = emptyMap(), val pins: Map<String, Edge> = emptyMap())
