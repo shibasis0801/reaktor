@@ -193,6 +193,45 @@ class PanePlanTest {
         assertEquals(setOf("screens", "details"), devTools(1000f).plan(1100f, 1000f, 1.6f, PanePreferences()).collapsed)
     }
 
+    @Test
+    fun endOverlaysKeepMainSpaceAndTheUsersWidthWithoutCollapsingStartRegions() {
+        val overlay = graph.copy(endOverlayBelow = 900f)
+        val chosen = PanePreferences(sizes = mapOf("inspector" to 520f))
+        for ((width, scale) in listOf(760f to 1f, 760f to 1.6f, 1100f to 1.6f)) {
+            val shown = overlay.plan(width, 1000f, scale, chosen)
+            val hidden = overlay.plan(width, 1000f, scale, chosen.copy(hidden = setOf("inspector")))
+            assertEquals(setOf("inspector"), shown.overlays)
+            assertEquals(hidden.mainWidth, shown.mainWidth)
+            assertEquals(hidden.mainHeight, shown.mainHeight)
+            assertEquals(520f, shown.sizes["inspector"])
+            assertTrue("outline" in shown.sizes)
+            assertTrue("inspector" !in shown.collapsed)
+            assertTrue(hidden.overlays.isEmpty())
+        }
+        val wide = overlay.plan(1512f, 1000f, 1.6f, chosen)
+        assertTrue(wide.overlays.isEmpty())
+        assertEquals(520f, wide.sizes["inspector"])
+        assertEquals(672f, wide.mainWidth)
+        assertEquals(520f, chosen.sizes["inspector"])
+        assertTrue(overlay.plan(900f, 1000f, 1f, chosen).overlays.isEmpty())
+    }
+
+    @Test
+    fun overlayWidthFitsTheViewportWhileDefaultPlansKeepTheirDockingContract() {
+        val spec = PaneSpec(listOf(Region("detail", RegionEdge.End, 360f, 280f, 720f, 0)), 160f, 40f,
+            endOverlayBelow = 900f)
+        for (width in listOf(200f, 400f, 760f)) {
+            for (scale in listOf(1f, 1.6f)) {
+                val plan = spec.plan(width, 800f, scale, PanePreferences(sizes = mapOf("detail" to 900f)))
+                assertEquals(width, plan.mainWidth)
+                assertEquals(setOf("detail"), plan.overlays)
+                assertEquals(minOf(width, 720f), plan.sizes["detail"])
+            }
+        }
+        assertEquals(graph.plan(760f, 800f, 1f, PanePreferences()),
+            graph.copy(endOverlayBelow = 0f).plan(760f, 800f, 1f, PanePreferences()))
+    }
+
     private class Reading(val window: String, val width: Float, val height: Float, val sizes: Map<String, Float?>, val mainWidth: Float, val mainHeight: Float) {
         val hidden: Set<String> get() = sizes.filterValues { it == null }.keys
     }

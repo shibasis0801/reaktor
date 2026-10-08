@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -26,6 +29,8 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.withKeyDown
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.PanePreferences
 import dev.shibasis.reaktor.surface.PaneSpec
@@ -49,11 +54,11 @@ class PaneHostTest {
     )
 
     @Composable
-    private fun Graph(container: Int, preferences: PanePreferences, onPreferencesChange: (PanePreferences) -> Unit = {}) =
-        Box(Modifier.requiredSize(container.dp, 800.dp)) {
+    private fun Graph(container: Int, preferences: PanePreferences, spec: PaneSpec = graph, onPreferencesChange: (PanePreferences) -> Unit = {}) =
+        Box(Modifier.requiredSize(container.dp, 800.dp).testTag("pane-host")) {
             AutomationScope("graph") {
                 PaneHost(
-                    graph,
+                    spec,
                     preferences,
                     onPreferencesChange,
                     main = {
@@ -112,6 +117,62 @@ class PaneHostTest {
         onNodeWithTag("graph/splitter/outline").assertDoesNotExist()
         onNodeWithTag("inspector-size").assertTextEquals("360x800")
         onNodeWithTag("main-size").assertTextEquals("112x622 collapsed [outline]")
+    }
+
+    @Test
+    fun endDrawersKeepLogicalPlacementAndActualFocusAcrossTheBreakpoint() {
+        for (direction in LayoutDirection.entries) for (scale in listOf(1f, 1.6f)) runComposeUiTest {
+            var container by mutableStateOf(760)
+            var preferences by mutableStateOf(PanePreferences(sizes = mapOf("inspector" to 520f)))
+            val spec = graph.copy(endOverlayBelow = 900f)
+            setContent {
+                CompositionLocalProvider(LocalDensity provides Density(1f, scale), LocalLayoutDirection provides direction) {
+                    Graph(container, preferences, spec) { preferences = it }
+                }
+            }
+            fun check(overlay: Boolean) {
+                val host = onNodeWithTag("pane-host").fetchSemanticsNode().boundsInRoot
+                val detail = onNodeWithTag("inspector").fetchSemanticsNode().boundsInRoot
+                assertEquals(520f, detail.width, 1f)
+                assertEquals(if (direction == LayoutDirection.Ltr) host.right else host.left,
+                    if (direction == LayoutDirection.Ltr) detail.right else detail.left, 1f)
+                val outline = if (scale == 1f) 272f else 320f
+                assertEquals(container - outline - 8f - if (overlay) 0f else 528f, onNodeWithTag("main").width(), 1f)
+            }
+            check(true)
+            onNodeWithTag("main-second").requestFocus()
+            onNodeWithTag("inspector-button").requestFocus()
+            container = 1512
+            waitForIdle()
+            check(false)
+            onNodeWithTag("inspector-button").assertIsFocused()
+            container = 1100
+            waitForIdle()
+            check(scale > 1f)
+            onNodeWithTag("inspector-button").assertIsFocused()
+            container = 760
+            waitForIdle()
+            check(true)
+            onNodeWithTag("inspector-button").assertIsFocused()
+            f6()
+            onNodeWithTag("outline-button").assertIsFocused()
+            f6()
+            onNodeWithTag("main-second").assertIsFocused()
+            f6()
+            onNodeWithTag("trace-button").assertIsFocused()
+            f6()
+            onNodeWithTag("inspector-button").assertIsFocused()
+            val main = onNodeWithTag("main").width()
+            preferences = preferences.copy(hidden = setOf("inspector"))
+            waitForIdle()
+            assertEquals(main, onNodeWithTag("main").width(), 1f)
+            onNodeWithTag("inspector").assertDoesNotExist()
+            preferences = preferences.copy(hidden = emptySet())
+            container = 1512
+            waitForIdle()
+            check(false)
+            assertEquals(520f, preferences.sizes["inspector"])
+        }
     }
 
     @Test
