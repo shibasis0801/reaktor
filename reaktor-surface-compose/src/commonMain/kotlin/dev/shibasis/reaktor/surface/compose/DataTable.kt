@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
@@ -32,6 +33,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Modifier
@@ -51,6 +54,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.collectionItemInfo
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -62,6 +70,12 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.surface.GridCell
+import dev.shibasis.reaktor.surface.GridProperties
+import dev.shibasis.reaktor.surface.GridState
+import dev.shibasis.reaktor.surface.GridInput
+import dev.shibasis.reaktor.surface.GridEvent
+import dev.shibasis.reaktor.surface.GridKernel
 import dev.shibasis.reaktor.surface.Activated
 import dev.shibasis.reaktor.surface.ActiveChange
 import dev.shibasis.reaktor.surface.Edge
@@ -112,6 +126,7 @@ class TableState(
     val horizontal: ScrollState = ScrollState(0),
 ) {
     var layout: TableLayout by mutableStateOf(layout)
+    var cursor: GridState by mutableStateOf(GridState())
 }
 
 @Composable
@@ -122,6 +137,8 @@ data class HeaderProperties(val sortable: Boolean, val descending: Boolean?)
 class HeaderSlots(val content: @Composable () -> Unit)
 
 typealias TableHeaderAppearance = ComposeAppearance<HeaderProperties, PressState, HeaderSlots>
+
+class TableGrid(val columns: Set<String>, val onEvent: (GridEvent) -> Unit)
 
 @Composable
 fun <T> DataTable(
@@ -137,6 +154,7 @@ fun <T> DataTable(
     busy: Boolean = false,
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.TableRow],
+    grid: TableGrid? = null,
     empty: @Composable () -> Unit = {},
 ) {
     val header = LocalAppearances.current[Appearance.TableHeader]
@@ -163,6 +181,31 @@ fun <T> DataTable(
             derivedStateOf { ColumnGeometry(columnSpans(columns, widths(), layoutWidth, density), columns.map { pins.value[it.key] }, viewport) }
         }
         val geometry = { geometryState.value }
+        val gridBinding = grid?.let { cells ->
+            val gridColumns = remember(columns, cells.columns) { RovingList(columns.filter { it.key in cells.columns }.map { RovingItem(it.key) }) }
+            val properties = GridProperties(source, gridColumns, LocalSurfaceEnvironment.current.keys, mirrored)
+            val binding = remember(state) { GridBinding(state, properties) }
+            binding.onEvent = cells.onEvent
+            binding.revealColumn = { key ->
+                val index = columns.indexOfFirst { it.key == key }
+                if (index >= 0) state.horizontal.dispatchRawDelta((geometry().reveal(index, state.horizontal.value, LocalCommand.Reveal(dev.shibasis.reaktor.surface.PartKey(key))) - state.horizontal.value).toFloat())
+            }
+            SideEffect {
+                binding.properties = properties
+                state.cursor = GridKernel.reconcile(properties, state.cursor).state
+            }
+            binding
+        }
+        if (gridBinding != null) {
+            val focusedCell = gridBinding.state.cursor.active?.takeIf { gridBinding.host?.focusTarget == it.part.value }
+            DisposableEffect(geometry(), state.horizontal.maxValue, gridBinding) {
+                if (focusedCell != null) {
+                    gridBinding.host?.execute(LocalCommand.Focus(focusedCell.part))
+                    gridBinding.revealColumn(focusedCell.column)
+                }
+                onDispose { }
+            }
+        }
         val visible by remember(geometryState, state) { derivedStateOf { geometry().visible(state.horizontal.value) } }
         var rowsTop by remember { mutableIntStateOf(0) }
         Column(Modifier.fillMaxSize().horizontalScroll(state.horizontal)) {
@@ -172,23 +215,79 @@ fun <T> DataTable(
             if (source.size == 0) {
                 Box(body) { empty() }
             } else {
-                val row = remember(columns, state, geometryState, visible) {
+                val row = remember(columns, state, geometryState, visible, gridBinding) {
                     val content: @Composable ItemScope.(T) -> Unit = { item ->
                         val scope = this
                         ColumnBands(geometry, state.horizontal, Modifier) { band ->
                             val shown = visible[band]
                             val cells = remember(columns, geometryState, index, shown, band) { CellsPolicy(columns, geometry, state.horizontal, band, index, record, shown) }
-                            Layout(shown.map { column -> @Composable { key(columns[column].key) { columns[column].cell(scope, item) } } }, measurePolicy = cells)
+                            Layout(shown.map { column -> @Composable { key(columns[column].key) {
+                                if (gridBinding != null && gridBinding.properties.columns.indexOf(columns[column].key) >= 0)
+                                    GridCellContent(scope, columns[column].key, appearance) { columns[column].cell(scope, item) }
+                                else columns[column].cell(scope, item)
+                            } } }, measurePolicy = cells)
                         }
                     }
                     content
                 }
-                Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, { _, _ -> }, actions, state.list, behavior, appearance, false, true, row)
+                Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, { _, _ -> }, actions, state.list, behavior, appearance, false, true, row, gridBinding)
             }
         }
         CollectionScrollbar(state.list, Modifier.align(Alignment.TopEnd).padding(top = with(LocalDensity.current) { rowsTop.toDp() }).fillMaxHeight())
         if (state.horizontal.maxValue > 0) TableScrollbar(state.horizontal, Modifier.align(Alignment.BottomStart).fillMaxWidth()
             .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, "scrollbar/horizontal"))))
+    }
+}
+
+internal class GridBinding(val state: TableState, properties: GridProperties) {
+    var host: CollectionHost? = null
+    var properties by mutableStateOf(properties)
+    var onEvent: (GridEvent) -> Unit = {}
+    var revealColumn: (String) -> Unit = {}
+
+    fun send(input: GridInput) {
+        val result = GridKernel.reduce(properties, state.cursor, input)
+        state.cursor = result.state
+        result.events.forEach(onEvent)
+        result.commands.forEach {
+            if (it !is LocalCommand.Focus || host?.focused != it.part.value) host?.execute(it)
+        }
+    }
+}
+
+@Composable
+private fun GridCellContent(scope: ItemScope, column: String, appearance: RowAppearance, content: @Composable () -> Unit) {
+    val host = scope.host
+    val binding = host.grid ?: return content()
+    val cell = remember(scope.key, column) { GridCell(scope.key, column) }
+    val focus = remember { FocusRequester() }
+    val enabled = binding.properties.rows.indexOf(cell.row).let { it >= 0 && binding.properties.rows.enabled(it) }
+    val flags by remember(binding, host, cell) { derivedStateOf {
+        val properties = binding.properties
+        val range = binding.state.cursor.range(properties)
+        val row = properties.rows.indexOf(cell.row)
+        val column = properties.columns.indexOf(cell.column)
+        (range != null && row in range.first && column in range.second && properties.rows.enabled(row) && properties.columns.enabled(column)) to
+            (host.focused == cell.part.value && host.keyboard)
+    } }
+    DisposableEffect(host, cell) {
+        host.register(cell.part.value, focus)
+        onDispose { host.unregister(cell.part.value, focus) }
+    }
+    Box(Modifier.fillMaxWidth().focusRequester(focus)
+        .onFocusChanged { host.onCellFocus(cell, it.isFocused) }
+        .onPlaced { host.positioned(cell.part.value) }
+        .focusProperties { canFocus = binding.state.cursor.active == cell }
+        .focusable()
+        .gridCellPointer(host, cell)
+        .then(if (LocalAutomationScope.current == null) Modifier else Modifier.testId(automationId(LocalAutomationScope.current, cell.part.value)))
+        .semantics(mergeDescendants = true) {
+            selected = flags.first
+            collectionItemInfo = CollectionItemInfo(scope.index, 1, binding.properties.columns.indexOf(column), 1)
+            if (enabled) onClick { host.pointCell(cell); true } else disabled()
+        }, propagateMinConstraints = true) {
+        appearance.Content(RowProperties(flags.first, enabled, 0, 0, false, false), RowState(flags.second, false, flags.second),
+            LocalThemeSnapshot.current, rememberFeedback(false, flags.second), RowSlots(content, null))
     }
 }
 

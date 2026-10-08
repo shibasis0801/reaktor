@@ -28,6 +28,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.click
@@ -45,6 +46,10 @@ import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.TextLayoutResult
+import dev.shibasis.reaktor.surface.GridCell
+import dev.shibasis.reaktor.surface.GridState
+import dev.shibasis.reaktor.surface.GridEvent
+import dev.shibasis.reaktor.surface.KeyConvention
 import dev.shibasis.reaktor.surface.Command
 import dev.shibasis.reaktor.surface.CommandId
 import dev.shibasis.reaktor.surface.CommandSet
@@ -62,6 +67,121 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class DataTableTest {
+    @Test
+    fun disabledRowsKeepTheirCellSemanticsAndCannotActivate() = runComposeUiTest {
+        val events = mutableListOf<GridEvent>()
+        val state = TableState()
+        val source = listSource(listOf("blocked", "ready"), { it }, enabled = { it == "ready" })
+        val columns = listOf(TableColumn<String>("value", ColumnWidth.Fixed(100.dp), header = { BasicText("Value") }) { BasicText(it) })
+        setContent { AutomationScope("grid") { DataTable(source, columns, emptySet(), {}, Modifier.requiredSize(200.dp, 160.dp), state = state,
+            grid = TableGrid(setOf("value")) { events += it }) } }
+        onNodeWithTag("grid/${GridCell("blocked", "value").part.value}", useUnmergedTree = true).assertIsNotEnabled().performMouseInput { click() }
+        assertTrue(events.isEmpty())
+        assertEquals(GridState(GridCell("ready", "value")), state.cursor)
+        onNodeWithTag("grid/${GridCell("ready", "value").part.value}", useUnmergedTree = true).requestFocus().assertIsFocused()
+    }
+
+    @Test
+    fun cellsOwnFocusRangeAndCopyAcrossVirtualizedRowsColumnsAndPinsInBothDirections() {
+        for (direction in LayoutDirection.entries) runComposeUiTest {
+            val events = mutableListOf<GridEvent>()
+            var width by mutableStateOf(400.dp)
+            val state = TableState(TableLayout(pins = mapOf("c0" to Edge.First, "actions" to Edge.Last)))
+            val columns = (0..59).map { column -> TableColumn<String>("c$column", ColumnWidth.Fixed(100.dp),
+                header = { BasicText("Column $column") }) { row -> BasicText("$row:$column", Modifier.testTag("value-$row-$column")) } } +
+                TableColumn<String>("actions", ColumnWidth.Fixed(40.dp), header = {}) { BasicText("…") }
+            val source = listSource((0..99).map { "r$it" }, { it })
+            setContent {
+                SurfaceEnvironmentProvider(SurfaceEnvironment(keys = KeyConvention.Mac)) {
+                    CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                        Column {
+                            Button({}, Modifier.testTag("outside")) { BasicText("Outside") }
+                            AutomationScope("grid") { DataTable(source, columns, emptySet(), {}, Modifier.requiredSize(width, 240.dp), state = state,
+                                grid = TableGrid((0..59).mapTo(linkedSetOf()) { "c$it" }, events::add)) }
+                        }
+                    }
+                }
+            }
+            fun cell(row: String, column: String) = onNodeWithTag("grid/${GridCell(row, column).part.value}", useUnmergedTree = true)
+            val first = cell("r0", "c0").fetchSemanticsNode().boundsInRoot
+            cell("r0", "c0").requestFocus().assertIsFocused()
+            assertTrue(events.isEmpty())
+            val forward = if (direction == LayoutDirection.Ltr) Key.DirectionRight else Key.DirectionLeft
+            onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(forward); pressKey(Key.DirectionDown) } }
+            cell("r1", "c1").assertIsFocused()
+            cell("r0", "c0").assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+            cell("r1", "c1").assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+            onRoot().performKeyInput { withKeyDown(Key.MetaLeft) { pressKey(Key.C) } }
+            assertEquals(GridEvent.Copy(listOf("r0", "r1"), listOf("c0", "c1")), events.single())
+            onRoot().performKeyInput { pressKey(Key.Enter) }
+            assertEquals(GridEvent.Activate(GridCell("r1", "c1")), events.last())
+            onRoot().performKeyInput { pressKey(forward) }
+            cell("r1", "c2").assertIsFocused()
+            runOnIdle { width = 240.dp }
+            waitForIdle()
+            cell("r1", "c2").assertIsFocused().assertIsDisplayed()
+            runOnIdle { width = 400.dp }
+            waitForIdle()
+            cell("r1", "c2").assertIsFocused().assertIsDisplayed()
+            onNodeWithTag("outside").requestFocus().assertIsFocused()
+            runOnIdle { width = 240.dp }
+            waitForIdle()
+            onNodeWithTag("outside").assertIsFocused()
+            runOnIdle { width = 400.dp }
+            waitForIdle()
+            onNodeWithTag("outside").assertIsFocused()
+            cell("r1", "c2").requestFocus().assertIsFocused()
+            onRoot().performKeyInput { pressKey(Key.MoveEnd) }
+            cell("r1", "c59").assertIsFocused().assertIsDisplayed()
+            assertEquals(first.left, cell("r1", "c0").fetchSemanticsNode().boundsInRoot.left)
+            onRoot().performKeyInput { repeat(25) { pressKey(Key.PageDown) } }
+            cell("r99", "c59").assertIsFocused().assertIsDisplayed()
+            onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { withKeyDown(Key.MetaLeft) { pressKey(Key.MoveHome) } } }
+            cell("r0", "c0").assertIsFocused().assertIsDisplayed()
+            onRoot().performKeyInput { withKeyDown(Key.MetaLeft) { pressKey(Key.C) } }
+            val all = events.last() as GridEvent.Copy
+            assertEquals((0..99).map { "r$it" }, all.rows)
+            assertEquals((0..59).map { "c$it" }, all.columns)
+            assertTrue("actions" !in all.columns)
+            cell("r0", "c1").performMouseInput { click() }
+            assertEquals(GridEvent.Activate(GridCell("r0", "c1")), events.last())
+            assertEquals(GridState(GridCell("r0", "c1")), state.cursor)
+            onRoot().performKeyInput { pressKey(Key.MoveHome); pressKey(Key.MoveHome) }
+            cell("r0", "c0").assertIsFocused()
+            onNodeWithTag("outside").requestFocus().assertIsFocused()
+            runOnIdle { width = 240.dp }
+            waitForIdle()
+            onNodeWithTag("outside").assertIsFocused()
+        }
+    }
+
+    @Test
+    fun retainedCellKeysSurviveReorderingAndDeletedCellsReconcileWithActualFocus() = runComposeUiTest {
+        val state = TableState()
+        var rows by mutableStateOf((0..49).map { "r$it" })
+        val columns = (0..2).map { column -> TableColumn<String>("c$column", ColumnWidth.Fixed(100.dp), header = { BasicText("Column $column") }) { BasicText("$it:$column") } }
+        setContent {
+            AutomationScope("grid") { DataTable(listSource(rows, { it }), columns, emptySet(), {}, Modifier.requiredSize(400.dp, 240.dp), state = state,
+                grid = TableGrid(setOf("c0", "c1", "c2"), {})) }
+        }
+        fun cell(row: String, column: String) = onNodeWithTag("grid/${GridCell(row, column).part.value}", useUnmergedTree = true)
+        cell("r0", "c0").requestFocus()
+        onRoot().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.DirectionRight); pressKey(Key.DirectionDown) } }
+        val selected = GridState(GridCell("r1", "c1"), GridCell("r0", "c0"))
+        assertEquals(selected, state.cursor)
+        runOnIdle { rows = rows.reversed() }
+        waitForIdle()
+        assertEquals(selected, state.cursor)
+        cell("r1", "c1").assertIsFocused().assertIsDisplayed()
+        runOnIdle { rows = rows.filter { it != "r1" } }
+        waitForIdle()
+        assertEquals(GridState(GridCell("r49", "c0")), state.cursor)
+        cell("r49", "c0").assertIsFocused().assertIsDisplayed()
+        runOnIdle { rows = emptyList() }
+        waitForIdle()
+        assertEquals(GridState(), state.cursor)
+    }
+
     @Test
     fun thirtyContentColumnsKeepHeadersAndLeadingValuesWholeAndRemainScrollable() = runComposeUiTest {
         val headers = mutableMapOf<Int, TextLayoutResult>()

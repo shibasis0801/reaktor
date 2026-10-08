@@ -96,6 +96,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
+import dev.shibasis.reaktor.surface.GridCell
+import dev.shibasis.reaktor.surface.GridInput
+import dev.shibasis.reaktor.surface.GridKernel
+import dev.shibasis.reaktor.surface.KeyName
 import dev.shibasis.reaktor.surface.Availability
 import dev.shibasis.reaktor.surface.BehaviorKernel
 import dev.shibasis.reaktor.surface.CollectionEvent
@@ -139,7 +143,7 @@ class RowSlots(val content: @Composable () -> Unit, val toggle: Modifier?)
 typealias RowAppearance = ComposeAppearance<RowProperties, RowState, RowSlots>
 
 @Stable
-class ItemScope internal constructor(val key: String, val index: Int, private val flags: RowFlags, private val host: CollectionHost) {
+class ItemScope internal constructor(val key: String, val index: Int, private val flags: RowFlags, internal val host: CollectionHost) {
     val selected: Boolean get() = flags.selected
     val active: Boolean get() = flags.active
 
@@ -217,6 +221,7 @@ internal fun <T> Collection(
     scrollbar: Boolean,
     scrolling: Boolean,
     row: @Composable ItemScope.(T) -> Unit,
+    grid: GridBinding? = null,
 ) {
     val properties = CollectionProperties(source, selection, LocalSurfaceEnvironment.current.keys, mode, LocalLayoutDirection.current == LayoutDirection.Rtl)
     val selected = rememberUpdatedState(selection)
@@ -235,6 +240,8 @@ internal fun <T> Collection(
             is CollectionEvent.CheckChange -> checked(original(event.key), event.checked)
         }
     }
+    host.grid = grid
+    grid?.host = host
     host.list = state.takeIf { scrolling }
     host.actions = actions
     val inputModes = LocalInputModeManager.current
@@ -246,11 +253,12 @@ internal fun <T> Collection(
     Box(
         modifier
             .semantics {
-                collectionInfo = CollectionInfo(source.size, 1)
+                collectionInfo = CollectionInfo(source.size, grid?.properties?.columns?.size ?: 1)
                 selectableGroup()
             }
+            .then(if (grid != null) Modifier.onPreviewKeyEvent(host::onKey) else Modifier)
             .then(if (menus) Modifier.commands(commands, invoke) else Modifier)
-            .onPreviewKeyEvent(host::onKey)
+            .then(if (grid == null) Modifier.onPreviewKeyEvent(host::onKey) else Modifier)
             .onFocusChanged(host::onFocus)
             .focusProperties { canFocus = host.waiting() }
             .focusTarget(),
@@ -296,7 +304,7 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
     val key = source.key(index)
     val flags = remember(host, key) { RowFlags(host, key) }
     val focus = remember { FocusRequester() }
-    DisposableEffect(host, key) {
+    if (host.grid == null) DisposableEffect(host, key) {
         host.register(key, focus)
         onDispose { host.unregister(key, focus) }
     }
@@ -316,9 +324,9 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
             .then(if (host.list == null) Modifier.onGloballyPositioned { host.rowCoordinates[key] = it } else Modifier)
             .focusRequester(focus)
             .onFocusChanged { host.onRowFocus(key, it.isFocused) }
-            .focusProperties { canFocus = host.canFocus(key) }
+            .focusProperties { canFocus = host.grid == null && host.canFocus(key) }
             .focusable()
-            .semantics(mergeDescendants = true) {
+            .semantics(mergeDescendants = host.grid == null) {
                 this.selected = selected
                 checked?.let { toggleableState = ToggleableState(it) }
                 collectionItemInfo = CollectionItemInfo(index, 1, 0, 1)
@@ -332,7 +340,7 @@ private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index
                     if (expanded) collapse { host.expand(key, false); true } else expand { host.expand(key, true); true }
                 }
             }
-            .focusProperties { onEnter = { cancelFocusChange() } }
+            .focusProperties { onEnter = { if (host.grid == null) cancelFocusChange() } }
             .focusGroup(),
         propagateMinConstraints = true,
     ) {
@@ -363,6 +371,7 @@ internal class RowFlags(host: CollectionHost, key: String) {
 @Stable
 internal class CollectionHost(private val selection: State<Set<String>>) {
     lateinit var machine: Machine<CollectionProperties, CollectionState, CollectionInput, CollectionEvent>
+    var grid: GridBinding? = null
     var list: LazyListState? = null
     val rowCoordinates = HashMap<String, LayoutCoordinates>()
     private var properties: CollectionProperties? = null
@@ -400,6 +409,19 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         this.properties = properties
         this.behavior = behavior
         this.inputModes = inputModes
+        val cells = grid
+        if (cells != null) {
+            val active = cells.state.cursor.active
+            if (active != null && (machine.state.within || pending == active.part.value)) {
+                val moved = previous?.indexOf(active.row) != properties.items.indexOf(active.row)
+                if (focused != active.part.value) focus(active.part.value)
+                if (moved || focused != active.part.value) {
+                    reveal(active.row)
+                    cells.revealColumn(active.column)
+                }
+            }
+            return
+        }
         val gone = focused?.takeIf { properties.items.indexOf(it) < 0 } ?: return
         machine.state.active?.takeIf { it != gone }?.let {
             focus(it)
@@ -413,7 +435,12 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
             true
         }
         is LocalCommand.Reveal -> {
-            reveal(command.part.value)
+            val cells = grid
+            val cell = cells?.state?.cursor?.active?.takeIf { it.part == command.part }
+            if (cell == null) reveal(command.part.value) else {
+                reveal(cell.row)
+                cells.revealColumn(cell.column)
+            }
             true
         }
         else -> false
@@ -422,7 +449,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     fun register(key: String, focus: FocusRequester) {
         rows[key] = focus
         if (pending == key) {
-            pending = null
+            if (grid == null) pending = null
             focus.requestFocus()
         }
     }
@@ -435,21 +462,47 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         }
     }
 
+    fun positioned(key: String) {
+        if (pending == key && focused == key) pending = null
+    }
+
+    val focusTarget: String? get() = pending ?: focused
+
     fun canFocus(key: String): Boolean = machine.state.active == key
 
-    fun waiting(): Boolean = machine.state.active?.let { it !in rows } ?: false
+    fun waiting(): Boolean = (grid?.state?.cursor?.active?.part?.value ?: machine.state.active)?.let { it !in rows } ?: false
 
     fun onFocus(state: FocusState) {
         if (!state.hasFocus && !menuOpen.value) machine.send(CollectionInput.Blurred)
         if (!state.isFocused) return
-        val active = machine.state.active ?: return
+        val cell = grid?.state?.cursor?.active
+        val active = cell?.part?.value ?: machine.state.active ?: return
         if (inputModes?.inputMode == InputMode.Keyboard) keyboard = true
         focus(active)
-        reveal(active)
+        reveal(cell?.row ?: active)
+        cell?.let { grid?.revealColumn?.invoke(it.column) }
+    }
+
+    fun onCellFocus(cell: GridCell, isFocused: Boolean) {
+        if (isFocused) {
+            if (pending == cell.part.value) pending = null
+            focused = cell.part.value
+            if (!pointing && inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+            grid?.send(GridInput.Focused(cell))
+            machine.send(CollectionInput.Focused(cell.row))
+        } else if (focused == cell.part.value) focused = null
+    }
+
+    fun pointCell(cell: GridCell) = pointed { grid?.send(GridInput.Point(cell)) }
+
+    fun secondaryCell(cell: GridCell) = pointed {
+        grid?.send(GridInput.Focused(cell))
+        focus(cell.part.value)
     }
 
     fun onRowFocus(key: String, isFocused: Boolean) {
         if (isFocused) {
+            if (pending == key) pending = null
             focused = key
             if (!pointing && inputModes?.inputMode == InputMode.Keyboard) keyboard = true
             machine.send(CollectionInput.Focused(key))
@@ -461,6 +514,21 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     fun onKey(event: KeyEvent): Boolean {
         if (event.type != KeyEventType.KeyDown) return false
         val stroke = event.stroke() ?: return false
+        val cells = grid
+        if (cells != null) {
+            val active = cells.state.cursor.active ?: return false
+            if (focusTarget != active.part.value) return false
+            keyboard = true
+            if (GridKernel.handles(cells.properties, stroke)) {
+                cells.send(GridInput.Stroke(stroke, page()))
+                return true
+            }
+            if (stroke.key == KeyName.ContextMenu || stroke.key == KeyName.F10 && stroke.shift && !stroke.meta && !stroke.control && !stroke.alt) {
+                machine.send(CollectionInput.Secondary(active.row, atPointer = false))
+                return true
+            }
+            return false
+        }
         val properties = properties ?: return false
         if (!(behavior as? CollectionKernel ?: DefaultKernel).handles(properties, stroke, machine.state.active)) return false
         keyboard = true
@@ -491,7 +559,7 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     fun returnFocus() {
-        machine.state.active?.let(::focus)
+        (grid?.state?.cursor?.active?.part?.value ?: machine.state.active)?.let(::focus)
     }
 
     private fun rowAnchor(key: String): IntRect {
@@ -545,12 +613,10 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
     }
 
     private fun focus(key: String) {
-        val requester = rows[key]
-        if (requester == null) {
-            pending = key
-        } else {
-            pending = null
-            requester.requestFocus()
+        pending = key
+        rows[key]?.let {
+            if (grid == null) pending = null
+            it.requestFocus()
         }
     }
 
@@ -558,9 +624,10 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         val list = list ?: return
         val index = properties?.items?.indexOf(key)?.takeIf { it >= 0 } ?: return
         val visible = list.layoutInfo.visibleItemsInfo
-        if (visible.any { it.index == index }) return
+        val item = visible.firstOrNull { it.index == index }
+        if (item != null && (grid == null || item.offset >= list.layoutInfo.viewportStartOffset && item.offset + item.size <= list.layoutInfo.viewportEndOffset)) return
         val first = visible.firstOrNull()?.index ?: 0
-        list.requestScrollToItem(if (index < first) index else (index - page() + 1).coerceAtLeast(0))
+        list.requestScrollToItem(if (index < first || grid != null && index == first) index else (index - page() + 1).coerceAtLeast(0))
     }
 
     private fun page(): Int {
@@ -658,6 +725,23 @@ private class TouchTap {
     fun cancel() {
         pointer = null
     }
+}
+
+internal fun Modifier.gridCellPointer(host: CollectionHost, cell: GridCell): Modifier = then(GridCellPointerElement(host, cell))
+
+private data class GridCellPointerElement(val host: CollectionHost, val cell: GridCell) : ModifierNodeElement<GridCellPointerNode>() {
+    override fun create() = GridCellPointerNode(host, cell)
+    override fun update(node: GridCellPointerNode) { node.host = host; node.cell = cell }
+}
+
+private class GridCellPointerNode(var host: CollectionHost, var cell: GridCell) : Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode {
+    private val tap = TouchTap()
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (pass != PointerEventPass.Main) return
+        if (pointerEvent.type == PointerEventType.Press && pointerEvent.buttons.isSecondaryPressed && pointerEvent.changes.none { it.isConsumed }) host.secondaryCell(cell)
+        else if (pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) host.pointCell(cell)
+    }
+    override fun onCancelPointerInput() = tap.cancel()
 }
 
 private data class ToggleElement(val host: CollectionHost, val key: String, val expanded: Boolean) : ModifierNodeElement<ToggleNode>() {
