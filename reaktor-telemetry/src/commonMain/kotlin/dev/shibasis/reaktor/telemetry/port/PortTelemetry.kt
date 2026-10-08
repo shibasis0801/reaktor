@@ -8,6 +8,18 @@ import dev.shibasis.reaktor.portgraph.port.PortInterceptor
 import dev.shibasis.reaktor.portgraph.port.PortInvocation
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.service.RequestHandler
+import dev.shibasis.reaktor.service.ServiceCall
+import dev.shibasis.reaktor.service.TraceContext
+import dev.shibasis.reaktor.telemetry.export.asCoroutineContext
+import dev.shibasis.reaktor.telemetry.export.attachSpanScope
+import dev.shibasis.reaktor.telemetry.export.currentPortSpan
+import dev.shibasis.reaktor.telemetry.export.SpanCoroutineParent
+import io.opentelemetry.kotlin.OpenTelemetry
+import io.opentelemetry.kotlin.context.Context
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.withContext
 import io.opentelemetry.kotlin.ExperimentalApi
 import io.opentelemetry.kotlin.tracing.Tracer
 import io.opentelemetry.kotlin.tracing.data.StatusData
@@ -90,7 +102,7 @@ val TelemetryPolicy = AttachmentKey<TelemetryFacet>("reaktor.telemetry.policy")
 fun Port<*>.resolvedTelemetryFacet(fallback: TelemetryFacet = TelemetryFacet()): TelemetryFacet {
     val own = attachment(TelemetryPolicy)
     val owner = (owner as? dev.shibasis.reaktor.portgraph.attach.Attachable)?.attachment(TelemetryPolicy)
-    val merged = own ?: owner ?: fallback
+    val merged = own ?: owner ?: if (requestHandler() != null) fallback.copy(semantics = PortSemantics.Request) else fallback
     if (merged.tracePolicy != TracePolicy.Inherit) return merged
     val inherited = owner?.tracePolicy?.takeIf { it != TracePolicy.Inherit }
         ?: fallback.tracePolicy.takeIf { it != TracePolicy.Inherit }
@@ -103,7 +115,7 @@ fun Port<*>.resolvedTelemetryFacet(fallback: TelemetryFacet = TelemetryFacet()):
  * from a runtime value, so it is safe as a span name and as a metric dimension.
  */
 fun Port<*>.telemetryOperationName(facet: TelemetryFacet = resolvedTelemetryFacet()): String =
-    facet.operation ?: "${type.type}.${telemetryPortId()}"
+    facet.operation ?: requestHandler()?.endpoint?.operation ?: "${type.type}.${telemetryPortId()}"
 
 /**
  * D7 — one completed span per port call.
@@ -122,25 +134,31 @@ class PortTelemetryInterceptor(
      * figures cover the whole graph rather than one node.
      */
     val metrics: PortMetrics = PortMetrics(),
+    private val openTelemetry: OpenTelemetry? = null,
+    private val callAttributes: () -> Map<String, String> = { emptyMap() },
 ) : PortInterceptor {
 
     override fun intercept(invocation: PortInvocation, proceed: () -> Any?): Any? {
         val facet = invocation.port.resolvedTelemetryFacet(defaults)
         if (!shouldObserve(facet)) return proceed()
-        val span = if (shouldTrace(facet)) startSpan(invocation, facet) else null
+        val sdk = openTelemetry
+        val inherited = currentPortSpan()?.attributes.orEmpty()
+        val attributes = invocationAttributes(invocation, callAttributes(), inherited)
+        val span = if (shouldTrace(facet)) startSpan(invocation, facet, parentContext(null, null), attributes) else null
+        val scope = span?.takeIf { sdk != null }?.attachSpanScope()
         val started = TimeSource.Monotonic.markNow()
         var failed = false
         return try {
             proceed().also { span?.status = StatusData.Ok }
         } catch (error: Throwable) {
             failed = true
-            span?.status = StatusData.Error(error.message ?: error::class.simpleName.orEmpty())
+            span?.status = StatusData.Error(if (error is CancellationException) "CancellationException" else error::class.simpleName ?: "Throwable")
             throw error
         } finally {
             val elapsed = started.elapsedNow().inWholeNanoseconds
             metrics.record(invocation.port, elapsed, failed, facet.semantics)
             span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
-            span?.end()
+            try { span?.end() } finally { scope?.detach() }
         }
     }
 
@@ -150,14 +168,24 @@ class PortTelemetryInterceptor(
     ): Any? {
         val facet = invocation.port.resolvedTelemetryFacet(defaults)
         if (!shouldObserve(facet)) return proceed()
-        val span = if (shouldTrace(facet)) startSpan(invocation, facet) else null
+        val caller = currentCoroutineContext()[ServiceCall]
+        val sdk = openTelemetry
+        val inherited = caller?.attributes ?: currentPortSpan()?.attributes.orEmpty()
+        val attributes = invocationAttributes(invocation, callAttributes(), inherited)
+        val span = if (shouldTrace(facet)) startSpan(invocation, facet, parentContext(caller, currentCoroutineContext()[SpanCoroutineParent]?.spanId), attributes) else null
         val started = TimeSource.Monotonic.markNow()
         var failed = false
         return try {
-            proceed().also { span?.status = StatusData.Ok }
+            val context = span?.spanContext?.takeIf { it.isValid }
+            val result = if (context == null || sdk == null || span == null) proceed() else withContext(ServiceCall(
+                TraceContext(context.traceId, context.spanId, context.traceFlags.isSampled),
+                span.parent?.takeIf { it.isValid }?.spanId,
+                caller?.attributes.orEmpty() + attributes,
+            ) + span.asCoroutineContext() + SpanCoroutineParent(context.spanId)) { runCatching { proceed() } }.getOrThrow()
+            result.also { span?.status = StatusData.Ok }
         } catch (error: Throwable) {
             failed = true
-            span?.status = StatusData.Error(error.message ?: error::class.simpleName.orEmpty())
+            span?.status = StatusData.Error(if (error is CancellationException) "CancellationException" else error::class.simpleName ?: "Throwable")
             throw error
         } finally {
             val elapsed = started.elapsedNow().inWholeNanoseconds
@@ -181,14 +209,45 @@ class PortTelemetryInterceptor(
     private fun shouldTrace(facet: TelemetryFacet): Boolean =
         facet.tracePolicy == TracePolicy.Spans && facet.semantics != PortSemantics.Reference
 
-    private fun startSpan(invocation: PortInvocation, facet: TelemetryFacet) =
+    private fun parentContext(call: ServiceCall?, sdkBoundSpan: String?): Context? {
+        val sdk = openTelemetry ?: return null
+        val active = currentPortSpan()?.spanContext
+        if (active?.isValid == true && (call == null || active.traceId == call.trace.traceId &&
+            (active.spanId == call.trace.spanId || call.trace.spanId == sdkBoundSpan))) {
+            return sdk.contextFactory.storeSpan(sdk.contextFactory.root(), sdk.spanFactory.fromSpanContext(active))
+        }
+        val trace = call?.trace ?: return sdk.contextFactory.root()
+        val context = sdk.spanContextFactory.create(trace.traceId, trace.spanId,
+            sdk.traceFlagsFactory.create(trace.sampled, false), sdk.traceStateFactory.default)
+        return sdk.contextFactory.storeSpan(sdk.contextFactory.root(), sdk.spanFactory.fromSpanContext(context))
+    }
+
+    private fun invocationAttributes(invocation: PortInvocation, resources: Map<String, String>, inherited: Map<String, Any?>): Map<String, String> {
+        val attributes = buildMap {
+            for (key in listOf(ServiceCall.SessionAttribute, ServiceCall.EnvironmentAttribute, ServiceCall.BuildAttribute, ServiceCall.GraphAttribute)) {
+                val value = (inherited[key] as? String) ?: resources[key] ?: continue
+                val pattern = when (key) {
+                    ServiceCall.SessionAttribute -> "[A-Za-z0-9_-]{1,96}"
+                    ServiceCall.GraphAttribute -> "[0-9a-f]{64}"
+                    else -> "[A-Za-z0-9_.:-]{1,128}"
+                }
+                if (value.matches(Regex(pattern))) put(key, value)
+            }
+            put(ServiceCall.NodeAttribute, (invocation.port.owner as? Unique)?.label.orEmpty())
+        }
+        return attributes
+    }
+
+    private fun startSpan(invocation: PortInvocation, facet: TelemetryFacet, parent: Context?, attributes: Map<String, String>) =
         tracer.startSpan(
             name = invocation.port.telemetryOperationName(facet),
             spanKind = spanKindFor(facet.semantics),
+            parentContext = parent,
         ) {
+            attributes.forEach { (key, value) -> if (value.isNotEmpty()) setStringAttribute(key, value) }
             val port = invocation.port
             setStringAttribute(ReaktorAttributes.PortId, port.telemetryPortId())
-            setStringAttribute(ReaktorAttributes.ContractId, port.type.type)
+            setStringAttribute(ReaktorAttributes.ContractId, port.requestHandler()?.owner?.contract?.id ?: port.type.type)
             setStringAttribute(ReaktorAttributes.PortShape, facet.semantics.name.lowercase())
             setStringAttribute(
                 ReaktorAttributes.PortDirection,
@@ -226,3 +285,8 @@ fun Port<*>.telemetryPortId(): String = key.key.ifBlank { DefaultPortKey }
 
 /** What a port registered with no explicit key is called in telemetry. */
 const val DefaultPortKey = "default"
+
+private fun Port<*>.requestHandler(): RequestHandler<*, *>? = when (this) {
+    is ConsumerPort<*> -> impl as? RequestHandler<*, *>
+    is ProviderPort<*> -> impl as? RequestHandler<*, *>
+}

@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.telemetry.port
 
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.node.Node
+import dev.shibasis.reaktor.graph.visitor.StructuralSelector as RuntimeStructuralSelector
 import dev.shibasis.reaktor.portgraph.attach.attach
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import dev.shibasis.reaktor.portgraph.node.PortNode
@@ -97,7 +100,7 @@ fun instrumentPorts(
     defaults: TelemetryFacet = TelemetryFacet(),
 ): TelemetryPlan {
     val visitor = TelemetryPlanVisitor(interceptor, defaults)
-    DepthFirstTraverser.traverse(root, StructuralSelector, visitor)
+    DepthFirstTraverser.traverse(root, if (root is Graph || root is Node) RuntimeStructuralSelector else StructuralSelector, visitor)
     return TelemetryPlan(interceptor, visitor.instrumented.toList(), visitor.skipped.toList())
 }
 
