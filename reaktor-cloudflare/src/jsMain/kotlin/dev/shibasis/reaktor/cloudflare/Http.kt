@@ -2,6 +2,9 @@ package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
+import dev.shibasis.reaktor.service.ServiceCall
+import dev.shibasis.reaktor.service.TraceContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
@@ -192,7 +195,11 @@ fun Hono.handle(
     path: String,
     handler: suspend CloudflareRouteContext.() -> Any,
 ): Hono = on(method, path) { context ->
-    GlobalScope.promise {
+    val headers = context.req.header()
+    val trace = TraceContext.parse(headers[TraceContext.Header] as? String)
+    val session = ServiceCall.sessionFromBaggage(headers["baggage"] as? String)
+    val call = trace?.let { ServiceCall(it, null, if (session == null) emptyMap() else mapOf(ServiceCall.SessionAttribute to session)) }
+    GlobalScope.promise(call ?: EmptyCoroutineContext) {
         handler(CloudflareRouteContext(context))
     }
 }
