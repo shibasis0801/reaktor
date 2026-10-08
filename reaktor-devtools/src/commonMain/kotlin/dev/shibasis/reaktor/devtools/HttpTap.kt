@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.update
 
 class HttpTap(
     private val stream: FactStream,
-    private val captureBodies: Boolean,
     private val epochMillis: () -> Long,
 ) : HttpObserver {
 
@@ -27,19 +26,17 @@ class HttpTap(
                 correlationId = requestHeaders.entries
                     .firstOrNull { it.key.equals(DevToolsProtocol.CorrelationHeader, ignoreCase = true) }
                     ?.value ?: "http-$sequence",
-                operation = exchange.url.substringAfter("://").substringAfter('/', "").substringBefore('?').let { "/$it" },
+                operation = exchange.url.redactedUrl().substringAfter("://").substringAfter('/', "").let { "/$it" },
                 transport = "HTTP",
                 method = exchange.method,
-                url = exchange.url,
+                url = exchange.url.redactedUrl().masked(),
                 requestBytes = exchange.requestBytes,
                 responseBytes = exchange.responseBytes,
                 statusCode = exchange.statusCode,
                 durationMillis = exchange.finishedAtMillis - exchange.startedAtMillis,
-                failure = exchange.failure,
+                failure = exchange.failure?.redacted(),
                 requestHeaders = requestHeaders,
                 responseHeaders = exchange.responseHeaders.masked(),
-                requestBody = exchange.requestBody?.takeIf { captureBodies }?.masked(),
-                responseBody = exchange.responseBody?.takeIf { captureBodies }?.masked(),
                 startedNanos = nanosAt(exchange.startedAtMillis),
                 respondedNanos = nanosAt(exchange.respondedAtMillis),
                 source = "http",
@@ -48,16 +45,16 @@ class HttpTap(
     }
 }
 
-private val secretHeader = Regex("(?i)authorization|cookie|token|secret|api-?key|password")
-
 private fun List<Pair<String, String>>.masked(): Map<String, String> =
     groupBy({ it.first }, { it.second }).mapValues { (name, values) ->
-        if (secretHeader.containsMatchIn(name)) "*** (${values.sumOf { it.length }} chars)"
+        if (!name.equals("content-type", ignoreCase = true) &&
+            !name.equals("content-length", ignoreCase = true) && sensitiveFieldName.containsMatchIn(name))
+            "*** (${values.sumOf { it.length }} chars)"
         else values.joinToString(", ").masked()
     }
 
 fun DevToolsAgent.instrumentHttp(): () -> Unit {
-    val observing = HttpObservation.observe(HttpTap(traffic, policy.captureValues, ::epochMillis))
+    val observing = HttpObservation.observe(HttpTap(traffic, ::epochMillis))
     val sockets = SocketObservation.observe { event ->
         if (!traffic.enabled) return@observe
         val ageNanos = (epochMillis() - event.atMillis).coerceAtLeast(0) * 1_000_000
@@ -66,9 +63,8 @@ fun DevToolsAgent.instrumentHttp(): () -> Unit {
                 sequence = sequence,
                 monotonicNanos = nanos - ageNanos,
                 connection = event.connection,
-                url = event.url.masked(),
+                url = event.url.redactedUrl().masked(),
                 event = event.kind.name.lowercase(),
-                text = event.text?.takeIf { policy.captureValues || event.heartbeat }?.masked(),
                 bytes = event.bytes,
                 binary = event.binary,
                 heartbeat = event.heartbeat,

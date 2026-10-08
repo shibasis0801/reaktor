@@ -68,11 +68,14 @@ class ClickHouse internal constructor(
      * JSON object serialized to one line. The table name is validated to a safe
      * identifier charset before interpolation.
      */
-    suspend fun insertJsonEachRow(table: String, rows: List<String>) {
+    suspend fun insertJsonEachRow(table: String, rows: List<String>, deduplicationToken: String? = null) {
         require(rows.isNotEmpty()) { "ClickHouse insert: no rows" }
         require(SAFE_IDENTIFIER.matches(table)) { "Unsafe ClickHouse table name: $table" }
+        require(deduplicationToken == null || deduplicationToken.matches(Regex("[A-Za-z0-9_-]{1,256}"))) { "Invalid ClickHouse insert identity" }
         val payload = buildString {
-            append("INSERT INTO ").append(table).append(" FORMAT JSONEachRow\n")
+            append("INSERT INTO ").append(table)
+            if (deduplicationToken != null) append(" SETTINGS async_insert=0, insert_deduplicate=1, insert_deduplication_token='").append(deduplicationToken).append("'")
+            append(" FORMAT JSONEachRow\n")
             append(rows.joinToString("\n"))
         }
         val response = service.fetch(
@@ -99,7 +102,7 @@ class ClickHouse internal constructor(
 
 private fun ensureFormat(sql: String, format: String): String {
     val trimmed = sql.trimEnd().trimEnd(';').trimEnd()
-    return if (trimmed.contains(Regex("(?i)\\bFORMAT\\s+\\w+\\s*$"))) trimmed else "$trimmed FORMAT $format"
+    return if (trimmed.contains(Regex("\\bFORMAT\\s+\\w+\\s*$", RegexOption.IGNORE_CASE))) trimmed else "$trimmed FORMAT $format"
 }
 
 /**

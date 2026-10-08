@@ -58,6 +58,7 @@ class DevToolsAgent(
     /** Off in a build that cannot afford a per-frame callback; on by default in a debug build. */
     private val recordVitals: Boolean = true,
     private val platform: DevToolsPlatformInfo = devToolsPlatformInfo(),
+    private val applicationSessionProvider: () -> String? = { null },
 ) {
     private val scope = CoroutineScope(
         SupervisorJob() + CoroutineName("reaktor-devtools") + CoroutineExceptionHandler { _, failure ->
@@ -180,7 +181,8 @@ class DevToolsAgent(
         epochMillis = platform.epochMillis(),
         monotonicNanos = DevToolsClock.nanos(),
         writable = policy.writable,
-        measureSessionId = dev.shibasis.reaktor.performance.ReaktorMeasure.sessionId,
+        applicationSession = runCatching { applicationSessionProvider() }.getOrNull()
+            ?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{1,96}")) },
     )
 
     /**

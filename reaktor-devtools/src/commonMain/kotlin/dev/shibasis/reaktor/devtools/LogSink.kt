@@ -27,19 +27,22 @@ class LogSink(
         mirrored: Boolean = true,
     ) {
         if (level.ordinal < minimumLevel.ordinal) return
+        val safeMessage = message.redacted()
         stream.emit { sequence, nanos ->
             AgentFact.Log(
                 sequence = sequence,
                 monotonicNanos = nanos,
                 level = level,
                 subsystem = subsystem,
-                message = message,
-                fields = fields,
+                message = safeMessage,
+                fields = fields.mapValues { (name, value) ->
+                    if (sensitiveFieldName.containsMatchIn(name)) "***" else value.masked()
+                },
                 correlationId = correlationId,
-                throwable = throwable?.stackTraceToString(),
+                throwable = throwable?.stackTraceToString()?.masked(),
             )
         }
-        if (mirrored) mirror(level, subsystem, message)
+        if (mirrored) mirror(level, subsystem, safeMessage)
     }
 
     fun verbose(subsystem: String, message: String) = log(LogLevel.Verbose, subsystem, message)

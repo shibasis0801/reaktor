@@ -63,7 +63,9 @@ Modifier.reaktorElement(id = "chat.send", graphNodeId = chatNode.id, clickable =
 ```
 
 Gate the whole thing on a build flag. BestBuds uses `bestbuds.devTools`, which compiles to a
-constant, so a release build contains no listening socket at all.
+constant and disables the live agent in distribution lanes. A fresh release artifact must
+separately qualify that the agent code and native libraries are excluded; the flag alone
+does not establish that.
 
 Firebase and TestFlight release builds cannot provide app frames or elements through this agent.
 For a physical iPhone, build BestBuds with `npm run maestro:ios:build`, install the resulting
@@ -98,6 +100,9 @@ still is stamped `perturbed`, and no duration may be derived from a perturbed in
 ## What it will not do
 
 - **Block the app.** Every buffer drops rather than waits, and reports what it dropped.
-- **Capture payloads** until the redaction contract exists. Descriptors are not payloads.
+- **Capture transport payloads.** HTTP bodies and WebSocket text are omitted, including heartbeats.
+  URLs omit user information, query values and fragments. Sensitive headers, log fields and
+  credential-shaped log values are redacted before retention and platform mirroring.
+  Port value inspection requires `captureValues` and an explicit watch on the named node and port.
 - **Accept writes in a release build.** The check lives in `DevToolsAgent.execute`, once, rather
   than in each handler.

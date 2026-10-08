@@ -14,12 +14,21 @@ private val bareSecrets = listOf(
     Regex("rkr_[A-Za-z0-9_-]+"),
 )
 
-private val namedSecret = Regex("(?i)((?:access|refresh|id)?_?token|secret|password|authorization|api_?key)([\"']?\\s*[:=]\\s*[\"']?)((?:Bearer\\s+)?[^\\s\"'&,}]+)")
+internal val sensitiveFieldName = Regex("(?i)authorization|cookie|token|secret|api[-_]?key|password|credential|email|phone|user[-_]?id|session|request[-_]?body|response[-_]?body|payload|content|message|text|transcript|prompt")
+
+private val namedSecret = Regex("(?i)((?:access|refresh|id)?[-_]?token|secret|password|authorization|api[-_]?key)([\"']?\\s*[:=]\\s*)(\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|(?:Bearer\\s+|Basic\\s+)?[^\\s\"'&,}]+)")
+private val urls = Regex("(?i)[a-z][a-z0-9+.-]*://[^\\s\"'<>]+")
+private val urlUserInfo = Regex("(?i)^([a-z][a-z0-9+.-]*://)[^/?#]*@")
+
+internal fun String.redactedUrl(): String = substringBefore('?').substringBefore('#').replace(urlUserInfo, "$1")
 
 internal fun String.redacted(): String = lineSequence().firstOrNull().orEmpty().masked()
 
 internal fun String.masked(): String {
-    val named = namedSecret.replace(this) { match -> match.groupValues[1] + match.groupValues[2] + "***" }
+    val named = namedSecret.replace(urls.replace(this) { it.value.redactedUrl() }) { match ->
+        val quote = match.groupValues[3].first().takeIf { it == '\"' || it == '\'' }?.toString().orEmpty()
+        match.groupValues[1] + match.groupValues[2] + quote + "***" + quote
+    }
     return bareSecrets.fold(named) { text, secret -> text.replace(secret, "***") }
 }
 

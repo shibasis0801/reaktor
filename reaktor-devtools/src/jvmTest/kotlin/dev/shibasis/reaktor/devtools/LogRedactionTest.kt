@@ -24,4 +24,17 @@ class LogRedactionTest {
     fun jsonTokenFieldsAreMasked() {
         assertEquals("{\"accessToken\":\"***\",\"expiresInSeconds\":900}", "{\"accessToken\":\"secret-value\",\"expiresInSeconds\":900}".redacted())
     }
+
+    @Test
+    fun quotedSecretsWithSpacesAndEscapesAreMaskedAsOneValue() {
+        assertEquals("password=\"***\" route=/home", "password=\"private multi \\\"word\\\" value\" route=/home".redacted())
+        assertEquals("refresh_token='***'", "refresh_token='private value'".redacted())
+    }
+
+    @Test
+    fun basicAuthorizationAndUrlsDropCredentialLocations() {
+        assertEquals("Authorization: ***", "Authorization: Basic private-value".redacted())
+        assertEquals("GET https://example.test/home", "GET https://private-user:private-password@example.test/home?opaque=private-query#private-fragment".redacted())
+        assertEquals("/home", "/home?opaque=private-query#private-fragment".redactedUrl())
+    }
 }

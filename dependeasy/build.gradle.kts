@@ -25,6 +25,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("com.google.firebase:firebase-crashlytics-gradle:3.0.3")
+    implementation("com.google.gms:google-services:4.4.1")
     implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.2")
 //    implementation("com.github.node-gradle:gradle-node-plugin:7.1.0")

@@ -145,4 +145,18 @@ class PortTelemetryTest {
         assertTrue(tracer.spans.single().ended)
         assertEquals(1, impl.calls)
     }
+
+    @Test
+    fun exceptionMessagesNeverEnterSynchronousOrSuspendingSpans() = runTest {
+        val secret = "Bearer private-request-value"
+        val tracer = RecordingTracer()
+        val (_, consumer) = wire()
+        consumer.addInterceptor(PortTelemetryInterceptor(tracer, defaults = requestDefaults))
+        val sync = runCatching { consumer { throw IllegalStateException(secret) } }
+        val suspended = runCatching { consumer.suspended { throw IllegalArgumentException(secret) } }
+        assertEquals(secret, sync.exceptionOrNull()?.message)
+        assertEquals(secret, suspended.exceptionOrNull()?.message)
+        assertEquals(listOf("IllegalStateException", "IllegalArgumentException"), tracer.spans.map { it.status.description })
+        assertTrue(tracer.spans.all { it.ended && it.status.statusCode == StatusCode.ERROR })
+    }
 }

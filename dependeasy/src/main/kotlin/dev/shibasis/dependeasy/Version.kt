@@ -66,7 +66,7 @@ object Version {
     const val XbaseLib = "2.44.0"
 
     // Cloud
-    const val Firebase = "32.0.0"
+    const val Firebase = "33.1.1"
     const val FirebaseDarwin = "11.0"
 
     // Android Camera
@@ -80,8 +80,6 @@ object Version {
 
     // DevTools
     const val LeakCanary = "2.8.1"
-    const val MeasureKmp = "0.3.0"
-    const val MeasureIos = "0.14.1"
     const val SoLoader = "0.10.1"
 
     val architectures = listOf(

@@ -8,6 +8,6 @@ export function DefinitionMap({graph,layout,selected,onSelect,presentation}: {gr
   const reference=useMemo(()=>definitionReferences(graph,presentation),[graph,presentation]);
   const relations=useMemo(()=>new Set(graph.relations.map(relation=>relation.kind)),[graph]);
   return <ReferenceMap layout={layout} nodes={reference.nodes} relations={relations} selected={selected} onSelect={onSelect}
-    onOpen={id=>onSelect(id)} memoryKey={`reaktor-example:${graph.id}`} fitKey={reference.revision} noun="nodes"
+    onOpen={id=>onSelect(id)} memoryKey={`reaktor-example:${graph.id}`} fitKey={`${reference.revision}:${Object.keys(layout.cards).join(',')}`} noun="nodes"
     label="Reaktor system graph. Cards are nodes; junction cards preserve hyperedge roles. Select a card or port to inspect it."/>;
 }
