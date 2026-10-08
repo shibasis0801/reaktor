@@ -3,10 +3,12 @@ package dev.shibasis.reaktor.surface.compose
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +49,8 @@ import dev.shibasis.reaktor.surface.Command
 import dev.shibasis.reaktor.surface.CommandId
 import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.ItemSource
+import dev.shibasis.reaktor.surface.Edge
+import dev.shibasis.reaktor.surface.TableLayout
 import dev.shibasis.reaktor.surface.Sort
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.listSource
@@ -74,7 +78,7 @@ class DataTableTest {
             }
         }
         runOnIdle {
-            assertEquals(30, headers.size)
+            assertTrue(headers.size in 5 until 30, "Only viewport headers are measured: ${headers.size}")
             assertTrue(headers.values.none { it.hasVisualOverflow })
             assertTrue((1..5).all { values.getValue(it).hasVisualOverflow.not() })
             assertTrue(state.horizontal.maxValue > 0)
@@ -85,11 +89,130 @@ class DataTableTest {
         runOnIdle { assertTrue(state.layout.widths.getValue("column1") > 96f) }
         onNodeWithTag("wide/header/column1").requestFocus().performKeyInput { repeat(10) { pressKey(Key.DirectionRight) } }
         runOnIdle { assertTrue(state.horizontal.value > 0) }
-        do { runOnIdle { state.horizontal.dispatchRawDelta(state.horizontal.maxValue.toFloat()) } }
+        do {
+            runOnIdle { state.horizontal.dispatchRawDelta(state.horizontal.maxValue.toFloat()) }
+            waitForIdle()
+        }
         while (state.horizontal.value < state.horizontal.maxValue)
         val last = onNodeWithTag("content-30", useUnmergedTree = true).fetchSemanticsNode()
         assertTrue(last.boundsInRoot.width > 0, "Last cell ${last.boundsInRoot}, root ${onRoot().fetchSemanticsNode().boundsInRoot}, scroll ${state.horizontal.value}/${state.horizontal.maxValue}")
         onNodeWithTag("content-1", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun sixtyColumnHeadersAndCellsVirtualizeTheMiddleWhileBothPinsStayAtTheirLogicalEdges() {
+        for (direction in listOf(LayoutDirection.Ltr, LayoutDirection.Rtl)) runComposeUiTest {
+            val headers = mutableSetOf<Int>()
+            val cells = mutableSetOf<Int>()
+            var headerCompositions = 0
+            var cellCompositions = 0
+            var width by mutableStateOf(400)
+            val state = TableState(TableLayout(pins = mapOf("c0" to Edge.First, "c59" to Edge.Last)))
+            val columns = (0..59).map { index ->
+                TableColumn<String>("c$index", ColumnWidth.Fixed(100.dp), sortable = true, header = {
+                    DisposableEffect(index) { headers += index; onDispose { headers -= index } }
+                    SideEffect { headerCompositions++ }
+                    Box(Modifier.fillMaxWidth()) { BasicText("Header $index") }
+                }) {
+                    DisposableEffect(index) { cells += index; onDispose { cells -= index } }
+                    SideEffect { cellCompositions++ }
+                    Box(Modifier.fillMaxWidth().testTag("cell-$index")) { BasicText("Value $index") }
+                }
+            }
+            setContent {
+                CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                    AutomationScope("wide") { DataTable(listSource(listOf("row"), { it }), columns, emptySet(), {},
+                        Modifier.requiredSize(width.dp, 200.dp).testTag("table"), state = state) }
+                }
+            }
+            fun bounds(tag: String) = onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            val table = bounds("table")
+            val firstHeader = bounds("wide/header/c0")
+            val lastHeader = bounds("wide/header/c59")
+            val firstCell = bounds("cell-0")
+            val lastCell = bounds("cell-59")
+            assertEquals(if (direction == LayoutDirection.Ltr) table.left else table.right - 100f, firstHeader.left)
+            assertEquals(if (direction == LayoutDirection.Ltr) table.right - 100f else table.left, lastHeader.left)
+            assertEquals(firstHeader.left, firstCell.left)
+            assertEquals(lastHeader.left, lastCell.left)
+            runOnIdle { assertEquals(setOf(0, 1, 2, 59), headers); assertEquals(headers, cells) }
+            runOnIdle { state.horizontal.dispatchRawDelta(20f) }
+            waitForIdle()
+            val before = runOnIdle { headerCompositions to cellCompositions }
+            runOnIdle { state.horizontal.dispatchRawDelta(20f) }
+            waitForIdle()
+            runOnIdle { assertEquals(before, headerCompositions to cellCompositions, "Scroll within the same column set only places cells") }
+            for (tag in listOf("wide/header/c0", "wide/header/c59", "cell-0", "cell-59")) {
+                val original = when (tag) { "wide/header/c0" -> firstHeader; "wide/header/c59" -> lastHeader; "cell-0" -> firstCell; else -> lastCell }
+                assertEquals(original, bounds(tag), "$tag stays pinned in $direction")
+            }
+            for (index in 1..3) {
+                val cell = bounds("cell-$index")
+                val header = bounds("wide/header/c$index")
+                assertTrue(cell.left >= table.left + 100f && cell.right <= table.right - 100f, "Middle cell clips between pins in $direction")
+                assertEquals(header.left, cell.left); assertEquals(header.right, cell.right)
+            }
+            runOnIdle { state.horizontal.dispatchRawDelta(state.horizontal.maxValue.toFloat()) }
+            waitForIdle()
+            runOnIdle { assertEquals(setOf(0, 57, 58, 59), headers); assertEquals(headers, cells) }
+            assertEquals(firstHeader, bounds("wide/header/c0")); assertEquals(lastHeader, bounds("wide/header/c59"))
+            onNodeWithTag("wide/header/c58").performClick()
+            assertEquals(Sort("c58", false), state.layout.sort)
+            onNodeWithTag("wide/header/c58").act("Wider")
+            assertEquals(116f, state.layout.widths["c58"])
+            width = 180
+            waitForIdle()
+            val narrow = bounds("table")
+            assertEquals(100f, bounds("wide/header/c59").width)
+            assertEquals(if (direction == LayoutDirection.Ltr) narrow.right - 100f else narrow.left, bounds("wide/header/c59").left)
+            runOnIdle { assertEquals(setOf(0, 59), headers); assertEquals(headers, cells) }
+        }
+    }
+
+    @Test
+    fun keyboardHeaderNavigationRevealsVirtualColumnsAndKeepsOneTabStop() = runComposeUiTest {
+        val state = TableState(TableLayout(pins = mapOf("c0" to Edge.First, "c59" to Edge.Last)))
+        val columns = (0..59).map { index -> TableColumn<String>("c$index", ColumnWidth.Fixed(100.dp), sortable = true,
+            header = { BasicText("Header $index") }) { BasicText("Value $index") } }
+        setContent { Column {
+            Button({}, Modifier.testTag("before")) { BasicText("Before") }
+            AutomationScope("wide") { DataTable(listSource(listOf("row"), { it }), columns, emptySet(), {}, Modifier.requiredSize(400.dp, 200.dp), state = state) }
+        } }
+        onNodeWithTag("before").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("wide/header/c0").assertIsFocused()
+        repeat(8) { onRoot().performKeyInput { pressKey(Key.DirectionRight) }; waitForIdle() }
+        onNodeWithTag("wide/header/c8").assertIsFocused().assertIsDisplayed()
+        assertTrue(state.horizontal.value > 0)
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        assertEquals(Sort("c8", false), state.layout.sort)
+        onRoot().performKeyInput { pressKey(Key.MoveEnd) }
+        onNodeWithTag("wide/header/c59").assertIsFocused()
+        assertEquals(state.horizontal.maxValue, state.horizontal.value)
+        onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        onNodeWithTag("wide/header/c58").assertIsFocused().assertIsDisplayed()
+        onRoot().performKeyInput { pressKey(Key.MoveHome) }
+        onNodeWithTag("wide/header/c0").assertIsFocused()
+        assertEquals(0, state.horizontal.value)
+        runOnIdle { state.horizontal.dispatchRawDelta(100f) }
+        waitForIdle()
+        onRoot().performKeyInput { pressKey(Key.MoveHome) }
+        assertEquals(0, state.horizontal.value)
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("wide/row/row").assertIsFocused()
+        onNodeWithTag("wide/header/c0").performMouseInput { click(center) }
+        onNodeWithTag("wide/header/c0").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.MoveEnd) }
+        onNodeWithTag("wide/header/c59").assertIsFocused()
+        assertEquals(state.horizontal.maxValue, state.horizontal.value)
+        onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        onNodeWithTag("wide/header/c58").assertIsFocused().assertIsDisplayed()
+        val scrolled = state.horizontal.value
+        onNodeWithTag("wide/header/c0").performClick()
+        assertEquals(scrolled, state.horizontal.value)
+        onNodeWithTag("wide/header/c58").performClick()
+        onNodeWithTag("wide/header/c58").assertIsFocused()
+        assertEquals(Sort("c58", false), state.layout.sort)
     }
 
     private val files = listSource((1..200).map { "file-$it" }, { it }, text = { it })
@@ -342,9 +465,10 @@ class DataTableTest {
             },
         )
         var direction by mutableStateOf(LayoutDirection.Ltr)
+        var width by mutableStateOf(600.dp)
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides direction) {
-                DataTable(files, shaped, emptySet(), {}, Modifier.requiredSize(600.dp, 400.dp).testTag("table"))
+                DataTable(files, shaped, emptySet(), {}, Modifier.requiredSize(width, 400.dp).testTag("table"))
             }
         }
         fun bounds(tag: String) = onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -353,6 +477,13 @@ class DataTableTest {
         assertEquals(left + 500f - 8f, bounds("size-file-1").right)
         assertEquals(left + 510f, bounds("note-file-1").left)
         assertEquals(80f, bounds("note-file-1").width)
+        width = 380.dp
+        waitForIdle()
+        val narrowed = bounds("table").left
+        assertEquals(narrowed + 8f, bounds("name-file-1").left)
+        assertEquals(narrowed + 280f - 8f, bounds("size-file-1").right)
+        assertEquals(narrowed + 290f, bounds("note-file-1").left)
+        width = 600.dp
         direction = LayoutDirection.Rtl
         waitForIdle()
         val right = bounds("table").right
