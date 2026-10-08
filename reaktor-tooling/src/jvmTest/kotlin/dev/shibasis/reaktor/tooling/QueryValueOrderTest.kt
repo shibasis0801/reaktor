@@ -4,6 +4,11 @@ import dev.shibasis.reaktor.tooling.database.QueryValueOrder
 import kotlin.test.*
 
 class QueryValueOrderTest {
+    @Test fun numericTypeRecognitionIsSharedWithPresentation() {
+        for (type in listOf("INT8", "UInt64", "Nullable(UInt64)", "LowCardinality(Nullable(Decimal(18, 4)))",
+            "decimal", "numeric(30, 20)", "double precision", "Float64", "real", "bigserial")) assertTrue(QueryValueOrder.isNumeric(type), type)
+        for (type in listOf(null, "text", "jsonb", "boolean", "Nullable(Bool)", "date", "timestamp", "interval", "_int8", "Array(Int64)")) assertFalse(QueryValueOrder.isNumeric(type), type)
+    }
     @Test fun numericOrderingPreservesPrecisionAndNullIsLastInBothDirections() {
         val values = listOf("10", null, "2", "9007199254740993", "9007199254740992")
         assertEquals(listOf("2", "10", "9007199254740992", "9007199254740993", null), values.sortedWith(QueryValueOrder.comparator("Nullable(UInt64)")))

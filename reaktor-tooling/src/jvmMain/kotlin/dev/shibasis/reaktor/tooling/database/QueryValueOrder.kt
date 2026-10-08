@@ -5,10 +5,14 @@ import java.util.Locale
 
 /** Local result sorting retains decimal precision and places SQL NULL last in either direction. */
 object QueryValueOrder {
+    fun isNumeric(type: String?): Boolean =
+        Regex("^(u?int[0-9]*|tinyint|smallint|bigint|integer|decimal|numeric|number|float[0-9]*|double|real|serial|bigserial)")
+            .matches(type.orEmpty().lowercase(Locale.ROOT).replace("nullable(", "").replace("lowcardinality(", "")
+                .substringBefore('(').substringBefore(' ').trimEnd(')'))
+
     fun comparator(type: String?, descending: Boolean = false): Comparator<String?> {
         val normalized = type.orEmpty().lowercase(Locale.ROOT).replace("nullable(", "").replace("lowcardinality(", "")
-        val numeric = Regex("^(u?int[0-9]*|tinyint|smallint|bigint|integer|decimal|numeric|number|float[0-9]*|double|real|serial|bigserial)")
-            .containsMatchIn(normalized)
+        val numeric = isNumeric(type)
         val boolean = normalized in setOf("bool", "boolean")
         fun rank(value: String): BigDecimal? = when {
             numeric -> value.toBigDecimalOrNull()
