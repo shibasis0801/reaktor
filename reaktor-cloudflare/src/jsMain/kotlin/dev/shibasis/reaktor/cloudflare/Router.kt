@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import dev.shibasis.reaktor.service.ServiceCall
+import dev.shibasis.reaktor.service.TraceContext
 import dev.shibasis.reaktor.graph.ServiceNode
 import dev.shibasis.reaktor.io.serialization.TextSerializer
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -54,7 +55,7 @@ fun Hono.cors(policy: CorsPolicy): Hono {
     val options = js("({})")
     options.origin = policy.origin
     options.allowMethods = policy.methods.toTypedArray()
-    options.allowHeaders = policy.headers.toTypedArray()
+    options.allowHeaders = (policy.headers + listOf(TraceContext.Header, "baggage")).distinctBy { it.lowercase() }.toTypedArray()
     options.maxAge = policy.maxAgeSeconds
     return use("*", HonoCorsModule.cors(options))
 }
