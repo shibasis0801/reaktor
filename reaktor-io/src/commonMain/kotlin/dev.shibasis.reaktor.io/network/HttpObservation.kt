@@ -64,7 +64,21 @@ data class HttpConditions(
 object HttpObservation {
     private val observers = MutableStateFlow(emptyList<HttpObserver>())
 
+    private val interceptors = MutableStateFlow(emptyList<suspend (HttpRequestBuilder, suspend (HttpRequestBuilder) -> HttpClientCall) -> HttpClientCall>())
+
     val active: Boolean get() = observers.value.isNotEmpty()
+
+    fun intercept(interceptor: suspend (HttpRequestBuilder, suspend (HttpRequestBuilder) -> HttpClientCall) -> HttpClientCall): () -> Unit {
+        interceptors.update { it + interceptor }
+        return { interceptors.update { current -> current - interceptor } }
+    }
+
+    internal suspend fun send(request: HttpRequestBuilder, proceed: suspend (HttpRequestBuilder) -> HttpClientCall): HttpClientCall {
+        val chain = interceptors.value.foldRight(proceed) { interceptor, next ->
+            { current: HttpRequestBuilder -> interceptor(current, next) }
+        }
+        return chain(request)
+    }
 
     var bodyLimit: Int = 64 * 1024
 
@@ -87,23 +101,23 @@ internal fun HttpClientConfig<*>.observation() {
     }
     install(
         createClientPlugin("ReaktorHttpObservation") {
-            on(Send) { request ->
+            on(Send) { request -> HttpObservation.send(request) { observed ->
                 val conditions = HttpObservation.conditions.value
                 if (!HttpObservation.active) {
-                    conditions.impose(request.url.buildString())
-                    return@on proceed(request)
+                    conditions.impose(observed.url.buildString())
+                    return@send proceed(observed)
                 }
                 val started = GMTDate().timestamp
                 val call = try {
-                    conditions.impose(request.url.buildString())
-                    proceed(request)
+                    conditions.impose(observed.url.buildString())
+                    proceed(observed)
                 } catch (failure: Throwable) {
-                    HttpObservation.publish(request.failed(started, failure))
+                    HttpObservation.publish(observed.failed(started, failure))
                     throw failure
                 }
                 if (!call.carriesReadableBody) HttpObservation.publish(call.response.exchange(readBody = false))
                 call
-            }
+            } }
         }
     )
 }

@@ -234,6 +234,7 @@ class PortTelemetryInterceptor(
                 if (value.matches(Regex(pattern))) put(key, value)
             }
             put(ServiceCall.NodeAttribute, (invocation.port.owner as? Unique)?.label.orEmpty())
+            activationId?.let { put(ReaktorAttributes.ActivationId, it) }
         }
         return attributes
     }

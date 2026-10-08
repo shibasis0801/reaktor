@@ -17,6 +17,9 @@ kotlin {
             // Ktor client (`http`) used by the generic Service client. The service layer is graph-neutral.
             api(project(":reaktor-io"))
         }
+        testDependencies {
+            implementation("io.ktor:ktor-client-mock:${Version.Ktor}")
+        }
     }
     droid {}
     darwin {}

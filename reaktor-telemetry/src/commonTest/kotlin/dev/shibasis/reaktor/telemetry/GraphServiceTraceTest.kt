@@ -21,6 +21,7 @@ import dev.shibasis.reaktor.telemetry.export.ClientServiceSpanProcessor
 import dev.shibasis.reaktor.telemetry.export.ResourceKeys
 import io.opentelemetry.kotlin.createOpenTelemetry
 import dev.shibasis.reaktor.telemetry.port.PortSemantics
+import dev.shibasis.reaktor.telemetry.port.ReaktorAttributes
 import dev.shibasis.reaktor.telemetry.port.PortTelemetryInterceptor
 import dev.shibasis.reaktor.telemetry.port.TelemetryFacet
 import dev.shibasis.reaktor.telemetry.port.TracePolicy
@@ -113,6 +114,51 @@ class GraphServiceTraceTest {
         assertEquals("reaktor-session=session-default", baggage)
         assertEquals(graph.applicationSession, request.applicationSession)
         http.close()
+    }
+
+    @Test fun nestedOwnersPreserveCallerAttributesAndRestoreActivationAcrossDispatcherSwitches() = runTest {
+        val firstSpans = SpanBuffer()
+        val secondSpans = SpanBuffer()
+        val firstSdk = createOpenTelemetry { tracerProvider {
+            resource(mapOf(ResourceKeys.ServiceName to "first-client")); export { ClientServiceSpanProcessor(firstSpans) }
+        } }
+        val secondSdk = createOpenTelemetry { tracerProvider {
+            resource(mapOf(ResourceKeys.ServiceName to "second-client")); export { ClientServiceSpanProcessor(secondSpans) }
+        } }
+        val first = wire("first", PortTelemetryInterceptor(firstSdk.tracerProvider.getTracer("test"),
+            activationId = "first-activation", defaults = defaults, openTelemetry = firstSdk, callAttributes = { resources }))
+        val second = wire("second", PortTelemetryInterceptor(secondSdk.tracerProvider.getTracer("test"),
+            activationId = "second-activation", defaults = defaults, openTelemetry = secondSdk, callAttributes = { resources }))
+        val caller = ServiceCall(TraceContext.root(), null,
+            mapOf(ReaktorAttributes.ActivationId to "ambient-activation", "private" to "private-value"))
+        withContext(caller) {
+            first.suspended {
+                val outer = currentCoroutineContext()[ServiceCall]
+                assertEquals("first-activation", outer?.attributes?.get(ReaktorAttributes.ActivationId))
+                assertEquals("private-value", outer?.attributes?.get("private"))
+                withContext(Dispatchers.Default) {
+                    second.suspended {
+                        val inner = currentCoroutineContext()[ServiceCall]
+                        assertEquals("second-activation", inner?.attributes?.get(ReaktorAttributes.ActivationId))
+                        assertEquals("private-value", inner?.attributes?.get("private"))
+                        assertEquals(outer?.trace?.traceId, inner?.trace?.traceId)
+                        assertEquals(outer?.trace?.spanId, inner?.parentSpanId)
+                    }
+                }
+                assertTrue(currentCoroutineContext()[ServiceCall] === outer)
+            }
+            assertTrue(currentCoroutineContext()[ServiceCall] === caller)
+        }
+        val outer = firstSpans.snapshot().single()
+        val inner = secondSpans.snapshot().single()
+        assertEquals(caller.trace.traceId, outer.traceId)
+        assertEquals(caller.trace.spanId, outer.parentId)
+        assertEquals(outer.spanId, inner.parentId)
+        assertEquals(outer.applicationSession, inner.applicationSession)
+        assertEquals(outer.environment, inner.environment)
+        assertEquals(outer.build, inner.build)
+        assertTrue(listOf(outer, inner).all { it.node.isEmpty() && it.graphDigest.isEmpty() && !it.toString().contains("private-value") })
+        assertNull(currentCoroutineContext()[ServiceCall])
     }
 
     @Test fun explicitTypedEndpointSpanOwnsTheNestedGraphParentInsideAnOlderSdkScope() = runTest {
