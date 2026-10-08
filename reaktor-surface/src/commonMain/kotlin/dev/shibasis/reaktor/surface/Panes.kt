@@ -13,7 +13,12 @@ data class Region(
     val collapsible: Boolean = false,
 )
 
-data class PaneSpec(val regions: List<Region>, val mainMinWidth: Float, val mainMinHeight: Float)
+data class PaneSpec(
+    val regions: List<Region>,
+    val mainMinWidth: Float,
+    val mainMinHeight: Float,
+    val endOverlayBelow: Float = 0f,
+)
 
 data class PanePreferences(val sizes: Map<String, Float> = emptyMap(), val hidden: Set<String> = emptySet())
 
@@ -22,18 +27,22 @@ data class PanePlan(
     val collapsed: Set<String>,
     val mainWidth: Float,
     val mainHeight: Float,
+    val overlays: Set<String> = emptySet(),
 )
 
 fun PaneSpec.plan(width: Float, height: Float, textScale: Float, preferences: PanePreferences): PanePlan {
     val scale = textScale.coerceAtLeast(1f)
     val shown = regions.filter { it.id !in preferences.hidden }
-    val across = fit(shown.filter { it.edge != RegionEdge.Bottom }, width, mainMinWidth * scale, scale, preferences.sizes)
+    val overlaySizes = shown.filter { it.edge == RegionEdge.End && width < endOverlayBelow * scale }
+        .associate { it.id to it.wanted(scale, preferences.sizes, width) }
+    val across = fit(shown.filter { it.edge != RegionEdge.Bottom && it.id !in overlaySizes }, width, mainMinWidth * scale, scale, preferences.sizes)
     val down = fit(shown.filter { it.edge == RegionEdge.Bottom }, height, mainMinHeight * scale, scale, preferences.sizes)
     return PanePlan(
-        sizes = across.sizes + down.sizes,
+        sizes = across.sizes + down.sizes + overlaySizes,
         collapsed = across.collapsed + down.collapsed,
         mainWidth = width - across.sizes.values.sum(),
         mainHeight = height - down.sizes.values.sum(),
+        overlays = overlaySizes.keys,
     )
 }
 

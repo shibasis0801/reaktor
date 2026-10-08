@@ -31,11 +31,13 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -102,7 +104,7 @@ fun PaneHost(
                     SplitterProperties(
                         size = size,
                         min = item.min * scale,
-                        max = minOf(item.max, size + if (bottom) roomDown else roomAcross),
+                        max = minOf(item.max, if (item.id in plan.overlays) maxWidth.value else size + if (bottom) roomDown else roomAcross),
                         initial = item.preferred,
                         collapsible = item.collapsible,
                         reversed = item.edge != RegionEdge.Start,
@@ -130,32 +132,53 @@ fun PaneHost(
                 BoxWithConstraints(group.modifier(), propagateMinConstraints = true) { PaneScope(maxWidth, maxHeight, plan.collapsed).content() }
             }
         }
-        Row(Modifier.fillMaxSize()) {
-            starts.forEach { item ->
-                key(item.id) {
-                    Box(Modifier.width(plan.sizes.getValue(item.id).dp).fillMaxHeight(), propagateMinConstraints = true) {
-                        pane(item) { region(item) }
-                    }
-                    handle(item)
-                }
-            }
-            Column(Modifier.weight(1f).fillMaxHeight()) {
-                Box(Modifier.weight(1f).fillMaxWidth(), propagateMinConstraints = true) { pane(null, main) }
-                bottoms.forEach { item ->
+        Layout(content = {
+            Row(Modifier.fillMaxSize()) {
+                starts.forEach { item ->
                     key(item.id) {
-                        handle(item)
-                        Box(Modifier.height(plan.sizes.getValue(item.id).dp).fillMaxWidth(), propagateMinConstraints = true) {
+                        Box(Modifier.width(plan.sizes.getValue(item.id).dp).fillMaxHeight(), propagateMinConstraints = true) {
                             pane(item) { region(item) }
+                        }
+                        handle(item)
+                    }
+                }
+                Column(Modifier.weight(1f).fillMaxHeight()) {
+                    Box(Modifier.weight(1f).fillMaxWidth(), propagateMinConstraints = true) { pane(null, main) }
+                    bottoms.forEach { item ->
+                        key(item.id) {
+                            handle(item)
+                            Box(Modifier.height(plan.sizes.getValue(item.id).dp).fillMaxWidth(), propagateMinConstraints = true) {
+                                pane(item) { region(item) }
+                            }
                         }
                     }
                 }
             }
             ends.forEach { item ->
                 key(item.id) {
-                    handle(item)
-                    Box(Modifier.width(plan.sizes.getValue(item.id).dp).fillMaxHeight(), propagateMinConstraints = true) {
-                        pane(item) { region(item) }
+                    Row(Modifier.fillMaxHeight()) {
+                        handle(item)
+                        Box(Modifier.width(plan.sizes.getValue(item.id).dp).fillMaxHeight(), propagateMinConstraints = true) {
+                            pane(item) { region(item) }
+                        }
                     }
+                }
+            }
+        }, modifier = Modifier.fillMaxSize()) { measurables, constraints ->
+            val endSlots = measurables.drop(1).map { it.measure(Constraints(
+                maxWidth = constraints.maxWidth,
+                minHeight = constraints.maxHeight,
+                maxHeight = constraints.maxHeight,
+            )) }
+            val docked = ends.zip(endSlots).filter { (item, _) -> item.id !in plan.overlays }.sumOf { (_, slot) -> slot.width }
+            val mainWidth = (constraints.maxWidth - docked).coerceAtLeast(0)
+            val body = measurables.first().measure(constraints.copy(minWidth = mainWidth, maxWidth = mainWidth))
+            layout(constraints.maxWidth, constraints.maxHeight) {
+                body.placeRelative(0, 0)
+                var end = constraints.maxWidth - endSlots.sumOf { it.width }
+                endSlots.forEach { slot ->
+                    slot.placeRelative(end, 0)
+                    end += slot.width
                 }
             }
         }
