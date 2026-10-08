@@ -1,13 +1,20 @@
 package dev.shibasis.reaktor.devtools
 
+import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -18,6 +25,50 @@ import kotlin.test.assertTrue
  * both ends across an actual connection, which is the thing that breaks in practice.
  */
 class AgentRoundTripTest {
+
+    @Test
+    fun applicationSessionChangesWithoutReplacingProcessActivation() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val session = AtomicReference<String?>("session-one")
+        val failProvider = AtomicBoolean(false)
+        val agent = DevToolsAgent("ai.bestbuds.test", "Session identity",
+            revision = AgentRevision("test", "debug", "process-one", "digest-1"),
+            recordVitals = false,
+            applicationSessionProvider = {
+                check(!failProvider.get()) { "private provider error" }
+                session.get()
+            })
+        val host = DevToolsHost(agent, TcpAgentTransport(47_932), scope)
+        host.start()
+        delay(300)
+        val attachment = AgentAttachment("127.0.0.1", 47_932, scope)
+        try {
+            withTimeout(10_000) {
+                val initial = attachment.attach()
+                assertEquals("session-one", initial.applicationSession)
+                val legacy = JsonObject(
+                    json.encodeToJsonElement(AgentDescriptor.serializer(), initial).jsonObject
+                        - "applicationSession" + ("measureSessionId" to JsonPrimitive("retired-session")))
+                assertNull(json.decodeFromJsonElement(AgentDescriptor.serializer(), legacy).applicationSession)
+                session.set("session-two")
+                val changed = attachment.describe()
+                assertEquals("session-two", changed.applicationSession)
+                assertEquals("process-one", changed.revision.activation)
+                for (invalid in listOf(null, "", "x".repeat(97), "private@example.com")) {
+                    session.set(invalid)
+                    assertNull(attachment.describe().applicationSession)
+                }
+                failProvider.set(true)
+                assertNull(attachment.describe().applicationSession)
+                assertEquals("process-one", attachment.describe().revision.activation)
+            }
+        } finally {
+            attachment.detach()
+            host.stop()
+            agent.stop()
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+    }
 
     @Test
     fun describesCommandsAndStreams() = runBlocking {

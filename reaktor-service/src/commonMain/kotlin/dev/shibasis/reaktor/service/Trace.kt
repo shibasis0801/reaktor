@@ -42,6 +42,18 @@ class ServiceCall(
     companion object Key : CoroutineContext.Key<ServiceCall> {
         const val Attribute = "reaktor.service.call"
         const val IslandAttribute = "reaktor.island"
+        const val SessionAttribute = "reaktor.application_session"
+        const val EnvironmentAttribute = "reaktor.environment"
+        const val BuildAttribute = "reaktor.build"
+        const val NodeAttribute = "reaktor.node"
+        const val GraphAttribute = "reaktor.graph_digest"
+
+        fun sessionFromBaggage(value: String?): String? {
+            if (value == null || value.length > 512) return null
+            val matches = value.split(',').map(String::trim).filter { it.substringBefore('=').trim() == "reaktor-session" }
+            if (matches.size != 1) return null
+            return matches.single().substringAfter('=', "").takeIf { Regex("[A-Za-z0-9_-]{1,96}").matches(it) }
+        }
     }
 }
 
@@ -60,6 +72,11 @@ data class ServiceSpan(
     @SerialName("started_ms") val startedMillis: Long,
     @SerialName("duration_ms") val durationMillis: Double,
     val status: Int,
+    @SerialName("application_session") val applicationSession: String = "",
+    val environment: String = "",
+    val build: String = "",
+    val node: String = "",
+    @SerialName("graph_digest") val graphDigest: String = "",
 )
 
 fun interface SpanSink {
@@ -69,12 +86,22 @@ fun interface SpanSink {
 class SpanBuffer(private val capacity: Int = 1024) : SpanSink {
     private val lock = SynchronizedObject()
     private val spans = ArrayList<ServiceSpan>()
+    private var droppedCount: Long = 0
 
-    var dropped: Long = 0
-        private set
+    init { require(capacity > 0) }
+
+    val dropped: Long get() = synchronized(lock) { droppedCount }
+    val pending: Int get() = synchronized(lock) { spans.size }
 
     override fun record(span: ServiceSpan) = synchronized(lock) {
-        if (spans.size < capacity) spans += span else dropped += 1
+        if (spans.size < capacity) spans += span else droppedCount += 1
+    }
+
+    fun snapshot(): List<ServiceSpan> = synchronized(lock) { spans.toList() }
+
+    fun acknowledge(delivered: List<ServiceSpan>) = synchronized(lock) {
+        spans.removeAll(delivered.toSet())
+        Unit
     }
 
     fun drain(): List<ServiceSpan> = synchronized(lock) { spans.toList().also { spans.clear() } }
@@ -84,16 +111,29 @@ object TracePropagation : ServiceInterceptor {
     override val stages: Set<InterceptorStage> = setOf(InterceptorStage.CLIENT_APPLICATION)
 
     override suspend fun <In : Request, Out : Response> intercept(chain: ServiceChain<In, Out>): Out {
-        currentCoroutineContext()[ServiceCall]?.let { chain.request.headers[TraceContext.Header] = it.trace.traceparent }
+        currentCoroutineContext()[ServiceCall]?.let {
+            chain.request.headers[TraceContext.Header] = it.trace.traceparent
+            chain.request.headers.keys.filter { key -> key.equals("baggage", ignoreCase = true) }.toList()
+                .forEach(chain.request.headers::remove)
+            (it.attributes[ServiceCall.SessionAttribute] as? String)
+                ?.takeIf { session -> Regex("[A-Za-z0-9_-]{1,96}").matches(session) }
+                ?.let { session -> chain.request.headers["baggage"] = "reaktor-session=$session" }
+        }
         return chain.proceed()
     }
 }
 
-class SpanRecorder(private val island: String, private val sink: SpanSink) : ServiceInterceptor {
+class SpanRecorder(
+    private val island: String,
+    private val sink: SpanSink,
+    private val resourceAttributes: Map<String, String> = emptyMap(),
+    private val requestResourceAttributes: (Request) -> Map<String, String> = { emptyMap() },
+) : ServiceInterceptor {
     override val stages: Set<InterceptorStage> = setOf(InterceptorStage.CLIENT_APPLICATION, InterceptorStage.SERVER_APPLICATION)
 
     override suspend fun <In : Request, Out : Response> intercept(chain: ServiceChain<In, Out>): Out {
         val call = currentCoroutineContext()[ServiceCall] ?: return chain.proceed()
+        val resources = resourceAttributes + requestResourceAttributes(chain.request)
         val started = Clock.System.now()
         val outcome = runCatching { chain.proceed() }
         val finished = Clock.System.now()
@@ -110,6 +150,11 @@ class SpanRecorder(private val island: String, private val sink: SpanSink) : Ser
                     startedMillis = started.toEpochMilliseconds(),
                     durationMillis = (finished - started).inWholeMicroseconds / 1000.0,
                     status = outcome.fold({ it.transportStatusCode.code }, ::failureStatus),
+                    applicationSession = (call.attributes[ServiceCall.SessionAttribute] as? String).orEmpty(),
+                    environment = resources[ServiceCall.EnvironmentAttribute].orEmpty(),
+                    build = resources[ServiceCall.BuildAttribute].orEmpty(),
+                    node = (call.attributes[ServiceCall.NodeAttribute] as? String).orEmpty(),
+                    graphDigest = resources[ServiceCall.GraphAttribute].orEmpty(),
                 ),
             )
         }

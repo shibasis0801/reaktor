@@ -38,6 +38,16 @@ export function ReferenceMap({layout, nodes, memoryKey, fitKey, selected, relati
   const owner=(id:string)=>byId.get(id)?.owner??id;
   const focusedHere=focused.card && owner(focused.card)===selected;
   const selectedCard=focusedHere?focused.card:nodes.find(node=>owner(node.id)===selected)?.id??null;
+  const frameCount=(frame:BlueprintLayout['frames'][number])=>{
+    if(frame.owner)return `${Object.values(layout.cards).filter(card=>card.owner===frame.owner).reduce((n,card)=>n+card.rows,0)} ports`;
+    const within=Object.values(layout.cards).filter(card=>{
+      const group=byId.get(card.id)?.group;let at=group?`reference-region:${group}`:undefined;
+      while(at){if(at===frame.key)return true;at=layout.frames.find(value=>value.key===at)?.parent;}return false;
+    });
+    const count=new Set(within.filter(card=>!byId.get(card.id)?.relation).map(card=>owner(card.id))).size;
+    const junctions=within.filter(card=>byId.get(card.id)?.relation).length;
+    return `${count} ${count===1&&noun.endsWith('s')?noun.slice(0,-1):noun}${junctions?` · ${junctions} ${junctions===1?'relation':'relations'}`:''}`;
+  };
   return <BlueprintMap className="bp-atlas-theme" layout={layout} ready fitKey={fitKey} memoryKey={memoryKey} selected={selected} selectedCard={selectedCard} selectedRow={focusedHere?focused.row:null}
     label={label}
     cardLabel={card => byId.get(card.id)?.title ?? card.id}
@@ -56,7 +66,7 @@ export function ReferenceMap({layout, nodes, memoryKey, fitKey, selected, relati
           </BlueprintPinRow>;
         }}/> : null;
     }}
-    renderFrame={(frame, look) => <BlueprintFrame frame={frame} look={look} tone={tone} icon={<span className="bp-atlas-frame-dot"/>} title={frame.label} count={frame.owner?`${Object.values(layout.cards).filter(card=>card.owner===frame.owner).reduce((n,card)=>n+card.rows,0)} ports`:`${new Set(Object.values(layout.cards).filter(card=>{const node=byId.get(card.id);if(node?.relation)return false;const group=node?.group;let at=group?`reference-region:${group}`:undefined;while(at){if(at===frame.key)return true;at=layout.frames.find(value=>value.key===at)?.parent;}return false;}).map(card=>owner(card.id))).size} ${noun}`}/>}
+    renderFrame={(frame, look) => <BlueprintFrame frame={frame} look={look} tone={tone} icon={<span className="bp-atlas-frame-dot"/>} title={frame.label} count={frameCount(frame)}/>}
     wireStyle={(link, state) => {
       if (!relations.has(link.family ?? 'references')) return null;
       const strong = state.lit || state.hovered || owner(link.from) === selected || owner(link.to) === selected;

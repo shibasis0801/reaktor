@@ -81,7 +81,7 @@ class TrafficTap(
                 operation = operation,
                 transport = "HTTP",
                 method = method,
-                url = path,
+                url = path.redactedUrl().masked(),
                 // Request size is not known at the application stage — the body is serialised
                 // below this point. Reported as unknown rather than guessed; a transport-stage
                 // interceptor is where that number will come from.
@@ -89,7 +89,7 @@ class TrafficTap(
                 responseBytes = responseBytes,
                 statusCode = statusCode,
                 durationMillis = (nanos - startNanos) / 1_000_000,
-                failure = failure,
+                failure = failure?.redacted(),
                 portKey = portKeyFor(operation),
             )
         }

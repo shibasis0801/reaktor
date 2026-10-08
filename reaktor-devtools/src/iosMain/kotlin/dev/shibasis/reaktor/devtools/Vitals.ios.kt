@@ -122,18 +122,23 @@ private class DarwinCrashStore(private val directory: String) : CrashStore {
  * Kotlin half, which is where the app's own code fails.
  */
 actual fun installCrashHandler(agent: DevToolsAgent, store: CrashStore): Cancellable? {
-    val previous = kotlin.native.setUnhandledExceptionHook { throwable ->
-        store.write(
-            buildCrashReport(
-                kind = throwable::class.qualifiedName ?: "Throwable",
-                message = throwable.message.orEmpty(),
-                stack = throwable.stackTraceToString(),
-                threadName = "native",
-                epochMillis = (NSDate().timeIntervalSince1970 * 1000).toLong(),
-                context = agent.crashContext(),
-            )
-        )
-        throw throwable
+    var previous: kotlin.native.ReportUnhandledExceptionHook? = null
+    previous = kotlin.native.setUnhandledExceptionHook { throwable ->
+        try {
+            runCatching {
+                store.write(buildCrashReport(
+                    kind = throwable::class.qualifiedName ?: "Throwable",
+                    message = throwable.message.orEmpty(),
+                    stack = throwable.stackTraceToString(),
+                    threadName = "native",
+                    epochMillis = (NSDate().timeIntervalSince1970 * 1000).toLong(),
+                    context = agent.crashContext(),
+                ))
+            }
+            previous?.invoke(throwable)
+        } finally {
+            kotlin.native.terminateWithUnhandledException(throwable)
+        }
     }
-    return Cancellable { previous?.let { kotlin.native.setUnhandledExceptionHook(it) } }
+    return Cancellable { kotlin.native.setUnhandledExceptionHook(previous) }
 }
