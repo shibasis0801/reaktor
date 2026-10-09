@@ -19,11 +19,15 @@ interface WorkStore {
     suspend fun commit(token: ClaimToken, nowMillis: Long, result: WorkResult): Boolean
     suspend fun reconcileHandoff(scope: WorkScope, id: String, handoff: WorkHandoff, nowMillis: Long, result: WorkResult): Boolean
     suspend fun cancel(scope: WorkScope, id: String, nowMillis: Long): Boolean
+    suspend fun control(scope: WorkScope, id: String, expectedRevision: Long, nowMillis: Long, action: WorkControlAction,
+        result: WorkResult? = null): WorkMetadata? = throw UnsupportedOperationException("Conditional operator commands unavailable")
     fun observe(scope: WorkScope, id: String): Flow<WorkRecord?>
     suspend fun readEvents(scope: WorkScope, consumerId: String, limit: Int = 64): WorkEventBatch =
         throw UnsupportedOperationException("This WorkStore does not expose a retained event journal")
     suspend fun acknowledgeEvents(batch: WorkEventBatch): Boolean =
         throw UnsupportedOperationException("This WorkStore does not expose durable event cursors")
+    suspend fun inspectHistory(scope: WorkScope, afterSequence: Long, limit: Int): List<WorkHistoryEntry> =
+        throw UnsupportedOperationException("Retained inspection history unavailable")
 }
 
 data class WorkInspection(val records: List<WorkRecord>, val unreadableIds: List<String>)
@@ -163,6 +167,49 @@ class ObjectWorkStore(private val database: ObjectDatabase) : WorkStore {
         require(sequence > (batch.previous?.sequence ?: 0))
         return database.compareAndSet(cursorStore(batch.scope), batch.consumerId, batch.previous,
             WorkEventCursor(sequence), WorkEventCursor.serializer())
+    }
+
+    override suspend fun inspectHistory(scope: WorkScope, afterSequence: Long, limit: Int): List<WorkHistoryEntry> {
+        val codec = database.objectSerializer as TextSerializer
+        return database.readChanges(scope.storeName, afterSequence, limit).map { change ->
+            val record = change.payload?.let { payload -> runCatching {
+                codec.deserialize(WorkRecord.serializer(), payload).also {
+                    require(it.intent.scope == scope && it.intent.id == change.key)
+                }
+            }.getOrNull() }
+            WorkHistoryEntry(change.sequence, change.key, change.atMillis, record?.revision, record?.state,
+                record?.attempt, record?.fence, deleted = change.payload == null,
+                unreadable = change.payload != null && record == null, definition = record?.intent?.definition)
+        }
+    }
+
+    override suspend fun control(scope: WorkScope, id: String, expectedRevision: Long, nowMillis: Long,
+        action: WorkControlAction, result: WorkResult?): WorkMetadata? {
+        val before = get(scope, id) ?: return null
+        if (before.revision != expectedRevision || before.intent.scope != scope) return null
+        val after = when (action) {
+            WorkControlAction.CANCEL -> {
+                if (before.state in setOf(WorkState.SUCCEEDED, WorkState.FAILED, WorkState.CANCELLED)) return null
+                before.copy(state = WorkState.CANCELLED, fence = before.fence + 1, leaseOwner = null, leaseUntilMillis = null,
+                    reason = "Operator cancelled; accepted external effects may require reconciliation")
+            }
+            WorkControlAction.RETRY -> {
+                if (before.state !in setOf(WorkState.FAILED, WorkState.BLOCKED) || before.handoff != null || before.attempt >= before.intent.maxAttempts) return null
+                before.copy(state = WorkState.QUEUED, nextRunAtMillis = nowMillis, fence = before.fence + 1,
+                    leaseOwner = null, leaseUntilMillis = null, reason = "Authorized operator retry")
+            }
+            WorkControlAction.RECONCILE -> {
+                if (before.handoff == null || before.state !in setOf(WorkState.HANDED_OFF, WorkState.UNKNOWN, WorkState.CANCELLED)) return null
+                when (result) {
+                    is WorkResult.Success -> before.copy(state = WorkState.SUCCEEDED, receipt = result.receipt, reason = null)
+                    is WorkResult.Failed -> before.copy(state = WorkState.FAILED, reason = result.reason)
+                    is WorkResult.Unknown -> before.copy(state = WorkState.UNKNOWN, reason = result.reason)
+                    is WorkResult.Quarantined -> before.copy(state = WorkState.QUARANTINED, reason = result.reason)
+                    else -> return null
+                }.copy(fence = before.fence + 1, leaseOwner = null, leaseUntilMillis = null)
+            }
+        }.transition(nowMillis)
+        return if (compare(before, after)) after.metadata() else null
     }
 
     private fun cursorStore(scope: WorkScope) = "__reaktor_work_cursors:${scope.storeName}"

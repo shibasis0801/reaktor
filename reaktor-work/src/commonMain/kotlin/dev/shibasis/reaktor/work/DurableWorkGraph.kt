@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.registerProvider
+import dev.shibasis.reaktor.io.serialization.TextSerializer
 import dev.shibasis.reaktor.service.schemaRef
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.KSerializer
@@ -18,7 +19,7 @@ data class WorkGraphRun(
     val id: String, val definition: String, val version: Int, val manifest: String,
     val input: String, val target: String, val state: WorkState = WorkState.RUNNING,
     val revision: Long = 0, val completed: Set<String> = emptySet(),
-    val selectedBranches: Map<String, String> = emptyMap(), val reason: String? = null,
+    val selectedBranches: Map<String, String> = emptyMap(), val reason: String? = null, val links: WorkLinks = WorkLinks(),
 )
 
 class GraphInputs internal constructor(private val values: Map<DurableGraphValue<*>, Any>) {
@@ -52,6 +53,23 @@ class DurableWorkGraph<I : Any>(
     init {
         require(definitionId.isNotBlank() && version > 0 && graph === runtime.graph)
         runtime.installReconciler(definitionId, WorkReconciler { reconcile() })
+        runtime.registerProvider<WorkGraphInspectionSource>(definitionId, object : WorkGraphInspectionSource {
+            override fun definition(): WorkDagDefinition? = if (nodes.isEmpty()) null else WorkDagDefinition.decodeManifest(definitionId, version, manifest())
+            override suspend fun inspectRuns(): Pair<List<WorkGraphRun>, List<String>> {
+                val runs = mutableListOf<WorkGraphRun>()
+                val unreadable = mutableListOf<String>()
+                val codec = database.objectSerializer as TextSerializer
+                database.exportRaw(storeName).forEach { row ->
+                    try {
+                        val run = codec.deserialize(WorkGraphRun.serializer(), row.payload)
+                        require(run.id == row.key && run.definition == definitionId)
+                        runs += run
+                    } catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: Exception) { unreadable += "$definitionId/${row.key}" }
+                }
+                return runs to unreadable
+            }
+        })
     }
 
     fun <P : Any, T : Any> step(
@@ -63,7 +81,7 @@ class DurableWorkGraph<I : Any>(
         val operation = object : GraphWorkStep {
             override val definition: WorkDefinition<*> = typedDefinition
             override suspend fun admit(runtime: WorkRuntime, run: WorkGraphRun, values: GraphInputs, workId: String): WorkAdmission =
-                runtime.enqueue(workId, typedDefinition, values.payload(json.decodeFromString(inputSerializer, run.input)))
+                runtime.enqueue(workId, typedDefinition, values.payload(json.decodeFromString(inputSerializer, run.input)), links = run.links)
         }
         runtime.install(definition)
         return DurableGraphValue(this, id, output, dependencies, registerProvider<GraphWorkStep>(id, operation)).also { nodes += it }
@@ -90,13 +108,13 @@ class DurableWorkGraph<I : Any>(
                 definition?.id ?: "branch", definition?.version?.toString() ?: "", definition?.payloadSchema ?: "") + node.dependencies.map { it.id })
         })
 
-    suspend fun admit(id: String, input: I, target: DurableGraphValue<*>): WorkGraphRun {
+    suspend fun admit(id: String, input: I, target: DurableGraphValue<*>, links: WorkLinks = WorkLinks()): WorkGraphRun {
         require(id.isNotBlank() && target.owner === this)
         nodes.mapNotNull { it.port?.impl?.definition }.forEach { runtime.validateAdmission(it) }
         sealed = true
         val encoded = json.encodeToString(inputSerializer, input)
         require(encoded.encodeToByteArray().size <= 65_536)
-        val run = WorkGraphRun(id, definitionId, version, manifest(), encoded, target.id)
+        val run = WorkGraphRun(id, definitionId, version, manifest(), encoded, target.id, links = links)
         if (!database.compareAndSet(storeName, id, null, run, WorkGraphRun.serializer())) {
             val existing = checkNotNull(get(id))
             require(existing.manifest == run.manifest && existing.input == run.input && existing.target == run.target) { "Conflicting graph run admission" }
