@@ -36,6 +36,7 @@ class WorkDefinition<P : Any>(
     val serializer: KSerializer<P>,
     val authorization: AuthRequirement,
     val attemptTimeout: Duration = 2.minutes,
+    val operatorRetry: AuthRequirement? = null,
     private val handler: suspend WorkContext.(P) -> WorkResult,
 ) {
     init {
@@ -108,17 +109,23 @@ class WorkRuntime(
         }
     }
 
-    private fun definition(id: String) =
+    internal suspend fun validateOperatorRetry(requirement: AuthRequirement) {
+        val auth = resolveAuth(scope)
+        require(auth != null && scope.matches(auth))
+        require(LocalAuthorizer.authorize(auth, requirement) is AuthDecision.Allow) { "Operator retry authority denied" }
+    }
+
+    internal fun definition(id: String) =
         getProvider<WorkDefinition<*>>(Key(id), Type.create(WorkDefinition::class))
 
     suspend fun <P : Any> enqueue(
         id: String, definition: WorkDefinition<P>, payload: P,
-        dueAtMillis: Long = now(), maxAttempts: Int = 3,
+        dueAtMillis: Long = now(), maxAttempts: Int = 3, links: WorkLinks = WorkLinks(),
     ): WorkAdmission {
         require(this.definition(definition.id)?.impl === definition) { "Definition must be installed in this graph host" }
         authorize(definition) // Admission cannot borrow another principal's or tenant's store.
         val intent = WorkIntent(id, scope, definition.id, definition.version, definition.payloadSchema,
-            json.encodeToString(definition.serializer, payload), maxAttempts)
+            json.encodeToString(definition.serializer, payload), maxAttempts, links)
         val admitted = store.admit(intent, now(), dueAtMillis)
         // Persistence is the admission boundary. A failed wake can be recovered on host startup.
         try { rearm() }

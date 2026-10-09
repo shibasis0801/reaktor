@@ -39,6 +39,7 @@ data class WorkIntent(
     val payloadSchema: String,
     val payload: String,
     val maxAttempts: Int = 3,
+    val links: WorkLinks = WorkLinks(),
 ) {
     init {
         require(id.isNotBlank() && definition.isNotBlank() && definitionVersion > 0 && maxAttempts > 0)
