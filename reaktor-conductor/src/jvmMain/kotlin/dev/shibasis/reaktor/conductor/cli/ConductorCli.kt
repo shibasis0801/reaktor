@@ -27,6 +27,9 @@ import kotlin.system.exitProcess
 private const val USAGE = """
 reaktor conductor - run a prompt through one agent, all agents, a council, or a pipeline.
 
+  usage [--since <ISO-date>] [--until <ISO-date>] [--dir <cwd-root>] [--requests <new.jsonl>]
+                      read local Codex/Claude request usage; defaults to the last seven days
+
   --prompt <text>      the task (required)
   --dir <path>         working directory the agents read (default: current directory)
   --protocol <name>    ask | all | council | pipeline | planned   (default: ask)
@@ -50,6 +53,10 @@ Examples:
 """
 
 fun main(args: Array<String>): Unit = runBlocking {
+    if (args.firstOrNull() == "usage") {
+        usageCli(args.drop(1))
+        return@runBlocking
+    }
     if (args.firstOrNull() == "workspace") {
         workspaceCli(args.drop(1))
         return@runBlocking

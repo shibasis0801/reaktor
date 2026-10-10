@@ -1,36 +1,40 @@
 package dev.shibasis.dependeasy.common
 
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
-import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.dependencies.atVersion
 
-fun KotlinDependencyHandler.commonSerialization(serializationVersion: String = Version.Serialization, protobuf: Boolean = true) {
-    api("org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion")
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
+fun KotlinDependencyHandler.apiReaktor(vararg modules: String, version: String? = null) {
+    val suffix = version?.let { ":$it" }.orEmpty()
+    modules.forEach { api("dev.shibasis:reaktor-$it$suffix") }
+}
+
+fun KotlinDependencyHandler.commonSerialization(serializationVersion: String = Versions.Serialization, protobuf: Boolean = true) {
+    api(Versions.Kotlin.SerializationCore.atVersion(serializationVersion))
+    api(Versions.Kotlin.SerializationJson.atVersion(serializationVersion))
     if (protobuf)
-        api("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:$serializationVersion")
+        api(Versions.Kotlin.SerializationProtobuf.atVersion(serializationVersion))
 }
 
 
-fun KotlinDependencyHandler.commonCoroutines(coroutinesVersion: String = Version.Coroutines) {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+fun KotlinDependencyHandler.commonCoroutines(coroutinesVersion: String = Versions.Coroutines) {
+    api(Versions.Kotlin.CoroutinesCore.atVersion(coroutinesVersion))
 }
 
 
 fun KotlinDependencyHandler.commonNetworking() {
-    api("io.ktor:ktor-client-core:${Version.Ktor}")
-    api("io.ktor:ktor-client-content-negotiation:${Version.Ktor}")
-    api("io.ktor:ktor-serialization-kotlinx-json:${Version.Ktor}")
+    api(Versions.Kotlin.KtorCore)
+    api(Versions.Kotlin.KtorContentNegotiation)
+    api(Versions.Kotlin.KtorJson)
 }
 
 fun KotlinDependencyHandler.commonLogging() {
-    api("co.touchlab:kermit:${Version.Kermit}")
+    api(Versions.Kotlin.Kermit)
 }
 
 fun KotlinDependencyHandler.arrow() {
-    api(project.dependencies.platform("io.arrow-kt:arrow-stack:2.2.0"))
-    api("io.arrow-kt:arrow-core")
-    api("io.arrow-kt:arrow-fx-coroutines")
-    api("io.arrow-kt:arrow-resilience")
+    api(project.dependencies.platform(Versions.Kotlin.ArrowBom))
+    api(Versions.Kotlin.ArrowCore)
+    api(Versions.Kotlin.ArrowCoroutines)
+    api(Versions.Kotlin.ArrowResilience)
 }
-
-

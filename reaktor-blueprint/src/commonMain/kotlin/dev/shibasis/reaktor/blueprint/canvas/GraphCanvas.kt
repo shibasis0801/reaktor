@@ -25,6 +25,7 @@ import dev.shibasis.composeflow.compose.primitives.EdgePathStyle
 import dev.shibasis.composeflow.compose.primitives.EdgeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeRenderStyle
 import dev.shibasis.composeflow.model.Edge
+import dev.shibasis.composeflow.model.Dimensions
 import dev.shibasis.composeflow.model.EdgeMarker
 import dev.shibasis.composeflow.model.MarkerType
 import dev.shibasis.composeflow.model.Node
@@ -33,7 +34,8 @@ import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import kotlin.time.TimeSource
 
-data class CanvasFrame(val id: String, val x: Double, val y: Double, val width: Double, val height: Double, val depth: Int = 0)
+data class CanvasFrame(val id: String, val x: Double, val y: Double, val width: Double, val height: Double, val depth: Int = 0,
+    val headerHeight: Double = 40.0)
 
 data class CanvasCard(val id: String, val x: Double, val y: Double, val width: Double, val height: Double)
 
@@ -108,6 +110,7 @@ private class FrameData(val frame: CanvasFrame)
 private class CardData(val card: CanvasCard)
 private class LinkData(val link: CanvasLink)
 
+/** Frame content lays out the header and may draw the full world frame beyond that allocation. */
 @Composable
 fun GraphCanvas(
     frames: List<CanvasFrame>,
@@ -196,7 +199,10 @@ fun GraphCanvas(
             defaultNodeWidth = 240.dp,
             defaultNodeHeight = 48.dp,
             nodeRenderStyle = { node ->
-                if (node.type == "frame") NodeRenderStyle(backgroundColor = Color.Transparent, borderColor = Color.Transparent, cornerRadius = 12.dp, borderWidth = 0.dp)
+                if (node.type == "frame") NodeRenderStyle(backgroundColor = Color.Transparent, borderColor = Color.Transparent,
+                    cornerRadius = 12.dp, borderWidth = 0.dp, clip = false,
+                    contentSize = Dimensions(minOf(requireNotNull(node.width), state.flow.canvasSize.width.coerceAtLeast(1) / state.flow.viewport.zoom),
+                        minOf(requireNotNull(node.height), (node.data as FrameData).frame.headerHeight * density)))
                 else (node.data as? CardData)?.card?.let(cardStyle).let { style ->
                     NodeRenderStyle(alpha = style?.alpha ?: 1f, backgroundColor = Color.Transparent, borderColor = Color.Transparent,
                         cornerRadius = 8.dp, borderWidth = 0.dp, glowColor = style?.glow)

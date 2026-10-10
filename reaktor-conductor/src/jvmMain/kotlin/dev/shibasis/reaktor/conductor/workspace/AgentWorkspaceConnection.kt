@@ -35,9 +35,10 @@ import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Serializable
-private data class AgentEndpoint(val version: Int = 1, val workspaceRoot: String, val port: Int, val token: String)
+private data class AgentEndpoint(val version: Int = 1, val workspaceRoot: String, val port: Int, val token: String,
+    val invocationVersion: Int? = null)
 
-/** Both embedded and external hosts use this same authenticated MCP boundary. */
+/** Both embedded and external hosts attach to the same authenticated operation owner. */
 class AgentWorkspaceConnection private constructor(
     @Volatile private var endpoint: AgentEndpoint,
     val discoveryFile: Path,
@@ -94,6 +95,23 @@ class AgentWorkspaceConnection private constructor(
         call("agent_transcript", buildJsonObject { put("threadId", id); before?.let { put("before", it) }; put("limit", limit) }))
 
     suspend fun call(name: String, args: JsonObject = buildJsonObject {}): JsonElement {
+        withContext(Dispatchers.IO) { refreshEndpoint() }
+        if (remote != null || endpoint.invocationVersion == null) return callMcp(name, args)
+        check(endpoint.invocationVersion == 1) { "Unsupported workspace invocation version" }
+        val payload = buildJsonObject {
+            put("version", 1); put("workspaceRoot", endpoint.workspaceRoot)
+            put("operation", name); put("arguments", args)
+        }
+        val result = request(payload.toString(), "/operations")?.jsonObject ?: error("Expected workspace response")
+        check(result["isError"]?.jsonPrimitive?.booleanOrNull != true) {
+            result["data"]?.jsonObject?.get("error")?.jsonPrimitive?.content
+                ?: result["content"]?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.content
+                ?: "Workspace operation failed"
+        }
+        return result.getValue("data")
+    }
+
+    private suspend fun callMcp(name: String, args: JsonObject): JsonElement {
         val request = buildJsonObject {
             put("jsonrpc", "2.0"); put("id", 1); put("method", "tools/call")
             putJsonObject("params") { put("name", name); put("arguments", args) }
@@ -107,20 +125,27 @@ class AgentWorkspaceConnection private constructor(
         return result.getValue("structuredContent")
     }
 
-    suspend fun exchange(message: String): JsonElement? = withContext(Dispatchers.IO) {
+    suspend fun exchange(message: String): JsonElement? = request(message, "/mcp")
+
+    private fun refreshEndpoint() {
         check(!closed.get()) { "Connection is closed" }
-        require(message.length <= 250000) { "MCP message exceeds the transport budget" }
-        if (remote != null) return@withContext remote.exchange(message)
         if (!ownsService && Files.exists(discoveryFile)) {
             require(Files.size(discoveryFile) <= 4096) { "Invalid workspace discovery file" }
             val current = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discoveryFile))
             require(current.version == 1 && current.workspaceRoot == endpoint.workspaceRoot && current.port in 1..65535 && current.token.length >= 32)
             endpoint = current
         }
-        val response = runInterruptible { http.send(HttpRequest.newBuilder(URI(url)).timeout(Duration.ofSeconds(35))
+    }
+
+    private suspend fun request(message: String, path: String): JsonElement? = withContext(Dispatchers.IO) {
+        refreshEndpoint()
+        require(message.length <= 250000) { "Workspace message exceeds the transport budget" }
+        if (remote != null) return@withContext remote.exchange(message)
+        val builder = HttpRequest.newBuilder(URI("http://127.0.0.1:${endpoint.port}$path")).timeout(Duration.ofSeconds(35))
             .header("Authorization", "Bearer ${endpoint.token}").header("Content-Type", "application/json")
-            .header("MCP-Protocol-Version", protocolVersion)
-            .POST(HttpRequest.BodyPublishers.ofString(message)).build(), HttpResponse.BodyHandlers.ofInputStream()) }
+            .POST(HttpRequest.BodyPublishers.ofString(message))
+        if (path == "/mcp") builder.header("MCP-Protocol-Version", protocolVersion)
+        val response = runInterruptible { http.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream()) }
         val bytes = response.body().use { it.readNBytes(2_000_001) }
         check(bytes.size <= 2_000_000) { "Workspace response exceeded the transport budget" }
         if (response.statusCode() == 202 && bytes.isEmpty()) return@withContext null
@@ -177,6 +202,7 @@ class AgentWorkspaceConnection private constructor(
             var executor: SupervisedProcessExecutor? = null
             var workspace: AgentWorkspace? = null
             var server: LoopbackMcpServer? = null
+            var operations: AgentWorkspaceOperations? = null
             val runtimeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             try {
                 val binding = directory.resolve("workspace-root")
@@ -197,10 +223,10 @@ class AgentWorkspaceConnection private constructor(
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
                     harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy).also { workspace = it }
-                val registry = agentWorkspaceMcp(hostedWorkspace, extraTools(hostedWorkspace))
+                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace))).also { operations = it }
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
-                val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token).also { server = it }
-                val endpoint = AgentEndpoint(workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token)
+                val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post).also { server = it }
+                val endpoint = AgentEndpoint(workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1)
                 atomicWrite(discovery, ConductorJson.encodeToString(AgentEndpoint.serializer(), endpoint))
                 // Off unless the caller says otherwise. Opening a workspace must never publish it.
                 // Reuse the port and secret this workspace published before. A tunnel points at a
@@ -224,13 +250,13 @@ class AgentWorkspaceConnection private constructor(
                 hostedWorkspace.recoverInBackground()
                 return AgentWorkspaceConnection(endpoint, discovery, true, hybridConnector = connector, closeOwner = {
                     try { connector?.close() }
-                    finally { try { hostedServer.close() }
+                    finally { try { hostedServer.close(); registry.close() }
                     finally { try { if (background) hostedWorkspace.suspendAndClose() else hostedWorkspace.close() }
                     finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery); Files.deleteIfExists(graphDiscovery) }
                     finally { ownerLock.release(); channel.close() } } } }
                 })
             } catch (failure: Throwable) {
-                try { server?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
+                try { server?.close(); operations?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
                 finally { ownerLock.release(); channel.close() }
                 throw failure
             }

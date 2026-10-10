@@ -4,7 +4,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 
 class ConcurrencyCapabilityTest {
     @Test
-    fun aFailedChildIsReportedWithoutCancellingSiblings() = runBlocking {
+    fun aFailedChildIsReportedWithoutCancellingSiblings() = runTest {
         val reported = CompletableDeferred<Throwable>()
         val handler = CoroutineExceptionHandler { _, error -> reported.complete(error) }
         val capability = ConcurrencyCapabilityImpl(handler)

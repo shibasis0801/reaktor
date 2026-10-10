@@ -1,50 +1,29 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
-plugins {
-    id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.android.camera
+import dev.shibasis.dependeasy.android.workManager
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-service"))
-            api(project(":reaktor-ui"))
-            api(project(":reaktor-io"))
-            api("io.coil-kt.coil3:coil-compose:3.2.0")
-            api("io.coil-kt.coil3:coil-network-ktor3:3.2.0")
+plugins { id("dev.shibasis.dependeasy.compose-library") }
+
+dependeasy {
+    module("dev.shibasis.reaktor.media") {
+        common {
+            dependencies {
+                api(project(":reaktor-service"))
+                api(project(":reaktor-ui"))
+                api(project(":reaktor-io"))
+                api(Versions.Compose.Coil)
+                api(Versions.Compose.CoilKtor)
+            }
         }
-    }
+        web {}
 
-    web {
-        dependencies {
-
+        android {
+            dependencies {
+                camera()
+                workManager()
+            }
         }
+        apple {}
+        jvm {}
     }
-
-    droid {
-        dependencies {
-            camera()
-            workManager()
-        }
-    }
-
-    darwin {
-        dependencies {
-
-        }
-    }
-    server {
-        dependencies {
-
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.media")
 }

@@ -1,90 +1,64 @@
-# Reaktor Setup
+# Reaktor setup
 
-This guide is for building Reaktor locally on macOS.
+Use Java 25, the Android SDK, Xcode with iOS platform support, CMake,
+and Ninja. Shared versions are pinned in
+[`ToolchainVersions.kt`](dependeasy/src/main/kotlin/dev/shibasis/dependeasy/toolchain/ToolchainVersions.kt).
+Web builds use Node 24 LTS and committed npm lockfiles.
 
-## Required tools
-
-### Java
-- Java 21 or newer
-
-### Android
-- Android Studio or the Android SDK command line tools
-- a valid `sdk.dir` in `local.properties`
-
-### Apple toolchain
-- Xcode
-- iOS platform support
-- CocoaPods
-
-### Native toolchain
-- CMake
-- Ninja
-
-## `local.properties`
-
-Create `local.properties` in the repo root:
+Set the Android SDK location in an untracked `local.properties`:
 
 ```properties
 sdk.dir=/Users/<you>/Library/Android/sdk
-kotlin.apple.cocoapods.bin=/opt/homebrew/bin/pod
 ```
 
-Use the actual path from `which pod` if your CocoaPods install differs.
+Install the NDK and Android CMake versions from the toolchain contract.
+Apple dependencies resolve through SwiftPM in the Xcode host projects.
 
-## First build
+## Selected builds
 
-```bash
-./gradlew build
-```
-
-The first build is slower because Reaktor bootstraps native dependencies such as:
-- Hermes
-- FlatBuffers
-
-These are cached under `.github_modules`.
-
-## Common commands
-
-### Framework validation
+The wrapper routes Gradle according to machine load. See
+[`../tools/README.md`](../tools/README.md) for worker routing and recovery.
 
 ```bash
-./gradlew :reaktor-graph-port:allTests :reaktor-graph:allTests
-```
+# JVM checks without native compilation
+./gradlew :reaktor-core:jvmTest :reaktor-auth-core:jvmTest
 
-### Android native bridge
+# Android native integration
+./gradlew :reaktor-flexbuffer:arm64-v8aCMake :reaktor-flexbuffer:compileDebugKotlinAndroid
 
-```bash
-./gradlew :reaktor-ffi:assembleDebug
-./gradlew :reaktor-flexbuffer:assembleDebug
-```
+# Explicit Apple export, device and Apple Silicon simulator slices
+./gradlew :reaktor-apple-export:assembleAppDebugXCFramework
 
-### Darwin native bridge
-
-```bash
+# Native FFI for an iOS device
 ./gradlew :reaktor-ffi:iphoneosCMake
-./gradlew :reaktor-flexbuffer:iphoneosCMake
+
+# Build plugin tests
+./gradlew -p dependeasy test
 ```
 
-## Typical failure points
+Native sources are fetched only when required by the selected tasks, at the commits
+in [`gradle/native-sources.properties`](gradle/native-sources.properties).
+The first Hermes build compiles its host compiler; later modules reuse it.
+An ordinary `help` or unrelated JVM build performs no native bootstrap.
+`prepareNativeTools` is available for deliberate source/tool preparation.
 
-### CocoaPods path is wrong
-Set `kotlin.apple.cocoapods.bin` to the output of `which pod`.
+## Product consumers
 
-### iOS SDK not installed
-Install the iOS platform from Xcode.
+BestBuds, Manna, and Gymbuddy include the source build with `includeBuild("../reaktor")`.
+Open the product's `targets/appDarwin/iosApp.xcodeproj`. Its build phase invokes
+`:app:embedAndSignAppleFrameworkForXcode` and links the Kotlin framework directly.
+SwiftPM owns the host's Google/Firebase SDKs; SDK forwarding adapters live beside each module’s `src/iosMain/kotlin` sources in `src/iosMain/swift`.
 
-### Android NDK / CMake mismatch
-Re-import the Android SDK components expected by your current toolchain.
+For an unsigned device build, from the product root:
 
-### Slow first build
-Expected. Native bootstrap is front-loaded.
-
-## Repo consumers
-
-Reaktor is usually not built in isolation. BestBuds and Manna include it via Gradle composite build:
-
-```kotlin
-includeBuild("../reaktor")
+```bash
+xcodebuild -project targets/appDarwin/iosApp.xcodeproj -scheme iosApp \
+  -configuration Debug -destination 'generic/platform=iOS' \
+  -derivedDataPath build/xcode CODE_SIGNING_ALLOWED=NO build
 ```
 
-That means framework changes show up in product builds immediately.
+Use physical devices for installation and UI checks. Do not start emulators or
+simulators. SDK builds can compile simulator slices without launching a simulator.
+
+For build declarations and dependency ownership, see
+[`dependeasy/README.md`](dependeasy/README.md).

@@ -1,68 +1,112 @@
-val kotlinVersion = "2.3.21"
 
 plugins {
     id("java-gradle-plugin")
     id("maven-publish")
-    id("org.gradle.kotlin.kotlin-dsl") version "6.5.2"
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.kotlin.plugin.sam.with.receiver")
 }
+
+fun kotlinConstants(path: String) = Regex("const val (\\w+) = (?:\"([^\"]+)\"|(\\d+))")
+    .findAll(file(path).readText())
+    .associate { it.groupValues[1] to it.groupValues[2].ifEmpty { it.groupValues[3] } }
+val toolchains = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/toolchain/ToolchainVersions.kt")
+val libraryVersions = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/Versions.kt")
+val toolingLibraries = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/versions/ToolingLibraries.kt")
+val publicationDefaults = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/publishing/PublicationDefaults.kt")
+val kotlinVersion = toolchains.getValue("Kotlin")
 
 repositories {
     google()
     mavenCentral()
     maven(url = "https://plugins.gradle.org/m2/")
-    maven(url = "https://jitpack.io")
 }
 
 dependencies {
+    implementation(gradleKotlinDsl())
+    testImplementation(kotlin("test-junit5"))
+    testImplementation(gradleTestKit())
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // Align Version of all Kotlin components
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
-    implementation("com.android.tools.build:gradle:9.1.1") {
+    implementation("com.android.tools.build:gradle:${toolchains.getValue("Agp")}") {
         exclude(group = "org.apache.commons", module = "commons-compress")
     }
-    implementation("org.apache.commons:commons-compress:1.28.0") // todo remember to upgrade on upgrading Spring
+    implementation(toolingLibraries.getValue("CommonsCompress"))
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-    implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    implementation("com.google.firebase:firebase-crashlytics-gradle:3.0.3")
-    implementation("com.google.gms:google-services:4.4.1")
-    implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
-    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.2")
-//    implementation("com.github.node-gradle:gradle-node-plugin:7.1.0")
-//    implementation("io.github.turansky.seskar:seskar-gradle-plugin:4.25.0")
+    implementation("org.jetbrains.kotlin:kotlin-allopen:$kotlinVersion")
+    implementation("org.springframework.boot:spring-boot-gradle-plugin:${toolchains.getValue("SpringBoot")}")
+    implementation("org.springframework.boot:spring-boot-buildpack-platform:${toolchains.getValue("SpringBoot")}")
+    implementation("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion")
+    implementation("org.jetbrains.compose:compose-gradle-plugin:${toolchains.getValue("Compose")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${libraryVersions.getValue("Serialization")}")
+    implementation("org.yaml:snakeyaml:${toolchains.getValue("SnakeYaml")}")
+    implementation("com.google.firebase:firebase-crashlytics-gradle:${toolchains.getValue("Crashlytics")}")
+    implementation("com.google.gms:google-services:${toolchains.getValue("GoogleServices")}")
+    implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:${toolchains.getValue("BuildKonfig")}")
+    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:${toolchains.getValue("Ksp")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-benchmark-plugin:${toolchains.getValue("KotlinBenchmark")}")
 
 }
 
 gradlePlugin {
-    val libraryPlugin by plugins.creating {
+    mapOf(
+        "compose-library" to "ComposeLibraryPlugin",
+        "compose-application" to "ComposeApplicationPlugin",
+        "browser" to "BrowserPlugin",
+        "compose-jvm" to "ComposeJvmPlugin",
+        "jvm" to "JvmPlugin",
+        "spring-application" to "SpringApplicationPlugin",
+    ).forEach { (name, implementation) ->
+        plugins.create(name) {
+            id = "dev.shibasis.dependeasy.$name"
+            implementationClass = "dev.shibasis.dependeasy.plugins.$implementation"
+        }
+    }
+    plugins.create("pipeline") {
+        id = "dev.shibasis.dependeasy.pipeline"
+        implementationClass = "dev.shibasis.dependeasy.plugins.PipelinePlugin"
+    }
+    plugins.create("library") {
         id = "dev.shibasis.dependeasy.library"
         implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
     }
 
-    val applicationPlugin by plugins.creating {
+    plugins.create("application") {
         id = "dev.shibasis.dependeasy.application"
         implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
     }
 
-    val settingsPlugin by plugins.creating {
+    plugins.create("settings") {
         id = "dev.shibasis.dependeasy.settings"
         implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
     }
 }
 
+samWithReceiver { annotation("org.gradle.api.HasImplicitReceiver") }
 kotlin {
-    sourceSets.main {
-        kotlin.srcDir("../reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/io")
-    }
-//    jvmToolchain(11)
-    compilerOptions {
-        freeCompilerArgs.addAll("-Xcontext-receivers", "-Xwhen-guards")
-    }
+    jvmToolchain(toolchains.getValue("Java").toInt())
+    // Gradle consumers may run on 21; the build compiler and product JVMs use 25.
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
 }
+java { targetCompatibility = JavaVersion.VERSION_21 }
+
+tasks.test { useJUnitPlatform() }
 
 tasks.named<Jar>("jar") {
     archiveFileName.set("dependeasy.jar")
-    from(sourceSets.main.get().output)
 }
 
-apply(from = "$rootDir/../publishing.gradle.kts")
+// Bootstrap: this build cannot apply the plugin that it is compiling.
+group = publicationDefaults.getValue("Group")
+version = providers.gradleProperty("reaktorVersion").orElse(publicationDefaults.getValue("Version")).get()
+publishing {
+    repositories.maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/${publicationDefaults.getValue("Repository")}")
+        credentials {
+            username = providers.environmentVariable("USERNAME").orNull
+            password = providers.environmentVariable("TOKEN").orNull
+        }
+    }
+}

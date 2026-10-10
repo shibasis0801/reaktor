@@ -85,7 +85,7 @@ cleared or reused.
 ## Native C++ layer
 
 - `cpp/darwin` + `cpp/droid` — a minimal FFI handshake (`Reaktor_FlexHelloBytes`) bridged via cinterop (iOS) and JNI (Android), decoded by the Kotlin reader and Maestro-verified on device. JVM/JS return empty stubs.
-- `cpp/bench` — standalone reference harnesses (not linked into apps) used as the performance oracle the Kotlin implementation is measured against, including the adversarial Kotlin-vs-C++ ledger run by `AdversarialPerformanceHarnessTest`.
+- `src/commonBenchmark/cpp` — standalone reference harnesses (not linked into apps) used as the performance oracle the Kotlin implementation is measured against, including the adversarial Kotlin-vs-C++ ledger run by `AdversarialPerformanceHarnessTest`.
 
 ## Performance
 

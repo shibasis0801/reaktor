@@ -153,7 +153,7 @@ private fun targetStack(p: ReaktorProject, target: ProjectTarget): String {
     if (File(dir, "tsconfig.json").exists() || File(dir, "src/index.ts").exists()) stack += "typescript"
     if (File(dir, "wrangler.json").exists() || File(dir, "wrangler.jsonc").exists()) stack += "wrangler"
     if (File(dir, "CMakeLists.txt").exists()) stack += "cpp"
-    if (File(dir, "iosApp.xcworkspace").exists() || File(dir, "iosApp").isDirectory) stack += "xcode"
+    if (File(dir, "iosApp.xcodeproj").isDirectory || File(dir, "iosApp").isDirectory) stack += "xcode"
     return stack.joinToString(" + ").ifEmpty { "files" }
 }
 

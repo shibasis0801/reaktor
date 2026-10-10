@@ -1,63 +1,41 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.web.*
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.common.commonCoroutines
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
-
-val androidOpenSsl = "com.android.ndk.thirdparty:openssl:1.1.1q-beta-1"
+plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
     androidNative {
         prefab(
             cmakeVariable = "OPENSSL_CRYPTO_PREFAB_DIR",
-            dependencyNotation = androidOpenSsl,
+            dependencyNotation = Versions.Native.OpenSsl,
             moduleName = "crypto"
         )
         prefab(
             cmakeVariable = "OPENSSL_SSL_PREFAB_DIR",
-            dependencyNotation = androidOpenSsl,
+            dependencyNotation = Versions.Native.OpenSsl,
             moduleName = "ssl"
         )
     }
 
     darwinNative {
         packageName = "dev.shibasis.reaktor.security.native"
-        includeDirs(
-            "cpp/rsec-mls-capi/include",
-            "cpp/rsec-mls-core/include"
-        )
-        headers("cpp/rsec-mls-capi/include/rsec/rsec.h")
+        headers("src/commonMain/cpp/include/rsec/rsec.h")
     }
-}
-
-kotlin {
-    common {
-        dependencies {
-            commonCoroutines()
-            api(project(":reaktor-core"))
+    module("dev.shibasis.reaktor.security") {
+        common {
+            dependencies {
+                commonCoroutines()
+                api(project(":reaktor-core"))
+            }
         }
-    }
 
-    droid {
-        dependencies {
-            implementation(androidOpenSsl)
+        android {}
+        apple {}
+
+        jvm {
+            dependencies { implementation(Versions.Native.Jna) }
         }
+        web {}
     }
-    darwin()
-    server {
-        dependencies { implementation("net.java.dev.jna:jna:5.18.1") }
-    }
-    web()
-}
-
-dependencies {
-    add("kspCommonMainMetadata", project(":reaktor-compiler"))
-}
-
-android {
-    defaults("dev.shibasis.reaktor.security")
+    kotlinProcessor(project(":reaktor-compiler"))
 }

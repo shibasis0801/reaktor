@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 4.0)
+project(ReaktorFlexbufferReference LANGUAGES CXX)
+find_path(FLATBUFFERS_INCLUDE_DIR flatbuffers/flexbuffers.h REQUIRED)
+add_executable(flexbuffer_bench flexbuffer_bench.cpp)
+target_include_directories(flexbuffer_bench PRIVATE "${FLATBUFFERS_INCLUDE_DIR}")

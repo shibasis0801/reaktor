@@ -1,17 +1,25 @@
 package dev.shibasis.dependeasy.plugins
 
+import dev.shibasis.dependeasy.android.configureAndroidPublishing
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 
 class ApplicationPlugin: Plugin<Project> {
     override fun apply(project: Project): Unit = project.run {
+        configureAndroidPublishing()
         plugins.apply("kotlinx-serialization")
         if (wantsCrashlytics()) {
             plugins.apply("com.google.firebase.crashlytics")
         }
         plugins.apply("com.android.application")
         plugins.apply("org.jetbrains.kotlin.android")
-        dependencies.add("coreLibraryDesugaring", "com.android.tools:desugar_jdk_libs:2.1.4")
+        tasks.withType(KotlinJvmCompile::class.java).configureEach {
+            compilerOptions.jvmTarget.set(JvmTarget.fromTarget(ToolchainVersions.AndroidJava.toString()))
+        }
+        dependencies.add("coreLibraryDesugaring", dev.shibasis.dependeasy.Versions.Android.Desugaring)
     }
 
     /**

@@ -25,9 +25,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "node ../../tools/typecheck.mjs -b",
     "postbuild": "karakum --config karakum.config.json",
-    "dev": "tsc -b --watch",
+    "dev": "node ../../tools/typecheck.mjs -b --watch",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -37,8 +37,9 @@
   "devDependencies": {
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.0",
-    "karakum": "^1.0.0-alpha.107",
-    "typescript": "^6.0.3"
+    "karakum": "1.0.0-alpha.112",
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
   },
   "peerDependencies": {
     "react": "^19.2.6",
@@ -55,5 +56,6 @@
     "cross-platform"
   ],
   "author": "BestBudsVentures",
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "pnpm@12.10.1"
 }

@@ -64,6 +64,7 @@ object ReaktorAttributes {
      * the duration the call actually took.
      */
     const val DurationNanos = "reaktor.duration_ns"
+    const val Cancelled = "reaktor.cancelled"
 }
 
 /**
@@ -148,15 +149,18 @@ class PortTelemetryInterceptor(
         val scope = span?.takeIf { sdk != null }?.attachSpanScope()
         val started = TimeSource.Monotonic.markNow()
         var failed = false
+        var cancelled = false
         return try {
             proceed().also { span?.status = StatusData.Ok }
         } catch (error: Throwable) {
-            failed = true
-            span?.status = StatusData.Error(if (error is CancellationException) "CancellationException" else error::class.simpleName ?: "Throwable")
+            cancelled = error is CancellationException
+            failed = !cancelled
+            if (cancelled) span?.setBooleanAttribute(ReaktorAttributes.Cancelled, true)
+            else span?.status = StatusData.Error(error::class.simpleName ?: "Throwable")
             throw error
         } finally {
             val elapsed = started.elapsedNow().inWholeNanoseconds
-            metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics)
             span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
             try { span?.end() } finally { scope?.detach() }
         }
@@ -175,6 +179,7 @@ class PortTelemetryInterceptor(
         val span = if (shouldTrace(facet)) startSpan(invocation, facet, parentContext(caller, currentCoroutineContext()[SpanCoroutineParent]?.spanId), attributes) else null
         val started = TimeSource.Monotonic.markNow()
         var failed = false
+        var cancelled = false
         return try {
             val context = span?.spanContext?.takeIf { it.isValid }
             val result = if (context == null || sdk == null || span == null) proceed() else withContext(ServiceCall(
@@ -184,12 +189,14 @@ class PortTelemetryInterceptor(
             ) + span.asCoroutineContext() + SpanCoroutineParent(context.spanId)) { runCatching { proceed() } }.getOrThrow()
             result.also { span?.status = StatusData.Ok }
         } catch (error: Throwable) {
-            failed = true
-            span?.status = StatusData.Error(if (error is CancellationException) "CancellationException" else error::class.simpleName ?: "Throwable")
+            cancelled = error is CancellationException
+            failed = !cancelled
+            if (cancelled) span?.setBooleanAttribute(ReaktorAttributes.Cancelled, true)
+            else span?.status = StatusData.Error(error::class.simpleName ?: "Throwable")
             throw error
         } finally {
             val elapsed = started.elapsedNow().inWholeNanoseconds
-            metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics)
             span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
             span?.end()
         }

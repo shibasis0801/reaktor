@@ -6,12 +6,9 @@ import com.android.build.api.dsl.BuildFeatures
 import com.android.build.api.dsl.CompileOptions
 import com.android.build.api.dsl.LibraryBuildFeatures
 import com.android.build.api.dsl.Packaging
-import com.android.build.gradle.LibraryExtension
+import com.android.build.api.dsl.LibraryExtension
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
-import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.utils.exclude
-import org.gradle.api.artifacts.Configuration
-import org.gradle.kotlin.dsl.NamedDomainObjectContainerScope
+import dev.shibasis.dependeasy.Versions
 import org.gradle.kotlin.dsl.get
 
 fun BuildFeatures.defaults() {
@@ -26,51 +23,25 @@ fun LibraryBuildFeatures.defaults() {
     (this as BuildFeatures).defaults()
 }
 
-fun<First, Second> zip(first: Iterable<First>, second: Iterable<Second>) =
-    first.zip(second)
-
 fun Packaging.includeNativeLibs() {
-    Version.nativeLibraries.forEach {
-        pickFirst("**/$it")
-    }
-    zip(Version.architectures, Version.nativeLibraries)
-        .forEach { (arch, lib) ->
-            jniLibs.pickFirsts.add("**/$arch/$lib")
-        }
-}
-
-fun Packaging.excludeNativeLibs() {
-    Version.nativeLibraries.forEach {
-        jniLibs.excludes.add("**/$it")
-    }
+    // Every native module uses the same pinned NDK and shared C++ runtime.
+    jniLibs.pickFirsts.add("**/libc++_shared.so")
 }
 
 fun CompileOptions.defaults() {
-    sourceCompatibility = Version.SDK.AndroidJava.asEnum
-    targetCompatibility = Version.SDK.AndroidJava.asEnum
+    sourceCompatibility = Versions.SDK.AndroidJava.asEnum
+    targetCompatibility = Versions.SDK.AndroidJava.asEnum
     isCoreLibraryDesugaringEnabled = true
-}
-
-fun NamedDomainObjectContainerScope<Configuration>.defaults() {
-    all {
-        exclude(module = "fbjni-java-only")
-    }
 }
 
 fun LibraryExtension.defaults(
     namespace: String,
 ) {
     this.namespace = namespace
-    compileSdk = Version.SDK.compileSdk
+    compileSdk = Versions.SDK.compileSdk
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    lint {
-        checkReleaseBuilds = false
-        abortOnError = false
-    }
-
-
     defaultConfig {
-        minSdk = Version.SDK.minSdk
+        minSdk = Versions.SDK.minSdk
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -92,14 +63,14 @@ fun LibraryExtension.defaults(
 fun BaseAppModuleExtension.defaults(
     appID: String,
 ) {
-    compileSdk = Version.SDK.compileSdk
-    ndkVersion = Version.SDK.ndkVersion
+    compileSdk = Versions.SDK.compileSdk
+    ndkVersion = Versions.SDK.ndkVersion
 
     namespace = appID
     defaultConfig {
         applicationId = appID
-        minSdk = Version.SDK.minSdk
-        targetSdk = Version.SDK.targetSdk
+        minSdk = Versions.SDK.minSdk
+        targetSdk = Versions.SDK.targetSdk
         versionCode = 1
         versionName = "1.0"
 

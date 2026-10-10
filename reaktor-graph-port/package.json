@@ -1,0 +1,45 @@
+{
+  "name": "reaktor-graph-port",
+  "version": "1.0.0",
+  "description": "Port graph data structure with React Flow visualization",
+  "main": "./ts/index.ts",
+  "scripts": {
+    "build": "node ../dependeasy/javascript/cli/typecheck.ts --projects ts/tsconfig.json",
+    "bindings": "pnpm exec karakum --config ts/karakum.config.json"
+  },
+  "dependencies": {
+    "reaktor-reaktor-graph-port": "workspace:*",
+    "elkjs": "0.12.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.0",
+    "@xyflow/react": "12.10.0",
+    "karakum": "1.0.0-alpha.112",
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "peerDependencies": {
+    "@xyflow/react": ">=12 <13",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "packageManager": "pnpm@12.10.1",
+  "exports": {
+    ".": "./ts/index.ts",
+    "./blueprint/views/BlueprintCard": "./src/jsMain/typescript/blueprint/views/BlueprintCard.tsx",
+    "./blueprint/views/BlueprintChrome": "./src/jsMain/typescript/blueprint/views/BlueprintChrome.tsx",
+    "./blueprint/views/BlueprintFrame": "./src/jsMain/typescript/blueprint/views/BlueprintFrame.tsx",
+    "./blueprint/views/BlueprintMap": "./src/jsMain/typescript/blueprint/views/BlueprintMap.tsx",
+    "./blueprint/views/BlueprintPinRow": "./src/jsMain/typescript/blueprint/views/BlueprintPinRow.tsx",
+    "./blueprint/views/BlueprintWires": "./src/jsMain/typescript/blueprint/views/BlueprintWires.tsx",
+    "./blueprint/views/DefinitionMap": "./src/jsMain/typescript/blueprint/views/DefinitionMap.tsx",
+    "./blueprint/views/ReferenceMap": "./src/jsMain/typescript/blueprint/views/ReferenceMap.tsx",
+    "./components/PortGraphFlow": "./src/jsMain/typescript/components/PortGraphFlow.tsx",
+    "./components/PortNodeComponent": "./src/jsMain/typescript/components/PortNodeComponent.tsx",
+    "./scope/ScopeGraphCanvas": "./src/jsMain/typescript/scope/ScopeGraphCanvas.tsx",
+    "./scope/ScopeGraphFlow": "./src/jsMain/typescript/scope/ScopeGraphFlow.tsx",
+    "./*": "./src/jsMain/typescript/*.ts",
+    "./*.css": "./src/jsMain/typescript/*.css"
+  }
+}

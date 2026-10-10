@@ -1,152 +1,50 @@
 package dev.shibasis.dependeasy.tasks
 
-import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.native.AndroidPrefabConfiguration
+import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.native.cmakeKernelSources
+import dev.shibasis.dependeasy.native.cmakeSources
 import dev.shibasis.dependeasy.native.nativeBuildDirectory
 import dev.shibasis.dependeasy.native.nativeConfigurationOrNull
 import dev.shibasis.dependeasy.native.nativeProjectDependencies
+import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import org.gradle.api.Project
-import org.gradle.api.Task
-import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 
-sealed class CmakePlatform(
-    val variant: String,
-    val generator: String,
-    val taskPrefix: String,
-    val cmakeExecutable: String = "cmake",
-) {
-    abstract fun flags(project: Project): Provider<List<String>>
-
-    class Darwin(val sdk: String) : CmakePlatform(
-        variant = sdk,
-        generator = "Ninja",
-        taskPrefix = sdk,
-        cmakeExecutable = listOf("/opt/homebrew/bin/cmake", "/usr/local/bin/cmake", "cmake").first {
-            java.io.File(it).exists() || it == "cmake"
-        }
-    ) {
-        override fun flags(project: Project): Provider<List<String>> =
-            project.xcrunFind("clang").zip(project.xcrunFind("clang++")) { cCompiler, cxxCompiler ->
-                listOf(
-                    "-DCMAKE_BUILD_TYPE=Release",
-                    "-Dsdk=$sdk",
-                    "-DiOS=true",
-                    "-DCMAKE_MAKE_PROGRAM=${listOf("/opt/homebrew/bin/ninja", "/usr/local/bin/ninja", "ninja").first {
-                        java.io.File(it).exists() || it == "ninja"
-                    }}",
-                    "-DCMAKE_C_COMPILER=$cCompiler",
-                    "-DCMAKE_CXX_COMPILER=$cxxCompiler",
-                )
-            }
-
-        private fun Project.xcrunFind(tool: String): Provider<String> = providers.exec {
-            commandLine("xcrun", "--sdk", sdk, "--find", tool)
-        }.standardOutput.asText.map { it.trim() }
+fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>? {
+    val taskName = "${platform.taskPrefix}CMake"
+    if (taskName in tasks.names) return tasks.named<KotlinCMakeTask>(taskName)
+    val native = nativeConfigurationOrNull?.takeIf { it.isEnabled } ?: return null
+    val nativeDependencies = nativeProjectDependencies()
+    val dependencyTasks = nativeDependencies.mapNotNull { dependency ->
+        dependency.project.kotlinCmake(platform)?.let { dependency to it }
     }
+    val prefabTasks = if (platform is CmakePlatform.Android) {
+        native.android.resolvedPrefabs.map { it to registerPrefabTask(it) }
+    } else emptyList()
 
-    class Android(
-        val abi: String,
-        val ndkDir: String,
-        val cmakePath: String,
-        val ninjaPath: String,
-        val minSdk: Int = Version.SDK.minSdk,
-        val stl: String = "c++_shared",
-    ) : CmakePlatform(
-        variant = "android/$abi",
-        generator = "Ninja",
-        taskPrefix = "android_$abi",
-        cmakeExecutable = cmakePath,
-    ) {
-        override fun flags(project: Project): Provider<List<String>> = project.provider {
-            val toolchain = "$ndkDir/build/cmake/android.toolchain.cmake"
-            listOf(
-                "-DCMAKE_TOOLCHAIN_FILE=$toolchain",
-                "-DANDROID_ABI=$abi",
-                "-DANDROID_STL=$stl",
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DANDROID_PLATFORM=android-$minSdk",
-                "-DANDROID=true",
-                "-DCMAKE_VERBOSE_MAKEFILE=1",
-                "-DCMAKE_MAKE_PROGRAM=$ninjaPath",
-            )
-        }
-    }
-}
-
-fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<out Task>? {
-    val native = nativeConfigurationOrNull
-        ?.takeIf { it.isEnabled }
-        ?: return null
-    val nativeSourceDirectory = native.resolvedSourceDirectory
-    val nativeCmakeLists = native.resolvedCmakeLists
-    val nativeBuildDirectory = nativeBuildDirectory(platform.variant)
-    val nativeDependencies = project.nativeProjectDependencies()
-    val prefabTasks = when (platform) {
-        is CmakePlatform.Android -> native.android.resolvedPrefabs.map { prefab ->
-            prefab to registerPrefabTask(prefab)
-        }
-        else -> emptyList()
-    }
-
-    return tasks.register<KotlinCMakeTask>("${platform.taskPrefix}CMake") {
+    val buildTask = tasks.register<KotlinCMakeTask>(taskName) {
         group = "reaktor"
-        sourceDirectory.set(nativeCmakeLists.parentFile)
-        sourceFiles.from(
-            project.fileTree(nativeSourceDirectory) {
-                exclude("build/**")
-            }
-        )
-        buildDirectory.set(nativeBuildDirectory)
+        sourceDirectory.set(native.resolvedCmakeLists.parentFile)
+        sourceFiles.from(project.cmakeSources(native.resolvedSourceDirectory), project.cmakeKernelSources())
+        buildDirectory.set(project.nativeBuildDirectory(platform.variant))
         generator.set(platform.generator)
         cmakeExecutable.set(platform.cmakeExecutable)
+        toolVersion.set(platform.identity(project))
         buildTarget.set(native.resolvedLibraryName)
-        dependsOn(prefabTasks.map { it.second })
         configureArguments.addAll(platform.flags(project))
-        if (nativeDependencies.isNotEmpty()) {
-            configureArguments.add(
-                "-DREAKTOR_NATIVE_DEPENDENCY_PROJECTS=${
-                    nativeDependencies.joinToString(";") { it.project.name }
-                }"
-            )
-            configureArguments.add(
-                "-DREAKTOR_NATIVE_DEPENDENCY_SOURCE_DIRS=${
-                    nativeDependencies.joinToString(";") { it.sourceDirectory.absolutePath }
-                }"
-            )
-            configureArguments.add(
-                "-DREAKTOR_NATIVE_DEPENDENCY_TARGETS=${
-                    nativeDependencies.joinToString(";") { it.libraryName }
-                }"
-            )
-        }
-        prefabTasks.forEach { (prefab, task) ->
-            configureArguments.add(
-                task.flatMap { extracted ->
-                    extracted.outputDirectory.map { directory ->
-                        "-D${prefab.cmakeVariable}=${directory.asFile.absolutePath}"
-                    }
-                }
-            )
-        }
+        configureArguments.add("-DCMAKE_CXX_STANDARD=${ToolchainVersions.CppStandard}")
+        configureArguments.add("-DREAKTOR_NATIVE_PUBLIC_INCLUDE_DIRS=${native.resolvedIncludeDirs.joinToString(";")}")
+        includeNativeDependencies(nativeDependencies, dependencyTasks, platform)
+        includePrefabs(prefabTasks)
+        includeToolSources(project, native.resolvedCmakeLists, nativeDependencies, platform)
     }
-}
-
-private fun Project.registerPrefabTask(
-    prefab: AndroidPrefabConfiguration,
-): TaskProvider<ExtractPrefabTask> {
-    val taskName = "extract${prefab.moduleName.replaceFirstChar(Char::uppercaseChar)}Prefab"
-    val existing = tasks.findByName(taskName)
-    if (existing != null) {
-        @Suppress("UNCHECKED_CAST")
-        return tasks.named(taskName) as TaskProvider<ExtractPrefabTask>
+    val pipeline = BuildPipeline(this, "${platform.taskPrefix}Native")
+    val inputs = prefabTasks.map { pipeline.node(it.second) } + dependencyTasks.map { (dependency, task) ->
+        pipeline.node(task, "${dependency.project.path}:${task.name}")
     }
-    return tasks.register<ExtractPrefabTask>(taskName) {
-        group = "reaktor"
-        dependencyNotation.set(prefab.dependencyNotation)
-        moduleName.set(prefab.moduleName)
-        outputDirectory.set(layout.buildDirectory.dir("dependeasy/prefab/${prefab.moduleName}"))
-    }
+    pipeline.node(buildTask).after(*inputs.toTypedArray())
+    pipeline.report()
+    return buildTask
 }

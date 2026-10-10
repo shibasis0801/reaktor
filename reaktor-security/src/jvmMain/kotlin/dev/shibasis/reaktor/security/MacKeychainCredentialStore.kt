@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.security
 import com.sun.jna.*
 import com.sun.jna.ptr.PointerByReference
 import com.sun.jna.ptr.ByteByReference
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.withContext
 
 /** Direct Security.framework calls. Passwords never enter a shell command, environment or workspace file. */
 class MacKeychainCredentialStore(private val service: String) : CredentialStore {
@@ -58,7 +60,17 @@ class MacKeychainCredentialStore(private val service: String) : CredentialStore 
         if (status == -25308 || status == -25293) throw CredentialAccessException("macOS Keychain denied credential access (OSStatus $status). Unlock Keychain and approve Reaktor's access to its credential, then retry sign-in.")
         check(status == 0) { "macOS Keychain operation failed (OSStatus $status)" }
     }
-    private companion object { const val NOT_FOUND = -25300; const val DUPLICATE = -25299; const val MAX_BYTES = 65_536 }
+    companion object {
+        private const val NOT_FOUND = -25300
+        private const val DUPLICATE = -25299
+        private const val MAX_BYTES = 65_536
+        private val interaction = ThreadLocal.withInitial { false }
+        internal val userInteractionAllowed: Boolean get() = interaction.get()
+
+        /** Explicit sign-in may ask macOS for approval; background credential reads never prompt. */
+        suspend fun <T> withUserInteraction(block: suspend () -> T): T =
+            withContext(interaction.asContextElement(true)) { block() }
+    }
 }
 
 private interface SecurityFramework : Library {
@@ -102,13 +114,14 @@ private class KeychainNative {
             set(dictionary, "kSecAttrAccount", account)
             // Background/resume calls must fail closed instead of waiting indefinitely on
             // an invisible OS authentication dialog. This does not grant Keychain access.
-            set(dictionary, "kSecUseAuthenticationUI", symbol("kSecUseAuthenticationUIFail"))
+            val interactive = MacKeychainCredentialStore.userInteractionAllowed
+            if (!interactive) set(dictionary, "kSecUseAuthenticationUI", symbol("kSecUseAuthenticationUIFail"))
             // macOS ignores per-query authentication-UI flags for legacy login-keychain
             // items. Scope and restore its process-level flag under one shared lock.
             return synchronized(interactionLock) {
                 val previous = ByteByReference()
                 check(security.SecKeychainGetUserInteractionAllowed(previous) == 0) { "Could not inspect Keychain interaction policy" }
-                check(security.SecKeychainSetUserInteractionAllowed(0) == 0) { "Could not make Keychain access non-interactive" }
+                check(security.SecKeychainSetUserInteractionAllowed(if (interactive) 1 else 0) == 0) { "Could not set Keychain interaction policy" }
                 try { block(dictionary) } finally {
                     check(security.SecKeychainSetUserInteractionAllowed(previous.value) == 0) { "Could not restore Keychain interaction policy" }
                 }

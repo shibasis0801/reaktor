@@ -34,6 +34,11 @@ sealed interface GraphSource {
         override val label = "Whole system"
     }
 
+    data object Build : GraphSource {
+        override val id = "build"
+        override val label = "Build declarations"
+    }
+
     data class Device(override val id: String, override val label: String) : GraphSource
 }
 

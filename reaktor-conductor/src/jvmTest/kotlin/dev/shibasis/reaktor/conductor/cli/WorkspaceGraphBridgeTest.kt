@@ -37,7 +37,7 @@ class WorkspaceGraphBridgeTest {
                 Files.writeString(data.resolve("graph-connection.json"), "{\"workspaceRoot\":\"/wrong\",\"url\":\"http://127.0.0.1:1/mcp\"}")
                 assertFailsWith<IllegalArgumentException> { bridge.exchange("{}") }
             }
-        } finally { first.stop(0); next.stop(0); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+        } finally { first.stop(0); next.stop(0); data.toFile().deleteTreeSafely(within = data.parent.toFile()); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit
     }
 

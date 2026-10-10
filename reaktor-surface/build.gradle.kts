@@ -1,21 +1,13 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.web.*
+import dev.shibasis.dependeasy.common.commonCoroutines
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-kotlin {
-    common { dependencies { commonCoroutines() } }
-    droid {}
-    darwin {}
-    web {}
-    server {}
-}
-
-android {
-    defaults("dev.shibasis.reaktor.surface")
+dependeasy {
+    module("dev.shibasis.reaktor.surface") {
+        common { dependencies { commonCoroutines() } }
+        android {}
+        apple {}
+        web {}
+        jvm {}
+    }
 }

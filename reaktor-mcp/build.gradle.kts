@@ -1,32 +1,29 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.common.commonSerialization
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
-kotlin {
-    common {
-        dependencies {
-            commonSerialization(protobuf = false)
-            implementation("io.modelcontextprotocol:kotlin-sdk-client:0.7.2")
+plugins { id("dev.shibasis.dependeasy.library") }
+dependeasy {
+    javascript("mcpTypeScript") {
+        kotlinLibraries("reaktor-mcp")
+        verify("checkMcpTypeScript", "ts/tsconfig.json", checks = listOf(check()))
+    }
+    module("dev.shibasis.reaktor.mcp") {
+        common {
+            dependencies {
+                commonSerialization(protobuf = false)
+                api(project(":reaktor-graph-runtime"))
+                implementation(Versions.Tooling.McpClient)
+            }
+        }
+        android {}
+        apple {}
+        web {}
+
+        jvm {
+            bytecode = 21
+            dependencies {
+                implementation(Versions.Tooling.McpServer)
+            }
         }
     }
-    droid {}
-    darwin {}
-    server {
-        dependencies {
-            implementation("io.modelcontextprotocol:kotlin-sdk-server:0.7.2")
-
-        }
-    }
-    jvmToolchain(21)
-    jvm().compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.mcp")
 }

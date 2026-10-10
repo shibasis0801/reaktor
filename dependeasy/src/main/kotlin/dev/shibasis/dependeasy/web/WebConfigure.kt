@@ -3,34 +3,31 @@ package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.common.Configuration
 import org.gradle.api.Project
+import org.gradle.api.tasks.AbstractCopyTask
+import org.gradle.api.tasks.Sync
+import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.named
-import org.gradle.kotlin.dsl.the
-import org.gradle.kotlin.dsl.withType
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.dsl.JsSourceMapEmbedMode
-import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrCompilation
 import org.jetbrains.kotlin.gradle.targets.js.npm.PackageJson
-import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
-import org.jetbrains.kotlin.gradle.targets.js.webpack.WebpackDevtool
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
-import java.io.File
+import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 
-class WebConfiguration: Configuration<KotlinJsTargetDsl>() {
+class WebConfiguration internal constructor(private val project: Project): Configuration<KotlinJsTargetDsl>() {
     var moduleName: String? = null
-    var packageJson: File? = null
+    var exportDirectory: String = "ts/export"
+    internal val manifests = mutableListOf<org.gradle.api.tasks.TaskProvider<dev.shibasis.dependeasy.process.CommandTask>>()
+
+    fun manifest(name: String, script: Any, output: Any, vararg inputs: Any) =
+        project.exportManifest(name, script, output, { exportDirectory }, inputs).also(manifests::add)
 
     internal var packageJsonCustomizer: (PackageJson.() -> Unit)? = null
-    private set
-    internal var webpackConfig: (KotlinWebpackConfig.() -> Unit) = {}
     private set
 
 
@@ -38,9 +35,7 @@ class WebConfiguration: Configuration<KotlinJsTargetDsl>() {
         this.packageJsonCustomizer = fn
     }
 
-    fun webpackConfig(fn: KotlinWebpackConfig.() -> Unit) {
-        this.webpackConfig = fn
-    }
+
 }
 
 
@@ -48,36 +43,30 @@ class WebConfiguration: Configuration<KotlinJsTargetDsl>() {
 fun KotlinMultiplatformExtension.web(
     configuration: WebConfiguration.() -> Unit = {}
 ) {
-    val configure = WebConfiguration().apply(configuration)
-//    configure.packageJson?.apply(project::buildTasksFromScripts)
+    val configure = WebConfiguration(project).apply(configuration)
 
-    js(IR) {
-//        moduleName = "index"
+    js {
         compilerOptions {
             target.set("es2015")
             sourceMap.set(false)
             sourceMapEmbedSources.set(JsSourceMapEmbedMode.SOURCE_MAP_SOURCE_CONTENT_NEVER)
             freeCompilerArgs.add("-Xes-long-as-bigint")
             freeCompilerArgs.add("-XXLanguage:+JsAllowExportingSuspendFunctions")
-            freeCompilerArgs.add("-Xir-minimized-member-names=false")
         }
         useEsModules()
         nodejs {
             binaries.library()
             passProcessArgvToMainFunction()
+            testTask {
+                val runtime = JavaScriptRuntime(project)
+                nodeJsArgs.addAll(listOf("--import", runtime.file("cli/compose-runtime.ts").absolutePath))
+                dependsOn(runtime.install)
+                inputs.files(runtime.sources)
+            }
         }
         generateTypeScriptDefinitions()
         browser {
             binaries.library()
-            commonWebpackConfig {
-                cssSupport {
-                    enabled.set(true)
-                }
-                webpackTask { sourceMaps = false }
-                runTask     { sourceMaps = false }
-                devtool = WebpackDevtool.NOSOURCES_SOURCE_MAP
-                configure.webpackConfig(this)
-            }
 
             testTask {
                 enabled = false
@@ -86,13 +75,12 @@ fun KotlinMultiplatformExtension.web(
                 enabled = false
             }
 
-            distribution {
-                outputDirectory.set(project.projectDir.resolve("ts/export"))
-            }
         }
-        compilations["main"].packageJson {
-            configure.moduleName?.apply { name = this }
-            configure.packageJsonCustomizer?.invoke(this)
+        val packageName = configure.moduleName
+        val customizePackage = configure.packageJsonCustomizer
+        if (packageName != null || customizePackage != null) compilations["main"].packageJson {
+            packageName?.let { name = it }
+            customizePackage?.invoke(this)
         }
         if (!project.pluginManager.hasPlugin("org.jetbrains.compose")) {
             project.tasks.named<ProcessResources>(compilations["test"].processResourcesTaskName) {
@@ -101,6 +89,35 @@ fun KotlinMultiplatformExtension.web(
         }
 
         configure.targetModifier(this)
+
+        val context = PackageDependencyContext(compilations["main"].npmProject.dir.get().asFile.resolve("node_modules"),
+            project.file(configure.exportDirectory))
+        PnpmWorkspace.get(project).install.configure {
+            doLast(context)
+            outputs.upToDateWhen { context.matches() }
+        }
+        project.tasks.withType(AbstractCopyTask::class.java).configureEach {
+            if (name.startsWith("jsBrowser") && name.endsWith("LibraryDistribution")) {
+                into(project.layout.buildDirectory.dir("dist/js/browser/$name"))
+            }
+        }
+        val production = project.tasks.named { it.startsWith("jsBrowser") && it.endsWith("ProductionLibraryDistribution") }
+        val catalog = project.kotlinExportCatalog(project.file(configure.exportDirectory))
+        val exports = project.tasks.register<KotlinPackageExport>("exportKotlinLibrary") {
+            group = "dependeasy"
+            sourceFiles.from(production)
+            destination.set(project.layout.projectDirectory.dir(configure.exportDirectory))
+            dependencyDirectory.set(compilations["main"].npmProject.dir.map { it.dir("node_modules") })
+            finalizedBy(catalog, configure.manifests)
+        }
+        production.configureEach { finalizedBy(exports) }
+        configure.manifests.forEach { manifest -> manifest.configure { dependsOn(exports) } }
+    }
+    // KGP's subtarget distribution DSL changes every binary, including browser binaries.
+    project.tasks.withType(AbstractCopyTask::class.java).configureEach {
+        if (name.startsWith("jsNode") && name.endsWith("LibraryDistribution")) {
+            into(project.layout.buildDirectory.dir("dist/js/node/$name"))
+        }
     }
 
     sourceSets {
@@ -111,33 +128,10 @@ fun KotlinMultiplatformExtension.web(
                 configure.dependencies(this)
             }
         }
+        jsTest.dependencies { configure.testDependencies(this) }
     }
 
-    project.plugins.withType<YarnPlugin> {
-        project.the<YarnRootExtension>().yarnLockMismatchReport = YarnLockMismatchReport.WARNING
-        project.the<YarnRootExtension>().reportNewYarnLock = false
-        project.the<YarnRootExtension>().yarnLockAutoReplace = false
-    }
 
-    project.afterEvaluate {
-        val webpackConfigDir = project.projectDir.resolve("webpack.config.d")
-        if (!webpackConfigDir.exists()) webpackConfigDir.mkdirs()
-
-        webpackConfigDir.resolve("99-prod-sanity.js").writeText("""
-            // Generated by dependeasy WebConfiguration
-            // Preserves class names for Reaktor graph stability and sane debugging
-            const TerserPlugin = require('terser-webpack-plugin');
-            config.optimization = config.optimization || {};
-            config.optimization.minimizer = [
-                new TerserPlugin({
-                    terserOptions: {
-                        keep_classnames: true,
-                        keep_fnames: true
-                    }
-                })
-            ];
-        """.trimIndent())
-    }
 }
 
 private fun Project.skikoRuntime(compilation: KotlinJsIrCompilation) = provider {

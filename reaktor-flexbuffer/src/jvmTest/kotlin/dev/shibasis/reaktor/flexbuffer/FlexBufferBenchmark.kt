@@ -19,11 +19,11 @@ import kotlin.time.measureTime
 /**
  * Comparative benchmark: Reaktor FlexBuffers vs Google Kotlin FlexBuffersBuilder (raw) vs JSON.
  *
- * Run alongside the C++ reference benchmark (cpp/bench/flexbuffer_bench.cpp) to
+ * Run alongside the C++ reference benchmark (src/commonBenchmark/cpp/flexbuffer_bench.cpp) to
  * establish the full performance picture across the language stack.
  *
  * Run via: ./gradlew :reaktor-flexbuffer:jvmTest --tests "*.FlexBufferBenchmark"
- * C++ ref: cd cpp/bench && clang++ -O2 -std=c++17 -I ../../../.github_modules/flatbuffers/include flexbuffer_bench.cpp -o flexbuffer_bench && ./flexbuffer_bench
+ * C++ ref: ./gradlew :reaktor-flexbuffer:flexbuffer_benchCMake
  *
  * Four implementation tiers compared:
  *   1. C++ FlexBuffers (separate binary) — the format's reference implementation.

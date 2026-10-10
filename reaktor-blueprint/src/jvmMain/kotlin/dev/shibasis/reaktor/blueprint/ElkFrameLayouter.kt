@@ -6,7 +6,6 @@ import java.util.logging.Logger
 import kotlinx.coroutines.CancellationException
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
-import org.eclipse.elk.alg.layered.options.OrderingStrategy
 import org.eclipse.elk.core.RecursiveGraphLayoutEngine
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.Direction
@@ -39,7 +38,6 @@ object ElkFrameLayouter : FrameLayouter {
         configure(root)
         if (group.loose) root.setProperty(CoreOptions.ASPECT_RATIO, 1.4)
         root.setProperty(CoreOptions.HIERARCHY_HANDLING, HierarchyHandling.SEPARATE_CHILDREN)
-        root.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.NODES_AND_EDGES)
         val boxes = linkedMapOf<String, ElkNode>()
         val ports = hashMapOf<String, ElkConnectableShape>()
         val width = BlueprintEngine.CardWidth

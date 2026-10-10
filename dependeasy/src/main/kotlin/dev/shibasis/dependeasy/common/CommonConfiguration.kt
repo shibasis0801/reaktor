@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.common
 
-import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.Versions
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -41,13 +41,12 @@ class CommonConfiguration: Configuration<Unit>()
 fun KotlinMultiplatformExtension.common(
     configuration: CommonConfiguration.() -> Unit = {}
 ) {
-    jvmToolchain(Version.SDK.Java.asInt)
+    jvmToolchain(Versions.SDK.Java.asInt)
     val configure = CommonConfiguration().apply(configuration)
 
     sourceSets {
         compilerOptions {
             freeCompilerArgs.add("-Xexpect-actual-classes")
-            freeCompilerArgs.add("-XXLanguage:+JsAllowExportingSuspendFunctions")
         }
         all {
             languageSettings.apply {
@@ -63,8 +62,7 @@ fun KotlinMultiplatformExtension.common(
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(kotlin("test-annotations-common"))
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${Version.Coroutines}")
-            implementation("app.cash.turbine:turbine:1.2.1")
+            implementation(Versions.Kotlin.CoroutinesTest)
             configure.testDependencies(this)
         }
     }

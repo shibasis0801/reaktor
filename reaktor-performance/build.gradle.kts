@@ -1,35 +1,32 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.common.commonSerialization
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-            commonSerialization()
+dependeasy {
+    javascript("performanceTypeScript").verify("checkPerformanceTypeScript", "ts/tsconfig.json")
+    module("dev.shibasis.reaktor.performance") {
+        common {
+            dependencies {
+                api(project(":reaktor-core"))
+                commonSerialization()
+            }
+        }
+        web {}
+        android {}
+        apple {}
+        jvm {}
+
+        kotlin {
+            applyDefaultHierarchyTemplate()
         }
     }
-    web {}
-    droid {}
-    darwin {}
-    server {}
-    applyDefaultHierarchyTemplate()
-}
 
-android {
-    defaults("dev.shibasis.reaktor.performance")
-}
 
-// The JVM test runner scans every class in the test source set; restrict it to test classes.
-tasks.withType<Test>().configureEach {
-    filter {
-        isFailOnNoMatchingTests = false
-        includeTestsMatching("*Test")
+    // The JVM test runner scans every class in the test source set; restrict it to test classes.
+    tasks.withType<Test>().configureEach {
+        filter {
+            isFailOnNoMatchingTests = false
+            includeTestsMatching("*Test")
+        }
     }
 }

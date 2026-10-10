@@ -1,17 +1,17 @@
 
 package dev.shibasis.dependeasy.server
 
-import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.Versions
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 
 fun KotlinDependencyHandler.serverNetworking() {
-    api("io.ktor:ktor-client-okhttp:${Version.Ktor}")
+    api(Versions.Kotlin.KtorOkHttp)
 }
 
 fun KotlinDependencyHandler.springWebFlux() {
-    api("org.springframework.boot:spring-boot-starter-webflux:${Version.SDK.SpringBoot}")
+    api(Versions.Server.WebFlux)
 }
 
 fun KotlinDependencyHandler.serverCoroutines() {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${Version.Coroutines}")
+    api(Versions.Kotlin.CoroutinesSwing)
 }

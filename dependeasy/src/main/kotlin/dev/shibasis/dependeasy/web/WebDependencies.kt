@@ -1,12 +1,12 @@
 package dev.shibasis.dependeasy.web
 
-import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.Versions
 import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 
-val kotlinWrapper: (String) -> String = { target -> "org.jetbrains.kotlin-wrappers:kotlin-$target" }
+val kotlinWrapper: (String) -> String = Versions.Kotlin::wrapper
 
 fun KotlinDependencyHandler.kotlinWrappers() {
-    api(project.dependencies.platform("org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:${Version.KotlinJSWrappers}"))
+    api(project.dependencies.platform(Versions.Kotlin.WrappersBom))
     api(kotlinWrapper("js"))
     api(kotlinWrapper("browser"))
     api(kotlinWrapper("web"))
@@ -24,10 +24,10 @@ fun KotlinDependencyHandler.react() {
 }
 
 fun KotlinDependencyHandler.webCoroutines() {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core-js:${Version.Coroutines}")
+    api(Versions.Kotlin.CoroutinesJs)
 }
 
 fun KotlinDependencyHandler.webNetworking() {
-    api("io.ktor:ktor-client-js:${Version.Ktor}")
+    api(Versions.Kotlin.KtorJs)
 }
 

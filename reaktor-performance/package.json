@@ -1,0 +1,16 @@
+{
+  "name": "@reaktor/performance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/jsMain/typescript/index.ts",
+  "types": "src/jsMain/typescript/index.ts",
+  "scripts": {
+    "typecheck": "node ../dependeasy/javascript/cli/typecheck.ts --projects ts/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "packageManager": "pnpm@12.10.1"
+}

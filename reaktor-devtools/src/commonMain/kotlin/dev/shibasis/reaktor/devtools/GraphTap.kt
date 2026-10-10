@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.portgraph.port.PortInvocation
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.addInterceptor
 import dev.shibasis.reaktor.portgraph.port.removeInterceptor
+import kotlinx.coroutines.CancellationException
 
 /**
  * Records calls crossing a port.
@@ -58,8 +59,9 @@ class GraphTap(private val stream: FactStream, private val watches: PortWatches?
                 nodeLabel = (port.owner as? Unique)?.label?.takeIf(String::isNotBlank) ?: port.owner::class.simpleName,
                 peerPortKey = invocation.edge?.id?.toString(),
                 durationNanos = nanos - startNanos,
-                failure = failure?.let { it::class.simpleName + (it.message?.let { m -> ": " + m } ?: "") },
+                failure = failure?.let { (it::class.simpleName + (it.message?.let { m -> ": " + m } ?: "")).redacted() },
                 value = if (failure == null && watches?.watching(nodeId, port.key.key) == true) watchedValue(result) else null,
+                cancelled = failure is CancellationException,
             )
         }
     }

@@ -38,6 +38,14 @@ class LoopbackMcpServer private constructor(
             mcp: () -> McpMessageHandler,
             bearerToken: String? = null,
             read: (path: String, query: Map<String, String>) -> LoopbackHttpResponse? = { _, _ -> null },
+        ): LoopbackMcpServer = start(port, mcp, bearerToken, post = { _, _ -> null }, read = read)
+
+        fun start(
+            port: Int,
+            mcp: () -> McpMessageHandler,
+            bearerToken: String? = null,
+            post: (path: String, body: String) -> LoopbackHttpResponse?,
+            read: (path: String, query: Map<String, String>) -> LoopbackHttpResponse? = { _, _ -> null },
         ): LoopbackMcpServer {
             require(port in 0..65535) { "Invalid port" }
             require(bearerToken == null || bearerToken.length >= 32) { "Bearer tokens must contain at least 32 characters" }
@@ -49,7 +57,7 @@ class LoopbackMcpServer private constructor(
                 server.executor = executor
                 server.createContext("/") { exchange ->
                     exchange.use { request ->
-                        try { request.respond(mcp, read, bearerToken) }
+                        try { request.respond(mcp, read, post, bearerToken) }
                         catch (_: Exception) { runCatching { request.send(500, error("Request failed")) } }
                     }
                 }
@@ -64,6 +72,7 @@ class LoopbackMcpServer private constructor(
         private fun HttpExchange.respond(
             mcp: () -> McpMessageHandler,
             read: (String, Map<String, String>) -> LoopbackHttpResponse?,
+            post: (String, String) -> LoopbackHttpResponse?,
             bearerToken: String?,
         ) {
             responseHeaders.set("Cache-Control", "no-store")
@@ -106,6 +115,12 @@ class LoopbackMcpServer private constructor(
                         decode(it.substringBefore('=')) to decode(it.substringAfter('=', ""))
                     }
                     val response = read(requestURI.path, query)
+                    send(response?.status ?: 404, response?.body ?: error("Not found"))
+                }
+                requestMethod == "POST" -> {
+                    val body = requestBody.readNBytes(1_048_577)
+                    if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+                    val response = post(requestURI.path, body.decodeToString())
                     send(response?.status ?: 404, response?.body ?: error("Not found"))
                 }
                 else -> send(404, error("Not found"))

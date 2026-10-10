@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.shibasis.composeflow.model.Position
+import dev.shibasis.composeflow.model.Dimensions
 
 data class NodeProps(
     val id: String,
@@ -30,6 +31,9 @@ data class NodeRenderStyle(
     /** Shared outline for clipping, fill, border and halo; null retains the default canvas skin. */
     val cornerRadius: Dp? = null,
     val borderWidth: Dp? = null,
+    /** Physical content allocation in pixels; world geometry and connection anchors stay unchanged. */
+    val contentSize: Dimensions? = null,
+    val clip: Boolean = true,
 )
 
 data class EdgeRenderStyle(

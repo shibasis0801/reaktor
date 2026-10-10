@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 
 import java.io.File
 import java.nio.file.Files
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -113,6 +114,104 @@ class JvmProjectDiscoverySealTest {
         bundleManifest(root, listOf(entry))
         assertTrue(reason().contains("manifest omits a dependency"))
     }
+
+    @Test
+    fun pnpmAliasesRetainRemoteEffectsAndUseTheManagedRuntime() = fixture { root, _ ->
+        File(root, "package.json").writeText("""{"name":"pnpm-fixture","packageManager":"pnpm@12.10.1","reaktor":{},"scripts":{"check":"pnpm run nested","nested":"TARGET_ENV=dev node tools/check.mjs karate tests/notificationServer"}}""")
+        File(root, "tools/check.mjs").apply { parentFile.mkdirs(); writeText("export const value = 1;") }
+        File(root, "tests/notificationServer/flow.feature").apply { parentFile.mkdirs(); writeText("Feature: fixture") }
+        val executable = File(root, "build/dependeasy/tools/javascript/bin/pnpm").apply {
+            parentFile.mkdirs(); writeText("fixture; never executed"); setExecutable(true)
+        }
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        val prepared = workspace.prepare(TaskInvocation(TaskId("npm/check"), arguments = listOf("--verbose")))
+        assertEquals(listOf(executable.canonicalPath, "run", "check", "--verbose"), prepared.request.argv)
+        assertTrue(prepared.request.environment.getValue("PATH").startsWith(executable.canonicalFile.parent))
+        assertEquals(SafetyClass.NonProductionWrite, prepared.plan.safety.classification)
+        assertTrue(prepared.request.definitionSeal!!.files.any { it.name == "check.mjs" })
+    }
+
+    @Test
+    fun pnpmWorkspaceDeploySealsItsTargetAndRejectsLaterChanges() = fixture { root, _ ->
+        worker(root)
+        val rootManifest = File(root, "package.json")
+        rootManifest.writeText("""{"name":"pnpm-workspace","packageManager":"pnpm@12.10.1","reaktor":{},"workspaces":["targets/worker"],"scripts":{"deploy":"pnpm --filter worker run deploy"}}""")
+        // This fixture needs only authored source, so it has no generated worker imports.
+        File(root, "targets/worker/src/index.ts").writeText("export default {};")
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        val prepared = workspace.prepare(TaskInvocation(TaskId("npm/deploy")))
+        assertEquals(SafetyClass.ProductionReversibleWrite, prepared.plan.safety.classification)
+        assertTrue(prepared.request.definitionSeal!!.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
+        assertTrue(prepared.request.definitionSeal!!.directories.any { it.directory == File(root, "targets/worker").canonicalFile })
+        File(root, "targets/worker/src/index.ts").appendText("// Changed deploy source")
+        assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/deploy"))) }
+        assertEquals("worker", PackageScriptCommands.exactWorkspaceDeploy("pnpm --filter worker run deploy"))
+        assertNull(PackageScriptCommands.exactWorkspaceDeploy("pnpm --filter worker run deploy && node other.mjs"))
+    }
+
+    @Test
+    fun pnpmYamlMembershipBindsWorkspaceNamesAndSealsItsDefinition() = fixture { root, _ ->
+        worker(root)
+        File(root, "package.json").writeText("""{"name":"pnpm-workspace","packageManager":"pnpm@12.10.1","reaktor":{},"scripts":{"deploy":"pnpm --filter worker run deploy"}}""")
+        val yaml = File(root, "pnpm-workspace.yaml").apply {
+            writeText("packages: ['targets/*', '!targets/excluded'] # Authored workspace membership\n")
+        }
+        File(root, "targets/excluded/package.json").apply { parentFile.mkdirs(); writeText("""{"name":"excluded"}""") }
+        File(root, "targets/worker/src/index.ts").writeText("export default {};")
+        assertEquals(listOf("targets/worker"), PackageWorkspaces.paths(root))
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        assertTrue(workspace.catalog.tasks.any { it.id.value == "target/worker/npm/deploy" })
+        val prepared = workspace.prepare(TaskInvocation(TaskId("npm/deploy")))
+        assertTrue(prepared.request.definitionSeal!!.files.any { it == yaml.canonicalFile })
+        assertTrue(prepared.request.definitionSeal!!.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
+        yaml.writeText("packages: ['targets/*', 'packages/*']\n")
+        assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/deploy"))) }
+    }
+
+    @Test
+    fun generatedGradleWorkerAliasSealsBuildAndWorkerDefinitions() = fixture { root, included ->
+        worker(root)
+        File(root, "targets/worker/src/index.ts").writeText("export default {};")
+        val manifest = generatedWorkerManifest()
+        File(root, "package.json").writeText(manifest)
+        val helper = File(included, "dependeasy/javascript/cli/worker-deploy.ts").apply {
+            parentFile.mkdirs(); writeText("// Shared deployment implementation")
+        }
+        val binding = assertNotNull(dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(
+            root, kotlinx.serialization.json.Json.parseToJsonElement(manifest).jsonObject, "deployWorker", "./gradlew :deployWorker"))
+        assertEquals(setOf("dev", "prod"), binding.environments)
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        val invocation = TaskInvocation(TaskId("npm/deployWorker"))
+        val prepared = workspace.prepare(invocation)
+        assertEquals(SafetyClass.ProductionReversibleWrite, prepared.plan.safety.classification)
+        val seal = assertNotNull(prepared.request.definitionSeal)
+        assertTrue(seal.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
+        assertTrue(seal.directories.any { it.directory == included.canonicalFile })
+        assertTrue(seal.directories.any { it.directory == File(included, "dependeasy").canonicalFile })
+        helper.appendText("\n// Changed implementation")
+        assertFailsWith<IllegalStateException> { workspace.prepare(invocation) }
+        SupervisedProcessExecutor().use { executor -> assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) } }
+    }
+
+    @Test
+    fun generatedGradleWorkerAliasRejectsEscapingPathsAndCommandDrift() = fixture { root, _ ->
+        File(root, "targets/worker").mkdirs()
+        fun binding(directory: String = "targets/worker", command: String = "./gradlew :deployWorker") =
+            dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(root,
+                kotlinx.serialization.json.Json.parseToJsonElement(generatedWorkerManifest(directory)).jsonObject, "deployWorker", command)
+        assertNotNull(binding())
+        assertNull(binding("../included"))
+        assertNull(binding(command = "./gradlew :deployWorker && node other.mjs"))
+        assertNull(binding(command = "./gradlew :different"))
+    }
+
+    private fun generatedWorkerManifest(directory: String = "targets/worker") = """{
+        "name":"gradle-worker","reaktor":{},"workspaces":["targets/worker"],
+        "scripts":{"deployWorker":"./gradlew :deployWorker"},
+        "dependeasy":{"generatedScripts":["deployWorker"],"generatedTargets":{"deployWorker":{
+            "task":":deployWorker","effect":"deploy","worker":"fixture","workerDirectory":"$directory","environments":["dev","prod"]
+        }}}
+    }"""
 
     private fun worker(root: File) {
         File(root, "package.json").writeText("""{"name":"worker-seal","reaktor":{},"workspaces":["targets/worker"]}""")

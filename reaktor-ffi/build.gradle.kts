@@ -1,48 +1,23 @@
-import dev.shibasis.dependeasy.*
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
-
-plugins {
-    id("dev.shibasis.dependeasy.library")
-    
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
-    androidNative {
-        fbjni()
-        hermes("0.81.4")
+    interop {
+        cppModule("api/Diagnostics.hpp", "reaktor::interop::diagnostics")
+        typescript()
     }
-}
-
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-            api(project(":reaktor-flexbuffer"))
+    module("dev.shibasis.reaktor.ffi") {
+        common {
+            dependencies {
+                api(project(":reaktor-core"))
+                api(project(":reaktor-flexbuffer"))
+            }
         }
-    }
-
-    droid {
-        dependencies {
-            implementation("com.facebook.react:hermes-android:0.81.4")
-        }
-        integrationTestDependencies {
-//            api()
-        }
+        android {}
+        apple {}
+        web {}
+        jvm {}
     }
 
-    web {}
 
-    server {}
-
-    darwin()
-}
-
-dependencies { add("kspCommonMainMetadata", project(":reaktor-compiler")) }
-
-android {
-   defaults("dev.shibasis.reaktor.ffi")
+    dependencies { add("kspCommonMainMetadata", project(":reaktor-compiler")) }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "reaktor-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/jsMain/typescript/index.ts",
+    "./pagefind": "./src/jsMain/typescript/pagefind.ts",
+    "./pagefind/build": "./ts/scripts/pagefind.mjs"
+  },
+  "scripts": {
+    "test": "node --test ts/test/*.test.mjs",
+    "typecheck": "node ../dependeasy/javascript/cli/typecheck.ts --projects ts/tsconfig.json"
+  },
+  "dependencies": {
+    "pagefind": "1.5.2",
+    "reaktor-reaktor-mcp": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "packageManager": "pnpm@12.10.1"
+}

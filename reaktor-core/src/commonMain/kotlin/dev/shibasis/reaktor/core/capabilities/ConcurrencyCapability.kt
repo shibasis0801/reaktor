@@ -1,12 +1,12 @@
 package dev.shibasis.reaktor.core.capabilities
 
 import co.touchlab.kermit.Logger
+import dev.shibasis.reaktor.core.framework.reaktorDefaultDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -33,7 +33,7 @@ interface ConcurrencyCapability: Capability {
 
 class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
-    override val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default
+    override val coroutineDispatcher: CoroutineDispatcher = reaktorDefaultDispatcher
 ): ConcurrencyCapability {
     val supervisorJob = SupervisorJob(context?.get(Job))
 
@@ -50,8 +50,6 @@ class ConcurrencyCapabilityImpl(
         coroutineScope.cancel(CancellationException("Reaktor:AutoCloseable"))
     }
 }
-
-
 
 
 

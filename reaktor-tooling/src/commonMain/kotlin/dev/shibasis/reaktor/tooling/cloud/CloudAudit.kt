@@ -160,7 +160,7 @@ object CloudAudit {
 
     private fun unprotectedDisks(snapshot: CloudSnapshot): List<CloudFinding> {
         val bare = snapshot.resources.filter { disk ->
-            disk.kind == CloudKind.Disk && disk.observed && (disk.attributes["snapshots"] ?: "0") == "0" &&
+            disk.kind == CloudKind.Disk && disk.observed && disk.attributes["snapshots"] == "0" &&
                 disk.attributes["snapshotSchedule"].isNullOrBlank()
         }
         if (bare.isEmpty()) return emptyList()
@@ -172,11 +172,11 @@ object CloudAudit {
             id = "no-snapshots",
             category = CloudFindingCategory.Reliability,
             severity = if (holding.isNotEmpty()) CloudSeverity.High else CloudSeverity.Medium,
-            title = if (holding.isNotEmpty()) "Database disks have no backups" else "Disks have no snapshots",
+            title = if (holding.isNotEmpty()) "Database disks have no disk snapshots" else "Disks have no snapshots",
             detail = buildString {
                 append("${names(bare)} ${if (bare.size == 1) "has" else "have"} no snapshots and no snapshot schedule attached. ")
                 if (owners.isNotEmpty()) append("They hold the data of ${owners.joinToString()}. ")
-                append("Losing the machine or a bad write loses that data for good.")
+                append("This read covers disk snapshots. Application-level backup and restore coverage needs separate verification.")
             },
             resourceIds = bare.map { it.id } + volumes.map { it.id },
             fix = "Attach a daily snapshot schedule to these disks, and keep at least a week of snapshots.",

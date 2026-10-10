@@ -285,18 +285,20 @@ class GraphServiceTraceTest {
         println("REAKTOR_GRAPH_SERVICE_BENCHMARK baseline_ms=$baselineMillis observed_ms=$observedMillis iterations_per_round=10000 accepted=62000 retained=${spans.pending} dropped=${spans.dropped}")
     }
 
-    @Test fun cancellationKeepsTheFailureAndEndsTheGraphSpan() = runTest {
+    @Test fun cancellationKeepsItsOutcomeAndEndsTheGraphSpan() = runTest {
         val spans = SpanBuffer()
         val sdk = createOpenTelemetry { tracerProvider {
             resource(mapOf(ResourceKeys.ServiceName to "reaktor-client")); export { ClientServiceSpanProcessor(spans) }
         } }
-        val port = wire("cancel", PortTelemetryInterceptor(sdk.tracerProvider.getTracer("test"), defaults = defaults,
-            openTelemetry = sdk, callAttributes = { resources }))
+        val interceptor = PortTelemetryInterceptor(sdk.tracerProvider.getTracer("test"), defaults = defaults,
+            openTelemetry = sdk, callAttributes = { resources })
+        val port = wire("cancel", interceptor)
         val failure = CancellationException("private cancellation detail")
         val thrown = runCatching { port.suspended { throw failure } }.exceptionOrNull()
         assertTrue(thrown === failure)
         assertEquals(499, spans.snapshot().single().status)
         assertTrue(spans.snapshot().single().durationMillis >= 0)
+        assertTrue(interceptor.metrics.isEmpty)
         assertNull(currentCoroutineContext()[ServiceCall])
     }
 }

@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.tooling.delivery.GradleBuildTargets
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -195,7 +196,9 @@ class JvmProjectDiscovery(
         val reaktor = packageJson["reaktor"] as? JsonObject ?: return null
         val name = reaktor.string("name") ?: packageJson.string("name") ?: root.name
         val scripts = packageJson.stringMap("scripts")
-        val workspaces = packageJson.workspaces()
+        val workspaces = PackageWorkspaces.paths(root) { file ->
+            declarationsText.getOrPut(file.canonicalFile) { file.readText() }
+        }
         val declarations = reaktor.targetDeclarations()
         val gradleModules = parseGradleModules(root)
         val targetNames = targetNames(root, workspaces, declarations, gradleModules)
@@ -284,6 +287,12 @@ class JvmProjectDiscovery(
                     explicitKind = action.toTaskKind(),
                 )
             }
+        }
+        GradleBuildTargets.read(root) { file ->
+            declarationsText.getOrPut(file.canonicalFile) { file.readText() }
+        }.forEach { target ->
+            taskBuilder.gradleTask("dependeasy${target.task}", target.task.removePrefix(":"), target.task, null,
+                GradleBuildTargets.Report, target.kind, target)
         }
         return DiscoveredJvmWorkspace(
             catalog = ToolingCatalog(
@@ -457,6 +466,14 @@ private class TaskCatalogBuilder(
         }
     }
 
+    private val declaredGradleDefinitionSeal = lazy {
+        val report = root.resolve(GradleBuildTargets.Report).canonicalFile
+        val expected = mapOf(report to declarationDigest(report))
+        checkDeclarations(expected)
+        val base = gradleDefinitionSeal.value
+        ProcessDefinitionSeal.capture(base.files + report, base.directories).also { checkDeclarations(expected) }
+    }
+
     fun npmTask(
         id: String,
         label: String,
@@ -469,9 +486,9 @@ private class TaskCatalogBuilder(
     ) {
         val taskId = TaskId(id)
         if (bindings.containsKey(taskId)) return
-        val safety = safetyFor(script, body)
         val definitionFile = File(workingDirectory, "package.json")
-        val expandedBody = expandNpmScripts(body)
+        val expandedBody = expandPackageScripts(body, workingDirectory)
+        val safety = safetyFor(script, expandedBody)
         val words = "$script $expandedBody".lowercase()
         val blockedReason = when {
             "fastlane" in words && FASTLANE_PUBLISH_WORDS.any(words::contains) ->
@@ -481,11 +498,12 @@ private class TaskCatalogBuilder(
             ("karate" in words || Regex("(?:^|[:/\\s])k6(?:[:/\\s]|${'$'})").containsMatchIn(words)) &&
                 TEST_DIRECTORY_PATH.findAll(expandedBody).none { File(workingDirectory, it.groupValues[1]).isDirectory } ->
                 "Remote harness flow/config closure could not be bounded"
-            "wrangler deploy" in words && definitionFile.parentFile == root && "--workspace" !in words ->
+            "wrangler deploy" in words && definitionFile.parentFile == root && PackageScriptCommands.workspaces(expandedBody).isEmpty() ->
                 "Worker deploy target could not be resolved to a bounded workspace"
             else -> null
         }
-        val declarations = listOf(File(root, "package.json"), definitionFile).distinctBy(File::getCanonicalPath)
+        val declarations = listOf(File(root, "package.json"), definitionFile, File(root, "pnpm-workspace.yaml"))
+            .filter(File::isFile).distinctBy(File::getCanonicalPath)
             .associate { it.canonicalFile to declarationDigest(it) }
         val definitionSeal = lazy {
             synchronized(this) {
@@ -511,8 +529,12 @@ private class TaskCatalogBuilder(
             unavailableReason = blockedReason,
             attributes = mapOf("script" to script),
         )
+        val packageArgv = packageScriptArgv(workingDirectory, script)
         bindings[taskId] = JvmTaskBinding(
-            argv = listOf(platformExecutable("npm"), "run", script, "--"),
+            argv = packageArgv,
+            environment = if (File(packageArgv.first()).isAbsolute) mapOf(
+                "PATH" to "${File(packageArgv.first()).parent}${File.pathSeparator}${System.getenv("PATH").orEmpty()}",
+            ) else emptyMap(),
             workingDirectory = workingDirectory,
             definitionSeal = definitionSeal,
         )
@@ -525,6 +547,7 @@ private class TaskCatalogBuilder(
         targetId: String?,
         provenancePath: String,
         explicitKind: TaskKind,
+        declaration: GradleBuildTargets.Target? = null,
     ) {
         val wrapper = File(root, if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
         if (!wrapper.isFile) return
@@ -536,14 +559,15 @@ private class TaskCatalogBuilder(
             kind = explicitKind,
             provider = "gradle",
             targetId = targetId,
-            safety = safetyFor(gradleTask, gradleTask),
-            provenance = TaskProvenance("gradle-settings", provenancePath),
+            safety = safetyFor(if (declaration == null) gradleTask else "$explicitKind $gradleTask", gradleTask),
+            provenance = TaskProvenance(if (declaration == null) "gradle-settings" else "dependeasy", provenancePath),
             attributes = mapOf("gradleTask" to gradleTask),
+            unavailableReason = declaration?.unavailableReason,
         )
         bindings[taskId] = JvmTaskBinding(
             argv = listOf(wrapper.absolutePath, gradleTask),
             workingDirectory = root,
-            definitionSeal = gradleDefinitionSeal,
+            definitionSeal = if (declaration == null) gradleDefinitionSeal else declaredGradleDefinitionSeal,
         )
     }
 
@@ -612,7 +636,7 @@ private class TaskCatalogBuilder(
     ): DefinitionClosure {
         val files = linkedSetOf<File>()
         val directories = linkedSetOf<ProcessDefinitionDirectory>()
-        val expandedBody = expandNpmScripts(body)
+        val expandedBody = expandPackageScripts(body, workingDirectory)
         var blockedReason: String? = null
 
         fun addFile(file: File) {
@@ -656,8 +680,21 @@ private class TaskCatalogBuilder(
         ROOT_DEPENDENCY_FILES.forEach { addFile(File(root, it)) }
 
         val workspacePackages = linkedSetOf<File>()
-        Regex("""--workspace(?:=|\s+)([^\s;&|]+)""").findAll(expandedBody).forEach { match ->
-            val workspaceReference = match.groupValues[1].trim('"', '\'')
+        parse(packageFile)?.let { manifest ->
+            dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(root, manifest, script, body)
+        }?.let { binding ->
+            addFile(binding.directory.resolve("package.json"))
+            workspacePackages += binding.directory.resolve("package.json").canonicalFile
+            val gradle = gradleDefinitionSeal.value
+            files.addAll(gradle.files)
+            directories.addAll(gradle.directories)
+            gradleSourceRoots(root).roots.forEach { source ->
+                val owner = if (source.name == "dependeasy") source else source.resolve("dependeasy")
+                addDirectory(owner, SCRIPT_DEFINITION_SUFFIXES + setOf(".kt", ".ts"))
+            }
+            addFile(root.resolve("wrangler.json"))
+        }
+        PackageScriptCommands.workspaces(expandedBody).forEach { workspaceReference ->
             resolveWorkspacePackage(workspaceReference)?.canonicalFile?.let {
                 files += it
                 workspacePackages += it
@@ -829,23 +866,26 @@ private class TaskCatalogBuilder(
     private fun parse(file: File): JsonObject? = if (!file.isFile) null else
         runCatching { Json.parseToJsonElement(text(file)).jsonObject }.getOrNull()
 
-    private fun expandNpmScripts(initialBody: String): String {
-        val bodies = mutableListOf(initialBody)
-        val visited = mutableSetOf<String>()
-        var index = 0
-        while (index < bodies.size) {
-            NPM_RUN.findAll(bodies[index++]).forEach { match ->
-                val child = match.groupValues[1]
-                if (visited.add(child)) rootScripts[child]?.let(bodies::add)
-            }
+    private fun expandPackageScripts(body: String, directory: File): String =
+        PackageScriptCommands.expand(body) { reference ->
+            val manifest = reference.workspace?.let(::resolveWorkspacePackage)
+                ?: File(directory, "package.json")
+            parse(manifest)?.stringMap("scripts")?.get(reference.script)
         }
-        return bodies.joinToString("\n")
+
+    private fun packageScriptArgv(directory: File, script: String): List<String> {
+        val manager = (parse(File(directory, "package.json"))?.string("packageManager")
+            ?: parse(File(root, "package.json"))?.string("packageManager"))?.substringBefore('@')
+            ?: if (File(root, "pnpm-lock.yaml").isFile) "pnpm" else "npm"
+        require(manager in setOf("pnpm", "npm")) { "Unsupported package manager: $manager" }
+        val managed = File(root, "build/dependeasy/tools/javascript/bin/${platformExecutable(manager)}")
+        val executable = if (managed.isFile && managed.canExecute()) managed.absolutePath else platformExecutable(manager)
+        return listOf(executable, "run", script) + if (manager == "npm") listOf("--") else emptyList()
     }
 
     private fun resolveWorkspacePackage(reference: String): File? {
         File(root, reference).resolve("package.json").takeIf(File::isFile)?.let { return it }
-        val rootManifest = parse(File(root, "package.json")) ?: return null
-        return rootManifest.workspaces().asSequence()
+        return PackageWorkspaces.paths(root, ::text).asSequence()
             .map { File(root, it).resolve("package.json") }
             .filter(File::isFile)
             .firstOrNull { manifest -> parse(manifest)?.string("name") == reference }
@@ -873,10 +913,7 @@ private class TaskCatalogBuilder(
             " distribute", " firebase", "play_internal", "play_production", "testflight_", "appstore_", " release_",
         )
         private val ROOT_DEPENDENCY_FILES = listOf(
-            "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock",
-        )
-        private val NPM_RUN = Regex(
-            """(?:^|[;&|]\s*|--\s+)npm\s+run\s+([^\s;&|]+)""",
+            "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc", "yarn.lock",
         )
         private val SOURCE_DEPENDENCY = Regex(
             """(?m)^\s*(?:source|\.)\s+([\"']?[^\s;&|]+[\"']?)""",
@@ -909,12 +946,6 @@ private fun JsonObject.stringMap(name: String): Map<String, String> =
     (this[name] as? JsonObject)?.mapNotNull { (key, value) ->
         value.jsonPrimitive.contentOrNull?.let { key to it }
     }?.toMap().orEmpty()
-
-private fun JsonObject.workspaces(): List<String> = when (val value = this["workspaces"]) {
-    is JsonArray -> value.mapNotNull { it.jsonPrimitive.contentOrNull }
-    is JsonObject -> (value["packages"] as? JsonArray)?.mapNotNull { it.jsonPrimitive.contentOrNull }.orEmpty()
-    else -> emptyList()
-}
 
 private fun JsonObject.targetDeclarations(): Map<String, TargetDeclaration> =
     (this["targets"] as? JsonObject)?.mapNotNull { (name, value) ->

@@ -29,15 +29,15 @@ import dev.shibasis.reaktor.graph.di.DependencyException
 import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
+import dev.shibasis.reaktor.core.framework.reaktorDefaultDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
 @JsExport
 open class Graph(
     val parentGraph: Graph? = null,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    dispatcher: CoroutineDispatcher = reaktorDefaultDispatcher,
     dependencyAdapter: DependencyAdapter<*> = Feature.Dependency ?: throw DependencyException,
     override val id: Uuid = Uuid.random(),
     override val label: String = "",

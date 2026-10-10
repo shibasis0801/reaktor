@@ -90,6 +90,8 @@ internal fun FlowNodeBox(
     val height = node.measured?.height ?: node.height ?: defaultNodeHeightPx
     val widthDp = with(density) { width.toFloat().toDp() }
     val heightDp = with(density) { height.toFloat().toDp() }
+    val contentWidth = with(density) { (renderStyle.contentSize?.width ?: width).toFloat().toDp() }
+    val contentHeight = with(density) { (renderStyle.contentSize?.height ?: height).toFloat().toDp() }
     val handles = resolvedHandles(node)
     val backgroundColor = renderStyle.backgroundColor ?: if (node.selected) {
         FlowSurface.copy(alpha = FlowVisualDefaults.selectedNodeSurfaceAlpha)
@@ -104,7 +106,7 @@ internal fun FlowNodeBox(
         modifier = Modifier
             .offset { IntOffset(node.position.x.roundToInt(), node.position.y.roundToInt()) }
             .wrapContentSize(Alignment.TopStart, unbounded = true)
-            .size(widthDp, heightDp)
+            .size(contentWidth, contentHeight)
             .zIndex(if (node.dragging || node.selected) FlowRuntimeDefaults.selectedNodeZIndex else node.zIndex.toFloat())
             .graphicsLayer {
                 alpha = renderStyle.alpha
@@ -129,12 +131,12 @@ internal fun FlowNodeBox(
                     }
                 } ?: Modifier,
             )
-            .clip(nodeShape)
+            .then(if (renderStyle.clip) Modifier.clip(nodeShape) else Modifier)
             .background(backgroundColor, nodeShape)
             .border(renderStyle.borderWidth ?: FlowSizing.nodeBorderWidth, borderColor, nodeShape)
             .onSizeChanged { size ->
                 val dimensions = Dimensions(size.width.toDouble(), size.height.toDouble())
-                if (node.measured != dimensions) {
+                if (renderStyle.contentSize == null && node.measured != dimensions) {
                     onNodesChange?.invoke(listOf(NodeDimensionChange(id = node.id, dimensions = dimensions)))
                 }
             }

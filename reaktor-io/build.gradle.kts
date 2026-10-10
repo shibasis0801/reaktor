@@ -1,15 +1,10 @@
+import dev.shibasis.dependeasy.Versions
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import com.codingfeline.buildkonfig.gradle.BuildKonfigTask
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+
 import dev.shibasis.dependeasy.*
 import dev.shibasis.dependeasy.dependencies.useKoin
 import dev.shibasis.dependeasy.dependencies.useNetworking
-import java.net.InetSocketAddress
-import java.net.Socket
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -17,62 +12,50 @@ plugins {
     id("com.codingfeline.buildkonfig")
 }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-            api("org.jetbrains.kotlinx:kotlinx-io-core:0.3.1")
+dependeasy {
+    module("dev.shibasis.reaktor.io") {
+        common {
+            dependencies {
+                api(project(":reaktor-core"))
+                api(Versions.Kotlin.Io)
+            }
+            testDependencies {
+                implementation(Versions.Kotlin.KtorMock)
+            }
+        }
+        web {}
+        android {}
+        apple {}
+        jvm {
+            testDependencies {
+                implementation(Versions.Data.MockWebServer)
+            }
+        }
+
+        kotlin {
+            // https://web.dev/articles/origin-private-file-system
+            // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
+
+            useNetworking()
         }
     }
 
-    // https://web.dev/articles/origin-private-file-system
-    // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
-    web {}
-    droid {}
-    darwin {}
-    server {}
-    useNetworking()
 
-    sourceSets {
-        commonTest.dependencies {
-            implementation("io.ktor:ktor-client-mock:${Version.Ktor}")
-        }
-        jvmTest.dependencies {
-            implementation("com.squareup.okhttp3:mockwebserver:${Version.OkHttp}")
+    dependencies {
+        add("kspCommonMainMetadata", project(":reaktor-compiler"))
+        add("kspJs", project(":reaktor-compiler"))
+    }
+
+    buildkonfig {
+        packageName = "dev.shibasis.reaktor.core"
+        objectName = "BuildKonfig"
+
+        defaultConfigs {
+            buildConfigField(FieldSpec.Type.STRING, "SERVER", providers.gradleProperty("reaktor.server.host").orElse("0.0.0.0").get())
         }
     }
-}
 
-android {
-    defaults("dev.shibasis.reaktor.io")
-}
+    tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
 
-
-dependencies {
-    add("kspCommonMainMetadata", project(":reaktor-compiler"))
-    add("kspJs", project(":reaktor-compiler"))
-}
-
-
-buildkonfig {
-    packageName = "dev.shibasis.reaktor.core"
-    objectName = "BuildKonfig"
-
-    defaultConfigs {
-        buildConfigField(FieldSpec.Type.STRING, "SERVER", getMachineIpAddress())
-    }
-}
-
-fun getMachineIpAddress(): String = Socket().run {
-//    connect(InetSocketAddress("google.com", 80))
-    localAddress.hostAddress
-}
-
-tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
-
-// Only classes whose names end in `Test` are suites. Without this the runner tries to instantiate
-// every class on the test classpath — including a nested fixture like `AwtSharesTest$Offer`, which
-// it then reports as an invalid test class rather than as what it is.
-tasks.withType<Test>().configureEach {
-    include("**/*Test.class")
+    testClasses("**/*Test.class")
 }

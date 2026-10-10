@@ -90,36 +90,48 @@ class CloudflareReader(
         val zones = async { get("/zones?account.id=$accountId&per_page=50").list("result") }
         val objects = async { get("/accounts/$accountId/workers/durable_objects/namespaces?per_page=100").list("result") }
         val vpcs = async { get("/accounts/$accountId/connectivity/directory/services").list("result") }
-        val analytics = async { runCatching { gate.withPermit { analytics(token) } }.getOrDefault(emptyMap()) }
+        val analytics = async { runCatching { gate.withPermit { analytics(token) } }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.getOrNull() }
 
         val scriptNames = scripts.await().mapNotNull { it.text("id") }
         val settings = scriptNames.map { name -> async { name to get("/accounts/$accountId/workers/scripts/$name/settings").obj("result") } }
         val deployments = scriptNames.map { name -> async { name to get("/accounts/$accountId/workers/scripts/$name/deployments").obj("result").objects("deployments") } }
-        val routes = zones.await().map { zone -> async { zone to runCatching { get("/zones/${zone.text("id")}/workers/routes").list("result") }.getOrDefault(emptyList()) } }
+        val routes = zones.await().map { zone -> async { zone to runCatching { get("/zones/${zone.text("id")}/workers/routes").list("result") }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.getOrNull() } }
         val ingress = tunnels.await().filter { it.text("status") != "deleted" }.map { tunnel ->
-            async { tunnel to runCatching { get("/accounts/$accountId/cfd_tunnel/${tunnel.text("id")}/configurations").obj("result").obj("config").objects("ingress") }.getOrDefault(emptyList()) }
+            async { tunnel to runCatching { get("/accounts/$accountId/cfd_tunnel/${tunnel.text("id")}/configurations").obj("result").obj("config").objects("ingress") }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.getOrNull() }
         }
 
         val builder = CloudflareInventoryBuilder(accountId, dash, source, clock())
+        val trafficReading = analytics.await()
+        val routeReadings = routes.awaitAll()
+        val ingressReadings = ingress.awaitAll()
+        val unreadable = listOfNotNull(
+            if (trafficReading == null) "analytics" else null,
+            if (routeReadings.any { it.second == null }) "worker routes" else null,
+            if (ingressReadings.any { it.second == null }) "tunnel ingress" else null,
+        )
         builder.zones(zones.await())
-        builder.workers(scripts.await(), settings.awaitAll().toMap(), analytics.await())
+        builder.workers(scripts.await(), settings.awaitAll().toMap(), trafficReading.orEmpty())
         builder.deployments(deployments.awaitAll().toMap())
         builder.domains(domains.await())
-        routes.awaitAll().forEach { (zone, list) -> builder.routes(zone, list) }
+        routeReadings.forEach { (zone, list) -> builder.routes(zone, list.orEmpty()) }
         builder.databases(databases.await())
         builder.buckets(buckets.await())
         builder.namespaces(namespaces.await())
         builder.queues(queues.await())
         builder.hyperdrives(hyperdrives.await())
         builder.durableObjects(objects.await())
-        builder.tunnels(tunnels.await(), ingress.awaitAll().toMap())
+        builder.tunnels(tunnels.await(), ingressReadings.associate { (tunnel, list) -> tunnel to list.orEmpty() })
         builder.vpcServices(vpcs.await())
         val resources = builder.resources()
         val finished = clock()
         CloudReading(
             provider = id,
             platform = CloudPlatform.Cloudflare,
-            health = ProviderHealth(id, ResourceStatus.Healthy, "${resources.size} resources · ${scriptNames.size} workers"),
+            health = ProviderHealth(id, if (unreadable.isEmpty()) ResourceStatus.Healthy else ResourceStatus.Degraded,
+                "${resources.size} resources · ${scriptNames.size} workers" + if (unreadable.isEmpty()) "" else " · unreadable: ${unreadable.joinToString()}"),
             readAtMillis = finished,
             durationMillis = finished - started,
             resources = resources,
@@ -172,19 +184,24 @@ class CloudflareReader(
                 put("until", until.toString())
             })
         }.toString()
-        val account = call(token, "/graphql", body).obj("data").obj("viewer").objects("accounts").firstOrNull() ?: return emptyMap()
+        val response = call(token, "/graphql", body)
+        if (response.objects("errors").isNotEmpty()) throw CloudflareFailure("Worker analytics could not be read")
+        val account = response.obj("data").obj("viewer").objects("accounts").firstOrNull()
+            ?: throw CloudflareFailure("Worker analytics account was not returned")
         val hourly = account.objects("hourly").groupBy { it.obj("dimensions").text("scriptName").orEmpty() }
         return account.objects("totals").associate { row ->
             val name = row.obj("dimensions").text("scriptName").orEmpty()
             name to WorkerTraffic(
-                requests = row.obj("sum").number("requests") ?: 0.0,
-                errors = row.obj("sum").number("errors") ?: 0.0,
-                subrequests = row.obj("sum").number("subrequests") ?: 0.0,
+                requests = row.obj("sum").number("requests")?.takeIf { it.isFinite() && it >= 0 },
+                errors = row.obj("sum").number("errors")?.takeIf { it.isFinite() && it >= 0 },
+                subrequests = row.obj("sum").number("subrequests")?.takeIf { it.isFinite() && it >= 0 },
                 cpuP50 = row.obj("quantiles").number("cpuTimeP50"),
                 cpuP99 = row.obj("quantiles").number("cpuTimeP99"),
                 hourly = hourly[name].orEmpty().mapNotNull { hour ->
                     val at = instantMillis(hour.obj("dimensions").text("datetimeHour")) ?: return@mapNotNull null
-                    Triple(at, hour.obj("sum").number("requests") ?: 0.0, hour.obj("sum").number("errors") ?: 0.0)
+                    val requests = hour.obj("sum").number("requests")?.takeIf { it.isFinite() && it >= 0 } ?: return@mapNotNull null
+                    val errors = hour.obj("sum").number("errors")?.takeIf { it.isFinite() && it >= 0 } ?: return@mapNotNull null
+                    Triple(at, requests, errors)
                 }.sortedBy { it.first },
             )
         }
@@ -192,9 +209,9 @@ class CloudflareReader(
 }
 
 internal data class WorkerTraffic(
-    val requests: Double,
-    val errors: Double,
-    val subrequests: Double,
+    val requests: Double?,
+    val errors: Double?,
+    val subrequests: Double?,
     val cpuP50: Double?,
     val cpuP99: Double?,
     val hourly: List<Triple<Long, Double, Double>>,

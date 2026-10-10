@@ -7,11 +7,40 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class HttpMetadataInterceptorTest {
+    @Test fun cancelledTransportCarriesItsTypeWithoutGuessingFromErrorText() = runTest {
+        val entered = CompletableDeferred<Unit>()
+        val exchanges = arrayListOf<HttpExchange>()
+        val remove = HttpObservation.observe { exchanges += it }
+        val cancelledClient = HttpClient(MockEngine {
+            entered.complete(Unit)
+            awaitCancellation()
+        }) { observation() }
+        val failedClient = HttpClient(MockEngine { throw IOException("cancelled by upstream proxy") }) { observation() }
+        try {
+            val request = async { cancelledClient.get("https://example.invalid/circles") }
+            entered.await()
+            request.cancelAndJoin()
+            assertTrue(exchanges.single().cancelled)
+            assertEquals(null, exchanges.single().statusCode)
+            exchanges.clear()
+            val failure = runCatching { failedClient.get("https://example.invalid/friends") }.exceptionOrNull()
+            assertTrue(failure is IOException)
+            assertFalse(exchanges.single().cancelled)
+            assertEquals("cancelled by upstream proxy", exchanges.single().failure)
+        } finally { remove(); cancelledClient.close(); failedClient.close() }
+    }
+
     @Test fun metadataHookDoesNotActivateBodyCaptureAndRemovalRestoresTransport() = runTest {
         val calls = arrayListOf<String>()
         val client = HttpClient(MockEngine { request ->

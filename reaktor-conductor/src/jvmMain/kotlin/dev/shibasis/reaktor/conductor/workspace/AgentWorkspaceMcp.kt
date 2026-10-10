@@ -14,7 +14,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import java.util.concurrent.Semaphore
 
-internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTool> = emptyList()): ReaktorMcpServer {
+internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<McpTool> = emptyList()): List<McpTool> {
     val waits = Semaphore(2)
     val taskWaits = Semaphore(2)
     fun JsonObject.string(name: String) = (get(name) as? JsonPrimitive)?.contentOrNull ?: error("$name is required")
@@ -160,6 +160,5 @@ internal fun agentWorkspaceMcp(workspace: AgentWorkspace, extraTools: List<McpTo
                 it["before"]?.jsonPrimitive?.int, it.long("limit", 20).toInt()))
         },
     ) + agentEvidenceTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
-    return ReaktorMcpServer("reaktor-agent-workspace", "1.0.0",
-        "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.", tools)
+    return tools
 }

@@ -108,9 +108,11 @@ actual object OngoingActivities {
                 }
             }
 
-        runCatching {
+        try {
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
-        }.onFailure { log.warn { "Could not show the ongoing activity: ${it.message}" } }
+        } catch (error: SecurityException) {
+            log.warn { "Could not show the ongoing activity: ${error.message}" }
+        }
     }
 
     private fun buildAction(

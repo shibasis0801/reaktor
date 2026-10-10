@@ -15,9 +15,11 @@ import dev.shibasis.reaktor.telemetry.port.telemetry
 import io.opentelemetry.kotlin.ExperimentalApi
 import io.opentelemetry.kotlin.tracing.StatusCode
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertSame
 
 @OptIn(ExperimentalApi::class)
 class PortTelemetryTest {
@@ -158,5 +160,27 @@ class PortTelemetryTest {
         assertEquals(secret, suspended.exceptionOrNull()?.message)
         assertEquals(listOf("IllegalStateException", "IllegalArgumentException"), tracer.spans.map { it.status.description })
         assertTrue(tracer.spans.all { it.ended && it.status.statusCode == StatusCode.ERROR })
+    }
+
+    @Test
+    fun cancellationEndsTheSpanWithoutRecordingCompletedCallLatencyOrAnError() = runTest {
+        val tracer = RecordingTracer()
+        val (_, consumer) = wire()
+        val interceptor = PortTelemetryInterceptor(tracer, defaults = requestDefaults)
+        consumer.addInterceptor(interceptor)
+        val cancellation = CancellationException("private cancellation detail")
+        assertSame(cancellation, runCatching { consumer { throw cancellation } }.exceptionOrNull())
+        assertSame(cancellation, runCatching { consumer.suspended { throw cancellation } }.exceptionOrNull())
+        assertTrue(interceptor.metrics.isEmpty)
+        assertEquals(2, tracer.spans.size)
+        assertTrue(tracer.spans.all { it.ended && it.endCount == 1 && it.status.statusCode == StatusCode.UNSET })
+        assertTrue(tracer.spans.all { it.attributes[ReaktorAttributes.Cancelled] == true })
+        assertTrue(tracer.spans.none { it.attributes.toString().contains("private cancellation detail") })
+
+        val error = IllegalStateException("cancelled by upstream proxy")
+        assertSame(error, runCatching { consumer.suspended { throw error } }.exceptionOrNull())
+        assertEquals(StatusCode.ERROR, tracer.spans.last().status.statusCode)
+        assertEquals(1, interceptor.metrics.snapshot().size)
+        assertEquals(1L, interceptor.metrics.snapshot().single().errors)
     }
 }

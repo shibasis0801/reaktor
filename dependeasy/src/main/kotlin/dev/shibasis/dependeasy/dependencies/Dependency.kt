@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.dependencies
 
-import dev.shibasis.dependeasy.Version
+import dev.shibasis.dependeasy.Versions
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.kotlin.dsl.invoke
@@ -16,17 +16,17 @@ val AllSourceList = ClientSourceList + Source.Server
 
 fun KotlinMultiplatformExtension.useKoin(
     sources: List<Source> = CommonSourceList,
-    version: String = Version.Koin,
-    annotationVersion: String = Version.KoinAnnotations,
+    version: String = Versions.Koin,
+    annotationVersion: String = Versions.KoinAnnotations,
     transitive: Boolean = true // implement later
 ) {
     sourceSets {
         sources.forEach {
             when(it) {
                 Source.Common -> commonMain.dependencies {
-                    api("io.insert-koin:koin-core:$version")
-                    api("io.insert-koin:koin-compose:$version")
-                    api("io.insert-koin:koin-annotations:$annotationVersion")
+                    api(Versions.Kotlin.KoinCore.atVersion(version))
+                    api(Versions.Kotlin.KoinCompose.atVersion(version))
+                    api(Versions.Kotlin.KoinAnnotations.atVersion(annotationVersion))
                 }
                 else -> {}
             }
@@ -53,31 +53,31 @@ fun KotlinMultiplatformExtension.withSources(
 
 fun KotlinMultiplatformExtension.useNetworking(
     sources: List<Source> = AllSourceList,
-    ktorVersion: String = Version.Ktor,
-    okHttpVersion: String = Version.OkHttp,
+    ktorVersion: String = Versions.Ktor,
+    okHttpVersion: String = Versions.OkHttp,
     isTransitive: Boolean = true // implement later
 ) {
     withSources(sources) {
         when(it) {
             Source.Common -> commonMain.dependencies {
-                dependency("io.ktor:ktor-client-core:$ktorVersion", isTransitive)
-                dependency("io.ktor:ktor-client-content-negotiation:$ktorVersion", isTransitive)
-                dependency("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion", isTransitive)
-                dependency("io.ktor:ktor-client-logging:$ktorVersion")
+                dependency(Versions.Kotlin.KtorCore.atVersion(ktorVersion), isTransitive)
+                dependency(Versions.Kotlin.KtorContentNegotiation.atVersion(ktorVersion), isTransitive)
+                dependency(Versions.Kotlin.KtorJson.atVersion(ktorVersion), isTransitive)
+                dependency(Versions.Kotlin.KtorLogging.atVersion(ktorVersion))
             }
             Source.Web -> jsMain.dependencies {
-                dependency("io.ktor:ktor-client-js:$ktorVersion", isTransitive)
+                dependency(Versions.Kotlin.KtorJs.atVersion(ktorVersion), isTransitive)
             }
             Source.Darwin -> iosMain.dependencies {
-                dependency("io.ktor:ktor-client-darwin:$ktorVersion", isTransitive)
+                dependency(Versions.Kotlin.KtorDarwin.atVersion(ktorVersion), isTransitive)
             }
             Source.Android -> androidMain.dependencies {
-                dependency("com.squareup.okhttp3:okhttp:$okHttpVersion", isTransitive)
-                dependency("io.ktor:ktor-client-okhttp:$ktorVersion", isTransitive)
+                dependency(Versions.Data.OkHttp.atVersion(okHttpVersion), isTransitive)
+                dependency(Versions.Kotlin.KtorOkHttp.atVersion(ktorVersion), isTransitive)
             }
             Source.Server -> jvmMain.dependencies {
-                dependency("com.squareup.okhttp3:okhttp:$okHttpVersion", isTransitive)
-                dependency("io.ktor:ktor-client-okhttp:$ktorVersion", isTransitive)
+                dependency(Versions.Data.OkHttp.atVersion(okHttpVersion), isTransitive)
+                dependency(Versions.Kotlin.KtorOkHttp.atVersion(ktorVersion), isTransitive)
             }
         }
     }
