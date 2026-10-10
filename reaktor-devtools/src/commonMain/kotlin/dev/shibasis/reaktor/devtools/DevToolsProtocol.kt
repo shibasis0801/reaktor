@@ -190,6 +190,7 @@ sealed interface AgentFact {
         val failure: String? = null,
         val value: String? = null,
         override val perturbed: Boolean = false,
+        val cancelled: Boolean = false,
     ) : AgentFact
 
     /**
@@ -223,6 +224,7 @@ sealed interface AgentFact {
         val respondedNanos: Long? = null,
         val source: String = "service",
         override val perturbed: Boolean = false,
+        val cancelled: Boolean = false,
     ) : AgentFact
 
     @Serializable

@@ -30,12 +30,28 @@ class Reaktor(env: ReaktorEnv) : CliktCommand() {
 }
 
 fun main(args: Array<String>) {
-    val env = ReaktorEnv.create()
-    if (args.isEmpty()) {
-        // Bare `reaktor` prints the full overview: the project model + the command surface.
-        printOverview(env)
+    if (args.isEmpty() || args.toList() in listOf(listOf("--help"), listOf("-h"))) {
+        println("""
+            Usage: reaktor <command> [options]
+
+            build       Build a project target
+            test        Run project checks
+            dev         Start a development target
+            tasks       Inspect available project tasks
+            run         Run a selected task
+            logs        Read task logs
+            graph       Inspect the workspace graph
+
+            Use reaktor <command> --help for command options.
+            --version   Print the installed CLI version
+        """.trimIndent())
         return
     }
+    if (args.contentEquals(arrayOf("--version"))) {
+        println("0.1.0")
+        return
+    }
+    val env = ReaktorEnv.create()
     val commands = listOf(
         Tasks(), Run(), Logs(), Dev(), Build(), Deploy(), Test(), Gradle(), Docs(),
         New(), Add(), Explain(), Graph(), Engine(), Infra(), Dagger(),

@@ -14,6 +14,8 @@ import kotlinx.atomicfu.atomic
  * to the workbench) without a second implementation.
  */
 interface SpanBatchTransport {
+    /** Safe, actionable admission or delivery detail. Never contains authentication material. */
+    val unavailableReason: String? get() = null
     /** Returns false when the batch was not accepted; the exporter counts that as a failure. */
     suspend fun send(body: String): Boolean
 

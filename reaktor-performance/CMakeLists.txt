@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 4.0)
+include("../dependeasy/cmake/api.cmake")
+reaktor_platform()
+project(ReaktorPerformance LANGUAGES C CXX)
+reaktor_configuration()
+reaktor_library(ReaktorPerformance)

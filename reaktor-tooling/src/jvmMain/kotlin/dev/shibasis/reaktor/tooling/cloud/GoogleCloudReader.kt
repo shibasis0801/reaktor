@@ -80,6 +80,8 @@ class GoogleCloudReader(
         for (candidate in candidates) {
             try {
                 return readAs(candidate.takeIf { it.isNotBlank() }, started).also { working[project] = candidate }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (failure: Exception) {
                 last = failure
                 if (!permission(failure)) break
@@ -99,7 +101,11 @@ class GoogleCloudReader(
         val disks = async { list(token, "$compute/aggregated/disks", "items") }
         val firewalls = async { list(token, "$compute/global/firewalls", "items") }
         val addresses = async { runCatching { list(token, "$compute/aggregated/addresses", "items") }.getOrDefault(emptyList()) }
-        val snapshots = async { runCatching { list(token, "$compute/global/snapshots", "items") }.getOrDefault(emptyList()) }
+        val snapshots = async {
+            try { list(token, "$compute/global/snapshots", "items") }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
+        }
         val repositories = async {
             val regions = instances.await().mapNotNull { it.text("zone")?.substringAfterLast('/')?.substringBeforeLast('-') }.distinct()
             regions.map { region ->
@@ -112,12 +118,14 @@ class GoogleCloudReader(
                 .filter { operation -> instantMillis(operation.text("insertTime"))?.let { it >= since.toEpochMilli() } == true }
         }
         val builder = GoogleCloudInventoryBuilder(project, console, clock())
-        builder.read(instances.await(), disks.await(), firewalls.await(), addresses.await(), snapshots.await(), repositories.await(), operations.await())
+        val snapshotReading = snapshots.await()
+        builder.read(instances.await(), disks.await(), firewalls.await(), addresses.await(), snapshotReading, repositories.await(), operations.await())
         val finished = clock()
         CloudReading(
             provider = id,
             platform = CloudPlatform.GoogleCloud,
-            health = ProviderHealth(id, ResourceStatus.Healthy, "project $project${signedIn?.let { " as $it" }.orEmpty()}"),
+            health = ProviderHealth(id, if (snapshotReading == null) ResourceStatus.Degraded else ResourceStatus.Healthy,
+                "project $project${signedIn?.let { " as $it" }.orEmpty()}" + if (snapshotReading == null) " · snapshot inventory unreadable; coverage unknown" else ""),
             readAtMillis = finished,
             durationMillis = finished - started,
             resources = builder.resources(),
@@ -147,9 +155,9 @@ internal class GoogleCloudInventoryBuilder(private val project: String, private 
 
     fun read(
         instances: List<JsonObject>, disks: List<JsonObject>, firewalls: List<JsonObject>,
-        addresses: List<JsonObject>, snapshots: List<JsonObject>, repositories: List<JsonObject>, operations: List<JsonObject>,
+        addresses: List<JsonObject>, snapshots: List<JsonObject>?, repositories: List<JsonObject>, operations: List<JsonObject>,
     ) {
-        val snapshotsByDisk = snapshots.groupBy { it.text("sourceDisk")?.substringAfterLast('/').orEmpty() }
+        val snapshotsByDisk = snapshots?.groupBy { it.text("sourceDisk")?.substringAfterLast('/').orEmpty() }
         val deviceNames = instances.flatMap { instance ->
             instance.objects("disks").map { disk -> disk.text("source")?.substringAfterLast('/').orEmpty() to (disk.text("deviceName") to disk.flag("boot")) }
         }.toMap()
@@ -203,11 +211,11 @@ internal class GoogleCloudInventoryBuilder(private val project: String, private 
         }
     }
 
-    private fun disk(disk: JsonObject, deviceNames: Map<String, Pair<String?, Boolean?>>, snapshots: Map<String, List<JsonObject>>) {
+    private fun disk(disk: JsonObject, deviceNames: Map<String, Pair<String?, Boolean?>>, snapshots: Map<String, List<JsonObject>>?) {
         val name = disk.text("name") ?: return
         val zone = disk.text("zone")?.substringAfterLast('/')
         val users = disk.strings("users").map { it.substringAfterLast('/') }
-        val taken = snapshots[name].orEmpty()
+        val taken = snapshots?.get(name).orEmpty()
         val latest = taken.maxByOrNull { instantMillis(it.text("creationTimestamp")) ?: 0L }
         val id = "gcp:disk:$name"
         val (device, boot) = deviceNames[name] ?: (null to null)
@@ -222,14 +230,14 @@ internal class GoogleCloudInventoryBuilder(private val project: String, private 
                 "deviceName" to device,
                 "boot" to boot?.toString(),
                 "users" to users.joinToString(),
-                "snapshots" to taken.size.toString(),
+                "snapshots" to snapshots?.let { taken.size.toString() },
                 "lastSnapshot" to latest?.text("creationTimestamp"),
                 "snapshotSchedule" to disk.strings("resourcePolicies").joinToString { it.substringAfterLast('/') }.ifBlank { null },
                 "image" to disk.text("sourceImage")?.substringAfterLast('/'),
                 "created" to disk.text("creationTimestamp"),
             ),
             metrics = listOfNotNull(disk.number("sizeGb")?.let { CloudMetric("size", "Size", it * 1024 * 1024 * 1024, CloudUnit.Bytes) }),
-            evidence = listOf(evidence("compute disks")),
+            evidence = listOf(evidence(if (snapshots == null) "compute disks; snapshot inventory unreadable" else "compute disks and snapshots")),
             consoleUrl = "$console/compute/disksDetail/zones/$zone/disks/$name?project=$project",
             createdAtMillis = disk.text("creationTimestamp")?.let(::instantMillis),
         )

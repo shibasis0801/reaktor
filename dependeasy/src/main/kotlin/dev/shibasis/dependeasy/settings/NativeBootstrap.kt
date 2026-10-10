@@ -1,162 +1,59 @@
 package dev.shibasis.dependeasy.settings
 
-import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
+import dev.shibasis.dependeasy.tasks.CmakePlatform
+import org.gradle.api.Project
+import org.gradle.kotlin.dsl.register
+import dev.shibasis.dependeasy.toolchain.NativeSources
 
-import dev.shibasis.dependeasy.utils.gitDependency
-import dev.shibasis.dependeasy.utils.includeWithPath
-import org.gradle.api.GradleException
-import org.gradle.api.initialization.Settings
-import java.io.File
-
-internal class NativeBootstrap(
-    private val settings: Settings,
-) {
-    private val rootDir = settings.rootDir
-    private val githubDir = rootDir.resolve(".github_modules").apply(File::mkdirs)
-
-    fun bootstrap() {
-        linkFlatBuffers()
-        linkHermes()
-    }
-
-    private fun linkFlatBuffers(
-        repoUrl: String = "https://github.com/shibasis0801/flatbuffers.git",
-    ) {
-        githubDir.gitDependency(repoUrl)
-        val buildDirectory = githubDir.resolve("flatbuffers")
-        val flatc = if (isWindows()) {
-            buildDirectory.resolve("Debug/flatc.exe")
-        } else {
-            buildDirectory.resolve("flatc")
-        }
-
-        if (!flatc.exists()) {
-            if (isWindows()) {
-                runCommand(buildDirectory, cmakeExecutable(), "-G", "Visual Studio 17 2022")
-                runCommand(buildDirectory, cmakeExecutable(), "--build", ".")
-            } else {
-                runCommand(buildDirectory, cmakeExecutable(), "-G", "Unix Makefiles")
-                runCommand(buildDirectory, "make", "-j${Runtime.getRuntime().availableProcessors()}")
+/** Registers optional native preparation. Settings evaluation performs no I/O or builds. */
+internal class NativeBootstrap(private val project: Project) {
+    fun register() = with(project) {
+        if (!rootDir.resolve("dependeasy/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").isFile) return@with
+        val pipeline = BuildPipeline(this, "nativeTools")
+        val sources = mapOf("flatbuffers" to NativeSources.flatbuffers, "hermes" to NativeSources.hermes).mapValues { (name, source) ->
+            tasks.register<GitSourceTask>("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source") {
+                group = "dependeasy"
+                repository.set(source.first)
+                revision.set(source.second)
+                checkout.set(layout.projectDirectory.dir(".github_modules/$name"))
             }
         }
-
-        require(flatc.exists()) { "Failed to build flatc at ${flatc.absolutePath}" }
-    }
-
-    private fun linkHermes(
-        repoUrl: String = "https://github.com/facebook/hermes.git",
-    ) {
-        githubDir.gitDependency(repoUrl)
-        val hermesSourceDirectory = githubDir.resolve("hermes")
-        val buildDirectory = githubDir.resolve("hermes/debug").apply(File::mkdirs)
-        val hermesCompiler = if (isWindows()) {
-            buildDirectory.resolve("bin/Debug/hermesc.exe")
-        } else {
-            buildDirectory.resolve("bin/hermesc")
-        }
-        val jsiHeader = hermesSourceDirectory.resolve("API/jsi/jsi/jsi.h")
-
-        require(jsiHeader.exists()) { "${jsiHeader.absolutePath} does not exist." }
-
-        if (shouldRebuildHermes(buildDirectory, hermesCompiler)) {
-            buildDirectory.deleteTreeSafely(within = githubDir)
-            buildDirectory.mkdirs()
-            if (isWindows()) {
-                runCommand(
-                    buildDirectory,
-                    cmakeExecutable(),
-                    "-G", "Visual Studio 17 2022",
-                    "-A", "x64",
-                    "-DCMAKE_BUILD_TYPE=Debug",
-                    hermesSourceDirectory.absolutePath,
-                )
-                runCommand(buildDirectory, cmakeExecutable(), "--build", ".")
-            } else {
-                runCommand(
-                    buildDirectory,
-                    cmakeExecutable(),
-                    *buildList {
-                        add("-G")
-                        add("Ninja")
-                        // Apple-only: the flag makes Hermes configure an Apple framework target,
-                        // which fails outright on Linux. Only hermesc is needed here (it is a host
-                        // build tool), so Linux/CI configures without it.
-                        if (isMacOs()) add("-DHERMES_BUILD_APPLE_FRAMEWORK=ON")
-                        add("-DCMAKE_BUILD_TYPE=Debug")
-                        add("-DCMAKE_MAKE_PROGRAM=${ninjaExecutable()}")
-                        add(hermesSourceDirectory.absolutePath)
-                    }.toTypedArray(),
-                )
-                runCommand(buildDirectory, ninjaExecutable(), "hermesc")
+        val hermes = sources.getValue("hermes")
+        val compiler = tasks.register<KotlinCMakeTask>("buildHermesHostCompiler") {
+            group = "dependeasy"
+            dependsOn(hermes)
+            sourceDirectory.set(hermes.flatMap { it.checkout })
+            sourceFiles.from(fileTree(".github_modules/hermes") {
+                exclude(".git/**", "debug/**", "build/**")
+            })
+            buildDirectory.set(layout.buildDirectory.dir("dependeasy/tools/hermes"))
+            generator.set("Ninja")
+            buildTarget.set("hermesc")
+            val mac = providers.systemProperty("os.name").get().contains("Mac", ignoreCase = true)
+            val cmake = if (mac) CmakePlatform.Darwin("macosx").cmakeExecutable else "cmake"
+            cmakeExecutable.set(cmake)
+            val compilerCommand = if (mac) listOf("xcrun", "--sdk", "macosx", "clang++", "--version")
+                else listOf("c++", "--version")
+            toolVersion.set(providers.exec { commandLine(cmake, "--version") }.standardOutput.asText
+                .zip(providers.exec {
+                    commandLine(compilerCommand)
+                }.standardOutput.asText) { cmake, compiler -> "${cmake.trim()} / ${compiler.trim()}" })
+            if (mac) {
+                val ninja = listOf("/opt/homebrew/bin/ninja", "/usr/local/bin/ninja")
+                    .firstOrNull { file(it).canExecute() } ?: "ninja"
+                configureArguments.add("-DCMAKE_MAKE_PROGRAM=$ninja")
+                val sdk = providers.exec { commandLine("xcrun", "--sdk", "macosx", "--show-sdk-path") }.standardOutput.asText.map { it.trim() }
+                environment.put("SDKROOT", sdk)
+                configureArguments.add(sdk.map { "-DCMAKE_OSX_SYSROOT=$it" })
+                configureArguments.add("-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0")
             }
+            configureArguments.addAll(listOf(
+                "-DCMAKE_BUILD_TYPE=Release", "-DHERMES_BUILD_APPLE_FRAMEWORK=OFF",
+                "-DHERMES_ENABLE_TEST_SUITE=OFF", "-DHERMES_ENABLE_DEBUGGER=OFF",
+            ))
         }
-
-        require(hermesCompiler.exists()) { "Failed to build Hermes at ${hermesCompiler.absolutePath}" }
+        pipeline.target("prepareNativeTools", pipeline.node(compiler).after(pipeline.node(hermes)), pipeline.node(sources.getValue("flatbuffers")))
     }
-
-    private fun shouldRebuildHermes(
-        buildDirectory: File,
-        hermesCompiler: File,
-    ): Boolean {
-        if (!hermesCompiler.exists()) {
-            return true
-        }
-        val importHostCompilers = buildDirectory.resolve("ImportHostCompilers.cmake")
-        if (!importHostCompilers.exists()) {
-            return true
-        }
-        val imported = importHostCompilers.readText()
-        return !imported.contains(hermesCompiler.absolutePath) && !imported.contains(hermesCompiler.canonicalPath)
-    }
-
-    private fun runCommand(
-        workingDirectory: File,
-        vararg command: String,
-    ) {
-        val exitCode = ProcessBuilder(command.toList())
-            .directory(workingDirectory)
-            .inheritIO()
-            .start()
-            .waitFor()
-
-        if (exitCode != 0) {
-            throw GradleException("Command failed (${command.joinToString(" ")}) with exit code $exitCode")
-        }
-    }
-
-    private fun cmakeExecutable(): String = findExecutable(
-        fromPath = "cmake",
-        fallbacks = listOf("/usr/local/bin/cmake", "/opt/homebrew/bin/cmake"),
-    )
-
-    private fun ninjaExecutable(): String = findExecutable(
-        fromPath = "ninja",
-        fallbacks = listOf("/opt/homebrew/bin/ninja", "/usr/local/bin/ninja"),
-    )
-
-    private fun findExecutable(
-        fromPath: String,
-        fallbacks: List<String>,
-    ): String {
-        resolveFromPath(fromPath)?.let { return it }
-        return fallbacks.firstOrNull { File(it).canExecute() }
-            ?: throw GradleException("Unable to find executable '$fromPath'")
-    }
-
-    private fun resolveFromPath(name: String): String? {
-        val path = System.getenv("PATH") ?: return null
-        return path
-            .split(File.pathSeparatorChar)
-            .asSequence()
-            .map(::File)
-            .map { it.resolve(name) }
-            .firstOrNull(File::canExecute)
-            ?.absolutePath
-    }
-
-    private fun isWindows(): Boolean =
-        System.getProperty("os.name").contains("Windows", ignoreCase = true)
-
-    private fun isMacOs(): Boolean =
-        System.getProperty("os.name").contains("Mac", ignoreCase = true)
 }

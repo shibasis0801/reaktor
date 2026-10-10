@@ -1,0 +1,36 @@
+packages:
+  - "dependeasy/javascript"
+  - "reaktor-auth/ts"
+  - "reaktor-cloudflare/ts"
+  - "reaktor-db/ts"
+  - "reaktor-ffi"
+  - "reaktor-google/ts"
+  - "reaktor-graph/ts"
+  - "reaktor-mcp/js"
+  - "reaktor-performance/tools"
+  - "reaktor-security/ts"
+  - "reaktor-surface/ts"
+  - "reaktor-tactile/ts"
+  - "build/js"
+  - "build/js/packages/*"
+  - "build/js/packages_imported/*/*"
+
+  - reaktor-graph-port
+  - reaktor-ui
+  - reaktor-mcp
+  - reaktor-performance
+  - reaktor-core
+  - reaktor-web
+sharedWorkspaceLockfile: true
+saveExact: true
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+  core-js: false
+  core-js-pure: false
+  protobufjs: true
+  '@parcel/watcher': true
+  onnxruntime-node: true
+minimumReleaseAgeExclude:
+  - "@types/node@24.19.2"

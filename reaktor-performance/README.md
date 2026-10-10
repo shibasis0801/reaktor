@@ -36,7 +36,7 @@ frames, and reusable collection logic should live here.
   `--self-test <lhr.json>` maps a fixture with no Chrome for CI.
 - `ts/src/index.ts`: TypeScript report helpers for browser and Playwright hosts,
   and the `lighthouseReport(...)` / `budgetViolations(...)` mapper the runner uses.
-- `cpp/reaktor_perf_timer.hpp`: header-only native scoped timer for FFI and
+- `src/commonMain/cpp/include/reaktor/performance/timer.hpp`: header-only native scoped timer for FFI and
   FlexBuffer hot-path probes.
 
 ## Report domains

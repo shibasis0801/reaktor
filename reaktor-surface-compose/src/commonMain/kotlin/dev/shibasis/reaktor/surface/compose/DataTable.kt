@@ -353,7 +353,7 @@ private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, mod
         }
         val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
         layout(constraints.constrainWidth(shape.spans.sum()), height) {
-            placeables.forEachIndexed { index, placeable -> placeable.placeRelative(scroll.value + shape.edges[bands[index]], (height - placeable.height) / 2) }
+            placeables.forEachIndexed { index, placeable -> placeable.placeRelative(scroll.value + shape.edges[bands[index]], Alignment.CenterVertically.align(placeable.height, height)) }
         }
     }
 }
@@ -413,7 +413,7 @@ private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modi
                     }
                 }
                 val scroll = if (band == 0) state.horizontal.value else 0
-                placeables.forEachIndexed { index, placeable -> placeable.placeRelative(shape.offsets[shown[index]] - scroll, (height - placeable.height) / 2) }
+                placeables.forEachIndexed { index, placeable -> placeable.placeRelative(shape.offsets[shown[index]] - scroll, Alignment.CenterVertically.align(placeable.height, height)) }
             }
         }
     }
@@ -436,7 +436,7 @@ private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private 
         return layout(constraints.maxWidth, height) {
             placeables.forEachIndexed { index, cell ->
                 val align = columns[visible[index]].cellAlign
-                cell.forEach { it.placeRelative(shape.offsets[visible[index]] - (if (band == 0) scroll.value else 0) + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), (height - it.height) / 2) }
+                cell.forEach { it.placeRelative(shape.offsets[visible[index]] - (if (band == 0) scroll.value else 0) + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), Alignment.CenterVertically.align(it.height, height)) }
             }
         }
     }

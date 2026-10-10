@@ -1,44 +1,31 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.web.*
+import dev.shibasis.dependeasy.Versions
+plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
-
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-surface"))
-            api(compose.runtime)
-            api(compose.foundation)
-            api(compose.ui)
-            api("org.jetbrains.compose.ui:ui-backhandler:${project.property("compose.version")}")
+dependeasy {
+    module("dev.shibasis.reaktor.surface.compose") {
+        common {
+            dependencies {
+                api(project(":reaktor-surface"))
+                api(Versions.Compose.Runtime)
+                api(Versions.Compose.Foundation)
+                api(Versions.Compose.Ui)
+                api(Versions.Compose.BackHandler)
+            }
+            testDependencies {
+                implementation(Versions.Compose.UiTest)
+            }
         }
-        testDependencies {
-            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-            api(compose.uiTest)
+        android {}
+        apple {}
+        web {}
+
+        jvm {
+            dependencies {
+                api(Versions.Compose.Desktop)
+            }
+            testDependencies {
+                implementation(Versions.Kotlin.CoroutinesDebug)
+            }
         }
     }
-    droid {}
-    darwin {}
-    web {}
-    server {
-        dependencies {
-            api(compose.desktop.currentOs)
-        }
-    }
-    sourceSets.named("jvmTest") {
-        dependencies {
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:${dev.shibasis.dependeasy.Version.Coroutines}")
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.surface.compose")
 }

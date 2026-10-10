@@ -16,7 +16,7 @@ object AppGraphFeatures {
             .map { (scope, members) -> Feature(scope, graph.scopes[scope]?.label ?: scope, members) }
             .sortedBy { it.label }
         val entries = app.filter { it.kind == NodeKind.Screen || it.kind == NodeKind.Container }
-        val hubs = entries.filter { it.kind == NodeKind.Container && graph.hopsFrom(it.id).size > HubHops }.map { it.id }.toSet()
+        val hubs = entries.filter { graph.hopsFrom(it.id).size > HubHops }.map { it.id }.toSet()
         val segmentOf = entries.associate { it.id to segment(it.route) }
         val parent = HashMap<String, String>()
         fun find(key: String): String = parent[key]?.let(::find) ?: key

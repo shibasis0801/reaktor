@@ -66,7 +66,7 @@ internal class CloudflareInventoryBuilder(
         val secrets = config.objects("bindings").filter { it.text("type") == "secret_text" }.mapNotNull { it.text("name") }
         val vars = config.objects("bindings").filter { it.text("type") in setOf("plain_text", "json") }.mapNotNull { it.text("name") }
         val status = when {
-            usage == null -> ResourceStatus.Unknown
+            usage?.requests == null || usage.errors == null -> ResourceStatus.Unknown
             usage.requests == 0.0 -> ResourceStatus.Idle
             usage.requests >= 50 && usage.errors / usage.requests >= 0.05 -> ResourceStatus.Degraded
             else -> ResourceStatus.Healthy
@@ -74,7 +74,7 @@ internal class CloudflareInventoryBuilder(
         add(CloudResource(
             id = workerId, kind = CloudKind.Worker, platform = CloudPlatform.Cloudflare, name = name,
             status = status,
-            statusDetail = usage?.let { "${it.requests.toLong()} requests · ${it.errors.toLong()} errors in 24 h" } ?: "no invocations reported",
+            statusDetail = usage?.let { "${it.requests?.let { value -> "${value.toLong()} requests" } ?: "requests not read"} · ${it.errors?.let { value -> "${value.toLong()} errors" } ?: "errors not read"} in 24 h" } ?: "traffic not read",
             attributes = mapOfNotNull(
                 "created" to script.text("created_on"),
                 "modified" to script.text("modified_on"),
@@ -93,9 +93,9 @@ internal class CloudflareInventoryBuilder(
             ),
             metrics = buildList {
                 usage?.let {
-                    add(CloudMetric("requests", "Requests", it.requests, CloudUnit.Count, "24 h"))
-                    add(CloudMetric("errors", "Errors", it.errors, CloudUnit.Count, "24 h"))
-                    add(CloudMetric("subrequests", "Subrequests", it.subrequests, CloudUnit.Count, "24 h"))
+                    it.requests?.let { value -> add(CloudMetric("requests", "Requests", value, CloudUnit.Count, "24 h")) }
+                    it.errors?.let { value -> add(CloudMetric("errors", "Errors", value, CloudUnit.Count, "24 h")) }
+                    it.subrequests?.let { value -> add(CloudMetric("subrequests", "Subrequests", value, CloudUnit.Count, "24 h")) }
                     it.cpuP50?.let { value -> add(CloudMetric("cpuP50", "CPU p50", value, CloudUnit.Micros, "24 h")) }
                     it.cpuP99?.let { value -> add(CloudMetric("cpuP99", "CPU p99", value, CloudUnit.Micros, "24 h")) }
                 }

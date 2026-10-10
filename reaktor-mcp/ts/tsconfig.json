@@ -1,0 +1,7 @@
+{
+  "extends": "../../dependeasy/javascript/tsconfig/browser.json",
+  "include": [
+    "../src/jsMain/typescript"
+  ],
+  "compilerOptions": {}
+}

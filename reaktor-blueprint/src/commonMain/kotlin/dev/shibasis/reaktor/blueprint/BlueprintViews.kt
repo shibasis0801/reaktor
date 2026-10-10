@@ -28,6 +28,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -149,7 +150,7 @@ fun <K> BlueprintCanvas(
     glow: (String) -> Color? = { null },
     cardOverview: ((Card) -> Pair<String, Color>)? = null,
 ) {
-    val frames = remember(layout) { layout.frames.map { CanvasFrame("frame:${it.key}", it.x, it.y, it.width, it.height, 1) } }
+    val frames = remember(layout) { layout.frames.map { CanvasFrame("frame:${it.key}", it.x, it.y, it.width, it.height, 1, BlueprintEngine.FrameTop) } }
     val framesById = remember(layout) { layout.frames.associateBy { "frame:${it.key}" } }
     val cards = remember(layout) { layout.cards.values.map { CanvasCard(it.id, it.x, it.y, it.width, it.height) } }
     val links = remember(layout, labels) {
@@ -228,11 +229,14 @@ fun BlueprintFrame(
     badges: @Composable RowScope.() -> Unit = {},
 ) {
     val tint = Blueprint.Container
-    val shape = RoundedCornerShape(12.dp)
     Box(
-        Modifier.fillMaxSize().clip(shape)
-            .background(tint.copy(alpha = if (frame.muted) .03f else .06f))
-            .border(if (lit != null) 1.5.dp else 1.dp, lit?.copy(alpha = .75f) ?: tint.copy(alpha = .28f), shape),
+        Modifier.fillMaxSize().drawBehind {
+            val bounds = Size((frame.width * density).toFloat(), (frame.height * density).toFloat())
+            val radius = CornerRadius(12.dp.toPx())
+            drawRoundRect(tint.copy(alpha = if (frame.muted) .03f else .06f), size = bounds, cornerRadius = radius)
+            drawRoundRect(lit?.copy(alpha = .75f) ?: tint.copy(alpha = .28f), size = bounds, cornerRadius = radius,
+                style = Stroke((if (lit != null) 1.5.dp else 1.dp).toPx()))
+        },
     ) {
         Row(
             modifier.fillMaxWidth().height(BlueprintEngine.FrameTop.dp)

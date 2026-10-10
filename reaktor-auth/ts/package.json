@@ -13,19 +13,21 @@
   },
   "scripts": {
     "postbuild": "karakum --config karakum.config.json",
-    "build": "tsc -b"
+    "build": "node ../../tools/typecheck.mjs -b"
   },
   "dependencies": {
-    "reaktor-reaktor-auth": "file://./export"
+    "reaktor-reaktor-auth": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
-    "karakum": "^1.0.0-alpha.107",
+    "karakum": "1.0.0-alpha.112",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "typescript": "^6.0.3"
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
   },
   "peerDependencies": {
     "react": ">=18"
-  }
+  },
+  "packageManager": "pnpm@12.10.1"
 }

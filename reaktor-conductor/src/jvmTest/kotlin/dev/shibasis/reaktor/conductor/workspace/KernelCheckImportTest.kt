@@ -64,7 +64,9 @@ class KernelCheckImportTest {
             }
         } finally {
             server?.stop(0)
-            root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); discovery.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
+            root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+            directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+            discovery.toFile().deleteTreeSafely(within = File(System.getProperty("user.home"), ".reaktor/agents"))
         }
     }
 }

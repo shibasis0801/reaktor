@@ -10,7 +10,7 @@ Current implementation status:
 - stable C ABI for Kotlin/Native, JNI, desktop, and WASM bindings
 - Kotlin common API surface under the normal Reaktor KMP `src/*Main` layout
 - TypeScript API surface under the normal Reaktor `ts/` layout, including Karakum back-import setup
-- host CMake and GoogleTest coverage under `cpp/tests/native` for direct conversation and member add flow
+- host CMake and GoogleTest coverage under `src/commonTest/cpp` for direct conversation and member add flow
 
 The next hard blocker is durable MLS state snapshots. MLS++ exposes `State` internals as protected fields but does not currently expose a clean public durable-state serializer. The intended path is a small audited MLS++ patch adding `State::export_snapshot()` and `State::import_snapshot()`.
 

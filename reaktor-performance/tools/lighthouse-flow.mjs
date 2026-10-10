@@ -57,7 +57,7 @@ async function main() {
     chromeLauncher = await import('chrome-launcher');
     ({ default: puppeteer } = await import('puppeteer-core'));
   } catch {
-    console.error('Lighthouse is not installed. Run: (cd reaktor-performance/tools && npm install)');
+    console.error('Lighthouse is not installed. Run: ./gradlew pnpmInstall from the Reaktor root');
     process.exit(3);
   }
   const config = args.preset === 'desktop' ? (await import('lighthouse/core/config/desktop-config.js')).default : undefined;

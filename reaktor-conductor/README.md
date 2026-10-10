@@ -19,7 +19,9 @@ Usage summaries report inclusive input, cached input, fresh input (including cac
 
 ## Shared workspace host and desktop Chat
 
-`AgentWorkspace` is the headless execution owner for graph task protocols and canonical conversation evidence; it has no Compose dependency. `AgentWorkspaceConnection` supplies one process owner per canonical workspace and the same authenticated MCP boundary for the desktop, CLI and external clients. BestBuds' optional `KernelAgentsNode` projects it into the kernel; the desktop Agent pane consumes that port.
+`AgentWorkspace` is the headless execution owner for graph task protocols and canonical conversation evidence; it has no Compose dependency. `AgentWorkspaceConnection` supplies one process owner per canonical workspace and authenticated operation access for the desktop, CLI and external clients. New local owners advertise native invocation version 1; typed calls and `workspace call` use that path without an MCP envelope. MCP projects the same graph-owned handlers and retained run state. Older owners and SSH connections retain MCP compatibility; an unsupported advertised native version fails explicitly. BestBuds' optional `KernelAgentsNode` projects the workspace into the kernel; the desktop Agent pane consumes that port.
+
+The graph workspace host requires Dependeasy's declared Java runtime, currently Java 25. Generated launchers resolve that toolchain. Conductor's own Java 21 bytecode target does not attest Java 21 compatibility of the transitive graph runtime. `agentDist` produces a jar-based distribution; rebuild it after source changes before installing a new launcher. The [engineering tools plan](../plans/engineering-tools-plan.md) tracks strong-input continuity, unified Hangar ownership and native A2A integration, which remain separate delivery gates.
 
 That describes the current implementation. The [13 September agent-layer plan](experiments/graph-agent-layer-2026-09-13.md) makes the graph the primary owner of tasks, provider sessions, context and operations. The former requirement to build a separate graph-agnostic surface is superseded; existing harnesses and APIs remain useful migration components.
 

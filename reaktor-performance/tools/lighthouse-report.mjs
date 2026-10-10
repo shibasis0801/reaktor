@@ -91,7 +91,7 @@ async function runLive(args) {
       ({ default: desktopConfig } = await import('lighthouse/core/config/desktop-config.js'));
     }
   } catch {
-    console.error('Lighthouse is not installed. Run: (cd reaktor-performance/tools && npm install)');
+    console.error('Lighthouse is not installed. Run: ./gradlew pnpmInstall from the Reaktor root');
     process.exit(3);
   }
 

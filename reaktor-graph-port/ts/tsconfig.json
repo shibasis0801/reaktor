@@ -1,18 +1,30 @@
 {
+  "extends": "../../dependeasy/javascript/tsconfig/base.json",
   "compilerOptions": {
-    "target": "es2020",
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"]
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "rootDir": ".."
   },
-  "include": ["index.ts", "karakum.ts", "src/**/*"],
-  "exclude": ["node_modules", "dist", "export", "import"]
+  "include": [
+    "index.ts",
+    "karakum.ts",
+    "../src/jsMain/typescript/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "export",
+    "import"
+  ]
 }

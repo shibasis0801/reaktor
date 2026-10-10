@@ -1,9 +1,12 @@
 package dev.shibasis.reaktor.tooling.cloud
 
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeout
 
 class CloudInventory(
@@ -21,7 +24,10 @@ class CloudInventory(
         return try {
             withTimeout(timeoutMillis) { provider.read() }
         } catch (timeout: TimeoutCancellationException) {
+            currentCoroutineContext().ensureActive()
             failed(provider.id, started, "No answer within ${timeoutMillis / 1000} s")
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (failure: Exception) {
             failed(provider.id, started, failure.message ?: failure::class.simpleName.orEmpty())
         }

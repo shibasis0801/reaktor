@@ -351,7 +351,7 @@ That means changes in `reaktor` are immediately visible to product repos using t
 - Android SDK
 - Xcode + iOS platform for Darwin targets
 - CMake and Ninja for native modules
-- CocoaPods for iOS dependencies
+- Xcode and SwiftPM for iOS dependencies
 
 Detailed setup:
 - [SETUP.md](/Users/ovd/dev/reaktor/SETUP.md)

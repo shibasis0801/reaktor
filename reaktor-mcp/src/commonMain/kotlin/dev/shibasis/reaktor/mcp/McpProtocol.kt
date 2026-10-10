@@ -107,6 +107,43 @@ class ReaktorMcpServer(
         }
     }
 
+    internal suspend fun handleAsync(
+        body: String,
+        definitions: List<ToolDefinition>,
+        execute: suspend (String, JsonObject) -> ToolResult,
+    ): JsonElement? {
+        val parsed = runCatching { Json.parseToJsonElement(body) }.getOrNull()
+            ?: return rpcError(JsonNull, -32700, "Parse error")
+        suspend fun single(message: JsonElement): JsonElement? {
+            val request = message as? JsonObject ?: return handleSingle(message)
+            val method = (request["method"] as? JsonPrimitive)?.contentOrNull
+            if (method != "tools/list" && method != "tools/call") return handleSingle(message)
+            val id = request["id"]?.takeUnless { it is JsonNull } ?: return null
+            if (method == "tools/list") return rpcResult(id, buildJsonObject {
+                putJsonArray("tools") { definitions.forEach { add(it.mcpValue()) } }
+            })
+            val params = request["params"] as? JsonObject
+            val name = (params?.get("name") as? JsonPrimitive)?.contentOrNull
+                ?: return rpcError(id, -32602, "Missing tool name")
+            if (definitions.none { it.name == name }) return rpcError(id, -32602, "Unknown tool: $name")
+            val arguments = params["arguments"] ?: JsonObject(emptyMap())
+            if (arguments !is JsonObject) return rpcError(id, -32602, "Tool arguments must be an object")
+            val result = execute(name, arguments)
+            return rpcResult(id, buildJsonObject {
+                put("content", result.content ?: buildJsonArray {
+                    addJsonObject { put("type", "text"); put("text", result.data.toString()) }
+                })
+                put("structuredContent", result.data as? JsonObject ?: buildJsonObject { put("result", result.data) })
+                put("isError", result.isError)
+            })
+        }
+        return when (parsed) {
+            is JsonArray -> if (parsed.isEmpty()) rpcError(JsonNull, -32600, "Invalid Request: empty batch")
+            else parsed.mapNotNull { single(it) }.let { if (it.isEmpty()) null else JsonArray(it) }
+            else -> single(parsed)
+        }
+    }
+
     private fun handleSingle(message: JsonElement): JsonElement? {
         val request = message as? JsonObject ?: return rpcError(JsonNull, -32600, "Invalid Request")
         val id = request["id"]
@@ -237,6 +274,20 @@ class ReaktorMcpServer(
             }
             put("isError", isError)
         })
+}
+
+internal fun ToolDefinition.mcpValue(): JsonObject = buildJsonObject {
+    put("name", name)
+    title?.let { put("title", it) }
+    put("description", description)
+    put("inputSchema", inputSchema)
+    outputSchema?.let { put("outputSchema", it) }
+    putJsonObject("annotations") {
+        put("readOnlyHint", readOnly)
+        put("idempotentHint", idempotent)
+        put("destructiveHint", destructive)
+        put("openWorldHint", openWorld)
+    }
 }
 
 fun objectSchema(

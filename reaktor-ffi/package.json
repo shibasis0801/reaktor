@@ -1,0 +1,19 @@
+{
+  "name": "ffi",
+  "version": "1.0.0",
+  "description": "JS FFI based on Hermes for Kotlin Multiplatform as well as React Native. Native apps can add some typescript, RN apps can add some KMM",
+  "main": "./src/commonMain/typescript/index.ts",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "node ../dependeasy/javascript/cli/typecheck.ts --projects tsconfig.json",
+    "test": "node --test src/commonTest/typescript/*.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "8.3.4",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "packageManager": "pnpm@12.10.1",
+  "type": "module"
+}

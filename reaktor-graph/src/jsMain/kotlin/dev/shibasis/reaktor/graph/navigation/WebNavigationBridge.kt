@@ -7,7 +7,7 @@ import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
@@ -21,7 +21,7 @@ class WebNavigationBridge(private val graph: Graph) {
     private var programmaticBack = false
     private var suppressStackSize: Int? = null
     private var lastStackSize = graph.backStack.entries.value.size
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val scope = CoroutineScope(graph.coroutineDispatcher + SupervisorJob(graph.coroutineScope.coroutineContext[Job]))
     private val popStateHandler: (Event) -> Unit = {
         val path = window.location.pathname
         val current = graph.backStack.top.value?.edge?.end

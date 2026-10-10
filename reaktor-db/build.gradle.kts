@@ -1,87 +1,69 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.web.*
+import dev.shibasis.dependeasy.Versions
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-val sqldelightVersion: String by project
-val apolloKotlinVersion: String by project
-
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-io"))
-            api("app.cash.sqldelight:runtime:$sqldelightVersion")
-            api("com.apollographql.apollo:apollo-runtime:$apolloKotlinVersion")
+dependeasy {
+    module("dev.shibasis.reaktor.db") {
+        common {
+            dependencies {
+                api(project(":reaktor-io"))
+                api(Versions.Data.SqlDelight)
+                api(Versions.Data.Apollo)
+            }
         }
-    }
 
-    // https://web.dev/articles/origin-private-file-system
-    // https://developer.chrome.com/blog/sqlite-wasm-in-the-browser-backed-by-the-origin-private-file-system
-    web {
-        dependencies {
-            api("app.cash.sqldelight:web-worker-driver:$sqldelightVersion")
-            api(npm("@sqlite.org/sqlite-wasm", Version.SQLiteWasm))
-            implementation(devNpm("copy-webpack-plugin", "9.1.0"))
+        web {
+            dependencies {
+                api(Versions.Data.SqlDelightWeb)
+                api(npm("@sqlite.org/sqlite-wasm", Versions.SQLiteWasm))
+            }
         }
-    }
 
-    droid {
-        dependencies {
-            implementation("androidx.sqlite:sqlite-framework:2.4.0")
-            api("app.cash.sqldelight:android-driver:$sqldelightVersion")
+        android {
+            dependencies {
+                implementation(Versions.Android.SQLite)
+                api(Versions.Data.SqlDelightAndroid)
+            }
         }
-    }
 
-    darwin {
-        dependencies {
-            api("app.cash.sqldelight:native-driver:$sqldelightVersion")
+        apple {
+            dependencies {
+                api(Versions.Data.SqlDelightNative)
+            }
         }
-        podDependencies {
-            framework {
-                linkerOpts("-lsqlite3")
+
+        jvm {
+            dependencies {
+                implementation(Versions.Data.SqlDelightJdbc)
+                implementation(Versions.Data.SqlDelightSQLite)
+                api(project(":reaktor-service"))
+                api(Versions.Data.Neo4j)
+                implementation(Versions.Kotlin.CoroutinesJdk8)
+                // Exposed/Postgres for the service DB helpers (ExposedAdapter/CrudRepository).
+                api(Versions.Data.Exposed)
+                api(Versions.Data.ExposedJdbc)
+                api(Versions.Data.Postgres)
             }
         }
     }
-    server {
-        dependencies {
-            implementation("app.cash.sqldelight:jdbc-driver:$sqldelightVersion")
-            implementation("app.cash.sqldelight:sqlite-driver:$sqldelightVersion")
-            api(project(":reaktor-service"))
-            api("org.neo4j.driver:neo4j-java-driver:5.28.9")
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${Version.Coroutines}")
-            // Exposed/Postgres for the service DB helpers (ExposedAdapter/CrudRepository).
-            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
-            api("org.postgresql:postgresql:42.7.3")
+
+
+    tasks.withType<Test> {
+        filter {
+            includeTestsMatching("*Test")
+            excludeTestsMatching("*TestUser*")
+            excludeTestsMatching("*TestConfig*")
         }
     }
-}
 
-tasks.withType<Test> {
-    filter {
-        includeTestsMatching("*Test")
-        excludeTestsMatching("*TestUser*")
-        excludeTestsMatching("*TestConfig*")
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.db")
-}
-
-// The React facade consumes the compiler's ES module, alongside the shipped worker resource.
-tasks.named("jsBrowserProductionLibraryDistribution") {
-    doLast {
-        copy {
-            from(layout.buildDirectory.dir("compileSync/js/main/productionLibrary/kotlin"))
-            into(layout.projectDirectory.dir("ts/export"))
-            include("reaktor-reaktor-db.*")
+    // The React facade consumes the compiler's ES module, alongside the shipped worker resource.
+    tasks.named("jsBrowserProductionLibraryDistribution") {
+        doLast {
+            copy {
+                from(layout.buildDirectory.dir("compileSync/js/main/productionLibrary/kotlin"))
+                into(layout.projectDirectory.dir("ts/export"))
+                include("reaktor-reaktor-db.*")
+            }
         }
     }
 }

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig/node.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true
+  },
+  "include": ["api/**/*.ts", "kernel/**/*.ts", "cli/**/*.ts"]
+}

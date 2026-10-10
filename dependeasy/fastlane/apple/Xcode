@@ -1,0 +1,21 @@
+# Xcode mechanics shared by product release recipes. Arguments are tokens, never shell fragments.
+def xcode_build_command(directory:, project:, scheme:, configuration:, derived_data:,
+                        archive: nil, arguments: [], environment: {})
+  command = ["xcodebuild", "-project", project, "-scheme", scheme,
+             "-configuration", configuration, "-destination", "generic/platform=iOS",
+             "-derivedDataPath", derived_data, *arguments]
+  command.concat(["-archivePath", archive]) if archive
+  command << (archive ? "archive" : "build")
+  xcode_command(command, directory: directory, environment: environment)
+end
+
+def xcode_export_command(archive:, directory:, options:, arguments: [])
+  xcode_command(["xcodebuild", "-exportArchive", "-archivePath", archive,
+                 "-exportPath", directory, "-exportOptionsPlist", options, *arguments])
+end
+
+def xcode_command(arguments, directory: nil, environment: {})
+  command = environment.empty? ? arguments : ["env", *environment.map { |key, value| "#{key}=#{value}" }, *arguments]
+  invocation = Shellwords.join(command)
+  directory ? "cd #{Shellwords.escape(directory)} && #{invocation}" : invocation
+end

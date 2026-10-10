@@ -6,13 +6,15 @@
   "scripts": {
     "prebuild": "node scripts/link-self.mjs",
     "postbuild": "karakum --config karakum.config.json",
-    "build": "tsc -b"
+    "build": "node ../../tools/typecheck.mjs -b"
   },
   "dependencies": {
-    "reaktor-reaktor-cloudflare": "file://./export"
+    "reaktor-reaktor-cloudflare": "workspace:*"
   },
   "devDependencies": {
-    "karakum": "^1.0.0-alpha.107",
-    "typescript": "^6.0.3"
-  }
+    "karakum": "1.0.0-alpha.112",
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "packageManager": "pnpm@12.10.1"
 }

@@ -122,6 +122,7 @@ class DefaultContextCompiler : ContextCompiler {
         return request.peers
             .filter { it.kind in request.visibility.peerKinds }
             .filter { (it.author as? Author.Agent)?.id != request.agent.id }
+            .distinctBy { it.id }
     }
 
     private fun describe(author: Author): String = when (author) {

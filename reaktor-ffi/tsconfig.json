@@ -1,0 +1,15 @@
+{
+  "extends": "../dependeasy/javascript/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022"
+    ],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "src/commonMain/typescript/**/*.ts"
+  ]
+}

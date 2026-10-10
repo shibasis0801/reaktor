@@ -45,7 +45,8 @@ internal class ClientServiceSpanProcessor(private val sink: SpanSink) : SpanProc
             startedMillis = span.startTimestamp / 1_000_000,
             durationMillis = ((attributes[ReaktorAttributes.DurationNanos] as? Long)
                 ?: (ended - span.startTimestamp)).coerceAtLeast(0) / 1_000_000.0,
-            status = if (span.status.statusCode != StatusCode.ERROR) 200
+            status = if (attributes[ReaktorAttributes.Cancelled] == true) 499
+                else if (span.status.statusCode != StatusCode.ERROR) 200
                 else if (span.status.description == "CancellationException") 499 else 500,
             applicationSession = attributes[ServiceCall.SessionAttribute] as? String ?: "",
             environment = attributes[ServiceCall.EnvironmentAttribute] as? String ?: "",

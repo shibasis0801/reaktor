@@ -18,6 +18,7 @@ import io.ktor.http.contentType
 import io.ktor.util.date.GMTDate
 import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.io.IOException
@@ -38,6 +39,7 @@ data class HttpExchange(
     val respondedAtMillis: Long,
     val finishedAtMillis: Long,
     val failure: String?,
+    val cancelled: Boolean = false,
 )
 
 fun interface HttpObserver {
@@ -165,6 +167,7 @@ private fun HttpRequestBuilder.failed(started: Long, failure: Throwable): HttpEx
         respondedAtMillis = now,
         finishedAtMillis = now,
         failure = failure.message ?: failure::class.simpleName ?: "failed",
+        cancelled = failure is CancellationException,
     )
 }
 

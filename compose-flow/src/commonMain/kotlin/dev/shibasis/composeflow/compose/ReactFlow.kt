@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -349,26 +350,28 @@ fun ReactFlow(
                         }
                     }
                     visibleNodes.forEach { node ->
-                        FlowNodeBox(
-                            node = node,
-                            nodeContent = nodeTypes[node.type],
-                            onNodeClick = onNodeClick,
-                            onNodesChange = onNodesChange,
-                            onConnect = onConnect,
-                            viewport = viewport,
-                            renderStyle = nodeRenderStyle(node),
-                            handleRenderStyle = { handle -> handleRenderStyle(node, handle) },
-                            defaultNodeWidthPx = defaultWidthPx,
-                            defaultNodeHeightPx = defaultHeightPx,
-                            snapToGrid = snapToGrid,
-                            snapGrid = snapGrid,
-                            autoPanOnDrag = autoPanOnNodeDrag,
-                            canvasSize = canvasSize,
-                            onPanBy = state::panBy,
-                            isValidConnection = isValidConnection,
-                            onConnectStart = onConnectStart,
-                            onConnectEnd = onConnectEnd,
-                        )
+                        key(node.id) {
+                            FlowNodeBox(
+                                node = node,
+                                nodeContent = nodeTypes[node.type],
+                                onNodeClick = onNodeClick,
+                                onNodesChange = onNodesChange,
+                                onConnect = onConnect,
+                                viewport = viewport,
+                                renderStyle = nodeRenderStyle(node),
+                                handleRenderStyle = { handle -> handleRenderStyle(node, handle) },
+                                defaultNodeWidthPx = defaultWidthPx,
+                                defaultNodeHeightPx = defaultHeightPx,
+                                snapToGrid = snapToGrid,
+                                snapGrid = snapGrid,
+                                autoPanOnDrag = autoPanOnNodeDrag,
+                                canvasSize = canvasSize,
+                                onPanBy = state::panBy,
+                                isValidConnection = isValidConnection,
+                                onConnectStart = onConnectStart,
+                                onConnectEnd = onConnectEnd,
+                            )
+                        }
                     }
 
                     // Above the node layer: a label eclipsed by a card answers nothing. Labels

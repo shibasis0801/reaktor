@@ -1,0 +1,107 @@
+package dev.shibasis.dependeasy
+
+import dev.shibasis.dependeasy.toolchain.ToolchainVersions
+import org.gradle.api.JavaVersion
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+object Versions {
+    val Android = dev.shibasis.dependeasy.versions.AndroidLibraries
+    val Compose = dev.shibasis.dependeasy.versions.ComposeLibraries
+    val Data = dev.shibasis.dependeasy.versions.DataLibraries
+    val Google = dev.shibasis.dependeasy.versions.GoogleLibraries
+    val Kotlin = dev.shibasis.dependeasy.versions.KotlinLibraries
+    val Native = dev.shibasis.dependeasy.versions.NativeLibraries
+    val Server = dev.shibasis.dependeasy.versions.ServerLibraries
+    val Telemetry = dev.shibasis.dependeasy.versions.TelemetryLibraries
+    val Tooling = dev.shibasis.dependeasy.versions.ToolingLibraries
+    val Web = dev.shibasis.dependeasy.versions.WebLibraries
+
+    object SDK {
+        const val minSdk = 26
+        const val compileSdk = ToolchainVersions.AndroidCompileSdk
+        const val targetSdk = 36
+        const val ndkVersion = ToolchainVersions.Ndk
+        const val CMake = ToolchainVersions.Cmake
+
+        const val targetDarwin = "13"
+
+        const val Kotlin = ToolchainVersions.Kotlin
+        const val SpringBoot = ToolchainVersions.SpringBoot
+
+        // JVM (server, desktop, toolchain) — Java 25
+        object Java {
+            val asInt = ToolchainVersions.Java
+            val asString = asInt.toString()
+            val asTarget = JvmTarget.fromTarget(asString)
+            val asEnum = JavaVersion.toVersion(asInt)
+        }
+
+        // Android — stays at 21 (AGP toolchain constraint)
+        object AndroidJava {
+            val asInt = ToolchainVersions.AndroidJava
+            val asTarget = JvmTarget.fromTarget(ToolchainVersions.AndroidJava.toString())
+            val asEnum = JavaVersion.toVersion(ToolchainVersions.AndroidJava)
+        }
+    }
+
+    // Android
+    const val Activity = "1.9.3"
+    const val Fragment = "1.8.5"
+    const val Lifecycle = "2.4.0"
+    const val Navigation = "2.3.2"
+    const val Coil = "3.6.3"
+
+    // Web
+    const val KotlinJSWrappers = "2025.10.4"
+    const val JsJodaTimezone = "2.23.0"
+    const val SQLiteWasm = "3.53.4-build2"
+    const val Pagefind = "1.5.2"
+    object WebView {
+        const val AndroidTestRunner = "1.7.0"
+        const val AndroidTestJUnit = "1.3.0"
+        const val WindowsSDK = "1.0.3537.50"
+        const val AndroidX = "1.14.0"
+        const val TypeScript = ToolchainVersions.TypeScriptApi
+        const val commit = "cbbdee44afff22867de9fd88a9fc8350d9bdd399"
+        const val archiveSha256 = "10e972a2327b5681474f4aa4499e505eaa4ff659aa995380386f08fd6fc1b763"
+    }
+
+    // Data
+    const val SQLDelight = dev.shibasis.dependeasy.toolchain.ToolchainVersions.SqlDelight
+    const val Apollo = "4.4.3"
+    const val Exposed = "1.0.0-beta-2"
+    const val OkHttp = "4.12.0"
+    const val WorkManager = "2.9.0"
+    const val Quartz = "2.5.1"
+    const val Ktor = "3.1.0"
+    const val Koin = "4.1.0"
+    const val KoinAnnotations = "2.0.0"
+
+    // Graph layout
+    const val Elk = "0.12.0"
+    const val XbaseLib = "2.44.0"
+
+    // Cloud
+    const val Firebase = "33.1.1"
+    const val FirebaseDarwin = "11.0"
+
+    // Android Camera
+    const val CameraX = "1.5.2"
+
+    // KMM Async
+    const val Coroutines = "1.10.2"
+    const val Kermit = "2.0.5"
+    const val Serialization = "1.9.0"
+    const val Seskar = "4.25.0"
+
+    // DevTools
+    const val LeakCanary = "2.8.1"
+    const val SoLoader = "0.10.1"
+
+    val architectures = listOf(
+//        "armeabi-v7a",
+        "x86",
+        "arm64-v8a",
+        "x86_64"
+    )
+}

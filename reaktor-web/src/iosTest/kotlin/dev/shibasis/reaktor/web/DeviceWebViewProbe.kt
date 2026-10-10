@@ -9,9 +9,31 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import org.koin.dsl.koinApplication
 import platform.Foundation.NSLog
+import platform.Foundation.NSStringFromClass
+import platform.UIKit.UIApplication
+import platform.UIKit.UIApplicationDelegateProtocol
+import platform.UIKit.UIApplicationDelegateProtocolMeta
+import platform.UIKit.UIApplicationMain
+import platform.UIKit.UIResponder
+import platform.UIKit.UIResponderMeta
 import platform.UIKit.UIViewController
+import platform.UIKit.UIWindow
+import kotlinx.cinterop.autoreleasepool
+import dev.shibasis.reaktor.core.framework.ReaktorAppDelegate
 
 fun createDeviceWebViewProbe(): UIViewController = DeviceWebViewProbe()
+
+fun startDeviceWebViewProbe() { autoreleasepool { UIApplicationMain(0, null, null, NSStringFromClass(DeviceWebViewProbeApplication)) } }
+
+class DeviceWebViewProbeApplication : UIResponder, UIApplicationDelegateProtocol {
+    companion object : UIResponderMeta(), UIApplicationDelegateProtocolMeta
+    @OverrideInit constructor() : super()
+    private val delegate = ReaktorAppDelegate(::createDeviceWebViewProbe)
+    override fun window() = delegate.window
+    override fun setWindow(window: UIWindow?) { delegate.window = window }
+    override fun application(application: UIApplication, didFinishLaunchingWithOptions: Map<Any?, *>?) =
+        delegate.didFinishLaunching(application)
+}
 
 private class DeviceWebViewProbe : UIViewController(nibName = null, bundle = null) {
     private val koin = koinApplication {}

@@ -1,61 +1,45 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.common.commonNetworking
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-val otelKotlinVersion = "0.1.0"
-val firebaseKotlinVersion = "2.4.0"
-
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-            commonNetworking()
-            api(project(":reaktor-graph-runtime"))
-            api("io.opentelemetry.kotlin:api:$otelKotlinVersion")
-            api("io.opentelemetry.kotlin:noop:$otelKotlinVersion")
-            implementation("io.opentelemetry.kotlin:implementation:$otelKotlinVersion")
-        }
-    }
-    droid {
-        dependencies {
-            api(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
-            api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
-        }
-    }
-    darwin {
-        dependencies {
-            api("dev.gitlive:firebase-crashlytics:$firebaseKotlinVersion")
-        }
-        podDependencies {
-            pod("FirebaseCrashlytics") {
-                version = "11.0"
-                linkOnly = true
+dependeasy {
+    module("dev.shibasis.reaktor.telemetry") {
+        common {
+            dependencies {
+                api(project(":reaktor-core"))
+                commonNetworking()
+                api(project(":reaktor-graph-runtime"))
+                api(Versions.Telemetry.Api)
+                api(Versions.Telemetry.Noop)
+                implementation(Versions.Telemetry.Implementation)
+            }
+            testDependencies {
+                implementation(Versions.Kotlin.KtorMock)
             }
         }
-    }
-    web {}
-    server {}
-    applyDefaultHierarchyTemplate()
-    sourceSets.commonTest.dependencies {
-        implementation(kotlin("test"))
-        implementation("io.ktor:ktor-client-mock:3.0.3")
-    }
-}
 
-android {
-    defaults("dev.shibasis.reaktor.telemetry")
-}
+        android {
+            dependencies {
+                api(project.dependencies.platform(Versions.Android.FirebaseBom))
+                api(Versions.Android.FirebaseKotlinCrashlytics)
+            }
+        }
+        apple {}
+        web {}
+        jvm {}
 
-// The JVM test runner scans every class in the test source set; restrict it to test classes.
-tasks.withType<Test>().configureEach {
-    filter {
-        isFailOnNoMatchingTests = false
-        includeTestsMatching("*Test")
+        kotlin {
+            applyDefaultHierarchyTemplate()
+        }
+    }
+
+
+    // The JVM test runner scans every class in the test source set; restrict it to test classes.
+    tasks.withType<Test>().configureEach {
+        filter {
+            isFailOnNoMatchingTests = false
+            includeTestsMatching("*Test")
+        }
     }
 }

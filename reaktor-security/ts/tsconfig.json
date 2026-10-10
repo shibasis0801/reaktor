@@ -1,18 +1,21 @@
 {
+  "extends": "../../dependeasy/javascript/tsconfig/base.json",
   "compilerOptions": {
     "composite": true,
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "dist",
-    "rootDir": ".",
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2022"
+    "rootDir": "."
   },
-  "include": ["*.ts"],
-  "exclude": ["dist", "import", "node_modules"]
+  "include": [
+    "*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "import",
+    "node_modules"
+  ]
 }

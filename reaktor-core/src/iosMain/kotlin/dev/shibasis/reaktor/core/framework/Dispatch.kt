@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package dev.shibasis.reaktor.core.framework
 
 import kotlinx.cinterop.convert

@@ -1,96 +1,69 @@
-import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.web.kotlinWrappers
+import dev.shibasis.dependeasy.web.webCoroutines
+import dev.shibasis.dependeasy.android.activityFragment
+import dev.shibasis.dependeasy.android.androidCoroutines
+import dev.shibasis.dependeasy.android.extensions
+import dev.shibasis.dependeasy.android.fbjni
+import dev.shibasis.dependeasy.common.commonCoroutines
+import dev.shibasis.dependeasy.common.commonLogging
+import dev.shibasis.dependeasy.common.commonSerialization
+import dev.shibasis.dependeasy.server.serverCoroutines
+import dev.shibasis.dependeasy.server.springWebFlux
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-kotlin {
-    common {
-        dependencies {
-            commonLogging()
-            commonCoroutines()
-            commonSerialization()
-            api("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
-            api("org.jetbrains.kotlinx:atomicfu:0.28.0")
-            api("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+dependeasy {
+    javascript("coreTypeScript").library("buildCoreTypeScript", "js/tsconfig.json", "js/dist", kotlin = true)
+    module("dev.shibasis.reaktor.core") {
+        common {
+            dependencies {
+                commonLogging()
+                commonCoroutines()
+                commonSerialization()
+                api(Versions.Kotlin.DateTime)
+                api(Versions.Kotlin.AtomicFu)
+                api(Versions.Kotlin.ImmutableCollections)
+            }
+        }
+
+        web {
+            dependencies {
+                api(npm("reaktor-core", projectDir))
+                kotlinWrappers()
+                webCoroutines()
+            }
+        }
+
+        android {
+            dependencies {
+                activityFragment()
+                androidCoroutines()
+                fbjni()
+
+                extensions()
+            }
+        }
+        apple {}
+
+        jvm {
+            dependencies {
+                serverCoroutines()
+                springWebFlux()
+                api(Versions.Data.Exposed)
+                api(Versions.Data.ExposedJdbc)
+                api(Versions.Data.Postgis)
+            }
         }
     }
 
-    web {
-        dependencies {
-            api(npm("reaktor-core", file("js")))
-            kotlinWrappers()
-            webCoroutines()
-        }
-    }
 
-    droid {
-        dependencies {
-            activityFragment()
-            androidCoroutines()
-            fbjni()
-//            lifecycle()
-            extensions()
-        }
+    tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+        exclude(
+            "**/ChmAdapter.class",
+            "**/ReaktorChmAdapter.class",
+            "**/JavaChmAdapter.class",
+            "**/SyncHashChmAdapter.class",
+        )
     }
-
-    darwin {
-        dependencies {}
-    }
-
-    server {
-        dependencies {
-            serverCoroutines()
-            springWebFlux()
-            api("org.jetbrains.exposed:exposed-core:${Version.Exposed}")
-            api("org.jetbrains.exposed:exposed-jdbc:${Version.Exposed}")
-            api("io.github.sebasbaumh:postgis-java-ng:23.2.0")
-        }
-    }
-
 }
-
-android {
-    defaults("dev.shibasis.reaktor.core")
-}
-
-tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
-    exclude(
-        "**/ChmAdapter.class",
-        "**/ReaktorChmAdapter.class",
-        "**/JavaChmAdapter.class",
-        "**/SyncHashChmAdapter.class",
-    )
-}
-
-
-
-
-val jsProjectDir = file("js")
-
-//val npmInstall by tasks.registering(Exec::class) {
-//    group = "npm"
-//    workingDir = jsProjectDir
-//    commandLine("npm", "install")
-//
-//    inputs.file(jsProjectDir.resolve("package.json"))
-//    outputs.dir(jsProjectDir.resolve("node_modules"))
-//}
-//
-//
-//val compileTypeScript by tasks.registering(Exec::class) {
-//    group = "npm"
-//    workingDir = jsProjectDir
-//    commandLine("npm", "run", "build")
-//    inputs.dir(jsProjectDir.resolve("src"))
-//    dependsOn(npmInstall)
-//}
-//
-//tasks.named("jsProcessResources") {
-//    dependsOn(compileTypeScript)
-//}

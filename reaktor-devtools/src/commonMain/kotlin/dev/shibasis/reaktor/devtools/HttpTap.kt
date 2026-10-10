@@ -40,6 +40,7 @@ class HttpTap(
                 startedNanos = nanosAt(exchange.startedAtMillis),
                 respondedNanos = nanosAt(exchange.respondedAtMillis),
                 source = "http",
+                cancelled = exchange.cancelled,
             )
         }
     }

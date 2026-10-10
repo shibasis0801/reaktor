@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.ServiceChain
 import dev.shibasis.reaktor.service.ServiceInterceptor
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.CancellationException
 
 /**
  * Captures every boundary crossing the app makes through `reaktor-service`.
@@ -46,6 +47,7 @@ class TrafficTap(
                 statusCode = response.transportStatusCode.code,
                 responseBytes = response.transportHeaders.contentLength(),
                 failure = null,
+                cancelled = false,
             )
             return response
         } catch (failure: Throwable) {
@@ -58,6 +60,7 @@ class TrafficTap(
                 statusCode = null,
                 responseBytes = 0,
                 failure = failure.message ?: failure::class.simpleName ?: "failed",
+                cancelled = failure is CancellationException,
             )
             throw failure
         }
@@ -72,6 +75,7 @@ class TrafficTap(
         statusCode: Int?,
         responseBytes: Long,
         failure: String?,
+        cancelled: Boolean,
     ) {
         stream.emit { sequence, nanos ->
             AgentFact.Traffic(
@@ -90,6 +94,7 @@ class TrafficTap(
                 statusCode = statusCode,
                 durationMillis = (nanos - startNanos) / 1_000_000,
                 failure = failure?.redacted(),
+                cancelled = cancelled,
                 portKey = portKeyFor(operation),
             )
         }

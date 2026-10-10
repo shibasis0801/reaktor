@@ -1,13 +1,13 @@
 {
+  "extends": "../../dependeasy/javascript/tsconfig/base.json",
   "compilerOptions": {
-    "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "Bundler",
-    "strict": true,
-    "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "types": []
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "../src/jsMain/typescript/**/*.ts"
+  ]
 }

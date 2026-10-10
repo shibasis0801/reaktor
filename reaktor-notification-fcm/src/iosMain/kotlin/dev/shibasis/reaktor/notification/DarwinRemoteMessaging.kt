@@ -1,12 +1,8 @@
 package dev.shibasis.reaktor.notification
 
 import co.touchlab.kermit.Logger
-import cocoapods.FirebaseMessaging.FIRMessaging
-import cocoapods.FirebaseMessaging.FIRMessagingDelegateProtocol
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.apps
-import dev.gitlive.firebase.initialize
 import dev.shibasis.reaktor.core.framework.AppLaunchHandler
+import dev.shibasis.reaktor.core.framework.AppleFirebaseRuntime
 import dev.shibasis.reaktor.core.framework.Dispatch
 import dev.shibasis.reaktor.core.framework.RemoteNotificationHandler
 import platform.Foundation.NSData
@@ -23,25 +19,10 @@ import platform.UserNotifications.UNUserNotificationCenter
 import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
 import platform.darwin.NSObject
 
-/**
- * Firebase Cloud Messaging + APNs transport for iOS, owned by reaktor-notification-fcm.
- *
- * This is the plumbing that used to live in the app's `UIApplicationDelegate`: it owns
- * the [UNUserNotificationCenter] delegate and the [FIRMessaging] delegate, configures
- * Firebase, registers for remote notifications, and feeds tokens/taps/foreground
- * presentations into the active [IosNotificationsClient] via [IosNotificationsRuntime].
- *
- * Wire it up by listing it in a `ReaktorAppDelegate`'s `handlers()` — it implements
- * [AppLaunchHandler] (configure on launch) and [RemoteNotificationHandler] (APNs token).
- * Nothing app-specific lives here.
- *
- * An app that never receives remote push should not depend on this module at all: the
- * FirebaseMessaging pod and the Firebase SDK come with it, and local notifications in
- * reaktor-notification need neither.
- */
 object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
     private var configured = false
     private var started = false
+    private val messaging get() = AppleRemoteMessagingRuntime.current()
 
     private val notificationCenterDelegate =
         object : NSObject(), UNUserNotificationCenterDelegateProtocol {
@@ -76,26 +57,8 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
             }
         }
 
-    private val messagingDelegate =
-        object : NSObject(), FIRMessagingDelegateProtocol {
-            override fun messaging(
-                messaging: FIRMessaging,
-                didReceiveRegistrationToken: String?
-            ) {
-                IosNotificationsRuntime.current()?.recordFcmToken(didReceiveRegistrationToken)
-                if (didReceiveRegistrationToken != null) {
-                    Logger.i { "FCM registration token refreshed (${didReceiveRegistrationToken.length} chars)" }
-                } else {
-                    Logger.w { "FCM registration token was null." }
-                }
-            }
-        }
-
     /** [AppLaunchHandler]: configure Firebase + the messaging transport at launch. */
     override fun didFinishLaunching(application: UIApplication) {
-        if (Firebase.apps().isEmpty()) {
-            Firebase.initialize()
-        }
         configure()
         start()
     }
@@ -103,16 +66,13 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
     private fun configure() {
         if (configured) return
         UNUserNotificationCenter.currentNotificationCenter().delegate = notificationCenterDelegate
-        val messaging = FIRMessaging.messaging()
-        messaging.delegate = messagingDelegate
-        messaging.autoInitEnabled = false
-        IosNotificationsRuntime.installRemoteTransportStarter {
-            Dispatch.Main.launch { start() }
-        }
+        AppleFirebaseRuntime.configure()
+        messaging.autoInit(false)
+        messaging.attachDelegate()
+        AppleRemoteMessagingRuntime.observeToken { token -> IosNotificationsRuntime.current()?.recordFcmToken(token) }
+        IosNotificationsRuntime.installRemoteTransportStarter { Dispatch.Main.launch { start() } }
         IosNotificationsRuntime.installRemoteTokenForgetter {
-            FIRMessaging.messaging().deleteTokenWithCompletion { error ->
-                if (error != null) Logger.w { "Could not delete the FCM token: ${error.localizedDescription}" }
-            }
+            messaging.deleteToken { error -> if (error != null) Logger.w { "Could not delete the FCM token: ${error.localizedDescription}" } }
         }
         configured = true
     }
@@ -120,9 +80,7 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
     private fun start() {
         if (started) return
         UNUserNotificationCenter.currentNotificationCenter().delegate = notificationCenterDelegate
-        val messaging = FIRMessaging.messaging()
-        messaging.delegate = messagingDelegate
-        messaging.autoInitEnabled = true
+        messaging.autoInit(true)
         started = true
         UIApplication.sharedApplication.registerForRemoteNotifications()
     }
@@ -131,11 +89,9 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
     override fun didRegisterForRemoteNotifications(deviceToken: NSData) {
         Logger.i { "APNs device token received (${deviceToken.length} bytes)" }
         IosNotificationsRuntime.current()?.recordApnsToken(deviceToken)
-        val messaging = FIRMessaging.messaging()
-        messaging.delegate = messagingDelegate
         started = true
-        messaging.APNSToken = deviceToken
-        messaging.tokenWithCompletion { token, error ->
+        messaging.setApnsToken(deviceToken)
+        messaging.requestToken { token, error ->
             when {
                 error != null -> Logger.e(error.localizedDescription) { "Failed to fetch FCM token" }
                 token != null -> {

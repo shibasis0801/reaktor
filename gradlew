@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ "${REMOTE_DEV_WORKER:-0}" != 1 ] && [ -x "$HOME/dev/tools/remote-dev" ] && [ -f "$HOME/dev/.remote-dev/config.json" ]; then
+    exec "$HOME/dev/tools/remote-dev" gradle --project-dir "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)" -- "$@"
+fi
+
 #
 # Copyright © 2015 the original authors.
 #

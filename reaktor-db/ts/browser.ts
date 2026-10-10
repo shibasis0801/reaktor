@@ -1,1 +1,1 @@
-export { openBrowserObjectStore, BrowserObjectStore } from './export/reaktor-reaktor-db.mjs';
+export { openBrowserObjectStore, BrowserObjectStore } from 'reaktor-reaktor-db';

@@ -920,8 +920,8 @@ class AdversarialPerformanceHarnessTest {
     fun flexKotlinCppComparisonContractVerification() {
         val fixtures = comparisonFixtures()
         val output = runCppProcess(
-            binary = buildCppComparisonBinary(),
-            benchDir = findCppBenchDir(),
+            binary = CppReference.binary,
+            benchDir = CppReference.binary.parentFile,
             arguments = listOf("--verify-comparison") + fixtures.toCppArguments()
         )
         assertTrue(
@@ -1636,8 +1636,8 @@ class AdversarialPerformanceHarnessTest {
     }
 
     private fun runCppAdversarialHarness(fixtures: CppFixtures): kotlin.collections.Map<String, CppMetric> {
-        val benchDir = findCppBenchDir()
-        val binary = buildCppComparisonBinary()
+        val benchDir = CppReference.binary.parentFile
+        val binary = CppReference.binary
         val output = runCppProcess(
             binary = binary,
             benchDir = benchDir,
@@ -1700,40 +1700,6 @@ class AdversarialPerformanceHarnessTest {
         return metrics.associateBy { it.id }
     }
 
-    private fun buildCppComparisonBinary(): File {
-        val benchDir = findCppBenchDir()
-        val source = File(benchDir, "flexbuffer_bench.cpp")
-        val includeDir = File(benchDir, "../../../.github_modules/flatbuffers/include").canonicalFile
-        val binary = File(System.getProperty("user.dir"), "build/tmp/flexbufferBench/flexbuffer_bench_adversarial")
-        binary.parentFile.mkdirs()
-
-        val compiler = System.getenv("CXX")?.takeIf { it.isNotBlank() } ?: "clang++"
-        val nativeFlag = when (System.getProperty("os.arch").lowercase()) {
-            "aarch64", "arm64" -> "-mcpu=native"
-            else -> "-march=native"
-        }
-        val command = listOf(
-            compiler,
-            "-O3",
-            "-DNDEBUG",
-            nativeFlag,
-            "-std=c++17",
-            "-I", includeDir.absolutePath,
-            source.absolutePath,
-            "-o", binary.absolutePath
-        )
-        println("C++ comparison compile: ${command.joinToString(" ")}")
-        val compile = ProcessBuilder(command)
-            .directory(benchDir)
-            .redirectErrorStream(true)
-            .start()
-        val compileOutput = compile.inputStream.bufferedReader().readText()
-        val compileExit = compile.waitFor()
-        assertEquals(0, compileExit, "C++ harness compile failed:\n$compileOutput")
-        assertTrue(binary.canExecute(), "C++ comparison binary is not executable: $binary")
-        return binary
-    }
-
     private fun runCppProcess(binary: File, benchDir: File, arguments: List<String>): String {
         val process = ProcessBuilder(listOf(binary.absolutePath) + arguments)
             .directory(benchDir)
@@ -1743,18 +1709,6 @@ class AdversarialPerformanceHarnessTest {
         val exit = process.waitFor()
         assertEquals(0, exit, "C++ comparison harness failed:\n$output")
         return output
-    }
-
-    private fun findCppBenchDir(): File {
-        val candidates = listOf(
-            File("cpp/bench"),
-            File("reaktor-flexbuffer/cpp/bench"),
-            File("../reaktor-flexbuffer/cpp/bench"),
-            File(System.getProperty("user.dir"), "cpp/bench"),
-            File(System.getProperty("user.dir"), "reaktor-flexbuffer/cpp/bench")
-        )
-        return candidates.firstOrNull { File(it, "flexbuffer_bench.cpp").isFile }?.canonicalFile
-            ?: error("Could not locate reaktor-flexbuffer/cpp/bench/flexbuffer_bench.cpp from ${System.getProperty("user.dir")}")
     }
 
     private fun kotlin.collections.Map<String, CppMetric>.requireMetric(
